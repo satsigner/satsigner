@@ -3,9 +3,19 @@ body{
   color: #fff;
   background-color: #000;
   text-align: center;
+  background-image: url("imgs/satSigner_bg.png");
+  background-size: contain;
+  background-position: top;
+  margin: 0;
+  background-repeat: no-repeat;
+  text-align: center;
 }
 
 
+
+#header {margin: 0 auto 40px auto;width: 100%;}
+
+#logo{max-width: 300px;padding: 20px;margin: auto;width: 50%;}
 
 a{
   color: #fff;
@@ -15,7 +25,34 @@ a{
 
 
 
+div#flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+  max-width: 1200px;
+  margin: auto;
+  width: 100%;
+}
 
+img.flex-cell {
+    width: 25%;
+    display: block;
+}
+
+@media only screen and (max-width: 580px) {
+  img.flex-cell {
+      width: 100%;
+      display: block;
+  }
+}
+
+
+
+video {
+    max-width: 1200px;
+    width: 100%;
+    height: auto;
+}
 
 
 
