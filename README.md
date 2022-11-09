@@ -54,12 +54,11 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 
 ## Stack
 
-### Possible dependencies
-
 #### Backend
 * [Bitcoin Development Kit] (https://github.com/bitcoindevkit) via [RN-BDK] (https://github.com/LtbLightning/bdk-rn) - becoming reference Bitcoin dev tools
-* [Electrum Server] (https://github.com/spesmilo/electrum-server) - ubiquitous node interface
+* [Blockstream Electrs] (https://github.com/Blockstream/electrs) - performant Bitcoin server interface/signer backend to bootstrap users who don't yet run their own node
 * [Photon SDK] (https://github.com/photon-sdk) - powerful mobile Bitcoin dev kit to build forgiving, easy backup and recovery, intuitive signers
+* [Tor] (https://www.torproject.org/) - private communications with your personal nodeserver/electrs
 
 #### Frontend
 * [React bubble chart] (https://www.npmjs.com/package/react-bubble-chart)
