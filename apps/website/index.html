@@ -46,6 +46,305 @@
 
 
 
+    <div>
+
+
+
+                  <!--
+                  <script>if(!window.btcpay){    var head = document.getElementsByTagName('head')[0];   var script = document.createElement('script');   script.src='https://btcpay989117.lndyn.com/modal/btcpay.js';   script.type = 'text/javascript';   head.append(script);}function onBTCPayFormSubmit(event){    var xhttp = new XMLHttpRequest();    xhttp.onreadystatechange = function() {        if (this.readyState == 4 && this.status == 200) {            if(this.status == 200 && this.responseText){                var response = JSON.parse(this.responseText);                window.btcpay.showInvoice(response.invoiceId);            }        }    };    xhttp.open("POST", event.target.getAttribute('action'), true);    xhttp.send(new FormData( event.target ));}</script><style type="text/css"> .btcpay-form { display: inline-flex; align-items: center; justify-content: center; } .btcpay-form--inline { flex-direction: row; } .btcpay-form--block { flex-direction: column; } .btcpay-form--inline .submit { margin-left: 15px; } .btcpay-form--block select { margin-bottom: 10px; } .btcpay-form .btcpay-custom-container{ text-align: center; }.btcpay-custom { display: flex; align-items: center; justify-content: center; } .btcpay-form .plus-minus { cursor:pointer; font-size:25px; line-height: 25px; background: #DFE0E1; height: 30px; width: 45px; border:none; border-radius: 60px; margin: auto 5px; display: inline-flex; justify-content: center; } .btcpay-form select { -moz-appearance: none; -webkit-appearance: none; appearance: none; color: currentColor; background: transparent; border:1px solid transparent; display: block; padding: 1px; margin-left: auto; margin-right: auto; font-size: 11px; cursor: pointer; } .btcpay-form select:hover { border-color: #ccc; } #btcpay-input-price { -moz-appearance: none; -webkit-appearance: none; border: none; box-shadow: none; text-align: center; font-size: 25px; margin: auto; border-radius: 5px; line-height: 35px; background: #fff; } #btcpay-input-price::-webkit-outer-spin-button, #btcpay-input-price::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } </style>
+                  <form method="POST"  onsubmit="onBTCPayFormSubmit(event);return false"  action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
+                    <input type="hidden" name="storeId" value="ERVAn9xx7uhcPyEFSBdDazaNMwXQEYyshSyUdw1iiGtv" />
+                    <input type="hidden" name="jsonResponse" value="true" />
+                    <input type="" name="price" value="10" />
+                    <input type="select-list" name="currency" value="USD" />
+                  <button type="submit" class="submit" name="submit" style="min-width:146px; min-height:40px; border-radius: 4px;border-style: none;background-color: #333333;" alt="Pay with BtcPay, Self-Hosted Bitcoin Payment Processor"><span style="color:#fff">Support</span>
+                  </button></form>
+                -->
+
+                <style>
+
+                .btcpay-form {
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+
+                .btcpay-form--inline {
+                  flex-direction: row;
+                }
+
+                .btcpay-form--block {
+                  flex-direction: column;
+                }
+
+                .btcpay-form--inline .submit {
+                  margin-left: 15px;
+                }
+
+                .btcpay-form--block select {
+                  margin-bottom: 10px;
+                }
+
+                .btcpay-form .btcpay-custom-container {
+                  text-align: center;
+                }
+
+                .btcpay-custom {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+
+                .btcpay-form .plus-minus {
+                  cursor: pointer;
+                  font-size: 25px;
+                  line-height: 25px;
+                  background: #DFE0E1;
+                  height: 30px;
+                  width: 45px;
+                  border: none;
+                  border-radius: 60px;
+                  margin: auto 5px;
+                  display: inline-flex;
+                  justify-content: center;
+                }
+
+                .btcpay-form select {
+                  -moz-appearance: none;
+                  -webkit-appearance: none;
+                  appearance: none;
+                  color: currentColor;
+                  background: transparent;
+                  border: 1px solid transparent;
+                  display: block;
+                  padding: 1px;
+                  margin-left: auto;
+                  margin-right: auto;
+                  font-size: 11px;
+                  cursor: pointer;
+                }
+
+                .btcpay-form select:hover {
+                  border-color: #ccc;
+                }
+
+                .btcpay-form option {
+                  color: #000;
+                  background: rgba(0,0,0,.1);
+                }
+
+                .btcpay-input-price {
+                  -moz-appearance: textfield;
+                  border: none;
+                  box-shadow: none;
+                  text-align: center;
+                  font-size: 25px;
+                  margin: auto;
+                  border-radius: 5px;
+                  line-height: 35px;
+                  background: #131313;
+                  color: #fff;
+                  padding: 14px 0px;
+                }
+
+                .btcpay-input-price::-webkit-outer-spin-button, .btcpay-input-price::-webkit-inner-spin-button {
+                  -webkit-appearance: none;
+                  margin: 0;
+                }
+              </style>
+              <style>
+
+               input[type=range].btcpay-input-range {
+                  -webkit-appearance: none;
+                  width: 100%;
+                  background: transparent;
+                  margin-bottom: 25px;
+                }
+
+                input[type=range].btcpay-input-range:focus {
+                  outline: 0;
+                }
+
+                input[type=range].btcpay-input-range::-webkit-slider-runnable-track {
+                  width: 100%;
+                  height: 3.1px;
+                  cursor: pointer;
+                  box-shadow: 0 0 1.7px #020,0 0 0 #fff;
+                  background: #c0c0c0;
+                  border-radius: 1px;
+                  border: 0;
+                }
+
+                input[type=range].btcpay-input-range::-webkit-slider-thumb {
+                  box-shadow: none;
+                  border: 0px solid #fff;
+                  height: 22px;
+                  width: 22px;
+                  border-radius: 50%;
+                  background: #fff;
+                  cursor: pointer;
+                  -webkit-appearance: none;
+                  margin-top: -9.45px
+                }
+
+                input[type=range].btcpay-input-range:focus::-webkit-slider-runnable-track {
+                  background: #fff;
+                }
+
+                input[type=range].btcpay-input-range::-moz-range-track {
+                  width: 100%;
+                  height: 3.1px;
+                  cursor: pointer;
+                  box-shadow: 0 0 1.7px #020,0 0 0 #003c00;
+                  background: #f3f3f3;
+                  border-radius: 1px;
+                  border: 0;
+                }
+
+                input[type=range].btcpay-input-range::-moz-range-thumb {
+                  box-shadow: none;
+                  border: 2.5px solid #cedc21;
+                  height: 22px;
+                  width: 22px;
+                  border-radius: 50%;
+                  background: #0f3723;
+                  cursor: pointer;
+                }
+
+                input[type=range].btcpay-input-range::-ms-track {
+                  width: 100%;
+                  height: 3.1px;
+                  cursor: pointer;
+                  background: 0 0;
+                  border-color: transparent;
+                  color: transparent;
+                }
+
+                input[type=range].btcpay-input-range::-ms-fill-lower {
+                  background: #e6e6e6;
+                  border: 0;
+                  border-radius: 2px;
+                  box-shadow: 0 0 1.7px #020,0 0 0 #003c00;
+                }
+
+                input[type=range].btcpay-input-range::-ms-fill-upper {
+                  background: #f3f3f3;
+                  border: 0;
+                  border-radius: 2px;
+                  box-shadow: 0 0 1.7px #020,0 0 0 #003c00;
+                }
+
+                input[type=range].btcpay-input-range::-ms-thumb {
+                  box-shadow: none;
+                  border: 2.5px solid #cedc21;
+                  height: 22px;
+                  width: 22px;
+                  border-radius: 50%;
+                  background: #0f3723;
+                  cursor: pointer;
+                  height: 3.1px;
+                }
+
+                input[type=range].btcpay-input-range:focus::-ms-fill-lower {
+                  background: #f3f3f3;
+                }
+
+                input[type=range].btcpay-input-range:focus::-ms-fill-upper {
+                  background: #fff;
+                }
+
+
+
+                button.submit.donation {
+                    padding: 15px;
+                    min-width: 210px;
+                    margin-bottom: 50px;
+                    letter-spacing: 0.1rem;
+                    margin-top: 10px;
+                }
+
+                </style>
+
+                <h3>Contribute</h3>
+  <form method="POST" onsubmit="onBTCPayFormSubmit(event);return false" action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
+    <input type="hidden" name="storeId" value="GRqWiPg5FBP5j7yNqaHVyAr884e65B7ebFjqE4g8Fu8k" />
+    <input type="hidden" name="jsonResponse" value="true" />
+    <div class="btcpay-custom-container">
+      <input class="btcpay-input-price" type="number" name="price" min="1" max="21000" step="1" value="21" data-price="1" style="width:209px;" oninput="handlePriceInput(event);return false" onchange="handleSliderChange(event);return false" />
+    <select name="currency">
+      <option value="USD" selected>USD</option>
+      <option value="GBP">GBP</option>
+      <option value="EUR">EUR</option>
+      <option value="BTC">BTC</option>
+    </select>
+    <input type="range" class="btcpay-input-range" min="1" max="21000" step="1" value="21" style="width:209px;" oninput="handleSliderInput(event);return false" />
+    </div>
+    <button type="submit" class="submit donation" name="submit" title="Pay with BTCPay Server, a Self-Hosted Bitcoin Payment Processor">DONATE</button>
+  </form>
+
+  <script>
+      if (!window.btcpay) {
+          var script = document.createElement('script');
+          script.src = "https://btcpay989117.lndyn.com/modal/btcpay.js";
+          document.getElementsByTagName('head')[0].append(script);
+      }
+      function onBTCPayFormSubmit(event) {
+          event.preventDefault();
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+              if (this.readyState == 4 && this.status == 200 && this.responseText) {
+                  window.btcpay.showInvoice(JSON.parse(this.responseText).invoiceId);
+              }
+          };
+          xhttp.open('POST', event.target.getAttribute('action'), true);
+          xhttp.send(new FormData(event.target));
+      }
+
+      function handleSliderChange(event) {
+          event.preventDefault();
+          const root = event.target.closest('.btcpay-form');
+          const el = root.querySelector('.btcpay-input-price');
+          const price = parseInt(el.value);
+          const min = parseInt(event.target.getAttribute('min')) || 1;
+          const max = parseInt(event.target.getAttribute('max'));
+          if (price < min) {
+              el.value = min;
+          } else if (price > max) {
+              el.value = max;
+          }
+          root.querySelector('.btcpay-input-range').value = el.value;
+      }
+
+      function handleSliderInput(event) {
+          event.target.closest('.btcpay-form').querySelector('.btcpay-input-price').value = event.target.value;
+      }
+
+      function handlePriceInput(event) {
+          event.preventDefault();
+          const root = event.target.closest('.btcpay-form');
+          const price = parseInt(event.target.dataset.price);
+          if (isNaN(event.target.value)) root.querySelector('.btcpay-input-price').value = price;
+          const min = parseInt(event.target.getAttribute('min')) || 1;
+          const max = parseInt(event.target.getAttribute('max'));
+          if (event.target.value < min) {
+              event.target.value = min;
+          } else if (event.target.value > max) {
+              event.target.value = max;
+          }
+      }
+      </script>
+
+
+
+
+
+
+        </div>
+
+    </div>
+
+
+
   <div id="flex-container">
 
     <img class="flex-cell" src="imgs/ui/satSigner1.png">
