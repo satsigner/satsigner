@@ -43,25 +43,33 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
 
 const Button = (props) => {
   return (
-    <TouchableOpacity activeOpacity={0.5} style={styles.TouchableOpacity} onPress={this.onPressHandler}>
-      <View style={styles.button}>
-        <Text style={[styles.text, styles.buttonText]}>
-          {props.title}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <View style={{minHeight: 85}}>
+      <TouchableOpacity
+        activeOpacity={0.5}
+        style={[styles.TouchableOpacity, {height: 62}]}
+        onPress={this.onPressHandler}
+      >
+        <View style={styles.button}>
+          <Text style={[styles.text, styles.buttonText]}>
+            {props.title}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({  
   text: {
-    color: 'white'
+    color: 'white',
+    letterSpacing: 1,
+    fontSize: 13
   },
   container: {
     flex: 1    
   },
   header: {
-    flex: 1,
+    height: 75,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#222222',
@@ -70,22 +78,27 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   content: {
-    flex: 9,
+    flex: 1,
     justifyContent: 'space-evenly',
     alignItems: 'stretch',
     paddingHorizontal: '6%'
   },
   accountName: {
-    alignItems: 'stretch'
   },
   accountNameLabel: {
-    alignSelf: 'center'
+    alignSelf: 'center',
+    marginBottom: 7
   },
   accountNameText: {
     backgroundColor: '#242424',
+    fontSize: 20,
+    fontWeight: '300',
+    textAlign: 'center',
+    padding: 13.6,
+    borderRadius: 3,
+    letterSpacing: 0.6
   },
   actions: {
-    height: '50%',
     justifyContent: 'space-evenly'
   },
   actionButton: {
