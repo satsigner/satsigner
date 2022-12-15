@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface Props {}
 
@@ -15,9 +16,20 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
   render() {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <LinearGradient
+          colors={['#151515', '#2F2F2F']}
+          start={{
+            x: 0.94,
+            y: 1.0
+          }}
+          end={{
+            x: 0.86,
+            y: -0.64
+          }}
+          style={styles.header}
+        >
           <Text style={[styles.text, styles.heading]}>Create New Parent Account</Text>
-        </View>
+        </LinearGradient>
         <View style={styles.content}>
           <View style={styles.accountName}>
             <Text style={[styles.text, styles.accountNameLabel]}>
@@ -72,7 +84,6 @@ const styles = StyleSheet.create({
     height: 75,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#222222',
   },
   heading: {
     textTransform: 'uppercase'
