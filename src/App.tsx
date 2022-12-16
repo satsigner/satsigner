@@ -1,6 +1,6 @@
 import React from 'react';
-import {StyleSheet, View} from 'react-native';
-import {CreateParentAccount} from './components/accounts/CreateParentAccount';
+import {SafeAreaView, StyleSheet, View} from 'react-native';
+import FeeManagement from './components/signing/FeeManagement';
 
 interface State {}
 
@@ -13,9 +13,9 @@ export default class App extends React.Component<{}, State> {
 
   render() {
     return (
-      <View style={styles.container}>
-        <CreateParentAccount />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <FeeManagement />
+      </SafeAreaView>
     );
   }
 }
