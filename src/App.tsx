@@ -14,7 +14,7 @@ export default class App extends React.Component<{}, State> {
   render() {
     return (
       <View style={styles.container}>
-        <CreateParentAccount burger='asdf'/>
+        <CreateParentAccount />
       </View>
     );
   }

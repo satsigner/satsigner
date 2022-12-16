@@ -13,11 +13,25 @@ import GlobalStyles from '../../GlobalStyles';
 import Button from '../shared/Button';
 import Header from '../shared/Header';
 
+import Account from '../../models/Account';
+
 interface Props {}
 
-interface State {}
+interface State {
+  account: Account
+}
 
 export class CreateParentAccount extends React.PureComponent<Props, State> {
+  constructor(props: any) {
+    super(props);
+
+    this.state = {
+      account: {
+        name: ''
+      }
+    };
+  }
+
   render() {
     return (
       <View style={styles.container}>
@@ -27,21 +41,40 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
             <Text style={styles.accountNameLabel}>
               Account Name
             </Text>
-            <TextInput style={styles.accountNameText}>
+            <TextInput
+              style={styles.accountNameText}
+              value={this.state.account.name}
+              onChangeText={(accountName) => this.setAccount(accountName)}
+            >
             </TextInput>
           </View>
           <View style={styles.actions}>
-            <Button title='Generate New Secret Seed' onPress={this.notImplementedAlert}></Button>
-            <Button title='Import Existing Seed' onPress={this.notImplementedAlert}></Button>
-            <Button title='Import As Stateless' onPress={this.notImplementedAlert}></Button>
+            <Button title='Generate New Secret Seed' onPress={() => this.notImplementedAlert()}></Button>
+            <Button title='Import Existing Seed' onPress={() => this.notImplementedAlert()}></Button>
+            <Button title='Import As Stateless' onPress={() => this.notImplementedAlert()}></Button>
           </View>
         </View>
       </View>
     );
   }
 
+  setAccount(accountName: string) {
+    this.setState(
+      {
+        account: {
+          name: accountName
+        }
+      }
+    );
+  }
+
   notImplementedAlert() {
-    Alert.alert('Coming Soon...', 'Not yet implemented.', [{text: 'OK'}]);
+    Alert.alert(
+      'Coming Soon...',
+      'Not yet implemented.\n' +
+        `(Account Name = ${this.state.account.name})`,
+      [{text: 'OK'}]
+    );
   }
 }
 
