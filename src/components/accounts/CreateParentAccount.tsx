@@ -4,9 +4,14 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  TouchableOpacity
+  Alert,
+  ViewProps
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+
+import GlobalStyles from '../../GlobalStyles';
+
+import Button from '../shared/Button';
+import Header from '../shared/Header';
 
 interface Props {}
 
@@ -16,77 +21,33 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
   render() {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={['#151515', '#2F2F2F']}
-          start={{
-            x: 0.94,
-            y: 1.0
-          }}
-          end={{
-            x: 0.86,
-            y: -0.64
-          }}
-          style={styles.header}
-        >
-          <Text style={[styles.text, styles.heading]}>Create New Parent Account</Text>
-        </LinearGradient>
+        <Header heading='Create New Parent Account'></Header>
         <View style={styles.content}>
-          <View style={styles.accountName}>
-            <Text style={[styles.text, styles.accountNameLabel]}>
+          <View>
+            <Text style={styles.accountNameLabel}>
               Account Name
             </Text>
-            <TextInput style={[styles.text, styles.accountNameText]}>
+            <TextInput style={styles.accountNameText}>
             </TextInput>
           </View>
           <View style={styles.actions}>
-            <Button title='Generate New Secret Seed'></Button>
-            <Button title='Import Existing Seed'></Button>
-            <Button title='Import As Stateless'></Button>
+            <Button title='Generate New Secret Seed' onPress={this.notImplementedAlert}></Button>
+            <Button title='Import Existing Seed' onPress={this.notImplementedAlert}></Button>
+            <Button title='Import As Stateless' onPress={this.notImplementedAlert}></Button>
           </View>
         </View>
       </View>
     );
   }
 
-  onPressHandler() {
-    console.log('pressed');
+  notImplementedAlert() {
+    Alert.alert('Coming Soon...', 'Not yet implemented.', [{text: 'OK'}]);
   }
 }
 
-const Button = (props) => {
-  return (
-    <View style={{minHeight: 85}}>
-      <TouchableOpacity
-        activeOpacity={0.5}
-        style={[styles.TouchableOpacity, {height: 62}]}
-        onPress={this.onPressHandler}
-      >
-        <View style={styles.button}>
-          <Text style={[styles.text, styles.buttonText]}>
-            {props.title}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({  
-  text: {
-    color: 'white',
-    letterSpacing: 1,
-    fontSize: 13
-  },
   container: {
     flex: 1    
-  },
-  header: {
-    height: 75,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heading: {
-    textTransform: 'uppercase'
   },
   content: {
     flex: 1,
@@ -94,13 +55,13 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     paddingHorizontal: '6%'
   },
-  accountName: {
-  },
   accountNameLabel: {
+    ...GlobalStyles.text,
     alignSelf: 'center',
     marginBottom: 7
   },
   accountNameText: {
+    ...GlobalStyles.text,
     backgroundColor: '#242424',
     fontSize: 20,
     fontWeight: '300',
@@ -112,19 +73,4 @@ const styles = StyleSheet.create({
   actions: {
     justifyContent: 'space-evenly'
   },
-  actionButton: {
-  },
-  TouchableOpacity: {
-    borderRadius: 3,
-    backgroundColor: '#434343',
-    height: '16%'
-  },
-  button: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonText: {
-    textTransform: 'uppercase'
-  }
 });
