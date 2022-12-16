@@ -8,6 +8,7 @@ import {
   ViewProps
 } from 'react-native';
 
+import { COLORS } from '../../colors';
 import GlobalStyles from '../../GlobalStyles';
 
 import Button from '../shared/Button';
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   },
   accountNameText: {
     ...GlobalStyles.text,
-    backgroundColor: '#242424',
+    backgroundColor: COLORS.gray2,
     fontSize: 20,
     fontWeight: '300',
     textAlign: 'center',

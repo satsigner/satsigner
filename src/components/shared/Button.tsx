@@ -5,13 +5,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
+import { COLORS } from '../../colors';
 import GlobalStyles from '../../GlobalStyles';
 
 export default (props) => {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,
-      backgroundColor: '#434343',
+      backgroundColor: COLORS.gray4,
       height: 62,
       marginVertical: 10
     },  
