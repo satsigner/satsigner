@@ -12,12 +12,12 @@ export default (props) => {
     header: {
       height: 75,
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'center'
     },
     heading: {
       ...GlobalStyles.text,
       textTransform: 'uppercase'
-    },  
+    },
   });
   
   return (

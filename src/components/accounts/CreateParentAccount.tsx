@@ -47,12 +47,13 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
 
 const styles = StyleSheet.create({  
   container: {
-    flex: 1    
+    flex: 1
   },
   content: {
     flex: 1,
-    justifyContent: 'space-evenly',
+    justifyContent: 'flex-start',
     alignItems: 'stretch',
+    marginTop: 30,
     paddingHorizontal: '6%'
   },
   accountNameLabel: {
@@ -71,6 +72,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6
   },
   actions: {
-    justifyContent: 'space-evenly'
+    justifyContent: 'space-evenly',
+    marginVertical: 36
   },
 });
