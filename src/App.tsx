@@ -1,6 +1,6 @@
 import React from 'react';
 import {SafeAreaView, StyleSheet, View} from 'react-native';
-import FeeManagement from './components/signing/FeeManagement';
+import InputHistoryExplorer from './components/signing/InputHistortyExplorer';
 
 interface State {}
 
@@ -14,7 +14,7 @@ export default class App extends React.Component<{}, State> {
   render() {
     return (
       <SafeAreaView style={styles.container}>
-        <FeeManagement />
+        <InputHistoryExplorer />
       </SafeAreaView>
     );
   }

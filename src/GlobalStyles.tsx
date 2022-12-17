@@ -6,4 +6,8 @@ export default StyleSheet.create({
     letterSpacing: 1,
     fontSize: 13
   },
+  button: {
+    color: 'black',
+    backgroundColor: 'white',
+  }
 });
