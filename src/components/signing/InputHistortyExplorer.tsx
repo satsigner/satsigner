@@ -25,13 +25,13 @@ const InputHistoryExplorer = () => {
             <View style={styles.inOutButtonsContainer}>
               <Button 
                 style={styles.inOutButton} 
-                buttonStyle={styles.inOutButtonText} 
+                textStyle={styles.inOutButtonText} 
                 title={"Sign Message"} 
                 onPress={() => {}} 
               />
               <Button 
                 style={styles.inOutButton} 
-                buttonStyle={styles.inOutButtonText} 
+                textStyle={styles.inOutButtonText} 
                 title={"Sign Message"} 
                 onPress={() => {}} 
               />
@@ -39,7 +39,7 @@ const InputHistoryExplorer = () => {
             <View style={styles.signMessageButtonContainer}>
               <Button 
                 style={styles.signMessageButton} 
-                buttonStyle={styles.signMessageButtonText} 
+                textStyle={styles.signMessageButtonText} 
                 title={"Sign Message"} 
                 onPress={() => {}} 
               />
@@ -92,7 +92,10 @@ const styles = StyleSheet.create({
   inOutButton: {
     backgroundColor: '#131313',
     borderColor: 'white',
-    borderWidth: 2
+    borderWidth: 2,
+    maxWidth: '50%',
+    marginHorizontal: 5,
+    flexGrow: 1
   },
   inOutButtonText: {
     color: 'white'
@@ -106,9 +109,9 @@ const styles = StyleSheet.create({
   },
   signMessageButton: {
     ...GlobalStyles.button,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
   },
   signMessageButtonContainer: {
-    margin: "5% 0%",
+    marginHorizontal: '5%'
   }
 });

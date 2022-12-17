@@ -7,7 +7,7 @@ import {
 
 import GlobalStyles from '../../GlobalStyles';
 
-export default ({ onPress, title, style, buttonStyle }) => {
+export default ({ onPress, title, style, textStyle }) => {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,
@@ -32,7 +32,7 @@ export default ({ onPress, title, style, buttonStyle }) => {
       onPress={onPress}
     >
       <View style={styles.button}>
-        <Text style={[GlobalStyles.text, styles.buttonText, buttonStyle]}>
+        <Text style={[GlobalStyles.text, styles.buttonText, textStyle]}>
           {title}
         </Text>
       </View>
