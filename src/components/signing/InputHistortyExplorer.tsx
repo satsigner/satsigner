@@ -1,4 +1,5 @@
-import React from 'react';
+import Slider from '@react-native-community/slider';
+import React, { useDebugValue, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,6 +14,7 @@ interface Props {}
 interface State {}
 
 const InputHistoryExplorer = () => {
+    const [satsPerByte, setSatsPerByte] = useState(0);
     return (
         <View style={GlobalStyles.view}>
             <Header heading='Extra Security'></Header>
@@ -22,6 +24,22 @@ const InputHistoryExplorer = () => {
               <Text style={styles.satsText}>sats</Text>
             </View>
             <Text style={styles.fiatAmountText}>26.34 USD</Text>
+            <Slider 
+                value={satsPerByte}
+                onValueChange={setSatsPerByte}
+                step={0.01}
+                minimumValue={1}
+                maximumValue={1000}
+                minimumTrackTintColor={'white'}
+            />
+            <View style={styles.feeContainer}>
+              <View>
+                <Text style={styles.feeText}>1503 sats</Text>
+                <Text style={styles.feeFiatText}>0.44 USD</Text>
+              </View>
+              <Text style={styles.estimatedBlocksText}>~4 blocks</Text>
+              <Text style={styles.satsPerByteText}>{satsPerByte.toFixed(2)} sat/vB</Text>
+            </View>
             <View style={styles.inOutButtonsContainer}>
               <Button 
                 style={styles.inOutButton} 
@@ -51,15 +69,44 @@ const InputHistoryExplorer = () => {
 export default InputHistoryExplorer;
 
 const styles = StyleSheet.create({  
-  container: {
-    flex: 1
+  amount: {
+    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-end'  
   },
-  content: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'stretch',
-    marginTop: 30,
-    paddingHorizontal: '6%'
+  estimatedBlocksText: {
+    ...GlobalStyles.text
+  },
+  feeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  feeText: {
+    ...GlobalStyles.text
+  },
+  feeFiatText: {
+    ...GlobalStyles.text,
+    color: '#575757',
+  },
+  fiatAmountText: {
+    ...GlobalStyles.text,
+    alignSelf: 'center',
+    fontSize: 11
+  },
+  inOutButton: {
+    backgroundColor: '#131313',
+    borderColor: 'white',
+    borderWidth: 2,
+    maxWidth: '50%',
+    marginHorizontal: 5,
+    flexGrow: 1
+  },
+  inOutButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center'
+  },
+  inOutButtonText: {
+    color: 'white'
   },
   numberOfOutputsText: {
     ...GlobalStyles.text,
@@ -74,43 +121,21 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     letterSpacing: 0.6,
   },
+  satsPerByteText: {
+    ...GlobalStyles.text,
+  },
   satsText: {
     ...GlobalStyles.text,
     color: '#575757',
     fontSize: 18,
-  },
-  fiatAmountText: {
-    ...GlobalStyles.text,
-    alignSelf: 'center',
-    fontSize: 11
-  },
-  amount: {
-    justifyContent: 'center',
-    flexDirection: 'row',
-    alignItems: 'flex-end'  
-  },
-  inOutButton: {
-    backgroundColor: '#131313',
-    borderColor: 'white',
-    borderWidth: 2,
-    maxWidth: '50%',
-    marginHorizontal: 5,
-    flexGrow: 1
-  },
-  inOutButtonText: {
-    color: 'white'
-  },
-  inOutButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center'
-  },
-  signMessageButtonText: {
-    color: 'black'
   },
   signMessageButton: {
     ...GlobalStyles.button,
     backgroundColor: 'white',
   },
   signMessageButtonContainer: {
+  },
+  signMessageButtonText: {
+    color: 'black'
   },
 });
