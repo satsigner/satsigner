@@ -14,7 +14,7 @@ interface State {}
 
 const InputHistoryExplorer = () => {
     return (
-        <View>
+        <View style={GlobalStyles.view}>
             <Header heading='Extra Security'></Header>
             <Text style={styles.numberOfOutputsText}>Spending X of Y outputs</Text>
             <View style={styles.amount}>
@@ -26,13 +26,13 @@ const InputHistoryExplorer = () => {
               <Button 
                 style={styles.inOutButton} 
                 textStyle={styles.inOutButtonText} 
-                title={"Sign Message"} 
+                title={"Add Input"} 
                 onPress={() => {}} 
               />
               <Button 
                 style={styles.inOutButton} 
                 textStyle={styles.inOutButtonText} 
-                title={"Sign Message"} 
+                title={"Add Output"} 
                 onPress={() => {}} 
               />
             </View>
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   },
   satsAmountText: {
     ...GlobalStyles.text,
-    fontSize: 36,
+    fontSize: 45,
     fontWeight: '300',
     textAlign: 'right',
     letterSpacing: 0.6,
@@ -112,6 +112,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   signMessageButtonContainer: {
-    marginHorizontal: '5%'
-  }
+  },
 });

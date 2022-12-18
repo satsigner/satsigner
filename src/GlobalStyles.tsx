@@ -9,5 +9,8 @@ export default StyleSheet.create({
   button: {
     color: 'black',
     backgroundColor: 'white',
+  },
+  view: {
+    marginHorizontal: '5%'
   }
 });
