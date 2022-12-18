@@ -5,7 +5,7 @@ import {
 
 import LinearGradient from 'react-native-linear-gradient';
 
-import { COLORS } from '../../colors';
+import { Colors } from '../../Colors';
 import GlobalStyles from '../../GlobalStyles';
 
 export default (props) => {
@@ -13,18 +13,14 @@ export default (props) => {
     header: {
       height: 75,
       justifyContent: 'center',
-      alignItems: 'center'
-    },
-    heading: {
-      ...GlobalStyles.text,
-      textTransform: 'uppercase'
+      alignItems: 'center',
     },
   });
   
   return (
     <LinearGradient
       style={styles.header}
-      colors={[COLORS.gray1, COLORS.gray3]}
+      colors={[Colors.gray1, Colors.gray3]}
       start={{
         x: 0.94,
         y: 1.0
@@ -34,7 +30,6 @@ export default (props) => {
         y: -0.64
       }}
     >
-      <Text style={styles.heading}>{props.heading}</Text>
     </LinearGradient>
   );
 }

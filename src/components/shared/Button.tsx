@@ -5,14 +5,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import { COLORS } from '../../colors';
+import { Colors } from '../../Colors';
 import GlobalStyles from '../../GlobalStyles';
 
 export default (props) => {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,
-      backgroundColor: COLORS.gray4,
+      backgroundColor: Colors.gray4,
       height: 62,
       marginVertical: 10
     },  
@@ -22,6 +22,7 @@ export default (props) => {
       alignItems: 'center',
     },
     buttonText: {
+      ...GlobalStyles.text,
       textTransform: 'uppercase'
     }
   });
@@ -29,11 +30,11 @@ export default (props) => {
   return (
     <TouchableOpacity
       activeOpacity={0.5}
-      style={[styles.touchableOpacity]}
+      style={styles.touchableOpacity}
       onPress={props.onPress}
     >
       <View style={styles.button}>
-        <Text style={[GlobalStyles.text, styles.buttonText]}>
+        <Text style={styles.buttonText}>
           {props.title}
         </Text>
       </View>
