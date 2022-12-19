@@ -1,6 +1,6 @@
 import React from 'react';
 import {SafeAreaView, StyleSheet, View} from 'react-native';
-import InputHistoryExplorer from './components/inputHistory/InputHistortyExplorer';
+import InputHistoryExplorer from './components/signing/InputHistortyExplorer';
 
 interface State {}
 
