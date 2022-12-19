@@ -1,16 +1,70 @@
 import Slider from '@react-native-community/slider';
-import React, {useDebugValue, useState} from 'react';
-import {View, StyleSheet, Text} from 'react-native';
+import React, {useState} from 'react';
+import {View, StyleSheet, Text, Dimensions} from 'react-native';
 import GlobalStyles from '../../GlobalStyles';
 import Button from '../shared/Button';
 import Header from '../shared/Header';
+import {curveBasis, line, scaleLinear, scaleTime} from 'd3';
+import {
+  animatedData,
+  animatedData2,
+  animatedData3,
+  DataPoint,
+  originalData,
+} from './Data';
+import {parse, Path as RePath} from 'react-native-redash';
+import LineChart from './LineChart';
 
 interface Props {}
 
 interface State {}
 
+export type GraphData = {
+  max: number;
+  min: number;
+  curve: RePath;
+  mostRecent: number;
+};
+
+const {width} = Dimensions.get('screen');
+
+const CARD_WIDTH = width - 20;
+const GRAPH_WIDTH = CARD_WIDTH - 60;
+const CARD_HEIGHT = 325;
+const GRAPH_HEIGHT = 200;
+
+const makeGraph = (data: DataPoint[]) => {
+  const max = Math.max(...data.map(val => val.value));
+  const min = Math.min(...data.map(val => val.value));
+  const y = scaleLinear().domain([0, max]).range([GRAPH_HEIGHT, 35]);
+
+  const x = scaleTime()
+    .domain([new Date(2000, 1, 1), new Date(2000, 1, 15)])
+    .range([10, GRAPH_WIDTH - 10]);
+
+  const curvedLine = line<DataPoint>()
+    .x(d => x(new Date(d.date)))
+    .y(d => y(d.value))
+    .curve(curveBasis)(data);
+
+  return {
+    max,
+    min,
+    curve: parse(curvedLine!),
+    mostRecent: data[data.length - 1].value,
+  };
+};
+
+const graphData: GraphData[] = [
+  makeGraph(originalData),
+  makeGraph(animatedData),
+  makeGraph(animatedData2),
+  makeGraph(animatedData3),
+];
+
 const InputHistoryExplorer = () => {
   const [satsPerByte, setSatsPerByte] = useState(0);
+
   return (
     <View style={styles.container}>
       <Header heading="Extra Security"></Header>
@@ -24,6 +78,15 @@ const InputHistoryExplorer = () => {
             <Text style={styles.satsText}>sats</Text>
           </View>
           <Text style={styles.fiatAmountText}>26.34 USD</Text>
+        </View>
+        <View style={{flex: 0.9}}>
+          <LineChart
+            height={GRAPH_HEIGHT}
+            width={GRAPH_WIDTH}
+            data={graphData}
+            bottomPadding={20}
+            leftPadding={0}
+          />
         </View>
         <View>
           <Slider
