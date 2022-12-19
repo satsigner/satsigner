@@ -4,7 +4,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import {Home} from './components/HomeScreen';
-import {CreateParentAccount} from './components/accounts/CreateParentAccount';
+import {CreateParentAccountScreen} from './components/accounts/CreateParentAccountScreen';
 import Placeholder from './components/PlaceholderScreen';
 
 import NavUtils from './utils/NavUtils';
@@ -39,13 +39,13 @@ export default class App extends React.Component<{}, State> {
           />
           <Stack.Screen
             name="CreateParentAccount"
-            component={CreateParentAccount}
+            component={CreateParentAccountScreen}
             options={NavUtils.getHeaderOptions('Create New Parent Account')}
           />
           <Stack.Screen
-            name="Placeholder2"
+            name="Placeholder"
             component={Placeholder}
-            options={NavUtils.getHeaderOptions('Placeholder 2')}
+            options={NavUtils.getHeaderOptions('Placeholder')}
           />
         </Stack.Navigator>
       </NavigationContainer>

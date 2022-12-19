@@ -35,8 +35,8 @@ export class Home extends React.PureComponent<Props, State> {
             </Text>
           </View>
           <View style={styles.actions}>
-          <Button title='Placeholder 1' onPress={() => this.props.navigation.navigate('Placeholder1')}></Button>
-          <Button title='Placeholder 2' onPress={() => this.props.navigation.navigate('Placeholder2')}></Button>
+          <Button title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
+          <Button title='Placeholder' onPress={() => this.props.navigation.navigate('Placeholder')}></Button>
           </View>
         </View>
       </View>

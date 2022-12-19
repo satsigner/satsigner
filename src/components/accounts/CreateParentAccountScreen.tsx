@@ -5,14 +5,12 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  ViewProps
 } from 'react-native';
 
-import { COLORS } from '../../colors';
+import { Colors } from '../../Colors';
 import GlobalStyles from '../../GlobalStyles';
 
 import Button from '../shared/Button';
-import Header from '../shared/Header';
 
 import Account from '../../models/Account';
 
@@ -22,7 +20,7 @@ interface State {
   account: Account
 }
 
-export class CreateParentAccount extends React.PureComponent<Props, State> {
+export class CreateParentAccountScreen extends React.PureComponent<Props, State> {
   constructor(props: any) {
     super(props);
 
@@ -35,11 +33,10 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
 
   render() {
     return (
-      <View style={styles.container}>
-        <Header heading='Create New Parent Account'></Header>
-        <View style={styles.content}>
+      <View style={GlobalStyles.container}>
+        <View style={GlobalStyles.content}>
           <View>
-            <Text style={styles.accountNameLabel}>
+            <Text style={GlobalStyles.label}>
               Account Name
             </Text>
             <TextInput
@@ -80,24 +77,9 @@ export class CreateParentAccount extends React.PureComponent<Props, State> {
 }
 
 const styles = StyleSheet.create({  
-  container: {
-    flex: 1
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'stretch',
-    marginTop: 30,
-    paddingHorizontal: '6%'
-  },
-  accountNameLabel: {
-    ...GlobalStyles.text,
-    alignSelf: 'center',
-    marginBottom: 7
-  },
   accountNameText: {
     ...GlobalStyles.text,
-    backgroundColor: COLORS.gray2,
+    backgroundColor: Colors.gray2,
     fontSize: 20,
     fontWeight: '300',
     textAlign: 'center',
