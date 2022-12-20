@@ -5,6 +5,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import {Home} from './components/HomeScreen';
 import {CreateParentAccountScreen} from './components/accounts/CreateParentAccountScreen';
+import {ImportSeedScreen} from './components/accounts/ImportSeedScreen';
 import Placeholder from './components/PlaceholderScreen';
 
 import NavUtils from './utils/NavUtils';
@@ -32,7 +33,7 @@ export default class App extends React.Component<{}, State> {
             presentation: 'transparentModal'
           }}            
         >
-        <Stack.Screen
+          <Stack.Screen
             name="Home"
             component={Home}            
             options={NavUtils.getHeaderOptions('Sat Signer')}
@@ -41,6 +42,11 @@ export default class App extends React.Component<{}, State> {
             name="CreateParentAccount"
             component={CreateParentAccountScreen}
             options={NavUtils.getHeaderOptions('Create New Parent Account')}
+          />
+          <Stack.Screen
+            name="ImportSeed"
+            component={ImportSeedScreen}
+            options={NavUtils.getHeaderOptions('Import Existing Seed')}
           />
           <Stack.Screen
             name="Placeholder"

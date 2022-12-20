@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { NavigationProp } from '@react-navigation/native';
 
 import { Colors } from '../../Colors';
 import GlobalStyles from '../../GlobalStyles';
@@ -14,7 +15,9 @@ import Button from '../shared/Button';
 
 import Account from '../../models/Account';
 
-interface Props {}
+interface Props {
+  navigation: NavigationProp<any>
+}
 
 interface State {
   account: Account
@@ -48,7 +51,7 @@ export class CreateParentAccountScreen extends React.PureComponent<Props, State>
           </View>
           <View style={styles.actions}>
             <Button title='Generate New Secret Seed' onPress={() => this.notImplementedAlert()}></Button>
-            <Button title='Import Existing Seed' onPress={() => this.notImplementedAlert()}></Button>
+            <Button title='Import Existing Seed' onPress={() => this.props.navigation.navigate('ImportSeed')}></Button>
             <Button title='Import As Stateless' onPress={() => this.notImplementedAlert()}></Button>
           </View>
         </View>
