@@ -2,6 +2,7 @@ import Slider from '@react-native-community/slider';
 import React, {useDebugValue, useState} from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 import GlobalStyles from '../../GlobalStyles';
+import {Layout, Typography} from '../../styles';
 import Button from '../shared/Button';
 import Header from '../shared/Header';
 
@@ -12,60 +13,56 @@ interface State {}
 const InputHistoryExplorer = () => {
   const [satsPerByte, setSatsPerByte] = useState(0);
   return (
-    <View style={styles.container}>
-      <View style={styles.body}>
-        <View>
-          <Text style={styles.numberOfOutputsText}>
-            Spending X of Y outputs
+    <View style={styles.body}>
+      <View>
+        <Text style={styles.numberOfOutputsText}>Spending X of Y outputs</Text>
+        <View style={styles.amount}>
+          <Text style={styles.satsAmountText}>14,476</Text>
+          <Text style={styles.satsText}>sats</Text>
+        </View>
+        <Text style={styles.fiatAmountText}>26.34 USD</Text>
+      </View>
+      <View>
+        <Slider
+          value={satsPerByte}
+          onValueChange={setSatsPerByte}
+          step={0.01}
+          minimumValue={1}
+          maximumValue={1000}
+          minimumTrackTintColor={'white'}
+        />
+        <View style={styles.feeContainer}>
+          <View>
+            <Text style={styles.feeText}>1503 sats</Text>
+            <Text style={styles.feeFiatText}>0.44 USD</Text>
+          </View>
+          <Text style={styles.estimatedBlocksText}>~4 blocks</Text>
+          <Text style={styles.satsPerByteText}>
+            {satsPerByte.toFixed(2)} sat/vB
           </Text>
-          <View style={styles.amount}>
-            <Text style={styles.satsAmountText}>14,476</Text>
-            <Text style={styles.satsText}>sats</Text>
-          </View>
-          <Text style={styles.fiatAmountText}>26.34 USD</Text>
         </View>
-        <View>
-          <Slider
-            value={satsPerByte}
-            onValueChange={setSatsPerByte}
-            step={0.01}
-            minimumValue={1}
-            maximumValue={1000}
-            minimumTrackTintColor={'white'}
-          />
-          <View style={styles.feeContainer}>
-            <View>
-              <Text style={styles.feeText}>1503 sats</Text>
-              <Text style={styles.feeFiatText}>0.44 USD</Text>
-            </View>
-            <Text style={styles.estimatedBlocksText}>~4 blocks</Text>
-            <Text style={styles.satsPerByteText}>
-              {satsPerByte.toFixed(2)} sat/vB
-            </Text>
-          </View>
-        </View>
-        <View>
-          <View style={styles.inOutButtonsContainer}>
-            <Button
-              style={styles.inOutButton}
-              textStyle={styles.inOutButtonText}
-              title={'Add Input'}
-              onPress={() => {}}
-            />
-            <Button
-              style={styles.inOutButton}
-              textStyle={styles.inOutButtonText}
-              title={'Add Output'}
-              onPress={() => {}}
-            />
-          </View>
+      </View>
+      <View>
+        <View style={styles.inOutButtonsContainer}>
           <Button
-            style={styles.signMessageButton}
-            textStyle={styles.signMessageButtonText}
-            title={'Sign Message'}
+            style={styles.inOutButton}
+            textStyle={styles.inOutButtonText}
+            title={'Add Input'}
+            onPress={() => {}}
+          />
+          <Button
+            style={styles.inOutButton}
+            textStyle={styles.inOutButtonText}
+            title={'Add Output'}
             onPress={() => {}}
           />
         </View>
+        <Button
+          style={styles.signMessageButton}
+          textStyle={styles.signMessageButtonText}
+          title={'Sign Message'}
+          onPress={() => {}}
+        />
       </View>
     </View>
   );
@@ -80,15 +77,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   body: {
-    flex: 1,
-    marginHorizontal: '5%',
+    ...Layout.container.base,
+    paddingHorizontal: '5%',
     justifyContent: 'space-evenly',
   },
-  container: {
-    flex: 1,
-  },
   estimatedBlocksText: {
-    ...GlobalStyles.text,
+    ...Typography.textHighlight.x5,
   },
   feeContainer: {
     flexDirection: 'row',
@@ -122,7 +116,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   numberOfOutputsText: {
-    ...GlobalStyles.text,
+    ...Typography.textHighlight.x5,
     alignSelf: 'center',
     marginBottom: 7,
     marginTop: 10,
