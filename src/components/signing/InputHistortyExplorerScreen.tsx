@@ -13,7 +13,6 @@ const InputHistoryExplorer = () => {
   const [satsPerByte, setSatsPerByte] = useState(0);
   return (
     <View style={styles.container}>
-      <Header heading="Extra Security"></Header>
       <View style={styles.body}>
         <View>
           <Text style={styles.numberOfOutputsText}>

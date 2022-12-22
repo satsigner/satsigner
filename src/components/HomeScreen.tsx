@@ -1,24 +1,18 @@
-import { NavigationProp } from '@react-navigation/native';
+import {NavigationProp} from '@react-navigation/native';
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-} from 'react-native';
+import {View, Text, StyleSheet} from 'react-native';
 
-import { Typography, Layout } from '../styles';
+import {Typography, Layout} from '../styles';
 
 import Button from './shared/Button';
 
 interface Props {
-  navigation: NavigationProp<any>
+  navigation: NavigationProp<any>;
 }
 
-interface State {
-}
+interface State {}
 
 export class Home extends React.PureComponent<Props, State> {
-
   constructor(props: any) {
     super(props);
 
@@ -29,32 +23,38 @@ export class Home extends React.PureComponent<Props, State> {
     return (
       <View style={styles.container}>
         <View>
-          <Text style={styles.label}>
-            Choose an action
-          </Text>
+          <Text style={styles.label}>Choose an action</Text>
         </View>
         <View style={styles.actions}>
-          <Button title='Placeholder 1' onPress={() => this.props.navigation.navigate('Placeholder1')}></Button>
-          <Button title='Placeholder 2' onPress={() => this.props.navigation.navigate('Placeholder2')}></Button>
+          <Button
+            title="InputHistoryExplorer"
+            onPress={() =>
+              this.props.navigation.navigate('InputHistoryExplorer')
+            }></Button>
+          <Button
+            title="Placeholder 2"
+            onPress={() =>
+              this.props.navigation.navigate('Placeholder2')
+            }></Button>
         </View>
       </View>
     );
   }
 }
 
-const styles = StyleSheet.create({  
+const styles = StyleSheet.create({
   container: {
     ...Layout.container.base,
     ...Layout.container.topPadded,
-    ...Layout.container.horizontalPadded
+    ...Layout.container.horizontalPadded,
   },
   actions: {
     justifyContent: 'space-evenly',
-    marginVertical: 36
+    marginVertical: 36,
   },
   label: {
     ...Typography.textHighlight.x6,
     alignSelf: 'center',
-    marginBottom: 7
-  }
+    marginBottom: 7,
+  },
 });
