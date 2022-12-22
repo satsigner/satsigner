@@ -3,6 +3,8 @@ import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
+import { Colors } from './styles';
+
 import {Home} from './components/HomeScreen';
 import Placeholder from './components/PlaceholderScreen';
 
@@ -25,7 +27,7 @@ export default class App extends React.Component<{}, State> {
       <NavigationContainer>
         <Stack.Navigator
           defaultScreenOptions={{
-            headerTintColor: 'white',
+            headerTintColor: Colors.white,
           }}
           screenOptions={{
             presentation: 'transparentModal'

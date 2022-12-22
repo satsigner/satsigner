@@ -5,10 +5,9 @@ import {
 
 import LinearGradient from 'react-native-linear-gradient';
 
-import { Colors } from '../../Colors';
-import GlobalStyles from '../../GlobalStyles';
+import { Colors } from '../../styles';
 
-export default (props) => {
+export default (props: any) => {
   const styles = StyleSheet.create({  
     header: {
       height: 75,
@@ -20,7 +19,7 @@ export default (props) => {
   return (
     <LinearGradient
       style={styles.header}
-      colors={[Colors.gray1, Colors.gray3]}
+      colors={[Colors.grey21, Colors.grey47]}
       start={{
         x: 0.94,
         y: 1.0

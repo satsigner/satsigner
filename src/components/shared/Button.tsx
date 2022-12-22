@@ -5,14 +5,13 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import { Colors } from '../../Colors';
-import GlobalStyles from '../../GlobalStyles';
+import { Colors, Typography } from '../../styles';
 
-export default (props) => {
+export default (props: any) => {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,
-      backgroundColor: Colors.gray4,
+      backgroundColor: Colors.action,
       height: 62,
       marginVertical: 10
     },  
@@ -22,8 +21,8 @@ export default (props) => {
       alignItems: 'center',
     },
     buttonText: {
-      ...GlobalStyles.text,
-      textTransform: 'uppercase'
+      ...Typography.textHighlight.x5,
+      ...Typography.capitalization.uppercase
     }
   });
   

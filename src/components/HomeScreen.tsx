@@ -6,7 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import GlobalStyles from '../GlobalStyles';
+import { Typography, Layout } from '../styles';
 
 import Button from './shared/Button';
 
@@ -27,17 +27,15 @@ export class Home extends React.PureComponent<Props, State> {
 
   render() {
     return (
-      <View style={GlobalStyles.container}>
-        <View style={GlobalStyles.content}>
-          <View>
-            <Text style={GlobalStyles.label}>
-              Choose an action
-            </Text>
-          </View>
-          <View style={styles.actions}>
+      <View style={styles.container}>
+        <View>
+          <Text style={styles.label}>
+            Choose an action
+          </Text>
+        </View>
+        <View style={styles.actions}>
           <Button title='Placeholder 1' onPress={() => this.props.navigation.navigate('Placeholder1')}></Button>
           <Button title='Placeholder 2' onPress={() => this.props.navigation.navigate('Placeholder2')}></Button>
-          </View>
         </View>
       </View>
     );
@@ -45,8 +43,18 @@ export class Home extends React.PureComponent<Props, State> {
 }
 
 const styles = StyleSheet.create({  
+  container: {
+    ...Layout.container.base,
+    ...Layout.container.topPadded,
+    ...Layout.container.horizontalPadded
+  },
   actions: {
     justifyContent: 'space-evenly',
     marginVertical: 36
   },
+  label: {
+    ...Typography.textHighlight.x6,
+    alignSelf: 'center',
+    marginBottom: 7
+  }
 });
