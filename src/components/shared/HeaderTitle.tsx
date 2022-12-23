@@ -3,13 +3,13 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import GlobalStyles from '../../GlobalStyles';
+import { Typography } from '../../styles';
 
-export default (props) => {
+export default function HeaderTitle(props: any) {
   const styles = StyleSheet.create({  
     heading: {
-      ...GlobalStyles.text,
-      textTransform: 'uppercase'
+      ...Typography.textHighlight.x5,
+      ...Typography.capitalization.uppercase
     },
   });
   

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
-import GlobalStyles from '../GlobalStyles';
+import { Typography, Layout } from '../styles';
 
 import Button from './shared/Button';
 
@@ -17,7 +17,7 @@ interface Props {
 interface State {
 }
 
-export class Home extends React.PureComponent<Props, State> {
+export default class HomeScreen extends React.PureComponent<Props, State> {
 
   constructor(props: any) {
     super(props);
@@ -27,17 +27,15 @@ export class Home extends React.PureComponent<Props, State> {
 
   render() {
     return (
-      <View style={GlobalStyles.container}>
-        <View style={GlobalStyles.content}>
-          <View>
-            <Text style={GlobalStyles.label}>
-              Choose an action
-            </Text>
-          </View>
-          <View style={styles.actions}>
-            <Button title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
-            <Button title='Placeholder' onPress={() => this.props.navigation.navigate('Placeholder')}></Button>
-          </View>
+      <View style={styles.container}>
+        <View>
+          <Text style={styles.label}>
+            Choose an action
+          </Text>
+        </View>
+        <View style={styles.actions}>
+          <Button title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
+          <Button title='Placeholder' onPress={() => this.props.navigation.navigate('Placeholder')}></Button>
         </View>
       </View>
     );
@@ -45,8 +43,18 @@ export class Home extends React.PureComponent<Props, State> {
 }
 
 const styles = StyleSheet.create({  
+  container: {
+    ...Layout.container.base,
+    ...Layout.container.topPadded,
+    ...Layout.container.horizontalPadded
+  },
   actions: {
     justifyContent: 'space-evenly',
     marginVertical: 36
   },
+  label: {
+    ...Typography.textHighlight.x6,
+    alignSelf: 'center',
+    marginBottom: 7
+  }
 });

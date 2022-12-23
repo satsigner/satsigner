@@ -5,8 +5,7 @@ import {
   StyleSheet,
 } from 'react-native';
 
-import { Colors } from '../../Colors';
-import GlobalStyles from '../../GlobalStyles';
+import { Typography, Layout } from '../../styles';
 
 import Account from '../../models/Account';
 
@@ -16,7 +15,7 @@ interface State {
   account: Account
 }
 
-export class ImportSeedScreen extends React.PureComponent<Props, State> {
+export default class ImportSeedScreen extends React.PureComponent<Props, State> {
   constructor(props: any) {
     super(props);
 
@@ -29,13 +28,11 @@ export class ImportSeedScreen extends React.PureComponent<Props, State> {
 
   render() {
     return (
-      <View style={GlobalStyles.container}>
-        <View style={GlobalStyles.content}>
-          <View>
-            <Text style={GlobalStyles.label}>
-              import seed screen...
-            </Text>
-          </View>
+      <View style={styles.container}>
+        <View>
+          <Text style={styles.label}>
+            Mnemonic Seed Words (BIP39)
+          </Text>
         </View>
       </View>
     );
@@ -44,5 +41,14 @@ export class ImportSeedScreen extends React.PureComponent<Props, State> {
 }
 
 const styles = StyleSheet.create({  
-
+  container: {
+    ...Layout.container.base,
+    ...Layout.container.topPadded,
+    ...Layout.container.horizontalPadded
+  },
+  label: {
+    ...Typography.textHighlight.x5,
+    alignSelf: 'center',
+    marginBottom: 7
+  },
 });
