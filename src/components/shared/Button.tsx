@@ -7,7 +7,7 @@ import {
 
 import { Colors, Typography } from '../../styles';
 
-export default (props: any) => {
+export default function Button(props: any) {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,

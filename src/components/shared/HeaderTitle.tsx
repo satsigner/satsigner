@@ -5,7 +5,7 @@ import {
 
 import { Typography } from '../../styles';
 
-export default (props: any) => {
+export default function HeaderTitle(props: any) {
   const styles = StyleSheet.create({  
     heading: {
       ...Typography.textHighlight.x5,

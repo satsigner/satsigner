@@ -7,7 +7,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import { Colors } from '../../styles';
 
-export default (props: any) => {
+export default function HeaderBackground(props: any) {
   const styles = StyleSheet.create({  
     header: {
       height: 75,

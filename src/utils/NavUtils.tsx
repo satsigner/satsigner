@@ -19,4 +19,5 @@ class NavUtils {
 }
 
 const navUtils = new NavUtils();
+
 export default navUtils;

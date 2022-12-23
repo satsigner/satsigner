@@ -7,7 +7,7 @@ import {
 
 import { Typography, Layout } from '../styles';
 
-export default (props: any) => {
+export default function PlaceholderScreen(props: any) {
   return (
     <View style={styles.container}>
       <View>
