@@ -5,8 +5,8 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import { Colors } from './styles';
 
-import {Home} from './components/HomeScreen';
-import Placeholder from './components/PlaceholderScreen';
+import HomeScreen from './components/HomeScreen';
+import PlaceholderScreen from './components/PlaceholderScreen';
 
 import NavUtils from './utils/NavUtils';
 
@@ -35,17 +35,17 @@ export default class App extends React.Component<{}, State> {
         >
         <Stack.Screen
             name="Home"
-            component={Home}            
+            component={HomeScreen}            
             options={NavUtils.getHeaderOptions('Sat Signer')}
           />
           <Stack.Screen
             name="Placeholder1"
-            component={Placeholder}
+            component={PlaceholderScreen}
             options={NavUtils.getHeaderOptions('Placeholder 1')}
           />
           <Stack.Screen
             name="Placeholder2"
-            component={Placeholder}
+            component={PlaceholderScreen}
             options={NavUtils.getHeaderOptions('Placeholder 2')}
           />
         </Stack.Navigator>
