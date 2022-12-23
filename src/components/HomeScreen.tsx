@@ -17,7 +17,7 @@ interface Props {
 interface State {
 }
 
-export class Home extends React.PureComponent<Props, State> {
+export default class HomeScreen extends React.PureComponent<Props, State> {
 
   constructor(props: any) {
     super(props);
