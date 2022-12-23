@@ -7,8 +7,7 @@ import {
   Alert,
 } from 'react-native';
 
-import { Colors } from '../../Colors';
-import GlobalStyles from '../../GlobalStyles';
+import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
 
@@ -20,7 +19,7 @@ interface State {
   account: Account
 }
 
-export class CreateParentAccountScreen extends React.PureComponent<Props, State> {
+export default class CreateParentAccountScreen extends React.PureComponent<Props, State> {
   constructor(props: any) {
     super(props);
 
@@ -33,24 +32,22 @@ export class CreateParentAccountScreen extends React.PureComponent<Props, State>
 
   render() {
     return (
-      <View style={GlobalStyles.container}>
-        <View style={GlobalStyles.content}>
-          <View>
-            <Text style={GlobalStyles.label}>
-              Account Name
-            </Text>
-            <TextInput
-              style={styles.accountNameText}
-              value={this.state.account.name}
-              onChangeText={(accountName) => this.setAccount(accountName)}
-            >
-            </TextInput>
-          </View>
-          <View style={styles.actions}>
-            <Button title='Generate New Secret Seed' onPress={() => this.notImplementedAlert()}></Button>
-            <Button title='Import Existing Seed' onPress={() => this.notImplementedAlert()}></Button>
-            <Button title='Import As Stateless' onPress={() => this.notImplementedAlert()}></Button>
-          </View>
+      <View style={styles.container}>
+        <View>
+          <Text style={styles.label}>
+            Account Name
+          </Text>
+          <TextInput
+            style={styles.accountNameText}
+            value={this.state.account.name}
+            onChangeText={(accountName) => this.setAccount(accountName)}
+          >
+          </TextInput>
+        </View>
+        <View style={styles.actions}>
+          <Button title='Generate New Secret Seed' onPress={() => this.notImplementedAlert()}></Button>
+          <Button title='Import Existing Seed' onPress={() => this.notImplementedAlert()}></Button>
+          <Button title='Import As Stateless' onPress={() => this.notImplementedAlert()}></Button>
         </View>
       </View>
     );
@@ -77,10 +74,19 @@ export class CreateParentAccountScreen extends React.PureComponent<Props, State>
 }
 
 const styles = StyleSheet.create({  
+  container: {
+    ...Layout.container.base,
+    ...Layout.container.topPadded,
+    ...Layout.container.horizontalPadded
+  },
+  label: {
+    ...Typography.textHighlight.x5,
+    alignSelf: 'center',
+    marginBottom: 7
+  },
   accountNameText: {
-    ...GlobalStyles.text,
-    backgroundColor: Colors.gray2,
-    fontSize: 20,
+    ...Typography.textHighlight.x12,
+    backgroundColor: Colors.inputBackground,
     fontWeight: '300',
     textAlign: 'center',
     padding: 13.6,
