@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  StyleSheet,
+  StyleSheet
 } from 'react-native';
 
 import { Typography, Layout, Colors } from '../../styles';
@@ -53,6 +53,16 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
             // onChangeText={(accountName) => this.setAccount(accountName)}
           >
           </TextInput>
+          <View style={styles.passphraseStatus}>
+            <View style={styles.checksum}>
+              <View style={styles.checksumStatus}></View>
+              <Text style={styles.checksumStatusLabel}>invalid checksum</Text>
+            </View>
+            <View style={styles.fingerprint}>
+              <Text style={styles.fingerprintLabel}>Fingerprint</Text>
+              <Text style={styles.fingerprintValue}>af4261ff</Text>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -108,7 +118,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6
   },
   passphrase: {
-    marginTop: 34
+    marginTop: 32
   },
   passphraseText: {
     ...Typography.textHighlight.x12,
@@ -119,5 +129,36 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     letterSpacing: 0.6
   },
-
+  passphraseStatus: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14
+  },
+  checksum: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  checksumStatus: {
+    width: 11,
+    height: 11,
+    borderRadius: 11 / 2,
+    backgroundColor: Colors.invalid,
+    marginRight: 5,
+    marginTop: 1
+  },
+  checksumStatusLabel: {
+    ...Typography.textHighlight.x5
+  },
+  fingerprint: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  fingerprintLabel: {
+    ...Typography.textMuted.x5,
+    marginRight: 5
+  },
+  fingerprintValue: {
+    ...Typography.textNormal.x5
+  },
 });

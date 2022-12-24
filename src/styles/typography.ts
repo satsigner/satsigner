@@ -71,63 +71,63 @@ type TextNormal = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" |
 export const textNormal: Record<TextNormal, TextStyle> = {
   x1: {
     ...fontSize.x1,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x2: {
     ...fontSize.x2,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x3: {
     ...fontSize.x3,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x4: {
     ...fontSize.x4,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x5: {
     ...fontSize.x5,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x6: {
     ...fontSize.x6,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x7: {
     ...fontSize.x7,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x8: {
     ...fontSize.x8,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x9: {
     ...fontSize.x9,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x10: {
     ...fontSize.x10,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x11: {
     ...fontSize.x11,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x12: {
     ...fontSize.x12,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x20: {
     ...fontSize.x20,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x30: {
     ...fontSize.x30,
-    color: Colors.grey130
+    color: Colors.normal
   },
   x40: {
     ...fontSize.x40,
-    color: Colors.grey130
+    color: Colors.normal
   }
 };
 
@@ -135,63 +135,63 @@ type TextHighlight = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9
 export const textHighlight: Record<TextHighlight, TextStyle> = {
   x1: {
     ...fontSize.x1,
-    color: Colors.white
+    color: Colors.highlight
   },
   x2: {
     ...fontSize.x2,
-    color: Colors.white
+    color: Colors.highlight
   },
   x3: {
     ...fontSize.x3,
-    color: Colors.white
+    color: Colors.highlight
   },
   x4: {
     ...fontSize.x4,
-    color: Colors.white
+    color: Colors.highlight
   },
   x5: {
     ...fontSize.x5,
-    color: Colors.white
+    color: Colors.highlight
   },
   x6: {
     ...fontSize.x6,
-    color: Colors.white
+    color: Colors.highlight
   },
   x7: {
     ...fontSize.x7,
-    color: Colors.white
+    color: Colors.highlight
   },
   x8: {
     ...fontSize.x8,
-    color: Colors.white
+    color: Colors.highlight
   },
   x9: {
     ...fontSize.x9,
-    color: Colors.white
+    color: Colors.highlight
   },
   x10: {
     ...fontSize.x10,
-    color: Colors.white
+    color: Colors.highlight
   },
   x11: {
     ...fontSize.x11,
-    color: Colors.white
+    color: Colors.highlight
   },
   x12: {
     ...fontSize.x12,
-    color: Colors.white
+    color: Colors.highlight
   },
   x20: {
     ...fontSize.x20,
-    color: Colors.white
+    color: Colors.highlight
   },
   x30: {
     ...fontSize.x30,
-    color: Colors.white
+    color: Colors.highlight
   },
   x40: {
     ...fontSize.x40,
-    color: Colors.white
+    color: Colors.highlight
   }
 };
 
@@ -199,77 +199,62 @@ type TextMuted = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | 
 export const textMuted: Record<TextMuted, TextStyle> = {
   x1: {
     ...fontSize.x1,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x2: {
     ...fontSize.x2,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x3: {
     ...fontSize.x3,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x4: {
     ...fontSize.x4,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x5: {
     ...fontSize.x5,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x6: {
     ...fontSize.x6,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x7: {
     ...fontSize.x7,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x8: {
     ...fontSize.x8,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x9: {
     ...fontSize.x9,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x10: {
     ...fontSize.x10,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x11: {
     ...fontSize.x11,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x12: {
     ...fontSize.x12,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x20: {
     ...fontSize.x20,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x30: {
     ...fontSize.x30,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   },
   x40: {
     ...fontSize.x40,
-    color: Colors.white,
-    opacity: 0.15
+    color: Colors.muted,
   }
 };

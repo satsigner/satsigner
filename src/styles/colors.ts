@@ -1,5 +1,5 @@
 // NOTE: see below these constant color values
-//       for logically named colors: (e.g. background)
+//       for semantically named colors: (e.g. background)
 
 export const black = '#000000';
 export const white = '#FFFFFF';
@@ -70,14 +70,22 @@ export const grey217 = '#D9D9D9';
 export const grey231 = '#E7E7E7';
 export const grey242 = '#F2F2F2';
 
-// Logically named colors
+// Semantically named colors
+
+export const normal = grey130;
+export const highlight = white;
+export const muted = grey79;
 
 export const background = grey19;
 export const inputBackground = grey36;
+
 export const action = grey67;
 export const disabledAction = grey52;
 export const defaultAction = white;
 export const additionalAction = 'rgba(0, 0, 0, 0)';
+
+export const valid = green2;
+export const invalid = red2;
 
 // Grey definitions currently unused in any designs
 
