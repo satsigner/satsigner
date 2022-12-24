@@ -30,7 +30,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   render() {
     const words = [];
     for (let i = 0; i < 12; i++) {
-      words.push(<Word num={i+1}></Word>);
+      words.push(<Word num={i+1} key={i}></Word>);
     }
     
     return (
@@ -42,6 +42,17 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
           <View style={styles.words}>
             {words}
           </View>
+        </View>
+        <View style={styles.passphrase}>
+          <Text style={styles.label}>
+            Additional personal secret (optional)
+          </Text>
+          <TextInput
+            style={styles.passphraseText}
+            // value={this.state.account.name}
+            // onChangeText={(accountName) => this.setAccount(accountName)}
+          >
+          </TextInput>
         </View>
       </View>
     );
@@ -95,5 +106,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderRadius: 3,
     letterSpacing: 0.6
-  }
+  },
+  passphrase: {
+    marginTop: 34
+  },
+  passphraseText: {
+    ...Typography.textHighlight.x12,
+    backgroundColor: Colors.inputBackground,
+    fontWeight: '300',
+    textAlign: 'center',
+    padding: 13.6,
+    borderRadius: 3,
+    letterSpacing: 0.6
+  },
+
 });
