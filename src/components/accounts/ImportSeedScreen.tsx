@@ -9,6 +9,7 @@ import {
 import { Typography, Layout, Colors } from '../../styles';
 
 import Account from '../../models/Account';
+import Button from '../shared/Button';
 
 interface Props {}
 
@@ -63,6 +64,15 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
               <Text style={styles.fingerprintValue}>af4261ff</Text>
             </View>
           </View>
+        </View>
+        <View>
+          <Button
+            title="Save Secret Seed"
+            style={{
+              backgroundColor: Colors.defaultActionBackground,
+              color: Colors.defaultActionText
+            }}
+          ></Button>
         </View>
       </View>
     );
@@ -133,7 +143,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 14
+    marginVertical: 14
   },
   checksum: {
     flexDirection: 'row',

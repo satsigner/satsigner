@@ -79,10 +79,15 @@ export const muted = grey79;
 export const background = grey19;
 export const inputBackground = grey36;
 
-export const action = grey67;
-export const disabledAction = grey52;
-export const defaultAction = white;
-export const additionalAction = 'rgba(0, 0, 0, 0)';
+export const actionBackground = grey67;
+export const disabledActionBackground = grey52;
+export const defaultActionBackground = white;
+export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
+
+export const actionText = white;
+export const disabledActionText = grey104;
+export const defaultActionText = black;
+export const additionalActionText = white;
 
 export const valid = green2;
 export const invalid = red2;

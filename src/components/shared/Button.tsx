@@ -11,7 +11,7 @@ export default function Button(props: any) {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,
-      backgroundColor: Colors.action,
+      backgroundColor: props?.style?.backgroundColor || Colors.actionBackground,
       height: 62,
       marginVertical: 10
     },  
@@ -22,7 +22,8 @@ export default function Button(props: any) {
     },
     buttonText: {
       ...Typography.textHighlight.x5,
-      ...Typography.capitalization.uppercase
+      ...Typography.capitalization.uppercase,
+      color: props?.style?.color || Colors.actionText
     }
   });
   
