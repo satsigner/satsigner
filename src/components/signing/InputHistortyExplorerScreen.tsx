@@ -27,7 +27,7 @@ const InputHistoryExplorer = () => {
         <TransactionSankey
           data={data}
           width="375"
-          height="125">
+          height="225">
         </TransactionSankey>
       </View>
       <View>

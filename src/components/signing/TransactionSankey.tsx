@@ -1,9 +1,8 @@
 import { sankey, sankeyLinkHorizontal } from "d3-sankey";
-import {G, Line, Path, Svg, Rect, Text} from 'react-native-svg';
+import {G, Path, Svg, Rect, Text, TSpan} from 'react-native-svg';
 
 const SankeyTransactionNode = ({ name, x0, x1, y0, y1, color }: {name: string, x0: number, x1: number, y0: number, y1: number, color: string}) => (
   <Rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} fill={color}>
-    {/* <title>{name}</title> */}
   </Rect>
 );
 
@@ -11,14 +10,15 @@ const SankeyInputOutputNode = ({ name, value, x0, x1, y0, y1, color }: {name: st
   <Text
     fill="white"
     stroke="white"
-    fontSize="10"
+    fontSize="12"
     fontWeight="100"
     x={x0}
-    y={y0}
+    y={y0 + ((y1 - y0) / 2)}
     textAnchor="middle"
-  >{toSats(value)} sats</Text>
-  // <Rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} fill="purple">
-  // </Rect>
+  >
+    <TSpan x={x0}>{toSats(value)} sats</TSpan>
+    <TSpan x={x0} dy="12" fontSize="10">{name}</TSpan>
+  </Text>
 );
 
 const SankeyLink = ({ link, color }) => (
@@ -26,27 +26,26 @@ const SankeyLink = ({ link, color }) => (
     d={sankeyLinkHorizontal()(link)}
     fill="none"
     stroke={color}
-    // strokeOpacity="1.0"
-    // strokeWidth={Math.max(1, link.width)}
     strokeWidth={Math.max(4, link.width)}
-    // style={{
-    //   fill: "none",
-    //   strokeOpacity: "1.0",
-    //   stroke: color,
-    //   strokeWidth: Math.max(1, link.width)
-    // }}
   />
 );
 
 const TransactionSankey = ({ data, width, height }) => {
   const { nodes, links } = sankey()
     .nodeWidth(40)
-    .nodePadding(40)
-    .extent([[1, 1], [width - 1, height - 5]])(data);
+    .nodePadding(80)
+    .extent([[25, 0], [width-25, height-25]])(data);
 
   return (
     <Svg width={width} height={height}>
       <G>
+        {links.map((link, i) => (
+          <SankeyLink
+            link={link}
+            color={"#252525"}
+            key={link.index}
+          />
+        ))}
         {nodes.map((node, i) => 
           node.type === 'transaction' ?
             (
@@ -60,17 +59,10 @@ const TransactionSankey = ({ data, width, height }) => {
             (
               <SankeyInputOutputNode
                 {...node}
-                color="red"
                 key={node.name}
               />
             )
         )}
-        {links.map((link, i) => (
-          <SankeyLink
-            link={link}
-            color={"#252525"}
-          />
-        ))}
       </G>
     </Svg>
   );
