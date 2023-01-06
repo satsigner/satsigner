@@ -5,6 +5,7 @@ import GlobalStyles from '../../GlobalStyles';
 import {Layout, Typography} from '../../styles';
 import Button from '../shared/Button';
 import Header from '../shared/Header';
+import TransactionSankey from './TransactionSankey';
 
 interface Props {}
 
@@ -21,6 +22,13 @@ const InputHistoryExplorer = () => {
           <Text style={styles.satsText}>sats</Text>
         </View>
         <Text style={styles.fiatAmountText}>26.34 USD</Text>
+      </View>
+      <View>
+        <TransactionSankey
+          data={data}
+          width="375"
+          height="125">
+        </TransactionSankey>
       </View>
       <View>
         <Slider
@@ -144,3 +152,64 @@ const styles = StyleSheet.create({
     color: 'black',
   },
 });
+
+const data = {
+  "nodes": [
+    {
+      "name": "Input 1",
+      "type": "input",
+      "value": 0.01500000
+    },
+    {
+      "name": "Input 2",
+      "type": "input",
+      "value": 0.01500000
+    },
+    {
+      "name": "Transaction",
+      "type": "transaction"
+    },
+    {
+      "name": "Output 1",
+      "type": "output",
+      "value": 0.01500000
+    },
+    {
+      "name": "Change",
+      "type": "output",
+      "value": 0.01500000
+    },
+    {
+      "name": "Mining Fee",
+      "type": "output",
+      "value": 0.01500000
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 2,
+      "value": 0.01500000
+    },
+    {
+      "source": 1,
+      "target": 2,
+      "value": 0.00420000
+    },
+    {
+      "source": 2,
+      "target": 3,
+      "value": 0.01000000
+    },
+    {
+      "source": 2,
+      "target": 4,
+      "value": 0.009165
+    },
+    {
+      "source": 2,
+      "target": 5,
+      "value": 0.00003500
+    }
+  ]
+};
