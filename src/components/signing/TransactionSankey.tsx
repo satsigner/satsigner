@@ -1,44 +1,63 @@
 import { sankey, sankeyLinkHorizontal } from "d3-sankey";
-import {G, Path, Svg, Rect, Text, TSpan} from 'react-native-svg';
+import {
+  Canvas,
+  Path,
+  Rect,
+  Group,
+  Text,
+  Skia,
+  useFont
+} from '@shopify/react-native-skia';
 
 const SankeyTransactionNode = ({ name, x0, x1, y0, y1, color }: {name: string, x0: number, x1: number, y0: number, y1: number, color: string}) => (
-  <Rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} fill={color}>
+  <Rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} color={color}>
   </Rect>
 );
 
 const SankeyInputOutputNode = ({ name, value, x0, x1, y0, y1, color }: {name: string, x0: number, x1: number, y0: number, y1: number, color: string}) => (
-  <Text
-    fill="white"
-    stroke="white"
-    fontSize="12"
-    fontWeight="100"
-    x={x0}
-    y={y0 + ((y1 - y0) / 2)}
-    textAnchor="middle"
-  >
-    <TSpan x={x0}>{toSats(value)} sats</TSpan>
-    <TSpan x={x0} dy="12" fontSize="10">{name}</TSpan>
-  </Text>
+  <Group>
+    <Text
+      color="white"
+      font={useFont(require('../../SF-Pro.ttf'), 12)}
+      x={x0}
+      y={y0 + ((y1 - y0) / 2)}
+      text={toSats(value) + ' sats'}
+    />
+    <Text
+      color="white"
+      font={useFont(require('../../SF-Pro.ttf'), 10)}
+      x={x0}
+      y={y0 + ((y1 - y0) / 2) + 12}
+      text={name}
+    />
+  </Group>
 );
 
 const SankeyLink = ({ link, color }) => (
   <Path
-    d={sankeyLinkHorizontal()(link)}
-    fill="none"
-    stroke={color}
+    style="stroke"
+    path={getSkiaCurve(sankeyLinkHorizontal()(link))}
     strokeWidth={Math.max(4, link.width)}
+    color={color}
   />
 );
 
+const getSkiaCurve = (pathDefinition: string) => Skia.Path.MakeFromSVGString(pathDefinition!);
+
 const TransactionSankey = ({ data, width, height }) => {
+  const GRAPH_HEIGHT = 225;
+  const GRAPH_WIDTH = 375;
   const { nodes, links } = sankey()
     .nodeWidth(40)
     .nodePadding(80)
-    .extent([[25, 0], [width-25, height-25]])(data);
+    .extent([[15, 0], [width-35, height-25]])(data);
 
   return (
-    <Svg width={width} height={height}>
-      <G>
+    <Canvas
+        style={{
+          width: GRAPH_WIDTH,
+          height: GRAPH_HEIGHT,
+        }}>
         {links.map((link, i) => (
           <SankeyLink
             link={link}
@@ -63,8 +82,7 @@ const TransactionSankey = ({ data, width, height }) => {
               />
             )
         )}
-      </G>
-    </Svg>
+      </Canvas>
   );
 };
 
