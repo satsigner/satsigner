@@ -1,5 +1,5 @@
 import React from 'react';
-import InputHistoryExplorer from './components/signing/InputHistortyExplorerScreen';
+import InputBubbleViewScreen from './components/signing/InputBubbleViewScreen';
 
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -37,8 +37,8 @@ export default class App extends React.Component<{}, State> {
               options={NavUtils.getHeaderOptions('Sat Signer')}
             />
             <Stack.Screen
-              name="InputHistoryExplorer"
-              component={InputHistoryExplorer}
+              name="InputBubbleView"
+              component={InputBubbleViewScreen}
               options={NavUtils.getHeaderOptions('Extra Security')}
             />
             <Stack.Screen

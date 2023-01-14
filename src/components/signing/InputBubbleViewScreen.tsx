@@ -5,12 +5,14 @@ import GlobalStyles from '../../GlobalStyles';
 import {Layout, Typography} from '../../styles';
 import Button from '../shared/Button';
 import Header from '../shared/Header';
+import BubbleChart from './BubbleChart';
+import * as Colors from '../../styles/colors';
 
 interface Props {}
 
 interface State {}
 
-const InputHistoryExplorer = () => {
+const InputBubbleViewScreen = () => {
   const [satsPerByte, setSatsPerByte] = useState(0);
   return (
     <View style={styles.body}>
@@ -22,25 +24,12 @@ const InputHistoryExplorer = () => {
         </View>
         <Text style={styles.fiatAmountText}>26.34 USD</Text>
       </View>
-      <View>
-        <Slider
-          value={satsPerByte}
-          onValueChange={setSatsPerByte}
-          step={0.01}
-          minimumValue={1}
-          maximumValue={1000}
-          minimumTrackTintColor={'white'}
+      <View style={styles.bubbleChartContainer}>
+        <BubbleChart
+          width={600}
+          height={400}
+          data={getData()}
         />
-        <View style={styles.feeContainer}>
-          <View>
-            <Text style={styles.feeText}>1503 sats</Text>
-            <Text style={styles.feeFiatText}>0.44 USD</Text>
-          </View>
-          <Text style={styles.estimatedBlocksText}>~4 blocks</Text>
-          <Text style={styles.satsPerByteText}>
-            {satsPerByte.toFixed(2)} sat/vB
-          </Text>
-        </View>
       </View>
       <View>
         <View style={styles.inOutButtonsContainer}>
@@ -68,7 +57,7 @@ const InputHistoryExplorer = () => {
   );
 };
 
-export default InputHistoryExplorer;
+export default InputBubbleViewScreen;
 
 const styles = StyleSheet.create({
   amount: {
@@ -143,4 +132,17 @@ const styles = StyleSheet.create({
   signMessageButtonText: {
     color: 'black',
   },
+  bubbleChartContainer: {
+    alignItems: 'center',
+    height: 400
+  }
 });
+
+function getData(): any[] {
+  const inputValues = [  4101, 9351, 4101, 5101, 841, 6351, 4101, 4101, 10351, 9351, 5101 ];
+  return inputValues.map(inputValue => ({
+    name: `${inputValue} sats`,
+    color: Colors.inputBubble,
+    value: inputValue
+  }));
+}

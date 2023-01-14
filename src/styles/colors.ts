@@ -79,6 +79,8 @@ export const disabledAction = grey52;
 export const defaultAction = white;
 export const additionalAction = 'rgba(0, 0, 0, 0)';
 
+export const inputBubble = grey107;
+
 // Grey definitions currently unused in any designs
 
 // export const grey1 = '#010101';

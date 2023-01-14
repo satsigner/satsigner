@@ -27,9 +27,9 @@ export class Home extends React.PureComponent<Props, State> {
         </View>
         <View style={styles.actions}>
           <Button
-            title="InputHistoryExplorer"
+            title="Input Bubble View"
             onPress={() =>
-              this.props.navigation.navigate('InputHistoryExplorer')
+              this.props.navigation.navigate('InputBubbleView')
             }></Button>
           <Button
             title="Placeholder 2"
