@@ -7,16 +7,14 @@ import {
 
 import { Colors, Typography } from '../../styles';
 
-export default function Button(props: any) {
+export default function SelectButton(props: any) {
   const styles = StyleSheet.create({  
     touchableOpacity: {
       borderRadius: 3,
-      borderColor: props?.style?.borderColor,
-      borderStyle: 'solid',
-      borderWidth: props?.style?.borderColor ? 1 : 0,
-      backgroundColor: props?.style?.backgroundColor || Colors.actionBackground,
-      height: 62,
-      marginVertical: 10
+      backgroundColor: props?.style?.backgroundColor || Colors.inputBackground,
+      height: 55,
+      marginTop: 8,
+      marginBottom: 12
     },  
     button: {
       flex: 1,
@@ -24,9 +22,10 @@ export default function Button(props: any) {
       alignItems: 'center',
     },
     buttonText: {
-      ...Typography.textHighlight.x5,
-      ...Typography.capitalization.uppercase,
-      color: props?.style?.color || Colors.actionText
+      ...Typography.textHighlight.x16,
+      color: props?.style?.color || Colors.actionText,
+      fontWeight: '300',
+      letterSpacing: 0.6
     }
   });
   

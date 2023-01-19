@@ -11,6 +11,7 @@ import { Colors, Layout } from './styles';
 
 import HomeScreen from './components/HomeScreen';
 import CreateParentAccountScreen from './components/accounts/CreateParentAccountScreen';
+import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
 import PlaceholderScreen from './components/PlaceholderScreen';
 
@@ -46,6 +47,11 @@ export default class App extends React.Component<{}, State> {
               name="CreateParentAccount"
               component={CreateParentAccountScreen}
               options={NavUtils.getHeaderOptions('Create New Parent Account')}
+            />
+            <Stack.Screen
+              name="AccountOptions"
+              component={AccountOptionsScreen}
+              options={NavUtils.getHeaderOptions('Account Options')}
             />
             <Stack.Screen
               name="ImportSeed"

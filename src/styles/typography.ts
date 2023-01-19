@@ -15,7 +15,7 @@ export const capitalization: Record<Capitalization, TextStyle> = {
   }
 };
 
-type FontSize = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x20" | "x30" | "x40"
+type FontSize = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
 export const fontSize: Record<FontSize, TextStyle> = {
   x1: {
     fontSize: 9
@@ -53,6 +53,15 @@ export const fontSize: Record<FontSize, TextStyle> = {
   x12: {
     fontSize: 20
   },
+  x14: {
+    fontSize: 22
+  },
+  x16: {
+    fontSize: 23
+  },
+  x18: {
+    fontSize: 24
+  },
   x20: {
     fontSize: 26
   },
@@ -64,10 +73,10 @@ export const fontSize: Record<FontSize, TextStyle> = {
   }
 };
 
-// TODO implement corrent font family
+// TODO implement correct font family
 // TODO consider use of letter spacing (e.g. letterSpacing: 1)
 
-type TextNormal = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x20" | "x30" | "x40"
+type TextNormal = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
 export const textNormal: Record<TextNormal, TextStyle> = {
   x1: {
     ...fontSize.x1,
@@ -117,6 +126,18 @@ export const textNormal: Record<TextNormal, TextStyle> = {
     ...fontSize.x12,
     color: Colors.normal
   },
+  x14: {
+    ...fontSize.x14,
+    color: Colors.normal
+  },
+  x16: {
+    ...fontSize.x16,
+    color: Colors.normal
+  },
+  x18: {
+    ...fontSize.x18,
+    color: Colors.normal
+  },
   x20: {
     ...fontSize.x20,
     color: Colors.normal
@@ -131,7 +152,7 @@ export const textNormal: Record<TextNormal, TextStyle> = {
   }
 };
 
-type TextHighlight = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x20" | "x30" | "x40"
+type TextHighlight = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
 export const textHighlight: Record<TextHighlight, TextStyle> = {
   x1: {
     ...fontSize.x1,
@@ -181,6 +202,18 @@ export const textHighlight: Record<TextHighlight, TextStyle> = {
     ...fontSize.x12,
     color: Colors.highlight
   },
+  x14: {
+    ...fontSize.x14,
+    color: Colors.highlight
+  },
+  x16: {
+    ...fontSize.x16,
+    color: Colors.highlight
+  },
+  x18: {
+    ...fontSize.x18,
+    color: Colors.highlight
+  },
   x20: {
     ...fontSize.x20,
     color: Colors.highlight
@@ -195,7 +228,7 @@ export const textHighlight: Record<TextHighlight, TextStyle> = {
   }
 };
 
-type TextMuted = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x20" | "x30" | "x40"
+type TextMuted = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
 export const textMuted: Record<TextMuted, TextStyle> = {
   x1: {
     ...fontSize.x1,
@@ -243,6 +276,18 @@ export const textMuted: Record<TextMuted, TextStyle> = {
   },
   x12: {
     ...fontSize.x12,
+    color: Colors.muted,
+  },
+  x14: {
+    ...fontSize.x14,
+    color: Colors.muted,
+  },
+  x16: {
+    ...fontSize.x16,
+    color: Colors.muted,
+  },
+  x18: {
+    ...fontSize.x18,
     color: Colors.muted,
   },
   x20: {

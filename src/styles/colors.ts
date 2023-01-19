@@ -30,6 +30,7 @@ export const grey47 = '#2F2F2F';
 export const grey49 = '#313131';
 export const grey51 = '#333333';
 export const grey52 = '#343434';
+export const grey54 = '#363636';
 export const grey55 = '#373737';
 export const grey57 = '#393939';
 export const grey67 = '#434343';
@@ -89,6 +90,8 @@ export const disabledActionText = grey104;
 export const defaultActionText = black;
 export const additionalActionText = white;
 
+export const additionalActionBorder = grey54;
+
 export const valid = green2;
 export const invalid = red2;
 
@@ -134,7 +137,6 @@ export const invalid = red2;
 // export const grey48 = '#303030';
 // export const grey50 = '#323232';
 // export const grey53 = '#353535';
-// export const grey54 = '#363636';
 // export const grey56 = '#383838';
 // export const grey58 = '#3A3A3A';
 // export const grey59 = '#3B3B3B';

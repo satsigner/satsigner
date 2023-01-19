@@ -48,9 +48,14 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
           </TextInput>
         </View>
         <View style={styles.actions}>
-          <Button title='Generate New Secret Seed' onPress={() => this.notImplementedAlert()}></Button>
-          <Button title='Import Existing Seed' onPress={() => this.props.navigation.navigate('ImportSeed')}></Button>
-          <Button title='Import As Stateless' onPress={() => this.notImplementedAlert()}></Button>
+          <Button
+            title='Create Parent Account'
+            onPress={() => this.props.navigation.navigate('AccountOptions')}
+            style={{
+              backgroundColor: Colors.defaultActionBackground,
+              color: Colors.defaultActionText
+            }}
+          ></Button>
         </View>
       </View>
     );
