@@ -16,7 +16,7 @@ export default function Button(props: any) {
       borderWidth: props?.style?.borderColor ? 1 : 0,
       backgroundColor: props?.style?.backgroundColor || Colors.actionBackground,
       height: 62,
-      marginVertical: 10
+      marginVertical: 8
     },  
     button: {
       flex: 1,

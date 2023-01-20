@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
+import DownArrow from '../../assets/images/down-arrow.svg';
+
 import { Colors, Typography } from '../../styles';
 
 export default function SelectButton(props: any) {
@@ -26,6 +28,11 @@ export default function SelectButton(props: any) {
       color: props?.style?.color || Colors.actionText,
       fontWeight: '300',
       letterSpacing: 0.6
+    },
+    downArrow: {
+      position: 'absolute',
+      right: 15,
+      top: 27.5
     }
   });
   
@@ -39,6 +46,7 @@ export default function SelectButton(props: any) {
         <Text style={styles.buttonText}>
           {props.title}
         </Text>
+        <DownArrow style={styles.downArrow} width={11.6} height={5}></DownArrow>
       </View>
     </TouchableOpacity>
   );
