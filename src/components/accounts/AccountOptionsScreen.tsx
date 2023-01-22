@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Alert,
+  Modal
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
@@ -11,6 +12,8 @@ import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
+
+import ScriptTypeModal from './ScriptTypeModal';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -20,17 +23,21 @@ interface State {
   // Policy Type
   // Script Version
   // Seed Length
+
+  modalVisible: boolean
 }
 
-export default class CreateParentAccountScreen extends React.PureComponent<Props, State> {
+export default class AccountOptionsScreen extends React.PureComponent<Props, State> {
   constructor(props: any) {
     super(props);
 
     this.state = {
+      modalVisible: false
     };
   }
 
   render() {
+    const { modalVisible } = this.state;
     return (
       <View style={styles.container}>
         <View style={styles.options}>
@@ -49,6 +56,7 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
             </Text>
             <SelectButton
               title="Nested SegWit (P2SH)"
+              onPress={() => this.setState({modalVisible: true})}
             >
             </SelectButton>
           </View>
@@ -79,6 +87,12 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
             style={styles.additionalActionButton}
           ></Button>
         </View>
+        <Modal
+          visible={modalVisible}
+          transparent={false}
+        >
+          <ScriptTypeModal></ScriptTypeModal>
+        </Modal>
       </View>
     );
   }

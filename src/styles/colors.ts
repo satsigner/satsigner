@@ -92,6 +92,9 @@ export const additionalActionText = white;
 
 export const additionalActionBorder = grey54;
 
+export const modalTitle = grey118;
+export const modalBackground = black;
+
 export const valid = green2;
 export const invalid = red2;
 
