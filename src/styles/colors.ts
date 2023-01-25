@@ -60,6 +60,7 @@ export const grey138 = '#8A8A8A';
 export const grey137 = '#898989';
 export const grey150 = '#969696';
 export const grey157 = '#9D9D9D';
+export const grey153 = '#999999';
 export const grey160 = '#A0A0A0';
 export const grey175 = '#AFAFAF';
 export const grey181 = '#B5B5B5';
@@ -84,11 +85,13 @@ export const actionBackground = grey67;
 export const disabledActionBackground = grey52;
 export const defaultActionBackground = white;
 export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
+export const cancelActionBackground = black;
 
 export const actionText = white;
 export const disabledActionText = grey104;
 export const defaultActionText = black;
 export const additionalActionText = white;
+export const cancelActionText = grey153;
 
 export const additionalActionBorder = grey54;
 
@@ -210,7 +213,6 @@ export const invalid = red2;
 // export const grey149 = '#959595';
 // export const grey151 = '#979797';
 // export const grey152 = '#989898';
-// export const grey153 = '#999999';
 // export const grey154 = '#9A9A9A';
 // export const grey155 = '#9B9B9B';
 // export const grey156 = '#9C9C9C';

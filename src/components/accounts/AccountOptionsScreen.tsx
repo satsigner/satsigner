@@ -13,7 +13,9 @@ import { Typography, Layout, Colors } from '../../styles';
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
 
-import ScriptTypeModal from './ScriptTypeModal';
+import ScriptVersionModal from './ScriptVersionModal';
+import { ScriptVersion } from '../../enums/ScriptVersion';
+import { ScriptVersionInfos } from './ScriptVersionInfos';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -24,7 +26,9 @@ interface State {
   // Script Version
   // Seed Length
 
-  modalVisible: boolean
+  scriptVersion: ScriptVersion,
+  scriptVersionName: string,
+  scriptVersionModalVisible: boolean
 }
 
 export default class AccountOptionsScreen extends React.PureComponent<Props, State> {
@@ -32,12 +36,19 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     super(props);
 
     this.state = {
-      modalVisible: false
+      scriptVersion: ScriptVersion.P2WPKH,
+      scriptVersionName: ScriptVersionInfos.getName(ScriptVersion.P2WPKH),
+      scriptVersionModalVisible: false
     };
   }
 
   render() {
-    const { modalVisible } = this.state;
+    const {
+      scriptVersion,
+      scriptVersionName,
+      scriptVersionModalVisible
+    } = this.state;
+    
     return (
       <View style={styles.container}>
         <View style={styles.options}>
@@ -55,8 +66,8 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
               Script Version
             </Text>
             <SelectButton
-              title="Nested SegWit (P2SH)"
-              onPress={() => this.setState({modalVisible: true})}
+              title={scriptVersionName}
+              onPress={() => this.setState({scriptVersionModalVisible: true})}
             >
             </SelectButton>
           </View>
@@ -88,13 +99,30 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
           ></Button>
         </View>
         <Modal
-          visible={modalVisible}
+          visible={scriptVersionModalVisible}
           transparent={false}
         >
-          <ScriptTypeModal></ScriptTypeModal>
+          <ScriptVersionModal
+            onClose={(scriptVersion: ScriptVersion) => this.setScriptVersion(scriptVersion)}
+            scriptVersion={scriptVersion}
+          ></ScriptVersionModal>
         </Modal>
       </View>
     );
+
+  }
+
+  private setScriptVersion(scriptVersion: ScriptVersion | null) {
+    if (scriptVersion) {
+      const scriptVersionName = ScriptVersionInfos.getName(scriptVersion);
+      this.setState({
+        scriptVersion,
+        scriptVersionName,
+        scriptVersionModalVisible: false
+      });
+    } else {
+      this.setState({scriptVersionModalVisible: false});
+    }
   }
 
   notImplementedAlert() {
