@@ -33,6 +33,9 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
   }
 
   render() {
+    const { scriptVersion } = this.state;
+    const scriptVersionInfo = ScriptVersionInfos.get(scriptVersion);
+
     const buttons = [];
     for (let info of ScriptVersionInfos.getAll()) {
       buttons.push(
@@ -49,11 +52,22 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
 
     return (
       <View style={styles.container}>
-        <Text style={styles.label}>Script Version</Text>
         <View>
-          {buttons}
+          <Text style={styles.modalTitle}>Script Version</Text>
+          <View style={styles.infoContainer}>
+            <View style={styles.infoHeading}>
+              <Text style={styles.infoScriptVersionName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</Text>
+              <Text style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</Text>
+            </View>
+            <View style={styles.infoBody}>
+              <Text style={styles.infoScriptDescription}>{scriptVersionInfo?.description}</Text>
+            </View>
+          </View>
+          <View>
+            {buttons}
+          </View>
         </View>
-        <View>
+        <View style={styles.actions}>
           <Button
             title='Cancel'
             onPress={() => this.props.onClose(null)}
@@ -76,17 +90,43 @@ const styles = StyleSheet.create({
     ...Layout.container.base,
     ...Layout.container.topPadded,
     ...Layout.container.horizontalPadded,
-    backgroundColor: Colors.modalBackground
+    backgroundColor: Colors.modalBackground,
+    justifyContent: 'space-between'
   },
-  label: {
+  modalTitle: {
     ...Typography.textHighlight.x8,
     color: Colors.modalTitle,
     alignSelf: 'center',
-    marginBottom: 0
+    marginBottom: 28
+  },
+  infoScriptVersionName: {
+    ...Typography.textHighlight.x5,
+    ...Typography.capitalization.uppercase
+  },
+  infoScriptCode: {
+    ...Typography.textHighlight.x5,
+    color: Colors.modalTitle
+  },
+  infoScriptDescription: {
+    ...Typography.textHighlight.x8,
+    color: Colors.modalTitle    
+  },
+  infoContainer: {
+    flexDirection: 'column',
+    marginBottom: 28
+  },
+  infoHeading: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14
+  },
+  infoBody: {
+
   },
   actions: {
     justifyContent: 'space-evenly',
-    marginVertical: 2
+    marginVertical: 30
   },
   defaultActionButton: {
     backgroundColor: Colors.defaultActionBackground,

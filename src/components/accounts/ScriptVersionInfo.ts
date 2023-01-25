@@ -5,4 +5,5 @@ export class ScriptVersionInfo {
   shortName: string;
   longName: string;
   description: string;
+  scriptCode: string;
 }
