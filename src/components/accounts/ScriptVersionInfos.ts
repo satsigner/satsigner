@@ -13,7 +13,7 @@ const scriptVersionInfos: ScriptVersionInfo[] = [
     scriptVersion: ScriptVersion.P2SH,
     shortName: 'P2SH',
     longName: 'Nested Segwit',
-    description: 'Addresses start with a "3". From this format, we can\'t distinguish whether they are MultiSig addresses or Segregated Witness.',
+    description: 'Addresses start with a "3". From this format, we can\'t distinguish whether they are MultiSig addresses or Segregated Witness compatible addresses. P2SH is the abbreviation of "Pay To Script Hash" and lorem ipsum.',
     scriptCode: 'sh(wpkh(Key))'
   },
   {

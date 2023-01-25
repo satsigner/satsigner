@@ -3,6 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
+  LayoutAnimation,
+  Platform,
+  UIManager
 } from 'react-native';
 
 import LabeledRadioButton from '../shared/LabeledRadioButton';
@@ -13,12 +16,20 @@ import { Typography, Layout, Colors } from '../../styles';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 interface Props {
   onClose: (scriptVersion: ScriptVersion | null) => void
 }
 
 interface State {
-  scriptVersion: ScriptVersion
+  scriptVersion: ScriptVersion,
+  infoExpanded: boolean;
 }
 
 export default class ScriptVersionModal extends React.PureComponent<Props, State> {
@@ -28,12 +39,18 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     super(props);
 
     this.state = {
-      scriptVersion: props.scriptVersion || this.defaultScriptVersion
+      scriptVersion: props.scriptVersion || this.defaultScriptVersion,
+      infoExpanded: false
     };
   }
 
+  toggleInfoExpanded() {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    this.setState({infoExpanded: ! this.state.infoExpanded});
+  }
+
   render() {
-    const { scriptVersion } = this.state;
+    const { scriptVersion, infoExpanded } = this.state;
     const scriptVersionInfo = ScriptVersionInfos.get(scriptVersion);
 
     const buttons = [];
@@ -59,8 +76,14 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
               <Text style={styles.infoScriptVersionName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</Text>
               <Text style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</Text>
             </View>
-            <View style={styles.infoBody}>
+            <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
               <Text style={styles.infoScriptDescription}>{scriptVersionInfo?.description}</Text>
+            </View>
+            <View>
+              <Text
+                style={styles.infoExpandCollapseAction}
+                onPress={() => this.toggleInfoExpanded()}
+              >{infoExpanded ? 'LESS' : 'MORE'}</Text>
             </View>
           </View>
           <View>
@@ -121,8 +144,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14
   },
-  infoBody: {
-
+  infoBodyCollapsed: {
+    overflow: 'hidden',
+    height: 70
+  },
+  infoBodyExpanded: {
+    height: 'auto'
+  },
+  infoExpandCollapseAction: {
+    ...Typography.textHighlight.x5,
+    ...Typography.capitalization.uppercase
   },
   actions: {
     justifyContent: 'space-evenly',
