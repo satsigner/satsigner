@@ -1,6 +1,7 @@
 // NOTE: see below these constant color values
 //       for semantically named colors: (e.g. background)
 
+export const transparent = 'transparent';
 export const black = '#000000';
 export const white = '#FFFFFF';
 

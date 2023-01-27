@@ -5,8 +5,11 @@ import {
   StyleSheet,
   LayoutAnimation,
   Platform,
-  UIManager
+  UIManager,
+  TouchableWithoutFeedback
 } from 'react-native';
+
+import LinearGradient from 'react-native-linear-gradient';
 
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
@@ -33,13 +36,12 @@ interface State {
 }
 
 export default class ScriptVersionModal extends React.PureComponent<Props, State> {
-  defaultScriptVersion = ScriptVersion.P2WPKH;
   
   constructor(props: any) {
     super(props);
 
     this.state = {
-      scriptVersion: props.scriptVersion || this.defaultScriptVersion,
+      scriptVersion: props.scriptVersion,
       infoExpanded: false
     };
   }
@@ -47,6 +49,11 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
   toggleInfoExpanded() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     this.setState({infoExpanded: ! this.state.infoExpanded});
+  }
+
+  updateScriptVersion(scriptVersion: ScriptVersion) {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    this.setState({scriptVersion});
   }
 
   render() {
@@ -60,7 +67,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
           title={`${info.longName} (${info.shortName})`}
           key={info.scriptVersion}
           value={info.scriptVersion}
-          onPress={(value: ScriptVersion) => this.setState({scriptVersion: value})}
+          onPress={(value: ScriptVersion) => this.updateScriptVersion(value)}
           selected={info.scriptVersion === this.state.scriptVersion}
         >
         </LabeledRadioButton>
@@ -71,21 +78,32 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
       <View style={styles.container}>
         <View>
           <Text style={styles.modalTitle}>Script Version</Text>
-          <View style={styles.infoContainer}>
-            <View style={styles.infoHeading}>
-              <Text style={styles.infoScriptVersionName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</Text>
-              <Text style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</Text>
+          <TouchableWithoutFeedback
+            onPress={() => this.toggleInfoExpanded()}
+          >
+            <View style={styles.infoContainer}>
+              <View style={styles.infoHeading}>
+                <Text style={styles.infoScriptVersionName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</Text>
+                <Text style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</Text>
+              </View>
+              <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
+                <Text style={styles.infoScriptDescription}>{scriptVersionInfo?.description}</Text>
+                <LinearGradient
+                  style={infoExpanded ?
+                    {...styles.infoScriptDescriptionObscure, ...styles.infoScriptDescriptionReveal } :
+                    styles.infoScriptDescriptionObscure }
+                  colors={[Colors.transparent, 'rgba(0,0,0,1)']}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1.0 }}
+                ></LinearGradient>
+              </View>
+              <View style={{marginTop: 0}}>
+                <Text
+                  style={styles.infoExpandCollapseAction}
+                >{infoExpanded ? 'LESS' : 'MORE'}</Text>
+              </View>
             </View>
-            <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-              <Text style={styles.infoScriptDescription}>{scriptVersionInfo?.description}</Text>
-            </View>
-            <View>
-              <Text
-                style={styles.infoExpandCollapseAction}
-                onPress={() => this.toggleInfoExpanded()}
-              >{infoExpanded ? 'LESS' : 'MORE'}</Text>
-            </View>
-          </View>
+          </TouchableWithoutFeedback>
           <View>
             {buttons}
           </View>
@@ -131,8 +149,18 @@ const styles = StyleSheet.create({
     color: Colors.modalTitle
   },
   infoScriptDescription: {
-    ...Typography.textHighlight.x8,
+    ...Typography.textHighlight.x9,
     color: Colors.modalTitle    
+  },
+  infoScriptDescriptionObscure: {
+    height: 25,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0
+  },
+  infoScriptDescriptionReveal: {
+    height: 0
   },
   infoContainer: {
     flexDirection: 'column',
@@ -146,10 +174,12 @@ const styles = StyleSheet.create({
   },
   infoBodyCollapsed: {
     overflow: 'hidden',
-    height: 70
+    height: 65,
+    position: 'relative'
   },
   infoBodyExpanded: {
-    height: 'auto'
+    height: 'auto',
+    position: 'relative'
   },
   infoExpandCollapseAction: {
     ...Typography.textHighlight.x5,
