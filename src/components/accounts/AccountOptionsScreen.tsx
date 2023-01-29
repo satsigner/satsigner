@@ -27,8 +27,6 @@ interface Props {
 
 interface State {
   // Policy Type
-  // Script Version
-  // Seed Length
 
   scriptVersion: ScriptVersion,
   scriptVersionName: string,
