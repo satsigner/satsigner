@@ -16,8 +16,8 @@ import Button from '../shared/Button';
 
 import { Typography, Layout, Colors } from '../../styles';
 
-import { ScriptVersion } from '../../enums/ScriptVersion';
-import { ScriptVersionInfos } from './ScriptVersionInfos';
+import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordsInfos } from './SeedWordsInfos';
 
 if (
   Platform.OS === 'android' &&
@@ -27,21 +27,21 @@ if (
 }
 
 interface Props {
-  onClose: (scriptVersion: ScriptVersion | null) => void
+  onClose: (seedWords: SeedWords | null) => void
 }
 
 interface State {
-  scriptVersion: ScriptVersion,
+  seedWords: SeedWords,
   infoExpanded: boolean;
 }
 
-export default class ScriptVersionModal extends React.PureComponent<Props, State> {
+export default class SeedWordsModal extends React.PureComponent<Props, State> {
   
   constructor(props: any) {
     super(props);
 
     this.state = {
-      scriptVersion: props.scriptVersion,
+      seedWords: props.seedWords,
       infoExpanded: false
     };
   }
@@ -51,24 +51,24 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     this.setState({infoExpanded: ! this.state.infoExpanded});
   }
 
-  updateScriptVersion(scriptVersion: ScriptVersion) {
+  updateSeedWords(seedWords: SeedWords) {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    this.setState({scriptVersion});
+    this.setState({seedWords});
   }
 
   render() {
-    const { scriptVersion, infoExpanded } = this.state;
-    const scriptVersionInfo = ScriptVersionInfos.get(scriptVersion);
+    const { seedWords, infoExpanded } = this.state;
+    const seedWordsInfo = SeedWordsInfos.get(seedWords);
 
     const buttons = [];
-    for (let info of ScriptVersionInfos.getAll()) {
+    for (let info of SeedWordsInfos.getAll()) {
       buttons.push(
         <LabeledRadioButton
-          title={`${info.longName} (${info.shortName})`}
-          key={info.scriptVersion}
-          value={info.scriptVersion}
-          onPress={(value: ScriptVersion) => this.updateScriptVersion(value)}
-          selected={info.scriptVersion === this.state.scriptVersion}
+          title={info.name}
+          key={info.seedWords}
+          value={info.seedWords}
+          onPress={(value: SeedWords) => this.updateSeedWords(value)}
+          selected={info.seedWords === this.state.seedWords}
         >
         </LabeledRadioButton>
       );
@@ -77,17 +77,16 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     return (
       <View style={styles.container}>
         <View>
-          <Text style={styles.modalTitle}>Script Version</Text>
+          <Text style={styles.modalTitle}>Mnemonic Seed Words (BIP39)</Text>
           <TouchableWithoutFeedback
             onPress={() => this.toggleInfoExpanded()}
           >
             <View style={styles.infoContainer}>
               <View style={styles.infoHeading}>
-                <Text style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</Text>
-                <Text style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</Text>
+                <Text style={styles.infoName}>{seedWordsInfo?.name}</Text>
               </View>
               <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-                <Text style={styles.infoDescription}>{scriptVersionInfo?.description}</Text>
+                <Text style={styles.infoDescription}>{seedWordsInfo?.description}</Text>
                 <LinearGradient
                   style={infoExpanded ?
                     {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
@@ -116,7 +115,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
           ></Button>
           <Button
             title='Select'
-            onPress={() => this.props.onClose(this.state.scriptVersion)}
+            onPress={() => this.props.onClose(this.state.seedWords)}
             style={styles.defaultActionButton}
           ></Button>
         </View>

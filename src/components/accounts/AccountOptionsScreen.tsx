@@ -17,6 +17,10 @@ import ScriptVersionModal from './ScriptVersionModal';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
+import SeedWordsModal from './SeedWordsModal';
+import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordsInfos } from './SeedWordsInfos';
+
 interface Props {
   navigation: NavigationProp<any>
 }
@@ -28,7 +32,11 @@ interface State {
 
   scriptVersion: ScriptVersion,
   scriptVersionName: string,
-  scriptVersionModalVisible: boolean
+  scriptVersionModalVisible: boolean,
+
+  seedWords: SeedWords,
+  seedWordsName: string,
+  seedWordsModalVisible: boolean,
 }
 
 export default class AccountOptionsScreen extends React.PureComponent<Props, State> {
@@ -38,7 +46,11 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     this.state = {
       scriptVersion: ScriptVersion.P2WPKH,
       scriptVersionName: ScriptVersionInfos.getName(ScriptVersion.P2WPKH),
-      scriptVersionModalVisible: false
+      scriptVersionModalVisible: false,
+
+      seedWords: SeedWords.WORDS24,
+      seedWordsName: SeedWordsInfos.getName(SeedWords.WORDS24),
+      seedWordsModalVisible: false
     };
   }
 
@@ -46,7 +58,10 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     const {
       scriptVersion,
       scriptVersionName,
-      scriptVersionModalVisible
+      scriptVersionModalVisible,
+      seedWords,
+      seedWordsName,
+      seedWordsModalVisible
     } = this.state;
     
     return (
@@ -76,7 +91,8 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
               Mnemonic Seed Words (BIP39)
             </Text>
             <SelectButton
-              title="12 words"
+              title={seedWordsName}
+              onPress={() => this.setState({seedWordsModalVisible: true})}
             >
             </SelectButton>
           </View>
@@ -107,6 +123,15 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
             scriptVersion={scriptVersion}
           ></ScriptVersionModal>
         </Modal>
+        <Modal
+          visible={seedWordsModalVisible}
+          transparent={false}
+        >
+          <SeedWordsModal
+            onClose={(seedWords: SeedWords) => this.setSeedWords(seedWords)}
+            seedWords={seedWords}
+          ></SeedWordsModal>
+        </Modal>
       </View>
     );
 
@@ -122,6 +147,19 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       });
     } else {
       this.setState({scriptVersionModalVisible: false});
+    }
+  }
+
+  private setSeedWords(seedWords: SeedWords | null) {
+    if (seedWords) {
+      const seedWordsName = SeedWordsInfos.getName(seedWords);
+      this.setState({
+        seedWords,
+        seedWordsName,
+        seedWordsModalVisible: false
+      });
+    } else {
+      this.setState({seedWordsModalVisible: false});
     }
   }
 
