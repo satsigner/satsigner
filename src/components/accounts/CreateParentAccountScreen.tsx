@@ -19,7 +19,8 @@ interface Props {
 }
 
 interface State {
-  account: Account
+  account: Account;
+  submitEnabled: boolean;
 }
 
 export default class CreateParentAccountScreen extends React.PureComponent<Props, State> {
@@ -29,11 +30,15 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
     this.state = {
       account: {
         name: ''
-      }
+      },
+      submitEnabled: false
     };
   }
 
   render() {
+    const { submitEnabled } = this.state;
+    const { name: accountName } = this.state.account;
+
     return (
       <View style={styles.container}>
         <View>
@@ -42,7 +47,7 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
           </Text>
           <TextInput
             style={styles.accountNameText}
-            value={this.state.account.name}
+            value={accountName}
             onChangeText={(accountName) => this.setAccount(accountName)}
           >
           </TextInput>
@@ -51,10 +56,8 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
           <Button
             title='Create Parent Account'
             onPress={() => this.props.navigation.navigate('AccountOptions')}
-            style={{
-              backgroundColor: Colors.defaultActionBackground,
-              color: Colors.defaultActionText
-            }}
+            disabled={! submitEnabled}
+            style={submitEnabled ? styles.submitEnabled : styles.submitDisabled }
           ></Button>
         </View>
       </View>
@@ -62,13 +65,12 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
   }
 
   setAccount(accountName: string) {
-    this.setState(
-      {
-        account: {
-          name: accountName
-        }
+    this.setState({
+      submitEnabled: accountName.length > 0,
+      account: {
+        name: accountName
       }
-    );
+    });
   }
 
   notImplementedAlert() {
@@ -104,5 +106,13 @@ const styles = StyleSheet.create({
   actions: {
     justifyContent: 'space-evenly',
     marginVertical: 36
+  },
+  submitEnabled: {
+    backgroundColor: Colors.defaultActionBackground,
+    color: Colors.defaultActionText,
+  },
+  submitDisabled: {
+    backgroundColor: Colors.disabledActionBackground,
+    color: Colors.disabledActionText
   },
 });

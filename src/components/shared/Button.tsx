@@ -35,6 +35,7 @@ export default function Button(props: any) {
       activeOpacity={0.5}
       style={styles.touchableOpacity}
       onPress={props.onPress}
+      disabled={props.disabled}
     >
       <View style={styles.button}>
         <Text style={styles.buttonText}>
