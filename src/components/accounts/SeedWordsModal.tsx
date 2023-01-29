@@ -78,31 +78,14 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
       <View style={styles.container}>
         <View>
           <Text style={styles.modalTitle}>Mnemonic Seed Words (BIP39)</Text>
-          <TouchableWithoutFeedback
-            onPress={() => this.toggleInfoExpanded()}
-          >
-            <View style={styles.infoContainer}>
-              <View style={styles.infoHeading}>
-                <Text style={styles.infoName}>{seedWordsInfo?.name}</Text>
-              </View>
-              <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-                <Text style={styles.infoDescription}>{seedWordsInfo?.description}</Text>
-                <LinearGradient
-                  style={infoExpanded ?
-                    {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
-                    styles.infoDescriptionObscure }
-                  colors={[Colors.transparent, 'rgba(0,0,0,1)']}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1.0 }}
-                ></LinearGradient>
-              </View>
-              <View style={{marginTop: 0}}>
-                <Text
-                  style={styles.infoExpandCollapseAction}
-                >{infoExpanded ? 'LESS' : 'MORE'}</Text>
-              </View>
+          <View style={styles.infoContainer}>
+            <View style={styles.infoHeading}>
+              <Text style={styles.infoName}>{seedWordsInfo?.name}</Text>
             </View>
-          </TouchableWithoutFeedback>
+            <View>
+              <Text style={styles.infoDescription}>{seedWordsInfo?.description}</Text>
+            </View>
+          </View>
           <View>
             {buttons}
           </View>
@@ -143,23 +126,9 @@ const styles = StyleSheet.create({
     ...Typography.textHighlight.x5,
     ...Typography.capitalization.uppercase
   },
-  infoScriptCode: {
-    ...Typography.textHighlight.x5,
-    color: Colors.modalTitle
-  },
   infoDescription: {
     ...Typography.textHighlight.x9,
     color: Colors.modalTitle    
-  },
-  infoDescriptionObscure: {
-    height: 25,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0
-  },
-  infoDescriptionReveal: {
-    height: 0
   },
   infoContainer: {
     flexDirection: 'column',
@@ -170,19 +139,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 14
-  },
-  infoBodyCollapsed: {
-    overflow: 'hidden',
-    height: 65,
-    position: 'relative'
-  },
-  infoBodyExpanded: {
-    height: 'auto',
-    position: 'relative'
-  },
-  infoExpandCollapseAction: {
-    ...Typography.textHighlight.x5,
-    ...Typography.capitalization.uppercase
   },
   actions: {
     justifyContent: 'space-evenly',
