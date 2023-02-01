@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
@@ -13,63 +13,67 @@ import { Typography, Layout, Colors } from '../../styles';
 import Button from '../shared/Button';
 
 import Account from '../../models/Account';
+import { AccountsContext } from './AccountsContext';
 
 interface Props {
   navigation: NavigationProp<any>
 }
 
 interface State {
-  account: Account;
+  accountName: string;
   submitEnabled: boolean;
 }
 
 export default class CreateParentAccountScreen extends React.PureComponent<Props, State> {
+  
   constructor(props: any) {
     super(props);
 
     this.state = {
-      account: {
-        name: ''
-      },
+      accountName: '',
       submitEnabled: false
     };
   }
 
   render() {
-    const { submitEnabled } = this.state;
-    const { name: accountName } = this.state.account;
+    const { accountName, submitEnabled } = this.state;
 
     return (
-      <View style={styles.container}>
-        <View>
-          <Text style={styles.label}>
-            Account Name
-          </Text>
-          <TextInput
-            style={styles.accountNameText}
-            value={accountName}
-            onChangeText={(accountName) => this.setAccount(accountName)}
-          >
-          </TextInput>
-        </View>
-        <View style={styles.actions}>
-          <Button
-            title='Create Parent Account'
-            onPress={() => this.props.navigation.navigate('AccountOptions')}
-            disabled={! submitEnabled}
-            style={submitEnabled ? styles.submitEnabled : styles.submitDisabled }
-          ></Button>
-        </View>
-      </View>
+      <AccountsContext.Consumer>
+        {({setCurrentAccount}) => (
+          <View style={styles.container}>
+            <View>
+              <Text style={styles.label}>
+                Account Name
+              </Text>
+              <TextInput
+                style={styles.accountNameText}
+                value={accountName}
+                onChangeText={(accountName) => this.setAccountName(accountName)}
+              >
+              </TextInput>
+            </View>
+            <View style={styles.actions}>
+              <Button
+                title='Create Parent Account'
+                onPress={() => {
+                  setCurrentAccount({name: accountName});
+                  this.props.navigation.navigate('AccountOptions');
+                }}
+                disabled={! submitEnabled}
+                style={submitEnabled ? styles.submitEnabled : styles.submitDisabled }
+              ></Button>
+            </View>
+          </View>
+        )}
+      </AccountsContext.Consumer>
     );
   }
 
-  setAccount(accountName: string) {
+  setAccountName(accountName: string) {
     this.setState({
       submitEnabled: accountName.length > 0,
-      account: {
-        name: accountName
-      }
+      accountName
     });
   }
 

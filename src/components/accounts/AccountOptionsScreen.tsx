@@ -12,10 +12,13 @@ import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
+import HeaderTitle from '../shared/HeaderTitle';
 
 import ScriptVersionModal from './ScriptVersionModal';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
+
+import { AccountsContext } from './AccountsContext';
 
 import SeedWordsModal from './SeedWordsModal';
 import { SeedWords } from '../../enums/SeedWords';
@@ -38,6 +41,8 @@ interface State {
 }
 
 export default class AccountOptionsScreen extends React.PureComponent<Props, State> {
+  static contextType = AccountsContext;
+  
   constructor(props: any) {
     super(props);
 
@@ -50,6 +55,20 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       seedWordsName: SeedWordsInfos.getName(SeedWords.WORDS24),
       seedWordsModalVisible: false
     };
+  }
+
+  componentDidMount() {
+    this.setHeading();
+  }
+
+  componentDidUpdate() {
+    this.setHeading();    
+  }
+
+  setHeading() {
+    const accountName = this.context.currentAccount.name;
+    const headerTitle = () => <HeaderTitle heading={accountName} />;
+    this.props.navigation.setOptions({ headerTitle });
   }
 
   render() {

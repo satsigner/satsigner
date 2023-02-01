@@ -10,6 +10,9 @@ import { Typography, Layout, Colors } from '../../styles';
 
 import Account from '../../models/Account';
 import Button from '../shared/Button';
+import HeaderTitle from '../shared/HeaderTitle';
+
+import { AccountsContext } from './AccountsContext';
 
 interface Props {}
 
@@ -18,6 +21,8 @@ interface State {
 }
 
 export default class ImportSeedScreen extends React.PureComponent<Props, State> {
+  static contextType = AccountsContext;
+
   constructor(props: any) {
     super(props);
 
@@ -26,6 +31,20 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
         name: ''
       }
     };
+  }
+
+  componentDidMount() {
+    this.setHeading();
+  }
+
+  componentDidUpdate() {
+    this.setHeading();    
+  }
+
+  setHeading() {
+    const accountName = this.context.currentAccount.name;
+    const headerTitle = () => <HeaderTitle heading={accountName} />;
+    this.props.navigation.setOptions({ headerTitle });
   }
 
   render() {
