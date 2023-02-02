@@ -12,7 +12,6 @@ import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
 
-import Account from '../../models/Account';
 import { AccountsContext } from './AccountsContext';
 
 interface Props {

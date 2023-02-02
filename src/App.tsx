@@ -38,7 +38,7 @@ export default class App extends React.Component<{}, State> {
     }
 
     this.state = {
-      currentAccount: {name:''},
+      currentAccount: new Account(),
       setCurrentAccount,
     };
   }

@@ -9,10 +9,10 @@ import {
 import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout, Colors } from '../../styles';
+import navUtils from '../../utils/NavUtils';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
-import HeaderTitle from '../shared/HeaderTitle';
 
 import ScriptVersionModal from './ScriptVersionModal';
 import { ScriptVersion } from '../../enums/ScriptVersion';
@@ -58,17 +58,11 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
   }
 
   componentDidMount() {
-    this.setHeading();
+    navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
   componentDidUpdate() {
-    this.setHeading();    
-  }
-
-  setHeading() {
-    const accountName = this.context.currentAccount.name;
-    const headerTitle = () => <HeaderTitle heading={accountName} />;
-    this.props.navigation.setOptions({ headerTitle });
+    navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
   render() {
@@ -82,74 +76,85 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     } = this.state;
     
     return (
-      <View style={styles.container}>
-        <View style={styles.options}>
-          <View style={styles.option}>
-            <Text style={styles.label}>
-              Policy Type
-            </Text>
-            <SelectButton
-              title="Single Signature"
+      <AccountsContext.Consumer>
+        {({currentAccount, setCurrentAccount}) => (
+          <View style={styles.container}>
+            <View style={styles.options}>
+              <View style={styles.option}>
+                <Text style={styles.label}>
+                  Policy Type
+                </Text>
+                <SelectButton
+                  title="Single Signature"
+                >
+                </SelectButton>
+              </View>
+              <View style={styles.option}>
+                <Text style={styles.label}>
+                  Script Version
+                </Text>
+                <SelectButton
+                  title={scriptVersionName}
+                  onPress={() => this.setState({scriptVersionModalVisible: true})}
+                >
+                </SelectButton>
+              </View>
+              <View style={styles.option}>
+                <Text style={styles.label}>
+                  Mnemonic Seed Words (BIP39)
+                </Text>
+                <SelectButton
+                  title={seedWordsName}
+                  onPress={() => this.setState({seedWordsModalVisible: true})}
+                >
+                </SelectButton>
+              </View>
+            </View>
+            <View style={styles.actions}>
+              <Button
+                title='Generate New Secret Seed'
+                onPress={() => this.notImplementedAlert()}
+                style={styles.defaultActionButton}
+              ></Button>
+              <Button
+                title='Import Existing Seed'
+                onPress={() => {
+                  setCurrentAccount({
+                    ...currentAccount,
+                    scriptVersion: this.state.scriptVersion,
+                    seedWords: this.state.seedWords
+                  });
+                  this.props.navigation.navigate('ImportSeed');
+                }}
+                style={styles.additionalActionButton}
+              ></Button>
+              <Button
+                title='Import As Stateless'
+                onPress={() => this.notImplementedAlert()}
+                style={styles.additionalActionButton}
+              ></Button>
+            </View>
+            <Modal
+              visible={scriptVersionModalVisible}
+              transparent={false}
             >
-            </SelectButton>
-          </View>
-          <View style={styles.option}>
-            <Text style={styles.label}>
-              Script Version
-            </Text>
-            <SelectButton
-              title={scriptVersionName}
-              onPress={() => this.setState({scriptVersionModalVisible: true})}
+              <ScriptVersionModal
+                onClose={(scriptVersion: ScriptVersion) => this.setScriptVersion(scriptVersion)}
+                scriptVersion={scriptVersion}
+              ></ScriptVersionModal>
+            </Modal>
+            <Modal
+              visible={seedWordsModalVisible}
+              transparent={false}
             >
-            </SelectButton>
+              <SeedWordsModal
+                onClose={(seedWords: SeedWords) => this.setSeedWords(seedWords)}
+                seedWords={seedWords}
+              ></SeedWordsModal>
+            </Modal>
           </View>
-          <View style={styles.option}>
-            <Text style={styles.label}>
-              Mnemonic Seed Words (BIP39)
-            </Text>
-            <SelectButton
-              title={seedWordsName}
-              onPress={() => this.setState({seedWordsModalVisible: true})}
-            >
-            </SelectButton>
-          </View>
-        </View>
-        <View style={styles.actions}>
-          <Button
-            title='Generate New Secret Seed'
-            onPress={() => this.notImplementedAlert()}
-            style={styles.defaultActionButton}
-          ></Button>
-          <Button
-            title='Import Existing Seed'
-            onPress={() => this.props.navigation.navigate('ImportSeed')}
-            style={styles.additionalActionButton}
-          ></Button>
-          <Button
-            title='Import As Stateless'
-            onPress={() => this.notImplementedAlert()}
-            style={styles.additionalActionButton}
-          ></Button>
-        </View>
-        <Modal
-          visible={scriptVersionModalVisible}
-          transparent={false}
-        >
-          <ScriptVersionModal
-            onClose={(scriptVersion: ScriptVersion) => this.setScriptVersion(scriptVersion)}
-            scriptVersion={scriptVersion}
-          ></ScriptVersionModal>
-        </Modal>
-        <Modal
-          visible={seedWordsModalVisible}
-          transparent={false}
-        >
-          <SeedWordsModal
-            onClose={(seedWords: SeedWords) => this.setSeedWords(seedWords)}
-            seedWords={seedWords}
-          ></SeedWordsModal>
-        </Modal>
-      </View>
+        )}
+      </AccountsContext.Consumer>
     );
 
   }

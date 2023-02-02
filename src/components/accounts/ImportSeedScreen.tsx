@@ -7,12 +7,13 @@ import {
 } from 'react-native';
 
 import { Typography, Layout, Colors } from '../../styles';
+import navUtils from '../../utils/NavUtils';
 
 import Account from '../../models/Account';
 import Button from '../shared/Button';
-import HeaderTitle from '../shared/HeaderTitle';
 
 import { AccountsContext } from './AccountsContext';
+import { SeedWords } from '../../enums/SeedWords';
 
 interface Props {}
 
@@ -34,66 +35,74 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   }
 
   componentDidMount() {
-    this.setHeading();
+    navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
   componentDidUpdate() {
-    this.setHeading();    
+    navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
-  setHeading() {
-    const accountName = this.context.currentAccount.name;
-    const headerTitle = () => <HeaderTitle heading={accountName} />;
-    this.props.navigation.setOptions({ headerTitle });
+  getWords(account: Account) {
+    const numWords = account?.seedWords || 24;
+    const words = [];
+    for (let i = 0; i < numWords; i++) {
+      words.push(<Word num={i+1} key={i}></Word>);
+    }
+    return words;
   }
 
   render() {
-    const words = [];
-    for (let i = 0; i < 12; i++) {
-      words.push(<Word num={i+1} key={i}></Word>);
-    }
-    
     return (
-      <View style={styles.container}>
-        <View>
-          <Text style={styles.label}>
-            Mnemonic Seed Words (BIP39)
-          </Text>
-          <View style={styles.words}>
-            {words}
-          </View>
-        </View>
-        <View style={styles.passphrase}>
-          <Text style={styles.label}>
-            Additional personal secret (optional)
-          </Text>
-          <TextInput
-            style={styles.passphraseText}
-            // value={this.state.account.name}
-            // onChangeText={(accountName) => this.setAccount(accountName)}
-          >
-          </TextInput>
-          <View style={styles.passphraseStatus}>
-            <View style={styles.checksum}>
-              <View style={styles.checksumStatus}></View>
-              <Text style={styles.checksumStatusLabel}>invalid checksum</Text>
+      <AccountsContext.Consumer>
+        {({currentAccount, setCurrentAccount}) => (
+          <View style={styles.container}>
+            <View>
+              <Text style={styles.label}>
+                Mnemonic Seed Words (BIP39)
+              </Text>
+              <View style={[styles.words,
+                currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
+                currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
+                currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
+                currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
+                currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
+              ]}>
+                {this.getWords(currentAccount)}
+              </View>
             </View>
-            <View style={styles.fingerprint}>
-              <Text style={styles.fingerprintLabel}>Fingerprint</Text>
-              <Text style={styles.fingerprintValue}>af4261ff</Text>
+            <View style={styles.passphrase}>
+              <Text style={styles.label}>
+                Additional personal secret (optional)
+              </Text>
+              <TextInput
+                style={styles.passphraseText}
+                // value={this.state.account.name}
+                // onChangeText={(accountName) => this.setAccount(accountName)}
+              >
+              </TextInput>
+              <View style={styles.passphraseStatus}>
+                <View style={styles.checksum}>
+                  <View style={styles.checksumStatus}></View>
+                  <Text style={styles.checksumStatusLabel}>invalid checksum</Text>
+                </View>
+                <View style={styles.fingerprint}>
+                  <Text style={styles.fingerprintLabel}>Fingerprint</Text>
+                  <Text style={styles.fingerprintValue}>af4261ff</Text>
+                </View>
+              </View>
+            </View>
+            <View>
+              <Button
+                title="Save Secret Seed"
+                style={{
+                  backgroundColor: Colors.defaultActionBackground,
+                  color: Colors.defaultActionText
+                }}
+              ></Button>
             </View>
           </View>
-        </View>
-        <View>
-          <Button
-            title="Save Secret Seed"
-            style={{
-              backgroundColor: Colors.defaultActionBackground,
-              color: Colors.defaultActionText
-            }}
-          ></Button>
-        </View>
-      </View>
+        )}
+      </AccountsContext.Consumer>
     );
   }
 
@@ -107,6 +116,8 @@ function Word(props: any) {
     </View>
   );
 }
+
+const wordRowHeight = 49.25;
 
 const styles = StyleSheet.create({  
   container: {
@@ -124,7 +135,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignContent: 'space-between',
-    height: 198
+  },
+  words12: {
+    height: 4 * wordRowHeight
+  },
+  words15: {
+    height: 5 * wordRowHeight
+  },
+  words18: {
+    height: 6 * wordRowHeight
+  },
+  words21: {
+    height: 7 * wordRowHeight
+  },
+  words24: {
+    height: 8 * wordRowHeight
   },
   word: {
     height: 44,
