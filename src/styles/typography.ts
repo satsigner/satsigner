@@ -2,7 +2,7 @@ import { TextStyle } from "react-native";
 
 import * as Colors from "./colors";
 
-type Capitalization = "uppercase" | "lowercase" | "capitalize"
+type Capitalization = "uppercase" | "lowercase" | "capitalize";
 export const capitalization: Record<Capitalization, TextStyle> = {
   uppercase: {
     textTransform: 'uppercase'
@@ -15,7 +15,7 @@ export const capitalization: Record<Capitalization, TextStyle> = {
   }
 };
 
-type FontSize = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
+type FontSize = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40";
 export const fontSize: Record<FontSize, TextStyle> = {
   x1: {
     fontSize: 9
@@ -76,7 +76,7 @@ export const fontSize: Record<FontSize, TextStyle> = {
 // TODO implement correct font family
 // TODO consider use of letter spacing (e.g. letterSpacing: 1)
 
-type TextNormal = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
+type TextNormal = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40";
 export const textNormal: Record<TextNormal, TextStyle> = {
   x1: {
     ...fontSize.x1,
@@ -152,7 +152,7 @@ export const textNormal: Record<TextNormal, TextStyle> = {
   }
 };
 
-type TextHighlight = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
+type TextHighlight = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40";
 export const textHighlight: Record<TextHighlight, TextStyle> = {
   x1: {
     ...fontSize.x1,
@@ -228,7 +228,7 @@ export const textHighlight: Record<TextHighlight, TextStyle> = {
   }
 };
 
-type TextMuted = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40"
+type TextMuted = "x1" | "x2" | "x3" | "x4" | "x5" | "x6" | "x7" | "x8" | "x9" | "x10" | "x11" | "x12" | "x14" | "x16" | "x18" | "x20" | "x30" | "x40";
 export const textMuted: Record<TextMuted, TextStyle> = {
   x1: {
     ...fontSize.x1,
@@ -302,4 +302,66 @@ export const textMuted: Record<TextMuted, TextStyle> = {
     ...fontSize.x40,
     color: Colors.muted,
   }
+};
+
+// Fonts
+
+// Adding new fonts:
+// 1. add fonts to src/assets/fonts
+// 2. run `npx react-native-asset`
+//
+// https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight#common_weight_name_mapping
+//
+// Value   Common weight name
+// 100     Thin (Hairline)
+// 200     Extra Light (Ultra Light)
+// 300     Light
+// 400     Normal (Regular)
+// 500     Medium
+// 600     Semi Bold (Demi Bold)
+// 700     Bold
+// 800     Extra Bold (Ultra Bold)
+// 900     Black (Heavy)
+// 950     Extra Black (Ultra Black)
+
+// SF Pro
+// fonts available for download at https://developer.apple.com/fonts/
+
+// mapping:
+// 100 = SF Pro Thin
+// 200 = SF Pro Ultra Light
+// 300 = SF Pro Light
+// 400 = SF Pro Regular
+// 500 = SF Pro Medium
+// 600 = SF Pro Semi-bold
+// 700 = SF Pro Bold
+// 800 = SF Pro Heavy
+// 900 = SF Pro Black
+
+type FontFamily =
+  'sfProDisplayRegular' |
+  'sfProDisplayMedium' |
+  'sfProTextUltraLight' |
+  'sfProTextLight' |
+  'sfProTextRegular' |
+  'sfProTextBold'
+export const fontFamily: Record<FontFamily, TextStyle> = {
+  sfProDisplayRegular: { // 400
+    fontFamily: 'SF-Pro-Display-Regular'
+  },
+  sfProDisplayMedium: { // 500
+    fontFamily: 'SF-Pro-Display-Medium'
+  },
+  sfProTextUltraLight: { // 200
+    fontFamily: 'SF-Pro-Text-Ultralight'
+  },
+  sfProTextLight: { // 300
+    fontFamily: 'SF-Pro-Text-Light'
+  },
+  sfProTextRegular: { // 400
+    fontFamily: 'SF-Pro-Text-Regular'
+  },
+  sfProTextBold: { // 700
+    fontFamily: 'SF-Pro-Text-Bold'
+  },
 };

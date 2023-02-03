@@ -99,6 +99,7 @@ const styles = StyleSheet.create({
   },
   accountNameText: {
     ...Typography.textHighlight.x12,
+    // ...Typography.fontFamily.sfProTextLight,
     backgroundColor: Colors.inputBackground,
     fontWeight: '300',
     textAlign: 'center',

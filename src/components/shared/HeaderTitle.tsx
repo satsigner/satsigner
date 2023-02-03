@@ -9,7 +9,8 @@ export default function HeaderTitle(props: any) {
   const styles = StyleSheet.create({  
     heading: {
       ...Typography.textHighlight.x5,
-      ...Typography.capitalization.uppercase
+      ...Typography.capitalization.uppercase,
+      ...Typography.fontFamily.sfProTextRegular
     },
   });
   
