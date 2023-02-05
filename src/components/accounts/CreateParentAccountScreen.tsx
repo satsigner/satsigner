@@ -1,7 +1,6 @@
 import React, { useContext } from 'react';
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
   Alert,
@@ -11,6 +10,7 @@ import { NavigationProp } from '@react-navigation/native';
 import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
+import { AppText } from '../shared/AppText';
 
 import { AccountsContext } from './AccountsContext';
 
@@ -42,9 +42,9 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
         {({setCurrentAccount}) => (
           <View style={styles.container}>
             <View>
-              <Text style={styles.label}>
+              <AppText style={styles.label}>
                 Account Name
-              </Text>
+              </AppText>
               <TextInput
                 style={styles.accountNameText}
                 value={accountName}
@@ -99,13 +99,11 @@ const styles = StyleSheet.create({
   },
   accountNameText: {
     ...Typography.textHighlight.x12,
-    // ...Typography.fontFamily.sfProTextLight,
+    ...Typography.fontFamily.sfProTextLight,
     backgroundColor: Colors.inputBackground,
-    fontWeight: '300',
     textAlign: 'center',
-    padding: 13.6,
+    height: 56,
     borderRadius: 3,
-    letterSpacing: 0.6
   },
   actions: {
     justifyContent: 'space-evenly',

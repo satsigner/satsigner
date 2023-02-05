@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   TextInput,
   StyleSheet
 } from 'react-native';
@@ -11,6 +10,7 @@ import navUtils from '../../utils/NavUtils';
 
 import Account from '../../models/Account';
 import Button from '../shared/Button';
+import { AppText } from '../shared/AppText';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
@@ -57,9 +57,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
         {({currentAccount, setCurrentAccount}) => (
           <View style={styles.container}>
             <View>
-              <Text style={styles.label}>
+              <AppText style={styles.label}>
                 Mnemonic Seed Words (BIP39)
-              </Text>
+              </AppText>
               <View style={[styles.words,
                 currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
                 currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
@@ -71,9 +71,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
               </View>
             </View>
             <View style={styles.passphrase}>
-              <Text style={styles.label}>
+              <AppText style={styles.label}>
                 Additional personal secret (optional)
-              </Text>
+              </AppText>
               <TextInput
                 style={styles.passphraseText}
                 // value={this.state.account.name}
@@ -83,21 +83,18 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
               <View style={styles.passphraseStatus}>
                 <View style={styles.checksum}>
                   <View style={styles.checksumStatus}></View>
-                  <Text style={styles.checksumStatusLabel}>invalid checksum</Text>
+                  <AppText style={styles.checksumStatusLabel}>invalid checksum</AppText>
                 </View>
                 <View style={styles.fingerprint}>
-                  <Text style={styles.fingerprintLabel}>Fingerprint</Text>
-                  <Text style={styles.fingerprintValue}>af4261ff</Text>
+                  <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
+                  <AppText style={styles.fingerprintValue}>af4261ff</AppText>
                 </View>
               </View>
             </View>
             <View>
               <Button
                 title="Save Secret Seed"
-                style={{
-                  backgroundColor: Colors.defaultActionBackground,
-                  color: Colors.defaultActionText
-                }}
+                style={styles.submitAction}
               ></Button>
             </View>
           </View>
@@ -112,7 +109,7 @@ function Word(props: any) {
   return (
     <View style={styles.word}>
       <TextInput style={styles.wordText}></TextInput>
-      <Text style={styles.wordNumLabel}>{props.num}</Text>
+      <AppText style={styles.wordNumLabel}>{props.num}</AppText>
     </View>
   );
 }
@@ -126,7 +123,6 @@ const styles = StyleSheet.create({
     ...Layout.container.horizontalPadded
   },
   label: {
-    ...Typography.textHighlight.x5,
     alignSelf: 'center',
     marginBottom: 7
   },
@@ -159,9 +155,9 @@ const styles = StyleSheet.create({
   },
   wordNumLabel: {
     position: 'absolute',
-    top: 2,
+    top: 0,
     left: 5,
-    ...Typography.textNormal.x5,
+    ...Typography.textNormal.x4,
   },
   wordText: {
     ...Typography.textHighlight.x9,
@@ -172,22 +168,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6
   },
   passphrase: {
-    marginTop: 32
+    marginTop: 22
   },
   passphraseText: {
-    ...Typography.textHighlight.x12,
+    ...Typography.textHighlight.x20,
+    ...Typography.fontFamily.sfProTextLight,
     backgroundColor: Colors.inputBackground,
-    fontWeight: '300',
     textAlign: 'center',
-    padding: 13.6,
+    height: 60,
+    padding: 0,
     borderRadius: 3,
-    letterSpacing: 0.6
   },
   passphraseStatus: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 14
+    marginVertical: 10
   },
   checksum: {
     flexDirection: 'row',
@@ -202,7 +198,6 @@ const styles = StyleSheet.create({
     marginTop: 1
   },
   checksumStatusLabel: {
-    ...Typography.textHighlight.x5
   },
   fingerprint: {
     flexDirection: 'row',
@@ -215,4 +210,8 @@ const styles = StyleSheet.create({
   fingerprintValue: {
     ...Typography.textNormal.x5
   },
+  submitAction: {
+    backgroundColor: Colors.defaultActionBackground,
+    color: Colors.defaultActionText
+  }
 });

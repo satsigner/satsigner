@@ -1,11 +1,12 @@
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 
 import DownArrow from '../../assets/images/down-arrow.svg';
+
+import { AppText } from '../shared/AppText';
 
 import { Colors, Typography } from '../../styles';
 
@@ -15,7 +16,7 @@ export default function SelectButton(props: any) {
       borderRadius: 3,
       backgroundColor: props?.style?.backgroundColor || Colors.inputBackground,
       height: 55,
-      marginTop: 8,
+      marginTop: 3,
       marginBottom: 12
     },  
     button: {
@@ -24,9 +25,9 @@ export default function SelectButton(props: any) {
       alignItems: 'center',
     },
     buttonText: {
+      ...Typography.fontFamily.sfProTextLight,
       ...Typography.textHighlight.x16,
       color: props?.style?.color || Colors.actionText,
-      fontWeight: '300',
       letterSpacing: 0.6
     },
     downArrow: {
@@ -43,9 +44,9 @@ export default function SelectButton(props: any) {
       onPress={props.onPress}
     >
       <View style={styles.button}>
-        <Text style={styles.buttonText}>
+        <AppText style={styles.buttonText}>
           {props.title}
-        </Text>
+        </AppText>
         <DownArrow style={styles.downArrow} width={11.6} height={5}></DownArrow>
       </View>
     </TouchableOpacity>

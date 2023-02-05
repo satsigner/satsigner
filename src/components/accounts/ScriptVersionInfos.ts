@@ -6,7 +6,7 @@ const scriptVersionInfos: ScriptVersionInfo[] = [
     scriptVersion: ScriptVersion.P2PKH,
     shortName: 'P2PKH',
     longName: 'Legacy',
-    description: 'To solve this script, the owner of the hashed public key above needs to privide the original public key, along with a valid signature for it.',
+    description: 'To solve this script, the owner of the hashed public key above needs to provide the original public key, along with a valid signature for it.',
     scriptCode: 'sh(wpkh(Key))'
   },
   {
@@ -20,14 +20,14 @@ const scriptVersionInfos: ScriptVersionInfo[] = [
     scriptVersion: ScriptVersion.P2WPKH,
     shortName: 'P2WPKH',
     longName: 'Native Segwit',
-    description: 'Native Segwit To solve this script, the owner of the hashed public key above needs to privide the original public key, along with a valid signature for it.',
+    description: 'Native Segwit To solve this script, the owner of the hashed public key above needs to provide the original public key, along with a valid signature for it.',
     scriptCode: 'sh(wpkh(Key))'
   },
   {
     scriptVersion: ScriptVersion.P2TR,
     shortName: 'P2TR',
     longName: 'Taproot',
-    description: 'Taproot To solve this script, the owner of the hashed public key above needs to privide the original public key, along with a valid signature for it.',
+    description: 'Taproot To solve this script, the owner of the hashed public key above needs to provide the original public key, along with a valid signature for it.',
     scriptCode: 'sh(wpkh(Key))'
   }
 ];

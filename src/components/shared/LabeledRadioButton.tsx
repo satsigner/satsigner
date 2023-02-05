@@ -1,10 +1,10 @@
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 
+import { AppText } from '../shared/AppText';
 import { Colors, Typography } from '../../styles';
 
 export default function LabeledRadioButton(props: any) {
@@ -52,9 +52,9 @@ export default function LabeledRadioButton(props: any) {
       <View style={props.selected ?
         styles.buttonSelected :
         styles.buttonUnselected}>
-        <Text style={styles.buttonText}>
+        <AppText style={styles.buttonText}>
           {props.title}
-        </Text>
+        </AppText>
       </View>
     </TouchableOpacity>
   );

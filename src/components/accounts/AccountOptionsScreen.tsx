@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Alert,
   Modal
@@ -13,6 +12,7 @@ import navUtils from '../../utils/NavUtils';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
+import { AppText } from '../shared/AppText';
 
 import ScriptVersionModal from './ScriptVersionModal';
 import { ScriptVersion } from '../../enums/ScriptVersion';
@@ -81,18 +81,18 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
           <View style={styles.container}>
             <View style={styles.options}>
               <View style={styles.option}>
-                <Text style={styles.label}>
+                <AppText style={styles.label}>
                   Policy Type
-                </Text>
+                </AppText>
                 <SelectButton
                   title="Single Signature"
                 >
                 </SelectButton>
               </View>
               <View style={styles.option}>
-                <Text style={styles.label}>
+                <AppText style={styles.label}>
                   Script Version
-                </Text>
+                </AppText>
                 <SelectButton
                   title={scriptVersionName}
                   onPress={() => this.setState({scriptVersionModalVisible: true})}
@@ -100,9 +100,9 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 </SelectButton>
               </View>
               <View style={styles.option}>
-                <Text style={styles.label}>
+                <AppText style={styles.label}>
                   Mnemonic Seed Words (BIP39)
-                </Text>
+                </AppText>
                 <SelectButton
                   title={seedWordsName}
                   onPress={() => this.setState({seedWordsModalVisible: true})}
@@ -201,9 +201,7 @@ const styles = StyleSheet.create({
     ...Layout.container.horizontalPadded
   },
   label: {
-    ...Typography.textHighlight.x5,
     alignSelf: 'center',
-    marginBottom: 0
   },
   defaultActionButton: {
     backgroundColor: Colors.defaultActionBackground,

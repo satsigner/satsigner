@@ -1,9 +1,10 @@
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+
+import { AppText } from '../shared/AppText';
 
 import { Colors, Typography } from '../../styles';
 
@@ -15,8 +16,8 @@ export default function Button(props: any) {
       borderStyle: 'solid',
       borderWidth: props?.style?.borderColor ? 1 : 0,
       backgroundColor: props?.style?.backgroundColor || Colors.actionBackground,
-      height: 62,
-      marginVertical: 8
+      height: 60,
+      marginVertical: 9
     },  
     button: {
       flex: 1,
@@ -38,9 +39,9 @@ export default function Button(props: any) {
       disabled={props.disabled}
     >
       <View style={styles.button}>
-        <Text style={styles.buttonText}>
+        <AppText style={styles.buttonText}>
           {props.title}
-        </Text>
+        </AppText>
       </View>
     </TouchableOpacity>
   );

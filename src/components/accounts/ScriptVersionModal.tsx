@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   LayoutAnimation,
   Platform,
@@ -13,6 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
+import { AppText } from '../shared/AppText';
 
 import { Typography, Layout, Colors } from '../../styles';
 
@@ -77,17 +77,17 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     return (
       <View style={styles.container}>
         <View>
-          <Text style={styles.modalTitle}>Script Version</Text>
+          <AppText style={styles.modalTitle}>Script Version</AppText>
           <TouchableWithoutFeedback
             onPress={() => this.toggleInfoExpanded()}
           >
             <View style={styles.infoContainer}>
               <View style={styles.infoHeading}>
-                <Text style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</Text>
-                <Text style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</Text>
+                <AppText style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</AppText>
+                <AppText style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</AppText>
               </View>
               <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-                <Text style={styles.infoDescription}>{scriptVersionInfo?.description}</Text>
+                <AppText style={styles.infoDescription}>{scriptVersionInfo?.description}</AppText>
                 <LinearGradient
                   style={infoExpanded ?
                     {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
@@ -97,10 +97,10 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
                   end={{ x: 0.5, y: 1.0 }}
                 ></LinearGradient>
               </View>
-              <View style={{marginTop: 0}}>
-                <Text
+              <View style={styles.expandCollapseAction}>
+                <AppText
                   style={styles.infoExpandCollapseAction}
-                >{infoExpanded ? 'LESS' : 'MORE'}</Text>
+                >{infoExpanded ? 'LESS' : 'MORE'}</AppText>
               </View>
             </View>
           </TouchableWithoutFeedback>
@@ -138,22 +138,20 @@ const styles = StyleSheet.create({
     ...Typography.textHighlight.x8,
     color: Colors.modalTitle,
     alignSelf: 'center',
-    marginBottom: 28
+    marginBottom: 25
   },
   infoName: {
-    ...Typography.textHighlight.x5,
     ...Typography.capitalization.uppercase
   },
   infoScriptCode: {
-    ...Typography.textHighlight.x5,
     color: Colors.modalTitle
   },
   infoDescription: {
-    ...Typography.textHighlight.x9,
-    color: Colors.modalTitle    
+    ...Typography.textHighlight.x8,
+    color: Colors.modalTitle,
   },
   infoDescriptionObscure: {
-    height: 25,
+    height: 22,
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -170,7 +168,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14
+    marginBottom: 6
   },
   infoBodyCollapsed: {
     overflow: 'hidden',
@@ -182,8 +180,10 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   infoExpandCollapseAction: {
-    ...Typography.textHighlight.x5,
     ...Typography.capitalization.uppercase
+  },
+  expandCollapseAction: {
+    marginTop: -4
   },
   actions: {
     justifyContent: 'space-evenly',

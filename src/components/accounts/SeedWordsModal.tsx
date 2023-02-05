@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   LayoutAnimation,
   Platform,
@@ -13,6 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
+import { AppText } from '../shared/AppText';
 
 import { Typography, Layout, Colors } from '../../styles';
 
@@ -77,13 +77,13 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
     return (
       <View style={styles.container}>
         <View>
-          <Text style={styles.modalTitle}>Mnemonic Seed Words (BIP39)</Text>
+          <AppText style={styles.modalTitle}>Mnemonic Seed Words (BIP39)</AppText>
           <View style={styles.infoContainer}>
             <View style={styles.infoHeading}>
-              <Text style={styles.infoName}>{seedWordsInfo?.name}</Text>
+              <AppText style={styles.infoName}>{seedWordsInfo?.name}</AppText>
             </View>
             <View>
-              <Text style={styles.infoDescription}>{seedWordsInfo?.description}</Text>
+              <AppText style={styles.infoDescription}>{seedWordsInfo?.description}</AppText>
             </View>
           </View>
           <View>
@@ -120,14 +120,13 @@ const styles = StyleSheet.create({
     ...Typography.textHighlight.x8,
     color: Colors.modalTitle,
     alignSelf: 'center',
-    marginBottom: 28
+    marginBottom: 25
   },
   infoName: {
-    ...Typography.textHighlight.x5,
     ...Typography.capitalization.uppercase
   },
   infoDescription: {
-    ...Typography.textHighlight.x9,
+    ...Typography.textHighlight.x8,
     color: Colors.modalTitle    
   },
   infoContainer: {
@@ -138,7 +137,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14
+    marginBottom: 6
   },
   actions: {
     justifyContent: 'space-evenly',
