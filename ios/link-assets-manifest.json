@@ -2,27 +2,27 @@
   "migIndex": 1,
   "data": [
     {
-      "path": "src/assets/fonts/SF-Pro-Display-Medium.otf",
+      "path": "src/assets/fonts/SF Pro Display Medium.otf",
       "sha1": "122adb62377e256db0122abefc29295218928fea"
     },
     {
-      "path": "src/assets/fonts/SF-Pro-Display-Regular.otf",
+      "path": "src/assets/fonts/SF Pro Display Regular.otf",
       "sha1": "737ea8c075bdae8392f2c92b17183c270b997f67"
     },
     {
-      "path": "src/assets/fonts/SF-Pro-Text-Bold.otf",
+      "path": "src/assets/fonts/SF Pro Text Bold.otf",
       "sha1": "31c1cfc1c81b5bff7b68e0a5036a82ef6d032a9f"
     },
     {
-      "path": "src/assets/fonts/SF-Pro-Text-Light.otf",
+      "path": "src/assets/fonts/SF Pro Text Light.otf",
       "sha1": "02f545e9b723c364a8dd07613e731711bb946f9a"
     },
     {
-      "path": "src/assets/fonts/SF-Pro-Text-Regular.otf",
+      "path": "src/assets/fonts/SF Pro Text Regular.otf",
       "sha1": "9c14ea911a94bcb0179cb884b07affb88de49a84"
     },
     {
-      "path": "src/assets/fonts/SF-Pro-Text-Ultralight.otf",
+      "path": "src/assets/fonts/SF Pro Text Ultralight.otf",
       "sha1": "d794b09c806288cbb32997f9c1c0b6cad78efa1a"
     }
   ]

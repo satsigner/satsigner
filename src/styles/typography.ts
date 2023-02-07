@@ -347,21 +347,21 @@ type FontFamily =
   'sfProTextBold'
 export const fontFamily: Record<FontFamily, TextStyle> = {
   sfProDisplayRegular: { // 400
-    fontFamily: 'SF-Pro-Display-Regular'
+    fontFamily: 'SF Pro Display Regular'
   },
   sfProDisplayMedium: { // 500
-    fontFamily: 'SF-Pro-Display-Medium'
+    fontFamily: 'SF Pro Display Medium'
   },
   sfProTextUltraLight: { // 200
-    fontFamily: 'SF-Pro-Text-Ultralight'
+    fontFamily: 'SF Pro Text Ultralight'
   },
   sfProTextLight: { // 300
-    fontFamily: 'SF-Pro-Text-Light'
+    fontFamily: 'SF Pro Text Light'
   },
   sfProTextRegular: { // 400
-    fontFamily: 'SF-Pro-Text-Regular'
+    fontFamily: 'SF Pro Text Regular'
   },
   sfProTextBold: { // 700
-    fontFamily: 'SF-Pro-Text-Bold'
+    fontFamily: 'SF Pro Text Bold'
   },
 };
