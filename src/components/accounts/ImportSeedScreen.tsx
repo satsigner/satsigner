@@ -155,9 +155,10 @@ const styles = StyleSheet.create({
   },
   wordNumLabel: {
     position: 'absolute',
-    top: 0,
+    top: 5,
     left: 5,
     ...Typography.textNormal.x4,
+    lineHeight: Typography.fontSize.x4.fontSize
   },
   wordText: {
     ...Typography.textHighlight.x9,
@@ -165,7 +166,8 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     textAlign: 'center',
     borderRadius: 3,
-    letterSpacing: 0.6
+    letterSpacing: 0.6,
+    flex: 1
   },
   passphrase: {
     marginTop: 22
