@@ -1,8 +1,11 @@
 import React from 'react';
 import {
   View,
+  KeyboardAvoidingView,
+  ScrollView,
   TextInput,
-  StyleSheet
+  StyleSheet,
+  Platform
 } from 'react-native';
 
 import { Typography, Layout, Colors } from '../../styles';
@@ -11,6 +14,7 @@ import navUtils from '../../utils/NavUtils';
 import Account from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
+import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingViewWithHeaderOffset';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
@@ -55,49 +59,51 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     return (
       <AccountsContext.Consumer>
         {({currentAccount, setCurrentAccount}) => (
-          <View style={styles.container}>
-            <View>
-              <AppText style={styles.label}>
-                Mnemonic Seed Words (BIP39)
-              </AppText>
-              <View style={[styles.words,
-                currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
-                currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
-                currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
-                currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
-                currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
-              ]}>
-                {this.getWords(currentAccount)}
-              </View>
-            </View>
-            <View style={styles.passphrase}>
-              <AppText style={styles.label}>
-                Additional personal secret (optional)
-              </AppText>
-              <TextInput
-                style={styles.passphraseText}
-                // value={this.state.account.name}
-                // onChangeText={(accountName) => this.setAccount(accountName)}
-              >
-              </TextInput>
-              <View style={styles.passphraseStatus}>
-                <View style={styles.checksum}>
-                  <View style={styles.checksumStatus}></View>
-                  <AppText style={styles.checksumStatusLabel}>invalid checksum</AppText>
-                </View>
-                <View style={styles.fingerprint}>
-                  <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
-                  <AppText style={styles.fingerprintValue}>af4261ff</AppText>
+          <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
+            <ScrollView style={styles.scrollContainer}>
+              <View>
+                <AppText style={styles.label}>
+                  Mnemonic Seed Words (BIP39)
+                </AppText>
+                <View style={[styles.words,
+                  currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
+                  currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
+                  currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
+                  currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
+                  currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
+                ]}>
+                  {this.getWords(currentAccount)}
                 </View>
               </View>
-            </View>
-            <View>
-              <Button
-                title="Save Secret Seed"
-                style={styles.submitAction}
-              ></Button>
-            </View>
-          </View>
+              <View style={styles.passphrase}>
+                <AppText style={styles.label}>
+                  Additional personal secret (optional)
+                </AppText>
+                <TextInput
+                  style={styles.passphraseText}
+                  // value={this.state.account.name}
+                  // onChangeText={(accountName) => this.setAccount(accountName)}
+                >
+                </TextInput>
+                <View style={styles.passphraseStatus}>
+                  <View style={styles.checksum}>
+                    <View style={styles.checksumStatus}></View>
+                    <AppText style={styles.checksumStatusLabel}>invalid checksum</AppText>
+                  </View>
+                  <View style={styles.fingerprint}>
+                    <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
+                    <AppText style={styles.fingerprintValue}>af4261ff</AppText>
+                  </View>
+                </View>
+              </View>
+              <View>
+                <Button
+                  title="Save Secret Seed"
+                  style={styles.submitAction}
+                ></Button>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingViewWithHeaderOffset>
         )}
       </AccountsContext.Consumer>
     );
@@ -119,8 +125,10 @@ const wordRowHeight = 49.25;
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
-    ...Layout.container.topPadded,
     ...Layout.container.horizontalPadded
+  },
+  scrollContainer: {
+    ...Layout.container.topPadded,
   },
   label: {
     alignSelf: 'center',
