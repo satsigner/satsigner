@@ -1,4 +1,5 @@
 import { NativeStackNavigationOptions } from '@react-navigation/native-stack';
+import { NavigationProp } from '@react-navigation/native';
 
 import { Colors } from '../styles';
 
@@ -12,8 +13,14 @@ class NavUtils {
       headerTitleAlign: 'center',
       headerTitle: (props) => <HeaderTitle heading={heading} />,
       headerBackground: () => <HeaderBackground />,
-      headerTintColor: Colors.grey130
+      headerTintColor: Colors.grey130,
+      headerBackTitleVisible: false
     };
+  }
+
+  setHeaderTitle(title: string, navigation: NavigationProp<any>): void {
+    const headerTitle = () => <HeaderTitle heading={title} />;
+    navigation.setOptions({ headerTitle });
   }
 
 }

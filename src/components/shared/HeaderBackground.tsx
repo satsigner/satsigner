@@ -1,7 +1,4 @@
-import {
-  Text,
-  StyleSheet,
-} from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -10,7 +7,7 @@ import { Colors } from '../../styles';
 export default function HeaderBackground(props: any) {
   const styles = StyleSheet.create({  
     header: {
-      height: 75,
+      height: '100%',
       justifyContent: 'center',
       alignItems: 'center',
     },

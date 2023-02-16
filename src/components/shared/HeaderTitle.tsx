@@ -1,19 +1,17 @@
-import {
-  Text,
-  StyleSheet,
-} from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { Typography } from '../../styles';
+
+import { AppText } from '../shared/AppText';
 
 export default function HeaderTitle(props: any) {
   const styles = StyleSheet.create({  
     heading: {
-      ...Typography.textHighlight.x5,
-      ...Typography.capitalization.uppercase
+      ...Typography.capitalization.uppercase,
     },
   });
   
   return (
-    <Text style={styles.heading}>{props.heading}</Text>
+    <AppText style={styles.heading}>{props.heading}</AppText>
   );
 }

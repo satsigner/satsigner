@@ -1,6 +1,7 @@
 // NOTE: see below these constant color values
-//       for logically named colors: (e.g. background)
+//       for semantically named colors: (e.g. background)
 
+export const transparent = 'transparent';
 export const black = '#000000';
 export const white = '#FFFFFF';
 
@@ -30,6 +31,7 @@ export const grey47 = '#2F2F2F';
 export const grey49 = '#313131';
 export const grey51 = '#333333';
 export const grey52 = '#343434';
+export const grey54 = '#363636';
 export const grey55 = '#373737';
 export const grey57 = '#393939';
 export const grey67 = '#434343';
@@ -59,6 +61,7 @@ export const grey138 = '#8A8A8A';
 export const grey137 = '#898989';
 export const grey150 = '#969696';
 export const grey157 = '#9D9D9D';
+export const grey153 = '#999999';
 export const grey160 = '#A0A0A0';
 export const grey175 = '#AFAFAF';
 export const grey181 = '#B5B5B5';
@@ -70,14 +73,34 @@ export const grey217 = '#D9D9D9';
 export const grey231 = '#E7E7E7';
 export const grey242 = '#F2F2F2';
 
-// Logically named colors
+// Semantically named colors
+
+export const normal = grey130;
+export const highlight = white;
+export const muted = grey79;
 
 export const background = grey19;
+export const inputBackground = grey36;
 
-export const action = grey67;
-export const disabledAction = grey52;
-export const defaultAction = white;
-export const additionalAction = 'rgba(0, 0, 0, 0)';
+export const actionBackground = grey67;
+export const disabledActionBackground = grey52;
+export const defaultActionBackground = white;
+export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
+export const cancelActionBackground = black;
+
+export const actionText = white;
+export const disabledActionText = grey104;
+export const defaultActionText = black;
+export const additionalActionText = white;
+export const cancelActionText = grey153;
+
+export const additionalActionBorder = grey54;
+
+export const modalTitle = grey118;
+export const modalBackground = black;
+
+export const valid = green2;
+export const invalid = red2;
 
 // Grey definitions currently unused in any designs
 
@@ -121,7 +144,6 @@ export const additionalAction = 'rgba(0, 0, 0, 0)';
 // export const grey48 = '#303030';
 // export const grey50 = '#323232';
 // export const grey53 = '#353535';
-// export const grey54 = '#363636';
 // export const grey56 = '#383838';
 // export const grey58 = '#3A3A3A';
 // export const grey59 = '#3B3B3B';
@@ -192,7 +214,6 @@ export const additionalAction = 'rgba(0, 0, 0, 0)';
 // export const grey149 = '#959595';
 // export const grey151 = '#979797';
 // export const grey152 = '#989898';
-// export const grey153 = '#999999';
 // export const grey154 = '#9A9A9A';
 // export const grey155 = '#9B9B9B';
 // export const grey156 = '#9C9C9C';

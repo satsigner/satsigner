@@ -1,10 +1,10 @@
-import { NavigationProp } from '@react-navigation/native';
 import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
 } from 'react-native';
+import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout } from '../styles';
 
@@ -34,8 +34,8 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
           </Text>
         </View>
         <View style={styles.actions}>
-          <Button title='Placeholder 1' onPress={() => this.props.navigation.navigate('Placeholder1')}></Button>
-          <Button title='Placeholder 2' onPress={() => this.props.navigation.navigate('Placeholder2')}></Button>
+          <Button title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
+          <Button title='Placeholder' onPress={() => this.props.navigation.navigate('Placeholder')}></Button>
         </View>
       </View>
     );
