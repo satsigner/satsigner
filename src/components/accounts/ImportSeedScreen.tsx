@@ -1,11 +1,9 @@
 import React from 'react';
 import {
   View,
-  KeyboardAvoidingView,
   ScrollView,
   TextInput,
-  StyleSheet,
-  Platform
+  StyleSheet
 } from 'react-native';
 
 import { Typography, Layout, Colors } from '../../styles';
@@ -22,7 +20,8 @@ import { SeedWords } from '../../enums/SeedWords';
 interface Props {}
 
 interface State {
-  account: Account
+  seedWords: string[];
+  passphrase: string;
 }
 
 export default class ImportSeedScreen extends React.PureComponent<Props, State> {
@@ -32,9 +31,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     super(props);
 
     this.state = {
-      account: {
-        name: ''
-      }
+      seedWords: []
     };
   }
 
@@ -46,13 +43,31 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
-  getWords(account: Account) {
+  getWordComponents(account: Account) {
     const numWords = account?.seedWords || 24;
     const words = [];
     for (let i = 0; i < numWords; i++) {
-      words.push(<Word num={i+1} key={i}></Word>);
+      words.push(
+        <Word
+          num={i+1}
+          key={i}
+          onChangeWord={this.setWord.bind(this)}
+        ></Word>
+      );
     }
     return words;
+  }
+
+  setWord(word: string, index: number) {
+    this.setState((state) => {
+      const { seedWords } = state;
+      seedWords[index] = word;
+      return { seedWords };
+    });
+  }
+
+  setPassphrase(passphrase: string) {
+    this.setState({passphrase});
   }
 
   render() {
@@ -72,7 +87,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
                   currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
                 ]}>
-                  {this.getWords(currentAccount)}
+                  {this.getWordComponents(currentAccount)}
                 </View>
               </View>
               <View style={styles.passphrase}>
@@ -81,8 +96,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                 </AppText>
                 <TextInput
                   style={styles.passphraseText}
-                  // value={this.state.account.name}
-                  // onChangeText={(accountName) => this.setAccount(accountName)}
+                  onChangeText={(passphrase) => this.setPassphrase(passphrase)}
                 >
                 </TextInput>
                 <View style={styles.passphraseStatus}>
@@ -100,6 +114,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                 <Button
                   title="Save Secret Seed"
                   style={styles.submitAction}
+                  onPress={() => {
+                    console.log(this.state);
+                  }}
                 ></Button>
               </View>
             </ScrollView>
@@ -114,7 +131,10 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 function Word(props: any) {
   return (
     <View style={styles.word}>
-      <TextInput style={styles.wordText}></TextInput>
+      <TextInput
+        style={styles.wordText}
+        onChangeText={(word) => props.onChangeWord(word, props.num - 1)}
+      ></TextInput>
       <AppText style={styles.wordNumLabel}>{props.num}</AppText>
     </View>
   );
