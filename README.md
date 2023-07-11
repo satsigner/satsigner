@@ -55,21 +55,21 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 ## Stack
 
 #### Backend
-* [Bitcoin Development Kit] (https://github.com/bitcoindevkit) via [RN-BDK] (https://github.com/LtbLightning/bdk-rn) - becoming reference Bitcoin dev tools
-* [Blockstream Electrs] (https://github.com/Blockstream/electrs) - performant Bitcoin server interface/signer backend to bootstrap users who don't yet run their own node
-* [Photon SDK] (https://github.com/photon-sdk) - powerful mobile Bitcoin dev kit to build forgiving, easy backup and recovery, intuitive signers
-* [Tor] (https://www.torproject.org/) - private communications with your personal nodeserver/electrs
+* [Bitcoin Development Kit](https://github.com/bitcoindevkit) via [RN-BDK](https://github.com/LtbLightning/bdk-rn) - becoming reference Bitcoin dev tools
+* [Blockstream Electrs](https://github.com/Blockstream/electrs) - performant Bitcoin server interface/signer backend to bootstrap users who don't yet run their own node
+* [Photon SDK](https://github.com/photon-sdk) - powerful mobile Bitcoin dev kit to build forgiving, easy backup and recovery, intuitive signers
+* [Tor](https://www.torproject.org/) - private communications with your personal nodeserver/electrs
 
 #### Frontend
-* [React bubble chart] (https://www.npmjs.com/package/react-bubble-chart)
-* [React d3 tree] (https://github.com/bkrem/react-d3-tree)
+* [React bubble chart](https://www.npmjs.com/package/react-bubble-chart)
+* [React d3 tree](https://github.com/bkrem/react-d3-tree)
 
 ### Design/product inspiration + revered FOSS projects
-* [Sparrow] (https://github.com/sparrowwallet/sparrow) - very powerful and clean native Bitcoin signer management desktop app  
-* [FullyNoded] (https://github.com/Fonta1n3/FullyNoded) - very powerful iOS app focused on remote full node management
-* [BitFeed] (https://github.com/bitfeed-project/bitfeed) - beautiful, psychedelic block/transaction/timechain visualisation
-* [Mempool.space] (https://github.com/mempool/mempool) - beautiful block explorer and Bitcoin data visualisations
-* [Zeus] (https://github.com/ZeusLN/zeus) - pretty, increasingly powerful remote LN node management app
+* [Sparrow](https://github.com/sparrowwallet/sparrow) - very powerful and clean native Bitcoin signer management desktop app  
+* [FullyNoded](https://github.com/Fonta1n3/FullyNoded) - very powerful iOS app focused on remote full node management
+* [BitFeed](https://github.com/bitfeed-project/bitfeed) - beautiful, psychedelic block/transaction/timechain visualisation
+* [Mempool.space](https://github.com/mempool/mempool) - beautiful block explorer and Bitcoin data visualisations
+* [Zeus](https://github.com/ZeusLN/zeus) - pretty, increasingly powerful remote LN node management app
 
 
 
