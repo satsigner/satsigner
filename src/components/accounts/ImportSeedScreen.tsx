@@ -5,6 +5,7 @@ import {
   TextInput,
   StyleSheet
 } from 'react-native';
+import { Bdk, Network } from 'react-native-bdk';
 
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
@@ -22,6 +23,7 @@ interface Props {}
 interface State {
   seedWords: string[];
   passphrase: string;
+  checksumValid: boolean;
 }
 
 export default class ImportSeedScreen extends React.PureComponent<Props, State> {
@@ -31,7 +33,8 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     super(props);
 
     this.state = {
-      seedWords: []
+      seedWords: [],
+      checksumValid: false
     };
   }
 
@@ -70,7 +73,29 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({passphrase});
   }
 
+  async loadWallet() {
+    try {
+      const mnemonic = this.state.seedWords.join(' ');
+      console.log('mnemonic', mnemonic);
+
+      const wallet = await Bdk.loadWallet({
+        mnemonic,
+        config: {
+          network: Network.Testnet
+        },
+      });
+      
+      console.log('wallet', wallet);
+      this.setState({checksumValid: true});
+    } catch (err) {
+      console.error(err);
+      this.setState({checksumValid: false});
+    }
+  }
+
   render() {
+    const { checksumValid } = this.state;
+
     return (
       <AccountsContext.Consumer>
         {({currentAccount, setCurrentAccount}) => (
@@ -101,8 +126,14 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                 </TextInput>
                 <View style={styles.passphraseStatus}>
                   <View style={styles.checksum}>
-                    <View style={styles.checksumStatus}></View>
-                    <AppText style={styles.checksumStatusLabel}>invalid checksum</AppText>
+                    <View style={[
+                        styles.checksumStatus,
+                        this.state.checksumValid ?
+                          styles.checksumStatusValid :
+                          styles.checksumStatusInvalid
+                      ]}>
+                    </View>
+                    <AppText style={styles.checksumStatusLabel}>{ checksumValid ? <>valid</> : <>invalid</> } checksum</AppText>
                   </View>
                   <View style={styles.fingerprint}>
                     <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
@@ -114,8 +145,8 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                 <Button
                   title="Save Secret Seed"
                   style={styles.submitAction}
-                  onPress={() => {
-                    console.log(this.state);
+                  onPress={async () => {
+                    await this.loadWallet();
                   }}
                 ></Button>
               </View>
@@ -223,9 +254,14 @@ const styles = StyleSheet.create({
     width: 11,
     height: 11,
     borderRadius: 11 / 2,
-    backgroundColor: Colors.invalid,
     marginRight: 5,
     marginTop: 1
+  },
+  checksumStatusValid: {
+    backgroundColor: Colors.valid
+  },
+  checksumStatusInvalid: {
+    backgroundColor: Colors.invalid
   },
   checksumStatusLabel: {
   },
