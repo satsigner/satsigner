@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   View,
+  ScrollView,
   StyleSheet,
   LayoutAnimation,
   Platform,
-  UIManager,
-  TouchableWithoutFeedback
+  UIManager
 } from 'react-native';
 
 import LinearGradient from 'react-native-linear-gradient';
@@ -76,32 +76,34 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
 
     return (
       <View style={styles.container}>
-        <View>
-          <AppText style={styles.modalTitle}>Mnemonic Seed Words (BIP39)</AppText>
-          <View style={styles.infoContainer}>
-            <View style={styles.infoHeading}>
-              <AppText style={styles.infoName}>{seedWordsInfo?.name}</AppText>
+        <ScrollView>
+          <View>
+            <AppText style={styles.modalTitle}>Mnemonic Seed Words (BIP39)</AppText>
+            <View style={styles.infoContainer}>
+              <View style={styles.infoHeading}>
+                <AppText style={styles.infoName}>{seedWordsInfo?.name}</AppText>
+              </View>
+              <View>
+                <AppText style={styles.infoDescription}>{seedWordsInfo?.description}</AppText>
+              </View>
             </View>
             <View>
-              <AppText style={styles.infoDescription}>{seedWordsInfo?.description}</AppText>
+              {buttons}
             </View>
           </View>
-          <View>
-            {buttons}
+          <View style={styles.actions}>
+            <Button
+              title='Cancel'
+              onPress={() => this.props.onClose(null)}
+              style={styles.cancelActionButton}
+            ></Button>
+            <Button
+              title='Select'
+              onPress={() => this.props.onClose(this.state.seedWords)}
+              style={styles.defaultActionButton}
+            ></Button>
           </View>
-        </View>
-        <View style={styles.actions}>
-          <Button
-            title='Cancel'
-            onPress={() => this.props.onClose(null)}
-            style={styles.cancelActionButton}
-          ></Button>
-          <Button
-            title='Select'
-            onPress={() => this.props.onClose(this.state.seedWords)}
-            style={styles.defaultActionButton}
-          ></Button>
-        </View>
+        </ScrollView>
       </View>
     );
   }
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     justifyContent: 'space-evenly',
-    marginVertical: 30
+    marginVertical: 10
   },
   defaultActionButton: {
     backgroundColor: Colors.defaultActionBackground,

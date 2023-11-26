@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   View,
+  ScrollView,
   StyleSheet,
   LayoutAnimation,
   Platform,
@@ -76,50 +77,52 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
 
     return (
       <View style={styles.container}>
-        <View>
-          <AppText style={styles.modalTitle}>Script Version</AppText>
-          <TouchableWithoutFeedback
-            onPress={() => this.toggleInfoExpanded()}
-          >
-            <View style={styles.infoContainer}>
-              <View style={styles.infoHeading}>
-                <AppText style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</AppText>
-                <AppText style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</AppText>
-              </View>
-              <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-                <AppText style={styles.infoDescription}>{scriptVersionInfo?.description}</AppText>
-                <LinearGradient
-                  style={infoExpanded ?
-                    {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
-                    styles.infoDescriptionObscure }
-                  colors={[Colors.transparent, 'rgba(0,0,0,1)']}
-                  start={{ x: 0.5, y: 0 }}
-                  end={{ x: 0.5, y: 1.0 }}
-                ></LinearGradient>
-              </View>
-              <View style={styles.expandCollapseAction}>
-                <AppText
-                  style={styles.infoExpandCollapseAction}
-                >{infoExpanded ? 'LESS' : 'MORE'}</AppText>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
+        <ScrollView>
           <View>
-            {buttons}
+            <AppText style={styles.modalTitle}>Script Version</AppText>
+            <TouchableWithoutFeedback
+              onPress={() => this.toggleInfoExpanded()}
+            >
+              <View style={styles.infoContainer}>
+                <View style={styles.infoHeading}>
+                  <AppText style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</AppText>
+                  <AppText style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</AppText>
+                </View>
+                <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
+                  <AppText style={styles.infoDescription}>{scriptVersionInfo?.description}</AppText>
+                  <LinearGradient
+                    style={infoExpanded ?
+                      {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
+                      styles.infoDescriptionObscure }
+                    colors={[Colors.transparent, 'rgba(0,0,0,1)']}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1.0 }}
+                  ></LinearGradient>
+                </View>
+                <View style={styles.expandCollapseAction}>
+                  <AppText
+                    style={styles.infoExpandCollapseAction}
+                  >{infoExpanded ? 'LESS' : 'MORE'}</AppText>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+            <View>
+              {buttons}
+            </View>
           </View>
-        </View>
-        <View style={styles.actions}>
-          <Button
-            title='Cancel'
-            onPress={() => this.props.onClose(null)}
-            style={styles.cancelActionButton}
-          ></Button>
-          <Button
-            title='Select'
-            onPress={() => this.props.onClose(this.state.scriptVersion)}
-            style={styles.defaultActionButton}
-          ></Button>
-        </View>
+          <View style={styles.actions}>
+            <Button
+              title='Cancel'
+              onPress={() => this.props.onClose(null)}
+              style={styles.cancelActionButton}
+            ></Button>
+            <Button
+              title='Select'
+              onPress={() => this.props.onClose(this.state.scriptVersion)}
+              style={styles.defaultActionButton}
+            ></Button>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     justifyContent: 'space-evenly',
-    marginVertical: 30
+    marginVertical: 10
   },
   defaultActionButton: {
     backgroundColor: Colors.defaultActionBackground,
