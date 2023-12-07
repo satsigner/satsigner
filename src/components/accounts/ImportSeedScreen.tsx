@@ -5,7 +5,6 @@ import {
   TextInput,
   StyleSheet
 } from 'react-native';
-import { Bdk, Network } from 'react-native-bdk';
 
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
@@ -73,19 +72,13 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({passphrase});
   }
 
-  async loadWallet() {
+  async importSeed(loadWallet: (mnemonic: string) => void) {
     try {
       const mnemonic = this.state.seedWords.join(' ');
       console.log('mnemonic', mnemonic);
 
-      const wallet = await Bdk.loadWallet({
-        mnemonic,
-        config: {
-          network: Network.Testnet
-        },
-      });
-      
-      console.log('wallet', wallet);
+      await loadWallet(mnemonic);
+
       this.setState({checksumValid: true});
     } catch (err) {
       console.error(err);
@@ -98,7 +91,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, setCurrentAccount, addAccount}) => (
+        {({currentAccount, addAccount, loadWallet}) => (
           <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -146,7 +139,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    await this.loadWallet();
+                    await this.importSeed(loadWallet);
                     addAccount(currentAccount);
                   }}
                 ></Button>
