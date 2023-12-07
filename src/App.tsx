@@ -22,8 +22,10 @@ import Account from './models/Account';
 const Stack = createNativeStackNavigator();
 
 interface State {
-  currentAccount: Account,
+  accounts: Account[];
+  currentAccount: Account;
   setCurrentAccount: (account: Account) => void;
+  addAccount: (account: Account) => void;
 }
 
 export default class App extends React.Component<{}, State> {
@@ -37,9 +39,15 @@ export default class App extends React.Component<{}, State> {
       this.setState({currentAccount: account});
     }
 
+    const addAccount = (account: Account) => {
+      this.setState({accounts: [...this.state.accounts, account]})
+    }
+
     this.state = {
+      accounts: [],
       currentAccount: new Account(),
       setCurrentAccount,
+      addAccount
     };
   }
 

@@ -54,14 +54,14 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
         <Word
           num={i+1}
           key={i}
-          onChangeWord={this.setWord.bind(this)}
+          onChangeWord={this.setWord}
         ></Word>
       );
     }
     return words;
   }
 
-  setWord(word: string, index: number) {
+  setWord = (word: string, index: number) => {
     this.setState((state) => {
       const { seedWords } = state;
       seedWords[index] = word;
@@ -98,7 +98,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, setCurrentAccount}) => (
+        {({currentAccount, setCurrentAccount, addAccount}) => (
           <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -145,8 +145,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                 <Button
                   title="Save Secret Seed"
                   style={styles.submitAction}
-                  onPress={async () => {
+                  onPress={async() => {
                     await this.loadWallet();
+                    addAccount(currentAccount);
                   }}
                 ></Button>
               </View>
