@@ -26,6 +26,7 @@ export const grey27 = '#1B1B1B';
 export const grey32 = '#202020';
 export const grey36 = '#242424';
 export const grey40 = '#282828';
+export const grey44 = '#2C2C2C';
 export const grey45 = '#2D2D2D';
 export const grey47 = '#2F2F2F';
 export const grey49 = '#313131';
@@ -52,6 +53,7 @@ export const grey107 = '#6B6B6B';
 export const grey111 = '#6F6F6F';
 export const grey117 = '#757575';
 export const grey118 = '#767676';
+export const grey119 = '#777777';
 export const grey121 = '#797979';
 export const grey122 = '#7A7A7A';
 export const grey125 = '#7D7D7D';
@@ -102,6 +104,9 @@ export const modalBackground = black;
 export const valid = green2;
 export const invalid = red2;
 
+export const halfGrey = grey119;
+export const quarterGrey = grey51;
+
 // Grey definitions currently unused in any designs
 
 // export const grey1 = '#010101';
@@ -139,7 +144,6 @@ export const invalid = red2;
 // export const grey41 = '#292929';
 // export const grey42 = '#2A2A2A';
 // export const grey43 = '#2B2B2B';
-// export const grey44 = '#2C2C2C';
 // export const grey46 = '#2E2E2E';
 // export const grey48 = '#303030';
 // export const grey50 = '#323232';
@@ -188,7 +192,6 @@ export const invalid = red2;
 // export const grey114 = '#727272';
 // export const grey115 = '#737373';
 // export const grey116 = '#747474';
-// export const grey119 = '#777777';
 // export const grey120 = '#787878';
 // export const grey123 = '#7B7B7B';
 // export const grey124 = '#7C7C7C';

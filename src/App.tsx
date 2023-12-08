@@ -17,6 +17,7 @@ import PlaceholderScreen from './components/PlaceholderScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
+import AccountListScreen from './components/accounts/AccountListScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,8 @@ interface State {
 
 export default class App extends React.Component<{}, State> {
   
+  appTitle = 'Sat Signer';
+
   constructor(props: any) {
     super(props);
   }
@@ -42,7 +45,7 @@ export default class App extends React.Component<{}, State> {
               <Stack.Screen
                 name="Home"
                 component={HomeScreen}            
-                options={NavUtils.getHeaderOptions('Sat Signer')}
+                options={NavUtils.getHeaderOptions(this.appTitle)}
               />
               <Stack.Screen
                 name="CreateParentAccount"
@@ -56,9 +59,14 @@ export default class App extends React.Component<{}, State> {
               />
               <Stack.Screen
                 name="ImportSeed"
-              component={ImportSeedScreen}
-              options={NavUtils.getHeaderOptions('Import Existing Seed')}
-            />
+                component={ImportSeedScreen}
+                options={NavUtils.getHeaderOptions('Import Existing Seed')}
+              />
+              <Stack.Screen
+                name="AccountList"
+                component={AccountListScreen}
+                options={NavUtils.getHeaderOptions(this.appTitle)}
+              />
             <Stack.Screen
               name="Placeholder"
                 component={PlaceholderScreen}

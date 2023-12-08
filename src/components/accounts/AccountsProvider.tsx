@@ -3,9 +3,22 @@ import { AccountsContext } from "./AccountsContext";
 import Account from '../../models/Account';
 
 import { Bdk, Network } from 'react-native-bdk';
+import { SeedWords } from '../../enums/SeedWords';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 export const AccountsProvider = ({ children }) => {
-  const [accounts, setAccounts] = React.useState<Account[]>([]);
+  const [accounts, setAccounts] = React.useState<Account[]>([
+    {
+      name: 'Account #1',
+      seedWords: SeedWords.WORDS12,
+      scriptVersion: ScriptVersion.P2WPKH
+    },
+    {
+      name: 'Account #2',
+      seedWords: SeedWords.WORDS12,
+      scriptVersion: ScriptVersion.P2WPKH
+    }
+  ]);
   const [account, setAccount] = React.useState(new Account());
 
   const addAccount = (account: Account) => setAccounts([...accounts, account]);
