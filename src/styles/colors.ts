@@ -107,7 +107,7 @@ export const valid = green2;
 export const invalid = red2;
 
 export const middleGrey = grey128;
-export const quarterGrey = grey64;
+export const quarterGrey = grey72;
 
 // Grey definitions currently unused in any designs
 

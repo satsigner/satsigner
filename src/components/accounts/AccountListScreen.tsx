@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   info: {
   },
   account: {
-    paddingBottom: 10,
+    paddingBottom: 18,
     marginBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: Colors.grey44,
@@ -113,11 +113,14 @@ const styles = StyleSheet.create({
     ...Typography.textMuted.x1
   },
   accountName: {
-    fontSize: 16,
+    fontSize: 15.5,
+    marginTop: 2,
     color: Colors.middleGrey
   },
   currency: {
-    flexDirection: 'row'
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 1
   },
   sats: {
     ...Typography.fontFamily.sfProTextLight,
@@ -126,7 +129,8 @@ const styles = StyleSheet.create({
   },
   satsLabel: {
     fontSize: 18,
-    color: Colors.middleGrey
+    color: Colors.middleGrey,
+    marginLeft: 3
   },
   usd: {
     fontSize: 14,
@@ -134,16 +138,19 @@ const styles = StyleSheet.create({
   },
   usdLabel: {
     fontSize: 10,
-    color: Colors.quarterGrey
+    color: Colors.quarterGrey,
+    marginLeft: 3
   },
   metrics: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '90%'
+    width: '90%',
+    marginTop: 15
   },
   metric: {
     fontSize: 14,
-    color: Colors.white
+    color: Colors.white,
+    marginBottom: 2
   },
   metricLabel: {
     fontSize: 10,
