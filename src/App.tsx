@@ -13,11 +13,11 @@ import HomeScreen from './components/HomeScreen';
 import CreateParentAccountScreen from './components/accounts/CreateParentAccountScreen';
 import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
+import AccountListScreen from './components/accounts/AccountListScreen';
 import PlaceholderScreen from './components/PlaceholderScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
-import AccountListScreen from './components/accounts/AccountListScreen';
 
 const Stack = createNativeStackNavigator();
 

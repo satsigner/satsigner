@@ -9,12 +9,12 @@ import { ScriptVersion } from '../../enums/ScriptVersion';
 export const AccountsProvider = ({ children }) => {
   const [accounts, setAccounts] = React.useState<Account[]>([
     {
-      name: 'Account #1',
+      name: 'Parent Account',
       seedWords: SeedWords.WORDS12,
       scriptVersion: ScriptVersion.P2WPKH
     },
     {
-      name: 'Account #2',
+      name: 'Shared Account',
       seedWords: SeedWords.WORDS12,
       scriptVersion: ScriptVersion.P2WPKH
     }
