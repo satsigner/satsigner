@@ -3,7 +3,8 @@ import {
   View,
   ScrollView,
   TextInput,
-  StyleSheet
+  StyleSheet,
+  Alert
 } from 'react-native';
 
 import { Typography, Layout, Colors } from '../../styles';
@@ -72,17 +73,29 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({passphrase});
   }
 
-  async importSeed(loadWallet: (mnemonic: string) => void) {
+  async importSeed(loadWallet: (mnemonic: string) => void): Promise<boolean> {
     try {
       const mnemonic = this.state.seedWords.join(' ');
       console.log('mnemonic', mnemonic);
 
-      await loadWallet(mnemonic);
+      const wallet = await loadWallet(mnemonic);
+
+      const { error } = wallet as any;
+
+      if (error) {
+        Alert.alert('Error', '' + error, [{text: 'OK'}]); 
+        return false;
+      }
 
       this.setState({checksumValid: true});
+      return true;
+
     } catch (err) {
-      console.error(err);
+      Alert.alert('Error', '' + err, [{text: 'OK'}]);
+      
       this.setState({checksumValid: false});
+      return false;
+
     }
   }
 
@@ -139,8 +152,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    await this.importSeed(loadWallet);
-                    addAccount(currentAccount);
+                    if (await this.importSeed(loadWallet)) {
+                      addAccount(currentAccount);
+                    }
                   }}
                 ></Button>
               </View>

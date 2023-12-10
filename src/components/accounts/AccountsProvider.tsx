@@ -9,12 +9,7 @@ import { ScriptVersion } from '../../enums/ScriptVersion';
 export const AccountsProvider = ({ children }) => {
   const [accounts, setAccounts] = React.useState<Account[]>([
     {
-      name: 'Parent Account',
-      seedWords: SeedWords.WORDS12,
-      scriptVersion: ScriptVersion.P2WPKH
-    },
-    {
-      name: 'Shared Account',
+      name: 'Account #1',
       seedWords: SeedWords.WORDS12,
       scriptVersion: ScriptVersion.P2WPKH
     }
@@ -36,7 +31,7 @@ export const AccountsProvider = ({ children }) => {
       },
     });
     
-    console.log('wallet', wallet);
+    return wallet;
   }
 
   const value = {
