@@ -1,3 +1,5 @@
+import { Blockchain, Wallet } from 'react-native-bdk';
+
 import { createContext } from 'react';
 import Account from '../../models/Account';
 
@@ -6,5 +8,7 @@ export const AccountsContext = createContext({
   accounts: [],
   setCurrentAccount: (account: Account) => {},
   addAccount: (account: Account) => {},
-  loadWallet: async (mnemonic: string) => {}
+  loadWallet: async (mnemonic: string): Wallet => {},
+  initBlockchain: async() => {},
+  blockchain: Blockchain
 });
