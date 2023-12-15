@@ -2,20 +2,25 @@ import React from 'react';
 import { AccountsContext } from "./AccountsContext";
 import Account from '../../models/Account';
 
-import { Wallet, ElectrumConfig, Blockchain, AddressIndexVariant } from 'react-native-bdk';
+import { 
+  Bdk,
+  LoadWalletResponse
+} from 'react-native-bdk';
+
+import { Result } from '@synonymdev/result';
+
+import WalletStore from 'react-native-bdk/src/store/walletstore';
+
 import { SeedWords } from '../../enums/SeedWords';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 
 export const AccountsProvider = ({ children }) => {
 
-  const electrumConfig: ElectrumConfig = {
-    url: 'ssl://electrum.blockstream.info:60002',
-    retry: '',
-    timeout: '',
-    stopGap: '',
-  };
+  const accountsStoreKey = 'ACCOUNTS';
 
-  const [blockchain, setBlockchain] = React.useState<Blockchain>(null);
+  const electrumUrl = 'ssl://electrum.blockstream.info:60002';
+
+  const [walletStore, setWalletStore] = React.useState<WalletStore>(new WalletStore());
   
   const [accounts, setAccounts] = React.useState<Account[]>([
     {
@@ -33,41 +38,80 @@ export const AccountsProvider = ({ children }) => {
     setAccount(account);
   };
 
-  const initBlockchain = async(): Promise<void> => {
-    const blockchain = await Blockchain.create(electrumConfig);
-    const height = await blockchain.getHeight()
-    console.log('blockchain height', height);
-    setBlockchain(blockchain);
-  }
+  const loadWalletFromMnemonic = async(mnemonic: string): Promise<void> => {
+    
+    // await Bdk.unloadWallet();
+    const response: Result<LoadWalletResponse> = await Bdk.loadWallet({
+      mnemonic,
+      config: {
+        network: 'testnet',
+        blockchainConfigUrl: electrumUrl
+      }
+    });
+    console.log('loadWallet', response);
 
-  const loadWallet = async(mnemonic: string): Promise<Wallet> => {
-    const wallet = await Wallet.init({mnemonic});
-    console.log('wallet', wallet);
+    if (response.isErr()) {
+      throw new Error('Loading wallet failed');
+    }
 
-    console.log('wallet sync', await wallet.sync());
+    const { descriptor_external, descriptor_internal } = response.value;
 
-    const balance = await wallet.getBalance();
-    console.log('balance', JSON.stringify(balance));
+    await storeWallet(descriptor_external, descriptor_internal);
+    await storeAccount(descriptor_external, account.name, account.scriptVersion as ScriptVersion);
+    
+    // const synced = await wallet.sync();
+    // console.log('wallet sync', synced);
 
-    const address = await wallet.getAddress(AddressIndexVariant.NEW, 0);
-    console.log('new address', JSON.stringify(address));
+    // await saveWalletToDisk(wallet);
+
+    // const balance = await wallet.getBalance();
+    // console.log('balance', JSON.stringify(balance));
+
+    // const address = await wallet.getAddress(AddressIndexVariant.NEW, 0);
+    // console.log('new address', JSON.stringify(address));
 
     // const transactions = await wallet.listTransactions();
     // console.log('transactions', transactions);
     
-    return wallet;
+    // return wallet;
   }
 
-  initBlockchain();
+  const storeWallet = async (externalDescriptor: string, internalDescriptor: string) => {
+    walletStore.wallets.push({
+      external_descriptor: externalDescriptor,
+      internal_descriptor: internalDescriptor
+    });
+    await walletStore.saveToDisk();
+  };
+
+  const storeAccount = async (externalDescriptor: string, name: string, scriptVersion: ScriptVersion) => {
+    let accountsString = await walletStore.getItem(accountsStoreKey);
+    if (accountsString) {
+      let accounts: { [key: string]: { name: string, scriptVersion: ScriptVersion } };
+      try {
+        accounts = JSON.parse(accountsString);
+      } catch (err) {
+        console.error(err);
+        throw new Error('Error loading stored accounts');
+      }
+
+      accounts[externalDescriptor] = { name, scriptVersion };
+      accountsString = JSON.stringify(accounts);
+
+      await walletStore.setItem(accountsStoreKey, accountsString);
+    }
+  };
+
+  const loadWalletsFromDisk = async(): Promise<void> => {
+    await walletStore.loadFromDisk();
+  }
 
   const value = {
     accounts,
     currentAccount: account,
     setCurrentAccount,
     addAccount,
-    loadWallet,
-    initBlockchain,
-    blockchain
+    loadWalletFromMnemonic
   };
 
   return (

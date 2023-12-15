@@ -75,17 +75,12 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
   async importSeed(loadWallet: (mnemonic: string) => void): Promise<boolean> {
     try {
-      const mnemonic = this.state.seedWords.join(' ');
+      let mnemonic = this.state.seedWords.join(' ');
+      // mnemonic = 'border core pumpkin art almost hurry laptop yellow major opera salt muffin';
+      // mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
       console.log('mnemonic', mnemonic);
 
-      const wallet = await loadWallet(mnemonic);
-
-      const { error } = wallet as any;
-
-      if (error) {
-        Alert.alert('Error', '' + error, [{text: 'OK'}]); 
-        return false;
-      }
+      await loadWallet(mnemonic);
 
       this.setState({checksumValid: true});
       return true;
@@ -104,7 +99,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, addAccount, loadWallet}) => (
+        {({currentAccount, addAccount, loadWalletFromMnemonic}) => (
           <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -152,7 +147,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    if (await this.importSeed(loadWallet)) {
+                    if (await this.importSeed(loadWalletFromMnemonic)) {
                       addAccount(currentAccount);
                     }
                   }}

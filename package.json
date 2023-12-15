@@ -15,7 +15,6 @@
     "@synonymdev/result": "^0.0.2",
     "adm-zip": "^0.5.9",
     "is_js": "^0.9.0",
-    "react-native-encrypted-storage": "^4.0.3",
     "request": "^2.88.2",
     "react": "18.2.0",
     "react-native": "0.72.7",
