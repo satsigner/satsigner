@@ -1,7 +1,4 @@
 import React from 'react';
-import { AccountsContext } from "./AccountsContext";
-import Account from '../../models/Account';
-
 import { 
   Bdk,
   LoadWalletResponse
@@ -9,30 +6,30 @@ import {
 
 import { Result } from '@synonymdev/result';
 
-import WalletStore from 'react-native-bdk/src/store/walletstore';
-
-import { SeedWords } from '../../enums/SeedWords';
-import { ScriptVersion } from '../../enums/ScriptVersion';
+import { Storage } from '../shared/storage';
+import { AccountsContext } from "./AccountsContext";
+import Account from '../../models/Account';
 
 export const AccountsProvider = ({ children }) => {
 
-  const accountsStoreKey = 'ACCOUNTS';
-
   const electrumUrl = 'ssl://electrum.blockstream.info:60002';
 
-  const [walletStore, setWalletStore] = React.useState<WalletStore>(new WalletStore());
+  const [storage, setStorage] = React.useState<Storage>(new Storage());
   
-  const [accounts, setAccounts] = React.useState<Account[]>([
-    {
-      name: 'Account #1',
-      seedWords: SeedWords.WORDS12,
-      scriptVersion: ScriptVersion.P2WPKH
-    }
-  ]);
+  const [accounts, setAccounts] = React.useState<Account[]>([]);
+
+  React.useEffect(() => {
+    storage.getAccountsFromStorage().then(accounts => setAccounts(accounts))
+  }, []);
+
   const [account, setAccount] = React.useState(new Account());
 
-  const addAccount = (account: Account) => setAccounts([...accounts, account]);
-  
+  const hasAccountWithName = (name: string) => !! accounts.find(a => name === a.name);
+
+  const hasAccountWithDescriptor = (externalDescriptor: string, internalDescriptor: string) =>
+    !! accounts.find(a => externalDescriptor === a.external_descriptor) ||
+    !! accounts.find(a => internalDescriptor === a.internal_descriptor);
+
   const setCurrentAccount = (account: Account) => {
     account.name = account.name.trim();
     setAccount(account);
@@ -54,63 +51,33 @@ export const AccountsProvider = ({ children }) => {
       throw new Error('Loading wallet failed');
     }
 
-    const { descriptor_external, descriptor_internal } = response.value;
+    account.external_descriptor = response.value.descriptor_external;
+    account.internal_descriptor = response.value.descriptor_internal;
 
-    await storeWallet(descriptor_external, descriptor_internal);
-    await storeAccount(descriptor_external, account.name, account.scriptVersion as ScriptVersion);
-    
-    // const synced = await wallet.sync();
-    // console.log('wallet sync', synced);
-
-    // await saveWalletToDisk(wallet);
-
-    // const balance = await wallet.getBalance();
-    // console.log('balance', JSON.stringify(balance));
-
-    // const address = await wallet.getAddress(AddressIndexVariant.NEW, 0);
-    // console.log('new address', JSON.stringify(address));
-
-    // const transactions = await wallet.listTransactions();
-    // console.log('transactions', transactions);
-    
-    // return wallet;
-  }
-
-  const storeWallet = async (externalDescriptor: string, internalDescriptor: string) => {
-    walletStore.wallets.push({
-      external_descriptor: externalDescriptor,
-      internal_descriptor: internalDescriptor
-    });
-    await walletStore.saveToDisk();
-  };
-
-  const storeAccount = async (externalDescriptor: string, name: string, scriptVersion: ScriptVersion) => {
-    let accountsString = await walletStore.getItem(accountsStoreKey);
-    if (accountsString) {
-      let accounts: { [key: string]: { name: string, scriptVersion: ScriptVersion } };
-      try {
-        accounts = JSON.parse(accountsString);
-      } catch (err) {
-        console.error(err);
-        throw new Error('Error loading stored accounts');
-      }
-
-      accounts[externalDescriptor] = { name, scriptVersion };
-      accountsString = JSON.stringify(accounts);
-
-      await walletStore.setItem(accountsStoreKey, accountsString);
+    if (hasAccountWithName(account.name)) {
+      throw new Error('Account with that name already exists');
+    } else if (hasAccountWithDescriptor(account.external_descriptor as string, account.internal_descriptor as string)) {
+      throw new Error('Account with that mnemonic already exists');
+    } else {
+      await storeAccount(account);
     }
-  };
-
-  const loadWalletsFromDisk = async(): Promise<void> => {
-    await walletStore.loadFromDisk();
   }
+
+  const storeAccount = async (account: Account) => {
+    console.log('accounts before storing', accounts);
+
+    storage.storeAccount(account);
+
+    setAccounts(await storage.getAccountsFromStorage());
+
+    console.log('accounts after storing', accounts);
+  };
 
   const value = {
     accounts,
     currentAccount: account,
     setCurrentAccount,
-    addAccount,
+    hasAccountWithName,
     loadWalletFromMnemonic
   };
 

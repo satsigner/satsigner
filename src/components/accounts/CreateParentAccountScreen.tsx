@@ -39,7 +39,7 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
 
     return (
       <AccountsContext.Consumer>
-        {({setCurrentAccount}) => (
+        {({setCurrentAccount, hasAccountWithName}) => (
           <View style={styles.container}>
             <View>
               <AppText style={styles.label}>
@@ -56,6 +56,10 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
               <Button
                 title='Create Parent Account'
                 onPress={() => {
+                  if (hasAccountWithName(accountName)) {
+                    Alert.alert('Account with that name already exists');
+                    return;
+                  }
                   setCurrentAccount({name: accountName});
                   this.props.navigation.navigate('AccountOptions');
                 }}

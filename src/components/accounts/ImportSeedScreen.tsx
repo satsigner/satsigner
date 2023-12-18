@@ -75,22 +75,21 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
   async importSeed(loadWallet: (mnemonic: string) => void): Promise<boolean> {
     try {
-      let mnemonic = this.state.seedWords.join(' ');
-      // mnemonic = 'border core pumpkin art almost hurry laptop yellow major opera salt muffin';
-      // mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+      const mnemonic = this.state.seedWords.join(' ');
+      // const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+      // const mnemonic = 'border core pumpkin art almost hurry laptop yellow major opera salt muffin';
       console.log('mnemonic', mnemonic);
 
       await loadWallet(mnemonic);
 
       this.setState({checksumValid: true});
       return true;
-
     } catch (err) {
+      console.error(err);
       Alert.alert('Error', '' + err, [{text: 'OK'}]);
       
       this.setState({checksumValid: false});
       return false;
-
     }
   }
 
@@ -99,7 +98,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, addAccount, loadWalletFromMnemonic}) => (
+        {({currentAccount, loadWalletFromMnemonic}) => (
           <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -147,9 +146,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    if (await this.importSeed(loadWalletFromMnemonic)) {
-                      addAccount(currentAccount);
-                    }
+                    await this.importSeed(loadWalletFromMnemonic);
                   }}
                 ></Button>
               </View>
