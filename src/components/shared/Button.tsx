@@ -4,6 +4,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
+import LinearGradient from 'react-native-linear-gradient';
+
 import { AppText } from '../shared/AppText';
 
 import { Colors, Typography } from '../../styles';
@@ -34,15 +36,40 @@ export default function Button(props: any) {
   return (
     <TouchableOpacity
       activeOpacity={0.5}
-      style={styles.touchableOpacity}
+      style={[styles.touchableOpacity, props.style]}
       onPress={props.onPress}
       disabled={props.disabled}
     >
-      <View style={styles.button}>
-        <AppText style={styles.buttonText}>
-          {props.title}
-        </AppText>
-      </View>
+      {props.gradientBackground ? (
+        <LinearGradient
+          style={{
+            height: '100%',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          colors={[Colors.grey24, Colors.grey34]}
+          start={{
+            x: 0.94,
+            y: 1.0
+          }}
+          end={{
+            x: 0.86,
+            y: -0.64
+          }}
+        >
+          <View style={styles.button}>
+            <AppText style={styles.buttonText}>
+              {props.title}
+            </AppText>
+          </View>
+        </LinearGradient>
+      ) : (
+        <View style={styles.button}>
+          <AppText style={styles.buttonText}>
+            {props.title}
+          </AppText>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }

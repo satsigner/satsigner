@@ -8,6 +8,7 @@ import {
 import Account from '../../models/Account';
 import { Typography, Layout, Colors } from '../../styles';
 import { AppText } from '../shared/AppText';
+import Button from '../shared/Button';
 
 import RightArrow from '../../assets/images/right-arrow.svg';
 
@@ -31,6 +32,10 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
     return (
       <AccountsContext.Consumer>
         {({accounts}) => (
+          <>
+          <View style={styles.createButtonContainer}>
+            <Button gradientBackground={true} style={styles.createButton} title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
+          </View>
           <View style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -38,6 +43,7 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
               </View>
             </ScrollView>
           </View>
+          </>
         )}
       </AccountsContext.Consumer>
     );
@@ -95,8 +101,17 @@ const styles = StyleSheet.create({
     ...Layout.container.base,
     ...Layout.container.horizontalPaddedThin
   },
+  createButtonContainer: {
+    backgroundColor: Colors.background,
+  },
+  createButton: {
+    borderRadius: 0,
+    marginTop: 0,
+    borderTopColor: Colors.grey48,
+    borderTopWidth: 1
+  },
   scrollContainer: {
-    ...Layout.container.topPadded
+    paddingTop: 10,
   },
   info: {
   },
