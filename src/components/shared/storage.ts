@@ -1,6 +1,6 @@
 import WalletStore from 'react-native-bdk/src/store/walletstore';
 
-import Account from '../../models/Account';
+import { Account } from '../../models/Account';
 
 export class Storage {
 

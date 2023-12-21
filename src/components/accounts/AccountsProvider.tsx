@@ -8,7 +8,7 @@ import { Result } from '@synonymdev/result';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
-import Account from '../../models/Account';
+import { Account } from '../../models/Account';
 
 export const AccountsProvider = ({ children }) => {
 

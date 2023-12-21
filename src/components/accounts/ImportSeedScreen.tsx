@@ -7,16 +7,21 @@ import {
   Alert
 } from 'react-native';
 
+import { Result } from '@synonymdev/result';
+import { Wallet, Bdk } from 'react-native-bdk';
+import { AddressInfo } from '/Users/tom/Code/satsigner/react-native-bdk/src/utils/types';
+
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
-import Account from '../../models/Account';
+import { Account } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingViewWithHeaderOffset';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
+import { AddressIndexVariant } from 'react-native-bdk/src/utils/types';
 
 interface Props {}
 
@@ -93,6 +98,31 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     }
   }
 
+  // TEMP hardcode
+  satsToUsd(sats: number) {
+    return sats / 100_000_000 * 40_000;
+  }
+  
+  async logWallet() {
+    if (await Wallet.sync()) {
+      const balance = await Wallet.getBalance();
+      console.log('balance', balance);
+      console.log('balance sats', balance.confirmed);
+      console.log('balance usd', this.satsToUsd(balance.confirmed));
+      const addressResult: Result<AddressInfo> = await Bdk.getAddress({ indexVariant: AddressIndexVariant.NEW, index: 0 });
+      const numAddresses = addressResult.isOk() ? addressResult.value.index + 1 : 0;
+      console.log('child accounts', numAddresses);
+      const transactions = await Wallet.listTransactions()
+      console.log('total transactions', transactions.length);
+      const utxosResult = await Bdk.listUnspent();
+      const numUtxos = utxosResult.isOk() ? utxosResult.value.length : 0;      
+      console.log('spendable outputs', numUtxos);
+      console.log('utxos', utxosResult.value);
+      const satsInMempool = balance.trustedPending + balance.untrustedPending;
+      console.log('sats in mempool', satsInMempool);
+    }
+  }
+
   render() {
     const { checksumValid } = this.state;
 
@@ -146,7 +176,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    await this.importSeed(loadWalletFromMnemonic);
+                    if (await this.importSeed(loadWalletFromMnemonic)) {
+                      this.logWallet();
+                    }
                   }}
                 ></Button>
               </View>

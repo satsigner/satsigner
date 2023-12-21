@@ -5,7 +5,7 @@ import {
   StyleSheet
 } from 'react-native';
 
-import Account from '../../models/Account';
+import { Account } from '../../models/Account';
 import { Typography, Layout, Colors } from '../../styles';
 import { AppText } from '../shared/AppText';
 import Button from '../shared/Button';
