@@ -55,32 +55,32 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
         <View style={styles.info}>
           <View><AppText style={styles.fingerprint}>36fade3a</AppText></View>
           <View><AppText style={styles.accountName}>{account.name}</AppText></View>
-          <View style={styles.currency}><AppText style={styles.sats}>1,842,351</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
-          <View style={styles.currency}><AppText style={styles.usd}>392.03</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+          <View style={styles.currency}><AppText style={styles.sats}>{this.format(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
+          <View style={styles.currency}><AppText style={styles.usd}>{this.format(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
           <View style={styles.metrics}>
             <View>
-              <AppText style={styles.metric}>2,552</AppText>
+              <AppText style={styles.metric}>{this.format(account?.snapshot?.numAddresses)}</AppText>
               <View>
                 <AppText style={styles.metricLabel}>Child</AppText>
                 <AppText style={styles.metricLabel}>Accounts</AppText>
               </View>
             </View>
             <View>
-              <AppText style={styles.metric}>5,752</AppText>
+              <AppText style={styles.metric}>{this.format(account?.snapshot?.numTransactions)}</AppText>
               <View>
                 <AppText style={styles.metricLabel}>Total</AppText>
                 <AppText style={styles.metricLabel}>Transactions</AppText>
               </View>
             </View>
             <View>
-              <AppText style={styles.metric}>34</AppText>
+              <AppText style={styles.metric}>{this.format(account?.snapshot?.numUtxos)}</AppText>
               <View>
                 <AppText style={styles.metricLabel}>Spendable</AppText>
                 <AppText style={styles.metricLabel}>Outputs</AppText>
               </View>
             </View>
             <View>
-              <AppText style={styles.metric}>9,841</AppText>
+              <AppText style={styles.metric}>{this.format(account?.snapshot?.satsInMempool)}</AppText>
               <View>
                 <AppText style={styles.metricLabel}>Sats in</AppText>
                 <AppText style={styles.metricLabel}>Mempool</AppText>
@@ -93,6 +93,16 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
         </View>
       </View>
     );
+  }
+
+  format(num: number, decimals = 0): string {
+    if (decimals > 0) {
+      return num.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+      });
+    } else {
+      return num.toLocaleString();
+    }
   }
 }
 

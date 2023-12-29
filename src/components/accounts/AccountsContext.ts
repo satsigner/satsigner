@@ -8,5 +8,6 @@ export const AccountsContext = createContext({
   accounts: [],
   setCurrentAccount: (account: Account) => {},
   hasAccountWithName: (name: string) => true,
-  loadWalletFromMnemonic: async (mnemonic: string): Wallet => {}
+  loadWalletFromMnemonic: async (mnemonic: string): Wallet => {},
+  loadAccountDetails: async () => {}
 });

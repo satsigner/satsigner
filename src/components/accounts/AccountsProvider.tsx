@@ -1,14 +1,17 @@
 import React from 'react';
 import { 
   Bdk,
-  LoadWalletResponse
+  LoadWalletResponse,
+  Wallet
 } from 'react-native-bdk';
+import { AddressInfo } from '/Users/tom/Code/satsigner/react-native-bdk/src/utils/types';
+import { AddressIndexVariant } from 'react-native-bdk/src/utils/types';
 
 import { Result } from '@synonymdev/result';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
-import { Account } from '../../models/Account';
+import { Account, WalletSnapshot } from '../../models/Account';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -66,19 +69,77 @@ export const AccountsProvider = ({ children }) => {
   const storeAccount = async (account: Account) => {
     console.log('accounts before storing', accounts);
 
-    storage.storeAccount(account);
+    await storage.storeAccount(account);
 
     setAccounts(await storage.getAccountsFromStorage());
 
     console.log('accounts after storing', accounts);
   };
 
+  const updateAccount = async (account: Account) => {
+    console.log('accounts before updating', accounts);
+
+    await storage.updateAccount(account);
+
+    setAccounts(await storage.getAccountsFromStorage());
+
+    console.log('accounts after updating', accounts);
+  };
+
+  const loadAccountDetails = async() => {
+    const snapshot: WalletSnapshot = new WalletSnapshot();
+
+    if (await Wallet.sync()) {
+      const balance = await Wallet.getBalance();
+      console.log('balance', balance);
+      console.log('balance sats', balance.confirmed);
+      snapshot.balanceSats = balance.confirmed;
+      console.log('balance usd', satsToUsd(balance.confirmed));
+      snapshot.balanceUsd = satsToUsd(balance.confirmed);
+      const addressResult: Result<AddressInfo> = await Bdk.getAddress({ indexVariant: AddressIndexVariant.NEW, index: 0 });
+      const numAddresses = addressResult.isOk() ? addressResult.value.index + 1 : 0;
+      console.log('child accounts', numAddresses);
+      snapshot.numAddresses = numAddresses;
+      const transactions = await Wallet.listTransactions()
+      console.log('total transactions', transactions.length);
+      snapshot.numTransactions = transactions.length;
+      const utxosResult = await Bdk.listUnspent();
+      const numUtxos = utxosResult.isOk() ? utxosResult.value.length : 0;      
+      console.log('spendable outputs', numUtxos);
+      snapshot.numUtxos = numUtxos;
+      console.log('utxos', utxosResult.value);
+      const satsInMempool = balance.trustedPending + balance.untrustedPending;
+      console.log('sats in mempool', satsInMempool);
+      snapshot.satsInMempool = satsInMempool;
+    }
+
+    account.snapshot = snapshot;
+
+    if (hasAccountWithName(account.name) &&
+      hasAccountWithDescriptor(
+        account.external_descriptor as string,
+        account.internal_descriptor as string
+      )
+    ) {
+      await updateAccount(account);
+    }
+
+    console.log('after load account details', account);
+  };
+
+  // TEMP hardcode
+  const satsToUsd = (sats: number): number => {
+    return sats / 100_000_000 * 40_000;
+  };
+  
+
   const value = {
     accounts,
     currentAccount: account,
     setCurrentAccount,
     hasAccountWithName,
-    loadWalletFromMnemonic
+    loadWalletFromMnemonic,
+    loadAccountDetails
   };
 
   return (
