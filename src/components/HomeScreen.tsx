@@ -34,9 +34,7 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
           </Text>
         </View>
         <View style={styles.actions}>
-          <Button title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
           <Button title='Account List' onPress={() => this.props.navigation.navigate('AccountList')}></Button>
-          <Button title='Placeholder' onPress={() => this.props.navigation.navigate('Placeholder')}></Button>
         </View>
       </View>
     );

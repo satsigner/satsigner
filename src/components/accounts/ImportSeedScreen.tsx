@@ -4,8 +4,10 @@ import {
   ScrollView,
   TextInput,
   StyleSheet,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
+import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
@@ -18,12 +20,15 @@ import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingView
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 
-interface Props {}
+interface Props {
+  navigation: NavigationProp<any>
+}
 
 interface State {
   seedWords: string[];
   passphrase: string;
   checksumValid: boolean;
+  loading: boolean;
 }
 
 export default class ImportSeedScreen extends React.PureComponent<Props, State> {
@@ -34,7 +39,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     this.state = {
       seedWords: [],
-      checksumValid: false
+      passphrase: '',
+      checksumValid: false,
+      loading: false
     };
   }
 
@@ -73,11 +80,17 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({passphrase});
   }
 
+  setLoading(loading: boolean) {
+    this.setState({loading});
+  }
+
   async importSeed(loadWallet: (mnemonic: string) => void): Promise<boolean> {
     try {
       const mnemonic = this.state.seedWords.join(' ');
       // const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
       // const mnemonic = 'border core pumpkin art almost hurry laptop yellow major opera salt muffin';
+      // const mnemonic = 'army van defense carry jealous true garbage claim echo media make crunch';
+      // const mnemonic = 'cake apple borrow silk endorse fitness top denial coil riot stay wolf luggage oxygen faint major edit measure invite love trap field dilemma oblige';
       console.log('mnemonic', mnemonic);
 
       await loadWallet(mnemonic);
@@ -151,13 +164,25 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    if (await this.importSeed(loadWalletFromMnemonic)) {
-                      loadAccountDetails();
+                    try {
+                      this.setLoading(true);
+                      if (await this.importSeed(loadWalletFromMnemonic)) {
+                        await loadAccountDetails();
+                        this.props.navigation.navigate('AccountList');
+                      }
+                    } finally {
+                      this.setLoading(false);
                     }
                   }}
                 ></Button>
               </View>
             </ScrollView>
+            {this.state.loading &&
+            <ActivityIndicator
+              size="large"
+              style={styles.loading}>
+            </ActivityIndicator>
+            }
           </KeyboardAvoidingViewWithHeaderOffset>
         )}
       </AccountsContext.Consumer>
@@ -286,5 +311,16 @@ const styles = StyleSheet.create({
   submitAction: {
     backgroundColor: Colors.defaultActionBackground,
     color: Colors.defaultActionText
+  },
+  loading: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    opacity: 0.5,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center'
   }
 });

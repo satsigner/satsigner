@@ -91,25 +91,17 @@ export const AccountsProvider = ({ children }) => {
 
     if (await Wallet.sync()) {
       const balance = await Wallet.getBalance();
-      console.log('balance', balance);
-      console.log('balance sats', balance.confirmed);
       snapshot.balanceSats = balance.confirmed;
-      console.log('balance usd', satsToUsd(balance.confirmed));
       snapshot.balanceUsd = satsToUsd(balance.confirmed);
       const addressResult: Result<AddressInfo> = await Bdk.getAddress({ indexVariant: AddressIndexVariant.NEW, index: 0 });
       const numAddresses = addressResult.isOk() ? addressResult.value.index + 1 : 0;
-      console.log('child accounts', numAddresses);
       snapshot.numAddresses = numAddresses;
       const transactions = await Wallet.listTransactions()
-      console.log('total transactions', transactions.length);
       snapshot.numTransactions = transactions.length;
       const utxosResult = await Bdk.listUnspent();
       const numUtxos = utxosResult.isOk() ? utxosResult.value.length : 0;      
-      console.log('spendable outputs', numUtxos);
       snapshot.numUtxos = numUtxos;
-      console.log('utxos', utxosResult.value);
       const satsInMempool = balance.trustedPending + balance.untrustedPending;
-      console.log('sats in mempool', satsInMempool);
       snapshot.satsInMempool = satsInMempool;
     }
 
