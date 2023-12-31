@@ -13,13 +13,13 @@ export class Storage {
   async getAccountsFromStorage(): Promise<Account[]> {
     this.walletStore = new WalletStore();
 
-    const loaded = this.walletStore.loadFromDisk();
+    const loaded = await this.walletStore.loadFromDisk();
     if (! loaded) {
       console.error('Error loading accounts from wallet store');
       return [];
     }
   
-    return await this.walletStore.getWallets() as Account[];
+    return this.walletStore.getWallets() as Account[];
   }
 
   async storeAccount(account: Account): Promise<void> {

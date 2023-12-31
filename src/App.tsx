@@ -14,7 +14,6 @@ import CreateParentAccountScreen from './components/accounts/CreateParentAccount
 import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
-import PlaceholderScreen from './components/PlaceholderScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -66,11 +65,6 @@ export default class App extends React.Component<{}, State> {
                 name="AccountList"
                 component={AccountListScreen}
                 options={NavUtils.getHeaderOptions(this.appTitle)}
-              />
-            <Stack.Screen
-              name="Placeholder"
-                component={PlaceholderScreen}
-                options={NavUtils.getHeaderOptions('Placeholder')}
               />
             </Stack.Navigator>
           </NavigationContainer>

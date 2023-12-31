@@ -50,6 +50,7 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
   }
 
   getAccountComponents(accounts: Account[]) {
+    console.log('accounts', accounts);
     return accounts.map((account, i) => 
       <View style={styles.account} key={i}>
         <View style={styles.info}>
@@ -96,6 +97,10 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
   }
 
   format(num: number, decimals = 0): string {
+    if (num === undefined) {
+      return '';
+    }
+
     if (decimals > 0) {
       return num.toLocaleString(undefined, {
         minimumFractionDigits: decimals,

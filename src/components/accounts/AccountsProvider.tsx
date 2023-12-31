@@ -61,8 +61,6 @@ export const AccountsProvider = ({ children }) => {
       throw new Error('Account with that name already exists');
     } else if (hasAccountWithDescriptor(account.external_descriptor as string, account.internal_descriptor as string)) {
       throw new Error('Account with that mnemonic already exists');
-    } else {
-      await storeAccount(account);
     }
   }
 
@@ -114,6 +112,8 @@ export const AccountsProvider = ({ children }) => {
       )
     ) {
       await updateAccount(account);
+    } else {
+      await storeAccount(account);
     }
 
     console.log('after load account details', account);
