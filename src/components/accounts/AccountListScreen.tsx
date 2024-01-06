@@ -50,7 +50,6 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
   }
 
   getAccountComponents(accounts: Account[]) {
-    console.log('accounts', accounts);
     return accounts.map((account, i) => 
       <View style={styles.account} key={i}>
         <View style={styles.info}>

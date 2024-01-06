@@ -11,7 +11,7 @@ import { Result } from '@synonymdev/result';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
-import { Account, WalletSnapshot } from '../../models/Account';
+import { Account, AccountSnapshot } from '../../models/Account';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -65,27 +65,19 @@ export const AccountsProvider = ({ children }) => {
   }
 
   const storeAccount = async (account: Account) => {
-    console.log('accounts before storing', accounts);
-
     await storage.storeAccount(account);
 
     setAccounts(await storage.getAccountsFromStorage());
-
-    console.log('accounts after storing', accounts);
   };
 
   const updateAccount = async (account: Account) => {
-    console.log('accounts before updating', accounts);
-
     await storage.updateAccount(account);
 
     setAccounts(await storage.getAccountsFromStorage());
-
-    console.log('accounts after updating', accounts);
   };
 
-  const loadAccountDetails = async() => {
-    const snapshot: WalletSnapshot = new WalletSnapshot();
+  const getAccountSnapshot = async() => {
+    const snapshot: AccountSnapshot = new AccountSnapshot();
 
     if (await Wallet.sync()) {
       const balance = await Wallet.getBalance();
@@ -103,35 +95,37 @@ export const AccountsProvider = ({ children }) => {
       snapshot.satsInMempool = satsInMempool;
     }
 
-    account.snapshot = snapshot;
+    return snapshot;
+  };
 
+  const storeAccountSnapshot = async(snapshot: AccountSnapshot) => {
     if (hasAccountWithName(account.name) &&
       hasAccountWithDescriptor(
         account.external_descriptor as string,
         account.internal_descriptor as string
       )
     ) {
+      account.snapshot = snapshot;
       await updateAccount(account);
     } else {
+      account.snapshot = snapshot;
       await storeAccount(account);
     }
-
-    console.log('after load account details', account);
   };
 
   // TEMP hardcode
   const satsToUsd = (sats: number): number => {
-    return sats / 100_000_000 * 40_000;
+    return sats / 100_000_000 * 45_000;
   };
   
-
   const value = {
     accounts,
     currentAccount: account,
     setCurrentAccount,
     hasAccountWithName,
     loadWalletFromMnemonic,
-    loadAccountDetails
+    getAccountSnapshot,
+    storeAccountSnapshot
   };
 
   return (

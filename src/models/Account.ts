@@ -7,10 +7,10 @@ export class Account {
   scriptVersion?: ScriptVersion;
   external_descriptor?: string;
   internal_descriptor?: string;
-  snapshot: WalletSnapshot;
+  snapshot: AccountSnapshot;
 }
 
-export class WalletSnapshot {
+export class AccountSnapshot {
   balanceSats: number;
   balanceUsd: number;
   numAddresses: number;

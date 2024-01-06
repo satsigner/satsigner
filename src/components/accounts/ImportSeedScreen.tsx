@@ -84,27 +84,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({loading});
   }
 
-  async importSeed(loadWallet: (mnemonic: string) => void): Promise<boolean> {
-    try {
-      const mnemonic = this.state.seedWords.join(' ');
-      // const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-      // const mnemonic = 'border core pumpkin art almost hurry laptop yellow major opera salt muffin';
-      // const mnemonic = 'army van defense carry jealous true garbage claim echo media make crunch';
-      // const mnemonic = 'cake apple borrow silk endorse fitness top denial coil riot stay wolf luggage oxygen faint major edit measure invite love trap field dilemma oblige';
-      console.log('mnemonic', mnemonic);
 
-      await loadWallet(mnemonic);
-
-      this.setState({checksumValid: true});
-      return true;
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', '' + err, [{text: 'OK'}]);
-      
-      this.setState({checksumValid: false});
-      return false;
-    }
-  }
 
   // TEMP hardcode
   satsToUsd(sats: number) {
@@ -116,7 +96,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, loadWalletFromMnemonic, loadAccountDetails}) => (
+        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountSnapshot }) => (
           <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -166,10 +146,20 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   onPress={async() => {
                     try {
                       this.setLoading(true);
-                      if (await this.importSeed(loadWalletFromMnemonic)) {
-                        await loadAccountDetails();
-                        this.props.navigation.navigate('AccountList');
-                      }
+
+                      const mnemonic = this.state.seedWords.join(' ');
+                      console.log('mnemonic', mnemonic);
+                
+                      await loadWalletFromMnemonic(mnemonic);
+                      this.setState({checksumValid: true});
+                
+                      const snapshot = await getAccountSnapshot();
+                      await storeAccountSnapshot(snapshot);
+
+                      this.props.navigation.navigate('AccountList');
+                    } catch (err) {
+                      console.error(err);
+                      Alert.alert('Error', '' + err, [{text: 'OK'}]);
                     } finally {
                       this.setLoading(false);
                     }
