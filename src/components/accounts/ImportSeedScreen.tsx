@@ -84,8 +84,6 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({loading});
   }
 
-
-
   // TEMP hardcode
   satsToUsd(sats: number) {
     return sats / 100_000_000 * 40_000;

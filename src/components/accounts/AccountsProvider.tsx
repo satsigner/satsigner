@@ -2,10 +2,10 @@ import React from 'react';
 import { 
   Bdk,
   LoadWalletResponse,
-  Wallet
+  Wallet,
+  AddressInfo,
+  AddressIndexVariant
 } from 'react-native-bdk';
-import { AddressInfo } from '/Users/tom/Code/satsigner/react-native-bdk/src/utils/types';
-import { AddressIndexVariant } from 'react-native-bdk/src/utils/types';
 
 import { Result } from '@synonymdev/result';
 
@@ -119,8 +119,8 @@ export const AccountsProvider = ({ children }) => {
   };
   
   const value = {
-    accounts,
     currentAccount: account,
+    accounts,
     setCurrentAccount,
     hasAccountWithName,
     loadWalletFromMnemonic,

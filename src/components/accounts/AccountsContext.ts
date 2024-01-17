@@ -1,7 +1,7 @@
 import { Wallet } from 'react-native-bdk';
 import { createContext } from 'react';
 
-import { Account } from '../../models/Account';
+import { Account, AccountSnapshot } from '../../models/Account';
 
 export const AccountsContext = createContext({
   currentAccount: new Account(),
@@ -9,5 +9,6 @@ export const AccountsContext = createContext({
   setCurrentAccount: (account: Account) => {},
   hasAccountWithName: (name: string) => true,
   loadWalletFromMnemonic: async (mnemonic: string): Wallet => {},
-  loadAccountDetails: async () => {}
+  getAccountSnapshot: async () => new AccountSnapshot(),
+  storeAccountSnapshot: async () => {}
 });
