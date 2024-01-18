@@ -1,5 +1,4 @@
-import WalletStore from 'react-native-bdk/src/store/walletstore';
-// import { WalletStore } from 'react-native-bdk';
+import { WalletStore } from 'react-native-bdk';
 
 import { Account } from '../../models/Account';
 
