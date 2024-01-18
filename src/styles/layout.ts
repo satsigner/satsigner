@@ -15,6 +15,6 @@ export const container: Record<Container, ViewStyle> = {
     paddingHorizontal: '6%'
   },
   horizontalPaddedThin: {
-    paddingHorizontal: '4.5%'
+    paddingHorizontal: '5%'
   }
 };
