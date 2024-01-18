@@ -13,7 +13,7 @@ import HomeScreen from './components/HomeScreen';
 import CreateParentAccountScreen from './components/accounts/CreateParentAccountScreen';
 import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
-import PlaceholderScreen from './components/PlaceholderScreen';
+import AccountListScreen from './components/accounts/AccountListScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -25,6 +25,8 @@ interface State {
 
 export default class App extends React.Component<{}, State> {
   
+  appTitle = 'Sat Signer';
+
   constructor(props: any) {
     super(props);
   }
@@ -42,7 +44,7 @@ export default class App extends React.Component<{}, State> {
               <Stack.Screen
                 name="Home"
                 component={HomeScreen}            
-                options={NavUtils.getHeaderOptions('Sat Signer')}
+                options={NavUtils.getHeaderOptions(this.appTitle)}
               />
               <Stack.Screen
                 name="CreateParentAccount"
@@ -56,13 +58,13 @@ export default class App extends React.Component<{}, State> {
               />
               <Stack.Screen
                 name="ImportSeed"
-              component={ImportSeedScreen}
-              options={NavUtils.getHeaderOptions('Import Existing Seed')}
-            />
-            <Stack.Screen
-              name="Placeholder"
-                component={PlaceholderScreen}
-                options={NavUtils.getHeaderOptions('Placeholder')}
+                component={ImportSeedScreen}
+                options={NavUtils.getHeaderOptions('Import Existing Seed')}
+              />
+              <Stack.Screen
+                name="AccountList"
+                component={AccountListScreen}
+                options={NavUtils.getHeaderOptions(this.appTitle)}
               />
             </Stack.Navigator>
           </NavigationContainer>

@@ -3,13 +3,16 @@ import {
   View,
   ScrollView,
   TextInput,
-  StyleSheet
+  StyleSheet,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
+import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
-import Account from '../../models/Account';
+import { Account } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingViewWithHeaderOffset';
@@ -17,12 +20,15 @@ import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingView
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 
-interface Props {}
+interface Props {
+  navigation: NavigationProp<any>
+}
 
 interface State {
   seedWords: string[];
   passphrase: string;
   checksumValid: boolean;
+  loading: boolean;
 }
 
 export default class ImportSeedScreen extends React.PureComponent<Props, State> {
@@ -33,7 +39,9 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
     this.state = {
       seedWords: [],
-      checksumValid: false
+      passphrase: '',
+      checksumValid: false,
+      loading: false
     };
   }
 
@@ -72,26 +80,21 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     this.setState({passphrase});
   }
 
-  async importSeed(loadWallet: (mnemonic: string) => void) {
-    try {
-      const mnemonic = this.state.seedWords.join(' ');
-      console.log('mnemonic', mnemonic);
-
-      await loadWallet(mnemonic);
-
-      this.setState({checksumValid: true});
-    } catch (err) {
-      console.error(err);
-      this.setState({checksumValid: false});
-    }
+  setLoading(loading: boolean) {
+    this.setState({loading});
   }
 
+  // TEMP hardcode
+  satsToUsd(sats: number) {
+    return sats / 100_000_000 * 40_000;
+  }
+  
   render() {
     const { checksumValid } = this.state;
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, addAccount, loadWallet}) => (
+        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountSnapshot }) => (
           <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
               <View>
@@ -139,12 +142,35 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                   title="Save Secret Seed"
                   style={styles.submitAction}
                   onPress={async() => {
-                    await this.importSeed(loadWallet);
-                    addAccount(currentAccount);
+                    try {
+                      this.setLoading(true);
+
+                      const mnemonic = this.state.seedWords.join(' ');
+                      console.log('mnemonic', mnemonic);
+                
+                      await loadWalletFromMnemonic(mnemonic);
+                      this.setState({checksumValid: true});
+                
+                      const snapshot = await getAccountSnapshot();
+                      await storeAccountSnapshot(snapshot);
+
+                      this.props.navigation.navigate('AccountList');
+                    } catch (err) {
+                      console.error(err);
+                      Alert.alert('Error', '' + err, [{text: 'OK'}]);
+                    } finally {
+                      this.setLoading(false);
+                    }
                   }}
                 ></Button>
               </View>
             </ScrollView>
+            {this.state.loading &&
+            <ActivityIndicator
+              size="large"
+              style={styles.loading}>
+            </ActivityIndicator>
+            }
           </KeyboardAvoidingViewWithHeaderOffset>
         )}
       </AccountsContext.Consumer>
@@ -273,5 +299,16 @@ const styles = StyleSheet.create({
   submitAction: {
     backgroundColor: Colors.defaultActionBackground,
     color: Colors.defaultActionText
+  },
+  loading: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    opacity: 0.5,
+    backgroundColor: 'black',
+    justifyContent: 'center',
+    alignItems: 'center'
   }
 });
