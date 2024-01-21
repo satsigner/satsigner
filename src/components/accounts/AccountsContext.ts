@@ -10,5 +10,5 @@ export const AccountsContext = createContext({
   hasAccountWithName: (name: string) => true,
   loadWalletFromMnemonic: async (mnemonic: string): Wallet => {},
   getAccountSnapshot: async () => new AccountSnapshot(),
-  storeAccountSnapshot: async () => {}
+  storeAccountSnapshot: async (snapshot: AccountSnapshot) => {}
 });

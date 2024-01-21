@@ -29,8 +29,6 @@ interface Props {
 }
 
 interface State {
-  // Policy Type
-
   scriptVersion: ScriptVersion,
   scriptVersionName: string,
   scriptVersionModalVisible: boolean,
@@ -82,15 +80,6 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
             <View style={styles.options}>
               <View style={styles.option}>
                 <AppText style={styles.label}>
-                  Policy Type
-                </AppText>
-                <SelectButton
-                  title="Single Signature"
-                >
-                </SelectButton>
-              </View>
-              <View style={styles.option}>
-                <AppText style={styles.label}>
                   Script Version
                 </AppText>
                 <SelectButton
@@ -126,11 +115,6 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                   });
                   this.props.navigation.navigate('ImportSeed');
                 }}
-                style={styles.additionalActionButton}
-              ></Button>
-              <Button
-                title='Import As Stateless'
-                onPress={() => this.notImplementedAlert()}
                 style={styles.additionalActionButton}
               ></Button>
             </View>
