@@ -1934,7 +1934,7 @@
     deepmerge "^4.3.1"
     svgo "^3.0.2"
 
-"@synonymdev/result@^0.0.2":
+"@synonymdev/result@0.0.2":
   version "0.0.2"
   resolved "https://npm.artofcontext.com/@synonymdev%2fresult/-/result-0.0.2.tgz"
   integrity sha512-Ni5qknulcf350qfPVTw3DWXqT2i6K68BoFc18zlqIAj9YA2RUOIJsKTdemX31i3wSma5LRHVcGLESVga16iAag==
@@ -2570,6 +2570,15 @@ bcrypt-pbkdf@^1.0.0:
   integrity sha1-pDAdOJtqQ/m2f/PKEaP2Y342Dp4=
   dependencies:
     tweetnacl "^0.14.3"
+
+bdk-rn@^0.30.0:
+  version "0.30.0"
+  resolved "https://npm.artofcontext.com/bdk-rn/-/bdk-rn-0.30.0.tgz#d91de8dec7167e6732c3fec6d846afd9949fa1c4"
+  integrity sha512-9gOJnSvoow4IR5Ezs4vCgrY+9QhrQ0Umj0DXl03G/bCbjMHfiJTZK6v1I3c0e4pkJJLOTjdpr4iTKPJ1/BSm/w==
+  dependencies:
+    "@synonymdev/result" "0.0.2"
+    adm-zip "^0.5.9"
+    request "^2.88.2"
 
 bl@^4.1.0:
   version "4.1.0"
@@ -5977,16 +5986,6 @@ react-is@^18.0.0, react-is@^18.2.0:
   version "18.2.0"
   resolved "https://npm.artofcontext.com/react-is/-/react-is-18.2.0.tgz"
   integrity sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==
-
-"react-native-bdk@github:tmakerman/react-native-bdk#fix-walletstore-export":
-  version "0.0.1"
-  resolved "git+ssh://git@github.com/tmakerman/react-native-bdk.git#b96cdf7f75e6f74c82aa51a39f443db189efe9f1"
-  dependencies:
-    "@synonymdev/result" "^0.0.2"
-    adm-zip "^0.5.9"
-    is_js "^0.9.0"
-    react-native-encrypted-storage "^4.0.3"
-    request "^2.88.2"
 
 react-native-encrypted-storage@^4.0.3:
   version "4.0.3"

@@ -148,10 +148,10 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
                       const mnemonic = this.state.seedWords.join(' ');
                       console.log('mnemonic', mnemonic);
                 
-                      await loadWalletFromMnemonic(mnemonic);
+                      const wallet = await loadWalletFromMnemonic(mnemonic);
                       this.setState({checksumValid: true});
                 
-                      const snapshot = await getAccountSnapshot();
+                      const snapshot = await getAccountSnapshot(wallet);
                       await storeAccountSnapshot(snapshot);
 
                       this.props.navigation.navigate('AccountList');
