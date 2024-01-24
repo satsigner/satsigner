@@ -249,6 +249,10 @@ function Word(props: any) {
         style={props.inputStyle}
         onChangeText={(word) => props.onChangeWord(word, props.num - 1)}
         onEndEditing={(event) => props.onEndEditingWord(event.nativeEvent.text, props.num - 1) }
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect={false}
+        spellCheck={false}
       ></TextInput>
       <AppText style={styles.wordNumLabel}>{props.num}</AppText>
     </View>
