@@ -1,3 +1,5 @@
+// From https://github.com/xsats/react-native-bdk/blob/master/src/store/walletstore.ts
+
 import * as encrypted from './encrypted';
 
 const WALLETS = 'bdk.wallets';

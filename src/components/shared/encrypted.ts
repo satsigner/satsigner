@@ -1,3 +1,5 @@
+// From https://github.com/xsats/react-native-bdk/blob/master/src/store/encrypted.ts
+
 /**
  * @fileOverview a module to wrap native secure key store apis
  */
