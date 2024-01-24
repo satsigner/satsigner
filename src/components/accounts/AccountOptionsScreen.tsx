@@ -80,6 +80,17 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
             <View style={styles.options}>
               <View style={styles.option}>
                 <AppText style={styles.label}>
+                  Policy Type
+                </AppText>
+                <SelectButton
+                  style={styles.disabledSelectButton}
+                  title="Single Signature"
+                  onPress={() => this.notImplementedAlert()}
+                >
+                </SelectButton>
+              </View>
+              <View style={styles.option}>
+                <AppText style={styles.label}>
                   Script Version
                 </AppText>
                 <SelectButton
@@ -116,6 +127,11 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                   this.props.navigation.navigate('ImportSeed');
                 }}
                 style={styles.additionalActionButton}
+              ></Button>
+              <Button
+                title='Import As Stateless'
+                onPress={() => this.notImplementedAlert()}
+                style={styles.disabledAdditionalActionButton}
               ></Button>
             </View>
             <Modal
@@ -195,6 +211,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.additionalActionBackground,
     color: Colors.additionalActionText,
     borderColor: Colors.additionalActionBorder
+  },
+  disabledAdditionalActionButton: {
+    borderColor: Colors.additionalActionBorder,
+    backgroundColor: Colors.additionalActionBackground,
+    color: Colors.disabledActionText
+  },
+  disabledSelectButton: {
+    color: Colors.disabledActionText
   },
   options: {
   },
