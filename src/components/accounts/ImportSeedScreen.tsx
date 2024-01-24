@@ -93,30 +93,45 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
               styles.wordText :
               [ styles.wordText, styles.wordTextInvalid ]
           }
-          onChangeWord={this.setWord}
-          onEndEditingWord={this.checkWord}
+          onChangeWord={this.updateWord}
+          onEndEditingWord={this.updateWordDoneEditing}
         ></Word>
       );
     }
     return words;
   }
 
-  setWord = (word: string, index: number) => {
+  updateWord = (word: string, index: number) => {
     const seedWords = [...this.state.seedWords];
     const seedWord = seedWords[index];
+
     seedWord.word = word;
+
+    const checksumValid = bip39.validateMnemonic(this.wordsToString(seedWords));
+
+    // only update words validity while typing in the field if just made word valid
+    // so that we aren't highlighting words as invalid while user is typing
+    if (this.wordList.includes(word)) {
+      seedWord.valid = true;
+    }
+
+    this.setState({ seedWords, checksumValid });
+  }
+
+  updateWordDoneEditing = (word: string, index: number) => {
+    const seedWords = [...this.state.seedWords];
+    const seedWord = seedWords[index];
+
+    seedWord.word = word;
+    seedWord.valid = this.wordList.includes(word);
+    // mark word dirty when done editing the first time
+    seedWord.dirty ||= word.length > 0;
 
     this.setState({ seedWords });
   }
 
-  checkWord = (word: string, index: number) => {
-    const seedWords = [...this.state.seedWords];
-    const seedWord = seedWords[index];
-    seedWord.word = word;
-    seedWord.valid = this.wordList.includes(word);
-    seedWord.dirty = word.length > 0;
-
-    this.setState({ seedWords });
+  wordsToString(words: SeedWord[]): string {
+    return words.map(sw => sw.word).join(' ');
   }
 
   setPassphrase(passphrase: string) {
@@ -188,16 +203,16 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
               <View>
                 <Button
                   title="Save Secret Seed"
-                  style={styles.submitAction}
+                  style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
+                  disabled={! checksumValid}
                   onPress={async() => {
                     try {
                       this.setLoading(true);
 
-                      const mnemonic = this.state.seedWords.join(' ');
+                      const mnemonic = this.wordsToString(this.state.seedWords);
                       console.log('mnemonic', mnemonic);
                 
                       await loadWalletFromMnemonic(mnemonic);
-                      this.setState({checksumValid: true});
                 
                       const snapshot = await getAccountSnapshot();
                       await storeAccountSnapshot(snapshot);
@@ -349,9 +364,13 @@ const styles = StyleSheet.create({
   fingerprintValue: {
     ...Typography.textNormal.x5
   },
-  submitAction: {
+  submitEnabled: {
     backgroundColor: Colors.defaultActionBackground,
-    color: Colors.defaultActionText
+    color: Colors.defaultActionText,
+  },
+  submitDisabled: {
+    backgroundColor: Colors.disabledActionBackground,
+    color: Colors.disabledActionText
   },
   loading: {
     position: 'absolute',
