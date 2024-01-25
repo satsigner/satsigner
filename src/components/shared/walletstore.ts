@@ -48,7 +48,6 @@ class WalletStore {
     try {
       let data = await this.getItem(WALLETS);
       if (data !== null) {
-        console.log('typeof', typeof(data));
         console.log('data', data);
         const wallets: Wallet[] = JSON.parse(data);
         if (!wallets) return false;

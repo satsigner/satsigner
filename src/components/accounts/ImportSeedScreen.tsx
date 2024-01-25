@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
+import * as bip39 from 'bip39';
+
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
@@ -25,14 +27,24 @@ interface Props {
 }
 
 interface State {
-  seedWords: string[];
+  seedWords: SeedWord[];
   passphrase: string;
   checksumValid: boolean;
   loading: boolean;
 }
 
+class SeedWord {
+  word: string;
+  // index of this word (out of the 12/15/18/21/24 words)
+  index: number;
+  valid: boolean;
+  dirty: boolean;
+}
+
 export default class ImportSeedScreen extends React.PureComponent<Props, State> {
   static contextType = AccountsContext;
+
+  wordList = this.getWordList();
 
   constructor(props: any) {
     super(props);
@@ -47,10 +59,25 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
   componentDidMount() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
+    
+    this.initSeedWords();
   }
 
   componentDidUpdate() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
+  }
+
+  initSeedWords() {
+    const seedWords: SeedWord[] = [];
+    for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
+      seedWords.push({
+        word: '',
+        index: i,
+        valid: false,
+        dirty: false
+      });
+    }
+    this.setState({ seedWords });
   }
 
   getWordComponents(account: Account) {
@@ -61,19 +88,50 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
         <Word
           num={i+1}
           key={i}
-          onChangeWord={this.setWord}
+          inputStyle={
+            this.state.seedWords[i]?.valid || ! this.state.seedWords[i]?.dirty ?
+              styles.wordText :
+              [ styles.wordText, styles.wordTextInvalid ]
+          }
+          onChangeWord={this.updateWord}
+          onEndEditingWord={this.updateWordDoneEditing}
         ></Word>
       );
     }
     return words;
   }
 
-  setWord = (word: string, index: number) => {
-    this.setState((state) => {
-      const { seedWords } = state;
-      seedWords[index] = word;
-      return { seedWords };
-    });
+  updateWord = (word: string, index: number) => {
+    const seedWords = [...this.state.seedWords];
+    const seedWord = seedWords[index];
+
+    seedWord.word = word;
+
+    const checksumValid = bip39.validateMnemonic(this.wordsToString(seedWords));
+
+    // only update words validity while typing in the field if just made word valid
+    // so that we aren't highlighting words as invalid while user is typing
+    if (this.wordList.includes(word)) {
+      seedWord.valid = true;
+    }
+
+    this.setState({ seedWords, checksumValid });
+  }
+
+  updateWordDoneEditing = (word: string, index: number) => {
+    const seedWords = [...this.state.seedWords];
+    const seedWord = seedWords[index];
+
+    seedWord.word = word;
+    seedWord.valid = this.wordList.includes(word);
+    // mark word dirty when done editing the first time
+    seedWord.dirty ||= word.length > 0;
+
+    this.setState({ seedWords });
+  }
+
+  wordsToString(words: SeedWord[]): string {
+    return words.map(sw => sw.word).join(' ');
   }
 
   setPassphrase(passphrase: string) {
@@ -87,6 +145,11 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   // TEMP hardcode
   satsToUsd(sats: number) {
     return sats / 100_000_000 * 40_000;
+  }
+  
+  getWordList() {
+    const name = bip39.getDefaultWordlist();
+    return bip39.wordlists[name];
   }
   
   render() {
@@ -140,12 +203,13 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
               <View>
                 <Button
                   title="Save Secret Seed"
-                  style={styles.submitAction}
+                  style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
+                  disabled={! checksumValid}
                   onPress={async() => {
                     try {
                       this.setLoading(true);
 
-                      const mnemonic = this.state.seedWords.join(' ');
+                      const mnemonic = this.wordsToString(this.state.seedWords);
                       console.log('mnemonic', mnemonic);
                 
                       const wallet = await loadWalletFromMnemonic(mnemonic);
@@ -183,8 +247,13 @@ function Word(props: any) {
   return (
     <View style={styles.word}>
       <TextInput
-        style={styles.wordText}
+        style={props.inputStyle}
         onChangeText={(word) => props.onChangeWord(word, props.num - 1)}
+        onEndEditing={(event) => props.onEndEditingWord(event.nativeEvent.text, props.num - 1) }
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect={false}
+        spellCheck={false}
       ></TextInput>
       <AppText style={styles.wordNumLabel}>{props.num}</AppText>
     </View>
@@ -248,6 +317,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     flex: 1
   },
+  wordTextInvalid: {
+    borderWidth: 2,
+    borderColor: Colors.invalid
+  },
   passphrase: {
     marginTop: 22
   },
@@ -296,9 +369,13 @@ const styles = StyleSheet.create({
   fingerprintValue: {
     ...Typography.textNormal.x5
   },
-  submitAction: {
+  submitEnabled: {
     backgroundColor: Colors.defaultActionBackground,
-    color: Colors.defaultActionText
+    color: Colors.defaultActionText,
+  },
+  submitDisabled: {
+    backgroundColor: Colors.disabledActionBackground,
+    color: Colors.disabledActionText
   },
   loading: {
     position: 'absolute',

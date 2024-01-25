@@ -29,8 +29,6 @@ interface Props {
 }
 
 interface State {
-  // Policy Type
-
   scriptVersion: ScriptVersion,
   scriptVersionName: string,
   scriptVersionModalVisible: boolean,
@@ -85,7 +83,9 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                   Policy Type
                 </AppText>
                 <SelectButton
+                  style={styles.disabledSelectButton}
                   title="Single Signature"
+                  onPress={() => this.notImplementedAlert()}
                 >
                 </SelectButton>
               </View>
@@ -131,7 +131,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
               <Button
                 title='Import As Stateless'
                 onPress={() => this.notImplementedAlert()}
-                style={styles.additionalActionButton}
+                style={styles.disabledAdditionalActionButton}
               ></Button>
             </View>
             <Modal
@@ -211,6 +211,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.additionalActionBackground,
     color: Colors.additionalActionText,
     borderColor: Colors.additionalActionBorder
+  },
+  disabledAdditionalActionButton: {
+    borderColor: Colors.additionalActionBorder,
+    backgroundColor: Colors.additionalActionBackground,
+    color: Colors.disabledActionText
+  },
+  disabledSelectButton: {
+    color: Colors.disabledActionText
   },
   options: {
   },
