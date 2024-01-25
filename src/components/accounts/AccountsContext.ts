@@ -1,4 +1,4 @@
-import { Wallet } from 'react-native-bdk';
+// import { Wallet } from 'react-native-bdk';
 import { createContext } from 'react';
 
 import { Account, AccountSnapshot } from '../../models/Account';

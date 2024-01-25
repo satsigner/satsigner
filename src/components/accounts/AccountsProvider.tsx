@@ -1,13 +1,20 @@
 import React from 'react';
-import { 
-  Bdk,
-  LoadWalletResponse,
-  Wallet,
-  AddressInfo,
-  AddressIndexVariant
-} from 'react-native-bdk';
 
-import { Result } from '@synonymdev/result';
+import {
+  DescriptorSecretKey,
+  Mnemonic,
+  Blockchain,
+  Wallet,
+  DatabaseConfig,
+  Descriptor
+} from 'bdk-rn';
+
+import {
+  Network,
+  KeychainKind,
+  BlockchainElectrumConfig,
+  AddressIndex
+} from 'bdk-rn/lib/lib/enums';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
@@ -15,7 +22,14 @@ import { Account, AccountSnapshot } from '../../models/Account';
 
 export const AccountsProvider = ({ children }) => {
 
-  const electrumUrl = 'ssl://electrum.blockstream.info:60002';
+  const blockchainElectrumConfig: BlockchainElectrumConfig = {
+    url: 'ssl://electrum.blockstream.info:60002',
+    sock5: null,
+    retry: 5,
+    timeout: 5,
+    stopGap: 500,
+    validateDomain: false,
+  };
 
   const [storage, setStorage] = React.useState<Storage>(new Storage());
   
@@ -38,30 +52,41 @@ export const AccountsProvider = ({ children }) => {
     setAccount(account);
   };
 
-  const loadWalletFromMnemonic = async(mnemonic: string): Promise<void> => {
-    
-    // await Bdk.unloadWallet();
-    const response: Result<LoadWalletResponse> = await Bdk.loadWallet({
-      mnemonic,
-      config: {
-        network: 'testnet',
-        blockchainConfigUrl: electrumUrl
-      }
-    });
-    console.log('loadWallet', response);
+  const loadWalletFromMnemonic = async(mnemonicString: string): Promise<Wallet> => {
+    let externalDescriptor: Descriptor;
+    let internalDescriptor: Descriptor;
 
-    if (response.isErr()) {
+    try {
+      const mnemonic = await new Mnemonic().fromString(mnemonicString);
+      const descriptorSecretKey = await new DescriptorSecretKey().create(Network.Testnet, mnemonic);
+      externalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
+      internalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.Internal, Network.Testnet);  
+    } catch (err) {
+      console.error(err);
       throw new Error('Loading wallet failed');
     }
 
-    account.external_descriptor = response.value.descriptor_external;
-    account.internal_descriptor = response.value.descriptor_internal;
+    account.external_descriptor = await externalDescriptor.asString();
+    account.internal_descriptor = await internalDescriptor.asString();
 
     if (hasAccountWithName(account.name)) {
       throw new Error('Account with that name already exists');
     } else if (hasAccountWithDescriptor(account.external_descriptor as string, account.internal_descriptor as string)) {
       throw new Error('Account with that mnemonic already exists');
     }
+
+    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    const dbConfig = await new DatabaseConfig().memory();
+
+    const wallet = await new Wallet().create(
+      externalDescriptor,
+      internalDescriptor,
+      Network.Testnet,
+      dbConfig
+    );
+    await wallet.sync(blockchain);
+
+    return wallet;
   }
 
   const storeAccount = async (account: Account) => {
@@ -76,24 +101,24 @@ export const AccountsProvider = ({ children }) => {
     setAccounts(await storage.getAccountsFromStorage());
   };
 
-  const getAccountSnapshot = async() => {
+  const getAccountSnapshot = async(wallet: Wallet): Promise<AccountSnapshot> => {
     const snapshot: AccountSnapshot = new AccountSnapshot();
 
-    if (await Wallet.sync()) {
-      const balance = await Wallet.getBalance();
-      snapshot.balanceSats = balance.confirmed;
-      snapshot.balanceUsd = satsToUsd(balance.confirmed);
-      const addressResult: Result<AddressInfo> = await Bdk.getAddress({ indexVariant: AddressIndexVariant.NEW, index: 0 });
-      const numAddresses = addressResult.isOk() ? addressResult.value.index + 1 : 0;
-      snapshot.numAddresses = numAddresses;
-      const transactions = await Wallet.listTransactions()
-      snapshot.numTransactions = transactions.length;
-      const utxosResult = await Bdk.listUnspent();
-      const numUtxos = utxosResult.isOk() ? utxosResult.value.length : 0;      
-      snapshot.numUtxos = numUtxos;
-      const satsInMempool = balance.trustedPending + balance.untrustedPending;
-      snapshot.satsInMempool = satsInMempool;
-    }
+    const balance = await wallet.getBalance();
+    snapshot.balanceSats = balance.confirmed;
+    snapshot.balanceUsd = satsToUsd(balance.confirmed);
+
+    const addressInfo = await wallet.getAddress(AddressIndex.New);
+    const numAddresses = addressInfo.index + 1;
+    snapshot.numAddresses = numAddresses;
+
+    const transactions = await wallet.listTransactions(false);
+    snapshot.numTransactions = transactions.length;
+
+    const utxos = await wallet.listUnspent();
+    snapshot.numUtxos = utxos.length;
+
+    snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
 
     return snapshot;
   };
