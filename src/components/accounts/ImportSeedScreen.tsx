@@ -1,4 +1,4 @@
-import React from 'react';
+import { PureComponent, useRef, useEffect, useState } from 'react';
 import {
   Animated,
   View,
@@ -51,7 +51,7 @@ class SeedWord {
   dirty: boolean;
 }
 
-export default class ImportSeedScreen extends React.PureComponent<Props, State> {
+export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
   wordList = this.getWordList();
@@ -71,20 +71,6 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   }
 
   componentDidMount() {
-    Keyboard.addListener('keyboardDidShow', () => {
-      const metrics = Keyboard.metrics();
-      const keyboardHeight = metrics?.height || 0;
-      console.log('metrics', Keyboard.metrics());
-      this.setState({keyboardOpen: true, keyboardHeight});
-    });
-
-    Keyboard.addListener('keyboardDidHide', () => {
-      const metrics = Keyboard.metrics();
-      const keyboardHeight = metrics?.height || 0;
-      console.log('metrics', Keyboard.metrics());
-      this.setState({keyboardOpen: false, keyboardHeight});
-    });
-
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
     
     this.initSeedWords();
@@ -193,18 +179,15 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   }
   
   render() {
-    const { checksumValid, keyboardOpen, keyboardHeight } = this.state;
+    const { checksumValid, showWordSelector } = this.state;
 
     return (
       <AccountsContext.Consumer>
         {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountSnapshot }) => (
           <>
-          { this.state.showWordSelector &&
-            <WordSelector
-              keyboardOpen={keyboardOpen}
-              bottom={keyboardHeight}
-            ></WordSelector>
-          }
+          <WordSelector
+            open={showWordSelector}
+          ></WordSelector>
 
           <KeyboardAwareScrollView
             style={styles.container}
@@ -213,7 +196,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
           >
             <View>
               <AppText style={styles.label}>
-                Mnemonic Seed Words (BIP39) {keyboardOpen?'Open':'Closed'}
+                Mnemonic Seed Words (BIP39)
               </AppText>
               <View style={[styles.words,
                 currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
@@ -227,7 +210,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
             </View>
             <View style={styles.passphrase}>
               <AppText style={styles.label}>
-                Additional personal secret (optional) {keyboardOpen?'Open':'Closed'}
+                Additional personal secret (optional)
               </AppText>
               <TextInput
                 style={styles.passphraseText}
@@ -312,35 +295,72 @@ function Word(props: any) {
   );
 }
 
-function WordSelector(props: any) {
+function usePrevious(value: any) {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value; //assign the value of ref to the argument
+  },[value]); //this code will run when the value of 'value' changes
+  return ref.current; //in the end, return the current ref value.
+}
+
+function WordSelector({ open }) {
   const { width, height } = useWindowDimensions();
+  const [ keyboardOpen, setKeyboardOpen ] = useState(false);
+  const [ keyboardHeight, setKeyboardHeight ] = useState(0);
 
   console.log('window', width, 'x', height);
-  console.log('props keyboardOpen', props.keyboardOpen);
+
+  const previousOpen = usePrevious(open);
+
+  const opacityAnimated = useRef(new Animated.Value(0)).current;
+
+  if (keyboardOpen && (open && ! previousOpen)) {
+    Animated.timing(opacityAnimated, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  if (! open && previousOpen) {
+    Animated.timing(opacityAnimated, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }
 
   const separator = () => {
     return <View style={{height: '100%', backgroundColor: Colors.grey240, width: 1 }} />;
   };
 
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Keyboard.addListener('keyboardDidShow', () => {
+      const metrics = Keyboard.metrics();
+      const keyboardHeight = metrics?.height || 0;
+      console.log('metrics', Keyboard.metrics());
+      setKeyboardOpen(true);
+      setKeyboardHeight(keyboardHeight);
+    });
 
-  React.useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    Keyboard.addListener('keyboardDidHide', () => {
+      const metrics = Keyboard.metrics();
+      const keyboardHeight = metrics?.height || 0;
+      console.log('metrics', Keyboard.metrics());
+      setKeyboardOpen(false);
+      setKeyboardHeight(keyboardHeight);
+    });
+  });
 
   return (
     <Animated.View style={{
       ...styles.wordSelector,
-      display: props.keyboardOpen ? 'flex' : 'none',
-      bottom: props.bottom,
+      bottom: keyboardHeight,
       width,
-      opacity: fadeAnim
+      opacity: opacityAnimated
     }}>
-      <FlatList      
+      <FlatList
+        keyboardShouldPersistTaps='handled'
         contentContainerStyle={{
           paddingLeft: 10
         }}
@@ -348,14 +368,14 @@ function WordSelector(props: any) {
         ItemSeparatorComponent={separator}
         data={[{"id":15,"text":"abandon"},{"id":16,"text":"ability"},{"id":17,"text":"able"},{"id":18,"text":"about"},{"id":19,"text":"above"},{"id":20,"text":"absent"},{"id":21,"text":"absorb"},{"id":22,"text":"abstract"}]}
         renderItem={({item, index, separators}) => (
-          <TouchableHighlight
+          <TouchableOpacity
             key={item.id}
-            onPress={() => { console.log('***********') }}
+            onPress={() => { console.log('Pressed', item.text) }}
           >
             <View style={{paddingHorizontal: 20, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
               <Text style={{...Typography.textNormal.x8, color: Colors.black, letterSpacing: 1}}>{item.text}</Text>
             </View>
-          </TouchableHighlight>
+          </TouchableOpacity>
         )}
       />
     </Animated.View>
