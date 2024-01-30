@@ -10,8 +10,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Keyboard,
-  TouchableOpacity,
-  TouchableHighlight
+  TouchableOpacity
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
@@ -39,8 +38,13 @@ interface State {
   checksumValid: boolean;
   loading: boolean;
   showWordSelector: boolean;
-  keyboardOpen: boolean;
-  keyboardHeight: number;
+  currentWordText: string;
+  currentWordIndex: number;
+}
+
+function getWordList() {
+  const name = bip39.getDefaultWordlist();
+  return bip39.wordlists[name];
 }
 
 class SeedWord {
@@ -54,7 +58,7 @@ class SeedWord {
 export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
-  wordList = this.getWordList();
+  wordList = getWordList();
 
   constructor(props: any) {
     super(props);
@@ -65,8 +69,8 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
       checksumValid: false,
       loading: false,
       showWordSelector: false,
-      keyboardOpen: false,
-      keyboardHeight: 0
+      currentWordText: '',
+      currentWordIndex: 0
     };
   }
 
@@ -133,7 +137,13 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     }
 
     console.log('showWordSelector', showWordSelector);
-    this.setState({ seedWords, checksumValid, showWordSelector });
+
+    this.setState({
+      seedWords,
+      checksumValid,
+      showWordSelector,
+      currentWordText: word
+    });
   }
 
   updateWordDoneEditing = (word: string, index: number) => {
@@ -145,7 +155,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     // mark word dirty when done editing the first time
     seedWord.dirty ||= word.length > 0;
 
-    this.setState({ seedWords });
+    this.setState({ seedWords, currentWordText: word });
   }
 
   focusWord = (word: string, index: number) => {
@@ -153,7 +163,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     const seedWord = seedWords[index];
 
     const showWordSelector = ! seedWord.valid && word?.length >= 2;
-    this.setState( { showWordSelector });
+    this.setState( { showWordSelector, currentWordIndex: index });
   }
 
   wordsToString(words: SeedWord[]): string {
@@ -172,14 +182,9 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   satsToUsd(sats: number) {
     return sats / 100_000_000 * 40_000;
   }
-  
-  getWordList() {
-    const name = bip39.getDefaultWordlist();
-    return bip39.wordlists[name];
-  }
-  
+    
   render() {
-    const { checksumValid, showWordSelector } = this.state;
+    const { checksumValid, showWordSelector, currentWordText, currentWordIndex, seedWords } = this.state;
 
     return (
       <AccountsContext.Consumer>
@@ -187,6 +192,12 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
           <>
           <WordSelector
             open={showWordSelector}
+            wordStart={currentWordText}
+            onWordSelected={(word: string) => {
+              // const currentSeedWord = seedWords[currentWordIndex];
+              // console.log('currentSeedWord', currentSeedWord, 'word', word);
+              // currentSeedWord.word = word;
+            }}
           ></WordSelector>
 
           <KeyboardAwareScrollView
@@ -303,29 +314,44 @@ function usePrevious(value: any) {
   return ref.current; //in the end, return the current ref value.
 }
 
-function WordSelector({ open }) {
+function WordSelector({ open, wordStart, onWordSelected }) {
   const { width, height } = useWindowDimensions();
   const [ keyboardOpen, setKeyboardOpen ] = useState(false);
   const [ keyboardHeight, setKeyboardHeight ] = useState(0);
+  const flatList = useRef<FlatList>(null);
 
   console.log('window', width, 'x', height);
+  console.log('keyboardOpen', keyboardOpen);
 
   const previousOpen = usePrevious(open);
+  const previousWordStart = usePrevious(wordStart);
 
   const opacityAnimated = useRef(new Animated.Value(0)).current;
 
-  if (keyboardOpen && (open && ! previousOpen)) {
-    Animated.timing(opacityAnimated, {
+  let index = 0;
+
+  const wordListData = getWordList()
+    .map(w => ({ index: index++, word: w }))
+    .filter(w => w.word.indexOf(wordStart) === 0);
+
+  if (wordListData.length > 0 && previousWordStart !== wordStart) {
+    flatList.current?.scrollToIndex({index: 0, animated: false});
+  }
+
+  // if (keyboardOpen && (open && ! previousOpen)) {
+  if (keyboardOpen && open && wordListData.length > 0) {
+      Animated.timing(opacityAnimated, {
       toValue: 1,
-      duration: 300,
+      duration: 200,
       useNativeDriver: true,
     }).start();
   }
 
-  if (! open && previousOpen) {
-    Animated.timing(opacityAnimated, {
+  // if (! keyboardOpen || (! open && previousOpen)) {
+  if (! keyboardOpen || ! open) {
+      Animated.timing(opacityAnimated, {
       toValue: 0,
-      duration: 300,
+      duration: 200,
       useNativeDriver: true,
     }).start();
   }
@@ -360,20 +386,24 @@ function WordSelector({ open }) {
       opacity: opacityAnimated
     }}>
       <FlatList
+        ref={flatList}
         keyboardShouldPersistTaps='handled'
         contentContainerStyle={{
           paddingLeft: 10
         }}
         horizontal={true}
         ItemSeparatorComponent={separator}
-        data={[{"id":15,"text":"abandon"},{"id":16,"text":"ability"},{"id":17,"text":"able"},{"id":18,"text":"about"},{"id":19,"text":"above"},{"id":20,"text":"absent"},{"id":21,"text":"absorb"},{"id":22,"text":"abstract"}]}
+        data={wordListData}
         renderItem={({item, index, separators}) => (
           <TouchableOpacity
-            key={item.id}
-            onPress={() => { console.log('Pressed', item.text) }}
+            key={item.index}
+            onPress={() => {
+              onWordSelected(item.word);
+              console.log('Pressed', item.word);
+            }}
           >
             <View style={{paddingHorizontal: 20, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-              <Text style={{...Typography.textNormal.x8, color: Colors.black, letterSpacing: 1}}>{item.text}</Text>
+              <Text style={{...Typography.textNormal.x8, color: Colors.black, letterSpacing: 1}}>{item.word}</Text>
             </View>
           </TouchableOpacity>
         )}
