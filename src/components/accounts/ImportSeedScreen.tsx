@@ -1,4 +1,4 @@
-import { PureComponent, useRef, useEffect, useState } from 'react';
+import { PureComponent, useRef, useEffect, useState, useCallback } from 'react';
 import {
   Animated,
   View,
@@ -316,7 +316,7 @@ function Word(props: any) {
 }
 
 function WordSelector({ open, wordStart, onWordSelected }) {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const [ keyboardOpen, setKeyboardOpen ] = useState(false);
   const [ keyboardHeight, setKeyboardHeight ] = useState(0);
   const flatList = useRef<FlatList>(null);
@@ -341,9 +341,7 @@ function WordSelector({ open, wordStart, onWordSelected }) {
       duration: 200,
       useNativeDriver: true,
     }).start();
-  }
-
-  if (! keyboardOpen || ! open) {
+  } else if (! keyboardOpen || ! open) {
       Animated.timing(opacityAnimated, {
       toValue: 0,
       duration: 200,
@@ -355,21 +353,33 @@ function WordSelector({ open, wordStart, onWordSelected }) {
     return <View style={{height: '100%', backgroundColor: Colors.grey240, width: 1 }} />;
   };
 
-  useEffect(() => {
-    Keyboard.addListener('keyboardDidShow', () => {
-      const metrics = Keyboard.metrics();
-      const keyboardHeight = metrics?.height || 0;
-      setKeyboardOpen(true);
-      setKeyboardHeight(keyboardHeight);
-    });
+  const handleKeyboardShown = useCallback(() => {
+    const metrics = Keyboard.metrics();
+    const keyboardHeight = metrics?.height || 0;
+    setKeyboardOpen(true);
+    setKeyboardHeight(keyboardHeight);
+  }, []);
 
-    Keyboard.addListener('keyboardDidHide', () => {
-      const metrics = Keyboard.metrics();
-      const keyboardHeight = metrics?.height || 0;
-      setKeyboardOpen(false);
-      setKeyboardHeight(keyboardHeight);
-    });
-  });
+  const handleKeyboardHidden = useCallback(() => {
+    const metrics = Keyboard.metrics();
+    const keyboardHeight = metrics?.height || 0;
+    setKeyboardOpen(false);
+    setKeyboardHeight(keyboardHeight);
+  }, []);
+
+  useEffect(() => {
+    Keyboard.addListener('keyboardDidShow', handleKeyboardShown);
+    return () => {
+      Keyboard.removeAllListeners('keyboardDidShow');
+    };
+  }, [handleKeyboardShown]);
+
+  useEffect(() => {
+    Keyboard.addListener('keyboardDidHide', handleKeyboardHidden);
+    return () => {
+      Keyboard.removeAllListeners('keyboardDidHide');
+    };
+  }, [handleKeyboardHidden]);
 
   return (
     <Animated.View style={{
