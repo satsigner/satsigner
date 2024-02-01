@@ -25,6 +25,8 @@ import { Account } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 
+import usePrevious from '../shared/usePrevious';
+
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 
@@ -137,8 +139,6 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
       showWordSelector = word.length >= 2;
     }
 
-    console.log('showWordSelector', showWordSelector);
-
     this.setState({
       seedWords,
       checksumValid,
@@ -196,8 +196,13 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
             wordStart={currentWordText}
             onWordSelected={(word: string) => {
               const seedWords = [...this.state.seedWords];
+              let show = showWordSelector;
               seedWords[currentWordIndex].word = word;
-              this.setState({seedWords});
+              if (this.wordList.includes(word)) {
+                seedWords[currentWordIndex].valid = true;
+                show = false;
+              }
+              this.setState({seedWords, showWordSelector: show});
             }}
           ></WordSelector>
 
@@ -309,24 +314,12 @@ function Word(props: any) {
   );
 }
 
-function usePrevious(value: any) {
-  const ref = useRef();
-  useEffect(() => {
-    ref.current = value; //assign the value of ref to the argument
-  },[value]); //this code will run when the value of 'value' changes
-  return ref.current; //in the end, return the current ref value.
-}
-
 function WordSelector({ open, wordStart, onWordSelected }) {
   const { width, height } = useWindowDimensions();
   const [ keyboardOpen, setKeyboardOpen ] = useState(false);
   const [ keyboardHeight, setKeyboardHeight ] = useState(0);
   const flatList = useRef<FlatList>(null);
 
-  console.log('window', width, 'x', height);
-  console.log('keyboardOpen', keyboardOpen);
-
-  const previousOpen = usePrevious(open);
   const previousWordStart = usePrevious(wordStart);
 
   const opacityAnimated = useRef(new Animated.Value(0)).current;
@@ -337,11 +330,10 @@ function WordSelector({ open, wordStart, onWordSelected }) {
     .map(w => ({ index: index++, word: w }))
     .filter(w => w.word.indexOf(wordStart) === 0);
 
-  if (wordListData.length > 0 && previousWordStart !== wordStart) {
+  if (flatList.current?.data?.length > 0 && wordListData.length > 0 && previousWordStart !== wordStart) {
     flatList.current?.scrollToIndex({index: 0, animated: false});
   }
 
-  // if (keyboardOpen && (open && ! previousOpen)) {
   if (keyboardOpen && open && wordListData.length > 0) {
       Animated.timing(opacityAnimated, {
       toValue: 1,
@@ -350,7 +342,6 @@ function WordSelector({ open, wordStart, onWordSelected }) {
     }).start();
   }
 
-  // if (! keyboardOpen || (! open && previousOpen)) {
   if (! keyboardOpen || ! open) {
       Animated.timing(opacityAnimated, {
       toValue: 0,
@@ -367,7 +358,6 @@ function WordSelector({ open, wordStart, onWordSelected }) {
     Keyboard.addListener('keyboardDidShow', () => {
       const metrics = Keyboard.metrics();
       const keyboardHeight = metrics?.height || 0;
-      console.log('metrics', Keyboard.metrics());
       setKeyboardOpen(true);
       setKeyboardHeight(keyboardHeight);
     });
@@ -375,7 +365,6 @@ function WordSelector({ open, wordStart, onWordSelected }) {
     Keyboard.addListener('keyboardDidHide', () => {
       const metrics = Keyboard.metrics();
       const keyboardHeight = metrics?.height || 0;
-      console.log('metrics', Keyboard.metrics());
       setKeyboardOpen(false);
       setKeyboardHeight(keyboardHeight);
     });
@@ -400,10 +389,7 @@ function WordSelector({ open, wordStart, onWordSelected }) {
         renderItem={({item, index, separators}) => (
           <TouchableOpacity
             key={item.index}
-            onPress={() => {
-              onWordSelected(item.word);
-              console.log('Pressed', item.word);
-            }}
+            onPress={() => onWordSelected(item.word) }
           >
             <View style={{paddingHorizontal: 20, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
               <Text style={{...Typography.textNormal.x8, color: Colors.black, letterSpacing: 1}}>{item.word}</Text>
