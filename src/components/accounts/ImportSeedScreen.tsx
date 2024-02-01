@@ -386,7 +386,8 @@ function WordSelector({ open, wordStart, onWordSelected }) {
       ...styles.wordSelector,
       bottom: keyboardHeight,
       width,
-      opacity: opacityAnimated
+      opacity: opacityAnimated,
+      display: keyboardOpen && open ? 'flex' : 'none',
     }}>
       <FlatList
         ref={flatList}
