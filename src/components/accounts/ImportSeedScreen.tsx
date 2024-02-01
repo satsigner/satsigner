@@ -163,8 +163,9 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     const seedWords = [...this.state.seedWords];
     const seedWord = seedWords[index];
 
+    const currentWordText = word;
     const showWordSelector = ! seedWord.valid && word?.length >= 2;
-    this.setState( { showWordSelector, currentWordIndex: index });
+    this.setState( { showWordSelector, currentWordIndex: index, currentWordText });
   }
 
   wordsToString(words: SeedWord[]): string {
