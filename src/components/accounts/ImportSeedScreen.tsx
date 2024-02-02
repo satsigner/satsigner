@@ -29,13 +29,15 @@ import usePrevious from '../shared/usePrevious';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordInfo } from './SeedWordInfo';
+import { Word } from './Word';
 
 interface Props {
   navigation: NavigationProp<any>
 }
 
 interface State {
-  seedWords: SeedWord[];
+  seedWords: SeedWordInfo[];
   passphrase: string;
   checksumValid: boolean;
   loading: boolean;
@@ -49,18 +51,12 @@ function getWordList() {
   return bip39.wordlists[name];
 }
 
-class SeedWord {
-  word: string;
-  // index of this word (out of the 12/15/18/21/24 words)
-  index: number;
-  valid: boolean;
-  dirty: boolean;
-}
-
 export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
   wordList = getWordList();
+
+  minLettersToShowSelector = 2;
 
   constructor(props: any) {
     super(props);
@@ -87,7 +83,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   }
 
   initSeedWords() {
-    const seedWords: SeedWord[] = [];
+    const seedWords: SeedWordInfo[] = [];
     for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
       seedWords.push({
         word: '',
@@ -105,14 +101,10 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     for (let i = 0; i < numWords; i++) {
       words.push(
         <Word
+          style={styles.word}
           num={i+1}
           key={i}
-          inputStyle={
-            this.state.seedWords[i]?.valid || ! this.state.seedWords[i]?.dirty ?
-              styles.wordText :
-              [ styles.wordText, styles.wordTextInvalid ]
-          }
-          word={this.state.seedWords[i]?.word}
+          seedWord={this.state.seedWords[i]}
           onChangeWord={this.updateWord}
           onEndEditingWord={this.updateWordDoneEditing}
           onFocusWord={this.focusWord}
@@ -136,7 +128,8 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     if (this.wordList.includes(word)) {
       seedWord.valid = true;
     } else {
-      showWordSelector = word.length >= 2;
+      // show selector once two letters have been entered
+      showWordSelector = word.length >= this.minLettersToShowSelector;
     }
 
     this.setState({
@@ -164,11 +157,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     const seedWord = seedWords[index];
 
     const currentWordText = word;
-    const showWordSelector = ! seedWord.valid && word?.length >= 2;
+    const showWordSelector = ! seedWord.valid && word?.length >= this.minLettersToShowSelector;
     this.setState( { showWordSelector, currentWordIndex: index, currentWordText });
   }
 
-  wordsToString(words: SeedWord[]): string {
+  wordsToString(words: SeedWordInfo[]): string {
     return words.map(sw => sw.word).join(' ');
   }
 
@@ -294,25 +287,6 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     );
   }
 
-}
-
-function Word(props: any) {
-  return (
-    <View style={styles.word}>
-      <TextInput
-        style={props.inputStyle}
-        onChangeText={(word) => props.onChangeWord(word, props.num - 1)}
-        onEndEditing={(event) => props.onEndEditingWord(event.nativeEvent.text, props.num - 1) }
-        onFocus={(event) => props.onFocusWord(event.nativeEvent.text, props.num - 1)}
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect={false}
-        spellCheck={false}
-        value={props.word}
-      ></TextInput>
-      <AppText style={styles.wordNumLabel}>{props.num}</AppText>
-    </View>
-  );
 }
 
 function WordSelector({ open, wordStart, onWordSelected }) {
@@ -458,26 +432,6 @@ const styles = StyleSheet.create({
     width: '32%',
     justifyContent: 'flex-start',
     alignContent: 'center',
-  },
-  wordNumLabel: {
-    position: 'absolute',
-    top: 5,
-    left: 5,
-    ...Typography.textNormal.x4,
-    lineHeight: Typography.fontSize.x4.fontSize
-  },
-  wordText: {
-    ...Typography.textHighlight.x9,
-    backgroundColor: Colors.inputBackground,
-    fontWeight: '300',
-    textAlign: 'center',
-    borderRadius: 3,
-    letterSpacing: 0.6,
-    flex: 1
-  },
-  wordTextInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.invalid
   },
   passphrase: {
     marginTop: 22
