@@ -1,16 +1,10 @@
-import { PureComponent, useRef, useEffect, useState, useCallback } from 'react';
+import { PureComponent } from 'react';
 import {
-  Animated,
   View,
-  Text,
-  FlatList,
   TextInput,
   StyleSheet,
   Alert,
-  ActivityIndicator,
-  useWindowDimensions,
-  Keyboard,
-  TouchableOpacity
+  ActivityIndicator
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
@@ -25,12 +19,13 @@ import { Account } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 
-import usePrevious from '../shared/usePrevious';
+import getWordList from '../shared/getWordList';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordInfo } from './SeedWordInfo';
 import { Word } from './Word';
+import { WordSelector } from './WordSelector';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -46,17 +41,13 @@ interface State {
   currentWordIndex: number;
 }
 
-function getWordList() {
-  const name = bip39.getDefaultWordlist();
-  return bip39.wordlists[name];
-}
-
 export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
   wordList = getWordList();
 
   minLettersToShowSelector = 2;
+  wordSelectorHeight = 60;
 
   constructor(props: any) {
     super(props);
@@ -187,6 +178,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
           <>
           <WordSelector
             open={showWordSelector}
+            style={styles.wordSelector}
             wordStart={currentWordText}
             onWordSelected={(word: string) => {
               const seedWords = [...this.state.seedWords];
@@ -203,7 +195,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
           <KeyboardAwareScrollView
             style={styles.container}
             enableOnAndroid={true}
-            extraScrollHeight={60}
+            extraScrollHeight={this.wordSelectorHeight}
           >
             <View>
               <AppText style={styles.label}>
@@ -289,104 +281,6 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
 
 }
 
-function WordSelector({ open, wordStart, onWordSelected }) {
-  const { width } = useWindowDimensions();
-  const [ keyboardOpen, setKeyboardOpen ] = useState(false);
-  const [ keyboardHeight, setKeyboardHeight ] = useState(0);
-  const flatList = useRef<FlatList>(null);
-
-  const previousWordStart = usePrevious(wordStart);
-
-  const opacityAnimated = useRef(new Animated.Value(0)).current;
-
-  let index = 0;
-
-  const wordListData = getWordList()
-    .map(w => ({ index: index++, word: w }))
-    .filter(w => w.word.indexOf(wordStart) === 0);
-
-  if (flatList.current?.data?.length > 0 && wordListData.length > 0 && previousWordStart !== wordStart) {
-    flatList.current?.scrollToIndex({index: 0, animated: false});
-  }
-
-  if (keyboardOpen && open && wordListData.length > 0) {
-      Animated.timing(opacityAnimated, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  } else if (! keyboardOpen || ! open) {
-      Animated.timing(opacityAnimated, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }
-
-  const separator = () => {
-    return <View style={{height: '100%', backgroundColor: Colors.grey240, width: 1 }} />;
-  };
-
-  const handleKeyboardShown = useCallback(() => {
-    const metrics = Keyboard.metrics();
-    const keyboardHeight = metrics?.height || 0;
-    setKeyboardOpen(true);
-    setKeyboardHeight(keyboardHeight);
-  }, []);
-
-  const handleKeyboardHidden = useCallback(() => {
-    const metrics = Keyboard.metrics();
-    const keyboardHeight = metrics?.height || 0;
-    setKeyboardOpen(false);
-    setKeyboardHeight(keyboardHeight);
-  }, []);
-
-  useEffect(() => {
-    Keyboard.addListener('keyboardDidShow', handleKeyboardShown);
-    return () => {
-      Keyboard.removeAllListeners('keyboardDidShow');
-    };
-  }, [handleKeyboardShown]);
-
-  useEffect(() => {
-    Keyboard.addListener('keyboardDidHide', handleKeyboardHidden);
-    return () => {
-      Keyboard.removeAllListeners('keyboardDidHide');
-    };
-  }, [handleKeyboardHidden]);
-
-  return (
-    <Animated.View style={{
-      ...styles.wordSelector,
-      bottom: keyboardHeight,
-      width,
-      opacity: opacityAnimated,
-      display: keyboardOpen && open ? 'flex' : 'none',
-    }}>
-      <FlatList
-        ref={flatList}
-        keyboardShouldPersistTaps='handled'
-        contentContainerStyle={{
-          paddingLeft: 10
-        }}
-        horizontal={true}
-        ItemSeparatorComponent={separator}
-        data={wordListData}
-        renderItem={({item, index, separators}) => (
-          <TouchableOpacity
-            key={item.index}
-            onPress={() => onWordSelected(item.word) }
-          >
-            <View style={{paddingHorizontal: 20, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-              <Text style={{...Typography.textNormal.x8, color: Colors.black, letterSpacing: 1}}>{item.word}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
-    </Animated.View>
-  );
-}
-
 const wordRowHeight = 49.25;
 
 const styles = StyleSheet.create({  
@@ -396,11 +290,7 @@ const styles = StyleSheet.create({
     ...Layout.container.topPadded,
   },
   wordSelector: {
-    position: 'absolute',
-    height: 60,
-    backgroundColor: Colors.white,
-    color: Colors.black,
-    zIndex: 1
+    height: 60
   },
   label: {
     alignSelf: 'center',

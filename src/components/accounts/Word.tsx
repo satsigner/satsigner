@@ -4,13 +4,13 @@ import { AppText } from '../shared/AppText';
 import { Typography, Colors } from '../../styles';
 import { SeedWordInfo } from './SeedWordInfo';
 
-type Props = {
+interface Props {
   style: StyleProp<ViewStyle>;
   seedWord: SeedWordInfo;
   num: number;
-  onChangeWord: (word: string, index: number) => void,
-  onEndEditingWord: (word: string, index: number) => void,
-  onFocusWord: (word: string, index: number) => void
+  onChangeWord: (word: string, index: number) => void;
+  onEndEditingWord: (word: string, index: number) => void;
+  onFocusWord: (word: string, index: number) => void;
 };
 
 export function Word({
