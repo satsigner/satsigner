@@ -24,6 +24,19 @@ interface Props {
   style: StyleProp<ViewStyle>;
 }
 
+interface WordInfo {
+  index: number;
+  word: string;
+}
+
+function getMatchingWords(wordStart: string): WordInfo[] {
+  let index = 0;
+
+  return getWordList()
+    .map(w => ({ index: index++, word: w }))
+    .filter(w => w.word.indexOf(wordStart) === 0);
+}
+
 export function WordSelector({
   open,
   wordStart,
@@ -39,23 +52,22 @@ export function WordSelector({
 
   const opacityAnimated = useRef(new Animated.Value(0)).current;
 
-  let index = 0;
+  const data = getMatchingWords(wordStart);
 
-  const wordListData = getWordList()
-    .map(w => ({ index: index++, word: w }))
-    .filter(w => w.word.indexOf(wordStart) === 0);
-
-  if (flatList.current?.data?.length > 0 && wordListData.length > 0 && previousWordStart !== wordStart) {
+  // if there is data, return scroll location of list to start
+  if (flatList.current?.data?.length > 0 && data.length > 0 && previousWordStart !== wordStart) {
     flatList.current?.scrollToIndex({ index: 0, animated: false });
   }
 
-  if (keyboardOpen && open && wordListData.length > 0) {
+  if (keyboardOpen && open && data.length > 0) {
+    // opening, fade the list in
     Animated.timing(opacityAnimated, {
       toValue: 1,
       duration: 200,
       useNativeDriver: true,
     }).start();
   } else if (!keyboardOpen || !open) {
+    // if closing, fade the list out
     Animated.timing(opacityAnimated, {
       toValue: 0,
       duration: 200,
@@ -64,35 +76,28 @@ export function WordSelector({
   }
 
   const separator = () => {
-    return <View style={{ height: '100%', backgroundColor: Colors.grey240, width: 1 }} />;
+    return <View style={styles.listItemSeparator} />;
   };
 
+  // when keyboard is shown store that its open and its height
   const handleKeyboardShown = useCallback(() => {
     const metrics = Keyboard.metrics();
     const keyboardHeight = metrics?.height || 0;
     setKeyboardOpen(true);
     setKeyboardHeight(keyboardHeight);
   }, []);
-
-  const handleKeyboardHidden = useCallback(() => {
-    const metrics = Keyboard.metrics();
-    const keyboardHeight = metrics?.height || 0;
-    setKeyboardOpen(false);
-    setKeyboardHeight(keyboardHeight);
-  }, []);
-
   useEffect(() => {
     Keyboard.addListener('keyboardDidShow', handleKeyboardShown);
-    return () => {
-      Keyboard.removeAllListeners('keyboardDidShow');
-    };
+    return () => Keyboard.removeAllListeners('keyboardDidShow');
   }, [handleKeyboardShown]);
 
+    // when keyboard is hidden, store that it is not open
+  const handleKeyboardHidden = useCallback(() => {
+    setKeyboardOpen(false);
+  }, []);
   useEffect(() => {
     Keyboard.addListener('keyboardDidHide', handleKeyboardHidden);
-    return () => {
-      Keyboard.removeAllListeners('keyboardDidHide');
-    };
+    return () => Keyboard.removeAllListeners('keyboardDidHide');
   }, [handleKeyboardHidden]);
 
   return (
@@ -107,19 +112,17 @@ export function WordSelector({
       <FlatList
         ref={flatList}
         keyboardShouldPersistTaps='handled'
-        contentContainerStyle={{
-          paddingLeft: 10
-        }}
+        contentContainerStyle={styles.list}
         horizontal={true}
         ItemSeparatorComponent={separator}
-        data={wordListData}
+        data={data}
         renderItem={({ item, index, separators }) => (
           <TouchableOpacity
             key={item.index}
             onPress={() => onWordSelected(item.word)}
           >
-            <View style={{ paddingHorizontal: 20, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ ...Typography.textNormal.x8, color: Colors.black, letterSpacing: 1 }}>{item.word}</Text>
+            <View style={styles.listItem}>
+              <Text style={styles.listItemText}>{item.word}</Text>
             </View>
           </TouchableOpacity>
         )} />
@@ -133,5 +136,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     color: Colors.black,
     zIndex: 1
+  },
+  list: {
+    paddingLeft: 10
+  },
+  listItem: {
+    paddingHorizontal: 20,
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  listItemText: {
+    ...Typography.textNormal.x8,
+    color: Colors.black,
+    letterSpacing: 1
+  },
+  listItemSeparator: {
+    height: '100%',
+    backgroundColor: Colors.grey240,
+    width: 1
   }
 });
