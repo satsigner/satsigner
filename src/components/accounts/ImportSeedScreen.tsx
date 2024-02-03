@@ -41,13 +41,15 @@ interface State {
   currentWordIndex: number;
 }
 
+const wordRowHeight = 49.25;
+const wordSelectorHeight = 60;
+
 export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
   wordList = getWordList();
 
   minLettersToShowSelector = 2;
-  wordSelectorHeight = 60;
 
   constructor(props: any) {
     super(props);
@@ -200,7 +202,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
           <KeyboardAwareScrollView
             style={styles.container}
             enableOnAndroid={true}
-            extraScrollHeight={this.wordSelectorHeight}
+            extraScrollHeight={wordSelectorHeight}
           >
             <View>
               <AppText style={styles.label}>
@@ -285,8 +287,6 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
 
 }
 
-const wordRowHeight = 49.25;
-
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     ...Layout.container.topPadded,
   },
   wordSelector: {
-    height: 60
+    height: wordSelectorHeight
   },
   label: {
     alignSelf: 'center',
