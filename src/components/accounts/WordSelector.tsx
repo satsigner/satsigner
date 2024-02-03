@@ -37,6 +37,15 @@ function getMatchingWords(wordStart: string): WordInfo[] {
     .filter(w => w.word.indexOf(wordStart) === 0);
 }
 
+// Component behavior:
+// * when multiple characters are entered in a word, show the word selector
+// * word selector should not block the text input you are entering into
+// * when chaning text input content, word selector should scroll back to start of the updated list
+// * upon selecting an item in the word selector, it should disappear
+// * selector should have fade in animation when it is displayed
+// * selector should have fade out animation when it is hidden
+// * when selector is hidden, taps where it was being displayed should be received by the controls (e.g. text inputs)
+
 export function WordSelector({
   show,
   wordStart,
@@ -105,7 +114,12 @@ export function WordSelector({
       bottom: keyboardHeight,
       width,
       opacity: opacityAnimated,
-      zIndex: show ? 1 : 0
+      // set z-index to 0 when hidden so text inputs behind receive focus
+      // but only after opacity animation completes
+      zIndex: opacityAnimated.interpolate({
+        inputRange: [0, 0.0001],
+        outputRange: [0, 1]
+      })
     }}>
       <FlatList
         ref={flatList}
