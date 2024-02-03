@@ -81,7 +81,6 @@ export function WordSelector({
 
   // when keyboard is shown store that its open and its height
   const handleKeyboardShown = useCallback(() => {
-    console.log('handleKeyboardShown');
     const metrics = Keyboard.metrics();
     const keyboardHeight = metrics?.height || 0;
     setKeyboardOpen(true);
@@ -106,6 +105,7 @@ export function WordSelector({
       bottom: keyboardHeight,
       width,
       opacity: opacityAnimated,
+      zIndex: show ? 1 : 0
     }}>
       <FlatList
         ref={flatList}
@@ -117,12 +117,7 @@ export function WordSelector({
         renderItem={({ item, index, separators }) => (
           <TouchableOpacity
             key={item.index}
-              onPress={() => {
-                if (keyboardOpen && show) {
-                  // only process word selections if the selector is visible (opacity not 0)
-                  onWordSelected(item.word);
-                }
-              }}
+            onPress={() => onWordSelected(item.word)}
           >
             <View style={styles.listItem}>
               <Text style={styles.listItemText}>{item.word}</Text>
