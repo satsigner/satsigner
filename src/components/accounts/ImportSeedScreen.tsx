@@ -152,6 +152,20 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     this.setState( { showWordSelector, currentWordIndex: index, currentWordText });
   }
 
+  wordSelected = (word: string) => {
+    const { showWordSelector, currentWordIndex } = this.state;
+    const seedWords = [...this.state.seedWords];
+    let show = showWordSelector;
+    seedWords[currentWordIndex].word = word;
+    if (this.wordList.includes(word)) {
+      seedWords[currentWordIndex].valid = true;
+      show = false;
+    }
+    const checksumValid = bip39.validateMnemonic(this.wordsToString(seedWords));
+
+    this.setState({seedWords, checksumValid, showWordSelector: show});
+  }
+
   wordsToString(seedWords: SeedWordInfo[]): string {
     return seedWords.map(seedWord => seedWord.word).join(' ');
   }
@@ -170,7 +184,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { checksumValid, showWordSelector, currentWordText, currentWordIndex } = this.state;
+    const { checksumValid, showWordSelector, currentWordText } = this.state;
 
     return (
       <AccountsContext.Consumer>
@@ -180,18 +194,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
             show={showWordSelector}
             style={styles.wordSelector}
             wordStart={currentWordText}
-            onWordSelected={(word: string) => {
-              const seedWords = [...this.state.seedWords];
-              let show = showWordSelector;
-              seedWords[currentWordIndex].word = word;
-              if (this.wordList.includes(word)) {
-                seedWords[currentWordIndex].valid = true;
-                show = false;
-              }
-              const checksumValid = bip39.validateMnemonic(this.wordsToString(seedWords));
-
-              this.setState({seedWords, checksumValid, showWordSelector: show});
-            }}
+            onWordSelected={this.wordSelected}
           ></WordSelector>
 
           <KeyboardAwareScrollView
