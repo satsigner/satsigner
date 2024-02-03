@@ -55,8 +55,8 @@ export function WordSelector({
   const data = getMatchingWords(wordStart);
 
   // if there is data, return scroll location of list to start
-  if (flatList.current?.data?.length > 0 && data.length > 0 && previousWordStart !== wordStart) {
-    flatList.current?.scrollToIndex({ index: 0, animated: false });
+  if (data.length > 0 && previousWordStart !== wordStart) {
+    flatList.current?.scrollToOffset({ animated: false, offset: 0 });
   }
 
   if (keyboardOpen && show && data.length > 0) {
