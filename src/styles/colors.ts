@@ -78,6 +78,7 @@ export const grey205 = '#CDCDCD';
 export const grey208 = '#D0D0D0';
 export const grey217 = '#D9D9D9';
 export const grey231 = '#E7E7E7';
+export const grey240 = '#F0F0F0';
 export const grey242 = '#F2F2F2';
 
 // Semantically named colors
@@ -293,7 +294,6 @@ export const quarterGrey = grey72;
 // export const grey237 = '#EDEDED';
 // export const grey238 = '#EEEEEE';
 // export const grey239 = '#EFEFEF';
-// export const grey240 = '#F0F0F0';
 // export const grey241 = '#F1F1F1';
 // export const grey243 = '#F3F3F3';
 // export const grey244 = '#F4F4F4';

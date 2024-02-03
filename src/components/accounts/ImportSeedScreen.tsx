@@ -1,13 +1,14 @@
-import React from 'react';
+import { PureComponent } from 'react';
 import {
   View,
-  ScrollView,
   TextInput,
   StyleSheet,
   Alert,
   ActivityIndicator
 } from 'react-native';
+
 import { NavigationProp } from '@react-navigation/native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
 import * as bip39 from 'bip39';
 
@@ -17,34 +18,36 @@ import navUtils from '../../utils/NavUtils';
 import { Account } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
-import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingViewWithHeaderOffset';
+
+import getWordList from '../shared/getWordList';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordInfo } from './SeedWordInfo';
+import { Word } from './Word';
+import { WordSelector } from './WordSelector';
 
 interface Props {
   navigation: NavigationProp<any>
 }
 
 interface State {
-  seedWords: SeedWord[];
+  seedWords: SeedWordInfo[];
   passphrase: string;
   checksumValid: boolean;
   loading: boolean;
+  showWordSelector: boolean;
+  currentWordText: string;
+  currentWordIndex: number;
 }
 
-class SeedWord {
-  word: string;
-  // index of this word (out of the 12/15/18/21/24 words)
-  index: number;
-  valid: boolean;
-  dirty: boolean;
-}
-
-export default class ImportSeedScreen extends React.PureComponent<Props, State> {
+export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
-  wordList = this.getWordList();
+  wordList = getWordList();
+
+  minLettersToShowSelector = 2;
+  wordSelectorHeight = 60;
 
   constructor(props: any) {
     super(props);
@@ -53,7 +56,10 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
       seedWords: [],
       passphrase: '',
       checksumValid: false,
-      loading: false
+      loading: false,
+      showWordSelector: false,
+      currentWordText: '',
+      currentWordIndex: 0
     };
   }
 
@@ -68,7 +74,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   }
 
   initSeedWords() {
-    const seedWords: SeedWord[] = [];
+    const seedWords: SeedWordInfo[] = [];
     for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
       seedWords.push({
         word: '',
@@ -86,15 +92,13 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     for (let i = 0; i < numWords; i++) {
       words.push(
         <Word
+          style={styles.word}
           num={i+1}
           key={i}
-          inputStyle={
-            this.state.seedWords[i]?.valid || ! this.state.seedWords[i]?.dirty ?
-              styles.wordText :
-              [ styles.wordText, styles.wordTextInvalid ]
-          }
+          seedWord={this.state.seedWords[i]}
           onChangeWord={this.updateWord}
           onEndEditingWord={this.updateWordDoneEditing}
+          onFocusWord={this.focusWord}
         ></Word>
       );
     }
@@ -104,6 +108,7 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   updateWord = (word: string, index: number) => {
     const seedWords = [...this.state.seedWords];
     const seedWord = seedWords[index];
+    let showWordSelector = false;
 
     seedWord.word = word;
 
@@ -113,9 +118,17 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     // so that we aren't highlighting words as invalid while user is typing
     if (this.wordList.includes(word)) {
       seedWord.valid = true;
+    } else {
+      // show selector once two letters have been entered
+      showWordSelector = word.length >= this.minLettersToShowSelector;
     }
 
-    this.setState({ seedWords, checksumValid });
+    this.setState({
+      seedWords,
+      checksumValid,
+      showWordSelector,
+      currentWordText: word
+    });
   }
 
   updateWordDoneEditing = (word: string, index: number) => {
@@ -127,11 +140,34 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
     // mark word dirty when done editing the first time
     seedWord.dirty ||= word.length > 0;
 
-    this.setState({ seedWords });
+    this.setState({ seedWords, currentWordText: word });
   }
 
-  wordsToString(words: SeedWord[]): string {
-    return words.map(sw => sw.word).join(' ');
+  focusWord = (word: string, index: number) => {
+    const seedWords = [...this.state.seedWords];
+    const seedWord = seedWords[index];
+
+    const currentWordText = word;
+    const showWordSelector = ! seedWord.valid && word?.length >= this.minLettersToShowSelector;
+    this.setState( { showWordSelector, currentWordIndex: index, currentWordText });
+  }
+
+  wordSelected = (word: string) => {
+    const { showWordSelector, currentWordIndex } = this.state;
+    const seedWords = [...this.state.seedWords];
+    let show = showWordSelector;
+    seedWords[currentWordIndex].word = word;
+    if (this.wordList.includes(word)) {
+      seedWords[currentWordIndex].valid = true;
+      show = false;
+    }
+    const checksumValid = bip39.validateMnemonic(this.wordsToString(seedWords));
+
+    this.setState({seedWords, checksumValid, showWordSelector: show});
+  }
+
+  wordsToString(seedWords: SeedWordInfo[]): string {
+    return seedWords.map(seedWord => seedWord.word).join(' ');
   }
 
   setPassphrase(passphrase: string) {
@@ -146,96 +182,102 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
   satsToUsd(sats: number) {
     return sats / 100_000_000 * 40_000;
   }
-  
-  getWordList() {
-    const name = bip39.getDefaultWordlist();
-    return bip39.wordlists[name];
-  }
-  
+    
   render() {
-    const { checksumValid } = this.state;
+    const { checksumValid, showWordSelector, currentWordText } = this.state;
 
     return (
       <AccountsContext.Consumer>
         {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountSnapshot }) => (
-          <KeyboardAvoidingViewWithHeaderOffset style={styles.container}>
-            <ScrollView style={styles.scrollContainer}>
-              <View>
-                <AppText style={styles.label}>
-                  Mnemonic Seed Words (BIP39)
-                </AppText>
-                <View style={[styles.words,
-                  currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
-                  currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
-                  currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
-                  currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
-                  currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
-                ]}>
-                  {this.getWordComponents(currentAccount)}
+          <>
+          <WordSelector
+            show={showWordSelector}
+            style={styles.wordSelector}
+            wordStart={currentWordText}
+            onWordSelected={this.wordSelected}
+          ></WordSelector>
+
+          <KeyboardAwareScrollView
+            style={styles.container}
+            enableOnAndroid={true}
+            extraScrollHeight={this.wordSelectorHeight}
+          >
+            <View>
+              <AppText style={styles.label}>
+                Mnemonic Seed Words (BIP39)
+              </AppText>
+              <View style={[styles.words,
+                currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
+                currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
+                currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
+                currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
+                currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
+              ]}>
+                {this.getWordComponents(currentAccount)}
+              </View>
+            </View>
+            <View style={styles.passphrase}>
+              <AppText style={styles.label}>
+                Additional personal secret (optional)
+              </AppText>
+              <TextInput
+                style={styles.passphraseText}
+                onChangeText={(passphrase) => this.setPassphrase(passphrase)}
+              >
+              </TextInput>
+              <View style={styles.passphraseStatus}>
+                <View style={styles.checksum}>
+                  <View style={[
+                      styles.checksumStatus,
+                      this.state.checksumValid ?
+                        styles.checksumStatusValid :
+                        styles.checksumStatusInvalid
+                    ]}>
+                  </View>
+                  <AppText style={styles.checksumStatusLabel}>{ checksumValid ? <>valid</> : <>invalid</> } checksum</AppText>
+                </View>
+                <View style={styles.fingerprint}>
+                  <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
+                  <AppText style={styles.fingerprintValue}>af4261ff</AppText>
                 </View>
               </View>
-              <View style={styles.passphrase}>
-                <AppText style={styles.label}>
-                  Additional personal secret (optional)
-                </AppText>
-                <TextInput
-                  style={styles.passphraseText}
-                  onChangeText={(passphrase) => this.setPassphrase(passphrase)}
-                >
-                </TextInput>
-                <View style={styles.passphraseStatus}>
-                  <View style={styles.checksum}>
-                    <View style={[
-                        styles.checksumStatus,
-                        this.state.checksumValid ?
-                          styles.checksumStatusValid :
-                          styles.checksumStatusInvalid
-                      ]}>
-                    </View>
-                    <AppText style={styles.checksumStatusLabel}>{ checksumValid ? <>valid</> : <>invalid</> } checksum</AppText>
-                  </View>
-                  <View style={styles.fingerprint}>
-                    <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
-                    <AppText style={styles.fingerprintValue}>af4261ff</AppText>
-                  </View>
-                </View>
-              </View>
-              <View>
-                <Button
-                  title="Save Secret Seed"
-                  style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
-                  disabled={! checksumValid}
-                  onPress={async() => {
-                    try {
-                      this.setLoading(true);
+            </View>
+            <View>
+              <Button
+                title="Save Secret Seed"
+                style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
+                disabled={! checksumValid}
+                onPress={async() => {
+                  try {
+                    this.setLoading(true);
 
-                      const mnemonic = this.wordsToString(this.state.seedWords);
-                      console.log('mnemonic', mnemonic);
-                
-                      const wallet = await loadWalletFromMnemonic(mnemonic);
-                      this.setState({checksumValid: true});
-                
-                      const snapshot = await getAccountSnapshot(wallet);
-                      await storeAccountSnapshot(snapshot);
+                    const mnemonic = this.wordsToString(this.state.seedWords);
+                    console.log('mnemonic', mnemonic);
+              
+                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
+              
+                    const snapshot = await getAccountSnapshot(wallet);
+                    await storeAccountSnapshot(snapshot);
 
-                      this.props.navigation.navigate('AccountList');
-                    } catch (err) {
-                      console.error(err);
-                      Alert.alert('Error', '' + err, [{text: 'OK'}]);
-                    } finally {
-                      this.setLoading(false);
-                    }
-                  }}
-                ></Button>
-              </View>
-            </ScrollView>
+                    this.props.navigation.navigate('AccountList');
+                  } catch (err) {
+                    console.error(err);
+                    Alert.alert('Error', '' + err, [{text: 'OK'}]);
+                  } finally {
+                    this.setLoading(false);
+                  }
+                }}
+              ></Button>
+            </View>
+            
             {this.state.loading &&
             <ActivityIndicator
               size="large"
               style={styles.loading}>
             </ActivityIndicator>
             }
-          </KeyboardAvoidingViewWithHeaderOffset>
+          </KeyboardAwareScrollView>
+          </>
         )}
       </AccountsContext.Consumer>
     );
@@ -243,32 +285,16 @@ export default class ImportSeedScreen extends React.PureComponent<Props, State> 
 
 }
 
-function Word(props: any) {
-  return (
-    <View style={styles.word}>
-      <TextInput
-        style={props.inputStyle}
-        onChangeText={(word) => props.onChangeWord(word, props.num - 1)}
-        onEndEditing={(event) => props.onEndEditingWord(event.nativeEvent.text, props.num - 1) }
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect={false}
-        spellCheck={false}
-      ></TextInput>
-      <AppText style={styles.wordNumLabel}>{props.num}</AppText>
-    </View>
-  );
-}
-
 const wordRowHeight = 49.25;
 
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
-    ...Layout.container.horizontalPadded
-  },
-  scrollContainer: {
+    ...Layout.container.horizontalPadded,
     ...Layout.container.topPadded,
+  },
+  wordSelector: {
+    height: 60
   },
   label: {
     alignSelf: 'center',
@@ -300,26 +326,6 @@ const styles = StyleSheet.create({
     width: '32%',
     justifyContent: 'flex-start',
     alignContent: 'center',
-  },
-  wordNumLabel: {
-    position: 'absolute',
-    top: 5,
-    left: 5,
-    ...Typography.textNormal.x4,
-    lineHeight: Typography.fontSize.x4.fontSize
-  },
-  wordText: {
-    ...Typography.textHighlight.x9,
-    backgroundColor: Colors.inputBackground,
-    fontWeight: '300',
-    textAlign: 'center',
-    borderRadius: 3,
-    letterSpacing: 0.6,
-    flex: 1
-  },
-  wordTextInvalid: {
-    borderWidth: 2,
-    borderColor: Colors.invalid
   },
   passphrase: {
     marginTop: 22

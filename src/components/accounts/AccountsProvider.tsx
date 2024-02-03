@@ -52,13 +52,17 @@ export const AccountsProvider = ({ children }) => {
     setAccount(account);
   };
 
-  const loadWalletFromMnemonic = async(mnemonicString: string): Promise<Wallet> => {
+  const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string): Promise<Wallet> => {
     let externalDescriptor: Descriptor;
     let internalDescriptor: Descriptor;
 
     try {
       const mnemonic = await new Mnemonic().fromString(mnemonicString);
-      const descriptorSecretKey = await new DescriptorSecretKey().create(Network.Testnet, mnemonic);
+      const descriptorSecretKey = await new DescriptorSecretKey().create(
+        Network.Testnet,
+        mnemonic,
+        passphrase
+      );
       externalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
       internalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.Internal, Network.Testnet);  
     } catch (err) {
