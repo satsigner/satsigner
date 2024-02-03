@@ -152,8 +152,8 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     this.setState( { showWordSelector, currentWordIndex: index, currentWordText });
   }
 
-  wordsToString(words: SeedWordInfo[]): string {
-    return words.map(sw => sw.word).join(' ');
+  wordsToString(seedWords: SeedWordInfo[]): string {
+    return seedWords.map(seedWord => seedWord.word).join(' ');
   }
 
   setPassphrase(passphrase: string) {
@@ -188,7 +188,9 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                 seedWords[currentWordIndex].valid = true;
                 show = false;
               }
-              this.setState({seedWords, showWordSelector: show});
+              const checksumValid = bip39.validateMnemonic(this.wordsToString(seedWords));
+
+              this.setState({seedWords, checksumValid, showWordSelector: show});
             }}
           ></WordSelector>
 
@@ -250,7 +252,6 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                     console.log('mnemonic', mnemonic);
               
                     const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
-                    this.setState({checksumValid: true});
               
                     const snapshot = await getAccountSnapshot(wallet);
                     await storeAccountSnapshot(snapshot);
