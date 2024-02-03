@@ -81,6 +81,7 @@ export function WordSelector({
 
   // when keyboard is shown store that its open and its height
   const handleKeyboardShown = useCallback(() => {
+    console.log('handleKeyboardShown');
     const metrics = Keyboard.metrics();
     const keyboardHeight = metrics?.height || 0;
     setKeyboardOpen(true);
@@ -88,16 +89,14 @@ export function WordSelector({
   }, []);
   useEffect(() => {
     Keyboard.addListener('keyboardDidShow', handleKeyboardShown);
-    return () => Keyboard.removeAllListeners('keyboardDidShow');
   }, [handleKeyboardShown]);
 
-    // when keyboard is hidden, store that it is not open
+  // when keyboard is hidden, store that it is not open
   const handleKeyboardHidden = useCallback(() => {
     setKeyboardOpen(false);
   }, []);
   useEffect(() => {
     Keyboard.addListener('keyboardDidHide', handleKeyboardHidden);
-    return () => Keyboard.removeAllListeners('keyboardDidHide');
   }, [handleKeyboardHidden]);
 
   return (
