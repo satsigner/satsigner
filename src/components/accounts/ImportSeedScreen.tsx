@@ -177,7 +177,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
         {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountSnapshot }) => (
           <>
           <WordSelector
-            open={showWordSelector}
+            show={showWordSelector}
             style={styles.wordSelector}
             wordStart={currentWordText}
             onWordSelected={(word: string) => {

@@ -18,7 +18,7 @@ import usePrevious from '../shared/usePrevious';
 import getWordList from '../shared/getWordList';
 
 interface Props {
-  open: boolean;
+  show: boolean;
   wordStart: string;
   onWordSelected: (word: string) => void;
   style: StyleProp<ViewStyle>;
@@ -38,7 +38,7 @@ function getMatchingWords(wordStart: string): WordInfo[] {
 }
 
 export function WordSelector({
-  open,
+  show,
   wordStart,
   onWordSelected,
   style
@@ -59,14 +59,14 @@ export function WordSelector({
     flatList.current?.scrollToIndex({ index: 0, animated: false });
   }
 
-  if (keyboardOpen && open && data.length > 0) {
+  if (keyboardOpen && show && data.length > 0) {
     // opening, fade the list in
     Animated.timing(opacityAnimated, {
       toValue: 1,
       duration: 200,
       useNativeDriver: true,
     }).start();
-  } else if (!keyboardOpen || !open) {
+  } else if (! keyboardOpen || ! show) {
     // if closing, fade the list out
     Animated.timing(opacityAnimated, {
       toValue: 0,
@@ -107,7 +107,6 @@ export function WordSelector({
       bottom: keyboardHeight,
       width,
       opacity: opacityAnimated,
-      display: keyboardOpen && open ? 'flex' : 'none',
     }}>
       <FlatList
         ref={flatList}
@@ -119,7 +118,12 @@ export function WordSelector({
         renderItem={({ item, index, separators }) => (
           <TouchableOpacity
             key={item.index}
-            onPress={() => onWordSelected(item.word)}
+              onPress={() => {
+                if (keyboardOpen && show) {
+                  // only process word selections if the selector is visible (opacity not 0)
+                  onWordSelected(item.word);
+                }
+              }}
           >
             <View style={styles.listItem}>
               <Text style={styles.listItemText}>{item.word}</Text>
