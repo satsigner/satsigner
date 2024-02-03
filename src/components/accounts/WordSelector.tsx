@@ -29,6 +29,11 @@ interface WordInfo {
   word: string;
 }
 
+// NOTE if performance of this filtering is subpar we may need more intelligent implementation
+//   we are dealing with sorted wordlist so could do some optimizations
+
+// NOTE we could intelligently populate options for the 12th/15th/18th/21st/24th word
+//   so that it only contains those words that would produce a valid checksum
 function getMatchingWords(wordStart: string): WordInfo[] {
   let index = 0;
 
