@@ -4,7 +4,8 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
@@ -26,6 +27,7 @@ import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordInfo } from './SeedWordInfo';
 import { Word } from './Word';
 import { WordSelector } from './WordSelector';
+import AccountAddedModal from './AccountAddedModal';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -39,6 +41,7 @@ interface State {
   showWordSelector: boolean;
   currentWordText: string;
   currentWordIndex: number;
+  accountAddedModalVisible: boolean;
 }
 
 export default class ImportSeedScreen extends PureComponent<Props, State> {
@@ -59,7 +62,8 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
       loading: false,
       showWordSelector: false,
       currentWordText: '',
-      currentWordIndex: 0
+      currentWordIndex: 0,
+      accountAddedModalVisible: false
     };
   }
 
@@ -184,7 +188,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { checksumValid, showWordSelector, currentWordText } = this.state;
+    const { checksumValid, showWordSelector, currentWordText, accountAddedModalVisible } = this.state;
 
     return (
       <AccountsContext.Consumer>
@@ -244,6 +248,15 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
             </View>
             <View>
               <Button
+                title="Show Account Added Dialog"
+                style={styles.submitEnabled}
+                onPress={async() => {
+                  this.setState({accountAddedModalVisible: true})
+                }}
+              ></Button>
+            </View>
+            <View>
+              <Button
                 title="Save Secret Seed"
                 style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
                 disabled={! checksumValid}
@@ -276,6 +289,15 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
               style={styles.loading}>
             </ActivityIndicator>
             }
+
+            <Modal
+              visible={accountAddedModalVisible}
+              transparent={false}
+            >
+              <AccountAddedModal
+                onClose={() => this.setState({ accountAddedModalVisible: false })}
+              ></AccountAddedModal>
+            </Modal>
           </KeyboardAwareScrollView>
           </>
         )}
