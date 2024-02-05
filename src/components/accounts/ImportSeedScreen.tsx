@@ -292,7 +292,8 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
 
             <Modal
               visible={accountAddedModalVisible}
-              transparent={false}
+              transparent={true}
+              animationType='fade'
             >
               <AccountAddedModal
                 onClose={() => this.setState({ accountAddedModalVisible: false })}
