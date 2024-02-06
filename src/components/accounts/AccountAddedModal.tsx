@@ -32,8 +32,12 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
     };
   }
 
-  getScriptName(scriptVersion: ScriptVersion): string {
+  getScriptLongName(scriptVersion: ScriptVersion): string {
     return ScriptVersionInfos.get(scriptVersion)?.longName || '';
+  }
+
+  getScriptShortName(scriptVersion: ScriptVersion): string {
+    return ScriptVersionInfos.get(scriptVersion)?.shortName || '';
   }
 
   render() {
@@ -65,24 +69,43 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between',
+                justifyContent: 'flex-start',
                 alignItems: 'center',
                 width: '100%',
-                height: 400,
-                borderRadius: 3
+                borderRadius: 3,
               }}
               colors={[Colors.grey21, Colors.grey47]}
               start={{ x: 1, y: 1 }}
               end={{ x: 0, y: 0 }}
             >
-              <AppText style={{color: Colors.highlight, fontSize: 25}}>{currentAccount.name}</AppText>
-              <AppText style={{color: Colors.grey118, fontSize: 16}}>Parent account has been added</AppText>
+              <View style={{...styles.columnSection, height: 139 }}>
+                <AppText style={{color: Colors.highlight, fontSize: 26 }}>{currentAccount.name}</AppText>
+                <AppText style={{color: Colors.grey118, fontSize: 17, marginTop: 1}}>Parent account has been added</AppText>
+              </View>
+
               <Separator />
-              <AppText style={{color: Colors.grey79, fontSize: 9}}>Script</AppText>
-              <AppText style={{color: Colors.grey130, fontSize: 12}}>{this.getScriptName(currentAccount.scriptVersion as ScriptVersion)}</AppText>
+              
+              <View style={{...styles.columnSection, height: 112}}>
+                <View style={{...styles.rowSection, alignItems: 'flex-start' }}>
+                    <View style={styles.columnSection}>
+                      <AppText style={{color: Colors.grey79, fontSize: 9}}>Script</AppText>
+                      <AppText style={{color: Colors.grey130, fontSize: 12}}>{this.getScriptLongName(currentAccount.scriptVersion as ScriptVersion)}</AppText>
+                      <AppText style={{color: Colors.grey130, fontSize: 12}}>({this.getScriptShortName(currentAccount.scriptVersion as ScriptVersion)})</AppText>
+                    </View>
+                    <View style={styles.columnSection}>
+                      <AppText style={{color: Colors.grey79, fontSize: 9}}>Fingerprint</AppText>
+                      <AppText style={{color: Colors.grey130, fontSize: 12}}>73c5da0a</AppText>
+                    </View>
+                </View>
+              </View>
+
               <Separator />
-              <AppText style={{color: Colors.grey79, fontSize: 9}}>Searching derivation path</AppText>
-              <AppText style={{color: Colors.grey130, fontSize: 16}}>m/49'/0'</AppText>
+
+              <View style={{...styles.columnSection, height: 162 }}>
+                <AppText style={{color: Colors.grey79, fontSize: 9}}>Searching derivation path</AppText>
+                <AppText style={{color: Colors.grey130, fontSize: 16}}>m/49'/0'</AppText>
+              </View>
+
               <Button
                 title='Close'
                 onPress={() => this.props.onClose()}
@@ -99,6 +122,19 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
 }
 
 const styles = StyleSheet.create({
+  columnSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  rowSection: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    width: '100%'
+  },
   closeButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.11)',
     color: Colors.actionText,

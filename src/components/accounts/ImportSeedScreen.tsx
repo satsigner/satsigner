@@ -242,7 +242,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                 </View>
                 <View style={styles.fingerprint}>
                   <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
-                  <AppText style={styles.fingerprintValue}>af4261ff</AppText>
+                  <AppText style={styles.fingerprintValue}>73c5da0a</AppText>
                 </View>
               </View>
             </View>
