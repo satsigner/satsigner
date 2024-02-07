@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet
 } from 'react-native';
 
@@ -57,30 +56,16 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
     return (
       <AccountsContext.Consumer>
         {({ currentAccount }) => (
-          <View style={{
-            flex: 1,
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            ...Layout.container.horizontalPadded
-          }}>
+          <View style={styles.dimmedOverlay}>
             <LinearGradient
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                width: '100%',
-                borderRadius: 3,
-              }}
+              style={styles.dialogBackground}
               colors={[Colors.grey21, Colors.grey47]}
               start={{ x: 1, y: 1 }}
               end={{ x: 0, y: 0 }}
             >
-              <View style={{...styles.columnSection, height: 139 }}>
-                <AppText style={{color: Colors.highlight, fontSize: 26 }}>{currentAccount.name}</AppText>
-                <AppText style={{color: Colors.grey118, fontSize: 17, marginTop: 1}}>Parent account has been added</AppText>
+              <View style={{...styles.columnSection, height: 137 }}>
+                <AppText style={styles.heading}>{currentAccount.name}</AppText>
+                <AppText style={styles.subheading}>Parent account has been added</AppText>
               </View>
 
               <Separator />
@@ -88,22 +73,34 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
               <View style={{...styles.columnSection, height: 112}}>
                 <View style={{...styles.rowSection, alignItems: 'flex-start' }}>
                     <View style={styles.columnSection}>
-                      <AppText style={{color: Colors.grey79, fontSize: 9}}>Script</AppText>
-                      <AppText style={{color: Colors.grey130, fontSize: 12}}>{this.getScriptLongName(currentAccount.scriptVersion as ScriptVersion)}</AppText>
-                      <AppText style={{color: Colors.grey130, fontSize: 12}}>({this.getScriptShortName(currentAccount.scriptVersion as ScriptVersion)})</AppText>
+                      <AppText style={styles.label}>Script</AppText>
+                      <AppText style={{...styles.valueSmall, marginTop: 2 }}>{this.getScriptLongName(currentAccount.scriptVersion as ScriptVersion)}</AppText>
+                      <AppText style={styles.valueSmall}>({this.getScriptShortName(currentAccount.scriptVersion as ScriptVersion)})</AppText>
                     </View>
                     <View style={styles.columnSection}>
-                      <AppText style={{color: Colors.grey79, fontSize: 9}}>Fingerprint</AppText>
-                      <AppText style={{color: Colors.grey130, fontSize: 12}}>73c5da0a</AppText>
+                      <AppText style={styles.label}>Fingerprint</AppText>
+                      <AppText style={{...styles.valueSmall, marginTop: 2 }}>73c5da0a</AppText>
                     </View>
                 </View>
               </View>
 
               <Separator />
 
-              <View style={{...styles.columnSection, height: 162 }}>
-                <AppText style={{color: Colors.grey79, fontSize: 9}}>Searching derivation path</AppText>
-                <AppText style={{color: Colors.grey130, fontSize: 16}}>m/49'/0'</AppText>
+              <View style={{...styles.columnSection, height: 152, marginTop: 10 }}>
+                <View style={styles.columnSection}>
+                  <AppText style={styles.label}>Searching derivation path</AppText>
+                  <AppText style={{...styles.valueLarge, marginTop: 8, letterSpacing: 5 }}>m/49'/0'</AppText>
+                </View>
+                <View style={{...styles.rowSection, alignItems: 'flex-start', marginTop: 30 }}>
+                    <View style={styles.columnSection}>
+                      <AppText style={styles.label}>Found UTXOs</AppText>
+                      <AppText style={{...styles.valueLarge, marginTop: 8}}>21</AppText>
+                    </View>
+                    <View style={styles.columnSection}>
+                      <AppText style={styles.label}>Total spendable sats</AppText>
+                      <AppText style={{...styles.valueLarge, marginTop: 8}}>159,321</AppText>
+                    </View>
+                </View>
               </View>
 
               <Button
@@ -122,6 +119,48 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
 }
 
 const styles = StyleSheet.create({
+  dimmedOverlay: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    ...Layout.container.horizontalPadded
+  },
+  dialogBackground: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    width: '100%',
+    borderRadius: 3,
+  },
+  heading: {
+    ...Typography.fontFamily.sfProDisplayMedium,
+    color: Colors.highlight,
+    fontSize: 26
+  },
+  subheading: {
+    ...Typography.fontFamily.sfProDisplayMedium,
+    color: Colors.grey118,
+    fontSize: 17,
+    marginTop: 1
+  },
+  label: {
+    ...Typography.fontFamily.sfProDisplayMedium,
+    color: Colors.grey79,
+    fontSize: 10
+  },
+  valueSmall: {
+    ...Typography.fontFamily.sfProDisplayMedium,
+    color: Colors.grey130,
+    fontSize: 13
+  },
+  valueLarge: {
+    ...Typography.fontFamily.sfProDisplayMedium,
+    color: Colors.grey130,
+    fontSize: 17
+  },
   columnSection: {
     display: 'flex',
     flexDirection: 'column',
