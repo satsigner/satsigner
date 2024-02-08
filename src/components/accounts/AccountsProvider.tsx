@@ -52,6 +52,31 @@ export const AccountsProvider = ({ children }) => {
     setAccount(account);
   };
 
+  const getFingerprint = async(mnemonicString: string, passphrase: string): Promise<string> => {
+    try {
+      const mnemonic = await new Mnemonic().fromString(mnemonicString);
+      const descriptorSecretKey = await new DescriptorSecretKey().create(
+        Network.Testnet,
+        mnemonic,
+        passphrase
+      );
+      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
+      const descriptorString = await descriptor.asString();
+      // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
+      // capture 0=fingerprint, capture 1=derivation path
+      const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
+      if (match) {
+        return match[1];
+      } else {
+        return '';
+      }
+    } catch (err) {
+      console.error('Loading wallet for fingerprint lookup failed');
+      console.error(err);
+      return '';
+    }  
+  };
+
   const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string): Promise<Wallet> => {
     let externalDescriptor: Descriptor;
     let internalDescriptor: Descriptor;
@@ -95,12 +120,14 @@ export const AccountsProvider = ({ children }) => {
 
   const storeAccount = async (account: Account) => {
     await storage.storeAccount(account);
+    setCurrentAccount(account);
 
     setAccounts(await storage.getAccountsFromStorage());
   };
 
   const updateAccount = async (account: Account) => {
     await storage.updateAccount(account);
+    setCurrentAccount(account);
 
     setAccounts(await storage.getAccountsFromStorage());
   };
@@ -127,7 +154,7 @@ export const AccountsProvider = ({ children }) => {
     return snapshot;
   };
 
-  const storeAccountSnapshot = async(snapshot: AccountSnapshot) => {
+  const storeAccountWithSnapshot = async(snapshot: AccountSnapshot) => {
     if (hasAccountWithName(account.name) &&
       hasAccountWithDescriptor(
         account.external_descriptor as string,
@@ -152,9 +179,10 @@ export const AccountsProvider = ({ children }) => {
     accounts,
     setCurrentAccount,
     hasAccountWithName,
+    getFingerprint,
     loadWalletFromMnemonic,
     getAccountSnapshot,
-    storeAccountSnapshot
+    storeAccountWithSnapshot
   };
 
   return (
