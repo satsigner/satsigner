@@ -15,6 +15,8 @@ import { Typography, Layout, Colors } from '../../styles';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
+import numFormat from '../../utils/numFormat';
+
 interface Props {
   onClose: () => void
 }
@@ -79,7 +81,7 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
                     </View>
                     <View style={styles.columnSection}>
                       <AppText style={styles.label}>Fingerprint</AppText>
-                      <AppText style={{...styles.valueSmall, marginTop: 2 }}>73c5da0a</AppText>
+                      <AppText style={{...styles.valueSmall, marginTop: 2 }}>{currentAccount?.fingerprint}</AppText>
                     </View>
                 </View>
               </View>
@@ -89,16 +91,16 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
               <View style={{...styles.columnSection, height: 152, marginTop: 10 }}>
                 <View style={styles.columnSection}>
                   <AppText style={styles.label}>Searching derivation path</AppText>
-                  <AppText style={{...styles.valueLarge, marginTop: 8, letterSpacing: 5 }}>m/49'/0'</AppText>
+                  <AppText style={{...styles.valueLarge, marginTop: 8, letterSpacing: 5 }}>{currentAccount?.derivationPath}</AppText>
                 </View>
                 <View style={{...styles.rowSection, alignItems: 'flex-start', marginTop: 30 }}>
                     <View style={styles.columnSection}>
                       <AppText style={styles.label}>Found UTXOs</AppText>
-                      <AppText style={{...styles.valueLarge, marginTop: 8}}>21</AppText>
+                      <AppText style={{...styles.valueLarge, marginTop: 8}}>{numFormat(currentAccount?.snapshot?.numUtxos)}</AppText>
                     </View>
                     <View style={styles.columnSection}>
                       <AppText style={styles.label}>Total spendable sats</AppText>
-                      <AppText style={{...styles.valueLarge, marginTop: 8}}>159,321</AppText>
+                      <AppText style={{...styles.valueLarge, marginTop: 8}}>{numFormat(currentAccount?.snapshot?.balanceSats)}</AppText>
                     </View>
                 </View>
               </View>

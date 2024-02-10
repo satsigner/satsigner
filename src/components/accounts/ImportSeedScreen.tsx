@@ -8,6 +8,8 @@ import {
   Modal
 } from 'react-native';
 
+import { Wallet } from 'bdk-rn';
+
 import { NavigationProp } from '@react-navigation/native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 
@@ -37,12 +39,12 @@ interface State {
   seedWords: SeedWordInfo[];
   passphrase: string;
   checksumValid: boolean;
-  loading: boolean;
   showWordSelector: boolean;
   currentWordText: string;
   currentWordIndex: number;
   accountAddedModalVisible: boolean;
   fingerprint: string;
+  wallet: Wallet;
 }
 
 export default class ImportSeedScreen extends PureComponent<Props, State> {
@@ -60,12 +62,12 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
       seedWords: [],
       passphrase: '',
       checksumValid: false,
-      loading: false,
       showWordSelector: false,
       currentWordText: '',
       currentWordIndex: 0,
       accountAddedModalVisible: false,
-      fingerprint: ''
+      fingerprint: '',
+      wallet: null
     };
   }
 
@@ -198,16 +200,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
       fingerprint = await accountsContext.getFingerprint(seedWordsString, passphrase);
     }
 
-    console.log('fingerprint', fingerprint);
     this.setState({passphrase, fingerprint});
   }
 
   wordsToString(seedWords: SeedWordInfo[]): string {
     return seedWords.map(seedWord => seedWord.word).join(' ');
-  }
-
-  setLoading(loading: boolean) {
-    this.setState({loading});
   }
 
   // TEMP hardcode
@@ -216,11 +213,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { checksumValid, showWordSelector, currentWordText, accountAddedModalVisible, fingerprint } = this.state;
+    const { checksumValid, showWordSelector, currentWordText, accountAddedModalVisible, fingerprint, wallet } = this.state;
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountWithSnapshot }) => (
+        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountWithSnapshot, syncWallet }) => (
           <>
           <WordSelector
             show={showWordSelector}
@@ -276,55 +273,45 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
             </View>
             <View>
               <Button
-                title="Show Account Added Dialog"
-                style={styles.submitEnabled}
-                onPress={async() => {
-                  this.setState({accountAddedModalVisible: true})
-                }}
-              ></Button>
-            </View>
-            <View>
-              <Button
                 title="Save Secret Seed"
                 style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
                 disabled={! checksumValid}
                 onPress={async() => {
                   try {
-                    this.setLoading(true);
-
                     const mnemonic = this.wordsToString(this.state.seedWords);
                     console.log('mnemonic', mnemonic);
               
                     const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
               
-                    const snapshot = await getAccountSnapshot(wallet);
-                    await storeAccountWithSnapshot(snapshot);
+                    this.setState({
+                      accountAddedModalVisible: true,
+                      wallet
+                    });
 
-                    this.props.navigation.navigate('AccountList');
                   } catch (err) {
                     console.error(err);
                     Alert.alert('Error', '' + err, [{text: 'OK'}]);
-                  } finally {
-                    this.setLoading(false);
                   }
                 }}
               ></Button>
             </View>
             
-            {this.state.loading &&
-            <ActivityIndicator
-              size="large"
-              style={styles.loading}>
-            </ActivityIndicator>
-            }
-
             <Modal
               visible={accountAddedModalVisible}
               transparent={true}
               animationType='fade'
+              onShow={async() => {
+                await syncWallet(wallet);
+
+                const snapshot = await getAccountSnapshot(wallet);
+                await storeAccountWithSnapshot(snapshot);
+              }}
             >
               <AccountAddedModal
-                onClose={() => this.setState({ accountAddedModalVisible: false })}
+                onClose={() => {
+                  this.setState({ accountAddedModalVisible: false });
+                  this.props.navigation.navigate('AccountList');
+                }}
               ></AccountAddedModal>
             </Modal>
           </KeyboardAwareScrollView>
@@ -433,16 +420,5 @@ const styles = StyleSheet.create({
   submitDisabled: {
     backgroundColor: Colors.disabledActionBackground,
     color: Colors.disabledActionText
-  },
-  loading: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    opacity: 0.5,
-    backgroundColor: 'black',
-    justifyContent: 'center',
-    alignItems: 'center'
   }
 });

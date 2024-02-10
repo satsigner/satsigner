@@ -62,20 +62,32 @@ export const AccountsProvider = ({ children }) => {
       );
       const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
       const descriptorString = await descriptor.asString();
-      // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
-      // capture 0=fingerprint, capture 1=derivation path
-      const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
-      if (match) {
-        return match[1];
-      } else {
-        return '';
-      }
+      
+      const { fingerprint } = parseDescriptor(descriptorString);
+      return fingerprint;
     } catch (err) {
       console.error('Loading wallet for fingerprint lookup failed');
       console.error(err);
       return '';
     }  
   };
+
+  const parseDescriptor = (descriptor: string): {fingerprint: string, derivationPath: string} => {
+      // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
+      // capture 0=fingerprint, capture 1=derivation path
+      const match = descriptor.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
+      if (match) {
+        return {
+          fingerprint: match[1],
+          derivationPath: 'm' + match[2]
+        };
+      } else {
+        return {
+          fingerprint: '',
+          derivationPath: ''  
+        };
+      }
+  }
 
   const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string): Promise<Wallet> => {
     let externalDescriptor: Descriptor;
@@ -98,13 +110,18 @@ export const AccountsProvider = ({ children }) => {
     account.external_descriptor = await externalDescriptor.asString();
     account.internal_descriptor = await internalDescriptor.asString();
 
+    const { fingerprint, derivationPath } = parseDescriptor(account.external_descriptor);
+    account.fingerprint = fingerprint;
+    account.derivationPath = derivationPath;
+
+    setAccount(account);
+
     if (hasAccountWithName(account.name)) {
       throw new Error('Account with that name already exists');
     } else if (hasAccountWithDescriptor(account.external_descriptor as string, account.internal_descriptor as string)) {
       throw new Error('Account with that mnemonic already exists');
     }
 
-    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
     const dbConfig = await new DatabaseConfig().memory();
 
     const wallet = await new Wallet().create(
@@ -113,9 +130,13 @@ export const AccountsProvider = ({ children }) => {
       Network.Testnet,
       dbConfig
     );
-    await wallet.sync(blockchain);
 
     return wallet;
+  }
+
+  const syncWallet = async(wallet: Wallet): Promise<void> => {
+    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    await wallet.sync(blockchain);
   }
 
   const storeAccount = async (account: Account) => {
@@ -182,7 +203,8 @@ export const AccountsProvider = ({ children }) => {
     getFingerprint,
     loadWalletFromMnemonic,
     getAccountSnapshot,
-    storeAccountWithSnapshot
+    storeAccountWithSnapshot,
+    syncWallet
   };
 
   return (
