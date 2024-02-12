@@ -9,7 +9,9 @@ export const AccountsContext = createContext({
   accounts: [],
   setCurrentAccount: (account: Account) => {},
   hasAccountWithName: (name: string) => {},
-  loadWalletFromMnemonic: async (mnemonic: string, passphrase: string) => {},
-  getAccountSnapshot: async (wallet: Wallet) => {},
-  storeAccountSnapshot: async (snapshot: AccountSnapshot) => {}
+  getFingerprint: async (mnemonic: string, passphrase: string) => {},
+  loadWalletFromMnemonic: async (mnemonic: string, passphrase: string) => new Wallet(),
+  getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
+  storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
+  syncWallet: async (wallet: Wallet) => {},
 });

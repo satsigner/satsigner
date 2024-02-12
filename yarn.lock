@@ -1697,11 +1697,6 @@
     prompts "^2.4.0"
     semver "^7.5.2"
 
-"@react-native-community/hooks@^3.0.0":
-  version "3.0.0"
-  resolved "https://npm.artofcontext.com/@react-native-community%2fhooks/-/hooks-3.0.0.tgz#af5f2ca32eea59b792ce9e3d9a4cf0354f9b195f"
-  integrity sha512-g2OyxXHfwIytXUJitBR6Z/ISoOfp0WKx5FOv+NqJ/CrWjRDcTw6zXE5I1C9axfuh30kJqzWchVfCDrkzZYTxqg==
-
 "@react-native/assets-registry@^0.72.0":
   version "0.72.0"
   resolved "https://npm.artofcontext.com/@react-native%2fassets-registry/-/assets-registry-0.72.0.tgz"
