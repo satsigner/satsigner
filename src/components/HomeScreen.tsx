@@ -3,18 +3,21 @@ import {
   View,
   Text,
   StyleSheet,
+  Easing,
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout } from '../styles';
 
 import Button from './shared/Button';
+import AnimatedNumber from './shared/AnimatedNumber';
 
 interface Props {
   navigation: NavigationProp<any>
 }
 
 interface State {
+  num: number;
 }
 
 export default class HomeScreen extends React.PureComponent<Props, State> {
@@ -22,10 +25,19 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
   constructor(props: any) {
     super(props);
 
-    this.state = {};
+    this.state = {
+      num: 0
+    };
   }
 
+  increase = () => {
+    this.setState({num: this.state.num + 9});
+  };
+
   render() {
+
+    const { num } = this.state;
+
     return (
       <View style={styles.container}>
         <View>
@@ -35,6 +47,16 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
         </View>
         <View style={styles.actions}>
           <Button title='Account List' onPress={() => this.props.navigation.navigate('AccountList')}></Button>
+        </View>
+        <View>
+        <AnimatedNumber
+          animateToNumber={num}
+          fontStyle={{fontSize: 50, fontWeight: 'bold', color: 'white'}}
+          animationDuration={500}
+          includeComma={false}
+          //=easing={Easing.inOut}
+        />
+        <Button title="increase" onPress={this.increase} />
         </View>
       </View>
     );
