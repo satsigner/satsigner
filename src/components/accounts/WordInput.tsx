@@ -13,7 +13,7 @@ interface Props {
   onFocusWord: (word: string, index: number) => void;
 };
 
-export function Word({
+export function WordInput({
   style,
   seedWord,
   num,

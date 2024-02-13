@@ -20,6 +20,8 @@ import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
 import { Account, AccountSnapshot } from '../../models/Account';
 
+import satsToUsd from '../shared/satsToUsd';
+
 export const AccountsProvider = ({ children }) => {
 
   const blockchainElectrumConfig: BlockchainElectrumConfig = {
@@ -166,9 +168,11 @@ export const AccountsProvider = ({ children }) => {
 
     const transactions = await wallet.listTransactions(false);
     snapshot.numTransactions = transactions.length;
+    console.log('transactions', JSON.stringify(transactions));
 
     const utxos = await wallet.listUnspent();
     snapshot.numUtxos = utxos.length;
+    console.log('utxos', JSON.stringify(utxos));
 
     snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
 
@@ -190,11 +194,6 @@ export const AccountsProvider = ({ children }) => {
     }
   };
 
-  // TEMP hardcode
-  const satsToUsd = (sats: number): number => {
-    return sats / 100_000_000 * 45_000;
-  };
-  
   const value = {
     currentAccount: account,
     accounts,

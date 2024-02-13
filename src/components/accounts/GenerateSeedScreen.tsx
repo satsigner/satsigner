@@ -4,15 +4,18 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  ActivityIndicator
+  Modal
 } from 'react-native';
 
-import { NavigationProp } from '@react-navigation/native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { Wallet } from 'bdk-rn';
 
-import { Typography, Layout, Colors } from '../../styles';
+import { NavigationProp } from '@react-navigation/native';
+
+import * as bip39 from 'bip39';
+
 import navUtils from '../../utils/NavUtils';
 
+import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingViewWithHeaderOffset';
 import { Account } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
@@ -20,7 +23,10 @@ import { AppText } from '../shared/AppText';
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordInfo } from './SeedWordInfo';
-import { Word } from './Word';
+import { WordInput } from './WordInput';
+import AccountAddedModal from './AccountAddedModal';
+
+import { SeedScreenStyles } from './SeedScreenStyles';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -29,7 +35,10 @@ interface Props {
 interface State {
   seedWords: SeedWordInfo[];
   passphrase: string;
-  loading: boolean;
+  checksumValid: boolean;
+  accountAddedModalVisible: boolean;
+  fingerprint: string;
+  wallet: Wallet;
 }
 
 const wordRowHeight = 49.25;
@@ -43,76 +52,88 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
     this.state = {
       seedWords: [],
       passphrase: '',
-      loading: false
+      checksumValid: false,
+      accountAddedModalVisible: false,
+      fingerprint: '',
+      wallet: null
     };
   }
 
   componentDidMount() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
     
-    // this.initSeedWords();
+    this.initSeedWords();
   }
 
   componentDidUpdate() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
-  // initSeedWords() {
-  //   const seedWords: SeedWordInfo[] = [];
-  //   for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
-  //     seedWords.push({
-  //       word: '',
-  //       index: i,
-  //       valid: false,
-  //       dirty: false
-  //     });
-  //   }
-  //   this.setState({ seedWords });
-  // }
-
-  // getWordComponents(account: Account) {
-  //   const numWords = account?.seedWords || 24;
-  //   const words = [];
-  //   for (let i = 0; i < numWords; i++) {
-  //     words.push(
-  //       <Word
-  //         style={styles.word}
-  //         num={i+1}
-  //         key={i}
-  //         seedWord={this.state.seedWords[i]}
-  //         onChangeWord={this.updateWord}
-  //         onEndEditingWord={this.updateWordDoneEditing}
-  //         onFocusWord={this.focusWord}
-  //       ></Word>
-  //     );
-  //   }
-  //   return words;
-  // }
-
-  setPassphrase(passphrase: string) {
-    this.setState({passphrase});
+  initSeedWords() {
+    const seedWords: SeedWordInfo[] = [];
+    for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
+      seedWords.push({
+        word: '',
+        index: i,
+        valid: false,
+        dirty: false
+      });
+    }
+    this.setState({ seedWords });
   }
 
-  setLoading(loading: boolean) {
-    this.setState({loading});
+  getWordComponents(account: Account) {
+    const numWords = account?.seedWords || 24;
+    const words = [];
+    for (let i = 0; i < numWords; i++) {
+      words.push(
+        <WordInput
+          style={styles.word}
+          num={i+1}
+          key={i}
+          seedWord={this.state.seedWords[i]}
+          onChangeWord={this.updateWord}
+          onEndEditingWord={this.updateWordDoneEditing}
+          onFocusWord={this.focusWord}
+        ></WordInput>
+      );
+    }
+    return words;
+  }
+
+  updatePassphrase = async (passphrase: string) => {
+    const seedWords = [...this.state.seedWords];
+    let fingerprint = '';
+
+    const seedWordsString = this.wordsToString(seedWords);
+    const checksumValid = bip39.validateMnemonic(seedWordsString);
+    if (checksumValid) {
+      const accountsContext = this.context as any;
+      fingerprint = await accountsContext.getFingerprint(seedWordsString, passphrase);
+    }
+
+    this.setState({passphrase, fingerprint});
+  }
+
+  wordsToString(seedWords: SeedWordInfo[]): string {
+    return seedWords.map(seedWord => seedWord.word).join(' ');
   }
     
   render() {
-    // const { } = this.state;
+    const { checksumValid, accountAddedModalVisible, fingerprint, wallet } = this.state;
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountSnapshot }) => (
+        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountWithSnapshot, syncWallet }) => (
           <>
-          <KeyboardAwareScrollView
+          <KeyboardAvoidingViewWithHeaderOffset
             style={styles.container}
-            enableOnAndroid={true}
           >
             <View>
               <AppText style={styles.label}>
                 Mnemonic Seed Words (BIP39)
               </AppText>
-              {/* <View style={[styles.words,
+              <View style={[styles.words,
                 currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
                 currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
                 currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
@@ -120,58 +141,80 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                 currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
               ]}>
                 {this.getWordComponents(currentAccount)}
-              </View> */}
+              </View>
             </View>
             <View style={styles.passphrase}>
               <AppText style={styles.label}>
-                Additional personal secret (optional)
+                Passphrase (optional)
               </AppText>
               <TextInput
                 style={styles.passphraseText}
-                onChangeText={(passphrase) => this.setPassphrase(passphrase)}
+                onChangeText={this.updatePassphrase}
               >
               </TextInput>
-              {/* <View style={styles.passphraseStatus}>
-                <View style={styles.fingerprint}>
-                  <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
-                  <AppText style={styles.fingerprintValue}>af4261ff</AppText>
+              <View style={styles.passphraseStatus}>
+                <View style={styles.checksum}>
+                  <View style={[
+                      styles.checksumStatus,
+                      this.state.checksumValid ?
+                        styles.checksumStatusValid :
+                        styles.checksumStatusInvalid
+                    ]}>
+                  </View>
+                  <AppText style={styles.checksumStatusLabel}>{ checksumValid ? <>valid</> : <>invalid</> } checksum</AppText>
                 </View>
-              </View> */}
+                {fingerprint && <View style={styles.fingerprint}>
+                  <AppText style={styles.fingerprintLabel}>Fingerprint</AppText>
+                  <AppText style={styles.fingerprintValue}>{ fingerprint }</AppText>
+                </View>}
+              </View>
             </View>
             <View>
               <Button
                 title="Save Secret Seed"
-                style={styles.submit }
+                style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
+                disabled={! checksumValid}
                 onPress={async() => {
                   try {
-                    this.setLoading(true);
-
-                    // const mnemonic = this.wordsToString(this.state.seedWords);
-                    // console.log('mnemonic', mnemonic);
+                    const mnemonic = this.wordsToString(this.state.seedWords);
+                    console.log('mnemonic', mnemonic);
               
-                    // const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
+                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
               
-                    // const snapshot = await getAccountSnapshot(wallet);
-                    // await storeAccountSnapshot(snapshot);
+                    this.setState({
+                      accountAddedModalVisible: true,
+                      wallet
+                    });
 
-                    this.props.navigation.navigate('AccountList');
                   } catch (err) {
                     console.error(err);
                     Alert.alert('Error', '' + err, [{text: 'OK'}]);
-                  } finally {
-                    this.setLoading(false);
                   }
                 }}
               ></Button>
             </View>
             
-            {this.state.loading &&
-            <ActivityIndicator
-              size="large"
-              style={styles.loading}>
-            </ActivityIndicator>
-            }
-          </KeyboardAwareScrollView>
+            <Modal
+              visible={accountAddedModalVisible}
+              transparent={true}
+              animationType='fade'
+              onShow={async() => {
+                console.log('Syncing wallet...');
+                await syncWallet(wallet);
+                console.log('Completed wallet sync.');
+
+                const snapshot = await getAccountSnapshot(wallet);
+                await storeAccountWithSnapshot(snapshot);
+              }}
+            >
+              <AccountAddedModal
+                onClose={() => {
+                  this.setState({ accountAddedModalVisible: false });
+                  this.props.navigation.navigate('AccountList');
+                }}
+              ></AccountAddedModal>
+            </Modal>
+            </KeyboardAvoidingViewWithHeaderOffset>
           </>
         )}
       </AccountsContext.Consumer>
@@ -180,89 +223,6 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
 
 }
 
-const styles = StyleSheet.create({  
-  container: {
-    ...Layout.container.base,
-    ...Layout.container.horizontalPadded,
-    ...Layout.container.topPadded,
-  },
-  label: {
-    alignSelf: 'center',
-    marginBottom: 7
-  },
-  words: {
-    flexDirection: 'column',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-  },
-  words12: {
-    height: 4 * wordRowHeight
-  },
-  words15: {
-    height: 5 * wordRowHeight
-  },
-  words18: {
-    height: 6 * wordRowHeight
-  },
-  words21: {
-    height: 7 * wordRowHeight
-  },
-  words24: {
-    height: 8 * wordRowHeight
-  },
-  word: {
-    height: 44,
-    width: '32%',
-    justifyContent: 'flex-start',
-    alignContent: 'center',
-  },
-  passphrase: {
-    marginTop: 22
-  },
-  passphraseText: {
-    ...Typography.textHighlight.x20,
-    ...Typography.fontFamily.sfProTextLight,
-    backgroundColor: Colors.inputBackground,
-    textAlign: 'center',
-    height: 60,
-    padding: 0,
-    borderRadius: 3,
-  },
-  passphraseStatus: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10
-  },
-  checksum: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  fingerprint: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  fingerprintLabel: {
-    ...Typography.textMuted.x5,
-    marginRight: 5
-  },
-  fingerprintValue: {
-    ...Typography.textNormal.x5
-  },
-  submit: {
-    backgroundColor: Colors.defaultActionBackground,
-    color: Colors.defaultActionText,
-  },
-  loading: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    opacity: 0.5,
-    backgroundColor: 'black',
-    justifyContent: 'center',
-    alignItems: 'center'
-  }
-});
+const styles = StyleSheet.create({
+  ...SeedScreenStyles
+} as any);
