@@ -7,6 +7,8 @@ export class Account {
   scriptVersion?: ScriptVersion;
   external_descriptor?: string;
   internal_descriptor?: string;
+  fingerprint?: string;
+  derivationPath?: string;
   snapshot: AccountSnapshot;
 }
 
