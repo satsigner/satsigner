@@ -56,7 +56,7 @@ export const AccountsProvider = ({ children }) => {
     setAccount(account);
   };
 
-  const getFingerprint = async(mnemonicString: string, passphrase: string): Promise<string> => {
+  const getFingerprint = async(mnemonicString: string, passphrase = ''): Promise<string> => {
     try {
       const mnemonic = await new Mnemonic().fromString(mnemonicString);
       const descriptorSecretKey = await new DescriptorSecretKey().create(
@@ -196,10 +196,10 @@ export const AccountsProvider = ({ children }) => {
     }
   };
 
-  const generateMnemonic = async(count: SeedWords): Promise<string[]> => {
+  const generateMnemonic = async(count: SeedWords): Promise<string> => {
     const mnemonic = await new Mnemonic().create(count as unknown as WordCount);
     console.log('mnemonic', mnemonic);
-    return mnemonic.asString().split(' ');
+    return mnemonic.asString();
   }
 
   const value = {

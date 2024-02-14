@@ -6,8 +6,6 @@ import {
   Alert
 } from 'react-native';
 
-import { Wallet, Mnemonic } from 'bdk-rn';
-
 import { NavigationProp } from '@react-navigation/native';
 
 import * as bip39 from 'bip39';
@@ -65,17 +63,21 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
 
   async initSeedWords() {
     const mnemonic = await this.context.generateMnemonic(this.context.currentAccount.seedWords);
+    const words = mnemonic.split(' ');
 
     const seedWords: SeedWordInfo[] = [];
-    for (let i = 0; i < mnemonic.length; i++) {
+    for (let i = 0; i < words.length; i++) {
       seedWords.push({
-        word: mnemonic[i],
+        word: words[i],
         index: i,
         valid: true,
         dirty: false
       });
     }
-    this.setState({ seedWords });
+
+    const fingerprint = await this.context.getFingerprint(mnemonic);
+
+    this.setState({ seedWords, fingerprint });
   }
 
   getWordComponents(account: Account) {

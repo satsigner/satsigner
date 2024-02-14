@@ -55,7 +55,7 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
     return accounts.map((account, i) => 
       <View style={styles.account} key={i}>
         <View style={styles.info}>
-          <View><AppText style={styles.fingerprint}>73c5da0a</AppText></View>
+          <View><AppText style={styles.fingerprint}>{account.fingerprint}</AppText></View>
           <View><AppText style={styles.accountName}>{account.name}</AppText></View>
           <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
           <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
