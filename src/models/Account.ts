@@ -13,10 +13,10 @@ export class Account {
 }
 
 export class AccountSnapshot {
-  balanceSats: number;
-  balanceUsd: number;
-  numAddresses: number;
-  numTransactions: number;
-  numUtxos: number;
-  satsInMempool: number;
+  balanceSats = 0;
+  balanceUsd = 0;
+  numAddresses = 0;
+  numTransactions = 0;
+  numUtxos = 0;
+  satsInMempool = 0;
 }

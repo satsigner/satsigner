@@ -3,6 +3,7 @@ import { createContext } from 'react';
 import { Wallet } from 'bdk-rn';
 
 import { Account, AccountSnapshot } from '../../models/Account';
+import { SeedWords } from '../../enums/SeedWords';
 
 export const AccountsContext = createContext({
   currentAccount: new Account(),
@@ -10,6 +11,7 @@ export const AccountsContext = createContext({
   setCurrentAccount: (account: Account) => {},
   hasAccountWithName: (name: string) => {},
   getFingerprint: async (mnemonic: string, passphrase: string) => {},
+  generateMnemonic: async(count: SeedWords) => [],
   loadWalletFromMnemonic: async (mnemonic: string, passphrase: string) => new Wallet(),
   getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
   storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},

@@ -3,11 +3,10 @@ import {
   View,
   TextInput,
   StyleSheet,
-  Alert,
-  Modal
+  Alert
 } from 'react-native';
 
-import { Wallet } from 'bdk-rn';
+import { Wallet, Mnemonic } from 'bdk-rn';
 
 import { NavigationProp } from '@react-navigation/native';
 
@@ -16,15 +15,14 @@ import * as bip39 from 'bip39';
 import navUtils from '../../utils/NavUtils';
 
 import KeyboardAvoidingViewWithHeaderOffset from '../shared/KeyboardAvoidingViewWithHeaderOffset';
-import { Account } from '../../models/Account';
+import { Account, AccountSnapshot } from '../../models/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordInfo } from './SeedWordInfo';
-import { WordInput } from './WordInput';
-import AccountAddedModal from './AccountAddedModal';
+import { WordLabel } from './WordLabel';
 
 import { SeedScreenStyles } from './SeedScreenStyles';
 
@@ -36,9 +34,7 @@ interface State {
   seedWords: SeedWordInfo[];
   passphrase: string;
   checksumValid: boolean;
-  accountAddedModalVisible: boolean;
   fingerprint: string;
-  wallet: Wallet;
 }
 
 const wordRowHeight = 49.25;
@@ -52,30 +48,30 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
     this.state = {
       seedWords: [],
       passphrase: '',
-      checksumValid: false,
-      accountAddedModalVisible: false,
-      fingerprint: '',
-      wallet: null
+      checksumValid: true,
+      fingerprint: ''
     };
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
     
-    this.initSeedWords();
+    await this.initSeedWords();
   }
 
   componentDidUpdate() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
   }
 
-  initSeedWords() {
+  async initSeedWords() {
+    const mnemonic = await this.context.generateMnemonic(this.context.currentAccount.seedWords);
+
     const seedWords: SeedWordInfo[] = [];
-    for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
+    for (let i = 0; i < mnemonic.length; i++) {
       seedWords.push({
-        word: '',
+        word: mnemonic[i],
         index: i,
-        valid: false,
+        valid: true,
         dirty: false
       });
     }
@@ -87,15 +83,12 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
     const words = [];
     for (let i = 0; i < numWords; i++) {
       words.push(
-        <WordInput
+        <WordLabel
           style={styles.word}
           num={i+1}
           key={i}
           seedWord={this.state.seedWords[i]}
-          onChangeWord={this.updateWord}
-          onEndEditingWord={this.updateWordDoneEditing}
-          onFocusWord={this.focusWord}
-        ></WordInput>
+        ></WordLabel>
       );
     }
     return words;
@@ -120,11 +113,11 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { checksumValid, accountAddedModalVisible, fingerprint, wallet } = this.state;
+    const { checksumValid, fingerprint } = this.state;
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, loadWalletFromMnemonic, getAccountSnapshot, storeAccountWithSnapshot, syncWallet }) => (
+        {({currentAccount, loadWalletFromMnemonic, storeAccountWithSnapshot }) => (
           <>
           <KeyboardAvoidingViewWithHeaderOffset
             style={styles.container}
@@ -180,12 +173,11 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                     console.log('mnemonic', mnemonic);
               
                     const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
-              
-                    this.setState({
-                      accountAddedModalVisible: true,
-                      wallet
-                    });
+  
+                    await storeAccountWithSnapshot(new AccountSnapshot());
 
+                    this.props.navigation.navigate('AccountList');
+  
                   } catch (err) {
                     console.error(err);
                     Alert.alert('Error', '' + err, [{text: 'OK'}]);
@@ -194,26 +186,6 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
               ></Button>
             </View>
             
-            <Modal
-              visible={accountAddedModalVisible}
-              transparent={true}
-              animationType='fade'
-              onShow={async() => {
-                console.log('Syncing wallet...');
-                await syncWallet(wallet);
-                console.log('Completed wallet sync.');
-
-                const snapshot = await getAccountSnapshot(wallet);
-                await storeAccountWithSnapshot(snapshot);
-              }}
-            >
-              <AccountAddedModal
-                onClose={() => {
-                  this.setState({ accountAddedModalVisible: false });
-                  this.props.navigation.navigate('AccountList');
-                }}
-              ></AccountAddedModal>
-            </Modal>
             </KeyboardAvoidingViewWithHeaderOffset>
           </>
         )}

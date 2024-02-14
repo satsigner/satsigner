@@ -13,7 +13,8 @@ import {
   Network,
   KeychainKind,
   BlockchainElectrumConfig,
-  AddressIndex
+  AddressIndex,
+  WordCount
 } from 'bdk-rn/lib/lib/enums';
 
 import { Storage } from '../shared/storage';
@@ -21,6 +22,7 @@ import { AccountsContext } from "./AccountsContext";
 import { Account, AccountSnapshot } from '../../models/Account';
 
 import satsToUsd from '../shared/satsToUsd';
+import { SeedWords } from '../../enums/SeedWords';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -194,12 +196,19 @@ export const AccountsProvider = ({ children }) => {
     }
   };
 
+  const generateMnemonic = async(count: SeedWords): Promise<string[]> => {
+    const mnemonic = await new Mnemonic().create(count as unknown as WordCount);
+    console.log('mnemonic', mnemonic);
+    return mnemonic.asString().split(' ');
+  }
+
   const value = {
     currentAccount: account,
     accounts,
     setCurrentAccount,
     hasAccountWithName,
     getFingerprint,
+    generateMnemonic,
     loadWalletFromMnemonic,
     getAccountSnapshot,
     storeAccountWithSnapshot,
