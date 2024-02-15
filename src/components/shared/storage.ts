@@ -15,7 +15,7 @@ export class Storage {
 
     const loaded = await this.walletStore.loadFromDisk();
     if (! loaded) {
-      console.error('Error loading accounts from wallet store');
+      console.log('No wallets found in wallet store.');
       return [];
     }
   

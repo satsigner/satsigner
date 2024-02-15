@@ -47,7 +47,7 @@ class WalletStore {
   async loadFromDisk() {
     try {
       let data = await this.getItem(WALLETS);
-      if (data !== null) {
+      if (data !== null && data !== undefined) {
         console.log('data', data);
         const wallets: Wallet[] = JSON.parse(data);
         if (!wallets) return false;
