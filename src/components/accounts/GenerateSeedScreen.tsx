@@ -176,6 +176,8 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
               
                     const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
   
+                    // this is a new random seed, assuming it has never been used
+                    // skip sync and store empty snapshot
                     await storeAccountWithSnapshot(new AccountSnapshot());
 
                     this.props.navigation.navigate('AccountList');

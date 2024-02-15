@@ -1,4 +1,4 @@
-import { View, TextInput, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { AppText } from '../shared/AppText';
 
 import { Typography, Colors } from '../../styles';
@@ -16,17 +16,22 @@ export function WordLabel({
   num,
 }: Props) {
   return (
-    <View style={style}>
-      <TextInput
+    <View style={[style, styles.container]}>
+      <AppText
         style={styles.wordText}
-        value={seedWord?.word}
-      ></TextInput>
+      >{seedWord?.word}</AppText>
       <AppText style={styles.wordNumLabel}>{num}</AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   wordNumLabel: {
     position: 'absolute',
     top: 5,
@@ -36,11 +41,7 @@ const styles = StyleSheet.create({
   },
   wordText: {
     ...Typography.textHighlight.x9,
-    backgroundColor: Colors.inputBackground,
     fontWeight: '300',
-    textAlign: 'center',
-    borderRadius: 3,
     letterSpacing: 0.6,
-    flex: 1
   }
 });
