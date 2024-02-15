@@ -13,12 +13,16 @@ import {
   Network,
   KeychainKind,
   BlockchainElectrumConfig,
-  AddressIndex
+  AddressIndex,
+  WordCount
 } from 'bdk-rn/lib/lib/enums';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
 import { Account, AccountSnapshot } from '../../models/Account';
+
+import satsToUsd from '../shared/satsToUsd';
+import { SeedWords } from '../../enums/SeedWords';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -52,7 +56,7 @@ export const AccountsProvider = ({ children }) => {
     setAccount(account);
   };
 
-  const getFingerprint = async(mnemonicString: string, passphrase: string): Promise<string> => {
+  const getFingerprint = async(mnemonicString: string, passphrase = ''): Promise<string> => {
     try {
       const mnemonic = await new Mnemonic().fromString(mnemonicString);
       const descriptorSecretKey = await new DescriptorSecretKey().create(
@@ -104,7 +108,7 @@ export const AccountsProvider = ({ children }) => {
       internalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.Internal, Network.Testnet);  
     } catch (err) {
       console.error(err);
-      throw new Error('Loading wallet failed');
+      throw new Error('Loading wallet failed.  [bdk-rn]: ' + err);
     }
 
     account.external_descriptor = await externalDescriptor.asString();
@@ -166,9 +170,11 @@ export const AccountsProvider = ({ children }) => {
 
     const transactions = await wallet.listTransactions(false);
     snapshot.numTransactions = transactions.length;
+    console.log('transactions', JSON.stringify(transactions));
 
     const utxos = await wallet.listUnspent();
     snapshot.numUtxos = utxos.length;
+    console.log('utxos', JSON.stringify(utxos));
 
     snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
 
@@ -190,17 +196,19 @@ export const AccountsProvider = ({ children }) => {
     }
   };
 
-  // TEMP hardcode
-  const satsToUsd = (sats: number): number => {
-    return sats / 100_000_000 * 45_000;
-  };
-  
+  const generateMnemonic = async(count: SeedWords): Promise<string> => {
+    const mnemonic = await new Mnemonic().create(count as unknown as WordCount);
+    console.log('mnemonic', mnemonic);
+    return mnemonic.asString();
+  }
+
   const value = {
     currentAccount: account,
     accounts,
     setCurrentAccount,
     hasAccountWithName,
     getFingerprint,
+    generateMnemonic,
     loadWalletFromMnemonic,
     getAccountSnapshot,
     storeAccountWithSnapshot,

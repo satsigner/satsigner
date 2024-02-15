@@ -4,7 +4,6 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   Modal
 } from 'react-native';
 
@@ -15,7 +14,6 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 
 import * as bip39 from 'bip39';
 
-import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
 import { Account } from '../../models/Account';
@@ -27,9 +25,11 @@ import getWordList from '../shared/getWordList';
 import { AccountsContext } from './AccountsContext';
 import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordInfo } from './SeedWordInfo';
-import { Word } from './Word';
+import { WordInput } from './WordInput';
 import { WordSelector } from './WordSelector';
 import AccountAddedModal from './AccountAddedModal';
+
+import { SeedScreenStyles } from './SeedScreenStyles';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -47,13 +47,15 @@ interface State {
   wallet: Wallet;
 }
 
+const wordRowHeight = 49.25;
+const wordSelectorHeight = 60;
+
 export default class ImportSeedScreen extends PureComponent<Props, State> {
   static contextType = AccountsContext;
 
   wordList = getWordList();
 
   minLettersToShowSelector = 2;
-  wordSelectorHeight = 60;
 
   constructor(props: any) {
     super(props);
@@ -99,7 +101,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
     const words = [];
     for (let i = 0; i < numWords; i++) {
       words.push(
-        <Word
+        <WordInput
           style={styles.word}
           num={i+1}
           key={i}
@@ -107,7 +109,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
           onChangeWord={this.updateWord}
           onEndEditingWord={this.updateWordDoneEditing}
           onFocusWord={this.focusWord}
-        ></Word>
+        ></WordInput>
       );
     }
     return words;
@@ -206,11 +208,6 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   wordsToString(seedWords: SeedWordInfo[]): string {
     return seedWords.map(seedWord => seedWord.word).join(' ');
   }
-
-  // TEMP hardcode
-  satsToUsd(sats: number) {
-    return sats / 100_000_000 * 40_000;
-  }
     
   render() {
     const { checksumValid, showWordSelector, currentWordText, accountAddedModalVisible, fingerprint, wallet } = this.state;
@@ -229,7 +226,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
           <KeyboardAwareScrollView
             style={styles.container}
             enableOnAndroid={true}
-            extraScrollHeight={this.wordSelectorHeight}
+            extraScrollHeight={wordSelectorHeight}
           >
             <View>
               <AppText style={styles.label}>
@@ -247,7 +244,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
             </View>
             <View style={styles.passphrase}>
               <AppText style={styles.label}>
-                Additional personal secret (optional)
+                Passphrase (optional)
               </AppText>
               <TextInput
                 style={styles.passphraseText}
@@ -301,7 +298,9 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
               transparent={true}
               animationType='fade'
               onShow={async() => {
+                console.log('Syncing wallet...');
                 await syncWallet(wallet);
+                console.log('Completed wallet sync.');
 
                 const snapshot = await getAccountSnapshot(wallet);
                 await storeAccountWithSnapshot(snapshot);
@@ -323,102 +322,10 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
 
 }
 
-const wordRowHeight = 49.25;
+const styles = StyleSheet.create({
+  ...SeedScreenStyles,
 
-const styles = StyleSheet.create({  
-  container: {
-    ...Layout.container.base,
-    ...Layout.container.horizontalPadded,
-    ...Layout.container.topPadded,
-  },
   wordSelector: {
     height: 60
-  },
-  label: {
-    alignSelf: 'center',
-    marginBottom: 7
-  },
-  words: {
-    flexDirection: 'column',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignContent: 'space-between',
-  },
-  words12: {
-    height: 4 * wordRowHeight
-  },
-  words15: {
-    height: 5 * wordRowHeight
-  },
-  words18: {
-    height: 6 * wordRowHeight
-  },
-  words21: {
-    height: 7 * wordRowHeight
-  },
-  words24: {
-    height: 8 * wordRowHeight
-  },
-  word: {
-    height: 44,
-    width: '32%',
-    justifyContent: 'flex-start',
-    alignContent: 'center',
-  },
-  passphrase: {
-    marginTop: 22
-  },
-  passphraseText: {
-    ...Typography.textHighlight.x20,
-    ...Typography.fontFamily.sfProTextLight,
-    backgroundColor: Colors.inputBackground,
-    textAlign: 'center',
-    height: 60,
-    padding: 0,
-    borderRadius: 3,
-  },
-  passphraseStatus: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10
-  },
-  checksum: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  checksumStatus: {
-    width: 11,
-    height: 11,
-    borderRadius: 11 / 2,
-    marginRight: 5,
-    marginTop: 1
-  },
-  checksumStatusValid: {
-    backgroundColor: Colors.valid
-  },
-  checksumStatusInvalid: {
-    backgroundColor: Colors.invalid
-  },
-  checksumStatusLabel: {
-  },
-  fingerprint: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  fingerprintLabel: {
-    ...Typography.textMuted.x5,
-    marginRight: 5
-  },
-  fingerprintValue: {
-    ...Typography.textNormal.x5
-  },
-  submitEnabled: {
-    backgroundColor: Colors.defaultActionBackground,
-    color: Colors.defaultActionText,
-  },
-  submitDisabled: {
-    backgroundColor: Colors.disabledActionBackground,
-    color: Colors.disabledActionText
   }
-});
+} as any);

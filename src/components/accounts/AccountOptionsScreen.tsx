@@ -113,7 +113,14 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
             <View style={styles.actions}>
               <Button
                 title='Generate New Secret Seed'
-                onPress={() => this.notImplementedAlert()}
+                onPress={() => {
+                  setCurrentAccount({
+                    ...currentAccount,
+                    scriptVersion: this.state.scriptVersion,
+                    seedWords: this.state.seedWords
+                  });
+                  this.props.navigation.navigate('GenerateSeed');
+                }}
                 style={styles.defaultActionButton}
               ></Button>
               <Button

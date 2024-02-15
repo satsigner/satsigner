@@ -14,6 +14,7 @@ import HomeScreen from './components/HomeScreen';
 import CreateParentAccountScreen from './components/accounts/CreateParentAccountScreen';
 import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
+import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
 
 import NavUtils from './utils/NavUtils';
@@ -61,6 +62,11 @@ export default class App extends React.Component<{}, State> {
                 name="ImportSeed"
                 component={ImportSeedScreen}
                 options={NavUtils.getHeaderOptions('Import Existing Seed')}
+              />
+              <Stack.Screen
+                name="GenerateSeed"
+                component={GenerateSeedScreen}
+                options={NavUtils.getHeaderOptions('Generate New Secret Seed')}
               />
               <Stack.Screen
                 name="AccountList"
