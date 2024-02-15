@@ -80,14 +80,6 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
     });
   }
 
-  notImplementedAlert() {
-    Alert.alert(
-      'Coming Soon...',
-      'Not yet implemented.\n' +
-        `(Account Name = ${this.state.account.name})`,
-      [{text: 'OK'}]
-    );
-  }
 }
 
 const styles = StyleSheet.create({  

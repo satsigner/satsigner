@@ -108,7 +108,7 @@ export const AccountsProvider = ({ children }) => {
       internalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.Internal, Network.Testnet);  
     } catch (err) {
       console.error(err);
-      throw new Error('Loading wallet failed');
+      throw new Error('Loading wallet failed.  [bdk-rn]: ' + err);
     }
 
     account.external_descriptor = await externalDescriptor.asString();
