@@ -16,6 +16,7 @@ import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
 import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
+import InputBubbleViewScreen from './components/signing/InputBubbleViewScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -71,6 +72,11 @@ export default class App extends React.Component<{}, State> {
               <Stack.Screen
                 name="AccountList"
                 component={AccountListScreen}
+                options={NavUtils.getHeaderOptions(this.appTitle)}
+              />
+              <Stack.Screen
+                name="InputBubbleView"
+                component={InputBubbleViewScreen}
                 options={NavUtils.getHeaderOptions(this.appTitle)}
               />
             </Stack.Navigator>
