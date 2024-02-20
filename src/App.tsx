@@ -51,7 +51,7 @@ export default class App extends React.Component<{}, State> {
               <Stack.Screen
                 name="CreateParentAccount"
                 component={CreateParentAccountScreen}
-                options={NavUtils.getHeaderOptions('Create New Parent Account')}
+                options={NavUtils.getHeaderOptions('Add Master Key')}
               />
               <Stack.Screen
                 name="AccountOptions"
