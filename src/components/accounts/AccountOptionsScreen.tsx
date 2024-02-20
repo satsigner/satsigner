@@ -2,13 +2,14 @@ import React from 'react';
 import {
   View,
   StyleSheet,
-  Alert,
   Modal
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
-import { Typography, Layout, Colors } from '../../styles';
+import { Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
+
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
@@ -85,7 +86,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 <SelectButton
                   style={styles.disabledSelectButton}
                   title="Single Signature"
-                  onPress={() => this.notImplementedAlert()}
+                  onPress={notImplementedAlert}
                 >
                 </SelectButton>
               </View>
@@ -192,13 +193,6 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     }
   }
 
-  notImplementedAlert() {
-    Alert.alert(
-      'Coming Soon...',
-      'Not yet implemented.',
-      [{text: 'OK'}]
-    );
-  }
 }
 
 const styles = StyleSheet.create({  
