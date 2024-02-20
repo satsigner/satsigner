@@ -24,6 +24,7 @@ import { AccountsContext } from './AccountsContext';
 import SeedWordsModal from './SeedWordsModal';
 import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordsInfos } from './SeedWordsInfos';
+import { AccountCreationType } from '../../enums/AccountCreationType';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -113,33 +114,9 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
             </View>
             <View style={styles.actions}>
               <Button
-                title='Generate New Secret Seed'
-                onPress={() => {
-                  setCurrentAccount({
-                    ...currentAccount,
-                    scriptVersion: this.state.scriptVersion,
-                    seedWords: this.state.seedWords
-                  });
-                  this.props.navigation.navigate('GenerateSeed');
-                }}
+                title={this.getSubmitActionTitle()}
+                onPress={() => this.submit()}
                 style={styles.defaultActionButton}
-              ></Button>
-              <Button
-                title='Import Existing Seed'
-                onPress={() => {
-                  setCurrentAccount({
-                    ...currentAccount,
-                    scriptVersion: this.state.scriptVersion,
-                    seedWords: this.state.seedWords
-                  });
-                  this.props.navigation.navigate('ImportSeed');
-                }}
-                style={styles.additionalActionButton}
-              ></Button>
-              <Button
-                title='Import As Stateless'
-                onPress={() => this.notImplementedAlert()}
-                style={styles.disabledAdditionalActionButton}
               ></Button>
             </View>
             <Modal
@@ -165,6 +142,36 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       </AccountsContext.Consumer>
     );
 
+  }
+
+  private getSubmitActionTitle(): string {
+    switch (this.context.currentAccount?.accountCreationType) {
+      case AccountCreationType.Generate:
+        return 'Generate Seed';
+      case AccountCreationType.Import:
+        return 'Import Seed';
+      default:
+        return 'Go';
+    }
+  }
+
+  private submit() {
+    this.context.setCurrentAccount({
+      ...this.context.currentAccount,
+      scriptVersion: this.state.scriptVersion,
+      seedWords: this.state.seedWords
+    });
+
+    switch (this.context.currentAccount?.accountCreationType) {
+      case AccountCreationType.Generate:
+        this.props.navigation.navigate('GenerateSeed');
+        break;
+      case AccountCreationType.Import:
+        this.props.navigation.navigate('ImportSeed');
+        break;
+      default:
+        notImplementedAlert();
+    }
   }
 
   private setScriptVersion(scriptVersion: ScriptVersion | null) {
