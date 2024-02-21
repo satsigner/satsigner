@@ -97,7 +97,7 @@ export const actionBackground = grey67;
 export const disabledActionBackground = grey52;
 export const defaultActionBackground = white;
 export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
-export const cancelActionBackground = black;
+export const cancelActionBackground = 'rgba(0, 0, 0, 0)';
 
 export const actionText = white;
 export const disabledActionText = grey104;

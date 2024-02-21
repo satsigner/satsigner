@@ -9,7 +9,7 @@ import { NavigationProp } from '@react-navigation/native';
 import { Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
-import notImplementedAlert from '../shared/NotImplementedAlert';
+import notImplementedAlert from '../shared/notImplementedAlert';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
@@ -118,6 +118,11 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 onPress={() => this.submit()}
                 style={styles.defaultActionButton}
               ></Button>
+              <Button
+                title='Cancel'
+                onPress={() => this.cancel()}
+                style={styles.cancelActionButton}
+              ></Button>
             </View>
             <Modal
               visible={scriptVersionModalVisible}
@@ -147,7 +152,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
   private getSubmitActionTitle(): string {
     switch (this.context.currentAccount?.accountCreationType) {
       case AccountCreationType.Generate:
-        return 'Generate Seed';
+        return 'Generate New Seed';
       case AccountCreationType.Import:
         return 'Import Seed';
       default:
@@ -172,6 +177,10 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       default:
         notImplementedAlert();
     }
+  }
+
+  private cancel() {
+    this.props.navigation.navigate('AccountList');
   }
 
   private setScriptVersion(scriptVersion: ScriptVersion | null) {
@@ -206,14 +215,21 @@ const styles = StyleSheet.create({
   container: {
     ...Layout.container.base,
     ...Layout.container.topPadded,
-    ...Layout.container.horizontalPadded
+    ...Layout.container.horizontalPadded,
+    justifyContent: 'space-between'
   },
   label: {
     alignSelf: 'center',
+    marginBottom: 7,
   },
   defaultActionButton: {
     backgroundColor: Colors.defaultActionBackground,
     color: Colors.defaultActionText
+  },
+  cancelActionButton: {
+    backgroundColor: Colors.cancelActionBackground,
+    color: Colors.cancelActionText,
+    marginBottom: 42
   },
   additionalActionButton: {
     backgroundColor: Colors.additionalActionBackground,

@@ -91,19 +91,19 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
               {buttons}
             </View>
           </View>
-          <View style={styles.actions}>
-            <Button
-              title='Cancel'
-              onPress={() => this.props.onClose(null)}
-              style={styles.cancelActionButton}
-            ></Button>
+        </ScrollView>
+        <View style={styles.actions}>
             <Button
               title='Select'
               onPress={() => this.props.onClose(this.state.seedWords)}
               style={styles.defaultActionButton}
             ></Button>
+            <Button
+              title='Cancel'
+              onPress={() => this.props.onClose(null)}
+              style={styles.cancelActionButton}
+            ></Button>
           </View>
-        </ScrollView>
       </View>
     );
   }
@@ -152,5 +152,6 @@ const styles = StyleSheet.create({
   cancelActionButton: {
     backgroundColor: Colors.cancelActionBackground,
     color: Colors.cancelActionText,
+    marginBottom: 42
   },
 });

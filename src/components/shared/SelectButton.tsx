@@ -26,7 +26,7 @@ export default function SelectButton(props: any) {
     },
     buttonText: {
       ...Typography.fontFamily.sfProTextLight,
-      ...Typography.textHighlight.x16,
+      ...Typography.textHighlight.x18,
       color: props?.style?.color || Colors.actionText,
       letterSpacing: 0.6
     },

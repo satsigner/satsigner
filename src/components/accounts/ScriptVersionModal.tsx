@@ -110,19 +110,19 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
               {buttons}
             </View>
           </View>
-          <View style={styles.actions}>
-            <Button
-              title='Cancel'
-              onPress={() => this.props.onClose(null)}
-              style={styles.cancelActionButton}
-            ></Button>
-            <Button
-              title='Select'
-              onPress={() => this.props.onClose(this.state.scriptVersion)}
-              style={styles.defaultActionButton}
-            ></Button>
-          </View>
         </ScrollView>
+        <View style={styles.actions}>
+          <Button
+            title='Select'
+            onPress={() => this.props.onClose(this.state.scriptVersion)}
+            style={styles.defaultActionButton}
+          ></Button>
+          <Button
+            title='Cancel'
+            onPress={() => this.props.onClose(null)}
+            style={styles.cancelActionButton}
+          ></Button>
+        </View>
       </View>
     );
   }
@@ -199,5 +199,6 @@ const styles = StyleSheet.create({
   cancelActionButton: {
     backgroundColor: Colors.cancelActionBackground,
     color: Colors.cancelActionText,
+    marginBottom: 42
   },
 });
