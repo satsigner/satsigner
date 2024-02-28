@@ -142,9 +142,14 @@ const styles = StyleSheet.create({
 });
 
 function getData(): any[] {
+  const inputDates = [  'Feb 24, 2024', 'Feb 23, 2024', 'Feb 22, 2024', 'Feb 21, 2024', 'Feb 20, 2024', 'Feb 19, 2024', 'Feb 18, 2024', 'Feb 17, 2024', 'Feb 16, 2024', 'Feb 15, 2024', 'Feb 14, 2024' ];
   const inputValues = [  4101, 9351, 4101, 5101, 841, 6351, 4101, 4101, 10351, 9351, 5101 ];
-  return inputValues.map(inputValue => ({
+  const inputMemos = [  'Second round of drinks', 'drinks', 'hotel', 'gas', 'food', 'flight', 'bar', 'uber', 'delivery', 'service', 'golf' ];
+
+  return inputValues.map((inputValue, index) => ({
+    date: `${inputDates[index]}`,
     name: `${inputValue} sats`,
+    memo: `memo: ${inputMemos[index]}`,
     color: Colors.white,
     value: inputValue
   }));
