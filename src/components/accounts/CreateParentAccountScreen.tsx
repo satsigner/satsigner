@@ -11,7 +11,7 @@ import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
-import notImplementedAlert from '../shared/notImplementedAlert';
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import { AccountsContext } from './AccountsContext';
 import { AccountCreationType } from '../../enums/AccountCreationType';

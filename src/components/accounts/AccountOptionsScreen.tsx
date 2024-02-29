@@ -9,7 +9,7 @@ import { NavigationProp } from '@react-navigation/native';
 import { Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
-import notImplementedAlert from '../shared/notImplementedAlert';
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
