@@ -298,6 +298,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
               transparent={true}
               animationType='fade'
               onShow={async() => {
+                // NOTE on iOS wallet sync is blocks rendering
+                //   the ellipsis animation freezes
+                //   the close button is not clickable
+                // to be addressed: https://github.com/LtbLightning/bdk-rn/pull/73
+                
                 console.log('Syncing wallet...');
                 await syncWallet(wallet);
                 console.log('Completed wallet sync.');
