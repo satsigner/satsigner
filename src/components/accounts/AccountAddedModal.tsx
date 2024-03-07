@@ -4,6 +4,8 @@ import {
   StyleSheet
 } from 'react-native';
 
+import { EllipsisAnimation } from '../shared/EllipsisAnimation';
+
 import { AccountsContext } from './AccountsContext';
 
 import Button from '../shared/Button';
@@ -90,17 +92,51 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
 
               <View style={{...styles.columnSection, height: 152, marginTop: 10 }}>
                 <View style={styles.columnSection}>
-                  <AppText style={styles.label}>Searching derivation path</AppText>
+                  <View style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'baseline'
+                  }}>
+                    <AppText style={styles.label}>
+                      Searching derivation path
+                    </AppText>
+                    { ! currentAccount.snapshot &&
+                        <EllipsisAnimation
+                          style={{ marginLeft: 5 }}
+                          size={2}
+                          color={Colors.grey79} />
+                    }
+                  </View>
                   <AppText style={{...styles.valueLarge, marginTop: 8, letterSpacing: 5 }}>{currentAccount?.derivationPath}</AppText>
                 </View>
                 <View style={{...styles.rowSection, alignItems: 'flex-start', marginTop: 30 }}>
                     <View style={styles.columnSection}>
                       <AppText style={styles.label}>Found UTXOs</AppText>
-                      <AppText style={{...styles.valueLarge, marginTop: 8}}>{numFormat(currentAccount?.snapshot?.numUtxos)}</AppText>
+                      {
+                        currentAccount.snapshot ?
+                          <AppText style={{...styles.valueLarge, marginTop: 8}}>
+                            {numFormat(currentAccount?.snapshot?.numUtxos)}
+                          </AppText>
+                          :
+                          <EllipsisAnimation
+                            style={{height: 20}}
+                            size={3}
+                            color={Colors.grey107} />
+                      }
                     </View>
                     <View style={styles.columnSection}>
                       <AppText style={styles.label}>Total spendable sats</AppText>
-                      <AppText style={{...styles.valueLarge, marginTop: 8}}>{numFormat(currentAccount?.snapshot?.balanceSats)}</AppText>
+                      {
+                        currentAccount.snapshot ?
+                          <AppText style={{...styles.valueLarge, marginTop: 8}}>
+                            {numFormat(currentAccount?.snapshot?.balanceSats)}
+                          </AppText>
+                          :
+                          <EllipsisAnimation
+                            style={{height: 20}}
+                            size={3}
+                            color={Colors.grey107} />
+                      }
                     </View>
                 </View>
               </View>
