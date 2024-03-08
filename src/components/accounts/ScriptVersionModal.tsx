@@ -13,6 +13,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
+import Link from '../shared/Link';
 import { AppText } from '../shared/AppText';
 
 import { Typography, Layout, Colors } from '../../styles';
@@ -85,11 +86,25 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
             >
               <View style={styles.infoContainer}>
                 <View style={styles.infoHeading}>
-                  <AppText style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</AppText>
-                  <AppText style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</AppText>
+                  <AppText style={styles.infoShortName}>{scriptVersionInfo?.shortName}</AppText>
+                  <AppText style={styles.infoLongName}> - {scriptVersionInfo?.longName}</AppText>
                 </View>
                 <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-                  <AppText style={styles.infoDescription}>{scriptVersionInfo?.description}</AppText>
+                  
+                  <AppText style={styles.infoDescription}>
+
+                    {/* {scriptVersionInfo?.description} */}
+
+                    A type of 
+                    <Link text='ScriptPubKey'></Link>
+                    which the thing blah the owner of the hashed public key above needs to
+                    <Link text='ScriptPubKey'></Link>
+                    is the thing blah the owner of the hashed public key above needs to
+                    <Link text='ScriptPubKey'></Link>
+                    provide the original public key, along with a valid signature for it.
+                  
+                  </AppText>
+
                   <LinearGradient
                     style={infoExpanded ?
                       {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
@@ -99,7 +114,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
                     end={{ x: 0.5, y: 1.0 }}
                   ></LinearGradient>
                 </View>
-                <View style={styles.expandCollapseAction}>
+                <View style={infoExpanded ? styles.collapseAction : styles.expandAction}>
                   <AppText
                     style={styles.infoExpandCollapseAction}
                   >{infoExpanded ? 'LESS' : 'MORE'}</AppText>
@@ -143,15 +158,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 25
   },
-  infoName: {
+  infoShortName: {
+    ...Typography.fontFamily.sfProTextBold,
+    ...Typography.capitalization.uppercase    
+  },
+  infoLongName: {
     ...Typography.capitalization.uppercase
   },
-  infoScriptCode: {
-    color: Colors.modalTitle
-  },
   infoDescription: {
-    ...Typography.textHighlight.x8,
+    ...Typography.textHighlight.x6,
     color: Colors.modalTitle,
+    lineHeight: 18
   },
   infoDescriptionObscure: {
     height: 22,
@@ -169,24 +186,32 @@ const styles = StyleSheet.create({
   },
   infoHeading: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 6
   },
   infoBodyCollapsed: {
     overflow: 'hidden',
     height: 65,
-    position: 'relative'
+    position: 'relative',
+    flexDirection:'row',
+    flexWrap:'wrap'
   },
   infoBodyExpanded: {
     height: 'auto',
-    position: 'relative'
+    position: 'relative',
+    flexDirection:'row',
+    flexWrap:'wrap'
   },
   infoExpandCollapseAction: {
-    ...Typography.capitalization.uppercase
+    ...Typography.capitalization.uppercase,
+    color: Colors.grey175
   },
-  expandCollapseAction: {
+  expandAction: {
     marginTop: -4
+  },
+  collapseAction: {
+    marginTop: 5
   },
   actions: {
     justifyContent: 'space-evenly',

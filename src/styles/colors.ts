@@ -109,6 +109,7 @@ export const additionalActionBorder = grey54;
 
 export const modalTitle = grey118;
 export const modalBackground = black;
+export const linkText = grey118;
 
 export const valid = green2;
 export const invalid = red2;

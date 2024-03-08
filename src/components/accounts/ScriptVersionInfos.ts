@@ -5,7 +5,7 @@ const scriptVersionInfos: ScriptVersionInfo[] = [
   {
     scriptVersion: ScriptVersion.P2PKH,
     shortName: 'P2PKH',
-    longName: 'Legacy',
+    longName: 'Pay to Pubkey Hash',
     description: 'To solve this script, the owner of the hashed public key above needs to provide the original public key, along with a valid signature for it.',
     scriptCode: 'sh(wpkh(Key))'
   },
