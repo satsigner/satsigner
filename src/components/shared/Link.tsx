@@ -2,7 +2,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 
 import { InAppBrowser } from 'react-native-inappbrowser-reborn'
@@ -20,7 +21,9 @@ export default function Link(props: any) {
       color: Colors.linkText,
       textDecorationLine: 'underline',
       marginHorizontal: 4,
-      marginBottom: -2.5
+      // TODO - do we need to calculate margin bottom values
+      //   or are they stable?
+      marginBottom: Platform.OS === 'android' ? -8.2 : -2.5
     }
   });
   
