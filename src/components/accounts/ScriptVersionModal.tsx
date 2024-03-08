@@ -96,7 +96,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
                     {/* {scriptVersionInfo?.description} */}
 
                     A type of 
-                    <Link text='ScriptPubKey'></Link>
+                    <Link text='ScriptPubKey' url='https://river.com/learn/terms/s/scriptpubkey/'></Link>
                     which the thing blah the owner of the hashed public key above needs to
                     <Link text='ScriptPubKey'></Link>
                     is the thing blah the owner of the hashed public key above needs to
