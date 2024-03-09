@@ -208,6 +208,10 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   wordsToString(seedWords: SeedWordInfo[]): string {
     return seedWords.map(seedWord => seedWord.word).join(' ');
   }
+
+  private cancel() {
+    this.props.navigation.navigate('AccountList');
+  }
     
   render() {
     const { checksumValid, showWordSelector, currentWordText, accountAddedModalVisible, fingerprint, wallet } = this.state;
@@ -290,6 +294,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                     Alert.alert('Error', '' + err, [{text: 'OK'}]);
                   }
                 }}
+              ></Button>
+              <Button
+                title='Cancel'
+                onPress={() => this.cancel()}
+                style={styles.cancel}
               ></Button>
             </View>
             

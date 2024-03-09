@@ -98,7 +98,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 <SelectButton
                   title={scriptVersionName}
                   onPress={() => this.setState({scriptVersionModalVisible: true})}
-                  buttonTextStyle={this.getSelectButtonTextStyle(scriptVersionName)}
+                  textStyle={this.getSelectButtonTextStyle(scriptVersionName)}
                 >
                 </SelectButton>
               </View>
