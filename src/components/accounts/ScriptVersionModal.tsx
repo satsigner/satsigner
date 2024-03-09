@@ -21,6 +21,8 @@ import { Typography, Layout, Colors } from '../../styles';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
+import P2PkhScript from '../../assets/images/scripts/p2pkh-script.svg';
+
 if (
   Platform.OS === 'android' &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -66,7 +68,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     for (let info of ScriptVersionInfos.getAll()) {
       buttons.push(
         <LabeledRadioButton
-          title={`${info.longName} (${info.shortName})`}
+          title={`${info.shortName} - ${info.longName}`}
           key={info.scriptVersion}
           value={info.scriptVersion}
           onPress={(value: ScriptVersion) => this.updateScriptVersion(value)}
@@ -75,7 +77,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
         </LabeledRadioButton>
       );
     }
-
+    
     return (
       <View style={styles.container}>
         <ScrollView>
@@ -104,6 +106,8 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
                     provide the original public key, along with a valid signature for it.
                   
                   </AppText>
+
+                  <P2PkhScript style={{marginVertical: 8}} width='100%' height='90'></P2PkhScript>
 
                   <LinearGradient
                     style={infoExpanded ?
@@ -194,14 +198,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 65,
     position: 'relative',
-    flexDirection:'row',
-    flexWrap:'wrap'
+    flexDirection: 'row',
+    flexWrap: 'wrap'
   },
   infoBodyExpanded: {
     height: 'auto',
     position: 'relative',
-    flexDirection:'row',
-    flexWrap:'wrap'
+    flexDirection: 'row',
+    flexWrap: 'wrap'
   },
   infoExpandCollapseAction: {
     ...Typography.capitalization.uppercase,
