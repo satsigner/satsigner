@@ -28,7 +28,8 @@ export default function SelectButton(props: any) {
       ...Typography.fontFamily.sfProTextLight,
       ...Typography.textHighlight.x18,
       color: props?.style?.color || Colors.actionText,
-      letterSpacing: 0.6
+      letterSpacing: 0.6,
+      ...props.buttonTextStyle
     },
     downArrow: {
       position: 'absolute',

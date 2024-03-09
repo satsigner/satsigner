@@ -13,15 +13,18 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
-import Link from '../shared/Link';
 import { AppText } from '../shared/AppText';
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import { Typography, Layout, Colors } from '../../styles';
 
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
-import P2PkhScript from '../../assets/images/scripts/p2pkh-script.svg';
+import { ScriptVersionDescriptionP2PKH } from './ScriptVersionDescriptionP2PKH';
+import { ScriptVersionDescriptionP2TR } from './ScriptVersionDescriptionP2TR';
+import { ScriptVersionDescriptionP2WPKH } from './ScriptVersionDescriptionP2WPKH';
+import { ScriptVersionDescriptionP2SH_P2WPKH } from './ScriptVersionDescriptionP2SH_P2WPKH';
 
 if (
   Platform.OS === 'android' &&
@@ -60,6 +63,19 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     this.setState({scriptVersion});
   }
 
+  renderScriptVersionDescription(scriptVersion: ScriptVersion) {
+    switch(scriptVersion) {
+      case ScriptVersion.P2PKH:
+        return <ScriptVersionDescriptionP2PKH textStyle={styles.infoDescription} />;
+      case ScriptVersion.P2SH_P2WPKH:
+        return <ScriptVersionDescriptionP2SH_P2WPKH textStyle={styles.infoDescription} />;
+      case ScriptVersion.P2WPKH:
+        return <ScriptVersionDescriptionP2WPKH textStyle={styles.infoDescription} />;
+      case ScriptVersion.P2TR:
+        return <ScriptVersionDescriptionP2TR textStyle={styles.infoDescription} />;
+    }
+  }
+
   render() {
     const { scriptVersion, infoExpanded } = this.state;
     const scriptVersionInfo = ScriptVersionInfos.get(scriptVersion);
@@ -68,11 +84,15 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     for (let info of ScriptVersionInfos.getAll()) {
       buttons.push(
         <LabeledRadioButton
-          title={`${info.shortName} - ${info.longName}`}
+          title={`${info.name} (${info.abbreviatedName})`}
           key={info.scriptVersion}
           value={info.scriptVersion}
-          onPress={(value: ScriptVersion) => this.updateScriptVersion(value)}
+          onPress={(value: ScriptVersion) => info.scriptVersion === ScriptVersion.P2TR ?
+            notImplementedAlert() :
+            this.updateScriptVersion(value)
+          }
           selected={info.scriptVersion === this.state.scriptVersion}
+          disabled={info.scriptVersion === ScriptVersion.P2TR}
         >
         </LabeledRadioButton>
       );
@@ -88,26 +108,12 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
             >
               <View style={styles.infoContainer}>
                 <View style={styles.infoHeading}>
-                  <AppText style={styles.infoShortName}>{scriptVersionInfo?.shortName}</AppText>
-                  <AppText style={styles.infoLongName}> - {scriptVersionInfo?.longName}</AppText>
+                  <AppText style={styles.infoAbbreviatedName}>{scriptVersionInfo?.abbreviatedName}</AppText>
+                  <AppText style={styles.infoName}> - {scriptVersionInfo?.name}</AppText>
                 </View>
                 <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
                   
-                  <AppText style={styles.infoDescription}>
-
-                    {/* {scriptVersionInfo?.description} */}
-
-                    A type of 
-                    <Link text='ScriptPubKey' url='https://river.com/learn/terms/s/scriptpubkey/'></Link>
-                    which the thing blah the owner of the hashed public key above needs to
-                    <Link text='ScriptPubKey'></Link>
-                    is the thing blah the owner of the hashed public key above needs to
-                    <Link text='ScriptPubKey'></Link>
-                    provide the original public key, along with a valid signature for it.
-                  
-                  </AppText>
-
-                  <P2PkhScript style={{marginVertical: 8}} width='100%' height='90'></P2PkhScript>
+                  { this.renderScriptVersionDescription(scriptVersion) }
 
                   <LinearGradient
                     style={infoExpanded ?
@@ -162,11 +168,11 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 25
   },
-  infoShortName: {
+  infoAbbreviatedName: {
     ...Typography.fontFamily.sfProTextBold,
     ...Typography.capitalization.uppercase    
   },
-  infoLongName: {
+  infoName: {
     ...Typography.capitalization.uppercase
   },
   infoDescription: {
@@ -229,5 +235,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cancelActionBackground,
     color: Colors.cancelActionText,
     marginBottom: 42
-  },
+  }
 });

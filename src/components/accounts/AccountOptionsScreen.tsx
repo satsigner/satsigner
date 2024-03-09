@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
-import { Layout, Colors } from '../../styles';
+import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
 
 import notImplementedAlert from '../shared/NotImplementedAlert';
@@ -98,6 +98,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 <SelectButton
                   title={scriptVersionName}
                   onPress={() => this.setState({scriptVersionModalVisible: true})}
+                  buttonTextStyle={this.getSelectButtonTextStyle(scriptVersionName)}
                 >
                 </SelectButton>
               </View>
@@ -158,6 +159,13 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       default:
         return 'Go';
     }
+  }
+
+  private getSelectButtonTextStyle(title: string): any {
+    const smallTextLength = 22;
+    return title.length > smallTextLength ?
+      styles.selectButtonTextSmall :
+      {};
   }
 
   private submit() {
@@ -253,4 +261,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     marginVertical: 2
   },
+  selectButtonTextSmall: {
+    ...Typography.textHighlight.x11
+  }
 });
