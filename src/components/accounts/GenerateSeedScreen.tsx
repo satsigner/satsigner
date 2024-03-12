@@ -23,6 +23,7 @@ import { SeedWordInfo } from './SeedWordInfo';
 import { WordLabel } from './WordLabel';
 
 import { SeedScreenStyles } from './SeedScreenStyles';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -178,7 +179,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                     const mnemonic = this.wordsToString(this.state.seedWords);
                     console.log('mnemonic', mnemonic);
               
-                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
+                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase, currentAccount.scriptVersion as ScriptVersion);
   
                     // this is a new random seed, assuming it has never been used
                     // skip sync and store empty snapshot

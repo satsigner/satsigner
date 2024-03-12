@@ -5,26 +5,22 @@ const scriptVersionInfos: ScriptVersionInfo[] = [
   {
     scriptVersion: ScriptVersion.P2PKH,
     abbreviatedName: 'P2PKH',
-    name: 'Legacy',
-    descriptor: 'bip44'
+    name: 'Legacy'
   },
   {
     scriptVersion: ScriptVersion.P2SH_P2WPKH,
     abbreviatedName: 'P2SH-P2WPKH',
-    name: 'Nested Segwit',
-    descriptor: 'bip49'
+    name: 'Nested Segwit'
   },
   {
     scriptVersion: ScriptVersion.P2WPKH,
     abbreviatedName: 'P2WPKH',
-    name: 'Native Segwit',
-    descriptor: 'bip84'
+    name: 'Native Segwit'
   },
   {
     scriptVersion: ScriptVersion.P2TR,
     abbreviatedName: 'P2TR',
-    name: 'Taproot',
-    descriptor: 'p2tr'
+    name: 'Taproot'
   }
 ];
 

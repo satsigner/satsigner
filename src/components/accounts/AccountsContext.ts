@@ -4,6 +4,7 @@ import { Wallet } from 'bdk-rn';
 
 import { Account, AccountSnapshot } from '../../models/Account';
 import { SeedWords } from '../../enums/SeedWords';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 export const AccountsContext = createContext({
   currentAccount: new Account(),
@@ -12,7 +13,7 @@ export const AccountsContext = createContext({
   hasAccountWithName: (name: string) => {},
   getFingerprint: async (mnemonic: string, passphrase: string) => {},
   generateMnemonic: async(count: SeedWords) => '',
-  loadWalletFromMnemonic: async (mnemonic: string, passphrase: string) => new Wallet(),
+  loadWalletFromMnemonic: async (mnemonic: string, passphrase: string, scriptVersion: ScriptVersion) => new Wallet(),
   getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
   storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
   syncWallet: async (wallet: Wallet) => {},

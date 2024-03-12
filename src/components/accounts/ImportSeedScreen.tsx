@@ -30,6 +30,7 @@ import { WordSelector } from './WordSelector';
 import AccountAddedModal from './AccountAddedModal';
 
 import { SeedScreenStyles } from './SeedScreenStyles';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -282,7 +283,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                     const mnemonic = this.wordsToString(this.state.seedWords);
                     console.log('mnemonic', mnemonic);
               
-                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
+                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase, currentAccount.scriptVersion as ScriptVersion);
               
                     this.setState({
                       accountAddedModalVisible: true,

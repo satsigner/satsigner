@@ -23,6 +23,7 @@ import { Account, AccountSnapshot } from '../../models/Account';
 
 import satsToUsd from '../shared/satsToUsd';
 import { SeedWords } from '../../enums/SeedWords';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -93,19 +94,38 @@ export const AccountsProvider = ({ children }) => {
       }
   }
 
-  const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string): Promise<Wallet> => {
+  const getDescriptor = async (
+    mnemonicString: string,
+    passphrase: string,
+    scriptVersion: ScriptVersion,
+    kind: KeychainKind
+  ): Promise<Descriptor> => {
+    const mnemonic = await new Mnemonic().fromString(mnemonicString);
+    const descriptorSecretKey = await new DescriptorSecretKey().create(
+      Network.Testnet,
+      mnemonic,
+      passphrase
+    );
+
+    switch (scriptVersion) {
+      case ScriptVersion.P2PKH:
+        return await new Descriptor().newBip44(descriptorSecretKey, kind, Network.Testnet);
+      case ScriptVersion.P2SH_P2WPKH:
+        return await new Descriptor().newBip49(descriptorSecretKey, kind, Network.Testnet);
+      case ScriptVersion.P2WPKH:
+        return await new Descriptor().newBip84(descriptorSecretKey, kind, Network.Testnet);
+      case ScriptVersion.P2TR:
+        throw new Error('Not implemented');
+    }
+  }
+
+  const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string, scriptVersion: ScriptVersion): Promise<Wallet> => {
     let externalDescriptor: Descriptor;
     let internalDescriptor: Descriptor;
 
     try {
-      const mnemonic = await new Mnemonic().fromString(mnemonicString);
-      const descriptorSecretKey = await new DescriptorSecretKey().create(
-        Network.Testnet,
-        mnemonic,
-        passphrase
-      );
-      externalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
-      internalDescriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.Internal, Network.Testnet);  
+      externalDescriptor = await getDescriptor(mnemonicString, passphrase, scriptVersion, KeychainKind.External);
+      internalDescriptor = await getDescriptor(mnemonicString, passphrase, scriptVersion, KeychainKind.Internal); 
     } catch (err) {
       console.error(err);
       throw new Error('Loading wallet failed.  [bdk-rn]: ' + err);
