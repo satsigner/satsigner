@@ -30,6 +30,7 @@ import { WordSelector } from './WordSelector';
 import AccountAddedModal from './AccountAddedModal';
 
 import { SeedScreenStyles } from './SeedScreenStyles';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -208,6 +209,10 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   wordsToString(seedWords: SeedWordInfo[]): string {
     return seedWords.map(seedWord => seedWord.word).join(' ');
   }
+
+  private cancel() {
+    this.props.navigation.navigate('AccountList');
+  }
     
   render() {
     const { checksumValid, showWordSelector, currentWordText, accountAddedModalVisible, fingerprint, wallet } = this.state;
@@ -278,7 +283,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                     const mnemonic = this.wordsToString(this.state.seedWords);
                     console.log('mnemonic', mnemonic);
               
-                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
+                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase, currentAccount.scriptVersion as ScriptVersion);
               
                     this.setState({
                       accountAddedModalVisible: true,
@@ -291,6 +296,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                   }
                 }}
               ></Button>
+              <Button
+                title='Cancel'
+                onPress={() => this.cancel()}
+                style={styles.cancel}
+              ></Button>
             </View>
             
             <Modal
@@ -298,6 +308,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
               transparent={true}
               animationType='fade'
               onShow={async() => {
+                // NOTE on iOS wallet sync is blocks rendering
+                //   the ellipsis animation freezes
+                //   the close button is not clickable
+                // to be addressed: https://github.com/LtbLightning/bdk-rn/pull/73
+                
                 console.log('Syncing wallet...');
                 await syncWallet(wallet);
                 console.log('Completed wallet sync.');

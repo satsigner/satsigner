@@ -28,7 +28,10 @@ export default function LabeledRadioButton(props: any) {
       backgroundColor: Colors.background,
       height: 62,
       marginVertical: 8
-    },  
+    },
+    disabled: {
+      opacity: 0.3
+    },
     buttonUnselected: {
       flex: 1,
       justifyContent: 'center',
@@ -44,9 +47,14 @@ export default function LabeledRadioButton(props: any) {
   return (
     <TouchableOpacity
       activeOpacity={0.5}
-      style={props.selected ?
-        styles.touchableOpacitySelected :
-        styles.touchableOpacityUnselected }
+      style={[
+        props.selected ?
+          styles.touchableOpacitySelected :
+          styles.touchableOpacityUnselected,
+        props.disabled ?
+          styles.disabled : 
+          {}
+      ]}
       onPress={()=>{props.onPress(props.value)}}
     >
       <View style={props.selected ?

@@ -36,10 +36,16 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
         {({accounts}) => (
           <>
           <View style={styles.createButtonContainer}>
-            <Button gradientBackground={true} style={styles.createButton} title='Create New Parent Account' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
+            <Button gradientBackground={true} style={styles.createButton} title='Add Master Key' onPress={() => this.props.navigation.navigate('CreateParentAccount')}></Button>
           </View>
           <View style={styles.container}>
             <ScrollView style={styles.scrollContainer}>
+              { accounts?.length === 0 &&
+              <View style={styles.emptyList}>
+                <AppText style={styles.emptyListText}>No Keys Yet</AppText>
+              </View>
+              }
+              
               <View>
                 {this.getAccountComponents(accounts)}
               </View>
@@ -115,6 +121,17 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingTop: 10,
+  },
+  emptyList: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 38
+  },
+  emptyListText: {
+    textTransform: 'uppercase',
+    color: Colors.grey62,
+    ...Typography.fontSize.x5
   },
   info: {
   },

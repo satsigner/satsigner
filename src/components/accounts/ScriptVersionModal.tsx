@@ -14,11 +14,17 @@ import LinearGradient from 'react-native-linear-gradient';
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import { Typography, Layout, Colors } from '../../styles';
 
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
+
+import { ScriptVersionDescriptionP2PKH } from './ScriptVersionDescriptionP2PKH';
+import { ScriptVersionDescriptionP2TR } from './ScriptVersionDescriptionP2TR';
+import { ScriptVersionDescriptionP2WPKH } from './ScriptVersionDescriptionP2WPKH';
+import { ScriptVersionDescriptionP2SH_P2WPKH } from './ScriptVersionDescriptionP2SH_P2WPKH';
 
 if (
   Platform.OS === 'android' &&
@@ -57,6 +63,19 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     this.setState({scriptVersion});
   }
 
+  renderScriptVersionDescription(scriptVersion: ScriptVersion) {
+    switch(scriptVersion) {
+      case ScriptVersion.P2PKH:
+        return <ScriptVersionDescriptionP2PKH textStyle={styles.infoDescription} />;
+      case ScriptVersion.P2SH_P2WPKH:
+        return <ScriptVersionDescriptionP2SH_P2WPKH textStyle={styles.infoDescription} />;
+      case ScriptVersion.P2WPKH:
+        return <ScriptVersionDescriptionP2WPKH textStyle={styles.infoDescription} />;
+      case ScriptVersion.P2TR:
+        return <ScriptVersionDescriptionP2TR textStyle={styles.infoDescription} />;
+    }
+  }
+
   render() {
     const { scriptVersion, infoExpanded } = this.state;
     const scriptVersionInfo = ScriptVersionInfos.get(scriptVersion);
@@ -65,16 +84,20 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
     for (let info of ScriptVersionInfos.getAll()) {
       buttons.push(
         <LabeledRadioButton
-          title={`${info.longName} (${info.shortName})`}
+          title={`${info.name} (${info.abbreviatedName})`}
           key={info.scriptVersion}
           value={info.scriptVersion}
-          onPress={(value: ScriptVersion) => this.updateScriptVersion(value)}
+          onPress={(value: ScriptVersion) => info.scriptVersion === ScriptVersion.P2TR ?
+            notImplementedAlert() :
+            this.updateScriptVersion(value)
+          }
           selected={info.scriptVersion === this.state.scriptVersion}
+          disabled={info.scriptVersion === ScriptVersion.P2TR}
         >
         </LabeledRadioButton>
       );
     }
-
+    
     return (
       <View style={styles.container}>
         <ScrollView>
@@ -85,11 +108,13 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
             >
               <View style={styles.infoContainer}>
                 <View style={styles.infoHeading}>
-                  <AppText style={styles.infoName}>{scriptVersionInfo?.longName} ({scriptVersionInfo?.shortName})</AppText>
-                  <AppText style={styles.infoScriptCode}>{scriptVersionInfo?.scriptCode}</AppText>
+                  <AppText style={styles.infoAbbreviatedName}>{scriptVersionInfo?.abbreviatedName}</AppText>
+                  <AppText style={styles.infoName}> - {scriptVersionInfo?.name}</AppText>
                 </View>
                 <View style={infoExpanded ? styles.infoBodyExpanded : styles.infoBodyCollapsed}>
-                  <AppText style={styles.infoDescription}>{scriptVersionInfo?.description}</AppText>
+                  
+                  { this.renderScriptVersionDescription(scriptVersion) }
+
                   <LinearGradient
                     style={infoExpanded ?
                       {...styles.infoDescriptionObscure, ...styles.infoDescriptionReveal } :
@@ -99,7 +124,7 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
                     end={{ x: 0.5, y: 1.0 }}
                   ></LinearGradient>
                 </View>
-                <View style={styles.expandCollapseAction}>
+                <View style={infoExpanded ? styles.collapseAction : styles.expandAction}>
                   <AppText
                     style={styles.infoExpandCollapseAction}
                   >{infoExpanded ? 'LESS' : 'MORE'}</AppText>
@@ -110,19 +135,19 @@ export default class ScriptVersionModal extends React.PureComponent<Props, State
               {buttons}
             </View>
           </View>
-          <View style={styles.actions}>
-            <Button
-              title='Cancel'
-              onPress={() => this.props.onClose(null)}
-              style={styles.cancelActionButton}
-            ></Button>
-            <Button
-              title='Select'
-              onPress={() => this.props.onClose(this.state.scriptVersion)}
-              style={styles.defaultActionButton}
-            ></Button>
-          </View>
         </ScrollView>
+        <View style={styles.actions}>
+          <Button
+            title='Select'
+            onPress={() => this.props.onClose(this.state.scriptVersion)}
+            style={styles.defaultActionButton}
+          ></Button>
+          <Button
+            title='Cancel'
+            onPress={() => this.props.onClose(null)}
+            style={styles.cancelActionButton}
+          ></Button>
+        </View>
       </View>
     );
   }
@@ -143,15 +168,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 25
   },
+  infoAbbreviatedName: {
+    ...Typography.fontFamily.sfProTextBold,
+    ...Typography.capitalization.uppercase    
+  },
   infoName: {
     ...Typography.capitalization.uppercase
   },
-  infoScriptCode: {
-    color: Colors.modalTitle
-  },
   infoDescription: {
-    ...Typography.textHighlight.x8,
+    ...Typography.textHighlight.x6,
     color: Colors.modalTitle,
+    lineHeight: 18
   },
   infoDescriptionObscure: {
     height: 22,
@@ -169,24 +196,32 @@ const styles = StyleSheet.create({
   },
   infoHeading: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 6
   },
   infoBodyCollapsed: {
     overflow: 'hidden',
     height: 65,
-    position: 'relative'
+    position: 'relative',
+    flexDirection: 'row',
+    flexWrap: 'wrap'
   },
   infoBodyExpanded: {
     height: 'auto',
-    position: 'relative'
+    position: 'relative',
+    flexDirection: 'row',
+    flexWrap: 'wrap'
   },
   infoExpandCollapseAction: {
-    ...Typography.capitalization.uppercase
+    ...Typography.capitalization.uppercase,
+    color: Colors.grey175
   },
-  expandCollapseAction: {
+  expandAction: {
     marginTop: -4
+  },
+  collapseAction: {
+    marginTop: 5
   },
   actions: {
     justifyContent: 'space-evenly',
@@ -199,5 +234,6 @@ const styles = StyleSheet.create({
   cancelActionButton: {
     backgroundColor: Colors.cancelActionBackground,
     color: Colors.cancelActionText,
-  },
+    marginBottom: 42
+  }
 });

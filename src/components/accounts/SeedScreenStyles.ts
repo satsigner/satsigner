@@ -94,5 +94,10 @@ export const SeedScreenStyles = {
   submitDisabled: {
     backgroundColor: Colors.disabledActionBackground,
     color: Colors.disabledActionText
+  },
+  cancel: {
+    backgroundColor: Colors.cancelActionBackground,
+    color: Colors.cancelActionText,
+    marginBottom: 42
   }
 };

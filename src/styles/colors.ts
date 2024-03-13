@@ -40,6 +40,7 @@ export const grey54 = '#363636';
 export const grey55 = '#373737';
 export const grey57 = '#393939';
 export const grey61 = '#3D3D3D';
+export const grey62 = '#3E3E3E';
 export const grey64 = '#404040';
 export const grey67 = '#434343';
 export const grey72 = '#484848';
@@ -96,7 +97,7 @@ export const actionBackground = grey67;
 export const disabledActionBackground = grey52;
 export const defaultActionBackground = white;
 export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
-export const cancelActionBackground = black;
+export const cancelActionBackground = 'rgba(0, 0, 0, 0)';
 
 export const actionText = white;
 export const disabledActionText = grey104;
@@ -108,6 +109,7 @@ export const additionalActionBorder = grey54;
 
 export const modalTitle = grey118;
 export const modalBackground = black;
+export const linkText = grey118;
 
 export const valid = green2;
 export const invalid = red2;
@@ -156,7 +158,6 @@ export const quarterGrey = grey72;
 // export const grey58 = '#3A3A3A';
 // export const grey59 = '#3B3B3B';
 // export const grey60 = '#3C3C3C';
-// export const grey62 = '#3E3E3E';
 // export const grey63 = '#3F3F3F';
 // export const grey65 = '#414141';
 // export const grey66 = '#424242';

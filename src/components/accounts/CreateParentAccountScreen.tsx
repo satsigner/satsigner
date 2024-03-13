@@ -11,8 +11,10 @@ import { Typography, Layout, Colors } from '../../styles';
 
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import { AccountsContext } from './AccountsContext';
+import { AccountCreationType } from '../../enums/AccountCreationType';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -24,7 +26,8 @@ interface State {
 }
 
 export default class CreateParentAccountScreen extends React.PureComponent<Props, State> {
-  
+  static contextType = AccountsContext;
+
   constructor(props: any) {
     super(props);
 
@@ -34,6 +37,18 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
     };
   }
 
+  accountCreationTypeSelected(accountCreationType: AccountCreationType) {
+    if (this.context.hasAccountWithName(this.state.accountName)) {
+      Alert.alert('Account with that name already exists');
+      return;
+    }
+    this.context.setCurrentAccount({
+      name: this.state.accountName,
+      accountCreationType
+    });
+    this.props.navigation.navigate('AccountOptions');
+  }
+  
   render() {
     const { accountName, submitEnabled } = this.state;
 
@@ -43,7 +58,7 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
           <View style={styles.container}>
             <View>
               <AppText style={styles.label}>
-                Account Name
+                Master Key Name
               </AppText>
               <TextInput
                 style={styles.accountNameText}
@@ -54,17 +69,29 @@ export default class CreateParentAccountScreen extends React.PureComponent<Props
             </View>
             <View style={styles.actions}>
               <Button
-                title='Create Parent Account'
-                onPress={() => {
-                  if (hasAccountWithName(accountName)) {
-                    Alert.alert('Account with that name already exists');
-                    return;
-                  }
-                  setCurrentAccount({name: accountName});
-                  this.props.navigation.navigate('AccountOptions');
-                }}
+                title='Generate New Secret Seed'
+                onPress={() => this.accountCreationTypeSelected(AccountCreationType.Generate)}
                 disabled={! submitEnabled}
-                style={submitEnabled ? styles.submitEnabled : styles.submitDisabled }
+                style={[styles.submit, submitEnabled ? {} : styles.submitDisabled]}
+              ></Button>
+
+              <Button
+                title='Import Existing Seed'
+                onPress={() => this.accountCreationTypeSelected(AccountCreationType.Import)}
+                disabled={! submitEnabled}
+                style={[styles.submit, submitEnabled ? {} : styles.submitDisabled]}
+              ></Button>
+
+              <Button
+                title='Import as Stateless'
+                onPress={notImplementedAlert}
+                style={[styles.submit, styles.submitDisabled]}
+              ></Button>
+
+              <Button
+                title='Import Single Key (WIF)'
+                onPress={notImplementedAlert}
+                style={[styles.submit, styles.submitDisabled]}
               ></Button>
             </View>
           </View>
@@ -91,7 +118,8 @@ const styles = StyleSheet.create({
   label: {
     ...Typography.textHighlight.x5,
     alignSelf: 'center',
-    marginBottom: 7
+    marginBottom: 7,
+    textTransform: 'uppercase'
   },
   accountNameText: {
     ...Typography.textHighlight.x12,
@@ -105,12 +133,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     marginVertical: 36
   },
-  submitEnabled: {
-    backgroundColor: Colors.defaultActionBackground,
-    color: Colors.defaultActionText,
+  submit: {
+    backgroundColor: Colors.grey67,
+    color: Colors.actionText,
+    marginVertical: 7
   },
   submitDisabled: {
-    backgroundColor: Colors.disabledActionBackground,
-    color: Colors.disabledActionText
+    opacity: 0.3
   },
 });

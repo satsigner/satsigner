@@ -2,13 +2,14 @@ import React from 'react';
 import {
   View,
   StyleSheet,
-  Alert,
   Modal
 } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout, Colors } from '../../styles';
 import navUtils from '../../utils/NavUtils';
+
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import Button from '../shared/Button';
 import SelectButton from '../shared/SelectButton';
@@ -23,6 +24,7 @@ import { AccountsContext } from './AccountsContext';
 import SeedWordsModal from './SeedWordsModal';
 import { SeedWords } from '../../enums/SeedWords';
 import { SeedWordsInfos } from './SeedWordsInfos';
+import { AccountCreationType } from '../../enums/AccountCreationType';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -85,7 +87,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 <SelectButton
                   style={styles.disabledSelectButton}
                   title="Single Signature"
-                  onPress={() => this.notImplementedAlert()}
+                  onPress={notImplementedAlert}
                 >
                 </SelectButton>
               </View>
@@ -96,6 +98,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
                 <SelectButton
                   title={scriptVersionName}
                   onPress={() => this.setState({scriptVersionModalVisible: true})}
+                  textStyle={this.getSelectButtonTextStyle(scriptVersionName)}
                 >
                 </SelectButton>
               </View>
@@ -112,33 +115,14 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
             </View>
             <View style={styles.actions}>
               <Button
-                title='Generate New Secret Seed'
-                onPress={() => {
-                  setCurrentAccount({
-                    ...currentAccount,
-                    scriptVersion: this.state.scriptVersion,
-                    seedWords: this.state.seedWords
-                  });
-                  this.props.navigation.navigate('GenerateSeed');
-                }}
+                title={this.getSubmitActionTitle()}
+                onPress={() => this.submit()}
                 style={styles.defaultActionButton}
               ></Button>
               <Button
-                title='Import Existing Seed'
-                onPress={() => {
-                  setCurrentAccount({
-                    ...currentAccount,
-                    scriptVersion: this.state.scriptVersion,
-                    seedWords: this.state.seedWords
-                  });
-                  this.props.navigation.navigate('ImportSeed');
-                }}
-                style={styles.additionalActionButton}
-              ></Button>
-              <Button
-                title='Import As Stateless'
-                onPress={() => this.notImplementedAlert()}
-                style={styles.disabledAdditionalActionButton}
+                title='Cancel'
+                onPress={() => this.cancel()}
+                style={styles.cancelActionButton}
               ></Button>
             </View>
             <Modal
@@ -164,6 +148,47 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       </AccountsContext.Consumer>
     );
 
+  }
+
+  private getSubmitActionTitle(): string {
+    switch (this.context.currentAccount?.accountCreationType) {
+      case AccountCreationType.Generate:
+        return 'Generate New Seed';
+      case AccountCreationType.Import:
+        return 'Import Seed';
+      default:
+        return 'Go';
+    }
+  }
+
+  private getSelectButtonTextStyle(title: string): any {
+    const smallTextLength = 22;
+    return title.length > smallTextLength ?
+      styles.selectButtonTextSmall :
+      {};
+  }
+
+  private submit() {
+    this.context.setCurrentAccount({
+      ...this.context.currentAccount,
+      scriptVersion: this.state.scriptVersion,
+      seedWords: this.state.seedWords
+    });
+
+    switch (this.context.currentAccount?.accountCreationType) {
+      case AccountCreationType.Generate:
+        this.props.navigation.navigate('GenerateSeed');
+        break;
+      case AccountCreationType.Import:
+        this.props.navigation.navigate('ImportSeed');
+        break;
+      default:
+        notImplementedAlert();
+    }
+  }
+
+  private cancel() {
+    this.props.navigation.navigate('AccountList');
   }
 
   private setScriptVersion(scriptVersion: ScriptVersion | null) {
@@ -192,27 +217,27 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     }
   }
 
-  notImplementedAlert() {
-    Alert.alert(
-      'Coming Soon...',
-      'Not yet implemented.',
-      [{text: 'OK'}]
-    );
-  }
 }
 
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
     ...Layout.container.topPadded,
-    ...Layout.container.horizontalPadded
+    ...Layout.container.horizontalPadded,
+    justifyContent: 'space-between'
   },
   label: {
     alignSelf: 'center',
+    marginBottom: 7,
   },
   defaultActionButton: {
     backgroundColor: Colors.defaultActionBackground,
     color: Colors.defaultActionText
+  },
+  cancelActionButton: {
+    backgroundColor: Colors.cancelActionBackground,
+    color: Colors.cancelActionText,
+    marginBottom: 42
   },
   additionalActionButton: {
     backgroundColor: Colors.additionalActionBackground,
@@ -236,4 +261,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     marginVertical: 2
   },
+  selectButtonTextSmall: {
+    ...Typography.textHighlight.x11
+  }
 });

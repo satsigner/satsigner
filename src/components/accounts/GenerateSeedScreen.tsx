@@ -23,6 +23,7 @@ import { SeedWordInfo } from './SeedWordInfo';
 import { WordLabel } from './WordLabel';
 
 import { SeedScreenStyles } from './SeedScreenStyles';
+import { ScriptVersion } from '../../enums/ScriptVersion';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -113,6 +114,10 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
   wordsToString(seedWords: SeedWordInfo[]): string {
     return seedWords.map(seedWord => seedWord.word).join(' ');
   }
+
+  private cancel() {
+    this.props.navigation.navigate('AccountList');
+  }
     
   render() {
     const { checksumValid, fingerprint } = this.state;
@@ -174,7 +179,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                     const mnemonic = this.wordsToString(this.state.seedWords);
                     console.log('mnemonic', mnemonic);
               
-                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase);
+                    const wallet = await loadWalletFromMnemonic(mnemonic, this.state.passphrase, currentAccount.scriptVersion as ScriptVersion);
   
                     // this is a new random seed, assuming it has never been used
                     // skip sync and store empty snapshot
@@ -187,6 +192,11 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                     Alert.alert('Error', '' + err, [{text: 'OK'}]);
                   }
                 }}
+              ></Button>
+              <Button
+                title='Cancel'
+                onPress={() => this.cancel()}
+                style={styles.cancel}
               ></Button>
             </View>
             
