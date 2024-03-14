@@ -23,7 +23,7 @@ import { AppText } from '../shared/AppText';
 import getWordList from '../shared/getWordList';
 
 import { AccountsContext } from './AccountsContext';
-import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordCount } from '../../enums/SeedWordCount';
 import { SeedWordInfo } from './SeedWordInfo';
 import { WordInput } from './WordInput';
 import { WordSelector } from './WordSelector';
@@ -86,7 +86,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
 
   initSeedWords() {
     const seedWords: SeedWordInfo[] = [];
-    for (let i = 0; i < this.context.currentAccount.seedWords; i++) {
+    for (let i = 0; i < this.context.currentAccount.seedWordCount; i++) {
       seedWords.push({
         word: '',
         index: i,
@@ -98,7 +98,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
   }
 
   getWordComponents(account: Account) {
-    const numWords = account?.seedWords || 24;
+    const numWords = account?.seedWordCount || 24;
     const words = [];
     for (let i = 0; i < numWords; i++) {
       words.push(
@@ -238,11 +238,11 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                 Mnemonic Seed Words (BIP39)
               </AppText>
               <View style={[styles.words,
-                currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
-                currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
-                currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
-                currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
-                currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
+                currentAccount.seedWordCount === SeedWordCount.WORDS12 ? styles.words12 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS15 ? styles.words15 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS18 ? styles.words18 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS21 ? styles.words21 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS24 ? styles.words24 : {}
               ]}>
                 {this.getWordComponents(currentAccount)}
               </View>
@@ -308,7 +308,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
               transparent={true}
               animationType='fade'
               onShow={async() => {
-                // NOTE on iOS wallet sync is blocks rendering
+                // NOTE on iOS, wallet sync blocks UI rendering
                 //   the ellipsis animation freezes
                 //   the close button is not clickable
                 // to be addressed: https://github.com/LtbLightning/bdk-rn/pull/73

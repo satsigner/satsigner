@@ -1,11 +1,12 @@
 import { AccountCreationType } from "../enums/AccountCreationType";
 import { ScriptVersion } from "../enums/ScriptVersion";
-import { SeedWords } from "../enums/SeedWords";
+import { SeedWordCount } from "../enums/SeedWordCount";
 
 export class Account {
   name: string;
   accountCreationType: AccountCreationType;
-  seedWords?: SeedWords;
+  seedWordCount?: SeedWordCount;
+  seedWords?: string[];
   scriptVersion?: ScriptVersion;
   external_descriptor?: string;
   internal_descriptor?: string;

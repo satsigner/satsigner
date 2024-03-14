@@ -1,4 +1,4 @@
-export enum SeedWords {
+export enum SeedWordCount {
   WORDS12 = 12,
   WORDS15 = 15,
   WORDS18 = 18,

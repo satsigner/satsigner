@@ -1,7 +1,7 @@
-import { SeedWords } from "../../enums/SeedWords";
+import { SeedWordCount } from "../../enums/SeedWordCount";
 
 export class SeedWordsInfo {
-  seedWords: SeedWords;
+  seedWordCount: SeedWordCount;
   name: string;
   description: string;
 }

@@ -22,7 +22,7 @@ import { AccountsContext } from "./AccountsContext";
 import { Account, AccountSnapshot } from '../../models/Account';
 
 import satsToUsd from '../shared/satsToUsd';
-import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 
 export const AccountsProvider = ({ children }) => {
@@ -216,7 +216,7 @@ export const AccountsProvider = ({ children }) => {
     }
   };
 
-  const generateMnemonic = async(count: SeedWords): Promise<string> => {
+  const generateMnemonic = async(count: SeedWordCount): Promise<string> => {
     const mnemonic = await new Mnemonic().create(count as unknown as WordCount);
     console.log('mnemonic', mnemonic);
     return mnemonic.asString();

@@ -18,7 +18,7 @@ import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 
 import { AccountsContext } from './AccountsContext';
-import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordCount } from '../../enums/SeedWordCount';
 import { SeedWordInfo } from './SeedWordInfo';
 import { WordLabel } from './WordLabel';
 
@@ -63,7 +63,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
   }
 
   async initSeedWords() {
-    const mnemonic = await this.context.generateMnemonic(this.context.currentAccount.seedWords);
+    const mnemonic = await this.context.generateMnemonic(this.context.currentAccount.seedWordCount);
     const words = mnemonic.split(' ');
 
     const seedWords: SeedWordInfo[] = [];
@@ -82,7 +82,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
   }
 
   getWordComponents(account: Account) {
-    const numWords = account?.seedWords || 24;
+    const numWords = account?.seedWordCount || 24;
     const words = [];
     for (let i = 0; i < numWords; i++) {
       words.push(
@@ -134,11 +134,11 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                 Mnemonic Seed Words (BIP39)
               </AppText>
               <View style={[styles.words,
-                currentAccount.seedWords === SeedWords.WORDS12 ? styles.words12 :
-                currentAccount.seedWords === SeedWords.WORDS15 ? styles.words15 :
-                currentAccount.seedWords === SeedWords.WORDS18 ? styles.words18 :
-                currentAccount.seedWords === SeedWords.WORDS21 ? styles.words21 :
-                currentAccount.seedWords === SeedWords.WORDS24 ? styles.words24 : {}
+                currentAccount.seedWordCount === SeedWordCount.WORDS12 ? styles.words12 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS15 ? styles.words15 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS18 ? styles.words18 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS21 ? styles.words21 :
+                currentAccount.seedWordCount === SeedWordCount.WORDS24 ? styles.words24 : {}
               ]}>
                 {this.getWordComponents(currentAccount)}
               </View>
