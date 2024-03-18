@@ -6,13 +6,11 @@ import {
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
-import BouncyCheckboxGroup, { ICheckboxButton } from 'react-native-bouncy-checkbox-group';
 
 import { Typography, Layout, Colors } from '../styles';
 
 import Button from './shared/Button';
-
-const CheckIcon = require('../assets/images/check.png');
+import CheckboxGroup from './shared/CheckboxGroup';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -40,36 +38,8 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
         <View style={styles.actions}>
           <Button title='Account List' onPress={() => this.props.navigation.navigate('AccountList')}></Button>
         </View>
-        <View>
-        <BouncyCheckboxGroup
-          data={[
-            {
-              id: 0,
-              iconStyle: {
-                borderRadius: 4
-              },
-              iconImageStyle: {
-                tintColor: Colors.grey191,
-                width: 17,
-                height: 17                
-              },
-              checkIconImageSource: CheckIcon,
-              size: 32,
-              innerIconStyle: {
-                borderRadius: 4,
-                borderWidth: 2,
-                borderColor: 'rgba(255, 255, 255, 0.68)'
-              },
-              unfillColor: 'rgba(255, 255, 255, 0.17)',
-              fillColor: 'rgba(255, 255, 255, 0.22)',
-            }
-          ]}
-          style={{ flexDirection: "column" }}
-          onChange={(selectedItem: ICheckboxButton) => {
-            console.log("SelectedItem: ", JSON.stringify(selectedItem));
-          }}
-        />
-        </View>
+        
+        <CheckboxGroup values={['large', 'fog', 'zoo']}></CheckboxGroup>
       </View>
     );
   }
