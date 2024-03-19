@@ -9,37 +9,35 @@ const CheckIcon = require('../../assets/images/check.png');
 
 export default function CheckboxGroup(props: any) {
 
-  const [selectedId, setSelectedId] = useState(null);
+  const [selectedId, setSelectedId] = useState('');
 
   let i = 0;
 
-  const data = props.values.map(value => (
-    {
-      id: i++,
+  const data = props.values.map((value: string) => {
+    const id = (i++).toString();
+    return {
+      id,
       text: value,
-      ...getDataProps(i-1, selectedId)
-    }
-  ));
+      ...getDataProps(id, selectedId)
+    };
+  });
 
   return (
     <BouncyCheckboxGroup
       data={data}
       style={{ flexDirection: "column" }}
-      onChange={(selectedItem: ICheckboxButton) => {
-        setSelectedId(selectedItem.id);
-        console.log("SelectedItem: ", selectedItem.id);
-      }}
+      onChange={(selectedItem: ICheckboxButton) => setSelectedId(selectedItem.id.toString())}
     />
   );
 }
 
 function getDataProps(id: string, selectedId: string) {
   const innerIconStyleBorderColor = id === selectedId ?
-    'rgba(255, 255, 255, 0.22)' :
+    'rgba(255, 255, 255, 0.68)' :
     'rgba(0, 0, 0, 0)';
 
   return {
-    style: {marginBottom: 10},
+    style: {marginBottom: 31},
     textStyle: styles.text,
     iconStyle: {
       borderRadius: 4
