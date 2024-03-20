@@ -24,6 +24,7 @@ interface Props {
 
 interface State {
   selectedWord: string;
+  candidateWords: string[];
 }
 
 export default class ConfirmWordScreen extends PureComponent<Props, State> {
@@ -33,12 +34,14 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
     super(props);
 
     this.state = {
-      selectedWord: ''
+      selectedWord: '',
+      candidateWords: []
     };
   }
 
   async componentDidMount() {
     navUtils.setHeaderTitle(this.context.currentAccount.name, this.props.navigation);
+    this.setState({ candidateWords: this.getCandidateWords() });
   }
 
   componentDidUpdate() {
@@ -47,6 +50,44 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
 
   private cancel() {
     this.props.navigation.navigate('AccountList');
+  }
+
+  private getCandidateWords(): string[] {
+    const { wordNum } = this.props.route.params;
+    const { seedWords } = this.context.currentAccount;
+    const candidates = [];
+    
+    const target = seedWords[wordNum - 1];
+    candidates.push(target);
+
+    while (candidates.length < 3) {
+      const newCandidate = seedWords[Math.floor(Math.random() * seedWords.length)];
+      if (! candidates.includes(newCandidate)) {
+        candidates.push(newCandidate);
+      }
+    }
+        
+    this.shuffle(candidates);
+
+    return candidates;
+  }
+
+  private shuffle(array: string[]) {
+    let currentIndex = array.length,  randomIndex;
+  
+    // While there remain elements to shuffle.
+    while (currentIndex > 0) {
+  
+      // Pick a remaining element.
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+  
+      // And swap it with the current element.
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+  
+    return array;
   }
 
   private next(wordNum: number) {
@@ -58,7 +99,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { selectedWord } = this.state;
+    const { selectedWord, candidateWords } = this.state;
     const { wordNum } = this.props.route.params;
 
     return (
@@ -71,7 +112,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                   Confirm Word { wordNum }
                 </AppText>
                 <CheckboxGroup
-                  values={currentAccount.seedWords?.slice(0, 3)}
+                  values={candidateWords}
                   onChecked={this.onWordChecked.bind(this)}
                 ></CheckboxGroup>
               </View>
