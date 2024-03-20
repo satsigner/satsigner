@@ -275,7 +275,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
             </View>
             <View>
               <Button
-                title="Confirm Seed"
+                title="Save Secret Seed"
                 style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
                 disabled={! checksumValid}
                 onPress={async() => {
@@ -324,7 +324,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
               <AccountAddedModal
                 onClose={() => {
                   this.setState({ accountAddedModalVisible: false });
-                  this.props.navigation.navigate('ConfirmWord');
+                  this.props.navigation.navigate('AccountList');
                 }}
               ></AccountAddedModal>
             </Modal>

@@ -37,7 +37,7 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
         </View>
         <View style={styles.actions}>
           <Button title='Account List' onPress={() => this.props.navigation.navigate('AccountList')}></Button>
-          <Button title='Confirm Words' onPress={() => this.props.navigation.navigate('ConfirmWord')}></Button>
+          <Button title='Confirm Words' onPress={() => this.props.navigation.navigate('ConfirmWord', { wordNum: 1 })}></Button>
         </View>
       </View>
     );

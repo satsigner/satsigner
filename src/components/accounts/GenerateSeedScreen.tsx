@@ -124,7 +124,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, loadWalletFromMnemonic, storeAccountWithSnapshot }) => (
+        {({currentAccount, setCurrentAccount, loadWalletFromMnemonic, storeAccountWithSnapshot }) => (
           <>
           <KeyboardAvoidingViewWithHeaderOffset
             style={styles.container}
@@ -171,7 +171,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
             </View>
             <View>
               <Button
-                title="Save Secret Seed"
+                title="Confirm Seed"
                 style={checksumValid ? styles.submitEnabled : styles.submitDisabled }
                 disabled={! checksumValid}
                 onPress={async() => {
@@ -185,7 +185,8 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
                     // skip sync and store empty snapshot
                     await storeAccountWithSnapshot(new AccountSnapshot());
 
-                    this.props.navigation.navigate('AccountList');
+                    setCurrentAccount({...currentAccount, seedWords: this.state.seedWords.map(sw => sw.word)});
+                    this.props.navigation.navigate('ConfirmWord', { wordNum: 1 });
   
                   } catch (err) {
                     console.error(err);
