@@ -16,6 +16,7 @@ import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
 import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
+import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -67,6 +68,11 @@ export default class App extends React.Component<{}, State> {
                 name="GenerateSeed"
                 component={GenerateSeedScreen}
                 options={NavUtils.getHeaderOptions('Generate New Secret Seed')}
+              />
+              <Stack.Screen
+                name="ConfirmWord"
+                component={ConfirmWordScreen}
+                options={NavUtils.getHeaderOptions('Confirm Word')}
               />
               <Stack.Screen
                 name="AccountList"

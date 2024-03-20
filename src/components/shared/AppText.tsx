@@ -9,7 +9,7 @@ interface Props {
 export class AppText extends Component<PropsWithChildren<Props>> {
   render() {
     return (
-        <Text style={[styles.text, this.props.style]}>{this.props.children}</Text>
+      <Text style={[styles.text, this.props.style]}>{this.props.children}</Text>
     );
   }
 }

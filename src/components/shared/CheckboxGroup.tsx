@@ -26,7 +26,15 @@ export default function CheckboxGroup(props: any) {
     <BouncyCheckboxGroup
       data={data}
       style={{ flexDirection: "column" }}
-      onChange={(selectedItem: ICheckboxButton) => setSelectedId(selectedItem.id.toString())}
+      onChange={(selectedItem: ICheckboxButton) => {
+        const selectedId = selectedItem.id.toString();
+        setSelectedId(selectedId);
+
+        if (props.onChecked) {
+          const selectedData = data.find(d => d.id === selectedId);
+          props.onChecked(selectedData?.text);  
+        }
+      }}
     />
   );
 }
