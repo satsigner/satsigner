@@ -7,10 +7,9 @@ import {
 
 import { NavigationProp } from '@react-navigation/native';
 
-import { Typography, Layout, Colors } from '../styles';
+import { Typography, Layout } from '../styles';
 
 import Button from './shared/Button';
-import CheckboxGroup from './shared/CheckboxGroup';
 
 interface Props {
   navigation: NavigationProp<any>
@@ -37,7 +36,6 @@ export default class HomeScreen extends React.PureComponent<Props, State> {
         </View>
         <View style={styles.actions}>
           <Button title='Account List' onPress={() => this.props.navigation.navigate('AccountList')}></Button>
-          <Button title='Confirm Words' onPress={() => this.props.navigation.navigate('ConfirmWord', { wordNum: 1 })}></Button>
         </View>
       </View>
     );

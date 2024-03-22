@@ -17,7 +17,11 @@ import { AppText } from '../shared/AppText';
 import CheckboxGroup from '../shared/CheckboxGroup';
 
 import { AccountsContext } from './AccountsContext';
+
 import ConfirmWordIncorrectModal from './ConfirmWordIncorrectModal';
+
+import { ScriptVersion } from '../../enums/ScriptVersion';
+import { AccountSnapshot } from '../../models/Account';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -95,15 +99,39 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
     return array;
   }
 
-  private next(wordNum: number) {
+  private async next(wordNum: number) {
     const { seedWords } = this.context.currentAccount;
     const target = seedWords[wordNum - 1];
 
     if (this.state.selectedWord === target) {
-      this.props.navigation.push('ConfirmWord', { wordNum: wordNum + 1 });
+      if (this.context.currentAccount.seedWordCount === wordNum) {
+        // we've confirmed the last word, so store new seed
+        const mnemonic = this.getSeedWordsString();
+        console.log('mnemonic', mnemonic);
+  
+        const wallet = await this.context.loadWalletFromMnemonic(
+          mnemonic,
+          this.context.currentAccount.passphrase,
+          this.context.currentAccount.scriptVersion as ScriptVersion
+        );
+  
+        // this is a new random seed, assuming it has never been used
+        // skip sync and store empty snapshot
+        await this.context.storeAccountWithSnapshot(new AccountSnapshot());
+
+        this.props.navigation.navigate('AccountList');
+      } else {
+        // continue with the next word
+        this.props.navigation.push('ConfirmWord', { wordNum: wordNum + 1 });
+      }
     } else {
+      // wrong word was selected, show the incorrect word dialog
       this.setState({confirmWordIncorrectModalVisible: true});
     }
+  }
+
+  private getSeedWordsString(): string {
+    return this.context.currentAccount.seedWords.join(' ');
   }
 
   private onWordChecked(word: string) {
@@ -135,7 +163,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                 title="Next"
                 style={selectedWord ? styles.submitEnabled : styles.submitDisabled }
                 disabled={! selectedWord}
-                onPress={() => this.next(wordNum)}
+                onPress={async() => await this.next(wordNum)}
               ></Button>
               <Button
                 title='Cancel'

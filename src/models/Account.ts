@@ -7,6 +7,7 @@ export class Account {
   accountCreationType: AccountCreationType;
   seedWordCount?: SeedWordCount;
   seedWords?: string[];
+  passphrase?: string;
   scriptVersion?: ScriptVersion;
   external_descriptor?: string;
   internal_descriptor?: string;
