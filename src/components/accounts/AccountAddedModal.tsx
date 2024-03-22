@@ -36,11 +36,11 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
   }
 
   getScriptLongName(scriptVersion: ScriptVersion): string {
-    return ScriptVersionInfos.get(scriptVersion)?.longName || '';
+    return ScriptVersionInfos.get(scriptVersion)?.name || '';
   }
 
   getScriptShortName(scriptVersion: ScriptVersion): string {
-    return ScriptVersionInfos.get(scriptVersion)?.shortName || '';
+    return ScriptVersionInfos.get(scriptVersion)?.abbreviatedName || '';
   }
 
   render() {
