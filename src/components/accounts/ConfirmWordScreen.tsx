@@ -2,7 +2,8 @@ import { PureComponent } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView
+  ScrollView,
+  Modal
 } from 'react-native';
 
 import { NavigationProp, Route } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import { AppText } from '../shared/AppText';
 import CheckboxGroup from '../shared/CheckboxGroup';
 
 import { AccountsContext } from './AccountsContext';
+import ConfirmWordIncorrectModal from './ConfirmWordIncorrectModal';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -25,6 +27,7 @@ interface Props {
 interface State {
   selectedWord: string;
   candidateWords: string[];
+  confirmWordIncorrectModalVisible: boolean;
 }
 
 export default class ConfirmWordScreen extends PureComponent<Props, State> {
@@ -35,7 +38,8 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
 
     this.state = {
       selectedWord: '',
-      candidateWords: []
+      candidateWords: [],
+      confirmWordIncorrectModalVisible: false
     };
   }
 
@@ -73,7 +77,8 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
   }
 
   private shuffle(array: string[]) {
-    let currentIndex = array.length,  randomIndex;
+    let currentIndex = array.length
+    let randomIndex;
   
     // While there remain elements to shuffle.
     while (currentIndex > 0) {
@@ -83,15 +88,22 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
       currentIndex--;
   
       // And swap it with the current element.
-      [array[currentIndex], array[randomIndex]] = [
-        array[randomIndex], array[currentIndex]];
+      [array[currentIndex], array[randomIndex]] =
+        [array[randomIndex], array[currentIndex]];
     }
   
     return array;
   }
 
   private next(wordNum: number) {
-    this.props.navigation.push('ConfirmWord', { wordNum });
+    const { seedWords } = this.context.currentAccount;
+    const target = seedWords[wordNum - 1];
+
+    if (this.state.selectedWord === target) {
+      this.props.navigation.push('ConfirmWord', { wordNum: wordNum + 1 });
+    } else {
+      this.setState({confirmWordIncorrectModalVisible: true});
+    }
   }
 
   private onWordChecked(word: string) {
@@ -99,7 +111,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { selectedWord, candidateWords } = this.state;
+    const { selectedWord, candidateWords, confirmWordIncorrectModalVisible } = this.state;
     const { wordNum } = this.props.route.params;
 
     return (
@@ -123,7 +135,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                 title="Next"
                 style={selectedWord ? styles.submitEnabled : styles.submitDisabled }
                 disabled={! selectedWord}
-                onPress={() => this.next(wordNum + 1)}
+                onPress={() => this.next(wordNum)}
               ></Button>
               <Button
                 title='Cancel'
@@ -131,6 +143,19 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                 style={styles.cancel}
               ></Button>
             </View>
+
+            <Modal
+              visible={confirmWordIncorrectModalVisible}
+              transparent={true}
+              animationType='fade'
+              onShow={async() => { }}
+            >
+              <ConfirmWordIncorrectModal
+                onClose={() => {
+                  this.setState({ confirmWordIncorrectModalVisible: false });
+                }}
+              ></ConfirmWordIncorrectModal>
+            </Modal>
           </View>
         )}
       </AccountsContext.Consumer>
