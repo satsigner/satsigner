@@ -16,7 +16,7 @@ import { AppText } from '../shared/AppText';
 
 import { Typography, Layout, Colors } from '../../styles';
 
-import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordCount } from '../../enums/SeedWordCount';
 import { SeedWordsInfos } from './SeedWordsInfos';
 
 if (
@@ -27,11 +27,11 @@ if (
 }
 
 interface Props {
-  onClose: (seedWords: SeedWords | null) => void
+  onClose: (seedWordCount: SeedWordCount | null) => void
 }
 
 interface State {
-  seedWords: SeedWords,
+  seedWordCount: SeedWordCount,
   infoExpanded: boolean;
 }
 
@@ -41,7 +41,7 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
     super(props);
 
     this.state = {
-      seedWords: props.seedWords,
+      seedWordCount: props.seedWordCount,
       infoExpanded: false
     };
   }
@@ -51,24 +51,24 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
     this.setState({infoExpanded: ! this.state.infoExpanded});
   }
 
-  updateSeedWords(seedWords: SeedWords) {
+  updateSeedWords(count: SeedWordCount) {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    this.setState({seedWords});
+    this.setState({seedWordCount: count});
   }
 
   render() {
-    const { seedWords, infoExpanded } = this.state;
-    const seedWordsInfo = SeedWordsInfos.get(seedWords);
+    const { seedWordCount, infoExpanded } = this.state;
+    const seedWordsInfo = SeedWordsInfos.get(seedWordCount);
 
     const buttons = [];
     for (let info of SeedWordsInfos.getAll()) {
       buttons.push(
         <LabeledRadioButton
           title={info.name}
-          key={info.seedWords}
-          value={info.seedWords}
-          onPress={(value: SeedWords) => this.updateSeedWords(value)}
-          selected={info.seedWords === this.state.seedWords}
+          key={info.seedWordCount}
+          value={info.seedWordCount}
+          onPress={(value: SeedWordCount) => this.updateSeedWords(value)}
+          selected={info.seedWordCount === this.state.seedWordCount}
         >
         </LabeledRadioButton>
       );
@@ -95,7 +95,7 @@ export default class SeedWordsModal extends React.PureComponent<Props, State> {
         <View style={styles.actions}>
             <Button
               title='Select'
-              onPress={() => this.props.onClose(this.state.seedWords)}
+              onPress={() => this.props.onClose(this.state.seedWordCount)}
               style={styles.defaultActionButton}
             ></Button>
             <Button

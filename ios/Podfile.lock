@@ -610,7 +610,7 @@ SPEC CHECKSUMS:
   FBReactNativeSpec: 638095fe8a01506634d77b260ef8a322019ac671
   fmt: ff9d55029c625d3757ed641535fd4a75fedc7ce9
   glog: 04b94705f318337d7ead9e6d17c019bd9b1f6b1b
-  hermes-engine: a524c615bf3421e141dd8ae22d62e27a1be3a48d
+  hermes-engine: 9180d43df05c1ed658a87cc733dc3044cf90c00a
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   RCT-Folly: 424b8c9a7a0b9ab2886ffe9c3b041ef628fd4fb1
   RCTRequired: 83bca1c184feb4d2e51c72c8369b83d641443f95
@@ -622,7 +622,7 @@ SPEC CHECKSUMS:
   React-CoreModules: 6312c9b2fec4329d9ae6a2b8c350032d1664c51b
   React-cxxreact: 7da72565656c8ac7f97c9a031d0b199bbdec0640
   React-debug: 4accb2b9dc09b575206d2c42f4082990a52ae436
-  React-hermes: 94f8699cdfa69b4c76c3dae82b3cdcf282b7c297
+  React-hermes: 1299a94f255f59a72d5baa54a2ca2e1eee104947
   React-jsi: 2208de64c3a41714ac04e86975386fc49116ea13
   React-jsiexecutor: c49502e5d02112247ee4526bc3ccfc891ae3eb9b
   React-jsinspector: 8baadae51f01d867c3921213a25ab78ab4fbcd91
@@ -647,12 +647,12 @@ SPEC CHECKSUMS:
   React-utils: 56838edeaaf651220d1e53cd0b8934fb8ce68415
   ReactCommon: 5f704096ccf7733b390f59043b6fa9cc180ee4f6
   RNInAppBrowser: e36d6935517101ccba0e875bac8ad7b0cb655364
-  RNReanimated: 24baf5140afc8c5f8771b943181285f60d13762c
+  RNReanimated: 43675f1f0e704abe8ebf953fd79b00e66302cda2
   RNScreens: 3c5b9f4a9dcde752466854b6109b79c0e205dad3
   RNSVG: ba3e7232f45e34b7b47e74472386cf4e1a676d0a
   SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
   Yoga: 4c3aa327e4a6a23eeacd71f61c81df1bcdf677d5
 
-PODFILE CHECKSUM: 0cac20c4994cbf926aa8751872b0c366bd671031
+PODFILE CHECKSUM: 40c6db724d762961e3ac3fc7b378e7f8654eef49
 
 COCOAPODS: 1.11.3

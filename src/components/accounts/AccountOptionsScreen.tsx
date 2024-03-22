@@ -22,7 +22,7 @@ import { ScriptVersionInfos } from './ScriptVersionInfos';
 import { AccountsContext } from './AccountsContext';
 
 import SeedWordsModal from './SeedWordsModal';
-import { SeedWords } from '../../enums/SeedWords';
+import { SeedWordCount } from '../../enums/SeedWordCount';
 import { SeedWordsInfos } from './SeedWordsInfos';
 import { AccountCreationType } from '../../enums/AccountCreationType';
 
@@ -35,7 +35,7 @@ interface State {
   scriptVersionName: string,
   scriptVersionModalVisible: boolean,
 
-  seedWords: SeedWords,
+  seedWordCount: SeedWordCount,
   seedWordsName: string,
   seedWordsModalVisible: boolean,
 }
@@ -51,8 +51,8 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       scriptVersionName: ScriptVersionInfos.getName(ScriptVersion.P2WPKH),
       scriptVersionModalVisible: false,
 
-      seedWords: SeedWords.WORDS24,
-      seedWordsName: SeedWordsInfos.getName(SeedWords.WORDS24),
+      seedWordCount: SeedWordCount.WORDS24,
+      seedWordsName: SeedWordsInfos.getName(SeedWordCount.WORDS24),
       seedWordsModalVisible: false
     };
   }
@@ -70,7 +70,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
       scriptVersion,
       scriptVersionName,
       scriptVersionModalVisible,
-      seedWords,
+      seedWordCount,
       seedWordsName,
       seedWordsModalVisible
     } = this.state;
@@ -139,8 +139,8 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
               transparent={false}
             >
               <SeedWordsModal
-                onClose={(seedWords: SeedWords) => this.setSeedWords(seedWords)}
-                seedWords={seedWords}
+                onClose={(seedWordCount: SeedWordCount) => this.setSeedWords(seedWordCount)}
+                seedWordCount={seedWordCount}
               ></SeedWordsModal>
             </Modal>
           </View>
@@ -172,7 +172,7 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     this.context.setCurrentAccount({
       ...this.context.currentAccount,
       scriptVersion: this.state.scriptVersion,
-      seedWords: this.state.seedWords
+      seedWordCount: this.state.seedWordCount
     });
 
     switch (this.context.currentAccount?.accountCreationType) {
@@ -204,11 +204,11 @@ export default class AccountOptionsScreen extends React.PureComponent<Props, Sta
     }
   }
 
-  private setSeedWords(seedWords: SeedWords | null) {
-    if (seedWords) {
-      const seedWordsName = SeedWordsInfos.getName(seedWords);
+  private setSeedWords(seedWordCount: SeedWordCount | null) {
+    if (seedWordCount) {
+      const seedWordsName = SeedWordsInfos.getName(seedWordCount);
       this.setState({
-        seedWords,
+        seedWordCount,
         seedWordsName,
         seedWordsModalVisible: false
       });

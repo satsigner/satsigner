@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+
 import { NavigationProp } from '@react-navigation/native';
 
 import { Typography, Layout } from '../styles';
