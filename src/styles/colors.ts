@@ -97,16 +97,13 @@ export const inputBackground = grey36;
 export const actionBackground = grey67;
 export const disabledActionBackground = grey52;
 export const defaultActionBackground = white;
-export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
 export const cancelActionBackground = 'rgba(0, 0, 0, 0)';
 
 export const actionText = white;
 export const disabledActionText = grey104;
 export const defaultActionText = black;
-export const additionalActionText = white;
 export const cancelActionText = grey153;
-
-export const additionalActionBorder = grey54;
+export const disabledCancelActionText = grey153 + '44';
 
 export const modalTitle = grey118;
 export const modalBackground = black;

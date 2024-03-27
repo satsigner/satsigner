@@ -22,6 +22,7 @@ import ConfirmWordIncorrectModal from './ConfirmWordIncorrectModal';
 
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { AccountSnapshot } from '../../models/Account';
+import WordsWarningModal from './WordsWarningModal';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -32,6 +33,8 @@ interface State {
   selectedWord: string;
   candidateWords: string[];
   confirmWordIncorrectModalVisible: boolean;
+  wordsWarningModalVisible: boolean;
+  disabled: boolean;
 }
 
 export default class ConfirmWordScreen extends PureComponent<Props, State> {
@@ -43,7 +46,9 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
     this.state = {
       selectedWord: '',
       candidateWords: [],
-      confirmWordIncorrectModalVisible: false
+      confirmWordIncorrectModalVisible: false,
+      wordsWarningModalVisible: false,
+      disabled: false
     };
   }
 
@@ -105,21 +110,8 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
 
     if (this.state.selectedWord === target) {
       if (this.context.currentAccount.seedWordCount === wordNum) {
-        // we've confirmed the last word, so store new seed
-        const mnemonic = this.getSeedWordsString();
-        console.log('mnemonic', mnemonic);
-  
-        const wallet = await this.context.loadWalletFromMnemonic(
-          mnemonic,
-          this.context.currentAccount.passphrase,
-          this.context.currentAccount.scriptVersion as ScriptVersion
-        );
-  
-        // this is a new random seed, assuming it has never been used
-        // skip sync and store empty snapshot
-        await this.context.storeAccountWithSnapshot(new AccountSnapshot());
-
-        this.props.navigation.navigate('AccountList');
+        // we've confirmed the last word, show warning dialog
+        this.setState({wordsWarningModalVisible: true});
       } else {
         // continue with the next word
         this.props.navigation.push('ConfirmWord', { wordNum: wordNum + 1 });
@@ -139,7 +131,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
   }
     
   render() {
-    const { selectedWord, candidateWords, confirmWordIncorrectModalVisible } = this.state;
+    const { selectedWord, candidateWords, confirmWordIncorrectModalVisible, wordsWarningModalVisible, disabled } = this.state;
     const { wordNum } = this.props.route.params;
 
     return (
@@ -161,14 +153,15 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
             <View>
               <Button
                 title="Next"
-                style={selectedWord ? styles.submitEnabled : styles.submitDisabled }
-                disabled={! selectedWord}
+                style={! selectedWord || disabled ? styles.submitDisabled : styles.submitEnabled }
+                disabled={! selectedWord || disabled}
                 onPress={async() => await this.next(wordNum)}
               ></Button>
               <Button
                 title='Cancel'
                 onPress={() => this.cancel()}
-                style={styles.cancel}
+                style={disabled ? styles.cancelDisabled : styles.cancelEnabled}
+                disabled={disabled}
               ></Button>
             </View>
 
@@ -183,6 +176,40 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                   this.setState({ confirmWordIncorrectModalVisible: false });
                 }}
               ></ConfirmWordIncorrectModal>
+            </Modal>
+
+            <Modal
+              visible={wordsWarningModalVisible}
+              transparent={false}
+            >
+              <WordsWarningModal
+                onClose={async() => {
+                  
+                  this.setState({
+                    wordsWarningModalVisible: false,
+                    disabled: true
+                  });
+
+                  // warning acknowledged, store new seed
+                  const mnemonic = this.getSeedWordsString();
+                  console.log('mnemonic', mnemonic);
+            
+                  const wallet = await this.context.loadWalletFromMnemonic(
+                    mnemonic,
+                    this.context.currentAccount.passphrase,
+                    this.context.currentAccount.scriptVersion as ScriptVersion
+                  );
+            
+                  // this is a new random seed, assuming it has never been used
+                  // skip sync and store empty snapshot
+                  await this.context.storeAccountWithSnapshot(new AccountSnapshot());
+
+                  this.props.navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'AccountList' }],
+                  });
+                }}
+              ></WordsWarningModal>
             </Modal>
           </View>
         )}
@@ -206,9 +233,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.disabledActionBackground,
     color: Colors.disabledActionText
   },
-  cancel: {
+  cancelEnabled: {
     backgroundColor: Colors.cancelActionBackground,
     color: Colors.cancelActionText,
+    marginBottom: 42
+  },
+  cancelDisabled: {
+    backgroundColor: Colors.cancelActionBackground,
+    color: Colors.disabledCancelActionText,
     marginBottom: 42
   },
   label: {
