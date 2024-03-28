@@ -2,7 +2,8 @@ import React from 'react';
 import {
   View,
   ScrollView,
-  StyleSheet
+  StyleSheet,
+  TouchableOpacity
 } from 'react-native';
 
 import { Account } from '../../models/Account';
@@ -59,47 +60,56 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
 
   getAccountComponents(accounts: Account[]) {
     return accounts.map((account, i) => 
-      <View style={styles.account} key={i}>
-        <View style={styles.info}>
-          <View><AppText style={styles.fingerprint}>{account.fingerprint}</AppText></View>
-          <View><AppText style={styles.accountName}>{account.name}</AppText></View>
-          <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
-          <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
-          <View style={styles.metrics}>
-            <View>
-              <AppText style={styles.metric}>{numFormat(account?.snapshot?.numAddresses)}</AppText>
+      <TouchableOpacity
+        key={i}
+        activeOpacity={0.5}
+        onPress={() => {
+          this.context.setCurrentAccount(account);
+          this.props.navigation.navigate('AccountTransactions');
+        }}
+      >
+        <View style={styles.account}>
+          <View style={styles.info}>
+            <View><AppText style={styles.fingerprint}>{account.fingerprint}</AppText></View>
+            <View><AppText style={styles.accountName}>{account.name}</AppText></View>
+            <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
+            <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+            <View style={styles.metrics}>
               <View>
-                <AppText style={styles.metricLabel}>Child</AppText>
-                <AppText style={styles.metricLabel}>Accounts</AppText>
+                <AppText style={styles.metric}>{numFormat(account?.snapshot?.numAddresses)}</AppText>
+                <View>
+                  <AppText style={styles.metricLabel}>Child</AppText>
+                  <AppText style={styles.metricLabel}>Accounts</AppText>
+                </View>
               </View>
-            </View>
-            <View>
-              <AppText style={styles.metric}>{numFormat(account?.snapshot?.numTransactions)}</AppText>
               <View>
-                <AppText style={styles.metricLabel}>Total</AppText>
-                <AppText style={styles.metricLabel}>Transactions</AppText>
+                <AppText style={styles.metric}>{numFormat(account?.snapshot?.numTransactions)}</AppText>
+                <View>
+                  <AppText style={styles.metricLabel}>Total</AppText>
+                  <AppText style={styles.metricLabel}>Transactions</AppText>
+                </View>
               </View>
-            </View>
-            <View>
-              <AppText style={styles.metric}>{numFormat(account?.snapshot?.numUtxos)}</AppText>
               <View>
-                <AppText style={styles.metricLabel}>Spendable</AppText>
-                <AppText style={styles.metricLabel}>Outputs</AppText>
+                <AppText style={styles.metric}>{numFormat(account?.snapshot?.numUtxos)}</AppText>
+                <View>
+                  <AppText style={styles.metricLabel}>Spendable</AppText>
+                  <AppText style={styles.metricLabel}>Outputs</AppText>
+                </View>
               </View>
-            </View>
-            <View>
-              <AppText style={styles.metric}>{numFormat(account?.snapshot?.satsInMempool)}</AppText>
               <View>
-                <AppText style={styles.metricLabel}>Sats in</AppText>
-                <AppText style={styles.metricLabel}>Mempool</AppText>
+                <AppText style={styles.metric}>{numFormat(account?.snapshot?.satsInMempool)}</AppText>
+                <View>
+                  <AppText style={styles.metricLabel}>Sats in</AppText>
+                  <AppText style={styles.metricLabel}>Mempool</AppText>
+                </View>
               </View>
             </View>
           </View>
+          <View style={styles.openAccount}>
+            <RightArrow height={12} width={5}/>
+          </View>
         </View>
-        <View>
-          <RightArrow />
-        </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -134,6 +144,11 @@ const styles = StyleSheet.create({
     ...Typography.fontSize.x5
   },
   info: {
+  },
+  openAccount: {
+    position: 'absolute',
+    right: 0,
+    top: 50
   },
   account: {
     paddingBottom: 18,
