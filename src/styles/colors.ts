@@ -67,6 +67,7 @@ export const grey125 = '#7D7D7D';
 export const grey128 = '#808080';
 export const grey129 = '#818181';
 export const grey130 = '#828282';
+export const grey132 = '#848484';
 export const grey138 = '#8A8A8A';
 export const grey137 = '#898989';
 export const grey150 = '#969696';
@@ -97,16 +98,13 @@ export const inputBackground = grey36;
 export const actionBackground = grey67;
 export const disabledActionBackground = grey52;
 export const defaultActionBackground = white;
-export const additionalActionBackground = 'rgba(0, 0, 0, 0)';
 export const cancelActionBackground = 'rgba(0, 0, 0, 0)';
 
 export const actionText = white;
 export const disabledActionText = grey104;
 export const defaultActionText = black;
-export const additionalActionText = white;
 export const cancelActionText = grey153;
-
-export const additionalActionBorder = grey54;
+export const disabledCancelActionText = grey153 + '44';
 
 export const modalTitle = grey118;
 export const modalBackground = black;
@@ -202,7 +200,6 @@ export const quarterGrey = grey72;
 // export const grey126 = '#7E7E7E';
 // export const grey127 = '#7F7F7F';
 // export const grey131 = '#838383';
-// export const grey132 = '#848484';
 // export const grey133 = '#858585';
 // export const grey134 = '#868686';
 // export const grey135 = '#878787';

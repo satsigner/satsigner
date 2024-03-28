@@ -239,16 +239,6 @@ const styles = StyleSheet.create({
     color: Colors.cancelActionText,
     marginBottom: 42
   },
-  additionalActionButton: {
-    backgroundColor: Colors.additionalActionBackground,
-    color: Colors.additionalActionText,
-    borderColor: Colors.additionalActionBorder
-  },
-  disabledAdditionalActionButton: {
-    borderColor: Colors.additionalActionBorder,
-    backgroundColor: Colors.additionalActionBackground,
-    color: Colors.disabledActionText
-  },
   disabledSelectButton: {
     color: Colors.disabledActionText
   },

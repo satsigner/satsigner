@@ -1,12 +1,15 @@
 import React from 'react';
 import {
   View,
-  StyleSheet
+  StyleSheet,
+  Dimensions
 } from 'react-native';
 
 import { Typography } from '../../styles';
 import ModalDialog from '../shared/ModalDialog';
 import { AppText } from '../shared/AppText';
+
+import CircleWithXIcon from '../../assets/images/circle-x.svg';
 
 interface Props {
   onClose: () => void
@@ -31,6 +34,7 @@ export default class ConfirmWordIncorrectModal extends React.PureComponent<Props
         onClose={this.props.onClose}
       >
         <View style={styles.container}>
+          <CircleWithXIcon style={styles.icon} width={88} height={88}></CircleWithXIcon>
           <AppText style={styles.text}>
             Selected word{"\n"}
             doesn't match the{"\n"}
@@ -47,11 +51,14 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    alignItems: 'center',
-    height: 220
+    alignItems: 'center'
+  },
+  icon: {
+    marginVertical: 30
   },
   text: {
     ...Typography.textHighlight.x20,
-    textAlign: 'center'
+    textAlign: 'center',
+    marginBottom: 62
   }
 });
