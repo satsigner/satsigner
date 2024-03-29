@@ -32,16 +32,18 @@ export default function AccountTransactionsScreen({
     <AccountsContext.Consumer>
       {({currentAccount: account}) => (
         <View style={styles.container}>
-          <BackgroundGradient style={styles.header}>
-            <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
-            <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+          <BackgroundGradient orientation={'horizontal'}>
+            <View style={styles.header}>
+              <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
+              <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+            </View>
+            <View style={styles.actionBar}>
+              <AppText>Actions</AppText>
+            </View>
+            <View style={styles.tabs}>
+              <AppText>Tabs</AppText>
+            </View>
           </BackgroundGradient>
-          <View style={styles.actionBar}>
-            <AppText>Actions</AppText>
-          </View>
-          <View style={styles.tabs}>
-            <AppText>Tabs</AppText>
-          </View>
           <View style={styles.transactionsHeader}>
             <AppText>Transactions Header</AppText>
           </View>
@@ -61,10 +63,8 @@ const styles = StyleSheet.create({
   header: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 110,
-    paddingBottom: 10,
-    borderBottomColor: 'white',
-    borderBottomWidth: 1
+    height: 100,
+    paddingBottom: 15
   },
   currency: {
     flexDirection: 'row',
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   actionBar: {
     height: 75,
-    borderBottomColor: 'white',
+    borderTopWidth: 1,
     borderBottomWidth: 1
   },
   tabs: {

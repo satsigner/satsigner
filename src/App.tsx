@@ -83,7 +83,7 @@ export default class App extends React.Component<{}, State> {
               <Stack.Screen
                 name="AccountTransactions"
                 component={AccountTransactionsScreen}
-                options={NavUtils.getHeaderOptions(this.appTitle)}
+                options={NavUtils.getHeaderOptions(this.appTitle, 'horizontal')}
               />
             </Stack.Navigator>
           </NavigationContainer>

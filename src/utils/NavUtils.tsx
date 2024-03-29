@@ -8,11 +8,11 @@ import HeaderBackground from '../components/shared/HeaderBackground';
 
 class NavUtils {
 
-  getHeaderOptions(heading: string): NativeStackNavigationOptions {
+  getHeaderOptions(heading: string, gradientOrientation = 'diagonal'): NativeStackNavigationOptions {
     return {
       headerTitleAlign: 'center',
       headerTitle: (props) => <HeaderTitle heading={heading} />,
-      headerBackground: () => <HeaderBackground />,
+      headerBackground: () => <HeaderBackground gradientOrientation={gradientOrientation} />,
       headerTintColor: Colors.grey130,
       headerBackTitleVisible: false
     };
