@@ -8,8 +8,6 @@ import {
   UIManager
 } from 'react-native';
 
-import LinearGradient from 'react-native-linear-gradient';
-
 import LabeledRadioButton from '../shared/LabeledRadioButton';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
