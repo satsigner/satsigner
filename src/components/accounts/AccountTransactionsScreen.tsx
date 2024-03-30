@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 
 import navUtils from '../../utils/NavUtils';
 import { Typography, Colors, Layout } from '../../styles';
@@ -15,10 +16,12 @@ import { AppText } from '../shared/AppText';
 import { AccountsContext } from './AccountsContext';
 import numFormat from '../../utils/numFormat';
 import BackgroundGradient from '../shared/BackgroundGradient';
-import LinearGradient from 'react-native-linear-gradient';
+import notImplementedAlert from '../shared/NotImplementedAlert';
 
 import CameraIcon from '../../assets/images/camera.svg';
-import notImplementedAlert from '../shared/NotImplementedAlert';
+import RefreshIcon from '../../assets/images/refresh.svg';
+import UpArrowIcon from '../../assets/images/up-arrow.svg';
+import DownArrowIcon from '../../assets/images/down-arrow.svg';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -131,8 +134,12 @@ export default function AccountTransactionsScreen({
               <View style={styles.metricContainer}></View>
             </View>
           </BackgroundGradient>
-          <View style={styles.transactionsHeader}>
-            <AppText>Transactions Header</AppText>
+          <View style={styles.transactionsHeaderContainer}>
+            <View style={styles.transactionsHeader}>
+              <RefreshIcon width={18} height={18} />
+              <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
+              <UpArrowIcon width={14} height={5} />
+            </View>
           </View>
           <ScrollView style={styles.transactions}>
             <AppText>Transactions</AppText>
@@ -179,7 +186,7 @@ const styles = StyleSheet.create({
     marginLeft: 3
   },
   actionBar: {
-    height: 60,
+    height: 62,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     display: 'flex',
     flexDirection: 'row',
@@ -190,7 +197,7 @@ const styles = StyleSheet.create({
     ...Typography.capitalization.uppercase
   },
   tabs: {
-    height: 68,
+    height: 67,
     justifyContent: 'center'
   },
   metrics: {
@@ -236,15 +243,31 @@ const styles = StyleSheet.create({
     width: 75,
     bottom: 0
   },
-  transactionsHeader: {
-    height: 75,
-    borderBottomColor: 'white',
-    borderBottomWidth: 1,
+  transactionsHeaderContainer: {
+    width: '90%',
+    marginHorizontal: '5%',
+    height: 61,
+    flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+  },
+  transactionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: -16,
+    width: '100%'
+  },
+  transactionsHeaderText: {
+    color: Colors.grey130,
+    marginTop: 0,
+    ...Typography.fontSize.x4
   },
   transactions: {
-
+    marginHorizontal: '5%',
+    borderTopColor: Colors.grey44,
+    borderTopWidth: 1,
+    height: '100%'
   }
 });
 
