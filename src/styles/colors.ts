@@ -116,6 +116,8 @@ export const invalid = red2;
 export const middleGrey = grey128;
 export const quarterGrey = grey72;
 
+export const alpha50Percent = '80';
+
 // Grey definitions currently unused in any designs
 
 // export const grey1 = '#010101';
