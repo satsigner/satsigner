@@ -8,6 +8,7 @@ import IncomingIcon from '../../assets/images/incoming.svg';
 import OutgoingIcon from '../../assets/images/outgoing.svg';
 import numFormat from "../../utils/numFormat";
 import satsToUsd from "../shared/satsToUsd";
+import { grey103 } from "../../styles/colors";
 
 interface Props {
   transaction: Transaction;
@@ -30,9 +31,11 @@ export default function TransactionItem({
           <View style={styles.currency}><AppText style={styles.usd}>{numFormat(satsToUsd(transaction.received), 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>        
         </View>
         <View style={styles.rightColumn}>
-          <AppText>unconfirmed</AppText>
-          <AppText>No memo</AppText>
-          <AppText>from 31zi8K...sQBg7</AppText>        
+          <AppText style={styles.blockHeight}>unconfirmed</AppText>
+          <View>
+            <AppText style={styles.memo}>No memo</AppText>
+            <View style={styles.otherParties}><AppText style={styles.direction}>from</AppText><AppText style={styles.addressIO}>31zi8K...sQBg7</AppText></View>
+          </View>
         </View>
       </View>
     </View>
@@ -56,14 +59,15 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
+    width: '90%',
     marginLeft: 12
   },
   leftColumn: {
 
   },
   rightColumn: {
-
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   dateTime: {
     ...Typography.fontFamily.sfProDisplayRegular,
@@ -98,5 +102,34 @@ const styles = StyleSheet.create({
     ...Typography.fontSize.x4,
     color: Colors.grey111,
     marginLeft: 3
+  },
+  // white
+  // FEFF5D
+  // 608A64
+  blockHeight: {
+    color: Colors.white,
+    ...Typography.fontSize.x3,
+    textAlign: 'right'
+  },
+  memo: {
+    marginBottom: 3,
+    textAlign: 'right',
+    color: Colors.grey181,
+    letterSpacing: 0
+  },
+  otherParties: {
+    flexDirection: 'row',
+    alignItems: 'flex-end'
+  },
+  direction: {
+    color: Colors.grey130,
+    ...Typography.fontSize.x4,
+    letterSpacing: 0,
+    marginRight: 3
+  },
+  addressIO: {
+    color: Colors.white,
+    ...Typography.fontSize.x4,
+    letterSpacing: 0
   }
 });
