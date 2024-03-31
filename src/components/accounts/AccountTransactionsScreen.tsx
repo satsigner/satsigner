@@ -22,6 +22,8 @@ import CameraIcon from '../../assets/images/camera.svg';
 import RefreshIcon from '../../assets/images/refresh.svg';
 import UpArrowIcon from '../../assets/images/up-arrow.svg';
 import DownArrowIcon from '../../assets/images/down-arrow.svg';
+import TransactionItem from './TransactionItem';
+import satsToUsd from '../shared/satsToUsd';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -65,7 +67,7 @@ export default function AccountTransactionsScreen({
           <BackgroundGradient orientation={'horizontal'}>
             <View style={styles.header}>
               <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
-              <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+              <View style={styles.currency}><AppText style={styles.usd}>{numFormat(satsToUsd(account?.snapshot?.balanceSats), 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
             </View>
             <GradientSeparator />
             <View style={styles.actionBar}>
@@ -142,7 +144,9 @@ export default function AccountTransactionsScreen({
             </View>
           </View>
           <ScrollView style={styles.transactions}>
-            <AppText>Transactions</AppText>
+            { account?.snapshot?.transactions.map((txn, i) =>
+              <TransactionItem transaction={txn} key={i} />
+            ) }
           </ScrollView>
         </View>
       )}
@@ -265,8 +269,6 @@ const styles = StyleSheet.create({
   },
   transactions: {
     marginHorizontal: '5%',
-    borderTopColor: Colors.grey44,
-    borderTopWidth: 1,
     height: '100%'
   }
 });

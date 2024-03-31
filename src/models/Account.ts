@@ -1,6 +1,7 @@
 import { AccountCreationType } from "../enums/AccountCreationType";
 import { ScriptVersion } from "../enums/ScriptVersion";
 import { SeedWordCount } from "../enums/SeedWordCount";
+import { Transaction } from "./Transaction";
 
 export class Account {
   name: string;
@@ -18,9 +19,10 @@ export class Account {
 
 export class AccountSnapshot {
   balanceSats = 0;
-  balanceUsd = 0;
   numAddresses = 0;
   numTransactions = 0;
   numUtxos = 0;
   satsInMempool = 0;
+
+  transactions: Transaction[] = [];
 }

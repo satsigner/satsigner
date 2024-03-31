@@ -16,6 +16,7 @@ import RightArrow from '../../assets/images/right-arrow.svg';
 import { AccountsContext } from './AccountsContext';
 
 import numFormat from '../../utils/numFormat';
+import satsToUsd from '../shared/satsToUsd';
 
 interface Props {}
 
@@ -73,7 +74,7 @@ export default class AccountListScreen extends React.PureComponent<Props, State>
             <View><AppText style={styles.fingerprint}>{account.fingerprint}</AppText></View>
             <View><AppText style={styles.accountName}>{account.name}</AppText></View>
             <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
-            <View style={styles.currency}><AppText style={styles.usd}>{numFormat(account?.snapshot?.balanceUsd, 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+            <View style={styles.currency}><AppText style={styles.usd}>{numFormat(satsToUsd(account?.snapshot?.balanceSats), 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
             <View style={styles.metrics}>
               <View>
                 <AppText style={styles.metric}>{numFormat(account?.snapshot?.numAddresses)}</AppText>

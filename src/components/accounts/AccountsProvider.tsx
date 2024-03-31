@@ -21,9 +21,9 @@ import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
 import { Account, AccountSnapshot } from '../../models/Account';
 
-import satsToUsd from '../shared/satsToUsd';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
+import { TransactionAdapter } from './TransactionAdapter';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -182,7 +182,6 @@ export const AccountsProvider = ({ children }) => {
 
     const balance = await wallet.getBalance();
     snapshot.balanceSats = balance.confirmed;
-    snapshot.balanceUsd = satsToUsd(balance.confirmed);
 
     const addressInfo = await wallet.getAddress(AddressIndex.New);
     const numAddresses = addressInfo.index + 1;
@@ -195,6 +194,11 @@ export const AccountsProvider = ({ children }) => {
     const utxos = await wallet.listUnspent();
     snapshot.numUtxos = utxos.length;
     console.log('utxos', JSON.stringify(utxos));
+
+    snapshot.transactions = (transactions || []).map(
+      txnDetails => TransactionAdapter.toTransaction(txnDetails)
+    );
+    // snapshot.utxos = utxos;
 
     snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
 
