@@ -23,7 +23,7 @@ import RefreshIcon from '../../assets/images/refresh.svg';
 import UpArrowIcon from '../../assets/images/up-arrow.svg';
 import DownArrowIcon from '../../assets/images/down-arrow.svg';
 import TransactionItem from './TransactionItem';
-import satsToUsd from '../shared/satsToUsd';
+import { Sats } from './Sats';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -66,8 +66,7 @@ export default function AccountTransactionsScreen({
         <View style={styles.container}>
           <BackgroundGradient orientation={'horizontal'}>
             <View style={styles.header}>
-              <View style={styles.currency}><AppText style={styles.sats}>{numFormat(account?.snapshot?.balanceSats)}</AppText><AppText style={styles.satsLabel}>sats</AppText></View>
-              <View style={styles.currency}><AppText style={styles.usd}>{numFormat(satsToUsd(account?.snapshot?.balanceSats), 2)}</AppText><AppText style={styles.usdLabel}>USD</AppText></View>
+              <Sats sats={account?.snapshot?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
             </View>
             <GradientSeparator />
             <View style={styles.actionBar}>
@@ -164,30 +163,20 @@ const styles = StyleSheet.create({
     height: 100,
     paddingBottom: 15
   },
-  currency: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: 1
-  },
   sats: {
     ...Typography.fontFamily.sfProTextUltraLight,
     fontSize: 50,
-    marginLeft: 40,
-    color: Colors.white
+    marginLeft: 40
   },
   satsLabel: {
     fontSize: 21,
-    color: Colors.middleGrey,
     marginLeft: 0
   },
   usd: {
-    fontSize: 15,
-    color: Colors.middleGrey
+    fontSize: 15
   },
   usdLabel: {
-    fontSize: 11,
-    color: Colors.quarterGrey,
-    marginLeft: 3
+    fontSize: 11
   },
   actionBar: {
     height: 62,
