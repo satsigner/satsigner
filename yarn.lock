@@ -6157,6 +6157,11 @@ react-test-renderer@18.2.0:
     react-shallow-renderer "^16.15.0"
     scheduler "^0.23.0"
 
+react-timeago@^7.2.0:
+  version "7.2.0"
+  resolved "https://npm.artofcontext.com/react-timeago/-/react-timeago-7.2.0.tgz#ae929d7423a63cbc3dc228e49d22fbf586d459ca"
+  integrity sha512-2KsBEEs+qRhKx/kekUVNSTIpop3Jwd7SRBm0R4Eiq3mPeswRGSsftY9FpKsE/lXLdURyQFiHeHFrIUxLYskG5g==
+
 react@18.2.0:
   version "18.2.0"
   resolved "https://npm.artofcontext.com/react/-/react-18.2.0.tgz"

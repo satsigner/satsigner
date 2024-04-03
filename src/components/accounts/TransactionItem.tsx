@@ -1,5 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
+import TimeAgo from 'react-timeago'
+
 import { AppText } from "../shared/AppText";
 import { Colors, Layout, Typography } from "../../styles";
 import { Transaction, TransactionType } from "../../models/Transaction";
@@ -12,10 +14,25 @@ interface Props {
   transaction: Transaction;
 }
 
+const DateText = (props) => <AppText style={styles.dateTime}>{props.children}</AppText>;
+
 export default function TransactionItem({
   transaction
 }: Props) {
+  const timestamp = new Date(transaction.timestamp as Date);
 
+  const timeFormatter = (value: number, unit: string, suffix: string) => {
+    if (unit === 'second') {
+        return 'less than a minute ' + suffix;
+    } else if (unit === 'minute' || unit === 'hour') {
+        return `${value} ${unit}${
+          value !== 1 ? 's' : ''
+      } ${suffix}`;
+    } else {
+      return `${formatTime(timestamp)} - ${formatDate(timestamp)}`;
+    }
+  };
+  
   return (
     <View style={styles.container}>
       <View style={styles.icon}>
@@ -24,7 +41,12 @@ export default function TransactionItem({
       </View>
       <View style={styles.details}>
         <View style={styles.leftColumn}>
-          <AppText style={styles.dateTime}>5 mins ago</AppText>
+          <TimeAgo
+            date={timestamp}
+            component={DateText}
+            live={true}
+            formatter={timeFormatter}
+          />
           <Sats sats={transaction.received} currencyStyle={styles.currency} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
         </View>
         <View style={styles.rightColumn}>
@@ -37,6 +59,21 @@ export default function TransactionItem({
       </View>
     </View>
   );
+}
+
+function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: 'numeric'
+  }).format(date).replace(' ', '').toLowerCase();
+}
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(date);
 }
 
 const styles = StyleSheet.create({  
