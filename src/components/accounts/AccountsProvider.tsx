@@ -17,6 +17,8 @@ import {
   WordCount
 } from 'bdk-rn/lib/lib/enums';
 
+import { blockchainElectrumConfig } from '../../config';
+
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
 import { Account, AccountSnapshot } from '../../models/Account';
@@ -26,15 +28,6 @@ import { ScriptVersion } from '../../enums/ScriptVersion';
 import { TransactionAdapter } from './TransactionAdapter';
 
 export const AccountsProvider = ({ children }) => {
-
-  const blockchainElectrumConfig: BlockchainElectrumConfig = {
-    url: 'ssl://electrum.blockstream.info:60002',
-    sock5: null,
-    retry: 5,
-    timeout: 5,
-    stopGap: 500,
-    validateDomain: false,
-  };
 
   const [storage, setStorage] = React.useState<Storage>(new Storage());
   
@@ -78,21 +71,21 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const parseDescriptor = (descriptor: string): {fingerprint: string, derivationPath: string} => {
-      // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
-      // capture 0=fingerprint, capture 1=derivation path
-      const match = descriptor.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
-      if (match) {
-        return {
-          fingerprint: match[1],
-          derivationPath: 'm' + match[2]
-        };
-      } else {
-        return {
-          fingerprint: '',
-          derivationPath: ''  
-        };
-      }
-  }
+    // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
+    // capture 0=fingerprint, capture 1=derivation path
+    const match = descriptor.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
+    if (match) {
+      return {
+        fingerprint: match[1],
+        derivationPath: 'm' + match[2]
+      };
+    } else {
+      return {
+        fingerprint: '',
+        derivationPath: ''  
+      };
+    }
+  };
 
   const getDescriptor = async (
     mnemonicString: string,
@@ -117,7 +110,7 @@ export const AccountsProvider = ({ children }) => {
       case ScriptVersion.P2TR:
         throw new Error('Not implemented');
     }
-  }
+  };
 
   const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string, scriptVersion: ScriptVersion): Promise<Wallet> => {
     let externalDescriptor: Descriptor;
@@ -156,12 +149,12 @@ export const AccountsProvider = ({ children }) => {
     );
 
     return wallet;
-  }
+  };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
     const blockchain = await new Blockchain().create(blockchainElectrumConfig);
     await wallet.sync(blockchain);
-  }
+  };
 
   const storeAccount = async (account: Account) => {
     await storage.storeAccount(account);
@@ -224,7 +217,7 @@ export const AccountsProvider = ({ children }) => {
     const mnemonic = await new Mnemonic().create(count as unknown as WordCount);
     console.log('mnemonic', mnemonic);
     return mnemonic.asString();
-  }
+  };
 
   const value = {
     currentAccount: account,

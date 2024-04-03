@@ -1,4 +1,4 @@
-import { useEffect, useContext } from 'react';
+import { useEffect, useContext, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,6 +14,8 @@ import { Typography, Colors, Layout } from '../../styles';
 import { AppText } from '../shared/AppText';
 
 import { AccountsContext } from './AccountsContext';
+import { BlockchainContext } from './BlockchainContext';
+
 import numFormat from '../../utils/numFormat';
 import BackgroundGradient from '../shared/BackgroundGradient';
 import notImplementedAlert from '../shared/NotImplementedAlert';
@@ -32,10 +34,20 @@ interface Props {
 export default function AccountTransactionsScreen({
   navigation
 }: Props) {
-  const context = useContext(AccountsContext);
+  const accountsContext = useContext(AccountsContext);
+  const blockchainContext = useContext(BlockchainContext);
+
+  const [blockchainHeight, setBlockchainHeight] = useState<number>(0);
 
   useEffect(() => {
-    navUtils.setHeaderTitle(context.currentAccount.name, navigation);
+    navUtils.setHeaderTitle(accountsContext.currentAccount.name, navigation);
+  }, []);
+
+  useEffect(() => {
+    blockchainContext.getBlockchainHeight().then(height => {
+      console.log('Blockchain Height', height);
+      setBlockchainHeight(height);
+    });    
   }, []);
 
   const GradientSeparator = () => <LinearGradient
@@ -144,12 +156,16 @@ export default function AccountTransactionsScreen({
           </View>
           <ScrollView style={styles.transactions}>
             { account?.snapshot?.transactions.map((txn, i) =>
-              <TransactionItem transaction={txn} key={i} />
+              <TransactionItem
+                key={i}
+                transaction={txn}
+                blockchainHeight={blockchainHeight}
+              />
             ) }
           </ScrollView>
         </View>
       )}
-    </AccountsContext.Consumer>      
+    </AccountsContext.Consumer>
   );
 }
 

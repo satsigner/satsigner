@@ -12,14 +12,23 @@ import { Sats } from "./Sats";
 
 interface Props {
   transaction: Transaction;
+  blockchainHeight: number;
 }
 
 const DateText = (props) => <AppText style={styles.dateTime}>{props.children}</AppText>;
 
 export default function TransactionItem({
-  transaction
+  transaction,
+  blockchainHeight
 }: Props) {
+
+  const showTime = !! transaction.timestamp;
   const timestamp = new Date(transaction.timestamp as Date);
+  const blockHeight = transaction.blockHeight;
+
+  const confirmations = getConfirmations(blockchainHeight, blockHeight);
+  const confirmationsText = getConfirmationsText(confirmations);
+  const confirmationsColorStyle = getConfirmationsColorStyle(confirmations);
 
   const timeFormatter = (value: number, unit: string, suffix: string) => {
     if (unit === 'second') {
@@ -41,26 +50,26 @@ export default function TransactionItem({
       </View>
       <View style={styles.details}>
         <View style={styles.leftColumn}>
-          <TimeAgo
+          { showTime && <TimeAgo
             date={timestamp}
             component={DateText}
             live={true}
             formatter={timeFormatter}
-          />
+          /> }
           <Sats
             sats={transaction.type === TransactionType.Send ?
               -transaction.sent :
               transaction.received
             }
             currencyStyle={styles.currency}
-            satsStyle={styles.sats}
+            satsStyle={[styles.sats, ! showTime && styles.satsNoTime]}
             satsLabelStyle={styles.satsLabel}
             usdStyle={styles.usd}
             usdLabelStyle={styles.usdLabel}
           />
         </View>
         <View style={styles.rightColumn}>
-          <AppText style={styles.blockHeight}>unconfirmed</AppText>
+          <AppText style={[styles.confirmations, confirmationsColorStyle]}>{ confirmationsText }</AppText>
           <View>
             <AppText style={styles.memo}>No memo</AppText>
             <View style={styles.otherParties}><AppText style={styles.direction}>from</AppText><AppText style={styles.addressIO}>31zi8K...sQBg7</AppText></View>
@@ -84,6 +93,55 @@ function formatDate(date: Date): string {
     day: 'numeric',
     year: 'numeric'
   }).format(date);
+}
+
+function getConfirmations(currentBlockHeight: number, transactionBlockHeight?: number): number {
+  return transactionBlockHeight ?
+    currentBlockHeight - transactionBlockHeight + 1 :
+    0;
+}
+
+// returns one of: unconfirmed, 1 block deep, (2|3|4|5|6+|10+|100+|1k+|10k+|100k+) blocks deep
+function getConfirmationsText(confirmations: number): string {
+  if (confirmations === 0) {
+    // 0
+    return 'unconfirmed';
+  }
+  else if (confirmations === 1) {
+    // 1
+    return '1 block deep';
+  } else if (confirmations < 6) {
+    // 2..5
+    return confirmations + ' blocks deep';
+  } else if (confirmations < 10) {
+    // 6..9
+    return '6+ blocks deep';
+  } else if (confirmations < 100) {
+    // 10..99
+    return '10+ blocks deep'
+  } else if (confirmations < 1_000) {
+    // 100..999
+    return '100+ blocks deep';
+  } else if (confirmations < 10_000) {
+    // 1,000..9,999
+    return '1k+ blocks deep';
+  } else if (confirmations < 100_000) {
+    // 10,000..99,999
+    return '10k+ blocks deep';
+  } else {
+    // 100,000+
+    return '100k+ blocks deep';
+  }
+}
+
+function getConfirmationsColorStyle(confirmations: number): any {
+  if (confirmations === 0) {
+    return styles.confirmationsUnconfirmed;
+  } else if (confirmations < 6) {
+    return styles.confirmationsFew;
+  } else {
+    return styles.confirmationsEnough;
+  }
 }
 
 const styles = StyleSheet.create({  
@@ -125,6 +183,9 @@ const styles = StyleSheet.create({
   sats: {
     fontSize: 28,
   },
+  satsNoTime: {
+    marginTop: -6
+  },
   satsLabel: {
     ...Typography.fontFamily.sfProDisplayRegular,
     ...Typography.fontSize.x5,
@@ -142,13 +203,18 @@ const styles = StyleSheet.create({
     ...Typography.fontSize.x4,
     color: Colors.grey111
   },
-  // white
-  // FEFF5D
-  // 608A64
-  blockHeight: {
-    color: Colors.white,
+  confirmations: {
     ...Typography.fontSize.x3,
     textAlign: 'right'
+  },
+  confirmationsUnconfirmed: {
+    color: Colors.white,
+  },
+  confirmationsFew: {
+    color: Colors.yellow1,
+  },
+  confirmationsEnough: {
+    color: Colors.green1,
   },
   memo: {
     marginBottom: 3,

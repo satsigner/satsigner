@@ -21,6 +21,7 @@ import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
+import { BlockchainProvider } from './components/accounts/BlockchainProvider';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,58 +38,60 @@ export default class App extends React.Component<{}, State> {
 
   render() {
     return (
-      <AccountsProvider>
-        <View style={styles.container}>
-          <NavigationContainer>
-            <Stack.Navigator
-              defaultScreenOptions={{
-                headerTintColor: Colors.white,
-              }}
-            >
-              <Stack.Screen
-                name="Home"
-                component={HomeScreen}            
-                options={NavUtils.getHeaderOptions(this.appTitle)}
-              />
-              <Stack.Screen
-                name="CreateParentAccount"
-                component={CreateParentAccountScreen}
-                options={NavUtils.getHeaderOptions('Add Master Key')}
-              />
-              <Stack.Screen
-                name="AccountOptions"
-                component={AccountOptionsScreen}
-                options={NavUtils.getHeaderOptions('Account Options')}
-              />
-              <Stack.Screen
-                name="ImportSeed"
-                component={ImportSeedScreen}
-                options={NavUtils.getHeaderOptions('Import Existing Seed')}
-              />
-              <Stack.Screen
-                name="GenerateSeed"
-                component={GenerateSeedScreen}
-                options={NavUtils.getHeaderOptions('Generate New Secret Seed')}
-              />
-              <Stack.Screen
-                name="ConfirmWord"
-                component={ConfirmWordScreen}
-                options={NavUtils.getHeaderOptions('Confirm Word')}
-              />
-              <Stack.Screen
-                name="AccountList"
-                component={AccountListScreen}
-                options={NavUtils.getHeaderOptions(this.appTitle)}
-              />
-              <Stack.Screen
-                name="AccountTransactions"
-                component={AccountTransactionsScreen}
-                options={NavUtils.getHeaderOptions(this.appTitle, 'horizontal')}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </View>
-      </AccountsProvider>
+      <BlockchainProvider>
+        <AccountsProvider>
+          <View style={styles.container}>
+            <NavigationContainer>
+              <Stack.Navigator
+                defaultScreenOptions={{
+                  headerTintColor: Colors.white,
+                }}
+              >
+                <Stack.Screen
+                  name="Home"
+                  component={HomeScreen}            
+                  options={NavUtils.getHeaderOptions(this.appTitle)}
+                />
+                <Stack.Screen
+                  name="CreateParentAccount"
+                  component={CreateParentAccountScreen}
+                  options={NavUtils.getHeaderOptions('Add Master Key')}
+                />
+                <Stack.Screen
+                  name="AccountOptions"
+                  component={AccountOptionsScreen}
+                  options={NavUtils.getHeaderOptions('Account Options')}
+                />
+                <Stack.Screen
+                  name="ImportSeed"
+                  component={ImportSeedScreen}
+                  options={NavUtils.getHeaderOptions('Import Existing Seed')}
+                />
+                <Stack.Screen
+                  name="GenerateSeed"
+                  component={GenerateSeedScreen}
+                  options={NavUtils.getHeaderOptions('Generate New Secret Seed')}
+                />
+                <Stack.Screen
+                  name="ConfirmWord"
+                  component={ConfirmWordScreen}
+                  options={NavUtils.getHeaderOptions('Confirm Word')}
+                />
+                <Stack.Screen
+                  name="AccountList"
+                  component={AccountListScreen}
+                  options={NavUtils.getHeaderOptions(this.appTitle)}
+                />
+                <Stack.Screen
+                  name="AccountTransactions"
+                  component={AccountTransactionsScreen}
+                  options={NavUtils.getHeaderOptions(this.appTitle, 'horizontal')}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
+        </AccountsProvider>
+      </BlockchainProvider>
     );
   }
 }

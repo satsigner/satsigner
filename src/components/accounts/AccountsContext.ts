@@ -16,5 +16,5 @@ export const AccountsContext = createContext({
   loadWalletFromMnemonic: async (mnemonic: string, passphrase: string, scriptVersion: ScriptVersion) => new Wallet(),
   getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
   storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
-  syncWallet: async (wallet: Wallet) => {},
+  syncWallet: async (wallet: Wallet) => {}
 });
