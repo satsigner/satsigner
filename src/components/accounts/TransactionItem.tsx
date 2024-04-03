@@ -32,7 +32,7 @@ export default function TransactionItem({
       return `${formatTime(timestamp)} - ${formatDate(timestamp)}`;
     }
   };
-  
+
   return (
     <View style={styles.container}>
       <View style={styles.icon}>
@@ -47,7 +47,17 @@ export default function TransactionItem({
             live={true}
             formatter={timeFormatter}
           />
-          <Sats sats={transaction.received} currencyStyle={styles.currency} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
+          <Sats
+            sats={transaction.type === TransactionType.Send ?
+              -transaction.sent :
+              transaction.received
+            }
+            currencyStyle={styles.currency}
+            satsStyle={styles.sats}
+            satsLabelStyle={styles.satsLabel}
+            usdStyle={styles.usd}
+            usdLabelStyle={styles.usdLabel}
+          />
         </View>
         <View style={styles.rightColumn}>
           <AppText style={styles.blockHeight}>unconfirmed</AppText>
