@@ -24,7 +24,7 @@ export default function TransactionItem({
 
   const showTime = !! transaction.timestamp;
   const timestamp = new Date(transaction.timestamp as Date);
-  const blockHeight = transaction.blockHeight;
+  const { blockHeight, memo } = transaction;
 
   const confirmations = getConfirmations(blockchainHeight, blockHeight);
   const confirmationsText = getConfirmationsText(confirmations);
@@ -70,8 +70,8 @@ export default function TransactionItem({
         </View>
         <View style={styles.rightColumn}>
           <AppText style={[styles.confirmations, confirmationsColorStyle]}>{ confirmationsText }</AppText>
-          <View>
-            <AppText style={styles.memo}>No memo</AppText>
+          <View style={styles.rightColumnBottom}>
+            <AppText numberOfLines={1} style={[styles.memo, ! memo && styles.noMemo]}>{ memo || 'No memo' }</AppText>
             <View style={styles.otherParties}><AppText style={styles.direction}>from</AppText><AppText style={styles.addressIO}>31zi8K...sQBg7</AppText></View>
           </View>
         </View>
@@ -219,11 +219,19 @@ const styles = StyleSheet.create({
   memo: {
     marginBottom: 3,
     textAlign: 'right',
-    color: Colors.grey181,
-    letterSpacing: 0
+    color: Colors.white,
+    letterSpacing: 0,
+    width: 150
+  },
+  noMemo: {
+    color: Colors.grey181
   },
   otherParties: {
     flexDirection: 'row',
+    alignItems: 'flex-end'
+  },
+  rightColumnBottom: {
+    flexDirection: 'column',
     alignItems: 'flex-end'
   },
   direction: {

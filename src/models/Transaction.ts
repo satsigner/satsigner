@@ -4,6 +4,7 @@ export class Transaction {
   received = 0;
   timestamp?: Date;
   blockHeight?: number;
+  memo?: string;
 }
 
 export enum TransactionType {

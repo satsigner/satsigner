@@ -11,7 +11,8 @@ export class TransactionAdapter {
       timestamp: txnDetails.confirmationTime?.timestamp ?
         new Date(txnDetails.confirmationTime?.timestamp * 1000) :
         undefined,
-      blockHeight: txnDetails.confirmationTime?.height
+      blockHeight: txnDetails.confirmationTime?.height,
+      memo: undefined
     }
   }
 }
