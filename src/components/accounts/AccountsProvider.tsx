@@ -12,7 +12,6 @@ import {
 import {
   Network,
   KeychainKind,
-  BlockchainElectrumConfig,
   AddressIndex,
   WordCount
 } from 'bdk-rn/lib/lib/enums';
@@ -188,10 +187,11 @@ export const AccountsProvider = ({ children }) => {
     snapshot.numUtxos = utxos.length;
     console.log('utxos', JSON.stringify(utxos));
 
-    snapshot.transactions = (transactions || []).map(
-      txnDetails => TransactionAdapter.toTransaction(txnDetails)
+    snapshot.transactions = await Promise.all(
+      (transactions || []).map(
+        txnDetails => TransactionAdapter.toTransaction(txnDetails, utxos)
+      )
     );
-    // snapshot.utxos = utxos;
 
     snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
 

@@ -72,12 +72,26 @@ export default function TransactionItem({
           <AppText style={[styles.confirmations, confirmationsColorStyle]}>{ blockchainHeight && confirmationsText }</AppText>
           <View style={styles.rightColumnBottom}>
             <AppText numberOfLines={1} style={[styles.memo, ! memo && styles.noMemo]}>{ memo || 'No memo' }</AppText>
-            <View style={styles.otherParties}><AppText style={styles.direction}>from</AppText><AppText style={styles.addressIO}>31zi8K...sQBg7</AppText></View>
+            <View style={styles.otherParties}>
+              <AppText style={styles.direction}>to</AppText>
+              <AppText style={styles.addressIO}>{formatAddress(transaction.address)}</AppText>
+            </View>
           </View>
         </View>
       </View>
     </View>
   );
+}
+
+function formatAddress(address: string): string {
+  if (address.length <= 16) {
+    return address;
+  }
+
+  // Show first and last eight characters - https://bitcoin.stackexchange.com/a/119182
+  const beginning = address.substring(0, 8);
+  const end = address.substring(address.length - 8, address.length);
+  return `${beginning}...${end}`;
 }
 
 function formatTime(date: Date): string {
