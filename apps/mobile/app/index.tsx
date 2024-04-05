@@ -15,7 +15,9 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text>{i18n.t('satsigner.name')}</Text>
+      <Text style={{ fontFamily: 'SF Pro Text Bold' }}>
+        {i18n.t('satsigner.name')}
+      </Text>
       <Button title="Generate" onPress={handleClick} />
       <Text>{test}</Text>
       <StatusBar style="auto" />
