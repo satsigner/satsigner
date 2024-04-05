@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
 
-import AccountComponents from './AccountsList/AccountComponents';
+import Account from './AccountsList/Account';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 import { styles } from './AccountsList/styles';
@@ -46,7 +46,7 @@ export default class AccountListScreen extends React.PureComponent<
                   </View>
                 )}
                 <View>
-                  <AccountComponents accounts={accounts} />
+                  <Account accounts={accounts} />
                 </View>
               </ScrollView>
             </View>

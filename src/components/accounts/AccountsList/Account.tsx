@@ -2,15 +2,15 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '../../shared/AppText';
-import { Account } from '../../../models/Account';
+import { Account as AccountModel } from '../../../models/Account';
 import numFormat from '../../../utils/numFormat';
 import RightArrow from '../../../assets/images/right-arrow.svg';
 import { styles } from './styles';
 
 interface Props {
-  accounts: Account[];
+  accounts: AccountModel[];
 }
-export default function AccountComponents({ accounts }: Props) {
+export default function Account({ accounts }: Props) {
   return accounts.map((account, i) => (
     <View style={styles.account} key={i}>
       <View style={styles.info}>
