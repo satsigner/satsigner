@@ -1,12 +1,9 @@
 import React from 'react';
-import {
-  View,
-  StyleSheet
-} from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import './shim';
 
-import {NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors, Layout } from './styles';
 
@@ -23,72 +20,61 @@ import { AccountsProvider } from './components/accounts/AccountsProvider';
 
 const Stack = createNativeStackNavigator();
 
-interface State {
+const APP_TITLE = 'Sat Signer';
+
+export default function App() {
+  return (
+    <AccountsProvider>
+      <View style={styles.container}>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerTintColor: Colors.white,
+            }}>
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={NavUtils.getHeaderOptions(APP_TITLE)}
+            />
+            <Stack.Screen
+              name="CreateParentAccount"
+              component={CreateParentAccountScreen}
+              options={NavUtils.getHeaderOptions('Add Master Key')}
+            />
+            <Stack.Screen
+              name="AccountOptions"
+              component={AccountOptionsScreen}
+              options={NavUtils.getHeaderOptions('Account Options')}
+            />
+            <Stack.Screen
+              name="ImportSeed"
+              component={ImportSeedScreen}
+              options={NavUtils.getHeaderOptions('Import Existing Seed')}
+            />
+            <Stack.Screen
+              name="GenerateSeed"
+              component={GenerateSeedScreen}
+              options={NavUtils.getHeaderOptions('Generate New Secret Seed')}
+            />
+            <Stack.Screen
+              name="ConfirmWord"
+              component={ConfirmWordScreen}
+              options={NavUtils.getHeaderOptions('Confirm Word')}
+            />
+            <Stack.Screen
+              name="AccountList"
+              component={AccountListScreen}
+              options={NavUtils.getHeaderOptions(APP_TITLE)}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </View>
+    </AccountsProvider>
+  );
 }
 
-export default class App extends React.Component<{}, State> {
-  
-  appTitle = 'Sat Signer';
-
-  constructor(props: any) {
-    super(props);
-  }
-
-  render() {
-    return (
-      <AccountsProvider>
-        <View style={styles.container}>
-          <NavigationContainer>
-            <Stack.Navigator
-              defaultScreenOptions={{
-                headerTintColor: Colors.white,
-              }}
-            >
-              <Stack.Screen
-                name="Home"
-                component={HomeScreen}            
-                options={NavUtils.getHeaderOptions(this.appTitle)}
-              />
-              <Stack.Screen
-                name="CreateParentAccount"
-                component={CreateParentAccountScreen}
-                options={NavUtils.getHeaderOptions('Add Master Key')}
-              />
-              <Stack.Screen
-                name="AccountOptions"
-                component={AccountOptionsScreen}
-                options={NavUtils.getHeaderOptions('Account Options')}
-              />
-              <Stack.Screen
-                name="ImportSeed"
-                component={ImportSeedScreen}
-                options={NavUtils.getHeaderOptions('Import Existing Seed')}
-              />
-              <Stack.Screen
-                name="GenerateSeed"
-                component={GenerateSeedScreen}
-                options={NavUtils.getHeaderOptions('Generate New Secret Seed')}
-              />
-              <Stack.Screen
-                name="ConfirmWord"
-                component={ConfirmWordScreen}
-                options={NavUtils.getHeaderOptions('Confirm Word')}
-              />
-              <Stack.Screen
-                name="AccountList"
-                component={AccountListScreen}
-                options={NavUtils.getHeaderOptions(this.appTitle)}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-        </View>
-      </AccountsProvider>
-    );
-  }
-}
-
-const styles = StyleSheet.create({  
+const styles = StyleSheet.create({
   container: {
     ...Layout.container.base,
-  }
+  },
 });

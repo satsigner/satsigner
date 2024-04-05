@@ -4,6 +4,7 @@ import { Text, StyleSheet } from 'react-native';
 import { Typography } from '../../styles';
 
 interface Props {
+  style?: any;
 }
 
 export class AppText extends Component<PropsWithChildren<Props>> {
@@ -14,10 +15,10 @@ export class AppText extends Component<PropsWithChildren<Props>> {
   }
 }
 
-const styles = StyleSheet.create({  
+const styles = StyleSheet.create({
   text: {
     ...Typography.textHighlight.x5,
     ...Typography.fontFamily.sfProTextRegular,
-    letterSpacing: 0.6
+    letterSpacing: 0.6,
   },
 });
