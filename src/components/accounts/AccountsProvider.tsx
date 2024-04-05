@@ -138,6 +138,10 @@ export const AccountsProvider = ({ children }) => {
       throw new Error('Account with that mnemonic already exists');
     }
 
+    return await loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
+  };
+
+  const loadWalletFromDescriptor = async(externalDescriptor: Descriptor, internalDescriptor: Descriptor): Promise<Wallet> => {
     const dbConfig = await new DatabaseConfig().memory();
 
     const wallet = await new Wallet().create(
@@ -227,6 +231,7 @@ export const AccountsProvider = ({ children }) => {
     getFingerprint,
     generateMnemonic,
     loadWalletFromMnemonic,
+    loadWalletFromDescriptor,
     getAccountSnapshot,
     storeAccountWithSnapshot,
     syncWallet

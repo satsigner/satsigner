@@ -26,6 +26,8 @@ import UpArrowIcon from '../../assets/images/up-arrow.svg';
 import DownArrowIcon from '../../assets/images/down-arrow.svg';
 import TransactionItem from './TransactionItem';
 import { Sats } from './Sats';
+import { Descriptor } from 'bdk-rn';
+import { Network } from 'bdk-rn/lib/lib/enums';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -44,10 +46,33 @@ export default function AccountTransactionsScreen({
   }, []);
 
   useEffect(() => {
-    blockchainContext.getBlockchainHeight().then(height => {
+    (async () => {
+      const height = await blockchainContext.getBlockchainHeight();
       console.log('Blockchain Height', height);
       setBlockchainHeight(height);
-    });    
+    })();
+
+    return () => { };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const externalDescriptor = await new Descriptor()
+        .create(accountsContext.currentAccount.external_descriptor as string, Network.Testnet);
+      const internalDescriptor = await new Descriptor()
+        .create(accountsContext.currentAccount.internal_descriptor as string, Network.Testnet);
+
+      const wallet = await accountsContext.loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
+      console.log('Syncing wallet...');
+
+      await accountsContext.syncWallet(wallet);
+      console.log('Completed wallet sync.');
+
+      const snapshot = await accountsContext.getAccountSnapshot(wallet);
+      await accountsContext.storeAccountWithSnapshot(snapshot);
+    })();
+  
+    return () => { };
   }, []);
 
   const GradientSeparator = () => <LinearGradient

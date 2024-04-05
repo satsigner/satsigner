@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import { Wallet } from 'bdk-rn';
+import { Descriptor, Wallet } from 'bdk-rn';
 
 import { Account, AccountSnapshot } from '../../models/Account';
 import { SeedWordCount } from '../../enums/SeedWordCount';
@@ -14,6 +14,7 @@ export const AccountsContext = createContext({
   getFingerprint: async (mnemonic: string, passphrase: string) => {},
   generateMnemonic: async(count: SeedWordCount) => '',
   loadWalletFromMnemonic: async (mnemonic: string, passphrase: string, scriptVersion: ScriptVersion) => new Wallet(),
+  loadWalletFromDescriptor: async (externalDescriptor: Descriptor, internalDescriptor: Descriptor) => new Wallet(),
   getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
   storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
   syncWallet: async (wallet: Wallet) => {}
