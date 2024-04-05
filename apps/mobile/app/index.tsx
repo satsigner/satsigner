@@ -3,9 +3,10 @@ import { useState } from 'react'
 import { StyleSheet, Text, View, Button } from 'react-native'
 import { Mnemonic } from 'bdk-rn'
 import { WordCount } from 'bdk-rn/lib/lib/enums'
+import { i18n } from '../locales'
 
 export default function App() {
-  const [test, setTest] = useState("")
+  const [test, setTest] = useState('')
 
   const handleClick = async () => {
     const mnemonic = await new Mnemonic().create(WordCount.WORDS12)
@@ -14,7 +15,7 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+      <Text>{i18n.t('satsigner.name')}</Text>
       <Button title="Generate" onPress={handleClick} />
       <Text>{test}</Text>
       <StatusBar style="auto" />
