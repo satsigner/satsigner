@@ -10,7 +10,7 @@ import { styles } from './styles';
 interface Props {
   accounts: AccountModel[];
 }
-export default function Account({ accounts }: Props) {
+export default function Accounts({ accounts }: Props) {
   return accounts.map((account, i) => (
     <View style={styles.account} key={i}>
       <View style={styles.info}>
