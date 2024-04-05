@@ -72,10 +72,10 @@ export default function TransactionItem({
           <AppText style={[styles.confirmations, confirmationsColorStyle]}>{ blockchainHeight && confirmationsText }</AppText>
           <View style={styles.rightColumnBottom}>
             <AppText numberOfLines={1} style={[styles.memo, ! memo && styles.noMemo]}>{ memo || 'No memo' }</AppText>
-            <View style={styles.otherParties}>
+            { transaction.address && <View style={styles.otherParties}>
               <AppText style={styles.direction}>to</AppText>
               <AppText style={styles.addressIO}>{formatAddress(transaction.address)}</AppText>
-            </View>
+            </View> }
           </View>
         </View>
       </View>
