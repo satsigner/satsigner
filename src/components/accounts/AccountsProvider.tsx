@@ -38,6 +38,30 @@ export const AccountsProvider = ({ children }) => {
 
   const [account, setAccount] = React.useState(new Account());
 
+  const [blockchain, setBlockchain] = React.useState<Blockchain>(new Blockchain());
+
+  React.useEffect(() => {
+    
+    (async() => {
+      const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+      setBlockchain(blockchain);
+    })();
+
+    return () => {};
+  }, []);
+
+  const [dbConfig, setDbConfig] = React.useState<DatabaseConfig>(new DatabaseConfig());
+
+  React.useEffect(() => {
+
+    (async() => {
+      const dbConfig = await new DatabaseConfig().memory();
+      setDbConfig(dbConfig);
+    })();
+
+    return () => {};
+  });
+
   const hasAccountWithName = (name: string) => !! accounts.find(a => name === a.name);
 
   const hasAccountWithDescriptor = (externalDescriptor: string, internalDescriptor: string) =>
@@ -47,6 +71,10 @@ export const AccountsProvider = ({ children }) => {
   const setCurrentAccount = (account: Account) => {
     account.name = account.name.trim();
     setAccount(account);
+  };
+
+  const getBlockchainHeight = async(): Promise<number> => {
+    return await blockchain.getHeight();
   };
 
   const getFingerprint = async(mnemonicString: string, passphrase = ''): Promise<string> => {
@@ -142,8 +170,8 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const loadWalletFromDescriptor = async(externalDescriptor: Descriptor, internalDescriptor: Descriptor): Promise<Wallet> => {
-    const dbConfig = await new DatabaseConfig().memory();
-
+    // const dbConfig = await new DatabaseConfig().memory();
+    
     const wallet = await new Wallet().create(
       externalDescriptor,
       internalDescriptor,
@@ -155,7 +183,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
-    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    // const blockchain = await new Blockchain().create(blockchainElectrumConfig);
     await wallet.sync(blockchain);
   };
 
@@ -234,7 +262,8 @@ export const AccountsProvider = ({ children }) => {
     loadWalletFromDescriptor,
     getAccountSnapshot,
     storeAccountWithSnapshot,
-    syncWallet
+    syncWallet,
+    getBlockchainHeight
   };
 
   return (

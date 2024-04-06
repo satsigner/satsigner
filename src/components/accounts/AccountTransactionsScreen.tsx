@@ -14,7 +14,6 @@ import { Typography, Colors, Layout } from '../../styles';
 import { AppText } from '../shared/AppText';
 
 import { AccountsContext } from './AccountsContext';
-import { BlockchainContext } from './BlockchainContext';
 
 import numFormat from '../../utils/numFormat';
 import BackgroundGradient from '../shared/BackgroundGradient';
@@ -37,7 +36,6 @@ export default function AccountTransactionsScreen({
   navigation
 }: Props) {
   const accountsContext = useContext(AccountsContext);
-  const blockchainContext = useContext(BlockchainContext);
 
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0);
 
@@ -47,7 +45,7 @@ export default function AccountTransactionsScreen({
 
   useEffect(() => {
     (async () => {
-      const height = await blockchainContext.getBlockchainHeight();
+      const height = await accountsContext.getBlockchainHeight();
       console.log('Blockchain Height', height);
       setBlockchainHeight(height);
     })();

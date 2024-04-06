@@ -17,5 +17,6 @@ export const AccountsContext = createContext({
   loadWalletFromDescriptor: async (externalDescriptor: Descriptor, internalDescriptor: Descriptor) => new Wallet(),
   getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
   storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
-  syncWallet: async (wallet: Wallet) => {}
+  syncWallet: async (wallet: Wallet) => {},
+  getBlockchainHeight: async () => 0
 });
