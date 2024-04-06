@@ -3,7 +3,8 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableHighlight
+  TouchableHighlight,
+  TouchableOpacity
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
@@ -44,34 +45,39 @@ export default function AccountTransactionsScreen({
   }, []);
 
   useEffect(() => {
-    (async () => {
-      const height = await accountsContext.getBlockchainHeight();
-      console.log('Blockchain Height', height);
-      setBlockchainHeight(height);
+    (async() => {
+      await refresh();
     })();
 
-    return () => { };
+    return () => {};
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const externalDescriptor = await new Descriptor()
-        .create(accountsContext.currentAccount.external_descriptor as string, Network.Testnet);
-      const internalDescriptor = await new Descriptor()
-        .create(accountsContext.currentAccount.internal_descriptor as string, Network.Testnet);
+  async function refresh() {
+    await refreshBlockchainHeight();
+    await refreshAccount();  
+  }
 
-      const wallet = await accountsContext.loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
-      console.log('Syncing wallet...');
+  async function refreshBlockchainHeight() {
+    const height = await accountsContext.getBlockchainHeight();
+    console.log('Blockchain Height', height);
+    setBlockchainHeight(height);
+  }
 
-      await accountsContext.syncWallet(wallet);
-      console.log('Completed wallet sync.');
+  async function refreshAccount() {
+    const externalDescriptor = await new Descriptor()
+      .create(accountsContext.currentAccount.external_descriptor as string, Network.Testnet);
+    const internalDescriptor = await new Descriptor()
+      .create(accountsContext.currentAccount.internal_descriptor as string, Network.Testnet);
 
-      const snapshot = await accountsContext.getAccountSnapshot(wallet);
-      await accountsContext.storeAccountWithSnapshot(snapshot);
-    })();
-  
-    return () => { };
-  }, []);
+    const wallet = await accountsContext.loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
+    console.log('Syncing wallet...');
+
+    await accountsContext.syncWallet(wallet);
+    console.log('Completed wallet sync.');
+
+    const snapshot = await accountsContext.getAccountSnapshot(wallet);
+    await accountsContext.storeAccountWithSnapshot(snapshot);
+  }
 
   const GradientSeparator = () => <LinearGradient
     style={{width: '100%', height: 1}}
@@ -172,7 +178,9 @@ export default function AccountTransactionsScreen({
           </BackgroundGradient>
           <View style={styles.transactionsHeaderContainer}>
             <View style={styles.transactionsHeader}>
-              <RefreshIcon width={18} height={18} />
+              <TouchableOpacity onPress={() => refresh()}>
+                <RefreshIcon width={18} height={18} />                
+              </TouchableOpacity>
               <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
               <UpArrowIcon width={14} height={5} />
             </View>
