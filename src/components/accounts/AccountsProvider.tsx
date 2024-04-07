@@ -170,8 +170,6 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const loadWalletFromDescriptor = async(externalDescriptor: Descriptor, internalDescriptor: Descriptor): Promise<Wallet> => {
-    // const dbConfig = await new DatabaseConfig().memory();
-    
     const wallet = await new Wallet().create(
       externalDescriptor,
       internalDescriptor,
@@ -183,7 +181,6 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
-    // const blockchain = await new Blockchain().create(blockchainElectrumConfig);
     await wallet.sync(blockchain);
   };
 

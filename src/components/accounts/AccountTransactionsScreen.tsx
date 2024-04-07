@@ -1,10 +1,11 @@
-import { useEffect, useContext, useState } from 'react';
+import { useEffect, useContext, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableHighlight,
-  TouchableOpacity
+  TouchableOpacity,
+  RefreshControl
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
@@ -38,7 +39,22 @@ export default function AccountTransactionsScreen({
 }: Props) {
   const accountsContext = useContext(AccountsContext);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0);
+
+  const onRefresh = useCallback(() => {
+    (async() => {
+      const start = new Date();
+      console.log('Start refreshing');
+      setRefreshing(true);
+      
+      await refresh();
+      console.log('End refreshing', (+new Date() - +start));
+      setRefreshing(false);
+    })();
+
+    return () => {};
+  }, []);
 
   useEffect(() => {
     navUtils.setHeaderTitle(accountsContext.currentAccount.name, navigation);
@@ -58,6 +74,7 @@ export default function AccountTransactionsScreen({
   }
 
   async function refreshBlockchainHeight() {
+    console.log('Retreiving blockchain height...');
     const height = await accountsContext.getBlockchainHeight();
     console.log('Blockchain Height', height);
     setBlockchainHeight(height);
@@ -178,14 +195,27 @@ export default function AccountTransactionsScreen({
           </BackgroundGradient>
           <View style={styles.transactionsHeaderContainer}>
             <View style={styles.transactionsHeader}>
-              <TouchableOpacity onPress={() => refresh()}>
+              <TouchableOpacity style={styles.refreshAction} onPress={onRefresh}>
                 <RefreshIcon width={18} height={18} />                
               </TouchableOpacity>
-              <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
+              { refreshing ?
+                <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
+                <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
+              }
               <UpArrowIcon width={14} height={5} />
             </View>
           </View>
-          <ScrollView style={styles.transactions}>
+          <ScrollView style={styles.transactions}
+            contentContainerStyle={styles.scrollView}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[Colors.white]}
+                tintColor={Colors.white}
+              />
+            }
+          >
             { account?.snapshot?.transactions.map((txn, i) =>
               <TransactionItem
                 key={i}
@@ -298,10 +328,16 @@ const styles = StyleSheet.create({
     marginBottom: -16,
     width: '100%'
   },
+  refreshAction: {
+    paddingVertical: 12
+  },
   transactionsHeaderText: {
     color: Colors.grey130,
     marginTop: 0,
     ...Typography.fontSize.x4
+  },
+  transactionsHeaderTextRefreshing: {
+    color: Colors.white
   },
   transactions: {
     marginHorizontal: '5%',
