@@ -215,14 +215,22 @@ export default function AccountTransactionsScreen({
           </BackgroundGradient>
           <View style={styles.transactionsHeaderContainer}>
             <View style={styles.transactionsHeader}>
-              <TouchableOpacity style={styles.action} onPress={onRefresh}>
+              <TouchableOpacity
+                style={styles.action}
+                activeOpacity={0.7}
+                onPress={onRefresh}
+              >
                 <RefreshIcon width={18} height={18} />                
               </TouchableOpacity>
               { refreshing ?
                 <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
                 <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
               }
-              <TouchableOpacity style={styles.action} onPress={toggleSort}>
+              <TouchableOpacity
+                style={styles.action}
+                activeOpacity={0.7}
+                onPress={toggleSort}
+              >
                 { sortAsc ?
                   <UpArrowIcon width={14} height={5} /> :
                   <DownArrowIcon width={14} height={5} />
