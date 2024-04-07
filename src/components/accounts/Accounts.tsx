@@ -1,11 +1,12 @@
 import React from 'react';
 import { View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { AppText } from '../../shared/AppText';
-import { Account as AccountModel } from '../../../models/Account';
-import numFormat from '../../../utils/numFormat';
-import RightArrow from '../../../assets/images/right-arrow.svg';
-import { styles } from './styles';
+import { AppText } from '../shared/AppText';
+import { Account as AccountModel } from '../../models/Account';
+import numFormat from '../../utils/numFormat';
+import RightArrow from '../../assets/images/right-arrow.svg';
+import { Typography, Colors } from '../../styles';
 
 interface Props {
   accounts: AccountModel[];
@@ -77,3 +78,63 @@ export default function Accounts({ accounts }: Props) {
     </View>
   ));
 }
+
+const styles = StyleSheet.create({
+  info: {},
+  account: {
+    paddingBottom: 18,
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.grey44,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fingerprint: {
+    ...Typography.textMuted.x1,
+  },
+  accountName: {
+    fontSize: 15.5,
+    marginTop: 2,
+    color: Colors.middleGrey,
+  },
+  currency: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 1,
+  },
+  sats: {
+    ...Typography.fontFamily.sfProTextLight,
+    fontSize: 26,
+    color: Colors.white,
+  },
+  satsLabel: {
+    fontSize: 18,
+    color: Colors.middleGrey,
+    marginLeft: 3,
+  },
+  usd: {
+    fontSize: 14,
+    color: Colors.middleGrey,
+  },
+  usdLabel: {
+    fontSize: 10,
+    color: Colors.quarterGrey,
+    marginLeft: 3,
+  },
+  metrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '90%',
+    marginTop: 15,
+  },
+  metric: {
+    fontSize: 14,
+    color: Colors.white,
+    marginBottom: 2,
+  },
+  metricLabel: {
+    fontSize: 10,
+    color: Colors.grey130,
+  },
+});
