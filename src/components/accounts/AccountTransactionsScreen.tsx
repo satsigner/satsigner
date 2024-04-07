@@ -11,6 +11,9 @@ import {
 import { NavigationProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 
+import { Descriptor } from 'bdk-rn';
+import { Network } from 'bdk-rn/lib/lib/enums';
+
 import navUtils from '../../utils/NavUtils';
 import { Typography, Colors, Layout } from '../../styles';
 import { AppText } from '../shared/AppText';
@@ -25,10 +28,10 @@ import CameraIcon from '../../assets/images/camera.svg';
 import RefreshIcon from '../../assets/images/refresh.svg';
 import UpArrowIcon from '../../assets/images/up-arrow.svg';
 import DownArrowIcon from '../../assets/images/down-arrow.svg';
+
 import TransactionItem from './TransactionItem';
 import { Sats } from './Sats';
-import { Descriptor } from 'bdk-rn';
-import { Network } from 'bdk-rn/lib/lib/enums';
+import { Transaction } from '../../models/Transaction';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -41,6 +44,7 @@ export default function AccountTransactionsScreen({
 
   const [refreshing, setRefreshing] = useState(false);
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0);
+  const [sortAsc, setSortAsc] = useState(false);
 
   const onRefresh = useCallback(() => {
     (async() => {
@@ -94,6 +98,22 @@ export default function AccountTransactionsScreen({
 
     const snapshot = await accountsContext.getAccountSnapshot(wallet);
     await accountsContext.storeAccountWithSnapshot(snapshot);
+  }
+
+  function toggleSort() {
+    setSortAsc(! sortAsc);
+  }
+
+  function txnSortAsc(txn1: Transaction, txn2: Transaction) {
+    const t1 = new Date(txn1.timestamp as Date);
+    const t2 = new Date(txn2.timestamp as Date);
+    return (t1?.getTime() || 0) - (t2?.getTime() || 0);
+  }
+
+  function txnSortDesc(txn1: Transaction, txn2: Transaction) {
+    const t1 = new Date(txn1.timestamp as Date);
+    const t2 = new Date(txn2.timestamp as Date);
+    return (t2?.getTime() || 0) - (t1?.getTime() || 0);
   }
 
   const GradientSeparator = () => <LinearGradient
@@ -195,14 +215,19 @@ export default function AccountTransactionsScreen({
           </BackgroundGradient>
           <View style={styles.transactionsHeaderContainer}>
             <View style={styles.transactionsHeader}>
-              <TouchableOpacity style={styles.refreshAction} onPress={onRefresh}>
+              <TouchableOpacity style={styles.action} onPress={onRefresh}>
                 <RefreshIcon width={18} height={18} />                
               </TouchableOpacity>
               { refreshing ?
                 <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
                 <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
               }
-              <UpArrowIcon width={14} height={5} />
+              <TouchableOpacity style={styles.action} onPress={toggleSort}>
+                { sortAsc ?
+                  <UpArrowIcon width={14} height={5} /> :
+                  <DownArrowIcon width={14} height={5} />
+                }
+              </TouchableOpacity>
             </View>
           </View>
           <ScrollView style={styles.transactions}
@@ -216,9 +241,9 @@ export default function AccountTransactionsScreen({
               />
             }
           >
-            { account?.snapshot?.transactions.map((txn, i) =>
+            { account?.snapshot?.transactions.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
               <TransactionItem
-                key={i}
+                key={txn.txid}
                 transaction={txn}
                 blockchainHeight={blockchainHeight}
               />
@@ -328,7 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: -16,
     width: '100%'
   },
-  refreshAction: {
+  action: {
     paddingVertical: 12
   },
   transactionsHeaderText: {
