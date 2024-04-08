@@ -30,7 +30,7 @@ export default class AccountListScreen extends React.PureComponent<
   render() {
     return (
       <AccountsContext.Consumer>
-        {({ accounts }) => (
+        {({ accounts, setCurrentAccount }) => (
           <>
             <View style={styles.createButtonContainer}>
               <Button
@@ -50,7 +50,10 @@ export default class AccountListScreen extends React.PureComponent<
                   </View>
                 )}
                 <View>
-                  <Accounts accounts={accounts} navigation={this.props.navigation} />
+                  <Accounts accounts={accounts} onAccountSelected={(account) => {
+                    setCurrentAccount(account);
+                    this.props.navigation.navigate('AccountTransactions');
+                  }} />
                 </View>
               </ScrollView>
             </View>
