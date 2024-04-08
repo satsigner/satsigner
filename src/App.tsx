@@ -19,7 +19,7 @@ import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const APP_TITLE = 'Sat Signer';
 
