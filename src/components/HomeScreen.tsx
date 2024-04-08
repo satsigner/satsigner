@@ -1,15 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { Typography, Layout } from '../styles';
 import Button from './shared/Button';
 
 const BUTTON_TITLE = 'Account List';
-interface Props {
-  navigation: NavigationProp<any>;
-}
 
-export default function HomeScreen({ navigation }: Props) {
+export default function HomeScreen() {
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <View style={styles.container}>
       <View>
