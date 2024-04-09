@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { StyleSheet, Text, View, Button } from 'react-native'
 import { Mnemonic } from 'bdk-rn'
 import { WordCount } from 'bdk-rn/lib/lib/enums'
-import { i18n } from '../locales'
+import { i18n } from '@/locales'
 
 export default function App() {
   const [test, setTest] = useState('')
