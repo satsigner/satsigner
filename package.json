@@ -2,6 +2,10 @@
   "name": "satsigner",
   "private": true,
   "version": "0.1.0",
+  "description": "UTXO Manager and Message Signer",
+  "keywords": [
+    "Bitcoin"
+  ],
   "scripts": {
     "format": "prettier --config --check .prettierrc .",
     "format:fix": "prettier --config .prettierrc . --write"
