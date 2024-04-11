@@ -25,6 +25,7 @@ import { Account, AccountSnapshot } from '../../models/Account';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { TransactionAdapter } from './TransactionAdapter';
+import { UTXOAdapter } from './UTXOAdapter';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -198,6 +199,12 @@ export const AccountsProvider = ({ children }) => {
     snapshot.transactions = await Promise.all(
       (transactions || []).map(
         txnDetails => TransactionAdapter.toTransaction(txnDetails, utxos)
+      )
+    );
+
+    snapshot.utxos = await Promise.all(
+      (utxos || []).map(
+        localUtxo => UTXOAdapter.toUTXO(localUtxo, transactions)
       )
     );
 
