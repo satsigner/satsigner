@@ -2,6 +2,7 @@ import { AccountCreationType } from "../enums/AccountCreationType";
 import { ScriptVersion } from "../enums/ScriptVersion";
 import { SeedWordCount } from "../enums/SeedWordCount";
 import { Transaction } from "./Transaction";
+import { UTXO } from "./UTXO";
 
 export class Account {
   name: string;
@@ -25,4 +26,5 @@ export class AccountSnapshot {
   satsInMempool = 0;
 
   transactions: Transaction[] = [];
+  utxos: UTXO[] = [];
 }
