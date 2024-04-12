@@ -1,4 +1,4 @@
-export class UTXO {
+export class Utxo {
   txid: string;
   vout: number;
   value: number;

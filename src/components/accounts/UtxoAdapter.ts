@@ -2,13 +2,13 @@ import { LocalUtxo, TransactionDetails } from "bdk-rn/lib/classes/Bindings";
 import { Network } from "bdk-rn/lib/lib/enums";
 
 import getAddress from "../shared/getAddress";
-import { Keychain, UTXO } from "../../models/UTXO";
+import { Keychain, Utxo } from "../../models/Utxo";
 
-export class UTXOAdapter {
-  static async toUTXO(utxo: LocalUtxo, transactions: TransactionDetails[]): Promise<UTXO> {
+export class UtxoAdapter {
+  static async toUtxo(utxo: LocalUtxo, transactions: TransactionDetails[]): Promise<Utxo> {
     const addressTo = await getAddress(utxo, Network.Testnet);
     const txid = utxo?.outpoint.txid;
-    const txnDetails = UTXOAdapter.getTransaction(txid, transactions);
+    const txnDetails = UtxoAdapter.getTransaction(txid, transactions);
 
     return {
       txid,
@@ -42,6 +42,6 @@ const getTestLabel = (() => {
     'Second round of drinks',
     undefined
   ];
-  
+
   return () => testLabels[count++ % testLabels.length];
 })();

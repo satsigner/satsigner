@@ -25,7 +25,7 @@ import { Account, AccountSummary } from '../../models/Account';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { TransactionAdapter } from './TransactionAdapter';
-import { UTXOAdapter } from './UTXOAdapter';
+import { UtxoAdapter } from './UtxoAdapter';
 
 export const AccountsProvider = ({ children }) => {
 
@@ -204,7 +204,7 @@ export const AccountsProvider = ({ children }) => {
 
     summary.utxos = await Promise.all(
       (utxos || []).map(
-        localUtxo => UTXOAdapter.toUTXO(localUtxo, transactions)
+        localUtxo => UtxoAdapter.toUtxo(localUtxo, transactions)
       )
     );
 
