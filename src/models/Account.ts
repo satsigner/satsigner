@@ -15,10 +15,10 @@ export class Account {
   internal_descriptor?: string;
   fingerprint?: string;
   derivationPath?: string;
-  snapshot: AccountSnapshot;
+  summary: AccountSummary;
 }
 
-export class AccountSnapshot {
+export class AccountSummary {
   balanceSats = 0;
   numAddresses = 0;
   numTransactions = 0;

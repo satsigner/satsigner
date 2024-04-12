@@ -2,7 +2,7 @@ import { createContext } from 'react';
 
 import { Descriptor, Wallet } from 'bdk-rn';
 
-import { Account, AccountSnapshot } from '../../models/Account';
+import { Account, AccountSummary } from '../../models/Account';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 
@@ -15,8 +15,8 @@ export const AccountsContext = createContext({
   generateMnemonic: async(count: SeedWordCount) => '',
   loadWalletFromMnemonic: async (mnemonic: string, passphrase: string, scriptVersion: ScriptVersion) => new Wallet(),
   loadWalletFromDescriptor: async (externalDescriptor: Descriptor, internalDescriptor: Descriptor) => new Wallet(),
-  getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
-  storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
+  getAccountSummary: async (wallet: Wallet) => new AccountSummary(),
+  storeAccountWithSummary: async (summary: AccountSummary) => {},
   syncWallet: async (wallet: Wallet) => {},
   getBlockchainHeight: async () => 0
 });

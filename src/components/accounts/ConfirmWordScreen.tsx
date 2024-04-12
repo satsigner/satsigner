@@ -21,7 +21,7 @@ import { AccountsContext } from './AccountsContext';
 import ConfirmWordIncorrectModal from './ConfirmWordIncorrectModal';
 
 import { ScriptVersion } from '../../enums/ScriptVersion';
-import { AccountSnapshot } from '../../models/Account';
+import { AccountSummary } from '../../models/Account';
 import WordsWarningModal from './WordsWarningModal';
 
 interface Props {
@@ -202,7 +202,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
             
                   // this is a new random seed, assuming it has never been used
                   // skip sync and store empty snapshot
-                  await this.context.storeAccountWithSnapshot(new AccountSnapshot());
+                  await this.context.storeAccountWithSummary(new AccountSummary());
 
                   this.props.navigation.reset({
                     index: 0,

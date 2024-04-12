@@ -96,8 +96,8 @@ export default function AccountTransactionsScreen({
     await accountsContext.syncWallet(wallet);
     console.log('Completed wallet sync.');
 
-    const snapshot = await accountsContext.getAccountSnapshot(wallet);
-    await accountsContext.storeAccountWithSnapshot(snapshot);
+    const snapshot = await accountsContext.getAccountSummary(wallet);
+    await accountsContext.storeAccountWithSummary(snapshot);
   }
 
   function toggleSort() {
@@ -144,7 +144,7 @@ export default function AccountTransactionsScreen({
         <View style={styles.container}>
           <BackgroundGradient orientation={'horizontal'}>
             <View style={styles.header}>
-              <Sats sats={account?.snapshot?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
+              <Sats sats={account?.summary?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
             </View>
             <GradientSeparator />
             <View style={styles.actionBar}>
@@ -175,25 +175,25 @@ export default function AccountTransactionsScreen({
             <View style={styles.tabs}>
               <View style={styles.metrics}>
                 <View style={styles.metricContainer}>
-                  <AppText style={[styles.metric, styles.metricSelected]}>{numFormat(account?.snapshot?.numTransactions)}</AppText>
+                  <AppText style={[styles.metric, styles.metricSelected]}>{numFormat(account?.summary?.numTransactions)}</AppText>
                   <View>
                     <AppText style={[styles.metricLabel, styles.metricLabelSelected]}>Total{"\n"}Transactions</AppText>
                   </View>
                 </View>
                 <View style={styles.metricContainer}>
-                  <AppText style={styles.metric}>{numFormat(account?.snapshot?.numAddresses)}</AppText>
+                  <AppText style={styles.metric}>{numFormat(account?.summary?.numAddresses)}</AppText>
                   <View>
                     <AppText style={styles.metricLabel}>Child{"\n"}Accounts</AppText>
                   </View>
                 </View>
                 <View style={styles.metricContainer}>
-                  <AppText style={styles.metric}>{numFormat(account?.snapshot?.numUtxos)}</AppText>
+                  <AppText style={styles.metric}>{numFormat(account?.summary?.numUtxos)}</AppText>
                   <View>
                     <AppText style={styles.metricLabel}>Spendable{"\n"}Outputs</AppText>
                   </View>
                 </View>
                 <View style={styles.metricContainer}>
-                  <AppText style={styles.metric}>{numFormat(account?.snapshot?.satsInMempool)}</AppText>
+                  <AppText style={styles.metric}>{numFormat(account?.summary?.satsInMempool)}</AppText>
                   <View>
                     <AppText style={styles.metricLabel}>Sats in{"\n"}Mempool</AppText>
                   </View>
@@ -249,7 +249,7 @@ export default function AccountTransactionsScreen({
               />
             }
           >
-            { account?.snapshot?.transactions.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
+            { account?.summary?.transactions.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
               <TransactionItem
                 key={txn.txid}
                 transaction={txn}

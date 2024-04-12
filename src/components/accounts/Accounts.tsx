@@ -6,6 +6,7 @@ import { Account } from '../../models/Account';
 import numFormat from '../../utils/numFormat';
 import RightArrow from '../../assets/images/right-arrow.svg';
 import { Typography, Colors } from '../../styles';
+import { Sats } from './Sats';
 
 interface Props {
   accounts: Account[];
@@ -27,22 +28,11 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
           <View>
             <AppText style={styles.accountName}>{account.name}</AppText>
           </View>
-          <View style={styles.currency}>
-            <AppText style={styles.sats}>
-              {numFormat(account?.snapshot?.balanceSats)}
-            </AppText>
-            <AppText style={styles.satsLabel}>sats</AppText>
-          </View>
-          <View style={styles.currency}>
-            <AppText style={styles.usd}>
-              {numFormat(account?.snapshot?.balanceUsd, 2)}
-            </AppText>
-            <AppText style={styles.usdLabel}>USD</AppText>
-          </View>
+          <Sats sats={account?.summary?.balanceSats} />
           <View style={styles.metrics}>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.snapshot?.numAddresses)}
+                {numFormat(account?.summary?.numAddresses)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Child</AppText>
@@ -51,7 +41,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
             </View>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.snapshot?.numTransactions)}
+                {numFormat(account?.summary?.numTransactions)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Total</AppText>
@@ -60,7 +50,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
             </View>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.snapshot?.numUtxos)}
+                {numFormat(account?.summary?.numUtxos)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Spendable</AppText>
@@ -69,7 +59,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
             </View>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.snapshot?.satsInMempool)}
+                {numFormat(account?.summary?.satsInMempool)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Sats in</AppText>

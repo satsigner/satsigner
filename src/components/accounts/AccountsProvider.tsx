@@ -20,7 +20,7 @@ import { blockchainElectrumConfig } from '../../config';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
-import { Account, AccountSnapshot } from '../../models/Account';
+import { Account, AccountSummary } from '../../models/Account';
 
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
@@ -178,52 +178,52 @@ export const AccountsProvider = ({ children }) => {
     setAccounts(await storage.getAccountsFromStorage());
   };
 
-  const getAccountSnapshot = async(wallet: Wallet): Promise<AccountSnapshot> => {
-    const snapshot: AccountSnapshot = new AccountSnapshot();
+  const getAccountSummary = async(wallet: Wallet): Promise<AccountSummary> => {
+    const summary: AccountSummary = new AccountSummary();
 
     const balance = await wallet.getBalance();
-    snapshot.balanceSats = balance.confirmed;
+    summary.balanceSats = balance.confirmed;
 
     const addressInfo = await wallet.getAddress(AddressIndex.New);
     const numAddresses = addressInfo.index + 1;
-    snapshot.numAddresses = numAddresses;
+    summary.numAddresses = numAddresses;
 
     const transactions = await wallet.listTransactions(false);
-    snapshot.numTransactions = transactions.length;
+    summary.numTransactions = transactions.length;
     console.log('transactions', JSON.stringify(transactions));
 
     const utxos = await wallet.listUnspent();
-    snapshot.numUtxos = utxos.length;
+    summary.numUtxos = utxos.length;
     console.log('utxos', JSON.stringify(utxos));
 
-    snapshot.transactions = await Promise.all(
+    summary.transactions = await Promise.all(
       (transactions || []).map(
         txnDetails => TransactionAdapter.toTransaction(txnDetails, utxos)
       )
     );
 
-    snapshot.utxos = await Promise.all(
+    summary.utxos = await Promise.all(
       (utxos || []).map(
         localUtxo => UTXOAdapter.toUTXO(localUtxo, transactions)
       )
     );
 
-    snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
+    summary.satsInMempool = balance.trustedPending + balance.untrustedPending;
 
-    return snapshot;
+    return summary;
   };
 
-  const storeAccountWithSnapshot = async(snapshot: AccountSnapshot) => {
+  const storeAccountWithSummary = async(summary: AccountSummary) => {
     if (hasAccountWithName(account.name) &&
       hasAccountWithDescriptor(
         account.external_descriptor as string,
         account.internal_descriptor as string
       )
     ) {
-      account.snapshot = snapshot;
+      account.summary = summary;
       await updateAccount(account);
     } else {
-      account.snapshot = snapshot;
+      account.summary = summary;
       await storeAccount(account);
     }
   };
@@ -243,8 +243,8 @@ export const AccountsProvider = ({ children }) => {
     generateMnemonic,
     loadWalletFromMnemonic,
     loadWalletFromDescriptor,
-    getAccountSnapshot,
-    storeAccountWithSnapshot,
+    getAccountSummary,
+    storeAccountWithSummary,
     syncWallet,
     getBlockchainHeight
   };
