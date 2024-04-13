@@ -164,7 +164,7 @@ export const AccountsProvider = ({ children }) => {
     await wallet.sync(blockchain);
   };
 
-  const storeAccount = async (account: Account) => {
+  const createAccount = async (account: Account) => {
     await storage.storeAccount(account);
     setCurrentAccount(account);
 
@@ -218,7 +218,7 @@ export const AccountsProvider = ({ children }) => {
     account.summary = summary;
   };
 
-  const storeAccountWithSummary = async(accountToStore: Account) => {
+  const storeAccount = async(accountToStore: Account) => {
     if (hasAccountWithName(accountToStore.name) &&
       hasAccountWithDescriptor(
         accountToStore.external_descriptor as string,
@@ -227,7 +227,7 @@ export const AccountsProvider = ({ children }) => {
     ) {
       await updateAccount(accountToStore);
     } else {
-      await storeAccount(accountToStore);
+      await createAccount(accountToStore);
     }
   };
 
@@ -247,7 +247,7 @@ export const AccountsProvider = ({ children }) => {
     loadWalletFromMnemonic,
     loadWalletFromDescriptor,
     populateWalletData,
-    storeAccountWithSummary,
+    storeAccount,
     syncWallet,
     getBlockchainHeight
   };

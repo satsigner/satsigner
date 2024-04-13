@@ -99,7 +99,7 @@ export default function AccountTransactionsScreen({
     console.log('Completed wallet sync.');
 
     await accountsContext.populateWalletData(wallet, account);
-    await accountsContext.storeAccountWithSummary(account);
+    await accountsContext.storeAccount(account);
   }
 
   function toggleSort() {

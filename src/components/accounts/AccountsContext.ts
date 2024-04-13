@@ -16,7 +16,7 @@ export const AccountsContext = createContext({
   loadWalletFromMnemonic: async (mnemonic: string, passphrase: string, scriptVersion: ScriptVersion) => new Wallet(),
   loadWalletFromDescriptor: async (externalDescriptor: Descriptor, internalDescriptor: Descriptor) => new Wallet(),
   populateWalletData: async (wallet: Wallet, account: Account) => {},
-  storeAccountWithSummary: async (account: Account) => {},
+  storeAccount: async (account: Account) => {},
   syncWallet: async (wallet: Wallet) => {},
   getBlockchainHeight: async () => 0
 });

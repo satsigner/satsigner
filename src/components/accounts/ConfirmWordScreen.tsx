@@ -136,7 +136,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
 
     return (
       <AccountsContext.Consumer>
-        {({ currentAccount, loadWalletFromMnemonic, storeAccountWithSummary, populateWalletData }) => (
+        {({ currentAccount, loadWalletFromMnemonic, storeAccount, populateWalletData }) => (
           <View style={styles.container}>
             <ScrollView>
               <View>
@@ -203,7 +203,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                   // this is a new random seed, assuming it has never been used
                   // skip sync and store
                   await populateWalletData(null, currentAccount);
-                  await storeAccountWithSummary(currentAccount);
+                  await storeAccount(currentAccount);
 
                   this.props.navigation.reset({
                     index: 0,
