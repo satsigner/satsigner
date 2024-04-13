@@ -48,16 +48,10 @@ export default function AccountTransactionsScreen({
 
   const onRefresh = useCallback(() => {
     (async() => {
-      const start = new Date();
-      console.log('Start refreshing');
-      setRefreshing(true);
-      
+      setRefreshing(true);      
       await refresh();
-      console.log('End refreshing', (+new Date() - +start));
       setRefreshing(false);
     })();
-
-    return () => {};
   }, []);
 
   useEffect(() => {
