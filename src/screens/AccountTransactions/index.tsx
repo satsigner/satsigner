@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
-import LinearGradient from 'react-native-linear-gradient';
 
 import { Descriptor } from 'bdk-rn';
 import { Network } from 'bdk-rn/lib/lib/enums';
@@ -19,19 +18,18 @@ import { AppText } from '../../components/shared/AppText';
 
 import { AccountsContext } from '../../components/accounts/AccountsContext';
 
-import numFormat from '../../utils/numFormat';
 import BackgroundGradient from '../../components/shared/BackgroundGradient';
-
 import RefreshIcon from '../../assets/images/refresh.svg';
-import UpArrowIcon from '../../assets/images/up-arrow.svg';
-import DownArrowIcon from '../../assets/images/down-arrow.svg';
 
-import TransactionItem from './components/TransactionItem';
-import { Sats } from '../../components/accounts/Sats';
 import { Transaction } from '../../models/Transaction';
+import { SortDirection } from '../../enums/SortDirection';
+
+import { Sats } from '../../components/accounts/Sats';
+import TransactionItem from './components/TransactionItem';
 import ActionBar from './components/ActionBar';
 import AccountSummaryTabs from './components/AccountSummaryTabs';
 import GradientSeparator from './components/GradientSeparator';
+import SortDirectionToggle from './components/SortDirectionToggle';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -44,7 +42,7 @@ export default function AccountTransactionsScreen({
 
   const [refreshing, setRefreshing] = useState(false);
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0);
-  const [sortAsc, setSortAsc] = useState(false);
+  const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
 
   const onRefresh = useCallback(() => {
     (async() => {
@@ -96,10 +94,6 @@ export default function AccountTransactionsScreen({
     await accountsContext.storeAccount(account);
   }
 
-  function toggleSort() {
-    setSortAsc(! sortAsc);
-  }
-
   function txnSortAsc(txn1: Transaction, txn2: Transaction) {
     const t1 = new Date(txn1.timestamp as Date);
     const t2 = new Date(txn2.timestamp as Date);
@@ -138,16 +132,10 @@ export default function AccountTransactionsScreen({
                 <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
                 <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
               }
-              <TouchableOpacity
+              <SortDirectionToggle
                 style={styles.action}
-                activeOpacity={0.7}
-                onPress={toggleSort}
-              >
-                { sortAsc ?
-                  <UpArrowIcon width={14} height={5} /> :
-                  <DownArrowIcon width={14} height={5} />
-                }
-              </TouchableOpacity>
+                onDirectionChanged={(direction: SortDirection) => setSortDirection(direction)}
+              />
             </View>
           </View>
           <ScrollView style={styles.transactions}
@@ -161,13 +149,13 @@ export default function AccountTransactionsScreen({
               />
             }
           >
-            { account?.transactions?.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
+            { account?.transactions?.sort(sortDirection === SortDirection.Ascending ? txnSortAsc : txnSortDesc).map((txn, i) =>
               <TransactionItem
                 key={txn.txid}
                 transaction={txn}
                 blockchainHeight={blockchainHeight}
               />
-            ) }
+            )}
           </ScrollView>
         </View>
       )}
