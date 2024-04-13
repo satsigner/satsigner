@@ -2,13 +2,13 @@ import { StyleSheet, View } from "react-native";
 
 import TimeAgo from 'react-timeago'
 
-import { AppText } from "../shared/AppText";
-import { Colors, Layout, Typography } from "../../styles";
-import { Transaction, TransactionType } from "../../models/Transaction";
+import { AppText } from "../../../components/shared/AppText";
+import { Colors, Layout, Typography } from "../../../styles";
+import { Transaction, TransactionType } from "../../../models/Transaction";
 
-import IncomingIcon from '../../assets/images/incoming.svg';
-import OutgoingIcon from '../../assets/images/outgoing.svg';
-import { Sats } from "./Sats";
+import IncomingIcon from '../../../assets/images/incoming.svg';
+import OutgoingIcon from '../../../assets/images/outgoing.svg';
+import { Sats } from "../../../components/accounts/Sats";
 
 interface Props {
   transaction: Transaction;

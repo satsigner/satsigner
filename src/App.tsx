@@ -13,7 +13,7 @@ import AccountOptionsScreen from './components/accounts/AccountOptionsScreen';
 import ImportSeedScreen from './components/accounts/ImportSeedScreen';
 import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
-import AccountTransactionsScreen from './components/accounts/AccountTransactionsScreen';
+import AccountTransactionsScreen from './screens/AccountTransactions';
 import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 
 import NavUtils from './utils/NavUtils';

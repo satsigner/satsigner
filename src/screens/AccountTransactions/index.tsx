@@ -16,21 +16,21 @@ import { Network } from 'bdk-rn/lib/lib/enums';
 
 import navUtils from '../../utils/NavUtils';
 import { Typography, Colors, Layout } from '../../styles';
-import { AppText } from '../shared/AppText';
+import { AppText } from '../../components/shared/AppText';
 
-import { AccountsContext } from './AccountsContext';
+import { AccountsContext } from '../../components/accounts/AccountsContext';
 
 import numFormat from '../../utils/numFormat';
-import BackgroundGradient from '../shared/BackgroundGradient';
-import notImplementedAlert from '../shared/NotImplementedAlert';
+import BackgroundGradient from '../../components/shared/BackgroundGradient';
+import notImplementedAlert from '../../components/shared/NotImplementedAlert';
 
 import CameraIcon from '../../assets/images/camera.svg';
 import RefreshIcon from '../../assets/images/refresh.svg';
 import UpArrowIcon from '../../assets/images/up-arrow.svg';
 import DownArrowIcon from '../../assets/images/down-arrow.svg';
 
-import TransactionItem from './TransactionItem';
-import { Sats } from './Sats';
+import TransactionItem from './components/TransactionItem';
+import { Sats } from '../../components/accounts/Sats';
 import { Transaction } from '../../models/Transaction';
 
 interface Props {
