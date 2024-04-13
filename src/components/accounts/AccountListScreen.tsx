@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,13 +8,22 @@ import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
 import { AccountsContext } from './AccountsContext';
 import { Typography, Layout, Colors } from '../../styles';
+import { Account } from '../../models/Account';
 
 export default function AccountListScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const accountsContext = useContext(AccountsContext);
+
+  function accountSelected(account: Account) {
+    accountsContext.setCurrentAccount(account);
+    navigation.navigate('AccountTransactions');
+  }
+  
   return (
     <AccountsContext.Consumer>
-      {({ accounts, setCurrentAccount }) => (
+      {({ accounts }) => (
         <>
           <View style={styles.createButtonContainer}>
             <Button
@@ -32,10 +41,7 @@ export default function AccountListScreen() {
                 </View>
               )}
               <View>
-                <Accounts accounts={accounts} onAccountSelected={(account) => {
-                    setCurrentAccount(account);
-                    navigation.navigate('AccountTransactions');
-                  }} />
+                <Accounts accounts={accounts} onAccountSelected={accountSelected} />
               </View>
             </ScrollView>
           </View>
