@@ -154,7 +154,7 @@ export default function AccountTransactionsScreen({
                   borderRightWidth: 1,
                   borderRightColor: Colors.grey48,                
                 }}
-                onPress={notImplementedAlert}
+                onPress={() => navigation.navigate('AccountUtxos')}
               >
                 <AppText style={styles.actionLabel}>Sign & Send</AppText>
               </ActionButton>

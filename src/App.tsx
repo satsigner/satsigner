@@ -15,6 +15,7 @@ import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
 import AccountTransactionsScreen from './components/accounts/AccountTransactionsScreen';
 import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
+import AccountUtxosScreen from './components/accounts/AccountUtxosScreen';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -73,6 +74,11 @@ export default function App() {
                 name="AccountTransactions"
                 component={AccountTransactionsScreen}
                 options={NavUtils.getHeaderOptions(APP_TITLE, 'horizontal')}
+              />
+              <Stack.Screen
+                name="AccountUtxos"
+                component={AccountUtxosScreen}
+                options={NavUtils.getHeaderOptions(APP_TITLE)}
               />
             </Stack.Navigator>
           </NavigationContainer>
