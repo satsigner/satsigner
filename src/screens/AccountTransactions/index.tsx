@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  TouchableHighlight,
   TouchableOpacity,
   RefreshControl
 } from 'react-native';
@@ -22,9 +21,7 @@ import { AccountsContext } from '../../components/accounts/AccountsContext';
 
 import numFormat from '../../utils/numFormat';
 import BackgroundGradient from '../../components/shared/BackgroundGradient';
-import notImplementedAlert from '../../components/shared/NotImplementedAlert';
 
-import CameraIcon from '../../assets/images/camera.svg';
 import RefreshIcon from '../../assets/images/refresh.svg';
 import UpArrowIcon from '../../assets/images/up-arrow.svg';
 import DownArrowIcon from '../../assets/images/down-arrow.svg';
@@ -32,7 +29,7 @@ import DownArrowIcon from '../../assets/images/down-arrow.svg';
 import TransactionItem from './components/TransactionItem';
 import { Sats } from '../../components/accounts/Sats';
 import { Transaction } from '../../models/Transaction';
-import ActionButton from './components/ActionButton';
+import ActionBar from './components/ActionBar';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -130,30 +127,7 @@ export default function AccountTransactionsScreen({
               <Sats sats={account?.summary?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
             </View>
             <GradientSeparator />
-            <View style={styles.actionBar}>
-              <ActionButton style={{
-                  borderRightWidth: 1,
-                  borderRightColor: Colors.grey48,                
-                }}
-                onPress={notImplementedAlert}
-              >
-                <AppText style={styles.actionLabel}>Sign & Send</AppText>
-              </ActionButton>
-              <ActionButton
-                style={{width: '20%'}}
-                onPress={notImplementedAlert}
-              >
-                <CameraIcon width={18} height={13} />
-              </ActionButton>
-              <ActionButton style={{
-                  borderLeftWidth: 1,
-                  borderLeftColor: Colors.grey48,                
-                }}
-                onPress={notImplementedAlert}
-              >
-                <AppText style={styles.actionLabel}>New Invoice</AppText>
-              </ActionButton>
-            </View>
+            <ActionBar />
             <GradientSeparator />
             <View style={styles.tabs}>
               <View style={styles.metrics}>
@@ -270,17 +244,6 @@ const styles = StyleSheet.create({
   },
   usdLabel: {
     fontSize: 11
-  },
-  actionBar: {
-    height: 62,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'center'
-  },
-  actionLabel: {
-    ...Typography.capitalization.uppercase
   },
   tabs: {
     height: 67,
