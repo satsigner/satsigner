@@ -2,7 +2,7 @@ import { createContext } from 'react';
 
 import { Descriptor, Wallet } from 'bdk-rn';
 
-import { Account, AccountSummary } from '../../models/Account';
+import { Account } from '../../models/Account';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 
