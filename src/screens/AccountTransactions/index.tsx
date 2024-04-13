@@ -32,6 +32,7 @@ import DownArrowIcon from '../../assets/images/down-arrow.svg';
 import TransactionItem from './components/TransactionItem';
 import { Sats } from '../../components/accounts/Sats';
 import { Transaction } from '../../models/Transaction';
+import ActionButton from './components/ActionButton';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -119,20 +120,6 @@ export default function AccountTransactionsScreen({
     end={{x: 1.0, y: 0}}
   />;
 
-  const ActionButton = (props: any) => <TouchableHighlight
-    activeOpacity={0.65}
-    underlayColor={Colors.grey38}
-    style={[{
-      width: '40%',
-      height: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
-    }, props.style]}
-    onPress={props.onPress}
-  >
-    {props.children}
-  </TouchableHighlight>;
 
   return (
     <AccountsContext.Consumer>
