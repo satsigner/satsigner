@@ -251,7 +251,7 @@ export default function AccountTransactionsScreen({
               />
             }
           >
-            { account?.transactions.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
+            { account?.transactions?.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
               <TransactionItem
                 key={txn.txid}
                 transaction={txn}
