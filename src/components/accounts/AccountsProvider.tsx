@@ -178,53 +178,56 @@ export const AccountsProvider = ({ children }) => {
     setAccounts(await storage.getAccountsFromStorage());
   };
 
-  const getAccountSummary = async(wallet: Wallet): Promise<AccountSummary> => {
+  const populateWalletData = async(wallet: Wallet, account: Account): Promise<void> => {
     const summary: AccountSummary = new AccountSummary();
 
-    const balance = await wallet.getBalance();
-    summary.balanceSats = balance.confirmed;
+    if (wallet) {
+      const balance = await wallet.getBalance();
+      summary.balanceSats = balance.confirmed;
+  
+      const addressInfo = await wallet.getAddress(AddressIndex.New);
+      const numAddresses = addressInfo.index + 1;
+      summary.numAddresses = numAddresses;
+  
+      const transactions = await wallet.listTransactions(false);
+      summary.numTransactions = transactions.length;
+      console.log('transactions', JSON.stringify(transactions));
+  
+      const utxos = await wallet.listUnspent();
+      summary.numUtxos = utxos.length;
+      console.log('utxos', JSON.stringify(utxos));
+  
+      summary.satsInMempool = balance.trustedPending + balance.untrustedPending;
+  
+      account.transactions = await Promise.all(
+        (transactions || []).map(
+          txnDetails => TransactionAdapter.toTransaction(txnDetails, utxos)
+        )
+      );
+  
+      account.utxos = await Promise.all(
+        (utxos || []).map(
+          localUtxo => UtxoAdapter.toUtxo(localUtxo, transactions)
+        )
+      );
+    } else {
+      account.transactions = [];
+      account.utxos = [];
+    }
 
-    const addressInfo = await wallet.getAddress(AddressIndex.New);
-    const numAddresses = addressInfo.index + 1;
-    summary.numAddresses = numAddresses;
-
-    const transactions = await wallet.listTransactions(false);
-    summary.numTransactions = transactions.length;
-    console.log('transactions', JSON.stringify(transactions));
-
-    const utxos = await wallet.listUnspent();
-    summary.numUtxos = utxos.length;
-    console.log('utxos', JSON.stringify(utxos));
-
-    summary.transactions = await Promise.all(
-      (transactions || []).map(
-        txnDetails => TransactionAdapter.toTransaction(txnDetails, utxos)
-      )
-    );
-
-    summary.utxos = await Promise.all(
-      (utxos || []).map(
-        localUtxo => UtxoAdapter.toUtxo(localUtxo, transactions)
-      )
-    );
-
-    summary.satsInMempool = balance.trustedPending + balance.untrustedPending;
-
-    return summary;
+    account.summary = summary;
   };
 
-  const storeAccountWithSummary = async(summary: AccountSummary) => {
-    if (hasAccountWithName(account.name) &&
+  const storeAccountWithSummary = async(accountToStore: Account) => {
+    if (hasAccountWithName(accountToStore.name) &&
       hasAccountWithDescriptor(
-        account.external_descriptor as string,
-        account.internal_descriptor as string
+        accountToStore.external_descriptor as string,
+        accountToStore.internal_descriptor as string
       )
     ) {
-      account.summary = summary;
-      await updateAccount(account);
+      await updateAccount(accountToStore);
     } else {
-      account.summary = summary;
-      await storeAccount(account);
+      await storeAccount(accountToStore);
     }
   };
 
@@ -243,7 +246,7 @@ export const AccountsProvider = ({ children }) => {
     generateMnemonic,
     loadWalletFromMnemonic,
     loadWalletFromDescriptor,
-    getAccountSummary,
+    populateWalletData,
     storeAccountWithSummary,
     syncWallet,
     getBlockchainHeight

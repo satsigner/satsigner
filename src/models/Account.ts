@@ -15,6 +15,8 @@ export class Account {
   internal_descriptor?: string;
   fingerprint?: string;
   derivationPath?: string;
+  transactions: Transaction[] = [];
+  utxos: Utxo[] = [];
   summary: AccountSummary;
 }
 
@@ -24,7 +26,4 @@ export class AccountSummary {
   numTransactions = 0;
   numUtxos = 0;
   satsInMempool = 0;
-
-  transactions: Transaction[] = [];
-  utxos: Utxo[] = [];
 }

@@ -85,6 +85,8 @@ export default function AccountTransactionsScreen({
   }
 
   async function refreshAccount() {
+    const account = accountsContext.currentAccount;
+
     const externalDescriptor = await new Descriptor()
       .create(accountsContext.currentAccount.external_descriptor as string, Network.Testnet);
     const internalDescriptor = await new Descriptor()
@@ -96,8 +98,8 @@ export default function AccountTransactionsScreen({
     await accountsContext.syncWallet(wallet);
     console.log('Completed wallet sync.');
 
-    const snapshot = await accountsContext.getAccountSummary(wallet);
-    await accountsContext.storeAccountWithSummary(snapshot);
+    await accountsContext.populateWalletData(wallet, account);
+    await accountsContext.storeAccountWithSummary(account);
   }
 
   function toggleSort() {
@@ -249,7 +251,7 @@ export default function AccountTransactionsScreen({
               />
             }
           >
-            { account?.summary?.transactions.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
+            { account?.transactions.sort(sortAsc ? txnSortAsc : txnSortDesc).map((txn, i) =>
               <TransactionItem
                 key={txn.txid}
                 transaction={txn}

@@ -219,7 +219,7 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, loadWalletFromMnemonic, getAccountSummary, storeAccountWithSummary, syncWallet }) => (
+        {({currentAccount, loadWalletFromMnemonic, populateWalletData, storeAccountWithSummary, syncWallet }) => (
           <>
           <WordSelector
             show={showWordSelector}
@@ -317,8 +317,8 @@ export default class ImportSeedScreen extends PureComponent<Props, State> {
                 await syncWallet(wallet);
                 console.log('Completed wallet sync.');
 
-                const snapshot = await getAccountSummary(wallet);
-                await storeAccountWithSummary(snapshot);
+                await populateWalletData(wallet, currentAccount);
+                await storeAccountWithSummary(currentAccount);
               }}
             >
               <AccountAddedModal
