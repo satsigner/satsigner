@@ -1,11 +1,5 @@
-import { useEffect, useContext, useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  RefreshControl
-} from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 
@@ -14,21 +8,17 @@ import { Network } from 'bdk-rn/lib/lib/enums';
 
 import navUtils from '../../utils/NavUtils';
 import { Typography, Colors, Layout } from '../../styles';
-import { AppText } from '../../components/shared/AppText';
-
-import { useAccountsContext } from '../../components/accounts/AccountsContext';
-
-import BackgroundGradient from '../../components/shared/BackgroundGradient';
-import RefreshIcon from '../../assets/images/refresh.svg';
-
 import { SortDirection } from '../../enums/SortDirection';
 
+import { useAccountsContext } from '../../components/accounts/AccountsContext';
+import BackgroundGradient from '../../components/shared/BackgroundGradient';
 import { Sats } from '../../components/accounts/Sats';
+
 import ActionBar from './components/ActionBar';
 import AccountSummaryTabs from './components/AccountSummaryTabs';
 import GradientSeparator from './components/GradientSeparator';
-import SortDirectionToggle from './components/SortDirectionToggle';
 import TransactionList from './components/TransactionList';
+import TransactionListHeader from './components/TransactionListHeader';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -103,25 +93,11 @@ export default function AccountTransactionsScreen({
         <GradientSeparator />
         <AccountSummaryTabs summary={currentAccount.summary}/>
       </BackgroundGradient>
-      <View style={styles.transactionsHeaderContainer}>
-        <View style={styles.transactionsHeader}>
-          <TouchableOpacity
-            style={styles.action}
-            activeOpacity={0.7}
-            onPress={onRefresh}
-          >
-            <RefreshIcon width={18} height={18} />                
-          </TouchableOpacity>
-          { refreshing ?
-            <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
-            <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
-          }
-          <SortDirectionToggle
-            style={styles.action}
-            onDirectionChanged={(direction: SortDirection) => setSortDirection(direction)}
-          />
-        </View>
-      </View>
+      <TransactionListHeader
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onSortDirectionChanged={(direction: SortDirection) => setSortDirection(direction)}
+      />
       <TransactionList
         blockchainHeight={blockchainHeight}
         transactions={currentAccount?.transactions}
@@ -157,31 +133,5 @@ const styles = StyleSheet.create({
   },
   usdLabel: {
     fontSize: 11
-  },
-  transactionsHeaderContainer: {
-    width: '90%',
-    marginHorizontal: '5%',
-    height: 61,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  transactionsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: -16,
-    width: '100%'
-  },
-  action: {
-    paddingVertical: 12
-  },
-  transactionsHeaderText: {
-    color: Colors.grey130,
-    marginTop: 0,
-    ...Typography.fontSize.x4
-  },
-  transactionsHeaderTextRefreshing: {
-    color: Colors.white
   }
 });
