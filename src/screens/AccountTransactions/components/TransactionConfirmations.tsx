@@ -29,7 +29,7 @@ function getConfirmations(currentBlockHeight: number, transactionBlockHeight?: n
     0;
 }
 
-// returns one of: unconfirmed, 1 block deep, (2|3|4|5|6+|10+|100+|1k+|10k+|100k+) blocks deep
+/** @returns {string} one of: unconfirmed, 1 block deep, (2|3|4|5|6+|10+|100+|1k+|10k+|100k+) blocks deep */
 function getConfirmationsText(confirmations: number): string {
   if (confirmations === 0) {
     // 0
