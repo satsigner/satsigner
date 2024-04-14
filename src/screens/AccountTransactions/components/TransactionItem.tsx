@@ -9,6 +9,7 @@ import OutgoingIcon from '../../../assets/images/outgoing.svg';
 import { Sats } from "../../../components/accounts/Sats";
 
 import TransactionDateTime from "./TransactionDateTime";
+import TransactionConfirmations from "./TransactionConfirmations";
 
 interface Props {
   transaction: Transaction;
@@ -23,10 +24,6 @@ export default function TransactionItem({
   const showTime = !! transaction.timestamp;
   const timestamp = new Date(transaction.timestamp as Date);
   const { blockHeight, memo } = transaction;
-
-  const confirmations = getConfirmations(blockchainHeight, blockHeight);
-  const confirmationsText = getConfirmationsText(confirmations);
-  const confirmationsColorStyle = getConfirmationsColorStyle(confirmations);
 
   return (
     <View style={styles.container}>
@@ -50,7 +47,7 @@ export default function TransactionItem({
           />
         </View>
         <View style={styles.rightColumn}>
-          <AppText style={[styles.confirmations, confirmationsColorStyle]}>{ blockchainHeight && confirmationsText }</AppText>
+          <TransactionConfirmations blockchainHeight={blockchainHeight} blockHeight={blockHeight} />
           <View style={styles.rightColumnBottom}>
             <AppText numberOfLines={1} style={[styles.memo, ! memo && styles.noMemo]}>{ memo || 'No memo' }</AppText>
             { transaction.address && <View style={styles.otherParties}>
@@ -73,55 +70,6 @@ function formatAddress(address: string): string {
   const beginning = address.substring(0, 8);
   const end = address.substring(address.length - 8, address.length);
   return `${beginning}...${end}`;
-}
-
-function getConfirmations(currentBlockHeight: number, transactionBlockHeight?: number): number {
-  return transactionBlockHeight ?
-    currentBlockHeight - transactionBlockHeight + 1 :
-    0;
-}
-
-// returns one of: unconfirmed, 1 block deep, (2|3|4|5|6+|10+|100+|1k+|10k+|100k+) blocks deep
-function getConfirmationsText(confirmations: number): string {
-  if (confirmations === 0) {
-    // 0
-    return 'unconfirmed';
-  }
-  else if (confirmations === 1) {
-    // 1
-    return '1 block deep';
-  } else if (confirmations < 6) {
-    // 2..5
-    return confirmations + ' blocks deep';
-  } else if (confirmations < 10) {
-    // 6..9
-    return '6+ blocks deep';
-  } else if (confirmations < 100) {
-    // 10..99
-    return '10+ blocks deep'
-  } else if (confirmations < 1_000) {
-    // 100..999
-    return '100+ blocks deep';
-  } else if (confirmations < 10_000) {
-    // 1,000..9,999
-    return '1k+ blocks deep';
-  } else if (confirmations < 100_000) {
-    // 10,000..99,999
-    return '10k+ blocks deep';
-  } else {
-    // 100,000+
-    return '100k+ blocks deep';
-  }
-}
-
-function getConfirmationsColorStyle(confirmations: number): any {
-  if (confirmations === 0) {
-    return styles.confirmationsUnconfirmed;
-  } else if (confirmations < 6) {
-    return styles.confirmationsFew;
-  } else {
-    return styles.confirmationsEnough;
-  }
 }
 
 const styles = StyleSheet.create({  
@@ -177,19 +125,6 @@ const styles = StyleSheet.create({
     ...Typography.fontFamily.sfProDisplayRegular,
     ...Typography.fontSize.x4,
     color: Colors.grey111
-  },
-  confirmations: {
-    ...Typography.fontSize.x3,
-    textAlign: 'right'
-  },
-  confirmationsUnconfirmed: {
-    color: Colors.white,
-  },
-  confirmationsFew: {
-    color: Colors.yellow1,
-  },
-  confirmationsEnough: {
-    color: Colors.green1,
   },
   memo: {
     marginBottom: 3,
