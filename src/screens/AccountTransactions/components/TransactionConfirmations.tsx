@@ -18,7 +18,7 @@ export default function TransactionConfirmations({
 
   return (
     <AppText style={[styles.confirmations, confirmationsColorStyle]}>
-      { blockchainHeight && confirmationsText }
+      { blockchainHeight ? confirmationsText : '' }
     </AppText>
   );
 }
