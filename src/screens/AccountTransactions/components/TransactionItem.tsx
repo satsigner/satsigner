@@ -1,7 +1,5 @@
 import { StyleSheet, View } from "react-native";
 
-import TimeAgo from 'react-timeago'
-
 import { AppText } from "../../../components/shared/AppText";
 import { Colors, Layout, Typography } from "../../../styles";
 import { Transaction, TransactionType } from "../../../models/Transaction";
@@ -10,12 +8,12 @@ import IncomingIcon from '../../../assets/images/incoming.svg';
 import OutgoingIcon from '../../../assets/images/outgoing.svg';
 import { Sats } from "../../../components/accounts/Sats";
 
+import TransactionDateTime from "./TransactionDateTime";
+
 interface Props {
   transaction: Transaction;
   blockchainHeight: number;
 }
-
-const DateText = (props) => <AppText style={styles.dateTime}>{props.children}</AppText>;
 
 export default function TransactionItem({
   transaction,
@@ -30,18 +28,6 @@ export default function TransactionItem({
   const confirmationsText = getConfirmationsText(confirmations);
   const confirmationsColorStyle = getConfirmationsColorStyle(confirmations);
 
-  const timeFormatter = (value: number, unit: string, suffix: string) => {
-    if (unit === 'second') {
-        return 'less than a minute ' + suffix;
-    } else if (unit === 'minute' || unit === 'hour') {
-        return `${value} ${unit}${
-          value !== 1 ? 's' : ''
-      } ${suffix}`;
-    } else {
-      return `${formatTime(timestamp)} - ${formatDate(timestamp)}`;
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.icon}>
@@ -50,12 +36,7 @@ export default function TransactionItem({
       </View>
       <View style={styles.details}>
         <View style={styles.leftColumn}>
-          { showTime && <TimeAgo
-            date={timestamp}
-            component={DateText}
-            live={true}
-            formatter={timeFormatter}
-          /> }
+          { showTime && <TransactionDateTime date={timestamp} /> }
           <Sats
             sats={transaction.type === TransactionType.Send ?
               -transaction.sent :
@@ -92,21 +73,6 @@ function formatAddress(address: string): string {
   const beginning = address.substring(0, 8);
   const end = address.substring(address.length - 8, address.length);
   return `${beginning}...${end}`;
-}
-
-function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric'
-  }).format(date).replace(' ', '').toLowerCase();
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(date);
 }
 
 function getConfirmations(currentBlockHeight: number, transactionBlockHeight?: number): number {
@@ -184,11 +150,6 @@ const styles = StyleSheet.create({
   rightColumn: {
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-  },
-  dateTime: {
-    ...Typography.fontFamily.sfProDisplayRegular,
-    ...Typography.fontSize.x4,
-    color: Colors.grey130
   },
   currency: {
     justifyContent: 'flex-start',

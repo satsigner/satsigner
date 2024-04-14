@@ -139,7 +139,6 @@ export default function AccountTransactionsScreen({
             </View>
           </View>
           <ScrollView style={styles.transactions}
-            contentContainerStyle={styles.scrollView}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
