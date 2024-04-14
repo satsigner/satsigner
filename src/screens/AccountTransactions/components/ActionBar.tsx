@@ -22,7 +22,7 @@ export default function ActionBar({
           borderRightWidth: 1,
           borderRightColor: Colors.grey48,                
         }}
-        onPress={() => navigation.navigate('AccountUtxos')}
+        onPress={() => navigation.navigate('AccountUtxoList')}
       >
         <AppText style={styles.actionLabel}>Sign & Send</AppText>
       </ActionButton>

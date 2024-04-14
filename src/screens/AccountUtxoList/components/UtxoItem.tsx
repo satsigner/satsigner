@@ -1,15 +1,14 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useContext, useState } from "react";
 
-import { Utxo } from "../../models/Utxo";
+import { Utxo } from "../../../models/Utxo";
 
-import { AppText } from "../shared/AppText";
-import { TransactionBuilderContext } from "./TransactionBuilderContext";
-import { Colors } from "../../styles";
+import { AppText } from "../../../components/shared/AppText";
+import { TransactionBuilderContext } from "../../../components/accounts/TransactionBuilderContext";
+import { Colors } from "../../../styles";
 
 interface Props {
   utxo: Utxo;
-  onToggleSelected: (utxo: Utxo) => void;
 }
 
 export default function UtxoItem({

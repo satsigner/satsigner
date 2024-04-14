@@ -1,26 +1,23 @@
-import { useContext } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { NavigationProp } from "@react-navigation/native";
 
 import { Layout } from "../../styles";
-
-import { AccountsContext } from "./AccountsContext";
-import { TransactionBuilderContext } from "./TransactionBuilderContext";
-import UtxoItem from "./UtxoItem";
+import { useAccountsContext } from "../../components/accounts/AccountsContext";
 import { Utxo } from "../../models/Utxo";
 
+import UtxoItem from "./components/UtxoItem";
 
 interface Props {
   navigation: NavigationProp<any>;
 }
 
-export default function AccountUtxosScreen({
+export default function AccountUtxoListScreen({
   navigation
 }: Props) {
-  const accountsContext = useContext(AccountsContext);
-
+  const accountsContext = useAccountsContext();
   const { utxos } = accountsContext.currentAccount;
+
   const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
   return (
