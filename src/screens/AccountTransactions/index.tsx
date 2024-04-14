@@ -39,6 +39,7 @@ export default function AccountTransactionsScreen({
   navigation
 }: Props) {
   const accountsContext = useContext(AccountsContext);
+  const { currentAccount } = accountsContext;
 
   const [refreshing, setRefreshing] = useState(false);
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0);
@@ -53,7 +54,7 @@ export default function AccountTransactionsScreen({
   }, []);
 
   useEffect(() => {
-    navUtils.setHeaderTitle(accountsContext.currentAccount.name, navigation);
+    navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
 
   useEffect(() => {
@@ -77,12 +78,10 @@ export default function AccountTransactionsScreen({
   }
 
   async function refreshAccount() {
-    const account = accountsContext.currentAccount;
-
     const externalDescriptor = await new Descriptor()
-      .create(accountsContext.currentAccount.external_descriptor as string, Network.Testnet);
+      .create(currentAccount.external_descriptor as string, Network.Testnet);
     const internalDescriptor = await new Descriptor()
-      .create(accountsContext.currentAccount.internal_descriptor as string, Network.Testnet);
+      .create(currentAccount.internal_descriptor as string, Network.Testnet);
 
     const wallet = await accountsContext.loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
     console.log('Syncing wallet...');
@@ -90,75 +89,79 @@ export default function AccountTransactionsScreen({
     await accountsContext.syncWallet(wallet);
     console.log('Completed wallet sync.');
 
-    await accountsContext.populateWalletData(wallet, account);
-    await accountsContext.storeAccount(account);
+    await accountsContext.populateWalletData(wallet, currentAccount);
+    await accountsContext.storeAccount(currentAccount);
   }
 
-  function txnSortAsc(txn1: Transaction, txn2: Transaction) {
+  function sortTransactions(transactions: Transaction[]): Transaction[] {
+    return transactions?.sort(
+      sortDirection === SortDirection.Ascending ?
+        compareTransactionsAsc :
+        compareTransactionsDesc
+    );
+  }
+
+  function compareTransactionsAsc(txn1: Transaction, txn2: Transaction) {
     const t1 = new Date(txn1.timestamp as Date);
     const t2 = new Date(txn2.timestamp as Date);
     return (t1?.getTime() || 0) - (t2?.getTime() || 0);
   }
 
-  function txnSortDesc(txn1: Transaction, txn2: Transaction) {
+  function compareTransactionsDesc(txn1: Transaction, txn2: Transaction) {
     const t1 = new Date(txn1.timestamp as Date);
     const t2 = new Date(txn2.timestamp as Date);
     return (t2?.getTime() || 0) - (t1?.getTime() || 0);
   }
 
   return (
-    <AccountsContext.Consumer>
-      {({currentAccount: account}) => (
-        <View style={styles.container}>
-          <BackgroundGradient orientation={'horizontal'}>
-            <View style={styles.header}>
-              <Sats sats={account?.summary?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
-            </View>
-            <GradientSeparator />
-            <ActionBar />
-            <GradientSeparator />
-            <AccountSummaryTabs summary={account.summary}/>
-          </BackgroundGradient>
-          <View style={styles.transactionsHeaderContainer}>
-            <View style={styles.transactionsHeader}>
-              <TouchableOpacity
-                style={styles.action}
-                activeOpacity={0.7}
-                onPress={onRefresh}
-              >
-                <RefreshIcon width={18} height={18} />                
-              </TouchableOpacity>
-              { refreshing ?
-                <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
-                <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
-              }
-              <SortDirectionToggle
-                style={styles.action}
-                onDirectionChanged={(direction: SortDirection) => setSortDirection(direction)}
-              />
-            </View>
-          </View>
-          <ScrollView style={styles.transactions}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[Colors.white]}
-                tintColor={Colors.white}
-              />
-            }
-          >
-            { account?.transactions?.sort(sortDirection === SortDirection.Ascending ? txnSortAsc : txnSortDesc).map((txn, i) =>
-              <TransactionItem
-                key={txn.txid}
-                transaction={txn}
-                blockchainHeight={blockchainHeight}
-              />
-            )}
-          </ScrollView>
+    <View style={styles.container}>
+      <BackgroundGradient orientation={'horizontal'}>
+        <View style={styles.header}>
+          <Sats sats={currentAccount?.summary?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
         </View>
-      )}
-    </AccountsContext.Consumer>
+        <GradientSeparator />
+        <ActionBar />
+        <GradientSeparator />
+        <AccountSummaryTabs summary={currentAccount.summary}/>
+      </BackgroundGradient>
+      <View style={styles.transactionsHeaderContainer}>
+        <View style={styles.transactionsHeader}>
+          <TouchableOpacity
+            style={styles.action}
+            activeOpacity={0.7}
+            onPress={onRefresh}
+          >
+            <RefreshIcon width={18} height={18} />                
+          </TouchableOpacity>
+          { refreshing ?
+            <AppText style={[styles.transactionsHeaderText, styles.transactionsHeaderTextRefreshing]}>Updating Parent Account Activity...</AppText> :
+            <AppText style={styles.transactionsHeaderText}>Parent Account Activity</AppText>
+          }
+          <SortDirectionToggle
+            style={styles.action}
+            onDirectionChanged={(direction: SortDirection) => setSortDirection(direction)}
+          />
+        </View>
+      </View>
+      <ScrollView style={styles.transactions}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.white]}
+            tintColor={Colors.white}
+          />
+        }
+      >
+        { sortTransactions(currentAccount?.transactions).map(txn =>
+          <TransactionItem
+            key={txn.txid}
+            transaction={txn}
+            blockchainHeight={blockchainHeight}
+          />
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -218,6 +221,3 @@ const styles = StyleSheet.create({
     height: '100%'
   }
 });
-
-
-
