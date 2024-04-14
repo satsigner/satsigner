@@ -89,7 +89,7 @@ export default function AccountTransactionsScreen({
           <Sats sats={currentAccount?.summary?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
         </View>
         <GradientSeparator />
-        <ActionBar />
+        <ActionBar navigation={navigation} />
         <GradientSeparator />
         <AccountSummaryTabs summary={currentAccount.summary}/>
       </BackgroundGradient>
