@@ -16,7 +16,7 @@ import navUtils from '../../utils/NavUtils';
 import { Typography, Colors, Layout } from '../../styles';
 import { AppText } from '../../components/shared/AppText';
 
-import { AccountsContext } from '../../components/accounts/AccountsContext';
+import { useAccountsContext } from '../../components/accounts/AccountsContext';
 
 import BackgroundGradient from '../../components/shared/BackgroundGradient';
 import RefreshIcon from '../../assets/images/refresh.svg';
@@ -38,7 +38,7 @@ interface Props {
 export default function AccountTransactionsScreen({
   navigation
 }: Props) {
-  const accountsContext = useContext(AccountsContext);
+  const accountsContext = useAccountsContext();
   const { currentAccount } = accountsContext;
 
   const [refreshing, setRefreshing] = useState(false);

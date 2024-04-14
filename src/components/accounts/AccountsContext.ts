@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import { createContext, useContext } from 'react';
 
 import { Descriptor, Wallet } from 'bdk-rn';
 
@@ -20,3 +20,11 @@ export const AccountsContext = createContext({
   syncWallet: async (wallet: Wallet) => {},
   getBlockchainHeight: async () => 0
 });
+
+export const useAccountsContext = () => {
+  const context = useContext(AccountsContext);
+  if (context === undefined) {
+    throw new Error('useAccountsContext must be used within AccountsContext Provider');
+  }
+  return context;
+}
