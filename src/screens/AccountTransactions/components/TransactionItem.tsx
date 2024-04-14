@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { AppText } from "../../../components/shared/AppText";
 import { Colors, Layout, Typography } from "../../../styles";
 import { Transaction, TransactionType } from "../../../models/Transaction";
+import formatAddress from "../../../utils/formatAddress";
 
 import IncomingIcon from '../../../assets/images/incoming.svg';
 import OutgoingIcon from '../../../assets/images/outgoing.svg';
@@ -59,17 +60,6 @@ export default function TransactionItem({
       </View>
     </View>
   );
-}
-
-function formatAddress(address: string): string {
-  if (address.length <= 16) {
-    return address;
-  }
-
-  // Show first and last eight characters - https://bitcoin.stackexchange.com/a/119182
-  const beginning = address.substring(0, 8);
-  const end = address.substring(address.length - 8, address.length);
-  return `${beginning}...${end}`;
 }
 
 const styles = StyleSheet.create({  
