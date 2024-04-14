@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
 import { AccountSummary } from "../../../models/Account";
-import numFormat from "../../../utils/numFormat";
+import formatNumber from "../../../utils/formatNumber";
 import { Colors, Typography } from "../../../styles";
 import { AppText } from "../../../components/shared/AppText";
 
@@ -19,25 +19,25 @@ export default function AccountSummaryTabs({
       <View style={styles.tabs}>
         <View style={styles.metrics}>
           <View style={styles.metricContainer}>
-            <AppText style={[styles.metric, styles.metricSelected]}>{numFormat(summary?.numTransactions)}</AppText>
+            <AppText style={[styles.metric, styles.metricSelected]}>{formatNumber(summary?.numTransactions)}</AppText>
             <View>
               <AppText style={[styles.metricLabel, styles.metricLabelSelected]}>Total{"\n"}Transactions</AppText>
             </View>
           </View>
           <View style={styles.metricContainer}>
-            <AppText style={styles.metric}>{numFormat(summary?.numAddresses)}</AppText>
+            <AppText style={styles.metric}>{formatNumber(summary?.numAddresses)}</AppText>
             <View>
               <AppText style={styles.metricLabel}>Child{"\n"}Accounts</AppText>
             </View>
           </View>
           <View style={styles.metricContainer}>
-            <AppText style={styles.metric}>{numFormat(summary?.numUtxos)}</AppText>
+            <AppText style={styles.metric}>{formatNumber(summary?.numUtxos)}</AppText>
             <View>
               <AppText style={styles.metricLabel}>Spendable{"\n"}Outputs</AppText>
             </View>
           </View>
           <View style={styles.metricContainer}>
-            <AppText style={styles.metric}>{numFormat(summary?.satsInMempool)}</AppText>
+            <AppText style={styles.metric}>{formatNumber(summary?.satsInMempool)}</AppText>
             <View>
               <AppText style={styles.metricLabel}>Sats in{"\n"}Mempool</AppText>
             </View>

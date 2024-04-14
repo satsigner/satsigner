@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { AppText } from '../shared/AppText';
 import { Account } from '../../models/Account';
-import numFormat from '../../utils/numFormat';
+import formatNumber from '../../utils/formatNumber';
 import RightArrow from '../../assets/images/right-arrow.svg';
 import { Typography, Colors } from '../../styles';
 import { Sats } from './Sats';
@@ -32,7 +32,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
           <View style={styles.metrics}>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.summary?.numAddresses)}
+                {formatNumber(account?.summary?.numAddresses)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Child</AppText>
@@ -41,7 +41,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
             </View>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.summary?.numTransactions)}
+                {formatNumber(account?.summary?.numTransactions)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Total</AppText>
@@ -50,7 +50,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
             </View>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.summary?.numUtxos)}
+                {formatNumber(account?.summary?.numUtxos)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Spendable</AppText>
@@ -59,7 +59,7 @@ export default function Accounts({ accounts, onAccountSelected }: Props) {
             </View>
             <View>
               <AppText style={styles.metric}>
-                {numFormat(account?.summary?.satsInMempool)}
+                {formatNumber(account?.summary?.satsInMempool)}
               </AppText>
               <View>
                 <AppText style={styles.metricLabel}>Sats in</AppText>
