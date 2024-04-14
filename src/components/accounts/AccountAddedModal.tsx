@@ -17,7 +17,7 @@ import { Typography, Layout, Colors } from '../../styles';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
-import numFormat from '../../utils/numFormat';
+import formatNumber from '../../utils/formatNumber';
 
 interface Props {
   onClose: () => void
@@ -97,7 +97,7 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
                   <AppText style={styles.label}>
                     Searching derivation path
                   </AppText>
-                  { ! currentAccount.snapshot &&
+                  { ! currentAccount.summary &&
                       <EllipsisAnimation
                         style={{ marginLeft: 5 }}
                         size={2}
@@ -110,9 +110,9 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
                   <View style={styles.columnSection}>
                     <AppText style={styles.label}>Found UTXOs</AppText>
                     {
-                      currentAccount.snapshot ?
+                      currentAccount.summary ?
                         <AppText style={{...styles.valueLarge, marginTop: 8}}>
-                          {numFormat(currentAccount?.snapshot?.numUtxos)}
+                          {formatNumber(currentAccount?.summary?.numUtxos)}
                         </AppText>
                         :
                         <EllipsisAnimation
@@ -124,9 +124,9 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
                   <View style={styles.columnSection}>
                     <AppText style={styles.label}>Total spendable sats</AppText>
                     {
-                      currentAccount.snapshot ?
+                      currentAccount.summary ?
                         <AppText style={{...styles.valueLarge, marginTop: 8}}>
-                          {numFormat(currentAccount?.snapshot?.balanceSats)}
+                          {formatNumber(currentAccount?.summary?.balanceSats)}
                         </AppText>
                         :
                         <EllipsisAnimation

@@ -1,8 +1,8 @@
-import { createContext } from 'react';
+import { createContext, useContext } from 'react';
 
-import { Wallet } from 'bdk-rn';
+import { Descriptor, Wallet } from 'bdk-rn';
 
-import { Account, AccountSnapshot } from '../../models/Account';
+import { Account } from '../../models/Account';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 
@@ -14,7 +14,17 @@ export const AccountsContext = createContext({
   getFingerprint: async (mnemonic: string, passphrase: string) => {},
   generateMnemonic: async(count: SeedWordCount) => '',
   loadWalletFromMnemonic: async (mnemonic: string, passphrase: string, scriptVersion: ScriptVersion) => new Wallet(),
-  getAccountSnapshot: async (wallet: Wallet) => new AccountSnapshot(),
-  storeAccountWithSnapshot: async (snapshot: AccountSnapshot) => {},
+  loadWalletFromDescriptor: async (externalDescriptor: Descriptor, internalDescriptor: Descriptor) => new Wallet(),
+  populateWalletData: async (wallet: Wallet, account: Account) => {},
+  storeAccount: async (account: Account) => {},
   syncWallet: async (wallet: Wallet) => {},
+  getBlockchainHeight: async () => 0
 });
+
+export const useAccountsContext = () => {
+  const context = useContext(AccountsContext);
+  if (context === undefined) {
+    throw new Error('useAccountsContext must be used within AccountsContext Provider');
+  }
+  return context;
+}

@@ -1,45 +1,50 @@
-import React from 'react';
-import { View, ScrollView } from 'react-native';
-import { StyleSheet } from 'react-native';
+import React, { useContext } from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import Accounts from './Accounts';
 import Button from '../shared/Button';
 import { AppText } from '../shared/AppText';
-import { AccountsContext } from './AccountsContext';
+import { useAccountsContext } from './AccountsContext';
 import { Typography, Layout, Colors } from '../../styles';
+import { Account } from '../../models/Account';
 
 export default function AccountListScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const accountsContext = useAccountsContext();
+  const { accounts } = accountsContext;
+
+  function accountSelected(account: Account) {
+    accountsContext.setCurrentAccount(account);
+    navigation.navigate('AccountTransactions');
+  }
+  
   return (
-    <AccountsContext.Consumer>
-      {({ accounts }) => (
-        <>
-          <View style={styles.createButtonContainer}>
-            <Button
-              gradientBackground={true}
-              style={styles.createButton}
-              title="Add Master Key"
-              onPress={() => navigation.navigate('CreateParentAccount')}
-            />
+    <>
+      <View style={styles.createButtonContainer}>
+        <Button
+          gradientBackground={true}
+          style={styles.createButton}
+          title="Add Master Key"
+          onPress={() => navigation.navigate('CreateParentAccount')}
+        />
+      </View>
+      <View style={styles.container}>
+        <ScrollView style={styles.scrollContainer}>
+          {accounts?.length === 0 && (
+            <View style={styles.emptyList}>
+              <AppText style={styles.emptyListText}>No Keys Yet</AppText>
+            </View>
+          )}
+          <View>
+            <Accounts accounts={accounts} onAccountSelected={accountSelected} />
           </View>
-          <View style={styles.container}>
-            <ScrollView style={styles.scrollContainer}>
-              {accounts?.length === 0 && (
-                <View style={styles.emptyList}>
-                  <AppText style={styles.emptyListText}>No Keys Yet</AppText>
-                </View>
-              )}
-              <View>
-                <Accounts accounts={accounts} />
-              </View>
-            </ScrollView>
-          </View>
-        </>
-      )}
-    </AccountsContext.Consumer>
+        </ScrollView>
+      </View>
+    </>
   );
 }
 

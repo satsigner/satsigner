@@ -1,6 +1,8 @@
 import { AccountCreationType } from "../enums/AccountCreationType";
 import { ScriptVersion } from "../enums/ScriptVersion";
 import { SeedWordCount } from "../enums/SeedWordCount";
+import { Transaction } from "./Transaction";
+import { Utxo } from "./Utxo";
 
 export class Account {
   name: string;
@@ -13,12 +15,13 @@ export class Account {
   internal_descriptor?: string;
   fingerprint?: string;
   derivationPath?: string;
-  snapshot: AccountSnapshot;
+  transactions: Transaction[] = [];
+  utxos: Utxo[] = [];
+  summary: AccountSummary;
 }
 
-export class AccountSnapshot {
+export class AccountSummary {
   balanceSats = 0;
-  balanceUsd = 0;
   numAddresses = 0;
   numTransactions = 0;
   numUtxos = 0;

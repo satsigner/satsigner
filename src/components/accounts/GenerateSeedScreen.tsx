@@ -123,7 +123,7 @@ export default class GenerateSeedScreen extends PureComponent<Props, State> {
 
     return (
       <AccountsContext.Consumer>
-        {({currentAccount, setCurrentAccount, loadWalletFromMnemonic, storeAccountWithSnapshot }) => (
+        {({currentAccount, setCurrentAccount }) => (
           <>
           <KeyboardAvoidingViewWithHeaderOffset
             style={styles.container}

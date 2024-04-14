@@ -12,29 +12,22 @@ import {
 import {
   Network,
   KeychainKind,
-  BlockchainElectrumConfig,
   AddressIndex,
   WordCount
 } from 'bdk-rn/lib/lib/enums';
 
+import { blockchainElectrumConfig } from '../../config';
+
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
-import { Account, AccountSnapshot } from '../../models/Account';
+import { Account, AccountSummary } from '../../models/Account';
 
-import satsToUsd from '../shared/satsToUsd';
 import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
+import toTransaction from './toTransaction';
+import toUtxo from './toUtxo';
 
 export const AccountsProvider = ({ children }) => {
-
-  const blockchainElectrumConfig: BlockchainElectrumConfig = {
-    url: 'ssl://electrum.blockstream.info:60002',
-    sock5: null,
-    retry: 5,
-    timeout: 5,
-    stopGap: 500,
-    validateDomain: false,
-  };
 
   const [storage, setStorage] = React.useState<Storage>(new Storage());
   
@@ -55,6 +48,11 @@ export const AccountsProvider = ({ children }) => {
   const setCurrentAccount = (account: Account) => {
     account.name = account.name.trim();
     setAccount(account);
+  };
+
+  const getBlockchainHeight = async(): Promise<number> => {
+    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    return await blockchain.getHeight();
   };
 
   const getFingerprint = async(mnemonicString: string, passphrase = ''): Promise<string> => {
@@ -78,21 +76,21 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const parseDescriptor = (descriptor: string): {fingerprint: string, derivationPath: string} => {
-      // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
-      // capture 0=fingerprint, capture 1=derivation path
-      const match = descriptor.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
-      if (match) {
-        return {
-          fingerprint: match[1],
-          derivationPath: 'm' + match[2]
-        };
-      } else {
-        return {
-          fingerprint: '',
-          derivationPath: ''  
-        };
-      }
-  }
+    // example descriptorString: wpkh([73c5da0a/84'/1'/0']tpubDC8msFGeGuwnKG9Upg7DM2b4DaRqg3CUZa5g8v2SRQ6K4NSkxUgd7HsL2XVWbVm39yBA4LAxysQAm397zwQSQoQgewGiYZqrA9DsP4zbQ1M/0/*)#2ag6nxcd
+    // capture 0=fingerprint, capture 1=derivation path
+    const match = descriptor.match(/\[([0-9a-f]+)([0-9'/]+)\]/);
+    if (match) {
+      return {
+        fingerprint: match[1],
+        derivationPath: 'm' + match[2]
+      };
+    } else {
+      return {
+        fingerprint: '',
+        derivationPath: ''  
+      };
+    }
+  };
 
   const getDescriptor = async (
     mnemonicString: string,
@@ -117,7 +115,7 @@ export const AccountsProvider = ({ children }) => {
       case ScriptVersion.P2TR:
         throw new Error('Not implemented');
     }
-  }
+  };
 
   const loadWalletFromMnemonic = async(mnemonicString: string, passphrase: string, scriptVersion: ScriptVersion): Promise<Wallet> => {
     let externalDescriptor: Descriptor;
@@ -146,8 +144,11 @@ export const AccountsProvider = ({ children }) => {
       throw new Error('Account with that mnemonic already exists');
     }
 
-    const dbConfig = await new DatabaseConfig().memory();
+    return await loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
+  };
 
+  const loadWalletFromDescriptor = async(externalDescriptor: Descriptor, internalDescriptor: Descriptor): Promise<Wallet> => {
+    const dbConfig = await new DatabaseConfig().memory();
     const wallet = await new Wallet().create(
       externalDescriptor,
       internalDescriptor,
@@ -156,14 +157,14 @@ export const AccountsProvider = ({ children }) => {
     );
 
     return wallet;
-  }
+  };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
     const blockchain = await new Blockchain().create(blockchainElectrumConfig);
     await wallet.sync(blockchain);
-  }
+  };
 
-  const storeAccount = async (account: Account) => {
+  const createAccount = async (account: Account) => {
     await storage.storeAccount(account);
     setCurrentAccount(account);
 
@@ -177,42 +178,56 @@ export const AccountsProvider = ({ children }) => {
     setAccounts(await storage.getAccountsFromStorage());
   };
 
-  const getAccountSnapshot = async(wallet: Wallet): Promise<AccountSnapshot> => {
-    const snapshot: AccountSnapshot = new AccountSnapshot();
+  const populateWalletData = async(wallet: Wallet, account: Account): Promise<void> => {
+    const summary: AccountSummary = new AccountSummary();
 
-    const balance = await wallet.getBalance();
-    snapshot.balanceSats = balance.confirmed;
-    snapshot.balanceUsd = satsToUsd(balance.confirmed);
+    if (wallet) {
+      const balance = await wallet.getBalance();
+      summary.balanceSats = balance.confirmed;
+  
+      const addressInfo = await wallet.getAddress(AddressIndex.New);
+      const numAddresses = addressInfo.index + 1;
+      summary.numAddresses = numAddresses;
+  
+      const transactions = await wallet.listTransactions(false);
+      summary.numTransactions = transactions.length;
+      console.log('transactions', JSON.stringify(transactions));
+  
+      const utxos = await wallet.listUnspent();
+      summary.numUtxos = utxos.length;
+      console.log('utxos', JSON.stringify(utxos));
+  
+      summary.satsInMempool = balance.trustedPending + balance.untrustedPending;
+  
+      account.transactions = await Promise.all(
+        (transactions || []).map(
+          txnDetails => toTransaction(txnDetails, utxos)
+        )
+      );
+  
+      account.utxos = await Promise.all(
+        (utxos || []).map(
+          localUtxo => toUtxo(localUtxo, transactions)
+        )
+      );
+    } else {
+      account.transactions = [];
+      account.utxos = [];
+    }
 
-    const addressInfo = await wallet.getAddress(AddressIndex.New);
-    const numAddresses = addressInfo.index + 1;
-    snapshot.numAddresses = numAddresses;
-
-    const transactions = await wallet.listTransactions(false);
-    snapshot.numTransactions = transactions.length;
-    console.log('transactions', JSON.stringify(transactions));
-
-    const utxos = await wallet.listUnspent();
-    snapshot.numUtxos = utxos.length;
-    console.log('utxos', JSON.stringify(utxos));
-
-    snapshot.satsInMempool = balance.trustedPending + balance.untrustedPending;
-
-    return snapshot;
+    account.summary = summary;
   };
 
-  const storeAccountWithSnapshot = async(snapshot: AccountSnapshot) => {
-    if (hasAccountWithName(account.name) &&
+  const storeAccount = async(accountToStore: Account) => {
+    if (hasAccountWithName(accountToStore.name) &&
       hasAccountWithDescriptor(
-        account.external_descriptor as string,
-        account.internal_descriptor as string
+        accountToStore.external_descriptor as string,
+        accountToStore.internal_descriptor as string
       )
     ) {
-      account.snapshot = snapshot;
-      await updateAccount(account);
+      await updateAccount(accountToStore);
     } else {
-      account.snapshot = snapshot;
-      await storeAccount(account);
+      await createAccount(accountToStore);
     }
   };
 
@@ -220,7 +235,7 @@ export const AccountsProvider = ({ children }) => {
     const mnemonic = await new Mnemonic().create(count as unknown as WordCount);
     console.log('mnemonic', mnemonic);
     return mnemonic.asString();
-  }
+  };
 
   const value = {
     currentAccount: account,
@@ -230,9 +245,11 @@ export const AccountsProvider = ({ children }) => {
     getFingerprint,
     generateMnemonic,
     loadWalletFromMnemonic,
-    getAccountSnapshot,
-    storeAccountWithSnapshot,
-    syncWallet
+    loadWalletFromDescriptor,
+    populateWalletData,
+    storeAccount,
+    syncWallet,
+    getBlockchainHeight
   };
 
   return (

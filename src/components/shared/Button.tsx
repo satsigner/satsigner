@@ -4,11 +4,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
-import LinearGradient from 'react-native-linear-gradient';
-
 import { AppText } from '../shared/AppText';
 
 import { Colors, Typography } from '../../styles';
+import BackgroundGradient from './BackgroundGradient';
 
 export default function Button(props: any) {
   const styles = StyleSheet.create({  
@@ -41,20 +40,11 @@ export default function Button(props: any) {
       disabled={props.disabled}
     >
       {props.gradientBackground ? (
-        <LinearGradient
+        <BackgroundGradient
           style={{
             height: '100%',
             justifyContent: 'center',
             alignItems: 'center',
-          }}
-          colors={[Colors.grey24, Colors.grey34]}
-          start={{
-            x: 0.94,
-            y: 1.0
-          }}
-          end={{
-            x: 0.86,
-            y: -0.64
           }}
         >
           <View style={styles.button}>
@@ -62,7 +52,7 @@ export default function Button(props: any) {
               {props.title}
             </AppText>
           </View>
-        </LinearGradient>
+        </BackgroundGradient>
       ) : (
         <View style={styles.button}>
           <AppText style={styles.buttonText}>

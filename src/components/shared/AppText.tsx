@@ -4,13 +4,14 @@ import { Text, StyleSheet } from 'react-native';
 import { Typography } from '../../styles';
 
 interface Props {
+  numberOfLines: number;
   style?: any;
 }
 
 export class AppText extends Component<PropsWithChildren<Props>> {
   render() {
     return (
-      <Text style={[styles.text, this.props.style]}>{this.props.children}</Text>
+      <Text numberOfLines={this.props.numberOfLines} style={[styles.text, this.props.style]}>{this.props.children}</Text>
     );
   }
 }

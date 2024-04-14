@@ -21,7 +21,7 @@ import { AccountsContext } from './AccountsContext';
 import ConfirmWordIncorrectModal from './ConfirmWordIncorrectModal';
 
 import { ScriptVersion } from '../../enums/ScriptVersion';
-import { AccountSnapshot } from '../../models/Account';
+import { AccountSummary } from '../../models/Account';
 import WordsWarningModal from './WordsWarningModal';
 
 interface Props {
@@ -136,7 +136,7 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
 
     return (
       <AccountsContext.Consumer>
-        {({ currentAccount }) => (
+        {({ currentAccount, loadWalletFromMnemonic, storeAccount, populateWalletData }) => (
           <View style={styles.container}>
             <ScrollView>
               <View>
@@ -194,15 +194,16 @@ export default class ConfirmWordScreen extends PureComponent<Props, State> {
                   const mnemonic = this.getSeedWordsString();
                   console.log('mnemonic', mnemonic);
             
-                  const wallet = await this.context.loadWalletFromMnemonic(
+                  const wallet = await loadWalletFromMnemonic(
                     mnemonic,
-                    this.context.currentAccount.passphrase,
-                    this.context.currentAccount.scriptVersion as ScriptVersion
+                    currentAccount.passphrase as string,
+                    currentAccount.scriptVersion as ScriptVersion
                   );
             
                   // this is a new random seed, assuming it has never been used
-                  // skip sync and store empty snapshot
-                  await this.context.storeAccountWithSnapshot(new AccountSnapshot());
+                  // skip sync and store
+                  await populateWalletData(null, currentAccount);
+                  await storeAccount(currentAccount);
 
                   this.props.navigation.reset({
                     index: 0,
