@@ -1,7 +1,7 @@
 import { StyleProp, StyleSheet, TextStyle, View, ViewStyle } from "react-native";
 
 import { AppText } from "../shared/AppText";
-import numFormat from "../../utils/numFormat";
+import formatNumber from "../../utils/formatNumber";
 import satsToUsd from "../shared/satsToUsd";
 import { Colors, Typography } from "../../styles";
 
@@ -25,11 +25,11 @@ export function Sats({
   return (
     <>
       <View style={[styles.currency, currencyStyle]}>
-        <AppText style={[styles.sats, satsStyle]}>{numFormat(sats)}</AppText>
+        <AppText style={[styles.sats, satsStyle]}>{formatNumber(sats)}</AppText>
         <AppText style={[styles.satsLabel, satsLabelStyle]}>sats</AppText>
       </View>
       <View style={[styles.currency, currencyStyle]}>
-        <AppText style={[styles.usd, usdStyle]}>{numFormat(satsToUsd(sats), 2)}</AppText>
+        <AppText style={[styles.usd, usdStyle]}>{formatNumber(satsToUsd(sats), 2)}</AppText>
         <AppText style={[styles.usdLabel, usdLabelStyle]}>USD</AppText>
       </View>
     </>

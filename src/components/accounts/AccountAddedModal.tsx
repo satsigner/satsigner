@@ -17,7 +17,7 @@ import { Typography, Layout, Colors } from '../../styles';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import { ScriptVersionInfos } from './ScriptVersionInfos';
 
-import numFormat from '../../utils/numFormat';
+import formatNumber from '../../utils/formatNumber';
 
 interface Props {
   onClose: () => void
@@ -112,7 +112,7 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
                     {
                       currentAccount.summary ?
                         <AppText style={{...styles.valueLarge, marginTop: 8}}>
-                          {numFormat(currentAccount?.summary?.numUtxos)}
+                          {formatNumber(currentAccount?.summary?.numUtxos)}
                         </AppText>
                         :
                         <EllipsisAnimation
@@ -126,7 +126,7 @@ export default class AccountAddedModal extends React.PureComponent<Props, State>
                     {
                       currentAccount.summary ?
                         <AppText style={{...styles.valueLarge, marginTop: 8}}>
-                          {numFormat(currentAccount?.summary?.balanceSats)}
+                          {formatNumber(currentAccount?.summary?.balanceSats)}
                         </AppText>
                         :
                         <EllipsisAnimation

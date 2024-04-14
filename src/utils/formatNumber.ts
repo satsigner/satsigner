@@ -1,4 +1,4 @@
-export default function numFormat(num: number, decimals = 0): string {
+export default function formatNumber(num: number, decimals = 0): string {
   if (num === undefined) {
     return '';
   }

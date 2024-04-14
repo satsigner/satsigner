@@ -12,6 +12,7 @@
   "dependencies": {
     "@react-navigation/native": "^6.1.8",
     "@react-navigation/native-stack": "^6.9.14",
+    "@types/react-timeago": "^4.1.7",
     "adm-zip": "^0.5.9",
     "bdk-rn": "^0.30.0",
     "bip39": "^3.1.0",
