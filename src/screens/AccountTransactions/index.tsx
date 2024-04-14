@@ -21,15 +21,14 @@ import { useAccountsContext } from '../../components/accounts/AccountsContext';
 import BackgroundGradient from '../../components/shared/BackgroundGradient';
 import RefreshIcon from '../../assets/images/refresh.svg';
 
-import { Transaction } from '../../models/Transaction';
 import { SortDirection } from '../../enums/SortDirection';
 
 import { Sats } from '../../components/accounts/Sats';
-import TransactionItem from './components/TransactionItem';
 import ActionBar from './components/ActionBar';
 import AccountSummaryTabs from './components/AccountSummaryTabs';
 import GradientSeparator from './components/GradientSeparator';
 import SortDirectionToggle from './components/SortDirectionToggle';
+import TransactionList from './components/TransactionList';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -93,26 +92,6 @@ export default function AccountTransactionsScreen({
     await accountsContext.storeAccount(currentAccount);
   }
 
-  function sortTransactions(transactions: Transaction[]): Transaction[] {
-    return transactions?.sort(
-      sortDirection === SortDirection.Ascending ?
-        compareTransactionsAsc :
-        compareTransactionsDesc
-    );
-  }
-
-  function compareTransactionsAsc(txn1: Transaction, txn2: Transaction) {
-    const t1 = new Date(txn1.timestamp as Date);
-    const t2 = new Date(txn2.timestamp as Date);
-    return (t1?.getTime() || 0) - (t2?.getTime() || 0);
-  }
-
-  function compareTransactionsDesc(txn1: Transaction, txn2: Transaction) {
-    const t1 = new Date(txn1.timestamp as Date);
-    const t2 = new Date(txn2.timestamp as Date);
-    return (t2?.getTime() || 0) - (t1?.getTime() || 0);
-  }
-
   return (
     <View style={styles.container}>
       <BackgroundGradient orientation={'horizontal'}>
@@ -143,24 +122,13 @@ export default function AccountTransactionsScreen({
           />
         </View>
       </View>
-      <ScrollView style={styles.transactions}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[Colors.white]}
-            tintColor={Colors.white}
-          />
-        }
-      >
-        { sortTransactions(currentAccount?.transactions).map(txn =>
-          <TransactionItem
-            key={txn.txid}
-            transaction={txn}
-            blockchainHeight={blockchainHeight}
-          />
-        )}
-      </ScrollView>
+      <TransactionList
+        blockchainHeight={blockchainHeight}
+        transactions={currentAccount?.transactions}
+        sortDirection={sortDirection}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
     </View>
   );
 }
@@ -215,9 +183,5 @@ const styles = StyleSheet.create({
   },
   transactionsHeaderTextRefreshing: {
     color: Colors.white
-  },
-  transactions: {
-    marginHorizontal: '5%',
-    height: '100%'
   }
 });
