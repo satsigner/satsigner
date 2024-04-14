@@ -1,5 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
+import { NavigationProp } from "@react-navigation/native";
+
 import { AppText } from "../../../components/shared/AppText";
 import notImplementedAlert from "../../../components/shared/NotImplementedAlert";
 import CameraIcon from '../../../assets/images/camera.svg';
@@ -7,14 +9,20 @@ import { Colors, Typography } from "../../../styles";
 
 import ActionButton from "./ActionButton";
 
-export default function ActionBar() {
+interface Props {
+  navigation: NavigationProp<any>;
+}
+
+export default function ActionBar({
+  navigation
+}: Props) {
   return (
     <View style={styles.actionBar}>
       <ActionButton style={{
           borderRightWidth: 1,
           borderRightColor: Colors.grey48,                
         }}
-        onPress={notImplementedAlert}
+        onPress={() => navigation.navigate('AccountUtxos')}
       >
         <AppText style={styles.actionLabel}>Sign & Send</AppText>
       </ActionButton>
