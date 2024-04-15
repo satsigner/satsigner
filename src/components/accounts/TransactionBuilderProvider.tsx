@@ -1,27 +1,40 @@
-import React from 'react';
-
-import { TransactionBuilderContext } from "./TransactionBuilderContext";
+import { useState } from "react";
 
 import { Utxo } from '../../models/Utxo';
 
+import { TransactionBuilderContext } from "./TransactionBuilderContext";
+
 export const TransactionBuilderProvider = ({ children }) => {
   
-  const [inputs, setInputs] = React.useState<Map<string, Utxo>>(new Map<string, Utxo>());
+  // using object indirection so assignment creates new container object and forces re-render
+  const [inputsMap, setInputsMap] = useState<{ map: Map<string, Utxo> }>({ map: new Map<string, Utxo>() });
 
-  const getOutpoint = (utxo: Utxo) => `${utxo.txid}:${utxo.vout}`;
+  const getOutpoint = (utxo: Utxo) => `${utxo?.txid}:${utxo?.vout}`;
 
-  const hasInput = (utxo: Utxo) => inputs.has(getOutpoint(utxo));
+  const hasInput = (utxo: Utxo) => inputsMap.map.has(getOutpoint(utxo));
 
   const addInput = (utxo: Utxo): void => {
-    inputs.set(getOutpoint(utxo), utxo);
+    const key = getOutpoint(utxo);
+    setInputsMap(({ map }) => {
+      map.set(key, utxo);
+      return { map };
+    });
   };
 
-  const removeInput = (utxo: Utxo): boolean => {
-    return inputs.delete(getOutpoint(utxo));
+  const removeInput = (utxo: Utxo): void => {
+    const key = getOutpoint(utxo);
+    setInputsMap(({ map }) => {
+      map.delete(key);
+      return { map };
+    });
   };
+
+  const getInputs = (): Utxo[] => {
+    return Array.from(inputsMap.map.values());
+  }
 
   const value = {
-    inputs,
+    getInputs,
     hasInput,
     addInput,
     removeInput
