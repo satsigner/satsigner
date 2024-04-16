@@ -3,7 +3,5 @@
   "singleQuote": true,
   "trailingComma": "none",
   "printWidth": 80,
-  "endOfLine": "auto",
-  "plugins": ["prettier-plugin-tailwindcss"],
-  "tailwindFunctions": ["tw", "cva"]
+  "endOfLine": "auto"
 }

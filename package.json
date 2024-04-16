@@ -14,8 +14,7 @@
     "format:fix": "prettier --config .prettierrc . --write"
   },
   "devDependencies": {
-    "prettier": "^3.2.5",
-    "prettier-plugin-tailwindcss": "^0.5.13"
+    "prettier": "^3.2.5"
   },
   "packageManager": "yarn@1.22.21",
   "workspaces": [
