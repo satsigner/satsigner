@@ -47,7 +47,7 @@ export default function SSButton({
 
 const styles = StyleSheet.create({
   buttonBase: {
-    borderRadius: Sizes.button.radius,
+    borderRadius: Sizes.button.borderRadius,
     height: Sizes.button.height,
     width: '100%',
     flexDirection: 'row',

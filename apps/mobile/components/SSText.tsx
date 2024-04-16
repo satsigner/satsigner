@@ -15,28 +15,28 @@ export default function SSText({
   style,
   children
 }: SSTextProps) {
-  const textStyles = useMemo(() => {
-    let colorStyles = styles.textColorWhite
-    if (color === 'black') colorStyles = styles.textColorBlack
-    if (color === 'muted') colorStyles = styles.textColorMuted
+  const textStyle = useMemo(() => {
+    let colorStyle = styles.textColorWhite
+    if (color === 'black') colorStyle = styles.textColorBlack
+    if (color === 'muted') colorStyle = styles.textColorMuted
 
-    let weightStyles = styles.textRegular
-    if (weight === 'light') weightStyles = styles.textLight
-    if (weight === 'medium') weightStyles = styles.textMedium
-    if (weight === 'bold') weightStyles = styles.textBold
+    let weightStyle = styles.textRegular
+    if (weight === 'light') weightStyle = styles.textLight
+    if (weight === 'medium') weightStyle = styles.textMedium
+    if (weight === 'bold') weightStyle = styles.textBold
 
     return StyleSheet.compose(
       {
         ...styles.textBase,
-        ...colorStyles,
-        ...weightStyles,
+        ...colorStyle,
+        ...weightStyle,
         ...(uppercase ? styles.uppercase : {})
       },
       style
     )
   }, [weight, uppercase, style])
 
-  return <Text style={textStyles}>{children}</Text>
+  return <Text style={textStyle}>{children}</Text>
 }
 
 const styles = StyleSheet.create({
