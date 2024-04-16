@@ -1,5 +1,5 @@
 import { Text, StyleSheet } from 'react-native'
-import { Typography } from '@/styles'
+import { Sizes, Typography } from '@/styles'
 import { useMemo } from 'react'
 
 type SSTextProps = {
@@ -20,7 +20,11 @@ export default function SSText({
     if (weight === 'bold') weightStyles = styles.textBold
 
     return StyleSheet.compose(
-      { ...weightStyles, ...(uppercase ? styles.uppercase : {}) },
+      {
+        ...styles.textBase,
+        ...weightStyles,
+        ...(uppercase ? styles.uppercase : {})
+      },
       style
     )
   }, [uppercase])
@@ -29,6 +33,9 @@ export default function SSText({
 }
 
 const styles = StyleSheet.create({
+  textBase: {
+    fontSize: Sizes.button.fontSize
+  },
   uppercase: {
     textTransform: 'uppercase'
   },

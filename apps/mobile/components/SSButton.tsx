@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { TouchableOpacity, StyleSheet } from 'react-native'
 import SSText from './SSText'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 
 type SSButtonProps = {
   label: string
@@ -47,8 +47,8 @@ export default function SSButton({
 
 const styles = StyleSheet.create({
   buttonBase: {
-    borderRadius: 3,
-    height: 58,
+    borderRadius: Sizes.button.radius,
+    height: Sizes.button.height,
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
