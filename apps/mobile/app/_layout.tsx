@@ -26,10 +26,7 @@ export default function Layout() {
             />
           ),
           headerTitleAlign: 'center',
-          headerTintColor: Colors.gray[200],
-          headerTitle: () => (
-            <SSText uppercase>{i18n.t('satsigner.name')}</SSText>
-          )
+          headerTintColor: Colors.gray[200]
         }}
       />
     </View>
