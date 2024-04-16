@@ -27,7 +27,7 @@ export default function SSText({
       },
       style
     )
-  }, [uppercase])
+  }, [weight, uppercase, style])
 
   return <Text style={textStyles}>{children}</Text>
 }

@@ -26,7 +26,7 @@ export default function SSButton({
       },
       style
     )
-  }, [variant])
+  }, [variant, style])
 
   const textStyle = useMemo(() => {
     let textVariantStyles = styles.textDefault
