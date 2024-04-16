@@ -18,6 +18,7 @@
     "expo-constants": "~15.4.5",
     "expo-font": "^11.10.3",
     "expo-image": "^1.10.6",
+    "expo-linear-gradient": "^12.7.2",
     "expo-linking": "~6.2.2",
     "expo-localization": "^14.8.3",
     "expo-router": "~3.4.8",
