@@ -34,7 +34,7 @@ export default function SSButton({
     if (variant === 'ghost') textVariantStyles = styles.textGhost
 
     return { ...textVariantStyles }
-  }, [])
+  }, [variant])
 
   return (
     <TouchableOpacity style={buttonStyle} activeOpacity={0.6} {...props}>
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     color: Colors.black
   },
   textGhost: {
-    color: Colors.gray[50]
+    color: Colors.gray[200]
   }
 })

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router'
 import { Colors, Typography } from '@/styles'
 import { i18n } from '@/locales'
 import { View, StyleSheet } from 'react-native'
+import SSText from '@/components/SSText'
 
 export default function Layout() {
   return (
@@ -15,12 +16,10 @@ export default function Layout() {
           headerStyle: {
             backgroundColor: Colors.gray[800]
           },
-          headerTintColor: Colors.white,
           headerTitleAlign: 'center',
-          headerTitleStyle: {
-            fontFamily: Typography.sfProTextRegular
-          },
-          title: i18n.t('satsigner.name')
+          headerTitle: () => (
+            <SSText uppercase>{i18n.t('satsigner.name')}</SSText>
+          )
         }}
       />
     </View>
