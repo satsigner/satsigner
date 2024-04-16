@@ -12,6 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#121212"
     },
+    "experiments": {
+      "typedRoutes": true
+    },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
