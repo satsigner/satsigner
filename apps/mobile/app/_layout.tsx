@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router'
 
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import { i18n } from '@/locales'
 import { View, StyleSheet } from 'react-native'
 
@@ -18,7 +18,7 @@ export default function Layout() {
           headerTintColor: Colors.white,
           headerTitleAlign: 'center',
           headerTitleStyle: {
-            fontFamily: 'SF Pro Text Regular'
+            fontFamily: Typography.sfProTextRegular
           },
           title: i18n.t('satsigner.name')
         }}
