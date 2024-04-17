@@ -4,3 +4,7 @@ export const mainContainer = {
   paddingHorizontal: '6%' as DimensionValue,
   paddingTop: 32
 }
+
+export const vStack = {
+  gap: 16
+}
