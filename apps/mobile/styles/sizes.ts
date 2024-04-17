@@ -9,3 +9,10 @@ export const textInput = {
   height: 58,
   fontSize: 20
 }
+
+export const wordInput = {
+  borderRadius: 3,
+  height: 44,
+  fontSize: 16,
+  lineHeight: 12
+}
