@@ -16,7 +16,7 @@
   "dependencies": {
     "bdk-rn": "^0.30.0",
     "expo": "~50.0.14",
-    "expo-constants": "~15.4.5",
+    "expo-constants": "^15.4.6",
     "expo-font": "^11.10.3",
     "expo-image": "^1.10.6",
     "expo-linear-gradient": "^12.7.2",

@@ -3,7 +3,7 @@ PODS:
     - React
   - boost (1.83.0)
   - DoubleConversion (1.1.6)
-  - EXConstants (15.4.5):
+  - EXConstants (15.4.6):
     - ExpoModulesCore
   - EXFont (11.10.3):
     - ExpoModulesCore
@@ -1134,11 +1134,11 @@ DEPENDENCIES:
   - bdk-rn (from `../../../node_modules/bdk-rn`)
   - boost (from `../../../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../../../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
-  - EXConstants (from `../../../node_modules/expo-constants/ios`)
+  - EXConstants (from `../node_modules/expo-constants/ios`)
   - EXFont (from `../../../node_modules/expo-font/ios`)
   - Expo (from `../../../node_modules/expo`)
   - ExpoFileSystem (from `../../../node_modules/expo-file-system/ios`)
-  - ExpoHead (from `../../../node_modules/expo-router/ios`)
+  - ExpoHead (from `../node_modules/expo-router/ios`)
   - ExpoImage (from `../../../node_modules/expo-image/ios`)
   - ExpoKeepAwake (from `../../../node_modules/expo-keep-awake/ios`)
   - ExpoLinearGradient (from `../../../node_modules/expo-linear-gradient/ios`)
@@ -1219,7 +1219,7 @@ EXTERNAL SOURCES:
   DoubleConversion:
     :podspec: "../../../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
   EXConstants:
-    :path: "../../../node_modules/expo-constants/ios"
+    :path: "../node_modules/expo-constants/ios"
   EXFont:
     :path: "../../../node_modules/expo-font/ios"
   Expo:
@@ -1227,7 +1227,7 @@ EXTERNAL SOURCES:
   ExpoFileSystem:
     :path: "../../../node_modules/expo-file-system/ios"
   ExpoHead:
-    :path: "../../../node_modules/expo-router/ios"
+    :path: "../node_modules/expo-router/ios"
   ExpoImage:
     :path: "../../../node_modules/expo-image/ios"
   ExpoKeepAwake:
@@ -1342,7 +1342,7 @@ SPEC CHECKSUMS:
   bdk-rn: 7a962524bfaffa1960b564f3a65993bb3c259f5e
   boost: d3f49c53809116a5d38da093a8aa78bf551aed09
   DoubleConversion: fea03f2699887d960129cc54bba7e52542b6f953
-  EXConstants: 988aa430ca0f76b43cd46b66e7fae3287f9cc2fc
+  EXConstants: a5f6276e565d98f9eb4280f81241fc342d641590
   EXFont: f20669cb266ef48b004f1eb1f2b20db96cd1df9f
   Expo: e01a77c6fa4bc80a6d1bb949cda1d12d21044abd
   ExpoFileSystem: eecaf6796aed0f4dd20042dc2ca2cac6c4bc1185
