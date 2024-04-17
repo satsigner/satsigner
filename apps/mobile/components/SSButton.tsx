@@ -13,6 +13,7 @@ type SSButtonProps = {
 export default function SSButton({
   label,
   variant = 'default',
+  disabled,
   style,
   ...props
 }: SSButtonProps) {
@@ -24,11 +25,12 @@ export default function SSButton({
     return StyleSheet.compose(
       {
         ...styles.buttonBase,
+        ...(disabled ? styles.disabled : {}),
         ...buttonVariantStyles
       },
       style
     )
-  }, [variant, style])
+  }, [variant, disabled, style])
 
   const textStyle = useMemo(() => {
     let textVariantStyles = styles.textDefault
@@ -39,7 +41,12 @@ export default function SSButton({
   }, [variant])
 
   return (
-    <TouchableOpacity style={buttonStyle} activeOpacity={0.6} {...props}>
+    <TouchableOpacity
+      style={buttonStyle}
+      activeOpacity={0.6}
+      disabled={disabled}
+      {...props}
+    >
       <SSText uppercase style={textStyle}>
         {label}
       </SSText>
@@ -73,5 +80,8 @@ const styles = StyleSheet.create({
   },
   textGhost: {
     color: Colors.gray[200]
+  },
+  disabled: {
+    opacity: 0.3
   }
 })
