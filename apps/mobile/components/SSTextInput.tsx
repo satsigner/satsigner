@@ -1,6 +1,8 @@
-import { Colors, Sizes } from '@/styles'
 import { useMemo } from 'react'
-import { TextInput, StyleSheet, View } from 'react-native'
+import { StyleSheet, TextInput, View } from 'react-native'
+
+import { Colors, Sizes } from '@/styles'
+
 import SSText from './SSText'
 
 type SSTextInputProps = {

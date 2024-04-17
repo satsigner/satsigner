@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
-import { TouchableOpacity, StyleSheet } from 'react-native'
-import SSText from './SSText'
+import { StyleSheet, TouchableOpacity } from 'react-native'
+
 import { Colors, Sizes } from '@/styles'
+
+import SSText from './SSText'
 
 type SSButtonProps = {
   label: string

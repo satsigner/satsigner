@@ -1,6 +1,7 @@
-import { Text, StyleSheet } from 'react-native'
-import { Colors, Sizes, Typography } from '@/styles'
 import { useMemo } from 'react'
+import { StyleSheet, Text } from 'react-native'
+
+import { Colors, Sizes, Typography } from '@/styles'
 
 type SSTextProps = {
   uppercase?: boolean
@@ -34,7 +35,7 @@ export default function SSText({
       },
       style
     )
-  }, [weight, uppercase, style])
+  }, [color, weight, uppercase, style])
 
   return <Text style={textStyle}>{children}</Text>
 }

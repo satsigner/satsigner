@@ -1,9 +1,8 @@
-import { Stack } from 'expo-router'
-import { Colors } from '@/styles'
-import { i18n } from '@/locales'
-import { View, StyleSheet } from 'react-native'
-import SSText from '@/components/SSText'
 import { LinearGradient } from 'expo-linear-gradient'
+import { Stack } from 'expo-router'
+import { StyleSheet, View } from 'react-native'
+
+import { Colors } from '@/styles'
 
 export default function Layout() {
   return (
