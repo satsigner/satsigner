@@ -1,3 +1,4 @@
+import { Image } from 'expo-image'
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
@@ -8,12 +9,14 @@ import SSText from './SSText'
 type SSButtonProps = {
   label: string
   variant?: 'default' | 'secondary' | 'ghost'
+  withSelect?: boolean
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 export default function SSButton({
   label,
   variant = 'default',
   disabled,
+  withSelect,
   style,
   ...props
 }: SSButtonProps) {
@@ -21,6 +24,8 @@ export default function SSButton({
     let buttonVariantStyles = styles.buttonDefault
     if (variant === 'secondary') buttonVariantStyles = styles.buttonSecondary
     if (variant === 'ghost') buttonVariantStyles = styles.buttonGhost
+    if (variant === 'default' && withSelect)
+      buttonVariantStyles = styles.buttonWithSelect
 
     return StyleSheet.compose(
       {
@@ -30,14 +35,14 @@ export default function SSButton({
       },
       style
     )
-  }, [variant, disabled, style])
+  }, [variant, disabled, withSelect, style])
 
   const textStyle = useMemo(() => {
     let textVariantStyles = styles.textDefault
     if (variant === 'secondary') textVariantStyles = styles.textSecondary
     if (variant === 'ghost') textVariantStyles = styles.textGhost
 
-    return { ...textVariantStyles }
+    return textVariantStyles
   }, [variant])
 
   return (
@@ -50,6 +55,18 @@ export default function SSButton({
       <SSText uppercase style={textStyle}>
         {label}
       </SSText>
+      {withSelect && (
+        <Image
+          style={{
+            position: 'absolute',
+            right: 15,
+            top: 28,
+            width: 11.6,
+            height: 5
+          }}
+          source={require('@/assets/icons/chevron-down.svg')}
+        />
+      )}
     </TouchableOpacity>
   )
 }
@@ -71,6 +88,9 @@ const styles = StyleSheet.create({
   },
   buttonGhost: {
     backgroundColor: Colors.transparent
+  },
+  buttonWithSelect: {
+    backgroundColor: Colors.gray[850]
   },
   textDefault: {
     color: Colors.white
