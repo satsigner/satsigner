@@ -2,6 +2,33 @@
   "en": {
     "satsigner": {
       "name": "SatSigner"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "valid": "Valid",
+      "invalid": "Invalid"
+    },
+    "bitcoin": {
+      "checksum": "Checksum",
+      "fingerprint": "Fingerprint"
+    },
+    "accountList": {},
+    "addMasterKey": {
+      "title": "Add Master Key",
+      "masterKeyName": "Master Key Name",
+      "generateNewSeed": {
+        "title": "Generate New Secret Seed",
+        "action": "Generate New Seed"
+      },
+      "importExistingSeed": {
+        "title": "Import Existing Seed",
+        "action": "Import Seed"
+      },
+      "accountOptions": {
+        "policyType": "Policy Type",
+        "scriptVersion": "Script Version",
+        "mnmonic": "Mnemonic Seed Words (BIP39)"
+      }
     }
   }
 }
