@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { StyleSheet, View } from 'react-native'
 
@@ -31,6 +32,7 @@ export default function Layout() {
           headerTintColor: Colors.gray[200]
         }}
       />
+      <StatusBar style="light" />
     </View>
   )
 }
