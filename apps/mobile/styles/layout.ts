@@ -8,3 +8,11 @@ export const mainContainer = {
 export const vStack = {
   gap: 16
 }
+
+export const form = {
+  gap: 16
+}
+
+export const formItem = {
+  gap: 8
+}

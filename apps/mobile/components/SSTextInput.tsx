@@ -1,19 +1,11 @@
 import { useMemo } from 'react'
-import { StyleSheet, TextInput, View } from 'react-native'
+import { StyleSheet, TextInput } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
-import SSText from './SSText'
+type SSTextInputProps = React.ComponentPropsWithoutRef<typeof TextInput>
 
-type SSTextInputProps = {
-  label: string
-} & React.ComponentPropsWithoutRef<typeof TextInput>
-
-export default function SSTextInput({
-  label,
-  style,
-  ...props
-}: SSTextInputProps) {
+export default function SSTextInput({ style, ...props }: SSTextInputProps) {
   const textInputStyle = useMemo(() => {
     return StyleSheet.compose(
       {
@@ -23,14 +15,7 @@ export default function SSTextInput({
     )
   }, [style])
 
-  return (
-    <View style={styles.containerBase}>
-      <SSText color="white" style={styles.labelBase}>
-        {label}
-      </SSText>
-      <TextInput style={textInputStyle} {...props} />
-    </View>
-  )
+  return <TextInput style={textInputStyle} {...props} />
 }
 
 const styles = StyleSheet.create({
@@ -42,13 +27,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[850],
     color: Colors.white,
     fontSize: Sizes.textInput.fontSize
-  },
-  labelBase: {
-    alignSelf: 'center'
-  },
-  containerBase: {
-    flex: 1,
-    flexDirection: 'column',
-    gap: 8
   }
 })

@@ -1,11 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Account } from '@/types/models/Account'
@@ -36,11 +37,15 @@ export default function AddMasterKey() {
           )
         }}
       />
-      <SSTextInput
-        label={i18n.t('addMasterKey.masterKeyName')}
-        onChangeText={(accountName) => setAccountName(accountName)}
-      />
-      <View style={styles.actionsContainer}>
+      <SSFormLayout>
+        <SSFormLayout.Item>
+          <SSFormLayout.Label label={i18n.t('addMasterKey.masterKeyName')} />
+          <SSTextInput
+            onChangeText={(accountName) => setAccountName(accountName)}
+          />
+        </SSFormLayout.Item>
+      </SSFormLayout>
+      <SSVStack>
         <SSButton
           label={i18n.t('addMasterKey.generateNewSeed.title')}
           disabled={actionsDisabled}
@@ -51,14 +56,7 @@ export default function AddMasterKey() {
           disabled={actionsDisabled}
           onPress={() => handleOnPressAddMasterKey('import')}
         />
-      </View>
+      </SSVStack>
     </SSMainLayout>
   )
 }
-
-const styles = StyleSheet.create({
-  actionsContainer: {
-    flex: 1,
-    gap: 12
-  }
-})

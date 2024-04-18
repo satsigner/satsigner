@@ -5,6 +5,7 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -56,7 +57,12 @@ export default function ImportSeed() {
           <SSWordInput position={23} />
           <SSWordInput position={24} />
         </SSSeedLayout>
-        <SSTextInput label="Passphrase (optional)" />
+        <SSFormLayout>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label label="Passphrase (optional)" />
+            <SSTextInput />
+          </SSFormLayout.Item>
+        </SSFormLayout>
         <SSVStack>
           <SSButton
             label="Save Secret Seed"

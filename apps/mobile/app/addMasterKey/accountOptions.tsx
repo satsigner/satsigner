@@ -4,6 +4,7 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 
@@ -40,20 +41,26 @@ export default function AccountOptions() {
           )
         }}
       />
-      <SSVStack>
-        <SSButton
-          label={i18n.t('addMasterKey.accountOptions.policyType')}
-          withSelect
-        />
-        <SSButton
-          label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
-          withSelect
-        />
-        <SSButton
-          label={i18n.t('addMasterKey.accountOptions.mnmonic')}
-          withSelect
-        />
-      </SSVStack>
+      <SSFormLayout>
+        <SSFormLayout.Item>
+          <SSFormLayout.Label
+            label={i18n.t('addMasterKey.accountOptions.policyType')}
+          />
+          <SSButton label="" withSelect />
+        </SSFormLayout.Item>
+        <SSFormLayout.Item>
+          <SSFormLayout.Label
+            label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
+          />
+          <SSButton label="" withSelect />
+        </SSFormLayout.Item>
+        <SSFormLayout.Item>
+          <SSFormLayout.Label
+            label={i18n.t('addMasterKey.accountOptions.mnmonic')}
+          />
+          <SSButton label="" withSelect />
+        </SSFormLayout.Item>
+      </SSFormLayout>
       <SSVStack>
         <SSButton
           label={getContinueButtonLabel()}

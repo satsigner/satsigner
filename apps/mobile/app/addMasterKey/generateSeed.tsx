@@ -6,6 +6,7 @@ import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -42,7 +43,12 @@ export default function GenerateSeed() {
           <SSWordInput position={11} />
           <SSWordInput position={12} />
         </SSSeedLayout>
-        <SSTextInput label="Passphrase (optional)" />
+        <SSFormLayout>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label label="Passphrase (optional)" />
+            <SSTextInput />
+          </SSFormLayout.Item>
+        </SSFormLayout>
         <SSChecksumStatus valid />
         <SSVStack>
           <SSButton
