@@ -5506,14 +5506,7 @@ expo-asset@~9.0.2:
     invariant "^2.2.4"
     md5-file "^3.2.3"
 
-expo-constants@^15.4.6:
-  version "15.4.6"
-  resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-15.4.6.tgz#d4e9b21b70c5602457962700f2e90a75356b487b"
-  integrity sha512-vizE69dww2Vl0PTWWvDmK0Jo2/J+WzdcMZlA05YEnEYofQuhKxTVsiuipf79mSOmFavt4UQYC1UnzptzKyfmiQ==
-  dependencies:
-    "@expo/config" "~8.5.0"
-
-expo-constants@~15.4.0, expo-constants@~15.4.3:
+expo-constants@~15.4.0, expo-constants@~15.4.3, expo-constants@~15.4.5:
   version "15.4.5"
   resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-15.4.5.tgz#81756a4c4e1c020f840a419cd86a124a6d1fb35b"
   integrity sha512-1pVVjwk733hbbIjtQcvUFCme540v4gFemdNlaxM2UXKbfRCOh2hzgKN5joHMOysoXQe736TTUrRj7UaZI5Yyhg==
