@@ -45,7 +45,7 @@ export default function AddMasterKey() {
           />
         </SSFormLayout.Item>
       </SSFormLayout>
-      <SSVStack>
+      <SSVStack style={{ marginTop: 40 }}>
         <SSButton
           label={i18n.t('addMasterKey.generateNewSeed.title')}
           disabled={actionsDisabled}

@@ -2,9 +2,9 @@ import { Stack, useRouter } from 'expo-router'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import SSFormLayout from '@/layouts/SSFormLayout'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 
