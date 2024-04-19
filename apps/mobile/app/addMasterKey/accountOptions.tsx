@@ -41,37 +41,39 @@ export default function AccountOptions() {
           )
         }}
       />
-      <SSFormLayout>
-        <SSFormLayout.Item>
-          <SSFormLayout.Label
-            label={i18n.t('addMasterKey.accountOptions.policyType')}
-          />
-          <SSButton label="" withSelect />
-        </SSFormLayout.Item>
-        <SSFormLayout.Item>
-          <SSFormLayout.Label
-            label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
-          />
-          <SSButton label="" withSelect />
-        </SSFormLayout.Item>
-        <SSFormLayout.Item>
-          <SSFormLayout.Label
-            label={i18n.t('addMasterKey.accountOptions.mnmonic')}
-          />
-          <SSButton label="" withSelect />
-        </SSFormLayout.Item>
-      </SSFormLayout>
       <SSVStack>
-        <SSButton
-          label={getContinueButtonLabel()}
-          variant="secondary"
-          onPress={() => handleOnPressConfirmAccountOptions()}
-        />
-        <SSButton
-          label={i18n.t('common.cancel')}
-          variant="ghost"
-          onPress={() => router.navigate('/accountList/')}
-        />
+        <SSFormLayout>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label
+              label={i18n.t('addMasterKey.accountOptions.policyType')}
+            />
+            <SSButton label="" withSelect />
+          </SSFormLayout.Item>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label
+              label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
+            />
+            <SSButton label="" withSelect />
+          </SSFormLayout.Item>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label
+              label={i18n.t('addMasterKey.accountOptions.mnmonic')}
+            />
+            <SSButton label="" withSelect />
+          </SSFormLayout.Item>
+        </SSFormLayout>
+        <SSVStack justifyEnd>
+          <SSButton
+            label={getContinueButtonLabel()}
+            variant="secondary"
+            onPress={() => handleOnPressConfirmAccountOptions()}
+          />
+          <SSButton
+            label={i18n.t('common.cancel')}
+            variant="ghost"
+            onPress={() => router.navigate('/accountList/')}
+          />
+        </SSVStack>
       </SSVStack>
     </SSMainLayout>
   )

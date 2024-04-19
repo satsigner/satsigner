@@ -7,13 +7,14 @@ type SSMainLayoutProps = {
 }
 
 export default function SSMainLayout({ children }: SSMainLayoutProps) {
-  return <View style={styles.container}>{children}</View>
+  return <View style={styles.containerBase}>{children}</View>
 }
 
 const styles = StyleSheet.create({
-  container: {
+  containerBase: {
     paddingHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingTop: Layout.mainContainer.paddingTop,
+    paddingBottom: Layout.mainContainer.paddingBottom,
     flex: 1
   }
 })
