@@ -24,9 +24,7 @@ interface Props {
   navigation: NavigationProp<any>;
 }
 
-export default function AccountTransactionsScreen({
-  navigation
-}: Props) {
+export default function AccountTransactionsScreen({ navigation }: Props) {
   const accountsContext = useAccountsContext();
   const { currentAccount } = accountsContext;
 
@@ -35,8 +33,8 @@ export default function AccountTransactionsScreen({
   const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
 
   const onRefresh = useCallback(() => {
-    (async() => {
-      setRefreshing(true);      
+    (async () => {
+      setRefreshing(true);
       await refresh();
       setRefreshing(false);
     })();
@@ -47,7 +45,7 @@ export default function AccountTransactionsScreen({
   }, []);
 
   useEffect(() => {
-    (async() => {
+    (async () => {
       await refresh();
     })();
 
@@ -56,7 +54,7 @@ export default function AccountTransactionsScreen({
 
   async function refresh() {
     await refreshBlockchainHeight();
-    await refreshAccount();  
+    await refreshAccount();
   }
 
   async function refreshBlockchainHeight() {
@@ -67,12 +65,19 @@ export default function AccountTransactionsScreen({
   }
 
   async function refreshAccount() {
-    const externalDescriptor = await new Descriptor()
-      .create(currentAccount.external_descriptor as string, Network.Testnet);
-    const internalDescriptor = await new Descriptor()
-      .create(currentAccount.internal_descriptor as string, Network.Testnet);
+    const externalDescriptor = await new Descriptor().create(
+      currentAccount.external_descriptor as string,
+      Network.Testnet
+    );
+    const internalDescriptor = await new Descriptor().create(
+      currentAccount.internal_descriptor as string,
+      Network.Testnet
+    );
 
-    const wallet = await accountsContext.loadWalletFromDescriptor(externalDescriptor, internalDescriptor);
+    const wallet = await accountsContext.loadWalletFromDescriptor(
+      externalDescriptor,
+      internalDescriptor
+    );
     console.log('Syncing wallet...');
 
     await accountsContext.syncWallet(wallet);
@@ -86,17 +91,25 @@ export default function AccountTransactionsScreen({
     <View style={styles.container}>
       <BackgroundGradient orientation={'horizontal'}>
         <View style={styles.header}>
-          <Sats sats={currentAccount?.summary?.balanceSats} satsStyle={styles.sats} satsLabelStyle={styles.satsLabel} usdStyle={styles.usd} usdLabelStyle={styles.usdLabel} />
+          <Sats
+            sats={currentAccount?.summary?.balanceSats}
+            satsStyle={styles.sats}
+            satsLabelStyle={styles.satsLabel}
+            usdStyle={styles.usd}
+            usdLabelStyle={styles.usdLabel}
+          />
         </View>
         <GradientSeparator />
-        <ActionBar />
+        <ActionBar navigation={navigation} />
         <GradientSeparator />
-        <AccountSummaryTabs summary={currentAccount.summary}/>
+        <AccountSummaryTabs summary={currentAccount.summary} />
       </BackgroundGradient>
       <TransactionListHeader
         refreshing={refreshing}
         onRefresh={onRefresh}
-        onSortDirectionChanged={(direction: SortDirection) => setSortDirection(direction)}
+        onSortDirectionChanged={(direction: SortDirection) =>
+          setSortDirection(direction)
+        }
       />
       <TransactionList
         blockchainHeight={blockchainHeight}
@@ -109,7 +122,7 @@ export default function AccountTransactionsScreen({
   );
 }
 
-const styles = StyleSheet.create({  
+const styles = StyleSheet.create({
   container: {
     ...Layout.container.base
   },
