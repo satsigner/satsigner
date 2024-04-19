@@ -1,6 +1,7 @@
 import { HierarchyCircularNode } from 'd3';
 import React from 'react';
 import {
+  GestureResponderEvent,
   LayoutChangeEvent,
   Pressable,
   StyleSheet,
@@ -33,12 +34,27 @@ export const GestureHandler = ({
   onLayoutContent,
   contentContainerAnimatedStyle
 }: GestureHandlerProps) => {
-  let onPressCircle = (selectedId: string) => () => {
-    if (selectedCircle.includes(selectedId)) {
-      return setSelectedCircle(selectedCircle.filter(id => id !== selectedId));
-    }
-    setSelectedCircle([...selectedCircle, selectedId]);
-  };
+  let onPressCircle =
+    (selectedId: string, r: number, x: number, y: number) =>
+    (event: GestureResponderEvent) => {
+      const circleCenterX = r;
+      const circleCenterY = r;
+      const touchPointX = event.nativeEvent.locationX;
+      const touchPointY = event.nativeEvent.locationY;
+      const distance = Math.sqrt(
+        Math.pow(touchPointX - circleCenterX, 2) +
+          Math.pow(touchPointY - circleCenterY, 2)
+      );
+      // register a tap only when the tap is inside the circle
+      if (distance <= r) {
+        if (selectedCircle.includes(selectedId)) {
+          return setSelectedCircle(
+            selectedCircle.filter(id => id !== selectedId)
+          );
+        }
+        setSelectedCircle([...selectedCircle, selectedId]);
+      }
+    };
 
   return (
     <GestureDetector gesture={zoomGesture}>
@@ -64,22 +80,25 @@ export const GestureHandler = ({
             return (
               <Pressable
                 key={data.id}
-                hitSlop={null}
-                pressRetentionOffset={null}
-                onPress={onPressCircle(data.id)}>
-                <Animated.View
-                  style={{
-                    borderRadius: r,
-                    width: r * 2,
-                    height: r * 2,
-
-                    backgroundColor: debug
-                      ? 'rgba(100, 200, 300, 0.4)'
-                      : 'transparent',
-                    position: 'absolute',
-                    left: x - r,
-                    top: y - r
-                  }}></Animated.View>
+                hitSlop={0}
+                pressRetentionOffset={0}
+                style={{
+                  borderColor: 'red',
+                  borderWidth: 1,
+                  borderStyle: 'solid',
+                  width: r * 2,
+                  height: r * 2,
+                  backgroundColor: debug
+                    ? 'rgba(100, 200, 300, 0.4)'
+                    : 'transparent',
+                  position: 'absolute',
+                  left: x - r,
+                  top: y - r,
+                  borderRadius: r,
+                  overflow: 'hidden'
+                }}
+                onPress={onPressCircle(data.id, r, x, y)}>
+                <Animated.View />
               </Pressable>
             );
           })}
