@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native'
 
 import { Colors } from '@/styles'
 
-SystemUI.setBackgroundColorAsync(Colors.gray[900])
+SystemUI.setBackgroundColorAsync(Colors.gray[950])
 
 export default function Layout() {
   return (
@@ -14,7 +14,7 @@ export default function Layout() {
       <Stack
         screenOptions={{
           contentStyle: {
-            backgroundColor: Colors.gray[900]
+            backgroundColor: Colors.gray[950]
           },
           headerBackground: () => (
             <LinearGradient
