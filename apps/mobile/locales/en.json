@@ -40,7 +40,14 @@
           "p2wpkh": "Native Segwit",
           "p2tr": "Taproot"
         },
-        "mnmonic": "Mnemonic Seed Words (BIP39)",
+        "mnemonic": "Mnemonic Seed Words (BIP39)",
+        "mnemonics": {
+          "24": "24 words generated from 256 bits of entropy.",
+          "21": "21 words generated from 224 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+          "18": "18 words generated from 192 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+          "15": "15 words generated from 160 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+          "12": "12 words generated from 128 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts."
+        },
         "generateNewSeed": "Generate New Seed",
         "importSeed": "Import Seed"
       }
