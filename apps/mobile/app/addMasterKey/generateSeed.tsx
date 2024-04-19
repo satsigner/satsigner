@@ -45,14 +45,16 @@ export default function GenerateSeed() {
         </SSSeedLayout>
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label label="Passphrase (optional)" />
+            <SSFormLayout.Label
+              label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+            />
             <SSTextInput />
           </SSFormLayout.Item>
         </SSFormLayout>
         <SSChecksumStatus valid />
         <SSVStack>
           <SSButton
-            label="Confirm Seed"
+            label={i18n.t('addMasterKey.generateNewSeed.action')}
             variant="secondary"
             onPress={() => {}}
           />

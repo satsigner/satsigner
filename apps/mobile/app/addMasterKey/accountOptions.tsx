@@ -12,13 +12,28 @@ export default function AccountOptions() {
   const router = useRouter()
   const accountStore = useAccountStore()
 
+  function getScriptVersionButtonLabel() {
+    const scriptVersion = accountStore.currentAccount.scriptVersion
+
+    if (scriptVersion === 'P2PKH')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2pkh')} (P2PKH)`
+    else if (scriptVersion === 'P2SH-P2WPKH')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+    else if (scriptVersion === 'P2WPKH')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2wpkh')} (P2WPKH)`
+    else if (scriptVersion === 'P2TR')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2tr')} P2TR`
+
+    return ''
+  }
+
   function getContinueButtonLabel() {
     const accountCreationType = accountStore.currentAccount.accountCreationType
 
     if (accountCreationType === 'generate')
-      return i18n.t('addMasterKey.generateNewSeed.action')
+      return i18n.t('addMasterKey.accountOptions.generateNewSeed')
     else if (accountCreationType === 'import')
-      return i18n.t('addMasterKey.importExistingSeed.action')
+      return i18n.t('addMasterKey.accountOptions.importSeed')
 
     return ''
   }
@@ -47,13 +62,18 @@ export default function AccountOptions() {
             <SSFormLayout.Label
               label={i18n.t('addMasterKey.accountOptions.policyType')}
             />
-            <SSButton label="" withSelect />
+            <SSButton
+              label={i18n.t(
+                'addMasterKey.accountOptions.policyTypes.singleSignature'
+              )}
+              withSelect
+            />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label
               label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
             />
-            <SSButton label="" withSelect />
+            <SSButton label={getScriptVersionButtonLabel()} withSelect />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label

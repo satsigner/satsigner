@@ -6,11 +6,14 @@
     "common": {
       "cancel": "Cancel",
       "valid": "Valid",
-      "invalid": "Invalid"
+      "invalid": "Invalid",
+      "optional": "optional"
     },
     "bitcoin": {
+      "words": "words",
       "checksum": "Checksum",
-      "fingerprint": "Fingerprint"
+      "fingerprint": "Fingerprint",
+      "passphrase": "Passphrase"
     },
     "accountList": {},
     "addMasterKey": {
@@ -18,16 +21,27 @@
       "masterKeyName": "Master Key Name",
       "generateNewSeed": {
         "title": "Generate New Secret Seed",
-        "action": "Generate New Seed"
+        "action": "Confirm Seed"
       },
       "importExistingSeed": {
         "title": "Import Existing Seed",
-        "action": "Import Seed"
+        "action": "Save Secret Seed"
       },
       "accountOptions": {
         "policyType": "Policy Type",
+        "policyTypes": {
+          "singleSignature": "Single Signature"
+        },
         "scriptVersion": "Script Version",
-        "mnmonic": "Mnemonic Seed Words (BIP39)"
+        "scriptVersions": {
+          "p2pkh": "Legacy",
+          "p2sh-p2wpkh": "Nested Segwit",
+          "p2wpkh": "Native Segwit",
+          "p2tr": "Taproot"
+        },
+        "mnmonic": "Mnemonic Seed Words (BIP39)",
+        "generateNewSeed": "Generate New Seed",
+        "importSeed": "Import Seed"
       }
     }
   }
