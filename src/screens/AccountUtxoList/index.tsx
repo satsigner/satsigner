@@ -32,7 +32,7 @@ export default function AccountUtxoListScreen({
     <View style={styles.container}>
       <SelectedUtxosHeader
       />
-      <View>
+      <View style={styles.utxos}>
         { utxos.map(utxo =>
           <UtxoItem key={outpoint(utxo)} utxo={utxo}></UtxoItem>
         )}
@@ -44,7 +44,10 @@ export default function AccountUtxoListScreen({
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
-    ...Layout.container.topPadded,
+    ...Layout.container.topPaddedThin,
     ...Layout.container.horizontalPadded
+  },
+  utxos: {
+    marginTop: 25
   }
 });

@@ -2,7 +2,7 @@ import { ViewStyle } from "react-native"
 
 import * as Colors from "./colors";
 
-type Container = "base" | "topPadded" | "horizontalPadded" | "horizontalPaddedThin"
+type Container = "base" | "topPadded" | "topPaddedThin" | "horizontalPadded" | "horizontalPaddedThin"
 export const container: Record<Container, ViewStyle> = {
   base: {
     flex: 1,
@@ -10,6 +10,9 @@ export const container: Record<Container, ViewStyle> = {
   },
   topPadded: {
     paddingTop: 30,
+  },
+  topPaddedThin: {
+    paddingTop: 25,
   },
   horizontalPadded: {
     paddingHorizontal: '6%'
