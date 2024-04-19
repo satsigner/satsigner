@@ -382,6 +382,8 @@ export function useZoomGesture(props: UseZoomGestureProps = {}): {
     panStartOffsetY,
     updateZoomGestureLastTime
   ]);
+
+  // Styles for the Animated View on top of Skia element
   const contentContainerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [
       { scale: baseScale.value * pinchScale.value },
@@ -390,6 +392,7 @@ export function useZoomGesture(props: UseZoomGestureProps = {}): {
     ]
   }));
 
+  // Transform for the Skia element
   const transform = useDerivedValue(() => {
     return [
       { scale: baseScale.value * pinchScale.value },

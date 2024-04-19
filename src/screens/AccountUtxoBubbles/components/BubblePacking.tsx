@@ -58,7 +58,6 @@ export const BubblePacking = ({
 
         let getX = () => {
           const textDimensions = font?.measureText(data?.value ? text : '');
-
           return x - (textDimensions?.width || 0) / 2 + 1.45;
         };
 

@@ -36,6 +36,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
   const accountsContext = useAccountsContext();
 
   const { utxos } = accountsContext.currentAccount;
+
   let utxoList = utxos.map(i => {
     return {
       id: outpoint(i),
@@ -50,7 +51,9 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
         id: 'root',
         children: utxoList,
         value: utxoList.reduce((acc, cur) => acc + cur.value, 0)
-      }).sum(d => d?.value ?? 0);
+      })
+        .sum(d => d?.value ?? 0)
+        .sort((a, b) => (b?.value ?? 0) - (a?.value ?? 0));
 
     const createPack = pack<UtxoBubble>()
       .size([GRAPH_WIDTH, GRAPH_HEIGHT])
