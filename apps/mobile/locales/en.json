@@ -7,10 +7,11 @@
       "cancel": "Cancel",
       "valid": "Valid",
       "invalid": "Invalid",
-      "optional": "optional"
+      "optional": "Optional",
+      "select": "Select"
     },
     "bitcoin": {
-      "words": "words",
+      "words": "Words",
       "checksum": "Checksum",
       "fingerprint": "Fingerprint",
       "passphrase": "Passphrase"
