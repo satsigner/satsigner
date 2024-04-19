@@ -4,6 +4,12 @@ export const button = {
   fontSize: 12
 }
 
+export const radioButton = {
+  borderRadius: 3,
+  borderWidth: 2,
+  height: 62
+}
+
 export const textInput = {
   borderRadius: 3,
   height: 58,
