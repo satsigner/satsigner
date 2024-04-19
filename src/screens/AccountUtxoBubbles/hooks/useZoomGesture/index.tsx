@@ -383,7 +383,6 @@ export function useZoomGesture(props: UseZoomGestureProps = {}): {
     updateZoomGestureLastTime
   ]);
   const contentContainerAnimatedStyle = useAnimatedStyle(() => ({
-    // @ts-ignore
     transform: [
       { scale: baseScale.value * pinchScale.value },
       { translateX: translateX.value },
