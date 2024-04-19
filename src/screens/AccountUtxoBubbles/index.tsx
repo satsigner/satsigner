@@ -17,7 +17,7 @@ interface Props {
   navigation: NavigationProp<any>;
 }
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
@@ -27,7 +27,7 @@ export interface UtxoBubble {
   children: UtxoBubble[];
 }
 
-const GRAPH_HEIGHT = 600;
+const GRAPH_HEIGHT = height - 44;
 const GRAPH_WIDTH = width;
 
 let canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
@@ -43,7 +43,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
       value: i.value
     };
   });
-  console.log(utxoList);
 
   let utxoPack = useMemo(() => {
     const utxoHierarchy = () =>
@@ -94,7 +93,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
           />
         </Canvas>
         <GestureHandler
-          // debug
           contentContainerAnimatedStyle={contentContainerAnimatedStyle}
           canvasSize={canvasSize}
           onLayoutContent={onLayoutContent}

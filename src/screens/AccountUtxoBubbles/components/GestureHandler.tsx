@@ -34,12 +34,10 @@ export const GestureHandler = ({
   contentContainerAnimatedStyle
 }: GestureHandlerProps) => {
   let onPressCircle = (selectedId: string) => () => {
-    console.log('single tap');
     if (selectedCircle.includes(selectedId)) {
       return setSelectedCircle(selectedCircle.filter(id => id !== selectedId));
     }
     setSelectedCircle([...selectedCircle, selectedId]);
-    // setSelectedCircle([]);
   };
 
   return (
