@@ -83,9 +83,6 @@ export const GestureHandler = ({
                 hitSlop={0}
                 pressRetentionOffset={0}
                 style={{
-                  borderColor: 'red',
-                  borderWidth: 1,
-                  borderStyle: 'solid',
                   width: r * 2,
                   height: r * 2,
                   backgroundColor: debug
