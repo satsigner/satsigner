@@ -1,4 +1,4 @@
-import { HierarchyCircularNode } from 'd3';
+import { HierarchyCircularNode, text } from 'd3';
 import React from 'react';
 import {
   GestureResponderEvent,
@@ -58,15 +58,7 @@ export const GestureHandler = ({
 
   return (
     <GestureDetector gesture={zoomGesture}>
-      <View
-        style={{
-          flex: 1,
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0
-        }}>
+      <View style={styles.fullScreen}>
         <Animated.View
           style={[
             {
@@ -76,7 +68,7 @@ export const GestureHandler = ({
             contentContainerAnimatedStyle
           ]}
           onLayout={onLayoutContent}>
-          {bubblePack.map(({ x, y, r, data }, index) => {
+          {bubblePack.map(({ x, y, r, data }) => {
             return (
               <Pressable
                 key={data.id}
@@ -100,17 +92,7 @@ export const GestureHandler = ({
             );
           })}
         </Animated.View>
-        <View
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            position: 'absolute',
-            bottom: 100,
-            width: '100%',
-            paddingHorizontal: 16
-          }}>
+        <View style={styles.bottomSection}>
           <Pressable style={{}} onPress={() => {}}>
             <Text style={styles.secondaryText}>CUSTOM AMOUNT</Text>
           </Pressable>
@@ -127,6 +109,24 @@ export const GestureHandler = ({
 };
 
 const styles = StyleSheet.create({
+  bottomSection: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    position: 'absolute',
+    bottom: 100,
+    width: '100%',
+    paddingHorizontal: 16
+  },
+  fullScreen: {
+    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0
+  },
   button: {
     alignItems: 'center',
     justifyContent: 'center',

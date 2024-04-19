@@ -9,7 +9,8 @@ import React from 'react';
 import {
   useDerivedValue,
   withTiming,
-  type SharedValue
+  type SharedValue,
+  useSharedValue
 } from 'react-native-reanimated';
 import { UtxoBubble } from '..';
 
@@ -26,10 +27,10 @@ export const BubblePacking = ({
   transform,
   canvasSize
 }: BubblePackingProps) => {
+  const centerX = canvasSize.width / 2;
+  const centerY = canvasSize.height / 2;
   return (
-    <Group
-      transform={transform}
-      origin={{ x: canvasSize.width / 2, y: canvasSize.height / 2 }}>
+    <Group transform={transform} origin={{ x: centerX, y: centerY }}>
       {utxoPack.map(({ x, y, r, data }) => {
         let isSelected = selectedCircle?.includes(data.id);
         const bgColor = useDerivedValue(() => {
@@ -41,7 +42,6 @@ export const BubblePacking = ({
         });
 
         const size = r / 6;
-
         const fontSize = size > 10 ? size : size;
 
         const font = useFont(

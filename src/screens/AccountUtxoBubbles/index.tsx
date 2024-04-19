@@ -112,25 +112,5 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     ...Layout.container.base
-  },
-  button: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    borderRadius: 4,
-    elevation: 3,
-    backgroundColor: 'white',
-    marginHorizontal: 20
-  },
-  text: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '300',
-    paddingTop: 8,
-    paddingBottom: 8,
-    marginRight: 30,
-    marginLeft: 30,
-    color: '#131313'
   }
 });
