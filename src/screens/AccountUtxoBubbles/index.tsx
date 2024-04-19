@@ -77,18 +77,10 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View
-        style={[
-          styles.container,
-          { borderColor: 'blue', borderStyle: 'solid', borderWidth: 1 }
-        ]}
-        onLayout={onLayout}>
+      <View style={[styles.container]} onLayout={onLayout}>
         <Canvas
           style={{
             ...canvasSize,
-            borderStyle: 'solid',
-            borderColor: 'red',
-            borderWidth: 1,
             justifyContent: 'center',
             alignItems: 'center',
             flex: 1
@@ -111,13 +103,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
           bubblePack={utxoPack}
           zoomGesture={zoomGesture}
         />
-        {/* <Pressable
-          style={styles.button}
-          onPress={() => {
-            console.log('tap');
-          }}>
-          <Text style={styles.text}>ADD AS INPUTS TO MESSAGE</Text>
-        </Pressable> */}
       </View>
     </GestureHandlerRootView>
   );
