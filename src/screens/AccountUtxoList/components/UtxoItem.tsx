@@ -1,5 +1,5 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { Utxo } from "../../../models/Utxo";
 
@@ -16,6 +16,8 @@ export default function UtxoItem({
 }: Props) {
   const txnBuilderContext = useContext(TransactionBuilderContext);
   const [ selected, setSelected ] = useState(false);
+
+  useEffect(() => setSelected(txnBuilderContext.hasInput(utxo)), []);
 
   function onToggleSelected() {
     const txnHasInput = txnBuilderContext.hasInput(utxo);
