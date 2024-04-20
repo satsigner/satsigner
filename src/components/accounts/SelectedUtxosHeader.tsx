@@ -1,19 +1,13 @@
 import { StyleSheet, View } from "react-native";
 
-import { useAccountsContext } from "../../../components/accounts/AccountsContext";
-import { useTransactionBuilderContext } from "../../../components/accounts/TransactionBuilderContext";
-import { AppText } from "../../../components/shared/AppText";
-import { Sats } from "../../../components/accounts/Sats";
-import { Colors, Typography } from "../../../styles";
-import { Utxo } from "../../../models/Utxo";
+import { useAccountsContext } from "./AccountsContext";
+import { useTransactionBuilderContext } from "./TransactionBuilderContext";
+import { AppText } from "../shared/AppText";
+import { Sats } from "./Sats";
+import { Colors, Typography } from "../../styles";
+import { Utxo } from "../../models/Utxo";
 
-interface Props {
-
-}
-
-export default function SelectedUtxosHeader({
-
-}: Props) {
+export default function SelectedUtxosHeader() {
   const transactionBuilderContext = useTransactionBuilderContext();
   const selectedUtxos = transactionBuilderContext.getInputs();
   

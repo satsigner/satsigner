@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { NavigationProp } from "@react-navigation/native";
@@ -5,11 +6,11 @@ import { NavigationProp } from "@react-navigation/native";
 import { Layout } from "../../styles";
 import { useAccountsContext } from "../../components/accounts/AccountsContext";
 import { Utxo } from "../../models/Utxo";
+import navUtils from "../../utils/NavUtils";
+
+import SelectedUtxosHeader from "../../components/accounts/SelectedUtxosHeader";
 
 import UtxoItem from "./components/UtxoItem";
-import navUtils from "../../utils/NavUtils";
-import { useEffect } from "react";
-import SelectedUtxosHeader from "./components/SelectedUtxosHeader";
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -44,8 +45,7 @@ export default function AccountUtxoListScreen({
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
-    ...Layout.container.topPaddedThin,
-    ...Layout.container.horizontalPadded
+    ...Layout.container.topPaddedThin
   },
   utxos: {
     marginTop: 25
