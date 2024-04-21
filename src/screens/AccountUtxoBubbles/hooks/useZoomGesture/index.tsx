@@ -37,9 +37,6 @@ export function useZoomGesture(props: UseZoomGestureProps = {}): {
   contentContainerAnimatedStyle: any;
   onLayout(event: LayoutChangeEvent): void;
   onLayoutContent(event: LayoutChangeEvent): void;
-  zoomOut(): void;
-  isZoomedIn: SharedValue<boolean>;
-  zoomGestureLastTime: SharedValue<number>;
   transform: Readonly<SharedValue<any>>;
 } {
   const {
@@ -406,9 +403,6 @@ export function useZoomGesture(props: UseZoomGestureProps = {}): {
     contentContainerAnimatedStyle,
     onLayout,
     onLayoutContent,
-    zoomOut,
-    isZoomedIn,
-    zoomGestureLastTime,
     transform
   };
 }

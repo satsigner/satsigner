@@ -9,8 +9,7 @@ import React from 'react';
 import {
   useDerivedValue,
   withTiming,
-  type SharedValue,
-  useSharedValue
+  type SharedValue
 } from 'react-native-reanimated';
 import { UtxoBubble } from '..';
 import { Colors } from '../../../styles';
