@@ -1,4 +1,9 @@
-import { Dimensions, StyleSheet, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  View,
+  useWindowDimensions
+} from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 
@@ -18,8 +23,6 @@ interface Props {
   navigation: NavigationProp<any>;
 }
 
-const { width, height } = Dimensions.get('window');
-
 export const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
 export interface UtxoBubble {
@@ -28,13 +31,15 @@ export interface UtxoBubble {
   children: UtxoBubble[];
 }
 
-const GRAPH_HEIGHT = height - 44;
-const GRAPH_WIDTH = width;
-
-const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
-
 export default function AccountUtxoListScreen({ navigation }: Props) {
   const accountsContext = useAccountsContext();
+
+  const { width, height } = useWindowDimensions();
+
+  const GRAPH_HEIGHT = height - 44;
+  const GRAPH_WIDTH = width;
+
+  const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
 
   const { utxos } = accountsContext.currentAccount;
 
