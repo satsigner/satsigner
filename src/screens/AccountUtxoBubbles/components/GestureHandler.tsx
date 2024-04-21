@@ -155,6 +155,6 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     marginRight: 30,
     marginLeft: 30,
-    color: '#131313'
+    color: Colors.grey19
   }
 });
