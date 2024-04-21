@@ -13,6 +13,7 @@ import {
   useSharedValue
 } from 'react-native-reanimated';
 import { UtxoBubble } from '..';
+import { Colors } from '../../../styles';
 
 interface BubblePackingProps {
   transform: Readonly<SharedValue<any>>;
@@ -35,9 +36,9 @@ export const BubblePacking = ({
         let isSelected = selectedCircle?.includes(data.id);
         const bgColor = useDerivedValue(() => {
           if (isSelected) {
-            return withTiming('white');
+            return withTiming(Colors.white);
           } else {
-            return withTiming('#6B6B6B');
+            return withTiming(Colors.grey107);
           }
         });
 

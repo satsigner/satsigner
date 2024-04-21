@@ -12,6 +12,7 @@ import { ComposedGesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { DefaultStyle } from 'react-native-reanimated/lib/typescript/reanimated2/hook/commonTypes';
 import { UtxoBubble } from '..';
+import { Colors } from '../../../styles';
 
 interface GestureHandlerProps {
   debug?: boolean;
@@ -133,7 +134,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 4,
     elevation: 3,
-    backgroundColor: 'white',
+    backgroundColor: Colors.white,
     position: 'absolute',
     bottom: 0,
     right: 16,
