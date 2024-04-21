@@ -31,14 +31,13 @@ export default function AccountUtxoListScreen({
 
   return (
     <View style={styles.container}>
-      <SelectedUtxosHeader
-      />
+      <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
       <View style={styles.utxos}>
         { utxos.map(utxo =>
           <UtxoItem key={outpoint(utxo)} utxo={utxo}></UtxoItem>
         )}
       </View>
-    </View>    
+    </View>
   );
 }
 

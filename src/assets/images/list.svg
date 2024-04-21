@@ -1,0 +1,11 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="16.36" height="13.21" viewBox="0 0 16.36 13.21">
+  <g>
+    <line x1="5.85" y1="4.06" x2="16.36" y2="4.06" fill="none" stroke="#adadad"/>
+    <line y1="4.06" x2="3.37" y2="4.06" fill="none" stroke="#adadad"/>
+    <line x1="5.85" y1="8.38" x2="16.36" y2="8.38" fill="none" stroke="#adadad"/>
+    <line y1="8.38" x2="3.37" y2="8.38" fill="none" stroke="#adadad"/>
+    <line x1="5.85" y1="12.71" x2="16.36" y2="12.71" fill="none" stroke="#adadad"/>
+    <line y1="12.71" x2="3.37" y2="12.71" fill="none" stroke="#adadad"/>
+  </g>
+  <rect x="6.95" width="0.72" height="0.72" fill="none"/>
+</svg>
