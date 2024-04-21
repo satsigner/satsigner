@@ -1,9 +1,4 @@
-import {
-  Dimensions,
-  StyleSheet,
-  View,
-  useWindowDimensions
-} from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 
