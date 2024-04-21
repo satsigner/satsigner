@@ -25,10 +25,10 @@ interface Props {
 
 export const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
-export interface UtxoBubble {
+export interface UtxoListBubble {
   id: string;
   value: number;
-  children: UtxoBubble[];
+  children: UtxoListBubble[];
 }
 
 export default function AccountUtxoListScreen({ navigation }: Props) {
@@ -43,17 +43,17 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   const { utxos } = accountsContext.currentAccount;
 
-  const utxoList = utxos.map(i => {
+  const utxoList = utxos.map(data => {
     return {
-      id: outpoint(i),
+      id: outpoint(data),
       children: [],
-      value: i.value
+      value: data.value
     };
   });
 
   const utxoPack = useMemo(() => {
     const utxoHierarchy = () =>
-      hierarchy<UtxoBubble>({
+      hierarchy<UtxoListBubble>({
         id: 'root',
         children: utxoList,
         value: utxoList.reduce((acc, cur) => acc + cur.value, 0)
@@ -61,7 +61,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
         .sum(d => d?.value ?? 0)
         .sort((a, b) => (b?.value ?? 0) - (a?.value ?? 0));
 
-    const createPack = pack<UtxoBubble>()
+    const createPack = pack<UtxoListBubble>()
       .size([GRAPH_WIDTH, GRAPH_HEIGHT])
       .padding(4);
 
