@@ -4,7 +4,7 @@ import { NavigationProp } from '@react-navigation/native';
 
 import { Canvas } from '@shopify/react-native-skia';
 import { hierarchy, pack } from 'd3';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
 import { Utxo } from '../../models/Utxo';
 import { Layout } from '../../styles';
@@ -12,6 +12,7 @@ import { BubblePacking } from './components/BubblePacking';
 import { GestureHandler } from './components/GestureHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useZoomGesture } from './hooks/useZoomGesture';
+import navUtils from '../../utils/NavUtils';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -30,14 +31,14 @@ export interface UtxoBubble {
 const GRAPH_HEIGHT = height - 44;
 const GRAPH_WIDTH = width;
 
-let canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
+const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
 
 export default function AccountUtxoListScreen({ navigation }: Props) {
   const accountsContext = useAccountsContext();
 
   const { utxos } = accountsContext.currentAccount;
 
-  let utxoList = utxos.map(i => {
+  const utxoList = utxos.map(i => {
     return {
       id: outpoint(i),
       children: [],
@@ -45,7 +46,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     };
   });
 
-  let utxoPack = useMemo(() => {
+  const utxoPack = useMemo(() => {
     const utxoHierarchy = () =>
       hierarchy<UtxoBubble>({
         id: 'root',
@@ -59,8 +60,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
       .size([GRAPH_WIDTH, GRAPH_HEIGHT])
       .padding(4);
 
-    const utxoPack = createPack(utxoHierarchy()).leaves();
-    return utxoPack;
+    return createPack(utxoHierarchy()).leaves();
   }, [utxoList]);
 
   const {
@@ -75,7 +75,11 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     }
   });
 
-  let [selectedCircle, setSelectedCircle] = useState<string[]>([]);
+  const [selectedCircle, setSelectedCircle] = useState<string[]>([]);
+
+  useEffect(() => {
+    navUtils.setHeaderTitle(accountsContext.currentAccount.name, navigation);
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
