@@ -8,6 +8,7 @@ import {
   GestureUpdateEvent,
   PanGestureHandlerEventPayload,
   PinchGestureHandlerEventPayload,
+  SimultaneousGesture,
   State
 } from 'react-native-gesture-handler';
 import { GestureStateManagerType } from 'react-native-gesture-handler/lib/typescript/handlers/gestures/gestureStateManager';
@@ -32,13 +33,17 @@ interface UseZoomGestureProps {
   };
 }
 
-export function useZoomGesture(props: UseZoomGestureProps = {}): {
+interface UseZoomGestureReturn {
   zoomGesture: ComposedGesture;
   contentContainerAnimatedStyle: any;
   onLayout(event: LayoutChangeEvent): void;
   onLayoutContent(event: LayoutChangeEvent): void;
   transform: Readonly<SharedValue<any>>;
-} {
+}
+
+export function useZoomGesture(
+  props: UseZoomGestureProps = {}
+): UseZoomGestureReturn {
   const {
     animationFunction = withTiming,
     animationConfig,
