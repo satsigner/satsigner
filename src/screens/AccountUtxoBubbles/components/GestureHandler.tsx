@@ -35,7 +35,7 @@ export const GestureHandler = ({
   onLayoutContent,
   contentContainerAnimatedStyle
 }: GestureHandlerProps) => {
-  let onPressCircle =
+  const onPressCircle =
     (selectedId: string, r: number, x: number, y: number) =>
     (event: GestureResponderEvent) => {
       const circleCenterX = r;

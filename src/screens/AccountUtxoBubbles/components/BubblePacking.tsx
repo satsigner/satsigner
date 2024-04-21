@@ -32,7 +32,7 @@ export const BubblePacking = ({
   return (
     <Group transform={transform} origin={{ x: centerX, y: centerY }}>
       {utxoPack.map(({ x, y, r, data }) => {
-        let isSelected = selectedCircle?.includes(data.id);
+        const isSelected = selectedCircle?.includes(data.id);
         const bgColor = useDerivedValue(() => {
           if (isSelected) {
             return withTiming(Colors.white);
@@ -54,14 +54,14 @@ export const BubblePacking = ({
           fontSize
         );
 
-        let text = data.value.toLocaleString() + ' sats';
+        const text = data.value.toLocaleString() + ' sats';
 
-        let getX = () => {
+        const getX = () => {
           const textDimensions = font?.measureText(data?.value ? text : '');
           return x - (textDimensions?.width || 0) / 2 + 1.45;
         };
 
-        let getY = () => {
+        const getY = () => {
           return y + (font?.getSize() || 0) / 3;
         };
 
