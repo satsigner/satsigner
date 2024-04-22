@@ -2,13 +2,16 @@ import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import { Layout } from '@/styles'
+import { type VStackGap } from '@/styles/layout'
 
 type SSVStackProps = {
+  gap?: VStackGap
   justifyEnd?: boolean
   children: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof View>
 
 export default function SSVStack({
+  gap = 'md',
   justifyEnd,
   children,
   style
@@ -17,11 +20,12 @@ export default function SSVStack({
     return StyleSheet.compose(
       {
         ...styles.containerBase,
+        ...{ gap: Layout.vStack.gap[gap] },
         ...(justifyEnd ? styles.justifyEnd : {})
       },
       style
     )
-  }, [justifyEnd, style])
+  }, [gap, justifyEnd, style])
 
   return <View style={containerStyle}>{children}</View>
 }
@@ -29,8 +33,7 @@ export default function SSVStack({
 const styles = StyleSheet.create({
   containerBase: {
     flex: 1,
-    flexDirection: 'column',
-    gap: Layout.vStack.gap
+    flexDirection: 'column'
   },
   justifyEnd: {
     justifyContent: 'flex-end'
