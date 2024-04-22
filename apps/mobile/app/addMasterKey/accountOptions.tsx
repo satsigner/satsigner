@@ -1,6 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Modal, ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -67,6 +66,9 @@ export default function AccountOptions() {
   }
 
   function handleOnPressConfirmAccountOptions() {
+    accountStore.currentAccount.scriptVersion = scriptVersion
+    accountStore.currentAccount.seedWordCount = seedWordCount
+
     const accountCreationType = accountStore.currentAccount.accountCreationType
 
     if (accountCreationType === 'generate')

@@ -27,22 +27,18 @@ export default function GenerateSeed() {
         }}
       />
       <ScrollView>
-        <SSSeedLayout count={12}>
-          <SSWordInput position={1} />
-          <SSWordInput position={2} />
-          <SSWordInput position={3} />
-          <SSWordInput position={4} />
-
-          <SSWordInput position={5} />
-          <SSWordInput position={6} />
-          <SSWordInput position={7} />
-          <SSWordInput position={8} />
-
-          <SSWordInput position={9} />
-          <SSWordInput position={10} />
-          <SSWordInput position={11} />
-          <SSWordInput position={12} />
-        </SSSeedLayout>
+        <SSText style={{ alignSelf: 'center' }}>
+          {i18n.t('addMasterKey.accountOptions.mnemonic')}
+        </SSText>
+        {accountStore.currentAccount.seedWordCount && (
+          <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
+            {[...Array(accountStore.currentAccount.seedWordCount)].map(
+              (_, index) => (
+                <SSWordInput key={index} position={index + 1} />
+              )
+            )}
+          </SSSeedLayout>
+        )}
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label

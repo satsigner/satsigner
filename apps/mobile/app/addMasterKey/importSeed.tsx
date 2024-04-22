@@ -26,37 +26,18 @@ export default function ImportSeed() {
         }}
       />
       <ScrollView>
-        <SSSeedLayout count={24}>
-          <SSWordInput position={1} />
-          <SSWordInput position={2} />
-          <SSWordInput position={3} />
-          <SSWordInput position={4} />
-
-          <SSWordInput position={5} />
-          <SSWordInput position={6} />
-          <SSWordInput position={7} />
-          <SSWordInput position={8} />
-
-          <SSWordInput position={9} />
-          <SSWordInput position={10} />
-          <SSWordInput position={11} />
-          <SSWordInput position={12} />
-
-          <SSWordInput position={13} />
-          <SSWordInput position={14} />
-          <SSWordInput position={15} />
-          <SSWordInput position={16} />
-
-          <SSWordInput position={17} />
-          <SSWordInput position={18} />
-          <SSWordInput position={19} />
-          <SSWordInput position={20} />
-
-          <SSWordInput position={21} />
-          <SSWordInput position={22} />
-          <SSWordInput position={23} />
-          <SSWordInput position={24} />
-        </SSSeedLayout>
+        <SSText style={{ alignSelf: 'center' }}>
+          {i18n.t('addMasterKey.accountOptions.mnemonic')}
+        </SSText>
+        {accountStore.currentAccount.seedWordCount && (
+          <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
+            {[...Array(accountStore.currentAccount.seedWordCount)].map(
+              (_, index) => (
+                <SSWordInput key={index} position={index + 1} />
+              )
+            )}
+          </SSSeedLayout>
+        )}
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label
