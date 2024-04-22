@@ -5,13 +5,25 @@ import { Colors, Sizes } from '@/styles'
 import SSText from './SSText'
 
 type SSWordInputProps = {
+  value?: string
   position: number
-}
+  editable?: boolean
+} & React.ComponentPropsWithoutRef<typeof TextInput>
 
-export default function SSWordInput({ position }: SSWordInputProps) {
+export default function SSWordInput({
+  value,
+  position,
+  editable = true,
+  ...props
+}: SSWordInputProps) {
   return (
     <View style={styles.containerBase}>
-      <TextInput style={styles.textInputBase} />
+      <TextInput
+        style={styles.textInputBase}
+        value={value}
+        editable={editable}
+        {...props}
+      />
       <SSText style={styles.wordPositionLabelBase}>{position}</SSText>
     </View>
   )
