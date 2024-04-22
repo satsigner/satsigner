@@ -11,12 +11,12 @@ import {
   withTiming,
   type SharedValue
 } from 'react-native-reanimated';
-import { UtxoBubble } from '..';
+import { UtxoListBubble } from '..';
 import { Colors } from '../../../styles';
 
 interface BubblePackingProps {
   transform: Readonly<SharedValue<any>>;
-  utxoPack: HierarchyCircularNode<UtxoBubble>[];
+  utxoPack: HierarchyCircularNode<UtxoListBubble>[];
   selectedCircle: string[];
   canvasSize: { width: number; height: number };
 }

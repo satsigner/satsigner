@@ -11,12 +11,12 @@ import {
 import { ComposedGesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { DefaultStyle } from 'react-native-reanimated/lib/typescript/reanimated2/hook/commonTypes';
-import { UtxoBubble } from '..';
+import { UtxoListBubble } from '..';
 import { Colors } from '../../../styles';
 
 interface GestureHandlerProps {
   debug?: boolean;
-  bubblePack: HierarchyCircularNode<UtxoBubble>[];
+  bubblePack: HierarchyCircularNode<UtxoListBubble>[];
   selectedCircle: string[];
   zoomGesture: ComposedGesture;
   setSelectedCircle: (selectedCircle: string[]) => void;
