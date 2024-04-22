@@ -50,11 +50,13 @@ export default function ImportSeed() {
             />
             <SSTextInput />
           </SSFormLayout.Item>
+          <SSFormLayout.Item>
+            <SSHStack justifyBetween>
+              <SSChecksumStatus valid />
+              <SSFingerprint value="1ca1f438" />
+            </SSHStack>
+          </SSFormLayout.Item>
         </SSFormLayout>
-        <SSHStack justifyBetween>
-          <SSChecksumStatus valid />
-          <SSFingerprint value="1ca1f438" />
-        </SSHStack>
         <SSVStack justifyEnd>
           <SSButton
             label={i18n.t('addMasterKey.importExistingSeed.action')}

@@ -38,7 +38,12 @@ export default function GenerateSeed() {
               <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
                 {[...Array(accountStore.currentAccount.seedWordCount)].map(
                   (_, index) => (
-                    <SSWordInput key={index} position={index + 1} />
+                    <SSWordInput
+                      key={index}
+                      position={index + 1}
+                      value="test"
+                      editable={false}
+                    />
                   )
                 )}
               </SSSeedLayout>
@@ -50,16 +55,18 @@ export default function GenerateSeed() {
             />
             <SSTextInput />
           </SSFormLayout.Item>
+          <SSFormLayout.Item>
+            <SSHStack justifyBetween>
+              <SSChecksumStatus valid />
+              <SSFingerprint value="1ca1f438" />
+            </SSHStack>
+          </SSFormLayout.Item>
         </SSFormLayout>
-        <SSHStack justifyBetween>
-          <SSChecksumStatus valid />
-          <SSFingerprint value="1ca1f438" />
-        </SSHStack>
         <SSVStack justifyEnd>
           <SSButton
             label={i18n.t('addMasterKey.generateNewSeed.action')}
             variant="secondary"
-            onPress={() => {}}
+            onPress={() => router.push('/addMasterKey/confirmSeed/0')}
           />
           <SSButton
             label={i18n.t('common.cancel')}
