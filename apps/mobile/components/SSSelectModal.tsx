@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Modal, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -26,18 +27,37 @@ export default function SSSelectModal({
   onCancel,
   children
 }: SSSelectModalProps) {
+  const splitSelectedText = useMemo(
+    () => selectedText.split(' - '),
+    [selectedText]
+  )
+
   return (
     <Modal visible={visible} transparent={false}>
       <SSMainLayout black>
         <ScrollView>
-          <SSVStack>
-            <SSText>{title}</SSText>
+          <SSVStack gap="lg">
             <SSVStack>
-              <SSText uppercase>{selectedText}</SSText>
-              <SSText>{selectedDescription}</SSText>
+              <SSText color="muted" size="lg" style={{ alignSelf: 'center' }}>
+                {title}
+              </SSText>
+              <SSVStack gap="sm">
+                <SSText uppercase>
+                  {splitSelectedText.length > 1 ? (
+                    <>
+                      <SSText weight="bold">{splitSelectedText[0]}</SSText>
+                      {' - '}
+                      {splitSelectedText[1]}
+                    </>
+                  ) : (
+                    selectedText
+                  )}
+                </SSText>
+                <SSText color="muted">{selectedDescription}</SSText>
+              </SSVStack>
             </SSVStack>
+            <SSVStack>{children}</SSVStack>
           </SSVStack>
-          <SSVStack>{children}</SSVStack>
         </ScrollView>
         <SSVStack>
           <SSButton
