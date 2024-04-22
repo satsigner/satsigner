@@ -19,6 +19,16 @@ export const vStack = {
 
 export type VStackGap = keyof (typeof vStack)['gap']
 
+export const hStack = {
+  gap: {
+    xs: 4,
+    sm: 8,
+    md: 16
+  }
+}
+
+export type HStackGap = keyof (typeof hStack)['gap']
+
 export const form = {
   gap: 16
 }
