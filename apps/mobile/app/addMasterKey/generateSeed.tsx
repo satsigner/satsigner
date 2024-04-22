@@ -29,19 +29,21 @@ export default function GenerateSeed() {
         }}
       />
       <ScrollView>
-        <SSText style={{ alignSelf: 'center' }}>
-          {i18n.t('addMasterKey.accountOptions.mnemonic')}
-        </SSText>
-        {accountStore.currentAccount.seedWordCount && (
-          <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
-            {[...Array(accountStore.currentAccount.seedWordCount)].map(
-              (_, index) => (
-                <SSWordInput key={index} position={index + 1} />
-              )
-            )}
-          </SSSeedLayout>
-        )}
         <SSFormLayout>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label
+              label={i18n.t('addMasterKey.accountOptions.mnemonic')}
+            />
+            {accountStore.currentAccount.seedWordCount && (
+              <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
+                {[...Array(accountStore.currentAccount.seedWordCount)].map(
+                  (_, index) => (
+                    <SSWordInput key={index} position={index + 1} />
+                  )
+                )}
+              </SSSeedLayout>
+            )}
+          </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label
               label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
@@ -53,7 +55,7 @@ export default function GenerateSeed() {
           <SSChecksumStatus valid />
           <SSFingerprint value="1ca1f438" />
         </SSHStack>
-        <SSVStack>
+        <SSVStack justifyEnd>
           <SSButton
             label={i18n.t('addMasterKey.generateNewSeed.action')}
             variant="secondary"
