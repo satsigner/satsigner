@@ -3,10 +3,12 @@ import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
+import SSFingerprint from '@/components/SSFingerprint'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -47,7 +49,10 @@ export default function GenerateSeed() {
             <SSTextInput />
           </SSFormLayout.Item>
         </SSFormLayout>
-        <SSChecksumStatus valid />
+        <SSHStack justifyBetween>
+          <SSChecksumStatus valid />
+          <SSFingerprint value="1ca1f438" />
+        </SSHStack>
         <SSVStack>
           <SSButton
             label={i18n.t('addMasterKey.generateNewSeed.action')}
