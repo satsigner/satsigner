@@ -2,15 +2,18 @@ import { useMemo } from 'react'
 import { StyleSheet, Text } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
+import { type TextFontSize } from '@/styles/sizes'
 
 type SSTextProps = {
-  uppercase?: boolean
   color?: 'white' | 'black' | 'muted'
+  size?: TextFontSize
   weight?: 'light' | 'regular' | 'medium' | 'bold'
+  uppercase?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
 
 export default function SSText({
   color = 'white',
+  size = 'sm',
   weight = 'regular',
   uppercase,
   style,
@@ -30,12 +33,13 @@ export default function SSText({
       {
         ...styles.textBase,
         ...colorStyle,
+        ...{ fontSize: Sizes.text.fontSize[size] },
         ...weightStyle,
         ...(uppercase ? styles.uppercase : {})
       },
       style
     )
-  }, [color, weight, uppercase, style])
+  }, [color, size, weight, uppercase, style])
 
   return <Text style={textStyle}>{children}</Text>
 }

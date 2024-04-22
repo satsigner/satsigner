@@ -7,8 +7,17 @@ export const mainContainer = {
 }
 
 export const vStack = {
-  gap: 16
+  gap: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 32,
+    xl: 64,
+    '2xl': 128
+  }
 }
+
+export type VStackGap = keyof (typeof vStack)['gap']
 
 export const form = {
   gap: 16
