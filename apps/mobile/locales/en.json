@@ -8,9 +8,12 @@
       "valid": "Valid",
       "invalid": "Invalid",
       "optional": "Optional",
-      "select": "Select"
+      "select": "Select",
+      "next": "Next",
+      "confirm": "Confirm"
     },
     "bitcoin": {
+      "word": "Word",
       "words": "Words",
       "checksum": "Checksum",
       "fingerprint": "Fingerprint",
