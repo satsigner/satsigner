@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   justifyBetween: {
-    justifyContent: 'space-evenly'
+    justifyContent: 'space-between'
   },
   justifyEvenly: {
     justifyContent: 'space-evenly'
