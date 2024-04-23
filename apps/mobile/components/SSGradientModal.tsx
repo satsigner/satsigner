@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { Modal, StyleSheet, View } from 'react-native'
+import { Modal, StyleSheet } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { i18n } from '@/locales'
-import { Colors, Layout } from '@/styles'
+import { Colors } from '@/styles'
 
 import SSButton from './SSButton'
 
