@@ -17,6 +17,12 @@ export const button = {
   fontSize: text.fontSize.sm
 }
 
+export const checkbox = {
+  borderRadius: 4,
+  borderWidth: 2,
+  height: 32
+}
+
 export const radioButton = {
   borderRadius: 3,
   borderWidth: 2,
