@@ -69,11 +69,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     onLayoutContent,
     transform,
     contentContainerAnimatedStyle
-  } = useZoomGesture({
-    doubleTapConfig: {
-      defaultScale: 2
-    }
-  });
+  } = useZoomGesture();
 
   const [selectedCircle, setSelectedCircle] = useState<string[]>([]);
 
