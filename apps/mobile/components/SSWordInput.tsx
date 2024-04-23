@@ -22,6 +22,10 @@ export default function SSWordInput({
         style={styles.textInputBase}
         value={value}
         editable={editable}
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect={false}
+        spellCheck={false}
         {...props}
       />
       <SSText style={styles.wordPositionLabelBase}>{position}</SSText>
