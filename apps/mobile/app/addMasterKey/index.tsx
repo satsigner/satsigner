@@ -37,25 +37,27 @@ export default function AddMasterKey() {
           )
         }}
       />
-      <SSFormLayout>
-        <SSFormLayout.Item>
-          <SSFormLayout.Label label={i18n.t('addMasterKey.masterKeyName')} />
-          <SSTextInput
-            onChangeText={(accountName) => setAccountName(accountName)}
+      <SSVStack gap="lg">
+        <SSFormLayout>
+          <SSFormLayout.Item>
+            <SSFormLayout.Label label={i18n.t('addMasterKey.masterKeyName')} />
+            <SSTextInput
+              onChangeText={(accountName) => setAccountName(accountName)}
+            />
+          </SSFormLayout.Item>
+        </SSFormLayout>
+        <SSVStack>
+          <SSButton
+            label={i18n.t('addMasterKey.generateNewSeed.title')}
+            disabled={actionsDisabled}
+            onPress={() => handleOnPressAddMasterKey('generate')}
           />
-        </SSFormLayout.Item>
-      </SSFormLayout>
-      <SSVStack style={{ marginTop: 40 }}>
-        <SSButton
-          label={i18n.t('addMasterKey.generateNewSeed.title')}
-          disabled={actionsDisabled}
-          onPress={() => handleOnPressAddMasterKey('generate')}
-        />
-        <SSButton
-          label={i18n.t('addMasterKey.importExistingSeed.title')}
-          disabled={actionsDisabled}
-          onPress={() => handleOnPressAddMasterKey('import')}
-        />
+          <SSButton
+            label={i18n.t('addMasterKey.importExistingSeed.title')}
+            disabled={actionsDisabled}
+            onPress={() => handleOnPressAddMasterKey('import')}
+          />
+        </SSVStack>
       </SSVStack>
     </SSMainLayout>
   )
