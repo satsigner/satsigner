@@ -6,6 +6,7 @@ module.exports = {
   extends: ['universe/native'],
   plugins: ['simple-import-sort'],
   rules: {
+    'no-console': 'warn',
     'react-hooks/exhaustive-deps': 'warn',
     'simple-import-sort/imports': 'warn',
     'simple-import-sort/exports': 'warn',
