@@ -10,14 +10,16 @@
       "optional": "Optional",
       "select": "Select",
       "next": "Next",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "close": "Close"
     },
     "bitcoin": {
       "word": "Word",
       "words": "Words",
       "checksum": "Checksum",
       "fingerprint": "Fingerprint",
-      "passphrase": "Passphrase"
+      "passphrase": "Passphrase",
+      "script": "Script"
     },
     "accountList": {},
     "addMasterKey": {
@@ -29,7 +31,13 @@
       },
       "importExistingSeed": {
         "title": "Import Existing Seed",
-        "action": "Save Secret Seed"
+        "action": "Save Secret Seed",
+        "accountAdded": "Parent account has been added",
+        "accountAddedModal": {
+          "derivationPath": "Searching derivation path",
+          "utxos": "Found UTXOs",
+          "sats": "Total spendable sats"
+        }
       },
       "accountOptions": {
         "policyType": "Policy Type",
