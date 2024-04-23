@@ -7,12 +7,14 @@ import { type HStackGap } from '@/styles/layout'
 type SSHStackProps = {
   gap?: HStackGap
   justifyBetween?: boolean
+  justifyEvenly?: boolean
   children: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof View>
 
 export default function SSHStack({
   gap = 'md',
   justifyBetween,
+  justifyEvenly,
   children,
   style
 }: SSHStackProps) {
@@ -21,11 +23,12 @@ export default function SSHStack({
       {
         ...styles.containerBase,
         ...{ gap: Layout.hStack.gap[gap] },
-        ...(justifyBetween ? styles.justifyBetween : {})
+        ...(justifyBetween ? styles.justifyBetween : {}),
+        ...(justifyEvenly ? styles.justifyEvenly : {})
       },
       style
     )
-  }, [gap, justifyBetween, style])
+  }, [gap, justifyBetween, justifyEvenly, style])
 
   return <View style={containerStyle}>{children}</View>
 }
@@ -36,6 +39,9 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   justifyBetween: {
-    justifyContent: 'space-between'
+    justifyContent: 'space-evenly'
+  },
+  justifyEvenly: {
+    justifyContent: 'space-evenly'
   }
 })
