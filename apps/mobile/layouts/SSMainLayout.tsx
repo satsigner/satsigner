@@ -6,14 +6,24 @@ import { Colors, Layout } from '@/styles'
 type SSMainLayoutProps = {
   black?: boolean
   children: React.ReactNode
-}
+} & React.ComponentPropsWithoutRef<typeof View>
 
-export default function SSMainLayout({ black, children }: SSMainLayoutProps) {
+export default function SSMainLayout({
+  black,
+  style,
+  children
+}: SSMainLayoutProps) {
   const containerStyle = useMemo(() => {
-    return { backgroundColor: black ? Colors.black : Colors.gray[950] }
-  }, [black])
+    return StyleSheet.compose(
+      {
+        ...styles.containerBase,
+        ...{ backgroundColor: black ? Colors.black : Colors.gray[950] }
+      },
+      [style]
+    )
+  }, [black, style])
 
-  return <View style={[styles.containerBase, containerStyle]}>{children}</View>
+  return <View style={containerStyle}>{children}</View>
 }
 
 const styles = StyleSheet.create({
