@@ -92,10 +92,7 @@ export function useZoomGesture(
   }, [containerDimensions, contentDimensions]);
 
   const zoomIn = useCallback((): void => {
-    const { width, height } = getContentContainerSize();
-
-    const newScale =
-      doubleTapConfig?.defaultScale ?? getScaleFromDimensions(width, height);
+    const newScale = doubleTapConfig?.defaultScale ?? MIN_SCALE;
 
     const clampedScale = clampScale(
       newScale,

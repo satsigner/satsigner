@@ -41,8 +41,8 @@ export const BubblePacking = ({
           }
         });
 
-        const size = r / 6;
-        const fontSize = size > 10 ? size : size;
+        // size of font relative to the radius of the circle
+        const fontSize = r / 6;
 
         const font = useFont(
           require('../../../assets/fonts/SF-Pro-Display-Light.otf'),
