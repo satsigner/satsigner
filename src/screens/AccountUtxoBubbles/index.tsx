@@ -1,3 +1,7 @@
+// To get react-native-handle-gesture to work in Skia, need to overlay the Skia Canvas with AnimatedView
+// Hence, the Canvas is not nested inside the GestureHandler
+// https://shopify.github.io/react-native-skia/docs/animations/gestures#element-tracking
+
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
