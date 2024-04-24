@@ -4,8 +4,8 @@ import {
   Text as SkiaText,
   useFont
 } from '@shopify/react-native-skia';
-import { HierarchyCircularNode } from 'd3';
-import React from 'react';
+import { HierarchyCircularNode, text } from 'd3';
+import React, { useMemo } from 'react';
 import {
   useDerivedValue,
   withTiming,
@@ -57,7 +57,9 @@ export const BubblePacking = ({
         const text = data.value.toLocaleString() + ' sats';
 
         const getX = () => {
-          const textDimensions = font?.measureText(data?.value ? text : '');
+          const textDimensions = isSelected
+            ? selectedFont?.measureText(data?.value ? text : '')
+            : font?.measureText(data?.value ? text : '');
           return x - (textDimensions?.width || 0) / 2 + 1.45;
         };
 
