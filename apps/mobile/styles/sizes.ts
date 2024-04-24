@@ -5,7 +5,11 @@ export const text = {
     md: 14,
     lg: 16,
     xl: 18,
-    '2xl': 20
+    '2xl': 20,
+    '3xl': 24,
+    '4xl': 30,
+    '5xl': 36,
+    '6xl': 42
   }
 }
 
