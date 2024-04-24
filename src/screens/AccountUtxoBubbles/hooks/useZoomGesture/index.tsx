@@ -20,15 +20,13 @@ import {
   withTiming
 } from 'react-native-reanimated';
 import { MAX_SCALE, MIN_SCALE } from './constants';
-import { clampScale, getScaleFromDimensions } from './utils';
+import { clampScale } from './utils';
 
 interface UseZoomGestureProps {
   animationFunction?: typeof withTiming;
   animationConfig?: object;
   doubleTapConfig?: {
     defaultScale?: number;
-    minZoomScale?: number;
-    maxZoomScale?: number;
   };
 }
 
@@ -94,11 +92,7 @@ export function useZoomGesture(
   const zoomIn = useCallback((): void => {
     const newScale = doubleTapConfig?.defaultScale ?? MIN_SCALE;
 
-    const clampedScale = clampScale(
-      newScale,
-      doubleTapConfig?.minZoomScale ?? MIN_SCALE,
-      doubleTapConfig?.maxZoomScale ?? MAX_SCALE
-    );
+    const clampedScale = clampScale(newScale, MIN_SCALE, MAX_SCALE);
 
     lastScale.value = clampedScale;
 
@@ -217,6 +211,7 @@ export function useZoomGesture(
     else zoomIn();
   }, [zoomIn, zoomOut, isZoomedIn]);
 
+  // getting the container dimensions
   const onLayout = useCallback(
     ({
       nativeEvent: {
@@ -231,6 +226,7 @@ export function useZoomGesture(
     [containerDimensions]
   );
 
+  // getting the content dimensions
   const onLayoutContent = useCallback(
     ({
       nativeEvent: {
@@ -317,7 +313,7 @@ export function useZoomGesture(
           translationX -= panStartOffsetX.value;
           translationY -= panStartOffsetY.value;
 
-          // SAVES LAST POSITION
+          // Saves last position
           lastOffsetX.value =
             lastOffsetX.value + translationX / lastScale.value;
           lastOffsetY.value =
