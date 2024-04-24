@@ -41,7 +41,13 @@ export default function ConfirmSeed() {
     if (!accountStore.currentAccount.seedWordCount) return
     if (+index + 1 < accountStore.currentAccount.seedWordCount)
       router.push(`/addMasterKey/confirmSeed/${+index + 1}`)
-    else router.push(`/accountList/`) //TODO: Change me
+    else setWarningModalVisible(true)
+  }
+
+  function handleFinishSeedConfirmation() {
+    setWarningModalVisible(false)
+    // todo
+    router.push('/accountList/')
   }
 
   return (
@@ -91,7 +97,7 @@ export default function ConfirmSeed() {
       </SSVStack>
       <SSWarningModal
         visible={warningModalVisible}
-        onClose={() => setWarningModalVisible(false)}
+        onClose={() => handleFinishSeedConfirmation()}
       >
         <SSVStack itemsCenter>
           <SSHStack>
