@@ -9,6 +9,7 @@ type SSTextProps = {
   size?: TextFontSize
   weight?: 'light' | 'regular' | 'medium' | 'bold'
   uppercase?: boolean
+  center?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
 
 export default function SSText({
@@ -16,6 +17,7 @@ export default function SSText({
   size = 'sm',
   weight = 'regular',
   uppercase,
+  center,
   style,
   children
 }: SSTextProps) {
@@ -35,11 +37,12 @@ export default function SSText({
         ...colorStyle,
         ...{ fontSize: Sizes.text.fontSize[size] },
         ...weightStyle,
-        ...(uppercase ? styles.uppercase : {})
+        ...(uppercase ? styles.uppercase : {}),
+        ...(center ? styles.center : {})
       },
       style
     )
-  }, [color, size, weight, uppercase, style])
+  }, [color, size, weight, uppercase, center, style])
 
   return <Text style={textStyle}>{children}</Text>
 }
@@ -59,6 +62,9 @@ const styles = StyleSheet.create({
   },
   uppercase: {
     textTransform: 'uppercase'
+  },
+  center: {
+    textAlign: 'center'
   },
   textLight: {
     fontFamily: Typography.sfProTextLight
