@@ -1,3 +1,15 @@
+/**
+ * Provides a custom hook for handling zoom and pan gestures on a content container.
+ * This hook manages scale transformations and translations, allowing pinch-to-zoom
+ * and drag-to-pan functionalities.
+ *
+ * This is mostly the code from react-native-zoom-reanimated with slight modifications
+ * https://github.com/kesha-antonov/react-native-zoom-reanimated/tree/main
+ *
+ * @param {UseZoomGestureProps} props - Configuration options for animations and double tap behavior.
+ * @returns {UseZoomGestureReturn} - Returns the gesture handlers, animated styles, and layout event handlers.
+ */
+
 import React, { useCallback, useMemo, useRef } from 'react';
 import { LayoutChangeEvent } from 'react-native';
 import {
@@ -47,15 +59,21 @@ export function useZoomGesture(
     doubleTapConfig
   } = props;
 
-  const baseScale = useSharedValue(1);
-  const pinchScale = useSharedValue(1);
-  const lastScale = useSharedValue(1);
+  // scale values for pinch gesture
+  const baseScale = useSharedValue(1); // base scale for the content
+  const pinchScale = useSharedValue(1); // dynamic scale, changing when pinching
+  const lastScale = useSharedValue(1); // saved scale for panning to works properly
+
+  // for handling zoom in/out and double tap
   const isZoomedIn = useSharedValue(false);
+  // for tracking the last time a gesture was performed
   const zoomGestureLastTime = useSharedValue(0);
 
+  // Dimensions of the container and content for calculating transformations
   const containerDimensions = useSharedValue({ width: 0, height: 0 });
   const contentDimensions = useSharedValue({ width: 1, height: 1 });
 
+  // Translation values for handling pan gestures
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const lastOffsetX = useSharedValue(0);
@@ -80,6 +98,7 @@ export function useZoomGesture(
     [animationFunction, animationConfig]
   );
 
+  // get the size of the content and container
   const getContentContainerSize = useCallback(() => {
     return {
       width: containerDimensions.value.width,
@@ -152,12 +171,21 @@ export function useZoomGesture(
     withAnimation
   ]);
 
+  /**
+   * Handles the scenario where the pan gesture results in the content being moved outside of the allowable viewable area.
+   * This function recalculates and adjusts the translation values to ensure the content remains within the bounds.
+   * It uses a timeout to delay the execution slightly, which can help in managing rapid successive gestures.
+   */
   const handlePanOutside = useCallback((): void => {
+    // Clear any existing timeout to reset the debounce mechanism
     if (handlePanOutsideTimeoutId.current !== undefined)
       clearTimeout(handlePanOutsideTimeoutId.current);
 
+    // Set a timeout to delay the execution of the function
     handlePanOutsideTimeoutId.current = setTimeout((): void => {
       const { width, height } = getContentContainerSize();
+
+      // Calculate the maximum allowable offsets based on the current scale and container dimensions
       const maxOffset = {
         x:
           width * lastScale.value < containerDimensions.value.width
@@ -173,17 +201,20 @@ export function useZoomGesture(
               lastScale.value
       };
 
+      // Check if the current X translation is outside the allowable range and adjust if necessary
       const isPanedXOutside =
         lastOffsetX.value > maxOffset.x || lastOffsetX.value < -maxOffset.x;
       if (isPanedXOutside) {
         const newOffsetX = lastOffsetX.value >= 0 ? maxOffset.x : -maxOffset.x;
         lastOffsetX.value = newOffsetX;
 
+        // Animate the translation adjustment
         translateX.value = withAnimation(newOffsetX);
       } else {
         translateX.value = lastOffsetX.value;
       }
 
+      // Check if the current Y translation is outside the allowable range and adjust if necessary
       const isPanedYOutside =
         lastOffsetY.value > maxOffset.y || lastOffsetY.value < -maxOffset.y;
       if (isPanedYOutside) {
@@ -241,16 +272,24 @@ export function useZoomGesture(
     [contentDimensions]
   );
 
+  /**
+   * Handles the end of a pinch gesture by updating the scale values and determining the next steps based on the new scale.
+   * This function adjusts the zoom level of the content and ensures that the content remains within the allowable viewable area or resets to the default view.
+   *
+   * @param {number} scale - The scale factor derived from the pinch gesture.
+   */
   const onPinchEnd = useCallback(
     (scale: number): void => {
+      // Calculate the new scale by multiplying the last known scale with the scale factor from the pinch gesture.
       const newScale = lastScale.value * scale;
       lastScale.value = newScale;
+      // If the new scale is greater than 1, it indicates a zoom-in action.
       if (newScale > 1) {
-        isZoomedIn.value = true;
-        baseScale.value = newScale;
-        pinchScale.value = 1;
+        isZoomedIn.value = true; // Update the state to indicate that the content is zoomed in.
+        baseScale.value = newScale; // Set the base scale to the new scale.
+        pinchScale.value = 1; // Reset the pinch scale to 1 as the gesture has ended.
 
-        handlePanOutside();
+        handlePanOutside(); // Adjust the position if the content is outside the allowable area.
       } else {
         zoomOut();
       }
@@ -275,8 +314,8 @@ export function useZoomGesture(
 
         runOnJS(onDoubleTap)();
       })
-      .maxDeltaX(25)
-      .maxDeltaY(25);
+      .maxDeltaX(25) // max delta x for tap gesture
+      .maxDeltaY(25); // max delta y for tap gesture
 
     const panGesture = Gesture.Pan()
       .onStart(
@@ -294,7 +333,7 @@ export function useZoomGesture(
           updateZoomGestureLastTime();
 
           let { translationX, translationY } = event;
-
+          // calculate the translation of the pan gesture
           translationX -= panStartOffsetX.value;
           translationY -= panStartOffsetY.value;
 
@@ -309,7 +348,7 @@ export function useZoomGesture(
           updateZoomGestureLastTime();
 
           let { translationX, translationY } = event;
-
+          // calculate the translation of the pan gesture
           translationX -= panStartOffsetX.value;
           translationY -= panStartOffsetY.value;
 
@@ -324,12 +363,12 @@ export function useZoomGesture(
       )
       .onTouchesMove(
         (e: GestureTouchEvent, state: GestureStateManagerType): void => {
+          // Activate the gesture if conditions are met during touch movement.
           if (([State.UNDETERMINED, State.BEGAN] as State[]).includes(e.state))
             if (isZoomedIn.value || e.numberOfTouches === 2) state.activate();
             else state.fail();
         }
       )
-      .onFinalize(() => {})
       .minDistance(0)
       .minPointers(2)
       .maxPointers(2);
