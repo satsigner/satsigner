@@ -21,6 +21,7 @@ export default function AccountList() {
       <View>
         <SSButton
           label={i18n.t('addMasterKey.title')}
+          style={{ borderRadius: 0 }}
           onPress={() => router.push('/addMasterKey/')}
         />
       </View>
