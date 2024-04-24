@@ -12,7 +12,9 @@
       "next": "Next",
       "confirm": "Confirm",
       "close": "Close",
-      "acknowledge": "Acknowledge"
+      "acknowledge": "Acknowledge",
+      "warning": "Warning",
+      "of": "Of"
     },
     "bitcoin": {
       "word": "Word",
@@ -20,7 +22,9 @@
       "checksum": "Checksum",
       "fingerprint": "Fingerprint",
       "passphrase": "Passphrase",
-      "script": "Script"
+      "script": "Script",
+      "notYourKeys": "Not your keys",
+      "notYourCoins": "Not your coins"
     },
     "accountList": {},
     "addMasterKey": {
@@ -29,6 +33,14 @@
       "generateNewSeed": {
         "title": "Generate New Secret Seed",
         "action": "Confirm Seed"
+      },
+      "confirmSeed": {
+        "warningModal": {
+          "warning": "Keep this information secret and backed up.",
+          "disclaimer1": "Anyone with this information can move the sats to another account.",
+          "disclaimer2": "Consider an air-gapped hardware device for generating keys for significant amounts.",
+          "disclaimer3": "Losing this information will lose the funds."
+        }
       },
       "importExistingSeed": {
         "title": "Import Existing Seed",
