@@ -31,7 +31,8 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   const { width, height } = useWindowDimensions();
 
-  const GRAPH_HEIGHT = height - 44;
+  const topHeaderHeight = 44;
+  const GRAPH_HEIGHT = height - topHeaderHeight;
   const GRAPH_WIDTH = width;
 
   const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
