@@ -31,8 +31,9 @@ export const BubblePacking = ({
   const centerY = canvasSize.height / 2;
   return (
     <Group transform={transform} origin={{ x: centerX, y: centerY }}>
-      {utxoPack.map(({ x, y, r, data }) => {
+      {utxoPack.map(({ x, y, r: radius, data }) => {
         const isSelected = selectedCircle?.includes(data.id);
+
         const bgColor = useDerivedValue(() => {
           if (isSelected) {
             return withTiming(Colors.white);
@@ -42,7 +43,7 @@ export const BubblePacking = ({
         });
 
         // size of font relative to the radius of the circle
-        const fontSize = r / 6;
+        const fontSize = radius / 6;
 
         const font = useFont(
           require('../../../assets/fonts/SF-Pro-Display-Light.otf'),
@@ -56,14 +57,20 @@ export const BubblePacking = ({
 
         const text = data.value.toLocaleString() + ' sats';
 
+        // center the text inside the circle horizontally
         const getX = () => {
           const textDimensions = isSelected
             ? selectedFont?.measureText(data?.value ? text : '')
             : font?.measureText(data?.value ? text : '');
+          // TODO: find a better way to center the text horizontally
+          // "1.45" is just to make the text align properly in smaller Circle
           return x - (textDimensions?.width || 0) / 2 + 1.45;
         };
 
+        // center the text inside the circle vertically
         const getY = () => {
+          // TODO: find a better way to center the text vertically
+          // "/3" is just to make the text align properly in smaller Circle
           return y + (font?.getSize() || 0) / 3;
         };
 
@@ -77,7 +84,7 @@ export const BubblePacking = ({
               antiAlias={true}
               cx={x}
               cy={y}
-              r={r}
+              r={radius}
               color={bgColor}
               style="fill"
             />
