@@ -11,7 +11,8 @@
       "select": "Select",
       "next": "Next",
       "confirm": "Confirm",
-      "close": "Close"
+      "close": "Close",
+      "acknowledge": "Acknowledge"
     },
     "bitcoin": {
       "word": "Word",
