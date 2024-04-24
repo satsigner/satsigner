@@ -48,39 +48,41 @@ export default function ConfirmSeed() {
           )
         }}
       />
-      <SSVStack gap="lg">
-        <SSText color="white" uppercase style={{ alignSelf: 'center' }}>
-          {`${i18n.t('common.confirm')} ${i18n.t('bitcoin.word')} ${+index + 1}`}
-        </SSText>
+      <SSVStack justifyBetween>
         <SSVStack gap="lg">
-          <SSCheckbox
-            label="word1"
-            selected={selectedCheckbox1}
-            onPress={() => handleSelectCheckbox(1)}
+          <SSText color="white" uppercase style={{ alignSelf: 'center' }}>
+            {`${i18n.t('common.confirm')} ${i18n.t('bitcoin.word')} ${+index + 1}`}
+          </SSText>
+          <SSVStack gap="lg">
+            <SSCheckbox
+              label="word1"
+              selected={selectedCheckbox1}
+              onPress={() => handleSelectCheckbox(1)}
+            />
+            <SSCheckbox
+              label="word2"
+              selected={selectedCheckbox2}
+              onPress={() => handleSelectCheckbox(2)}
+            />
+            <SSCheckbox
+              label="word3"
+              selected={selectedCheckbox3}
+              onPress={() => handleSelectCheckbox(3)}
+            />
+          </SSVStack>
+        </SSVStack>
+        <SSVStack>
+          <SSButton
+            label={i18n.t('common.next')}
+            variant="secondary"
+            onPress={() => handleNavigateNextWord()}
           />
-          <SSCheckbox
-            label="word2"
-            selected={selectedCheckbox2}
-            onPress={() => handleSelectCheckbox(2)}
-          />
-          <SSCheckbox
-            label="word3"
-            selected={selectedCheckbox3}
-            onPress={() => handleSelectCheckbox(3)}
+          <SSButton
+            label={i18n.t('common.cancel')}
+            variant="ghost"
+            onPress={() => router.replace('/accountList/')}
           />
         </SSVStack>
-      </SSVStack>
-      <SSVStack justifyEnd>
-        <SSButton
-          label={i18n.t('common.next')}
-          variant="secondary"
-          onPress={() => handleNavigateNextWord()}
-        />
-        <SSButton
-          label={i18n.t('common.cancel')}
-          variant="ghost"
-          onPress={() => router.replace('/accountList/')}
-        />
       </SSVStack>
     </SSMainLayout>
   )

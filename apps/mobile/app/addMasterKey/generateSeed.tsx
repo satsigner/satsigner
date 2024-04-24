@@ -29,50 +29,52 @@ export default function GenerateSeed() {
         }}
       />
       <ScrollView>
-        <SSFormLayout>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={i18n.t('addMasterKey.accountOptions.mnemonic')}
+        <SSVStack justifyBetween>
+          <SSFormLayout>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label
+                label={i18n.t('addMasterKey.accountOptions.mnemonic')}
+              />
+              {accountStore.currentAccount.seedWordCount && (
+                <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
+                  {[...Array(accountStore.currentAccount.seedWordCount)].map(
+                    (_, index) => (
+                      <SSWordInput
+                        key={index}
+                        position={index + 1}
+                        value="test"
+                        editable={false}
+                      />
+                    )
+                  )}
+                </SSSeedLayout>
+              )}
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label
+                label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+              />
+              <SSTextInput />
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSHStack justifyBetween>
+                <SSChecksumStatus valid />
+                <SSFingerprint value="1ca1f438" />
+              </SSHStack>
+            </SSFormLayout.Item>
+          </SSFormLayout>
+          <SSVStack>
+            <SSButton
+              label={i18n.t('addMasterKey.generateNewSeed.action')}
+              variant="secondary"
+              onPress={() => router.push('/addMasterKey/confirmSeed/0')}
             />
-            {accountStore.currentAccount.seedWordCount && (
-              <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
-                {[...Array(accountStore.currentAccount.seedWordCount)].map(
-                  (_, index) => (
-                    <SSWordInput
-                      key={index}
-                      position={index + 1}
-                      value="test"
-                      editable={false}
-                    />
-                  )
-                )}
-              </SSSeedLayout>
-            )}
-          </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+            <SSButton
+              label={i18n.t('common.cancel')}
+              variant="ghost"
+              onPress={() => router.replace('/accountList/')}
             />
-            <SSTextInput />
-          </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSHStack justifyBetween>
-              <SSChecksumStatus valid />
-              <SSFingerprint value="1ca1f438" />
-            </SSHStack>
-          </SSFormLayout.Item>
-        </SSFormLayout>
-        <SSVStack justifyEnd>
-          <SSButton
-            label={i18n.t('addMasterKey.generateNewSeed.action')}
-            variant="secondary"
-            onPress={() => router.push('/addMasterKey/confirmSeed/0')}
-          />
-          <SSButton
-            label={i18n.t('common.cancel')}
-            variant="ghost"
-            onPress={() => router.replace('/accountList/')}
-          />
+          </SSVStack>
         </SSVStack>
       </ScrollView>
     </SSMainLayout>

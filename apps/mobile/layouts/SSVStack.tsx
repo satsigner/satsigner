@@ -6,14 +6,14 @@ import { type VStackGap } from '@/styles/layout'
 
 type SSVStackProps = {
   gap?: VStackGap
-  justifyEnd?: boolean
+  justifyBetween?: boolean
   itemsCenter?: boolean
   children: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof View>
 
 export default function SSVStack({
   gap = 'md',
-  justifyEnd,
+  justifyBetween,
   itemsCenter,
   children,
   style
@@ -23,12 +23,12 @@ export default function SSVStack({
       {
         ...styles.containerBase,
         ...{ gap: Layout.vStack.gap[gap] },
-        ...(justifyEnd ? styles.justifyEnd : {}),
+        ...(justifyBetween ? styles.justifyBetween : {}),
         ...(itemsCenter ? styles.itemsCenter : {})
       },
       style
     )
-  }, [gap, justifyEnd, itemsCenter, style])
+  }, [gap, justifyBetween, itemsCenter, style])
 
   return <View style={containerStyle}>{children}</View>
 }
@@ -37,8 +37,9 @@ const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'column'
   },
-  justifyEnd: {
-    justifyContent: 'flex-end'
+  justifyBetween: {
+    flex: 1,
+    justifyContent: 'space-between'
   },
   itemsCenter: {
     alignItems: 'center'

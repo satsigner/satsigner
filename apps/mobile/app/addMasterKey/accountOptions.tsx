@@ -96,7 +96,7 @@ export default function AccountOptions() {
           )
         }}
       />
-      <SSVStack>
+      <SSVStack justifyBetween>
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label
@@ -130,7 +130,7 @@ export default function AccountOptions() {
             />
           </SSFormLayout.Item>
         </SSFormLayout>
-        <SSVStack justifyEnd>
+        <SSVStack>
           <SSButton
             label={getContinueButtonLabel()}
             variant="secondary"
