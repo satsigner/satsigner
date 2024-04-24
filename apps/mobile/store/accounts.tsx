@@ -16,7 +16,19 @@ type AccountsAction = {
 
 const useAccountStore = create<AccountsState & AccountsAction>()((set) => ({
   accounts: [],
-  currentAccount: { name: '', accountCreationType: null },
+  currentAccount: {
+    name: '',
+    accountCreationType: null,
+    transactions: [],
+    utxos: [],
+    summary: {
+      balance: 0,
+      numberOfAddresses: 0,
+      numberOfTransactions: 0,
+      numberOfUtxos: 0,
+      satsInMempool: 0
+    }
+  },
   generateMnemonic: async (count) => {
     const mnemonic = await generateMnemonic(count)
     set((state) => ({
