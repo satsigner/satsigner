@@ -17,9 +17,9 @@ export default function AccountOptions() {
   const accountStore = useAccountStore()
 
   const [scriptVersion, setScriptVersion] =
-    useState<Account['scriptVersion']>('P2WPKH')
+    useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
   const [seedWordCount, setSeedWordCount] =
-    useState<Account['seedWordCount']>(24)
+    useState<NonNullable<Account['seedWordCount']>>(24)
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
@@ -65,15 +65,16 @@ export default function AccountOptions() {
     return ''
   }
 
-  function handleOnPressConfirmAccountOptions() {
+  async function handleOnPressConfirmAccountOptions() {
     accountStore.currentAccount.scriptVersion = scriptVersion
     accountStore.currentAccount.seedWordCount = seedWordCount
 
     const accountCreationType = accountStore.currentAccount.accountCreationType
 
-    if (accountCreationType === 'generate')
+    if (accountCreationType === 'generate') {
+      await accountStore.generateMnemonic(seedWordCount)
       router.push('/addMasterKey/generateSeed')
-    else if (accountCreationType === 'import')
+    } else if (accountCreationType === 'import')
       router.push('/addMasterKey/importSeed')
   }
 
