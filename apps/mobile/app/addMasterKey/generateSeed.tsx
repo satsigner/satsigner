@@ -42,7 +42,11 @@ export default function GenerateSeed() {
                       <SSWordInput
                         key={index}
                         position={index + 1}
-                        value="test"
+                        value={
+                          accountStore.currentAccount.seedWords
+                            ? accountStore.currentAccount.seedWords[index]
+                            : ''
+                        }
                         editable={false}
                       />
                     )

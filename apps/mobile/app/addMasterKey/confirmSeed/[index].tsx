@@ -1,6 +1,6 @@
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -11,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { getConfirmWordCandidates } from '@/utils/seed'
 
 type ConfirmSeedSearchParams = {
   index: string
@@ -20,6 +21,14 @@ export default function ConfirmSeed() {
   const accountStore = useAccountStore()
   const router = useRouter()
   const { index } = useLocalSearchParams<ConfirmSeedSearchParams>()
+
+  const candidateWords = useMemo(() => {
+    if (!accountStore.currentAccount.seedWords) return []
+    return getConfirmWordCandidates(
+      accountStore.currentAccount.seedWords[+index],
+      accountStore.currentAccount.seedWords
+    )
+  }, [accountStore.currentAccount.seedWords, index])
 
   const [selectedCheckbox1, setSelectedCheckbox1] = useState(false)
   const [selectedCheckbox2, setSelectedCheckbox2] = useState(false)
@@ -66,17 +75,17 @@ export default function ConfirmSeed() {
           </SSText>
           <SSVStack gap="lg">
             <SSCheckbox
-              label="word1"
+              label={candidateWords[0]}
               selected={selectedCheckbox1}
               onPress={() => handleSelectCheckbox(1)}
             />
             <SSCheckbox
-              label="word2"
+              label={candidateWords[1]}
               selected={selectedCheckbox2}
               onPress={() => handleSelectCheckbox(2)}
             />
             <SSCheckbox
-              label="word3"
+              label={candidateWords[2]}
               selected={selectedCheckbox3}
               onPress={() => handleSelectCheckbox(3)}
             />
