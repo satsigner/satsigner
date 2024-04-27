@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
 import SSHStack from '@/layouts/SSHStack'
@@ -34,6 +35,8 @@ export default function ConfirmSeed() {
   const [selectedCheckbox2, setSelectedCheckbox2] = useState(false)
   const [selectedCheckbox3, setSelectedCheckbox3] = useState(false)
 
+  const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
+    useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
 
   function handleSelectCheckbox(checkboxNumber: 1 | 2 | 3) {
@@ -47,7 +50,21 @@ export default function ConfirmSeed() {
   }
 
   function handleNavigateNextWord() {
-    if (!accountStore.currentAccount.seedWordCount) return
+    if (
+      !accountStore.currentAccount.seedWordCount ||
+      !accountStore.currentAccount.seedWords
+    )
+      return
+
+    const selectedWord = selectedCheckbox1
+      ? candidateWords[0]
+      : selectedCheckbox2
+        ? candidateWords[1]
+        : candidateWords[2]
+
+    if (selectedWord !== accountStore.currentAccount.seedWords[+index])
+      return setIncorrectWordModalVisible(true)
+
     if (+index + 1 < accountStore.currentAccount.seedWordCount)
       router.push(`/addMasterKey/confirmSeed/${+index + 1}`)
     else setWarningModalVisible(true)
@@ -104,6 +121,21 @@ export default function ConfirmSeed() {
           />
         </SSVStack>
       </SSVStack>
+      <SSGradientModal
+        visible={incorrectWordModalVisible}
+        closeText={i18n.t('addMasterKey.confirmSeed.incorrectWordModal.action')}
+        onClose={() => setIncorrectWordModalVisible(false)}
+      >
+        <SSVStack itemsCenter style={{ marginVertical: 32 }}>
+          <Image
+            style={{ width: 88, height: 88 }}
+            source={require('@/assets/icons/circle-x.svg')}
+          />
+          <SSText size="3xl" center style={{ maxWidth: 200 }}>
+            {i18n.t('addMasterKey.confirmSeed.incorrectWordModal.warning')}
+          </SSText>
+        </SSVStack>
+      </SSGradientModal>
       <SSWarningModal
         visible={warningModalVisible}
         onClose={() => handleFinishSeedConfirmation()}

@@ -35,6 +35,10 @@
         "action": "Confirm Seed"
       },
       "confirmSeed": {
+        "incorrectWordModal": {
+          "warning": "Selected word doesn't match the original seed",
+          "action": "Review and try again"
+        },
         "warningModal": {
           "warning": "Keep this information secret and backed up.",
           "disclaimer1": "Anyone with this information can move the sats to another account.",
