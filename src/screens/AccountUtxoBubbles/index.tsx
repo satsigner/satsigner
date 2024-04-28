@@ -17,7 +17,7 @@ import { GestureHandler } from './components/GestureHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useZoomGesture } from './hooks/useZoomGesture';
 import navUtils from '../../utils/NavUtils';
-
+import { useHeaderHeight } from '@react-navigation/elements';
 interface Props {
   navigation: NavigationProp<any>;
 }
@@ -32,10 +32,10 @@ export interface UtxoListBubble {
 
 export default function AccountUtxoListScreen({ navigation }: Props) {
   const accountsContext = useAccountsContext();
+  const topHeaderHeight = useHeaderHeight();
 
   const { width, height } = useWindowDimensions();
 
-  const topHeaderHeight = 44;
   const GRAPH_HEIGHT = height - topHeaderHeight;
   const GRAPH_WIDTH = width;
 
