@@ -1,35 +1,37 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View } from 'react-native';
 
-import { AppText } from "../../../components/shared/AppText";
-import notImplementedAlert from "../../../components/shared/NotImplementedAlert";
+import { AppText } from '../../../components/shared/AppText';
+import notImplementedAlert from '../../../components/shared/NotImplementedAlert';
 import CameraIcon from '../../../assets/images/camera.svg';
-import { Colors, Typography } from "../../../styles";
+import { Colors, Typography } from '../../../styles';
 
-import ActionButton from "./ActionButton";
+import ActionButton from './ActionButton';
+import { NavigationProp } from '@react-navigation/native';
 
-export default function ActionBar() {
+interface Props {
+  navigation: NavigationProp<any>;
+}
+
+export default function ActionBar({ navigation }: Props) {
   return (
     <View style={styles.actionBar}>
-      <ActionButton style={{
+      <ActionButton
+        style={{
           borderRightWidth: 1,
-          borderRightColor: Colors.grey48,                
+          borderRightColor: Colors.grey48
         }}
-        onPress={notImplementedAlert}
-      >
+        onPress={() => navigation.navigate('AccountUtxoBubbles')}>
         <AppText style={styles.actionLabel}>Sign & Send</AppText>
       </ActionButton>
-      <ActionButton
-        style={{width: '20%'}}
-        onPress={notImplementedAlert}
-      >
+      <ActionButton style={{ width: '20%' }} onPress={notImplementedAlert}>
         <CameraIcon width={18} height={13} />
       </ActionButton>
-      <ActionButton style={{
+      <ActionButton
+        style={{
           borderLeftWidth: 1,
-          borderLeftColor: Colors.grey48,                
+          borderLeftColor: Colors.grey48
         }}
-        onPress={notImplementedAlert}
-      >
+        onPress={notImplementedAlert}>
         <AppText style={styles.actionLabel}>New Invoice</AppText>
       </ActionButton>
     </View>
@@ -48,4 +50,4 @@ const styles = StyleSheet.create({
   actionLabel: {
     ...Typography.capitalization.uppercase
   }
-})
+});
