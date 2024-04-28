@@ -62,9 +62,8 @@ export const BubblePacking = ({
           const textDimensions = isSelected
             ? selectedFont?.measureText(data?.value ? text : '')
             : font?.measureText(data?.value ? text : '');
-          // TODO: find a better way to center the text horizontally
-          // "1.45" is just to make the text align properly in smaller Circle
-          return x - (textDimensions?.width || 0) / 2 + 1.45;
+          let offset = 1.5;
+          return x - (textDimensions?.width || 0) / 2 + offset;
         };
 
         // center the text inside the circle vertically
