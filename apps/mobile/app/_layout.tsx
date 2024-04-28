@@ -29,7 +29,8 @@ export default function Layout() {
             />
           ),
           headerTitleAlign: 'center',
-          headerTintColor: Colors.gray[200]
+          headerTintColor: Colors.gray[200],
+          headerBackTitleVisible: false
         }}
       />
       <StatusBar style="light" />
