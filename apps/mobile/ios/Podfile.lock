@@ -32,6 +32,8 @@ PODS:
     - React-NativeModulesApple
     - React-RCTAppDelegate
     - ReactCommon/turbomodule/core
+  - ExpoSystemUI (2.9.4):
+    - ExpoModulesCore
   - EXSplashScreen (0.26.4):
     - ExpoModulesCore
     - glog
@@ -1144,6 +1146,7 @@ DEPENDENCIES:
   - ExpoLinearGradient (from `../../../node_modules/expo-linear-gradient/ios`)
   - ExpoLocalization (from `../../../node_modules/expo-localization/ios`)
   - ExpoModulesCore (from `../../../node_modules/expo-modules-core`)
+  - ExpoSystemUI (from `../../../node_modules/expo-system-ui/ios`)
   - EXSplashScreen (from `../../../node_modules/expo-splash-screen/ios`)
   - FBLazyVector (from `../../../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../../../node_modules/react-native/React/FBReactNativeSpec`)
@@ -1238,6 +1241,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/expo-localization/ios"
   ExpoModulesCore:
     :path: "../../../node_modules/expo-modules-core"
+  ExpoSystemUI:
+    :path: "../../../node_modules/expo-system-ui/ios"
   EXSplashScreen:
     :path: "../../../node_modules/expo-splash-screen/ios"
   FBLazyVector:
@@ -1352,6 +1357,7 @@ SPEC CHECKSUMS:
   ExpoLinearGradient: 4ad1449a2408e0435ac959076562b3921f2e32a1
   ExpoLocalization: f5f5d71dc0c9514d3d77b2771144f6fed6398d04
   ExpoModulesCore: 61dc57c6e2a35f2f84baf488146db624e03af4cd
+  ExpoSystemUI: 735278045c1a28de0018a300bb5abb3f9090652b
   EXSplashScreen: 5538a51beec451bf1fcf5198e3062790e2534df3
   FBLazyVector: f64d1e2ea739b4d8f7e4740cde18089cd97fe864
   FBReactNativeSpec: 91c0784dbf98ed9c434927ea46f41b780fe3a232
