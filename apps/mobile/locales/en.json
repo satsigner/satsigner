@@ -24,10 +24,15 @@
       "passphrase": "Passphrase",
       "script": "Script",
       "notYourKeys": "Not your keys",
-      "notYourCoins": "Not your coins"
+      "notYourCoins": "Not your coins",
+      "sats": "Sats"
     },
     "accountList": {
-      "noKeysYet": "No keys yet"
+      "noKeysYet": "No keys yet",
+      "childAccounts": "Child Accounts",
+      "totalTransactions": "Total Transactions",
+      "spendableOutputs": "Spendable Outputs",
+      "satsInMempool": "Sats in Mempool"
     },
     "addMasterKey": {
       "title": "Add Master Key",
