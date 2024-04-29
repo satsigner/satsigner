@@ -5,9 +5,12 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { i18n } from '@/locales'
+import { useAccountStore } from '@/store/accounts'
+import SSVStack from '@/layouts/SSVStack'
 
 export default function AccountList() {
   const router = useRouter()
+  const accountStore = useAccountStore()
 
   return (
     <>
@@ -25,8 +28,16 @@ export default function AccountList() {
           onPress={() => router.push('/addMasterKey/')}
         />
       </View>
-      <SSMainLayout>
-        <ScrollView />
+      <SSMainLayout style={{ paddingHorizontal: '5%' }}>
+        <ScrollView>
+          {accountStore.accounts.length === 0 && (
+            <SSVStack itemsCenter>
+              <SSText color="muted" uppercase>
+                {i18n.t('accountList.noKeysYet')}
+              </SSText>
+            </SSVStack>
+          )}
+        </ScrollView>
       </SSMainLayout>
     </>
   )

@@ -26,7 +26,9 @@
       "notYourKeys": "Not your keys",
       "notYourCoins": "Not your coins"
     },
-    "accountList": {},
+    "accountList": {
+      "noKeysYet": "No keys yet"
+    },
     "addMasterKey": {
       "title": "Add Master Key",
       "masterKeyName": "Master Key Name",
