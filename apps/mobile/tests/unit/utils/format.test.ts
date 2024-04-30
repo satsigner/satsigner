@@ -1,4 +1,9 @@
-import { formatAddress, formatNumber } from '@/utils/format'
+import {
+  formatAddress,
+  formatDate,
+  formatNumber,
+  formatTime
+} from '@/utils/format'
 
 describe('format utils', () => {
   describe('formatAddress', () => {
@@ -21,6 +26,18 @@ describe('format utils', () => {
 
     it('should return the correct localized number with decimals', () => {
       expect(formatNumber(0.795, 2)).toBe('0.80')
+    })
+  })
+
+  describe('formatTime', () => {
+    it('should return the correct formatted time', () => {
+      expect(formatTime(new Date(1231006505000))).toBe('6:15pm')
+    })
+  })
+
+  describe('formatDate', () => {
+    it('should return the correct formatted date', () => {
+      expect(formatDate(new Date(1231006505000))).toBe('Jan 3, 2009')
     })
   })
 })

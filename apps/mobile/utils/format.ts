@@ -15,4 +15,22 @@ function formatNumber(n: number, decimals = 0) {
     : n.toLocaleString()
 }
 
-export { formatAddress, formatNumber }
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: 'numeric'
+  })
+    .format(date)
+    .replace(' ', '')
+    .toLowerCase()
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  }).format(date)
+}
+
+export { formatAddress, formatDate, formatNumber, formatTime }
