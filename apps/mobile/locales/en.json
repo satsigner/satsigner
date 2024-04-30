@@ -14,7 +14,11 @@
       "close": "Close",
       "acknowledge": "Acknowledge",
       "warning": "Warning",
-      "of": "Of"
+      "of": "Of",
+      "to": "To"
+    },
+    "time": {
+      "lessThanAMinute": "Less than a minute"
     },
     "bitcoin": {
       "word": "Word",
@@ -33,6 +37,12 @@
       "totalTransactions": "Total Transactions",
       "spendableOutputs": "Spendable Outputs",
       "satsInMempool": "Sats in Mempool"
+    },
+    "account": {
+      "signAndSend": "Sign & Send",
+      "newInvoice": "New Invoice",
+      "parentAccountActivity": "Parent Account Activity",
+      "noMemo": "No memo"
     },
     "addMasterKey": {
       "title": "Add Master Key",
