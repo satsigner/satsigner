@@ -100,7 +100,7 @@ export default function AccountTransactionsScreen({ navigation }: Props) {
           />
         </View>
         <GradientSeparator />
-        <ActionBar navigation={navigation} />
+        <ActionBar />
         <GradientSeparator />
         <AccountSummaryTabs summary={currentAccount.summary} />
       </BackgroundGradient>

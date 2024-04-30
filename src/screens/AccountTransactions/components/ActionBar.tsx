@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 
-import { NavigationProp } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 
 import { AppText } from '../../../components/shared/AppText';
 import notImplementedAlert from '../../../components/shared/NotImplementedAlert';
@@ -9,13 +9,9 @@ import { Colors, Typography } from '../../../styles';
 
 import ActionButton from './ActionButton';
 
-interface Props {
-  navigation: NavigationProp<any>;
-}
-
-export default function ActionBar({
-  navigation
-}: Props) {
+export default function ActionBar() {
+  const navigation = useNavigation();
+  
   return (
     <View style={styles.actionBar}>
       <ActionButton
