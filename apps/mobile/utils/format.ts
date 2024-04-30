@@ -6,4 +6,13 @@ function formatAddress(address: string) {
   return `${beginning}...${end}`
 }
 
-export { formatAddress }
+function formatNumber(n: number, decimals = 0) {
+  return decimals > 0
+    ? n.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      })
+    : n.toLocaleString()
+}
+
+export { formatAddress, formatNumber }
