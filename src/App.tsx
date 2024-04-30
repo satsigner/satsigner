@@ -14,6 +14,7 @@ import ImportSeedScreen from './components/accounts/ImportSeedScreen';
 import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
 import AccountTransactionsScreen from './screens/AccountTransactions';
+import AccountUtxoBubblesScreen from './screens/AccountUtxoBubbles';
 import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 import AccountUtxoListScreen from './screens/AccountUtxoList';
 
@@ -33,7 +34,7 @@ export default function App() {
           <NavigationContainer>
             <Stack.Navigator
               screenOptions={{
-                headerTintColor: Colors.white,
+                headerTintColor: Colors.white
               }}>
               <Stack.Screen
                 name="Home"
@@ -76,6 +77,11 @@ export default function App() {
                 options={NavUtils.getHeaderOptions(APP_TITLE, 'horizontal')}
               />
               <Stack.Screen
+                name="AccountUtxoBubbles"
+                component={AccountUtxoBubblesScreen}
+                options={NavUtils.getHeaderOptions(APP_TITLE)}
+              />
+              <Stack.Screen
                 name="AccountUtxoList"
                 component={AccountUtxoListScreen}
                 options={NavUtils.getHeaderOptions(APP_TITLE)}
@@ -90,6 +96,6 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: {
-    ...Layout.container.base,
-  },
+    ...Layout.container.base
+  }
 });
