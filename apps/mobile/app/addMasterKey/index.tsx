@@ -9,7 +9,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
-import { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 
 export default function AddMasterKey() {
   const router = useRouter()

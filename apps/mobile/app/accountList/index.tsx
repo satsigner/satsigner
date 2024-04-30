@@ -1,16 +1,23 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView, View } from 'react-native'
 
+import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
-import SSVStack from '@/layouts/SSVStack'
+import { type Account } from '@/types/models/Account'
 
 export default function AccountList() {
   const router = useRouter()
   const accountStore = useAccountStore()
+
+  function handleOnPressAccount(account: Account) {
+    accountStore.currentAccount = account
+    router.push(`/accountList/account/${account.name}`)
+  }
 
   return (
     <>
@@ -37,6 +44,13 @@ export default function AccountList() {
               </SSText>
             </SSVStack>
           )}
+          {accountStore.accounts.map((account) => (
+            <SSAccountCard
+              account={account}
+              key={account.name}
+              onPress={() => handleOnPressAccount(account)}
+            />
+          ))}
         </ScrollView>
       </SSMainLayout>
     </>
