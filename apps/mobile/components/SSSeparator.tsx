@@ -1,16 +1,29 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { Colors } from '@/styles'
 
-export default function SSSeparator() {
+type SSSeparatorProps = {
+  color: 'grayDark' | 'gradient'
+}
+
+export default function SSSeparator({ color = 'gradient' }: SSSeparatorProps) {
   return (
-    <LinearGradient
-      style={styles.containerBase}
-      colors={[Colors.gray[700], Colors.gray[850]]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-    />
+    <>
+      {color === 'gradient' && (
+        <LinearGradient
+          style={styles.containerBase}
+          colors={[Colors.gray[700], Colors.gray[850]]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+      )}
+      {color === 'grayDark' && (
+        <View
+          style={[styles.containerBase, { backgroundColor: Colors.gray[800] }]}
+        />
+      )}
+    </>
   )
 }
 
