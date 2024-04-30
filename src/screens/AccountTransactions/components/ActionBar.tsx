@@ -23,7 +23,7 @@ export default function ActionBar({
           borderRightWidth: 1,
           borderRightColor: Colors.grey48
         }}
-        onPress={() => navigation.navigate('AccountUtxoBubbles')}>
+        onPress={() => navigation.navigate('AccountUtxoList')}>
         <AppText style={styles.actionLabel}>Sign & Send</AppText>
       </ActionButton>
       <ActionButton style={{ width: '20%' }} onPress={notImplementedAlert}>
