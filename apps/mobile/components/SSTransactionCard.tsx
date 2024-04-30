@@ -1,9 +1,9 @@
 import { Image } from 'expo-image'
-import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress } from '@/utils/format'
 
@@ -33,25 +33,31 @@ export default function SSTransactionCard({
         />
       )}
       <SSHStack>
-        <SSVStack>
-          <SSText>11:51am - Mar 28, 2024</SSText>
+        <SSVStack gap="xs">
+          <SSText color="muted">11:51am - Mar 28, 2024</SSText>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl">
               {transaction.type === 'receive'
                 ? transaction.received
                 : -transaction.sent}
             </SSText>
-            <SSText>{i18n.t('bitcoin.sats').toLowerCase()}</SSText>
+            <SSText color="muted">
+              {i18n.t('bitcoin.sats').toLowerCase()}
+            </SSText>
           </SSHStack>
-          <SSText>0.73 USD</SSText>
+          <SSText style={{ color: Colors.gray[400] }}>0.73 USD</SSText>
         </SSVStack>
         <SSVStack>
-          <SSText>1k+ blocks deep</SSText>
-          <SSText>{transaction.memo || i18n.t('account.noMemo')}</SSText>
-          <SSHStack gap="xxs">
-            <SSText>{i18n.t('common.to').toLowerCase()}</SSText>
-            <SSText>{formatAddress(transaction.address || '')}</SSText>
-          </SSHStack>
+          <SSText style={{ textAlign: 'right' }}>1k+ blocks deep</SSText>
+          <SSVStack gap="xs">
+            <SSText size="md" style={{ textAlign: 'right' }} numberOfLines={1}>
+              {transaction.memo || i18n.t('account.noMemo')}
+            </SSText>
+            <SSHStack gap="xs">
+              <SSText color="muted">{i18n.t('common.to').toLowerCase()}</SSText>
+              <SSText>{formatAddress(transaction.address || '')}</SSText>
+            </SSHStack>
+          </SSVStack>
         </SSVStack>
       </SSHStack>
     </SSHStack>
