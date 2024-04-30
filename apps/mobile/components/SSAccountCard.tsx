@@ -5,7 +5,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
-import { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 
 import SSText from './SSText'
 

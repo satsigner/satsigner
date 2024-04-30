@@ -21,6 +21,11 @@ export const button = {
   fontSize: text.fontSize.sm
 }
 
+export const actionButton = {
+  height: 62,
+  fontSize: text.fontSize.md
+}
+
 export const checkbox = {
   borderRadius: 4,
   borderWidth: 2,
