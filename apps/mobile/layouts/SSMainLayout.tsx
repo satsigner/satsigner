@@ -30,7 +30,6 @@ const styles = StyleSheet.create({
   containerBase: {
     paddingHorizontal: Layout.mainContainer.paddingHorizontal,
     paddingTop: Layout.mainContainer.paddingTop,
-    paddingBottom: Layout.mainContainer.paddingBottom,
     flex: 1
   }
 })
