@@ -96,6 +96,7 @@ export default function GenerateSeed() {
             <SSButton
               label={i18n.t('addMasterKey.generateNewSeed.action')}
               variant="secondary"
+              disabled={!checksumValid}
               onPress={() => router.push('/addMasterKey/confirmSeed/0')}
             />
             <SSButton
