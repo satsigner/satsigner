@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native'
 import { Colors } from '@/styles'
 
 type SSSeparatorProps = {
-  color: 'grayDark' | 'gradient'
+  color?: 'grayDark' | 'gradient'
 }
 
 export default function SSSeparator({ color = 'gradient' }: SSSeparatorProps) {
