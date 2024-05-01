@@ -19,11 +19,9 @@ interface Props {
 export default function AccountUtxoListScreen({
   navigation
 }: Props) {
-  const accountsContext = useAccountsContext();
+  const { currentAccount, currentAccount: { utxos } } = useAccountsContext();
   const txnBuilderContext = useTransactionBuilderContext();
 
-  const { currentAccount } = accountsContext;
-  const { utxos } = currentAccount;
   const getUtxoKey = txnBuilderContext.getOutpoint;
 
   useEffect(() => {

@@ -23,9 +23,7 @@ export default function SelectedUtxosHeader({
   const transactionBuilderContext = useTransactionBuilderContext();
   const selectedUtxos = transactionBuilderContext.getInputs();
   
-  const accountsContext = useAccountsContext();
-  const { currentAccount } = accountsContext;
-  const { utxos } = currentAccount;
+  const { currentAccount: { utxos } } = useAccountsContext();
   
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0);
