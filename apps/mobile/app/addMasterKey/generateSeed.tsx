@@ -1,4 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -18,6 +19,24 @@ import { useAccountStore } from '@/store/accounts'
 export default function GenerateSeed() {
   const router = useRouter()
   const accountStore = useAccountStore()
+
+  const [checksumValid, setChecksumValid] = useState(true)
+
+  async function handleUpdatePassphrase(passphrase: string) {
+    if (!accountStore.currentAccount.seedWords) return
+
+    const checksumValid = await accountStore.validateMnemonic(
+      accountStore.currentAccount.seedWords
+    )
+
+    if (checksumValid)
+      await accountStore.updateFingerprint(
+        accountStore.currentAccount.seedWords,
+        passphrase
+      )
+
+    setChecksumValid(checksumValid)
+  }
 
   return (
     <SSMainLayout>
@@ -58,12 +77,18 @@ export default function GenerateSeed() {
               <SSFormLayout.Label
                 label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
               />
-              <SSTextInput />
+              <SSTextInput
+                onChangeText={(text) => handleUpdatePassphrase(text)}
+              />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
-                <SSChecksumStatus valid />
-                <SSFingerprint value="1ca1f438" />
+                <SSChecksumStatus valid={checksumValid} />
+                {accountStore.currentAccount.fingerprint && (
+                  <SSFingerprint
+                    value={accountStore.currentAccount.fingerprint}
+                  />
+                )}
               </SSHStack>
             </SSFormLayout.Item>
           </SSFormLayout>

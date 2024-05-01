@@ -10,6 +10,13 @@ module.exports = {
     'react-hooks/exhaustive-deps': 'warn',
     'simple-import-sort/imports': 'warn',
     'simple-import-sort/exports': 'warn',
-    'import/order': 'off'
+    'import/order': 'off',
+    '@typescript-eslint/no-unused-vars': [
+      'warn',
+      {
+        caughtErrors: 'all',
+        caughtErrorsIgnorePattern: '^_'
+      }
+    ]
   }
 }
