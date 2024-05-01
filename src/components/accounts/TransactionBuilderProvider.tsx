@@ -34,6 +34,7 @@ export const TransactionBuilderProvider = ({ children }) => {
   }
 
   const value = {
+    getOutpoint,
     getInputs,
     hasInput,
     addInput,

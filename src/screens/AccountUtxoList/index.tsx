@@ -5,7 +5,7 @@ import { NavigationProp } from "@react-navigation/native";
 
 import { Layout } from "../../styles";
 import { useAccountsContext } from "../../components/accounts/AccountsContext";
-import { Utxo } from "../../models/Utxo";
+import { useTransactionBuilderContext } from "../../components/accounts/TransactionBuilderContext";
 import navUtils from "../../utils/NavUtils";
 
 import SelectedUtxosHeader from "../../components/accounts/SelectedUtxosHeader";
@@ -20,21 +20,22 @@ export default function AccountUtxoListScreen({
   navigation
 }: Props) {
   const accountsContext = useAccountsContext();
+  const txnBuilderContext = useTransactionBuilderContext();
+
   const { currentAccount } = accountsContext;
   const { utxos } = currentAccount;
+  const getUtxoKey = txnBuilderContext.getOutpoint;
 
   useEffect(() => {
     navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
-
-  const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
       <View style={styles.utxos}>
         { utxos.map(utxo =>
-          <UtxoItem key={outpoint(utxo)} utxo={utxo}></UtxoItem>
+          <UtxoItem key={getUtxoKey(utxo)} utxo={utxo}></UtxoItem>
         )}
       </View>
     </View>

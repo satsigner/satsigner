@@ -3,6 +3,7 @@ import { createContext, useContext } from 'react';
 import { Utxo } from '../../models/Utxo';
 
 export const TransactionBuilderContext = createContext({
+  getOutpoint: (utxo: Utxo) => '',
   getInputs: (): Utxo[] => [],
   hasInput: (utxo: Utxo) => false,
   addInput: (utxo: Utxo) => {},
