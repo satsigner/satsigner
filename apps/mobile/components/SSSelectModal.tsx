@@ -12,7 +12,7 @@ type SSSelectModalProps = {
   visible: boolean
   title: string
   selectedText: string
-  selectedDescription: string
+  selectedDescription: string | React.ReactNode
   onSelect(): void
   onCancel(): void
   children: React.ReactNode
@@ -53,7 +53,11 @@ export default function SSSelectModal({
                     selectedText
                   )}
                 </SSText>
-                <SSText color="muted">{selectedDescription}</SSText>
+                {typeof selectedDescription === 'string' ? (
+                  <SSText color="muted">{selectedDescription}</SSText>
+                ) : (
+                  selectedDescription
+                )}
               </SSVStack>
             </SSVStack>
             <SSVStack>{children}</SSVStack>
