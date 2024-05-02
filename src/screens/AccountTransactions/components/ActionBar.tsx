@@ -1,4 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from "react-native";
+
+import { useNavigation } from "@react-navigation/native";
 
 import { AppText } from '../../../components/shared/AppText';
 import notImplementedAlert from '../../../components/shared/NotImplementedAlert';
@@ -6,13 +8,10 @@ import CameraIcon from '../../../assets/images/camera.svg';
 import { Colors, Typography } from '../../../styles';
 
 import ActionButton from './ActionButton';
-import { NavigationProp } from '@react-navigation/native';
 
-interface Props {
-  navigation: NavigationProp<any>;
-}
-
-export default function ActionBar({ navigation }: Props) {
+export default function ActionBar() {
+  const navigation = useNavigation();
+  
   return (
     <View style={styles.actionBar}>
       <ActionButton
@@ -20,7 +19,7 @@ export default function ActionBar({ navigation }: Props) {
           borderRightWidth: 1,
           borderRightColor: Colors.grey48
         }}
-        onPress={() => navigation.navigate('AccountUtxoBubbles')}>
+        onPress={() => navigation.navigate('AccountUtxoList')}>
         <AppText style={styles.actionLabel}>Sign & Send</AppText>
       </ActionButton>
       <ActionButton style={{ width: '20%' }} onPress={notImplementedAlert}>

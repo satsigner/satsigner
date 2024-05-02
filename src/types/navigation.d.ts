@@ -3,6 +3,7 @@ type RootStackParamList = {
   AccountList: undefined;
   AccountTransactions: undefined;
   AccountUtxoBubbles: undefined;
+  AccountUtxoList: undefined;
   CreateParentAccount: undefined;
   AccountOptions: undefined;
   ImportSeed: undefined;

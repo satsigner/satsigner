@@ -16,6 +16,7 @@ import AccountListScreen from './components/accounts/AccountListScreen';
 import AccountTransactionsScreen from './screens/AccountTransactions';
 import AccountUtxoBubblesScreen from './screens/AccountUtxoBubbles';
 import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
+import AccountUtxoListScreen from './screens/AccountUtxoList';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -78,6 +79,11 @@ export default function App() {
               <Stack.Screen
                 name="AccountUtxoBubbles"
                 component={AccountUtxoBubblesScreen}
+                options={NavUtils.getHeaderOptions(APP_TITLE)}
+              />
+              <Stack.Screen
+                name="AccountUtxoList"
+                component={AccountUtxoListScreen}
                 options={NavUtils.getHeaderOptions(APP_TITLE)}
               />
             </Stack.Navigator>
