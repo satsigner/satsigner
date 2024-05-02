@@ -9,6 +9,7 @@ type AccountsState = {
 }
 
 type AccountsAction = {
+  resetCurrentAccount: () => void
   generateMnemonic: (
     count: NonNullable<Account['seedWordCount']>
   ) => Promise<void>
@@ -21,21 +22,26 @@ type AccountsAction = {
   ) => Promise<void>
 }
 
+const initialCurrentAccountState: Account = {
+  name: '',
+  accountCreationType: null,
+  transactions: [],
+  utxos: [],
+  summary: {
+    balance: 0,
+    numberOfAddresses: 0,
+    numberOfTransactions: 0,
+    numberOfUtxos: 0,
+    satsInMempool: 0
+  }
+}
+
 const useAccountStore = create<AccountsState & AccountsAction>()(
   (set, get) => ({
     accounts: [],
-    currentAccount: {
-      name: '',
-      accountCreationType: null,
-      transactions: [],
-      utxos: [],
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      }
+    currentAccount: initialCurrentAccountState,
+    resetCurrentAccount: () => {
+      set({ currentAccount: initialCurrentAccountState })
     },
     generateMnemonic: async (count) => {
       const mnemonic = await generateMnemonic(count)
