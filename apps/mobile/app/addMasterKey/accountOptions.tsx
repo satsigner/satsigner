@@ -66,6 +66,7 @@ export default function AccountOptions() {
   }
 
   async function handleOnPressConfirmAccountOptions() {
+    accountStore.resetCurrentAccount()
     accountStore.currentAccount.scriptVersion = scriptVersion
     accountStore.currentAccount.seedWordCount = seedWordCount
 
