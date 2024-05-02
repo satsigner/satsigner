@@ -2,11 +2,18 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
-import { StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, UIManager, View } from 'react-native'
 
 import { Colors } from '@/styles'
 
 SystemUI.setBackgroundColorAsync(Colors.gray[950])
+
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true)
+}
 
 export default function Layout() {
   return (

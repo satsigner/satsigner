@@ -1,25 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useMemo, useState } from 'react'
-import {
-  LayoutAnimation,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  UIManager
-} from 'react-native'
+import { LayoutAnimation, StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSText from './SSText'
-
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true)
-}
 
 type SSCollapsibleProps = {
   children: React.ReactNode
