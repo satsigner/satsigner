@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -6,20 +7,33 @@ import SSText from './SSText'
 
 type SSWordInputProps = {
   value?: string
+  invalid?: boolean
   position: number
   editable?: boolean
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 export default function SSWordInput({
   value,
+  invalid,
   position,
   editable = true,
+  style,
   ...props
 }: SSWordInputProps) {
+  const textInputStyle = useMemo(() => {
+    return StyleSheet.compose(
+      {
+        ...styles.textInputBase,
+        ...(invalid ? styles.textInputInvalid : {})
+      },
+      style
+    )
+  }, [invalid, style])
+
   return (
     <View style={styles.containerBase}>
       <TextInput
-        style={styles.textInputBase}
+        style={textInputStyle}
         value={value}
         editable={editable}
         autoCapitalize="none"
@@ -47,6 +61,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[850],
     color: Colors.white,
     fontSize: Sizes.wordInput.fontSize
+  },
+  textInputInvalid: {
+    borderWidth: 2,
+    borderColor: Colors.error
   },
   wordPositionLabelBase: {
     color: Colors.gray[200],
