@@ -1,7 +1,10 @@
+import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import SSButton from '@/components/SSButton'
+import SSCollapsible from '@/components/SSCollapsible'
+import SSLink from '@/components/SSLink'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
@@ -151,7 +154,30 @@ export default function AccountOptions() {
         selectedText={`${scriptVersion} - ${i18n.t(
           `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
         )}`}
-        selectedDescription=""
+        selectedDescription={
+          <SSCollapsible>
+            <SSText color="muted" size="md">
+              {i18n.t(
+                `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
+              )}
+              <SSLink
+                text={i18n.t(
+                  `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
+                )}
+                url={i18n.t(
+                  `addMasterKey.accountOptions.scriptVersions.links.url.${scriptVersion?.toLowerCase()}`
+                )}
+              />
+              {i18n.t(
+                `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.1`
+              )}
+            </SSText>
+            <Image
+              source={require('@/assets/icons/scripts/p2pkh.svg')}
+              style={{ width: '100%', height: 80 }}
+            />
+          </SSCollapsible>
+        }
         onSelect={() => handleOnSelectScriptVersion()}
         onCancel={() => setScriptVersionModalVisible(false)}
       >

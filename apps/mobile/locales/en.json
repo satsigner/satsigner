@@ -15,7 +15,9 @@
       "acknowledge": "Acknowledge",
       "warning": "Warning",
       "of": "Of",
-      "to": "To"
+      "to": "To",
+      "more": "More",
+      "less": "Less"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -85,6 +87,38 @@
             "p2sh-p2wpkh": "Nested Segwit",
             "p2wpkh": "Native Segwit",
             "p2tr": "Taproot"
+          },
+          "descriptions": {
+            "p2pkh": [
+              "A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ],
+            "p2sh-p2wpkh": [
+              "*P2SH-P2WPKH placeholder* A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ],
+            "p2wpkh": [
+              "*P2WPKH placeholder* A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ],
+            "p2tr": [
+              "*P2TR placeholder* A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ]
+          },
+          "links": {
+            "name": {
+              "p2pkh": "ScriptPubKey",
+              "p2sh-p2wpkh": "ScriptPubKey",
+              "p2wpkh": "ScriptPubKey",
+              "p2tr": "ScriptPubKey"
+            },
+            "url": {
+              "p2pkh": "https://river.com/learn/terms/s/scriptpubkey/",
+              "p2sh-p2wpkh": "https://river.com/learn/terms/s/scriptpubkey/",
+              "p2wpkh": "https://river.com/learn/terms/s/scriptpubkey/",
+              "p2tr": "https://river.com/learn/terms/s/scriptpubkey/"
+            }
           }
         },
         "mnemonic": "Mnemonic Seed Words (BIP39)",
