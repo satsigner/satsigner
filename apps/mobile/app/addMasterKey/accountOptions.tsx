@@ -28,13 +28,13 @@ export default function AccountOptions() {
 
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2pkh')} (P2PKH)`
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
     else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
     else if (scriptVersion === 'P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2wpkh')} (P2WPKH)`
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
     else if (scriptVersion === 'P2TR')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.p2tr')} P2TR`
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} P2TR`
 
     return ''
   }
@@ -149,7 +149,7 @@ export default function AccountOptions() {
         visible={scriptVersionModalVisible}
         title={i18n.t('addMasterKey.accountOptions.scriptVersion')}
         selectedText={`${scriptVersion} - ${i18n.t(
-          `addMasterKey.accountOptions.scriptVersions.${scriptVersion?.toLowerCase()}`
+          `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
         )}`}
         selectedDescription=""
         onSelect={() => handleOnSelectScriptVersion()}
@@ -157,28 +157,28 @@ export default function AccountOptions() {
       >
         <SSRadioButton
           label={`${i18n.t(
-            'addMasterKey.accountOptions.scriptVersions.p2pkh'
+            'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
           )} (P2PKH)`}
           selected={scriptVersion === 'P2PKH'}
           onPress={() => setScriptVersion('P2PKH')}
         />
         <SSRadioButton
           label={`${i18n.t(
-            'addMasterKey.accountOptions.scriptVersions.p2sh-p2wpkh'
+            'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
           )} (P2SH-P2WPKH)`}
           selected={scriptVersion === 'P2SH-P2WPKH'}
           onPress={() => setScriptVersion('P2SH-P2WPKH')}
         />
         <SSRadioButton
           label={`${i18n.t(
-            'addMasterKey.accountOptions.scriptVersions.p2wpkh'
+            'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
           )} (P2WPKH)`}
           selected={scriptVersion === 'P2WPKH'}
           onPress={() => setScriptVersion('P2WPKH')}
         />
         <SSRadioButton
           label={`${i18n.t(
-            'addMasterKey.accountOptions.scriptVersions.p2tr'
+            'addMasterKey.accountOptions.scriptVersions.names.p2tr'
           )} (P2TR)`}
           selected={false}
           disabled

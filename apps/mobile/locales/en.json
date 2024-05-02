@@ -80,10 +80,12 @@
         },
         "scriptVersion": "Script Version",
         "scriptVersions": {
-          "p2pkh": "Legacy",
-          "p2sh-p2wpkh": "Nested Segwit",
-          "p2wpkh": "Native Segwit",
-          "p2tr": "Taproot"
+          "names": {
+            "p2pkh": "Legacy",
+            "p2sh-p2wpkh": "Nested Segwit",
+            "p2wpkh": "Native Segwit",
+            "p2tr": "Taproot"
+          }
         },
         "mnemonic": "Mnemonic Seed Words (BIP39)",
         "mnemonics": {
