@@ -161,6 +161,7 @@ export default function AccountOptions() {
                 `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
               )}
               <SSLink
+                size="md"
                 text={i18n.t(
                   `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
                 )}
