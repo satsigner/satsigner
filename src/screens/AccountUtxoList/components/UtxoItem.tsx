@@ -9,13 +9,16 @@ import { Colors, Layout } from "../../../styles";
 import { Sats } from "../../../components/accounts/Sats";
 import formatAddress from "../../../utils/formatAddress";
 import formatDate from "../../../utils/formatDate";
+import { UtxoSizeMeter } from "./UtxoSizeMeter";
 
 interface Props {
   utxo: Utxo;
+  totalValue: number;
 }
 
 export default function UtxoItem({
-  utxo
+  utxo,
+  totalValue
 }: Props) {
   const txnBuilderContext = useContext(TransactionBuilderContext);
   const [ selected, setSelected ] = useState(false);
@@ -34,6 +37,7 @@ export default function UtxoItem({
 
   return (
     <TouchableOpacity onPress={onToggleSelected}>
+      <UtxoSizeMeter size={utxo.value} totalSize={totalValue}></UtxoSizeMeter>
       <View style={styles.container}>
         <View style={styles.selectAction}>
           <View style={styles.selectButton}></View>
@@ -67,9 +71,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: Colors.grey27,
-    borderTopWidth: 2,
-    borderTopColor: Colors.grey42,
-    borderStyle: 'solid',
     ...Layout.container.horizontalPaddedThin,
     paddingVertical: 15
   },

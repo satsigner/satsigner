@@ -28,12 +28,14 @@ export default function AccountUtxoListScreen({
     navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
 
+  const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
+
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
       <View style={styles.utxos}>
         { utxos.map(utxo =>
-          <UtxoItem key={getUtxoKey(utxo)} utxo={utxo}></UtxoItem>
+          <UtxoItem key={getUtxoKey(utxo)} utxo={utxo} totalValue={totalValue}></UtxoItem>
         )}
       </View>
     </View>
