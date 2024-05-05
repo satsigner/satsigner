@@ -13,12 +13,12 @@ import { UtxoSizeMeter } from "./UtxoSizeMeter";
 
 interface Props {
   utxo: Utxo;
-  totalValue: number;
+  largestValue: number;
 }
 
 export default function UtxoItem({
   utxo,
-  totalValue
+  largestValue
 }: Props) {
   const txnBuilderContext = useContext(TransactionBuilderContext);
   const [ selected, setSelected ] = useState(false);
@@ -37,7 +37,7 @@ export default function UtxoItem({
 
   return (
     <TouchableOpacity onPress={onToggleSelected}>
-      <UtxoSizeMeter size={utxo.value} totalSize={totalValue}></UtxoSizeMeter>
+      <UtxoSizeMeter size={utxo.value} largestSize={largestValue}></UtxoSizeMeter>
       <View style={styles.container}>
         <View style={styles.selectAction}>
           <View style={styles.selectButton}></View>

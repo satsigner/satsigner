@@ -1,16 +1,31 @@
 import { DimensionValue, StyleSheet, View } from "react-native";
 import { Colors } from "../../../styles";
 
+import { scaleLinear } from "d3";
+
 interface Props {
   size: number;
-  totalSize: number;
+  largestSize: number;
 }
 
 export function UtxoSizeMeter({
   size,
-  totalSize
+  largestSize
 }: Props) {
-  const percentage = Math.round(size / totalSize * 100) || '0.5';
+  // collapse the range of values for display so small and medium
+  // UTXO sizes don't look so tiny compared to larger values
+  const root = 2;
+  const expSize = Math.pow(size, 1/root);
+  const largestExpSize = Math.pow(largestSize, 1/root);
+
+  const minDisplayPercentage = 1;
+  const maxDisplayPercentage = 82;
+  const scale = scaleLinear(
+    [0, 100],
+    [minDisplayPercentage, maxDisplayPercentage]
+  ).clamp(true);
+
+  const percentage = scale(Math.round(expSize / largestExpSize * 100));
   const percentageText = percentage + '%' as DimensionValue;
 
   return (
