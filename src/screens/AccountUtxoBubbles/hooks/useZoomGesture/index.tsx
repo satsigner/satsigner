@@ -370,8 +370,9 @@ export function useZoomGesture(
         }
       )
       .minDistance(0)
-      .minPointers(2)
-      .maxPointers(2);
+      // min/maxPointers is 1 because we are using 1 finger for panning
+      .minPointers(1)
+      .maxPointers(1);
 
     const pinchGesture = Gesture.Pinch()
       .onStart(() => {
