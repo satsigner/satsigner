@@ -1,7 +1,19 @@
-import { Descriptor, DescriptorSecretKey, Mnemonic } from 'bdk-rn'
-import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
+import {
+  Address,
+  Blockchain,
+  DatabaseConfig,
+  Descriptor,
+  DescriptorSecretKey,
+  Mnemonic,
+  Wallet
+} from 'bdk-rn'
+import { LocalUtxo, TransactionDetails } from 'bdk-rn/lib/classes/Bindings'
+import { AddressIndex, KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
 
+import { electrumBlockstream } from '@/config/servers'
 import { type Account } from '@/types/models/Account'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
@@ -15,6 +27,47 @@ async function validateMnemonic(seedWords: NonNullable<Account['seedWords']>) {
     return false
   }
   return true
+}
+
+async function getDescriptor(
+  seedWords: NonNullable<Account['seedWords']>,
+  scriptVersion: NonNullable<Account['scriptVersion']>,
+  kind: KeychainKind,
+  passphrase: Account['passphrase']
+) {
+  const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
+  const descriptorSecretKey = await new DescriptorSecretKey().create(
+    Network.Testnet, // TODO: change
+    mnemonic,
+    passphrase
+  )
+
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return new Descriptor().newBip44(
+        descriptorSecretKey,
+        kind,
+        Network.Testnet
+      )
+    case 'P2SH-P2WPKH':
+      return new Descriptor().newBip49(
+        descriptorSecretKey,
+        kind,
+        Network.Testnet
+      )
+    case 'P2WPKH':
+      return new Descriptor().newBip84(
+        descriptorSecretKey,
+        kind,
+        Network.Testnet
+      )
+    case 'P2TR':
+      return new Descriptor().newBip86(
+        descriptorSecretKey,
+        kind,
+        Network.Testnet
+      )
+  }
 }
 
 async function parseDescriptor(descriptor: Descriptor) {
@@ -46,4 +99,157 @@ async function getFingerprint(
   return fingerprint
 }
 
-export { generateMnemonic, getFingerprint, parseDescriptor, validateMnemonic }
+async function getWalletFromMnemonic(
+  seedWords: NonNullable<Account['seedWords']>,
+  scriptVersion: NonNullable<Account['scriptVersion']>,
+  passphrase: Account['passphrase']
+) {
+  const [externalDescriptor, internalDescriptor] = await Promise.all([
+    getDescriptor(seedWords, scriptVersion, KeychainKind.External, passphrase),
+    getDescriptor(seedWords, scriptVersion, KeychainKind.Internal, passphrase)
+  ])
+
+  const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
+    parseDescriptor(externalDescriptor),
+    getWalletFromDescriptor(externalDescriptor, internalDescriptor)
+  ])
+
+  return { fingerprint, derivationPath, wallet }
+}
+
+async function getWalletFromDescriptor(
+  externalDescriptor: Descriptor,
+  internalDescriptor: Descriptor
+) {
+  const dbConfig = await new DatabaseConfig().memory()
+  const wallet = await new Wallet().create(
+    externalDescriptor,
+    internalDescriptor,
+    Network.Testnet,
+    dbConfig
+  )
+
+  return wallet
+}
+
+async function syncWallet(wallet: Wallet) {
+  const blockchain = await new Blockchain().create(electrumBlockstream) // TODO: change
+  await wallet.sync(blockchain)
+}
+
+async function getAddress(utxo: LocalUtxo, network: Network) {
+  const script = utxo.txout.script
+  const address = await new Address().fromScript(script, network)
+  return address.asString()
+}
+
+async function parseTransactionDetailsToTransaction(
+  transactionDetails: TransactionDetails,
+  utxos: LocalUtxo[]
+): Promise<Transaction> {
+  const transactionUtxos = utxos.filter(
+    (utxo) => utxo?.outpoint?.txid === transactionDetails.txid
+  )
+  let address = ''
+  const utxo = transactionUtxos?.[0]
+  if (utxo) {
+    address = await getAddress(utxo, Network.Testnet)
+  }
+
+  return {
+    id: transactionDetails.txid,
+    type: transactionDetails.sent ? 'send' : 'receive',
+    sent: transactionDetails.sent,
+    received: transactionDetails.received,
+    timestamp: transactionDetails.confirmationTime?.timestamp
+      ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
+      : undefined,
+    blockHeight: transactionDetails.confirmationTime?.height,
+    memo: undefined,
+    address
+  }
+}
+
+async function parseLocalUtxoToUtxo(
+  localUtxo: LocalUtxo,
+  transactionsDetails: TransactionDetails[]
+): Promise<Utxo> {
+  const addressTo = await getAddress(localUtxo, Network.Testnet)
+  const transactionId = localUtxo?.outpoint.txid
+  const transactionDetails = transactionsDetails.find(
+    (transactionDetails) => transactionDetails.txid === transactionId
+  )
+
+  return {
+    txid: transactionId,
+    vout: localUtxo?.outpoint.vout,
+    value: localUtxo?.txout.value,
+    timestamp: transactionDetails?.confirmationTime?.timestamp
+      ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
+      : undefined,
+    label: 'Test Label', // TODO
+    addressTo,
+    keychain: 'external'
+  }
+}
+
+async function getWalletData(
+  wallet: Wallet
+): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
+  if (wallet) {
+    const [balance, addressInfo, transactionsDetails, localUtxos] =
+      await Promise.all([
+        wallet.getBalance(),
+        wallet.getAddress(AddressIndex.New),
+        wallet.listTransactions(false),
+        wallet.listUnspent()
+      ])
+
+    const transactions = await Promise.all(
+      (transactionsDetails || []).map((transactionDetails) =>
+        parseTransactionDetailsToTransaction(transactionDetails, localUtxos)
+      )
+    )
+
+    const utxos = await Promise.all(
+      (localUtxos || []).map((localUtxo) =>
+        parseLocalUtxoToUtxo(localUtxo, transactionsDetails)
+      )
+    )
+
+    return {
+      transactions,
+      utxos,
+      summary: {
+        balance: balance.confirmed,
+        numberOfAddresses: addressInfo.index + 1,
+        numberOfTransactions: transactionsDetails.length,
+        numberOfUtxos: localUtxos.length,
+        satsInMempool: balance.trustedPending + balance.untrustedPending
+      }
+    }
+  } else {
+    return {
+      transactions: [],
+      utxos: [],
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      }
+    }
+  }
+}
+
+export {
+  generateMnemonic,
+  getDescriptor,
+  getFingerprint,
+  getWalletData,
+  getWalletFromMnemonic,
+  parseDescriptor,
+  syncWallet,
+  validateMnemonic
+}
