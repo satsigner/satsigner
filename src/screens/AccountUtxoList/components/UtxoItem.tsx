@@ -11,6 +11,9 @@ import formatAddress from "../../../utils/formatAddress";
 import formatDate from "../../../utils/formatDate";
 import { UtxoSizeMeter } from "./UtxoSizeMeter";
 
+import AddIcon from '../../../assets/images/plus.svg';
+import RemoveIcon from '../../../assets/images/x.svg';
+
 interface Props {
   utxo: Utxo;
   largestValue: number;
@@ -40,7 +43,13 @@ export default function UtxoItem({
       <TouchableOpacity onPress={onToggleSelected}>
         <View style={styles.container}>
           <View style={styles.selectAction}>
-            <View style={styles.selectButton}></View>
+            <View style={[
+              styles.selectButton,
+              selected ? styles.selectButtonSelected : {}
+            ]}>
+              { ! selected && <AddIcon></AddIcon> }
+              { selected && <RemoveIcon></RemoveIcon> }
+            </View>
           </View>
           <View style={styles.detailsContainer}>
             <View style={styles.details}>
@@ -84,10 +93,15 @@ const styles = StyleSheet.create({
     // opacity: 0.56,
   },
   selectButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: Colors.grey79,
     height: 20,
     width: 20,
     borderRadius: 10
+  },
+  selectButtonSelected: {
+    backgroundColor: Colors.red3
   },
   detailsContainer: {
     width: '90%',
