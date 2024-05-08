@@ -45,7 +45,8 @@
             "./assets/fonts/SF Pro Text Bold.otf"
           ]
         }
-      ]
+      ],
+      ["expo-secure-store"]
     ]
   }
 }
