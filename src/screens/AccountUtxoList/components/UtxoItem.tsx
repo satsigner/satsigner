@@ -36,33 +36,37 @@ export default function UtxoItem({
   }
 
   return (
-    <TouchableOpacity onPress={onToggleSelected}>
-      <UtxoSizeMeter size={utxo.value} largestSize={largestValue}></UtxoSizeMeter>
-      <View style={styles.container}>
-        <View style={styles.selectAction}>
-          <View style={styles.selectButton}></View>
-        </View>
-        <View style={styles.detailsContainer}>
-          <View style={styles.details}>
-            <View style={styles.detailsLeftColumn}>
-              <Sats
-                sats={utxo.value}
-                currencyStyle={styles.currency}
-                satsStyle={styles.sats}
-                satsLabelStyle={styles.satsLabel}
-                usdStyle={styles.usd}
-                usdLabelStyle={styles.usdLabel}
-              ></Sats>
-            </View>
-            <View style={styles.detailsRightColumn}>
-              <AppText style={styles.address}>{formatAddress(utxo.addressTo)}</AppText>
-              <AppText style={styles.date}>{formatDate(utxo.timestamp)}</AppText>
-            </View>
+    <View>
+      <TouchableOpacity onPress={onToggleSelected}>
+        <View style={styles.container}>
+          <View style={styles.selectAction}>
+            <View style={styles.selectButton}></View>
           </View>
-          <AppText style={styles.memo}>{ utxo.label && 'Memo: '}{utxo.label}</AppText>
+          <View style={styles.detailsContainer}>
+            <View style={styles.details}>
+              <View style={styles.detailsLeftColumn}>
+                <Sats
+                  sats={utxo.value}
+                  currencyStyle={styles.currency}
+                  satsStyle={styles.sats}
+                  satsLabelStyle={styles.satsLabel}
+                  usdStyle={styles.usd}
+                  usdLabelStyle={styles.usdLabel}
+                ></Sats>
+              </View>
+              <View style={styles.detailsRightColumn}>
+                <AppText style={styles.address}>{formatAddress(utxo.addressTo)}</AppText>
+                <AppText style={styles.date}>{formatDate(utxo.timestamp)}</AppText>
+              </View>
+            </View>
+            <AppText style={styles.memo}>{ utxo.label && 'Memo: '}{utxo.label}</AppText>
+          </View>
         </View>
+      </TouchableOpacity>
+      <View style={styles.sizeMeter}>
+        <UtxoSizeMeter size={utxo.value} largestSize={largestValue} selected={selected}></UtxoSizeMeter>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -130,5 +134,9 @@ const styles = StyleSheet.create({
   date: {
     color: Colors.grey189,
     fontSize: 12
+  },
+  sizeMeter: {
+    position: 'absolute',
+    width: '100%'
   }
 });

@@ -6,11 +6,13 @@ import { scaleLinear } from "d3";
 interface Props {
   size: number;
   largestSize: number;
+  selected: boolean;
 }
 
 export function UtxoSizeMeter({
   size,
-  largestSize
+  largestSize,
+  selected
 }: Props) {
   // collapse the range of values for display so small and medium
   // UTXO sizes don't look so tiny compared to larger values
@@ -30,9 +32,10 @@ export function UtxoSizeMeter({
 
   return (
     <View style={styles.container}>
-      <View style={styles.backBar}></View>
+      <View style={styles.backgroundBar}></View>
       <View style={[
-        styles.frontBar,
+        styles.sizeBar,
+        selected ? styles.selectedSizeBar : {},
         { width: percentageText }
       ]}></View>
     </View>
@@ -45,17 +48,22 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 2
   },
-  backBar: {
+  backgroundBar: {
     backgroundColor: Colors.grey42,
     height: 2
   },
-  frontBar: {
+  sizeBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     backgroundColor: Colors.white,
     opacity: 0.3,
-    height: 2,
-    width: '50%'
+    height: 2
+  },
+  selectedSizeBar: {
+    top: -2,
+    opacity: 1,
+    borderRadius: 1,
+    height: 6
   }
 });
