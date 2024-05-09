@@ -14,8 +14,8 @@ export type Account = {
   seedWords?: string[]
   passphrase?: string
   scriptVersion?: 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
-  external_descriptor?: string
-  internal_descriptor?: string
+  externalDescriptor?: string
+  internalDescriptor?: string
   fingerprint?: string
   derivationPath?: string
   transactions: Transaction[]
