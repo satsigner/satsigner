@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 
 import { NavigationProp } from "@react-navigation/native";
 
@@ -31,19 +31,26 @@ export default function AccountUtxoListScreen({
     navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
 
-  const itemsScrollViewPaddingBottom = 85;
   const largestValue = Math.max(...utxos.map(utxo => utxo.value));
 
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
-      <ScrollView style={styles.utxosContainer} contentInset={{bottom: itemsScrollViewPaddingBottom}}>
-        <View style={styles.utxosBackgroundContainer}>
-          { utxos.map(utxo =>
-            <UtxoItem key={getUtxoKey(utxo)} utxo={utxo} largestValue={largestValue}></UtxoItem>
-          )}
-        </View>
-      </ScrollView>
+      <View>
+        <View style={styles.scrollBackground} />
+        <ScrollView
+          style={styles.utxosScroll}
+          contentContainerStyle={Platform.OS === 'android' ?
+            styles.utxosScrollContentContainerAndroid :
+            styles.utxosScrollContentContainer }
+        >
+          <View style={styles.utxosBackground}>
+            { utxos.map(utxo =>
+              <UtxoItem key={getUtxoKey(utxo)} utxo={utxo} largestValue={largestValue}></UtxoItem>
+            )}
+          </View>
+        </ScrollView>
+      </View>
       <View style={styles.submitContainer}>
         <Button
           title="Add As Inputs To Message"
@@ -61,12 +68,28 @@ const styles = StyleSheet.create({
     ...Layout.container.base,
     ...Layout.container.topPaddedThin
   },
-  utxosContainer: {
-    marginTop: 25,
-    backgroundColor: Colors.grey27
+  // Start background below edge of top unselected UTXO
+  // Keeps enlarged size meter top edge from getting cut off
+  //   while still showing correct background color behind it
+  scrollBackground: {
+    position: 'absolute',
+    backgroundColor: Colors.grey27,
+    width: '100%',
+    top: 26,
+    height: 1000
   },
-  utxosBackgroundContainer: {
-    backgroundColor: Colors.grey38
+  utxosScrollContentContainer: {
+    paddingBottom: 220
+  },
+  utxosScrollContentContainerAndroid: {
+    paddingBottom: 290
+  },
+  utxosScroll: {
+    marginTop: 24,
+  },
+  utxosBackground: {
+    backgroundColor: Colors.grey38,
+    marginTop: 2
   },
   submitContainer: {
     flexDirection: 'row',
