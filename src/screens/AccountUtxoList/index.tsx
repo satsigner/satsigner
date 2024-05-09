@@ -63,6 +63,8 @@ export default function AccountUtxoListScreen({
   );
 }
 
+const utxosMarginTop = 24;
+
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
@@ -75,7 +77,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: Colors.grey27,
     width: '100%',
-    top: 26,
+    top: utxosMarginTop + 2,
     height: 1000
   },
   utxosScrollContentContainer: {
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
     paddingBottom: 290
   },
   utxosScroll: {
-    marginTop: 24,
+    marginTop: utxosMarginTop,
   },
   utxosBackground: {
     backgroundColor: Colors.grey38,
