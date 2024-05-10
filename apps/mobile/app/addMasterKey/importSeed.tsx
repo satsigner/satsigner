@@ -2,10 +2,12 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 
+import { getWordList } from '@/api/bip39'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
 import SSGradientModal from '@/components/SSGradientModal'
+import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -19,18 +21,151 @@ import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 
+type SeedWordInfo = {
+  value: string
+  index: number
+  valid: boolean
+  dirty: boolean
+}
+
+const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
+const wordList = getWordList()
+
 export default function ImportSeed() {
   const router = useRouter()
   const accountStore = useAccountStore()
 
-  const [accountAddedModalVisible, setAccountAddedModalVisible] = useState(true)
+  const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>(
+    [...Array(accountStore.currentAccount.seedWordCount || 0)].map(
+      (_, index) => ({
+        value: '',
+        index,
+        dirty: false,
+        valid: false
+      })
+    )
+  )
+  const [checksumValid, setChecksumValid] = useState(false)
+  const [currentWordText, setCurrentWordText] = useState('')
+  const [currentWordIndex, setCurrentWordIndex] = useState(0)
+  const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
+    useState(false)
+
+  const [accountAddedModalVisible, setAccountAddedModalVisible] =
+    useState(false)
+
+  async function handleOnChangeTextWord(word: string, index: number) {
+    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWord = seedWords[index]
+
+    seedWord.value = word
+
+    if (wordList.includes(word)) seedWord.valid = true
+    else
+      setKeyboardWordSelectorVisible(
+        word.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
+      )
+
+    setCurrentWordText(word)
+    setSeedWordsInfo(seedWords)
+
+    const mnemonicSeedWords = seedWords.map((seedWord) => seedWord.value)
+    const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
+
+    if (checksumValid)
+      await accountStore.updateFingerprint(
+        mnemonicSeedWords,
+        accountStore.currentAccount.passphrase
+      )
+
+    setChecksumValid(checksumValid)
+  }
+
+  function handleOnEndEditingWord(word: string, index: number) {
+    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWord = seedWords[index]
+
+    seedWord.value = word
+    seedWord.valid = wordList.includes(word)
+    seedWord.dirty ||= word.length > 0
+
+    setSeedWordsInfo(seedWords)
+    setCurrentWordText(word)
+  }
+
+  function handleOnFocusWord(word: string | undefined, index: number) {
+    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWord = seedWords[index]
+
+    setCurrentWordText(word || '')
+    setCurrentWordIndex(index)
+    setKeyboardWordSelectorVisible(
+      !seedWord.valid &&
+        (word?.length || 0) >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
+    )
+  }
+
+  async function handleOnWordSelected(word: string) {
+    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    seedWords[currentWordIndex].value = word
+
+    if (wordList.includes(word)) {
+      seedWords[currentWordIndex].valid = true
+      setKeyboardWordSelectorVisible(false)
+    }
+
+    setSeedWordsInfo(seedWords)
+
+    const mnemonicSeedWords = seedWords.map((seedWord) => seedWord.value)
+    const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
+
+    if (checksumValid)
+      await accountStore.updateFingerprint(
+        mnemonicSeedWords,
+        accountStore.currentAccount.passphrase
+      )
+
+    setChecksumValid(checksumValid)
+  }
+
+  async function handleUpdatePassphrase(passphrase: string) {
+    accountStore.currentAccount.passphrase = passphrase
+    const mnemonicSeedWords = seedWordsInfo.map((seedWord) => seedWord.value)
+
+    const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
+
+    if (checksumValid)
+      await accountStore.updateFingerprint(mnemonicSeedWords, passphrase)
+
+    setChecksumValid(checksumValid)
+  }
 
   async function handleOnPressImportSeed() {
-    //
+    if (!accountStore.currentAccount.scriptVersion) return
+
+    accountStore.currentAccount.seedWords = seedWordsInfo.map(
+      (seedWord) => seedWord.value
+    )
+
+    const wallet = await accountStore.loadWalletFromMnemonic(
+      accountStore.currentAccount.seedWords,
+      accountStore.currentAccount.scriptVersion,
+      accountStore.currentAccount.passphrase
+    )
+
+    setAccountAddedModalVisible(true)
+
+    await accountStore.syncWallet(wallet)
+    const account = await accountStore.getPopulatedAccount(
+      wallet,
+      accountStore.currentAccount
+    )
+    await accountStore.saveAccount(account)
   }
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
+    router.replace('/accountList/')
   }
 
   return (
@@ -42,6 +177,12 @@ export default function ImportSeed() {
           )
         }}
       />
+      <SSKeyboardWordSelector
+        visible={keyboardWordSelectorVisible}
+        wordStart={currentWordText}
+        onWordSelected={handleOnWordSelected}
+        style={{ height: 60 }}
+      />
       <ScrollView>
         <SSVStack justifyBetween>
           <SSFormLayout>
@@ -51,11 +192,26 @@ export default function ImportSeed() {
               />
               {accountStore.currentAccount.seedWordCount && (
                 <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
-                  {[...Array(accountStore.currentAccount.seedWordCount)].map(
-                    (_, index) => (
-                      <SSWordInput key={index} position={index + 1} />
-                    )
-                  )}
+                  {[...Array(seedWordsInfo.length)].map((_, index) => (
+                    <SSWordInput
+                      value={seedWordsInfo[index].value}
+                      invalid={
+                        !seedWordsInfo[index].valid &&
+                        seedWordsInfo[index].dirty
+                      }
+                      key={index}
+                      position={index + 1}
+                      onChangeText={(text) =>
+                        handleOnChangeTextWord(text, index)
+                      }
+                      onEndEditing={(event) =>
+                        handleOnEndEditingWord(event.nativeEvent.text, index)
+                      }
+                      onFocus={(event) =>
+                        handleOnFocusWord(event.nativeEvent.text, index)
+                      }
+                    />
+                  ))}
                 </SSSeedLayout>
               )}
             </SSFormLayout.Item>
@@ -63,12 +219,18 @@ export default function ImportSeed() {
               <SSFormLayout.Label
                 label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
               />
-              <SSTextInput />
+              <SSTextInput
+                onChangeText={(text) => handleUpdatePassphrase(text)}
+              />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
-                <SSChecksumStatus valid />
-                <SSFingerprint value="1ca1f438" />
+                <SSChecksumStatus valid={checksumValid} />
+                {accountStore.currentAccount.fingerprint && (
+                  <SSFingerprint
+                    value={accountStore.currentAccount.fingerprint}
+                  />
+                )}
               </SSHStack>
             </SSFormLayout.Item>
           </SSFormLayout>
@@ -76,6 +238,7 @@ export default function ImportSeed() {
             <SSButton
               label={i18n.t('addMasterKey.importExistingSeed.action')}
               variant="secondary"
+              disabled={!checksumValid}
               onPress={() => handleOnPressImportSeed()}
             />
             <SSButton
@@ -114,7 +277,7 @@ export default function ImportSeed() {
                 {i18n.t('bitcoin.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                62e407ad
+                {accountStore.currentAccount.fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -127,7 +290,7 @@ export default function ImportSeed() {
                 )}
               </SSText>
               <SSText size="md" color="muted">
-                m/84'/1'/0'
+                {accountStore.currentAccount.derivationPath}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>
