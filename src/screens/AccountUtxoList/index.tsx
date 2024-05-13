@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 
 import { NavigationProp } from "@react-navigation/native";
@@ -14,6 +14,8 @@ import UtxoItem from "./components/UtxoItem";
 import Button from "../../components/shared/Button";
 import notImplementedAlert from "../../components/shared/NotImplementedAlert";
 
+import { ActionBar } from "./components/ActionBar";
+
 interface Props {
   navigation: NavigationProp<any>;
 }
@@ -27,15 +29,24 @@ export default function AccountUtxoListScreen({
   const getUtxoKey = txnBuilderContext.getOutpoint;
   const hasSelectedUtxos = txnBuilderContext.getInputs().length > 0;
 
+  const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
+
   useEffect(() => {
     navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
 
   const largestValue = Math.max(...utxos.map(utxo => utxo.value));
 
+  const selectAll = useCallback((): void => {
+    utxos.forEach(
+      input => txnBuilderContext.addInput(input)
+    );
+  }, [txnBuilderContext]);
+
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
+      <ActionBar totalValue={totalValue} onSelectAll={selectAll} />
       <View>
         <View style={styles.scrollBackground} />
         <ScrollView
@@ -63,8 +74,6 @@ export default function AccountUtxoListScreen({
   );
 }
 
-const utxosMarginTop = 24;
-
 const styles = StyleSheet.create({  
   container: {
     ...Layout.container.base,
@@ -77,17 +86,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     backgroundColor: Colors.grey27,
     width: '100%',
-    top: utxosMarginTop + 2,
+    top: 2,
     height: 1000
   },
   utxosScrollContentContainer: {
-    paddingBottom: 220
+    paddingBottom: 276
   },
   utxosScrollContentContainerAndroid: {
-    paddingBottom: 290
+    paddingBottom: 346
   },
   utxosScroll: {
-    marginTop: utxosMarginTop,
   },
   utxosBackground: {
     backgroundColor: Colors.grey38,
