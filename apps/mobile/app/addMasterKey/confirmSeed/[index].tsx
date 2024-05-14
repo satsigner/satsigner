@@ -35,6 +35,8 @@ export default function ConfirmSeed() {
   const [selectedCheckbox2, setSelectedCheckbox2] = useState(false)
   const [selectedCheckbox3, setSelectedCheckbox3] = useState(false)
 
+  const [loadingAccount, setLoadingAccount] = useState(false)
+
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
@@ -77,6 +79,8 @@ export default function ConfirmSeed() {
     )
       return
 
+    setLoadingAccount(true)
+
     const wallet = await accountStore.loadWalletFromMnemonic(
       accountStore.currentAccount.seedWords,
       accountStore.currentAccount.scriptVersion,
@@ -90,6 +94,7 @@ export default function ConfirmSeed() {
     )
     await accountStore.saveAccount(account)
 
+    setLoadingAccount(false)
     setWarningModalVisible(true)
   }
 
@@ -134,6 +139,7 @@ export default function ConfirmSeed() {
           <SSButton
             label={i18n.t('common.next')}
             variant="secondary"
+            loading={loadingAccount}
             onPress={() => handleNavigateNextWord()}
           />
           <SSButton
