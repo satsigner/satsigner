@@ -70,7 +70,7 @@
         "action": "Save Secret Seed",
         "accountAdded": "Parent account has been added",
         "accountAddedModal": {
-          "derivationPath": "Searching derivation path",
+          "derivationPath": "Derivation path",
           "utxos": "Found UTXOs",
           "sats": "Total spendable sats"
         }

@@ -49,7 +49,7 @@ export default function ConfirmSeed() {
     if (checkboxNumber === 3) setSelectedCheckbox3(true)
   }
 
-  function handleNavigateNextWord() {
+  async function handleNavigateNextWord() {
     if (
       !accountStore.currentAccount.seedWordCount ||
       !accountStore.currentAccount.seedWords
@@ -67,12 +67,34 @@ export default function ConfirmSeed() {
 
     if (+index + 1 < accountStore.currentAccount.seedWordCount)
       router.push(`/addMasterKey/confirmSeed/${+index + 1}`)
-    else setWarningModalVisible(true)
+    else return handleFinishWordsConfirmation()
   }
 
-  function handleFinishSeedConfirmation() {
+  async function handleFinishWordsConfirmation() {
+    if (
+      !accountStore.currentAccount.seedWords ||
+      !accountStore.currentAccount.scriptVersion
+    )
+      return
+
+    const wallet = await accountStore.loadWalletFromMnemonic(
+      accountStore.currentAccount.seedWords,
+      accountStore.currentAccount.scriptVersion,
+      accountStore.currentAccount.passphrase
+    )
+
+    await accountStore.syncWallet(wallet)
+    const account = await accountStore.getPopulatedAccount(
+      wallet,
+      accountStore.currentAccount
+    )
+    await accountStore.saveAccount(account)
+
+    setWarningModalVisible(true)
+  }
+
+  function handleCloseWordsWarning() {
     setWarningModalVisible(false)
-    // todo
     router.push('/accountList/')
   }
 
@@ -138,7 +160,7 @@ export default function ConfirmSeed() {
       </SSGradientModal>
       <SSWarningModal
         visible={warningModalVisible}
-        onClose={() => handleFinishSeedConfirmation()}
+        onClose={() => handleCloseWordsWarning()}
       >
         <SSVStack itemsCenter>
           <SSHStack>

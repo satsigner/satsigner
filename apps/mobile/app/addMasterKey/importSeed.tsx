@@ -5,6 +5,7 @@ import { ScrollView } from 'react-native'
 import { getWordList } from '@/api/bip39'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
+import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSFingerprint from '@/components/SSFingerprint'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
@@ -53,6 +54,8 @@ export default function ImportSeed() {
 
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
+
+  const [loadingAccount, setLoadingAccount] = useState(false)
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
@@ -153,6 +156,7 @@ export default function ImportSeed() {
       accountStore.currentAccount.passphrase
     )
 
+    setLoadingAccount(true)
     setAccountAddedModalVisible(true)
 
     await accountStore.syncWallet(wallet)
@@ -160,6 +164,8 @@ export default function ImportSeed() {
       wallet,
       accountStore.currentAccount
     )
+
+    setLoadingAccount(false)
     await accountStore.saveAccount(account)
   }
 
@@ -263,13 +269,17 @@ export default function ImportSeed() {
             </SSText>
           </SSVStack>
           <SSSeparator />
-          <SSHStack justifyEvenly>
+          <SSHStack justifyEvenly style={{ alignItems: 'flex-start' }}>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
                 {i18n.t('bitcoin.script')}
               </SSText>
-              <SSText size="md" color="muted">
-                {i18n.t('bitcoin.script')} Name
+              <SSText size="md" color="muted" center>
+                {i18n.t(
+                  `addMasterKey.accountOptions.scriptVersions.names.${accountStore.currentAccount.scriptVersion?.toLowerCase()}`
+                )}
+                {'\n'}
+                {`(${accountStore.currentAccount.scriptVersion})`}
               </SSText>
             </SSVStack>
             <SSVStack itemsCenter>
@@ -289,9 +299,13 @@ export default function ImportSeed() {
                   'addMasterKey.importExistingSeed.accountAddedModal.derivationPath'
                 )}
               </SSText>
-              <SSText size="md" color="muted">
-                {accountStore.currentAccount.derivationPath}
-              </SSText>
+              {loadingAccount ? (
+                <SSEllipsisAnimation />
+              ) : (
+                <SSText size="md" color="muted">
+                  {accountStore.currentAccount.derivationPath}
+                </SSText>
+              )}
             </SSVStack>
             <SSHStack justifyEvenly>
               <SSVStack itemsCenter>
@@ -300,9 +314,13 @@ export default function ImportSeed() {
                     'addMasterKey.importExistingSeed.accountAddedModal.utxos'
                   )}
                 </SSText>
-                <SSText size="md" color="muted">
-                  0
-                </SSText>
+                {loadingAccount ? (
+                  <SSEllipsisAnimation />
+                ) : (
+                  <SSText size="md" color="muted">
+                    {accountStore.currentAccount.summary.numberOfUtxos}
+                  </SSText>
+                )}
               </SSVStack>
               <SSVStack itemsCenter>
                 <SSText style={{ color: Colors.gray[500] }}>
@@ -310,9 +328,13 @@ export default function ImportSeed() {
                     'addMasterKey.importExistingSeed.accountAddedModal.sats'
                   )}
                 </SSText>
-                <SSText size="md" color="muted">
-                  0
-                </SSText>
+                {loadingAccount ? (
+                  <SSEllipsisAnimation />
+                ) : (
+                  <SSText size="md" color="muted">
+                    {accountStore.currentAccount.summary.balance}
+                  </SSText>
+                )}
               </SSVStack>
             </SSHStack>
           </SSVStack>

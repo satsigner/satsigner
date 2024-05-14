@@ -1,6 +1,6 @@
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -29,7 +29,7 @@ export default function AccountOptions() {
   const [seedWordCountModalVisible, setSeedWordCountModalVisibile] =
     useState(false)
 
-  function getScriptVersionButtonLabel() {
+  const scriptVersionButtonLabel = useMemo(() => {
     if (scriptVersion === 'P2PKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
     else if (scriptVersion === 'P2SH-P2WPKH')
@@ -40,9 +40,9 @@ export default function AccountOptions() {
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} P2TR`
 
     return ''
-  }
+  }, [scriptVersion])
 
-  function getSeedWordCountButtonLabel() {
+  const seedWordCountButtonLabel = useMemo(() => {
     if (seedWordCount === 12)
       return `12 ${i18n.t('bitcoin.words').toLowerCase()}`
     if (seedWordCount === 15)
@@ -55,9 +55,9 @@ export default function AccountOptions() {
       return `24 ${i18n.t('bitcoin.words').toLowerCase()}`
 
     return ''
-  }
+  }, [seedWordCount])
 
-  function getContinueButtonLabel() {
+  const continueButtonLabel = useMemo(() => {
     const accountCreationType = accountStore.currentAccount.accountCreationType
 
     if (accountCreationType === 'generate')
@@ -66,10 +66,9 @@ export default function AccountOptions() {
       return i18n.t('addMasterKey.accountOptions.importSeed')
 
     return ''
-  }
+  }, [accountStore.currentAccount.accountCreationType])
 
   async function handleOnPressConfirmAccountOptions() {
-    accountStore.resetCurrentAccount()
     accountStore.currentAccount.scriptVersion = scriptVersion
     accountStore.currentAccount.seedWordCount = seedWordCount
 
@@ -119,7 +118,7 @@ export default function AccountOptions() {
               label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
             />
             <SSButton
-              label={getScriptVersionButtonLabel()}
+              label={scriptVersionButtonLabel}
               withSelect
               onPress={() => setScriptVersionModalVisible(true)}
             />
@@ -129,7 +128,7 @@ export default function AccountOptions() {
               label={i18n.t('addMasterKey.accountOptions.mnemonic')}
             />
             <SSButton
-              label={getSeedWordCountButtonLabel()}
+              label={seedWordCountButtonLabel}
               withSelect
               onPress={() => setSeedWordCountModalVisibile(true)}
             />
@@ -137,7 +136,7 @@ export default function AccountOptions() {
         </SSFormLayout>
         <SSVStack>
           <SSButton
-            label={getContinueButtonLabel()}
+            label={continueButtonLabel}
             variant="secondary"
             onPress={() => handleOnPressConfirmAccountOptions()}
           />
