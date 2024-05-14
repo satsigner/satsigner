@@ -1,10 +1,9 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Utxo } from "../../../models/Utxo";
 
 import { AppText } from "../../../components/shared/AppText";
-import { TransactionBuilderContext } from "../../../components/accounts/TransactionBuilderContext";
 import { Colors, Layout } from "../../../styles";
 import { Sats } from "../../../components/accounts/Sats";
 import formatAddress from "../../../utils/formatAddress";
@@ -16,31 +15,24 @@ import RemoveIcon from '../../../assets/images/x.svg';
 
 interface Props {
   utxo: Utxo;
+  utxoSelected: boolean;
+  onToggleSelected: (utxo: Utxo) => void;
   largestValue: number;
 }
 
 export default function UtxoItem({
   utxo,
+  utxoSelected,
+  onToggleSelected,
   largestValue
 }: Props) {
-  const txnBuilderContext = useContext(TransactionBuilderContext);
   const [ selected, setSelected ] = useState(false);
 
-  useEffect(() => setSelected(txnBuilderContext.hasInput(utxo)), []);
-
-  function onToggleSelected() {
-    const txnHasInput = txnBuilderContext.hasInput(utxo);
-
-    txnHasInput ?
-      txnBuilderContext.removeInput(utxo) :
-      txnBuilderContext.addInput(utxo);
-
-    setSelected (! txnHasInput);
-  }
+  useEffect(() => setSelected(utxoSelected), [utxoSelected]);
 
   return (
     <View>
-      <TouchableOpacity onPress={onToggleSelected}>
+      <TouchableOpacity onPress={() => onToggleSelected(utxo)}>
         <View style={styles.container}>
           <View style={styles.selectAction}>
             <View style={[

@@ -15,6 +15,7 @@ import Button from "../../components/shared/Button";
 import notImplementedAlert from "../../components/shared/NotImplementedAlert";
 
 import { ActionBar } from "./components/ActionBar";
+import { Utxo } from "../../models/Utxo";
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -29,18 +30,25 @@ export default function AccountUtxoListScreen({
   const getUtxoKey = txnBuilderContext.getOutpoint;
   const hasSelectedUtxos = txnBuilderContext.getInputs().length > 0;
 
+  const largestValue = Math.max(...utxos.map(utxo => utxo.value));
   const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
 
   useEffect(() => {
     navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
 
-  const largestValue = Math.max(...utxos.map(utxo => utxo.value));
-
   const selectAll = useCallback((): void => {
     utxos.forEach(
       input => txnBuilderContext.addInput(input)
     );
+  }, [txnBuilderContext]);
+
+  const toggleSelected = useCallback((utxo: Utxo): void => {
+    const txnHasInput = txnBuilderContext.hasInput(utxo);
+
+    txnHasInput ?
+      txnBuilderContext.removeInput(utxo) :
+      txnBuilderContext.addInput(utxo);
   }, [txnBuilderContext]);
 
   return (
@@ -57,7 +65,13 @@ export default function AccountUtxoListScreen({
         >
           <View style={styles.utxosBackground}>
             { utxos.map(utxo =>
-              <UtxoItem key={getUtxoKey(utxo)} utxo={utxo} largestValue={largestValue}></UtxoItem>
+              <UtxoItem
+                key={getUtxoKey(utxo)}
+                utxo={utxo}
+                utxoSelected={txnBuilderContext.hasInput(utxo)}
+                onToggleSelected={toggleSelected}
+                largestValue={largestValue}
+              />
             )}
           </View>
         </ScrollView>
