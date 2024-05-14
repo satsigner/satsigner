@@ -24,6 +24,7 @@ export default function GenerateSeed() {
 
   async function handleUpdatePassphrase(passphrase: string) {
     if (!accountStore.currentAccount.seedWords) return
+    accountStore.currentAccount.passphrase = passphrase
 
     const checksumValid = await accountStore.validateMnemonic(
       accountStore.currentAccount.seedWords

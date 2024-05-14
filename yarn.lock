@@ -5630,10 +5630,10 @@ expo-router@~3.4.8:
     react-helmet-async "^1.3.0"
     schema-utils "^4.0.1"
 
-expo-secure-store@^13.0.1:
-  version "13.0.1"
-  resolved "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-13.0.1.tgz#fc886d3e0ed12890c8dd74e7cc44e35b03f2d79b"
-  integrity sha512-5DTKjbv98X7yPbm+1jER/sOEIlt2Ih7qwabTvkWDXry5bPcQGoulxH5zIX9+JvVH7of8GI4t7NSEbpAO3P7FZA==
+expo-secure-store@~12.8.1:
+  version "12.8.1"
+  resolved "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-12.8.1.tgz#369a570702fa1dc0c49ea41a5ab18aca2a986d38"
+  integrity sha512-Ju3jmkHby4w7rIzdYAt9kQyQ7HhHJ0qRaiQOInknhOLIltftHjEgF4I1UmzKc7P5RCfGNmVbEH729Pncp/sHXQ==
 
 expo-splash-screen@0.26.4:
   version "0.26.4"
