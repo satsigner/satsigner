@@ -7,6 +7,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { Alert } from 'react-native'
 
 export default function App() {
   const router = useRouter()
@@ -26,6 +27,7 @@ export default function App() {
     setDeletingAccounts(true)
     await accountStore.deleteAccounts()
     setDeletingAccounts(false)
+    Alert.alert('Accounts deleted')
   }
 
   return (

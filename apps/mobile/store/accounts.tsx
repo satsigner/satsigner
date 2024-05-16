@@ -85,8 +85,16 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
       const { fingerprint, derivationPath, wallet } =
         await getWalletFromMnemonic(seedWords, scriptVersion, passphrase)
       set((state) => ({
-        currentAccount: { ...state.currentAccount, fingerprint, derivationPath }
+        currentAccount: {
+          ...state.currentAccount,
+          fingerprint,
+          derivationPath
+        }
       }))
+      console.log({
+        derivationPath,
+        currentDP: get().currentAccount.derivationPath
+      })
       return wallet
     },
     syncWallet: async (wallet) => {
@@ -109,7 +117,7 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
     saveAccount: async (account) => {
       set((state) => ({
         accounts: [...state.accounts, account],
-        currentAccount: account
+        currentAccount: { ...state.currentAccount, ...account }
       }))
       await saveAccounts(get().accounts)
     },
@@ -118,6 +126,7 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
     },
     deleteAccounts: async () => {
       await deleteAccounts()
+      set(() => ({ accounts: [], currentAccount: initialCurrentAccountState }))
     }
   })
 )

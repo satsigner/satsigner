@@ -299,13 +299,9 @@ export default function ImportSeed() {
                   'addMasterKey.importExistingSeed.accountAddedModal.derivationPath'
                 )}
               </SSText>
-              {loadingAccount ? (
-                <SSEllipsisAnimation />
-              ) : (
-                <SSText size="md" color="muted">
-                  {accountStore.currentAccount.derivationPath}
-                </SSText>
-              )}
+              <SSText size="md" color="muted">
+                {accountStore.currentAccount.derivationPath}
+              </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>
               <SSVStack itemsCenter>
