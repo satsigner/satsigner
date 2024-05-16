@@ -34,7 +34,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.grey208
   },
   selectAction: {
-    paddingLeft: 15
   },
   selectActionText: {
     fontSize: 13,

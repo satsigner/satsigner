@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 
 import { NavigationProp } from "@react-navigation/native";
@@ -13,9 +13,12 @@ import SelectedUtxosHeader from "../../components/accounts/SelectedUtxosHeader";
 import UtxoItem from "./components/UtxoItem";
 import Button from "../../components/shared/Button";
 import notImplementedAlert from "../../components/shared/NotImplementedAlert";
+import { compareTimestampedAsc, compareTimestampedDesc } from '../../utils/compareTimestamped';
 
 import { ActionBar } from "./components/ActionBar";
 import { Utxo } from "../../models/Utxo";
+import { SortDirection } from "../../enums/SortDirection";
+import { SortField } from "./enums/SortField";
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -32,6 +35,9 @@ export default function AccountUtxoListScreen({
 
   const largestValue = Math.max(...utxos.map(utxo => utxo.value));
   const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
+
+  const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
+  const [sortField, setSortField] = useState(SortField.Amount);
 
   useEffect(() => {
     navUtils.setHeaderTitle(currentAccount.name, navigation);
@@ -51,10 +57,36 @@ export default function AccountUtxoListScreen({
       txnBuilderContext.addInput(utxo);
   }, [txnBuilderContext]);
 
+  const sortDirectionChanged = useCallback((field: SortField, direction: SortDirection) => {
+    setSortField(field);
+    setSortDirection(direction);
+  }, []);
+
+  function sortUtxos(utxos: Utxo[]): Utxo[] {
+    return utxos?.sort(
+      sortDirection === SortDirection.Ascending ?
+        (sortField === SortField.Date ? compareTimestampedAsc : compareAmountAsc)
+        :
+        (sortField === SortField.Date ? compareTimestampedDesc : compareAmountDesc)      
+    );
+  }
+
+  function compareAmountAsc(u1: Utxo, u2: Utxo): number {
+    return (u1?.value || 0) - (u2?.value || 0);
+  }
+
+  function compareAmountDesc(u1: Utxo, u2: Utxo): number {
+    return compareAmountAsc(u2, u1);
+  }
+
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
-      <ActionBar totalValue={totalValue} onSelectAll={selectAll} />
+      <ActionBar
+        totalValue={totalValue}
+        onSelectAll={selectAll}
+        onSortDirectionChanged={sortDirectionChanged}
+      />
       <View>
         <View style={styles.scrollBackground} />
         <ScrollView
@@ -64,7 +96,7 @@ export default function AccountUtxoListScreen({
             styles.utxosScrollContentContainer }
         >
           <View style={styles.utxosBackground}>
-            { utxos.map(utxo =>
+            { sortUtxos(utxos).map(utxo =>
               <UtxoItem
                 key={getUtxoKey(utxo)}
                 utxo={utxo}
