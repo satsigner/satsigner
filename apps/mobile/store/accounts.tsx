@@ -9,7 +9,7 @@ import {
   syncWallet,
   validateMnemonic
 } from '@/api/bdk'
-import { getAccounts, saveAccounts } from '@/storage/accounts'
+import { deleteAccounts, getAccounts, saveAccounts } from '@/storage/accounts'
 import { type Account } from '@/types/models/Account'
 
 type AccountsState = {
@@ -36,9 +36,11 @@ type AccountsAction = {
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet) => Promise<void>
   getPopulatedAccount: (wallet: Wallet, account: Account) => Promise<Account>
+  loadAccountsFromStorage: () => Promise<void>
   getAccountsFromStorage: () => Promise<Account[]>
   saveAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
+  deleteAccounts: () => Promise<void>
 }
 
 const initialCurrentAccountState: Account = {
@@ -94,6 +96,11 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
       const { transactions, utxos, summary } = await getWalletData(wallet)
       return { ...account, transactions, utxos, summary }
     },
+    loadAccountsFromStorage: async () => {
+      const loadedAccounts = await getAccounts()
+      if (!loadedAccounts) return
+      set(() => ({ accounts: loadedAccounts }))
+    },
     getAccountsFromStorage: async () => {
       const loadedAccounts = await getAccounts()
       if (!loadedAccounts) return []
@@ -108,6 +115,9 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
     },
     updateAccount: async (account) => {
       // TODO
+    },
+    deleteAccounts: async () => {
+      await deleteAccounts()
     }
   })
 )

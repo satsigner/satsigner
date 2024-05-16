@@ -99,7 +99,7 @@ export default function Account() {
         <ScrollView>
           <SSVStack style={{ marginTop: 16 }}>
             {accountStore.currentAccount.transactions.map((transaction) => (
-              <>
+              <SSVStack key={transaction.id}>
                 <SSSeparator
                   key={`separator-${transaction.id}`}
                   color="grayDark"
@@ -109,7 +109,7 @@ export default function Account() {
                   transaction={transaction}
                   blockHeight={840000}
                 />
-              </>
+              </SSVStack>
             ))}
           </SSVStack>
         </ScrollView>

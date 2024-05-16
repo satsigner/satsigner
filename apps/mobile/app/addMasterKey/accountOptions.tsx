@@ -29,6 +29,8 @@ export default function AccountOptions() {
   const [seedWordCountModalVisible, setSeedWordCountModalVisibile] =
     useState(false)
 
+  const [loading, setLoading] = useState(false)
+
   const scriptVersionButtonLabel = useMemo(() => {
     if (scriptVersion === 'P2PKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
@@ -75,7 +77,9 @@ export default function AccountOptions() {
     const accountCreationType = accountStore.currentAccount.accountCreationType
 
     if (accountCreationType === 'generate') {
+      setLoading(true)
       await accountStore.generateMnemonic(seedWordCount)
+      setLoading(false)
       router.push('/addMasterKey/generateSeed')
     } else if (accountCreationType === 'import')
       router.push('/addMasterKey/importSeed')
@@ -138,6 +142,7 @@ export default function AccountOptions() {
           <SSButton
             label={continueButtonLabel}
             variant="secondary"
+            loading={loading}
             onPress={() => handleOnPressConfirmAccountOptions()}
           />
           <SSButton

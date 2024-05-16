@@ -1,6 +1,6 @@
 import { type Account } from '@/types/models/Account'
 
-import { getItem, setItem } from './encrypted'
+import { deleteItem, getItem, setItem } from './encrypted'
 
 const ACCOUNTS = 'satsigner.accounts'
 
@@ -22,4 +22,8 @@ async function saveAccounts(accounts: Account[]) {
   return setItem(ACCOUNTS, JSON.stringify(accounts))
 }
 
-export { getAccounts, saveAccounts }
+async function deleteAccounts() {
+  return deleteItem(ACCOUNTS)
+}
+
+export { deleteAccounts, getAccounts, saveAccounts }

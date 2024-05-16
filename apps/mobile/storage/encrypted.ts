@@ -23,4 +23,14 @@ async function getItem(key: string) {
   return SecureStore.getItemAsync(vKey)
 }
 
-export { getItem, setItem }
+/**
+ * Delete an item sotred in the SharedPreferences (android) or Keychain (iOS)
+ * @param {string} key The key that was used to store the associated value
+ * @returns {Promise<void>} A promise that will reject if the value couldn't be deleted
+ */
+async function deleteItem(key: string) {
+  const vKey = `${VERSION}_${key}`
+  return SecureStore.deleteItemAsync(vKey)
+}
+
+export { deleteItem, getItem, setItem }

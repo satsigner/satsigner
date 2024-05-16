@@ -34,6 +34,10 @@ export default function ConfirmSeed() {
   const [selectedCheckbox1, setSelectedCheckbox1] = useState(false)
   const [selectedCheckbox2, setSelectedCheckbox2] = useState(false)
   const [selectedCheckbox3, setSelectedCheckbox3] = useState(false)
+  const isWordSelected = useMemo(
+    () => selectedCheckbox1 || selectedCheckbox2 || selectedCheckbox3,
+    [selectedCheckbox1, selectedCheckbox2, selectedCheckbox3]
+  )
 
   const [loadingAccount, setLoadingAccount] = useState(false)
 
@@ -140,6 +144,7 @@ export default function ConfirmSeed() {
             label={i18n.t('common.next')}
             variant="secondary"
             loading={loadingAccount}
+            disabled={!isWordSelected}
             onPress={() => handleNavigateNextWord()}
           />
           <SSButton
