@@ -104,7 +104,7 @@ export default function ConfirmSeed() {
 
   function handleCloseWordsWarning() {
     setWarningModalVisible(false)
-    router.push('/accountList/')
+    router.navigate('/accountList/')
   }
 
   return (

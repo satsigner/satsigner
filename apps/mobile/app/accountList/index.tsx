@@ -16,7 +16,7 @@ export default function AccountList() {
 
   function handleOnPressAccount(account: Account) {
     accountStore.currentAccount = account
-    router.push(`/accountList/account/${account.name}`)
+    router.navigate(`/accountList/account/${account.name}`)
   }
 
   return (
@@ -32,7 +32,7 @@ export default function AccountList() {
         <SSButton
           label={i18n.t('addMasterKey.title')}
           style={{ borderRadius: 0 }}
-          onPress={() => router.push('/addMasterKey/')}
+          onPress={() => router.navigate('/addMasterKey/')}
         />
       </View>
       <SSMainLayout style={{ paddingHorizontal: '5%' }}>

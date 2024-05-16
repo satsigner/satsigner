@@ -25,7 +25,7 @@ export default function AddMasterKey() {
   ) {
     accountStore.currentAccount.name = accountName
     accountStore.currentAccount.accountCreationType = creationType
-    router.push('/addMasterKey/accountOptions')
+    router.navigate('/addMasterKey/accountOptions')
   }
 
   return (

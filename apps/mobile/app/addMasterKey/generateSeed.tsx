@@ -98,7 +98,7 @@ export default function GenerateSeed() {
               label={i18n.t('addMasterKey.generateNewSeed.action')}
               variant="secondary"
               disabled={!checksumValid}
-              onPress={() => router.push('/addMasterKey/confirmSeed/0')}
+              onPress={() => router.navigate('/addMasterKey/confirmSeed/0')}
             />
             <SSButton
               label={i18n.t('common.cancel')}

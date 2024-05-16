@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { Alert } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -7,7 +8,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
-import { Alert } from 'react-native'
 
 export default function App() {
   const router = useRouter()
@@ -20,7 +20,7 @@ export default function App() {
     setLoadingAccounts(true)
     await accountStore.loadAccountsFromStorage()
     setLoadingAccounts(false)
-    router.push('/accountList/')
+    router.navigate('/accountList/')
   }
 
   async function handleDeleteAccount() {

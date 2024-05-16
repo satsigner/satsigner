@@ -80,9 +80,9 @@ export default function AccountOptions() {
       setLoading(true)
       await accountStore.generateMnemonic(seedWordCount)
       setLoading(false)
-      router.push('/addMasterKey/generateSeed')
+      router.navigate('/addMasterKey/generateSeed')
     } else if (accountCreationType === 'import')
-      router.push('/addMasterKey/importSeed')
+      router.navigate('/addMasterKey/importSeed')
   }
 
   function handleOnSelectScriptVersion() {
