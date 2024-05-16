@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import BouncyCheckbox, {
   BouncyCheckboxProps
@@ -17,6 +18,12 @@ export default function SSCheckbox({
   selected,
   ...props
 }: SSCheckboxProps) {
+  const innerIconStyle = useMemo(() => {
+    return StyleSheet.compose(styles.innerIconStyleBase, {
+      borderColor: selected ? Colors.white : undefined
+    })
+  }, [selected])
+
   return (
     <View style={styles.containerBase}>
       <BouncyCheckbox
@@ -24,12 +31,8 @@ export default function SSCheckbox({
         fillColor={Colors.gray[700]}
         unFillColor={Colors.gray[700]}
         size={Sizes.checkbox.height}
-        iconStyle={{ borderRadius: Sizes.checkbox.borderRadius }}
-        innerIconStyle={{
-          borderWidth: Sizes.checkbox.borderWidth,
-          borderColor: selected ? Colors.white : undefined,
-          borderRadius: Sizes.checkbox.borderRadius
-        }}
+        iconStyle={styles.iconStyleBase}
+        innerIconStyle={innerIconStyle}
         {...props}
       />
       <SSText color="white" size="lg">
@@ -43,5 +46,12 @@ const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
     alignItems: 'center'
+  },
+  iconStyleBase: {
+    borderRadius: Sizes.checkbox.borderRadius
+  },
+  innerIconStyleBase: {
+    borderWidth: Sizes.checkbox.borderWidth,
+    borderRadius: Sizes.checkbox.borderRadius
   }
 })
