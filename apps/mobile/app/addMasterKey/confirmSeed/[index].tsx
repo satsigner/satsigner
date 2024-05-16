@@ -50,9 +50,18 @@ export default function ConfirmSeed() {
     setSelectedCheckbox2(false)
     setSelectedCheckbox3(false)
 
-    if (checkboxNumber === 1) setSelectedCheckbox1(true)
-    if (checkboxNumber === 2) setSelectedCheckbox2(true)
-    if (checkboxNumber === 3) setSelectedCheckbox3(true)
+    if (checkboxNumber === 1) {
+      if (selectedCheckbox1) setSelectedCheckbox1(false)
+      else setSelectedCheckbox1(true)
+    }
+    if (checkboxNumber === 2) {
+      if (selectedCheckbox2) setSelectedCheckbox2(false)
+      else setSelectedCheckbox2(true)
+    }
+    if (checkboxNumber === 3) {
+      if (selectedCheckbox3) setSelectedCheckbox3(false)
+      else setSelectedCheckbox3(true)
+    }
   }
 
   async function handleNavigateNextWord() {
