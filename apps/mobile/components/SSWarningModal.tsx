@@ -1,3 +1,5 @@
+import * as StatusBar from 'expo-status-bar'
+import { useEffect } from 'react'
 import { Modal, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -16,6 +18,14 @@ export default function SSWarningModal({
   onClose,
   children
 }: SSWarningModalProps) {
+  useEffect(() => {
+    if (!visible)
+      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+
+    StatusBar.setStatusBarStyle('light')
+    StatusBar.setStatusBarBackgroundColor('black', false)
+  }, [visible])
+
   return (
     <Modal visible={visible} transparent={false}>
       <SSMainLayout black>

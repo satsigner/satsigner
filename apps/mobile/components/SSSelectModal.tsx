@@ -1,4 +1,5 @@
-import { useMemo } from 'react'
+import * as StatusBar from 'expo-status-bar'
+import { useEffect, useMemo } from 'react'
 import { Modal, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -31,6 +32,14 @@ export default function SSSelectModal({
     () => selectedText.split(' - '),
     [selectedText]
   )
+
+  useEffect(() => {
+    if (!visible)
+      return StatusBar.setStatusBarBackgroundColor('transparent', false)
+
+    StatusBar.setStatusBarStyle('light')
+    StatusBar.setStatusBarBackgroundColor('black', false)
+  }, [visible])
 
   return (
     <Modal visible={visible} transparent={false}>
