@@ -171,7 +171,7 @@ export default function ImportSeed() {
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
-    router.navigate('/accountList/') // TODO: reset
+    router.navigate('/accountList/')
   }
 
   return (
