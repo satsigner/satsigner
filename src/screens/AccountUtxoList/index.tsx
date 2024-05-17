@@ -10,15 +10,13 @@ import navUtils from "../../utils/NavUtils";
 
 import SelectedUtxosHeader from "../../components/accounts/SelectedUtxosHeader";
 
-import UtxoItem from "./components/UtxoItem";
 import Button from "../../components/shared/Button";
 import notImplementedAlert from "../../components/shared/NotImplementedAlert";
-import { compareTimestampedAsc, compareTimestampedDesc } from '../../utils/compareTimestamped';
 
 import { ActionBar } from "./components/ActionBar";
-import { Utxo } from "../../models/Utxo";
 import { SortDirection } from "../../enums/SortDirection";
 import { SortField } from "./enums/SortField";
+import UtxoList from "./components/UtxoList";
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -30,10 +28,8 @@ export default function AccountUtxoListScreen({
   const { currentAccount, currentAccount: { utxos } } = useAccountsContext();
   const txnBuilderContext = useTransactionBuilderContext();
 
-  const getUtxoKey = txnBuilderContext.getOutpoint;
   const hasSelectedUtxos = txnBuilderContext.getInputs().length > 0;
 
-  const largestValue = Math.max(...utxos.map(utxo => utxo.value));
   const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
 
   const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
@@ -49,35 +45,10 @@ export default function AccountUtxoListScreen({
     );
   }, [txnBuilderContext]);
 
-  const toggleSelected = useCallback((utxo: Utxo): void => {
-    const txnHasInput = txnBuilderContext.hasInput(utxo);
-
-    txnHasInput ?
-      txnBuilderContext.removeInput(utxo) :
-      txnBuilderContext.addInput(utxo);
-  }, [txnBuilderContext]);
-
   const sortDirectionChanged = useCallback((field: SortField, direction: SortDirection) => {
     setSortField(field);
     setSortDirection(direction);
   }, []);
-
-  function sortUtxos(utxos: Utxo[]): Utxo[] {
-    return utxos?.sort(
-      sortDirection === SortDirection.Ascending ?
-        (sortField === SortField.Date ? compareTimestampedAsc : compareAmountAsc)
-        :
-        (sortField === SortField.Date ? compareTimestampedDesc : compareAmountDesc)      
-    );
-  }
-
-  function compareAmountAsc(u1: Utxo, u2: Utxo): number {
-    return (u1?.value || 0) - (u2?.value || 0);
-  }
-
-  function compareAmountDesc(u1: Utxo, u2: Utxo): number {
-    return compareAmountAsc(u2, u1);
-  }
 
   return (
     <View style={styles.container}>
@@ -96,15 +67,7 @@ export default function AccountUtxoListScreen({
             styles.utxosScrollContentContainer }
         >
           <View style={styles.utxosBackground}>
-            { sortUtxos(utxos).map(utxo =>
-              <UtxoItem
-                key={getUtxoKey(utxo)}
-                utxo={utxo}
-                utxoSelected={txnBuilderContext.hasInput(utxo)}
-                onToggleSelected={toggleSelected}
-                largestValue={largestValue}
-              />
-            )}
+            <UtxoList utxos={utxos} sortDirection={sortDirection} sortField={sortField}/>
           </View>
         </ScrollView>
       </View>
