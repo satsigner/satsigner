@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -16,9 +16,7 @@ export default function AddMasterKey() {
   const accountStore = useAccountStore()
 
   const [accountName, setAccountName] = useState('')
-  const actionsDisabled = useMemo(() => {
-    return accountName.length < 1
-  }, [accountName])
+  const actionsDisabled = accountName.length < 1
 
   function handleOnPressAddMasterKey(
     creationType: Account['accountCreationType']

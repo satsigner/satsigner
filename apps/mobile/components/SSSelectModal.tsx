@@ -28,10 +28,7 @@ export default function SSSelectModal({
   onCancel,
   children
 }: SSSelectModalProps) {
-  const splitSelectedText = useMemo(
-    () => selectedText.split(' - '),
-    [selectedText]
-  )
+  const splitSelectedText = selectedText.split(' - ')
 
   useEffect(() => {
     if (!visible)
