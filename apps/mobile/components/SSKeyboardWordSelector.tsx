@@ -15,6 +15,7 @@ import {
 import { getWordList } from '@/api/bip39'
 import { Colors, Sizes } from '@/styles'
 import usePrevious from '@/utils/hooks/usePrevious'
+import { i18n } from '@/locales'
 
 type WordInfo = {
   index: number
@@ -103,23 +104,31 @@ export default function SSKeyboardWordSelector({
 
   return (
     <Animated.View style={containerStyle}>
-      <FlatList
-        ref={flatList}
-        data={data}
-        keyboardShouldPersistTaps="handled"
-        horizontal
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            key={item.index}
-            onPress={() => onWordSelected(item.word)}
-          >
-            <View style={styles.wordContainerBase}>
-              <Text style={styles.wordText}>{item.word}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
+      {data.length > 0 ? (
+        <FlatList
+          ref={flatList}
+          data={data}
+          keyboardShouldPersistTaps="handled"
+          horizontal
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              key={item.index}
+              onPress={() => onWordSelected(item.word)}
+            >
+              <View style={styles.wordContainerBase}>
+                <Text style={styles.wordText}>{item.word}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      ) : (
+        <View style={styles.noMatchingWordsContainerBase}>
+          <Text style={styles.wordText}>
+            {i18n.t('addMasterKey.importExistingSeed.noMatchingWords')}
+          </Text>
+        </View>
+      )}
     </Animated.View>
   )
 }
@@ -131,6 +140,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     color: Colors.black,
     zIndex: 1
+  },
+  noMatchingWordsContainerBase: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   wordContainerBase: {
     paddingHorizontal: 20,

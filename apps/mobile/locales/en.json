@@ -73,7 +73,8 @@
           "derivationPath": "Derivation path",
           "utxos": "Found UTXOs",
           "sats": "Total spendable sats"
-        }
+        },
+        "noMatchingWords": "No Matching Words"
       },
       "accountOptions": {
         "policyType": "Policy Type",
