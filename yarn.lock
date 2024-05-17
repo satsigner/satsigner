@@ -10064,6 +10064,11 @@ react-native-bouncy-checkbox@^4.0.0:
   dependencies:
     "@freakycoder/react-native-bounceable" "^1.0.3"
 
+react-native-mmkv@^2.12.2:
+  version "2.12.2"
+  resolved "https://registry.npmjs.org/react-native-mmkv/-/react-native-mmkv-2.12.2.tgz#4bba0f5f04e2cf222494cce3a9794ba6a4894dee"
+  integrity sha512-6058Aq0p57chPrUutLGe9fYoiDVDNMU2PKV+lLFUJ3GhoHvUrLdsS1PDSCLr00yqzL4WJQ7TTzH+V8cpyrNcfg==
+
 react-native-reanimated@~3.6.2:
   version "3.6.3"
   resolved "https://registry.npmjs.org/react-native-reanimated/-/react-native-reanimated-3.6.3.tgz#859cf2320e37c80e3a21e19db24f82c34d6d3ded"

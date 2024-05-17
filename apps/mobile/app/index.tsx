@@ -13,15 +13,7 @@ export default function App() {
   const router = useRouter()
   const accountStore = useAccountStore()
 
-  const [loadingAccounts, setLoadingAccounts] = useState(false)
   const [deletingAccounts, setDeletingAccounts] = useState(false)
-
-  async function handleAccountList() {
-    setLoadingAccounts(true)
-    await accountStore.loadAccountsFromStorage()
-    setLoadingAccounts(false)
-    router.navigate('/accountList/')
-  }
 
   async function handleDeleteAccount() {
     setDeletingAccounts(true)
@@ -42,8 +34,7 @@ export default function App() {
       <SSVStack>
         <SSButton
           label="Account List"
-          loading={loadingAccounts}
-          onPress={() => handleAccountList()}
+          onPress={() => router.navigate('/accountList/')}
         />
         <SSButton
           label="Delete Accounts"

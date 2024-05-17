@@ -1,5 +1,6 @@
 import { Wallet } from 'bdk-rn'
 import { create } from 'zustand'
+import { createJSONStorage, persist } from 'zustand/middleware'
 
 import {
   generateMnemonic,
@@ -9,7 +10,7 @@ import {
   syncWallet,
   validateMnemonic
 } from '@/api/bdk'
-import { deleteAccounts, getAccounts, saveAccounts } from '@/storage/accounts'
+import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 
 type AccountsState = {
@@ -36,8 +37,6 @@ type AccountsAction = {
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet) => Promise<void>
   getPopulatedAccount: (wallet: Wallet, account: Account) => Promise<Account>
-  loadAccountsFromStorage: () => Promise<void>
-  getAccountsFromStorage: () => Promise<Account[]>
   saveAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
   deleteAccounts: () => Promise<void>
@@ -58,77 +57,71 @@ const initialCurrentAccountState: Account = {
 }
 
 const useAccountStore = create<AccountsState & AccountsAction>()(
-  (set, get) => ({
-    accounts: [],
-    currentAccount: initialCurrentAccountState,
-    resetCurrentAccount: () => {
-      set({ currentAccount: initialCurrentAccountState })
-    },
-    generateMnemonic: async (count) => {
-      const mnemonic = await generateMnemonic(count)
-      set((state) => ({
-        currentAccount: { ...state.currentAccount, seedWords: mnemonic }
-      }))
-      await get().updateFingerprint(mnemonic)
-    },
-    validateMnemonic: async (seedWords) => {
-      const isValid = await validateMnemonic(seedWords)
-      return isValid
-    },
-    updateFingerprint: async (seedWords, passphrase) => {
-      const fingerprint = await getFingerprint(seedWords, passphrase)
-      set((state) => ({
-        currentAccount: { ...state.currentAccount, fingerprint }
-      }))
-    },
-    loadWalletFromMnemonic: async (seedWords, scriptVersion, passphrase) => {
-      const { fingerprint, derivationPath, wallet } =
-        await getWalletFromMnemonic(seedWords, scriptVersion, passphrase)
-      set((state) => ({
-        currentAccount: {
-          ...state.currentAccount,
-          fingerprint,
-          derivationPath
-        }
-      }))
-      console.log({
-        derivationPath,
-        currentDP: get().currentAccount.derivationPath
-      })
-      return wallet
-    },
-    syncWallet: async (wallet) => {
-      await syncWallet(wallet)
-    },
-    getPopulatedAccount: async (wallet, account) => {
-      const { transactions, utxos, summary } = await getWalletData(wallet)
-      return { ...account, transactions, utxos, summary }
-    },
-    loadAccountsFromStorage: async () => {
-      const loadedAccounts = await getAccounts()
-      if (!loadedAccounts) return
-      set(() => ({ accounts: loadedAccounts }))
-    },
-    getAccountsFromStorage: async () => {
-      const loadedAccounts = await getAccounts()
-      if (!loadedAccounts) return []
-      return loadedAccounts
-    },
-    saveAccount: async (account) => {
-      set((state) => ({
-        accounts: [...state.accounts, account],
-        currentAccount: { ...state.currentAccount, ...account }
-      }))
-      await saveAccounts(get().accounts)
-    },
-    updateAccount: async (account) => {
-      // TODO
-    },
-    deleteAccounts: async () => {
-      await deleteAccounts()
-      set(() => ({ accounts: [], currentAccount: initialCurrentAccountState }))
+  persist(
+    (set, get) => ({
+      accounts: [],
+      currentAccount: initialCurrentAccountState,
+      resetCurrentAccount: () => {
+        set({ currentAccount: initialCurrentAccountState })
+      },
+      generateMnemonic: async (count) => {
+        const mnemonic = await generateMnemonic(count)
+        set((state) => ({
+          currentAccount: { ...state.currentAccount, seedWords: mnemonic }
+        }))
+        await get().updateFingerprint(mnemonic)
+      },
+      validateMnemonic: async (seedWords) => {
+        const isValid = await validateMnemonic(seedWords)
+        return isValid
+      },
+      updateFingerprint: async (seedWords, passphrase) => {
+        const fingerprint = await getFingerprint(seedWords, passphrase)
+        set((state) => ({
+          currentAccount: { ...state.currentAccount, fingerprint }
+        }))
+      },
+      loadWalletFromMnemonic: async (seedWords, scriptVersion, passphrase) => {
+        const { fingerprint, derivationPath, wallet } =
+          await getWalletFromMnemonic(seedWords, scriptVersion, passphrase)
+        set((state) => ({
+          currentAccount: {
+            ...state.currentAccount,
+            fingerprint,
+            derivationPath
+          }
+        }))
+        return wallet
+      },
+      syncWallet: async (wallet) => {
+        await syncWallet(wallet)
+      },
+      getPopulatedAccount: async (wallet, account) => {
+        const { transactions, utxos, summary } = await getWalletData(wallet)
+        return { ...account, transactions, utxos, summary }
+      },
+      saveAccount: async (account) => {
+        set((state) => ({
+          accounts: [...state.accounts, account],
+          currentAccount: { ...state.currentAccount, ...account }
+        }))
+        // await saveAccounts(get().accounts) // TODO:
+      },
+      updateAccount: async (account) => {
+        // TODO
+      },
+      deleteAccounts: async () => {
+        set(() => ({
+          accounts: [],
+          currentAccount: initialCurrentAccountState
+        }))
+      }
+    }),
+    {
+      name: 'satsigner',
+      storage: createJSONStorage(() => mmkvStorage)
     }
-  })
+  )
 )
 
 export { useAccountStore }
