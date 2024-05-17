@@ -1,48 +1,57 @@
+import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Colors } from "../../../styles";
-
-import { SelectAllAction } from "./SelectAllAction";
 import { SortDirection } from "../../../enums/SortDirection";
 import SortDirectionToggle from "../../../components/shared/SortDirectionToggle";
+import { useTransactionBuilderContext } from "../../../components/accounts/TransactionBuilderContext";
+
 import { SortField } from "../enums/SortField";
-import { useState } from "react";
+import { SelectAllAction } from "./SelectAllAction";
 
 interface Props {
-  totalValue: number;
-  onSelectAll: () => void;
+  utxos: Utxo[];
   onSortDirectionChanged: (field: SortField, direction: SortDirection) => void;
 }
 
 export function ActionBar({
-  totalValue,
-  onSelectAll,
+  utxos,
   onSortDirectionChanged
 }: Props) {
+  const txnBuilderContext = useTransactionBuilderContext();
   const [sortField, setSortField] = useState(SortField.Amount);
+
+  const selectAll = useCallback(() => {
+    utxos.forEach(
+      input => txnBuilderContext.addInput(input)
+    );
+  }, [txnBuilderContext]);
+
+  const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
+
+  const onDirectionChangedForField = (field: SortField) => {
+    return (direction: SortDirection) => {
+      setSortField(field);
+      onSortDirectionChanged(field, direction);
+    };
+  }
 
   return (
     <View style={styles.container}>
-      <SelectAllAction onSelectAll={onSelectAll} totalValue={totalValue} />
+      <SelectAllAction onSelectAll={selectAll} totalValue={totalValue} />
 
       <View style={styles.sorts}>
         <SortDirectionToggle
           showArrow={sortField === SortField.Date}
           label="Date"
           style={[styles.sortDirectionToggle, styles.firstSortDirectionToggle]}
-          onDirectionChanged={(direction: SortDirection) => {
-            setSortField(SortField.Date);
-            onSortDirectionChanged(SortField.Date, direction);
-          }}
+          onDirectionChanged={onDirectionChangedForField(SortField.Date)}
         />
         <SortDirectionToggle
           showArrow={sortField === SortField.Amount}
           label="Amount"
           style={styles.sortDirectionToggle}
-          onDirectionChanged={(direction: SortDirection) => {
-            setSortField(SortField.Amount);
-            onSortDirectionChanged(SortField.Amount, direction);
-          }}
+          onDirectionChanged={onDirectionChangedForField(SortField.Amount)}
         />
       </View>
     </View>

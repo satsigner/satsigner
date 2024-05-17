@@ -30,20 +30,12 @@ export default function AccountUtxoListScreen({
 
   const hasSelectedUtxos = txnBuilderContext.getInputs().length > 0;
 
-  const totalValue = utxos.reduce((acc, utxo) => acc + utxo.value, 0);
-
   const [sortDirection, setSortDirection] = useState(SortDirection.Descending);
   const [sortField, setSortField] = useState(SortField.Amount);
 
   useEffect(() => {
     navUtils.setHeaderTitle(currentAccount.name, navigation);
   }, []);
-
-  const selectAll = useCallback((): void => {
-    utxos.forEach(
-      input => txnBuilderContext.addInput(input)
-    );
-  }, [txnBuilderContext]);
 
   const sortDirectionChanged = useCallback((field: SortField, direction: SortDirection) => {
     setSortField(field);
@@ -53,10 +45,7 @@ export default function AccountUtxoListScreen({
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
-      <ActionBar
-        totalValue={totalValue}
-        onSelectAll={selectAll}
-        onSortDirectionChanged={sortDirectionChanged}
+      <ActionBar utxos={utxos} onSortDirectionChanged={sortDirectionChanged}
       />
       <View>
         <View style={styles.scrollBackground} />
@@ -64,7 +53,7 @@ export default function AccountUtxoListScreen({
           style={styles.utxosScroll}
           contentContainerStyle={Platform.OS === 'android' ?
             styles.utxosScrollContentContainerAndroid :
-            styles.utxosScrollContentContainer }
+            styles.utxosScrollContentContainerIOS }
         >
           <View style={styles.utxosBackground}>
             <UtxoList utxos={utxos} sortDirection={sortDirection} sortField={sortField}/>
@@ -98,7 +87,7 @@ const styles = StyleSheet.create({
     top: 2,
     height: 1000
   },
-  utxosScrollContentContainer: {
+  utxosScrollContentContainerIOS: {
     paddingBottom: 276
   },
   utxosScrollContentContainerAndroid: {

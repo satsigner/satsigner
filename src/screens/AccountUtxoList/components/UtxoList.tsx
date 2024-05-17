@@ -18,7 +18,6 @@ export default function UtxoList({
   sortDirection,
   sortField
 }: Props) {
-
   const txnBuilderContext = useTransactionBuilderContext();
   const getUtxoKey = txnBuilderContext.getOutpoint;
 
