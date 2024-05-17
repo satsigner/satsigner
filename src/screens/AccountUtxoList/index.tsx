@@ -12,9 +12,9 @@ import SelectedUtxosHeader from "../../components/accounts/SelectedUtxosHeader";
 
 import Button from "../../components/shared/Button";
 import notImplementedAlert from "../../components/shared/NotImplementedAlert";
+import { SortDirection } from "../../enums/SortDirection";
 
 import { ActionBar } from "./components/ActionBar";
-import { SortDirection } from "../../enums/SortDirection";
 import { SortField } from "./enums/SortField";
 import UtxoList from "./components/UtxoList";
 
@@ -22,9 +22,7 @@ interface Props {
   navigation: NavigationProp<any>;
 }
 
-export default function AccountUtxoListScreen({
-  navigation
-}: Props) {
+export default function AccountUtxoListScreen({ navigation }: Props) {
   const { currentAccount, currentAccount: { utxos } } = useAccountsContext();
   const txnBuilderContext = useTransactionBuilderContext();
 
@@ -45,8 +43,7 @@ export default function AccountUtxoListScreen({
   return (
     <View style={styles.container}>
       <SelectedUtxosHeader toggleScreenAction="bubbles" navigation={navigation} />
-      <ActionBar utxos={utxos} onSortDirectionChanged={sortDirectionChanged}
-      />
+      <ActionBar utxos={utxos} onSortDirectionChanged={sortDirectionChanged} />
       <View>
         <View style={styles.scrollBackground} />
         <ScrollView

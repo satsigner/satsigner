@@ -1,17 +1,15 @@
-import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useEffect, useState } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { Utxo } from "../../../models/Utxo";
-
 import { AppText } from "../../../components/shared/AppText";
 import { Colors, Layout } from "../../../styles";
 import { Sats } from "../../../components/accounts/Sats";
 import formatAddress from "../../../utils/formatAddress";
 import formatDate from "../../../utils/formatDate";
-import { UtxoSizeMeter } from "./UtxoSizeMeter";
 
-import AddIcon from '../../../assets/images/plus.svg';
-import RemoveIcon from '../../../assets/images/x.svg';
+import { UtxoSizeMeter } from "./UtxoSizeMeter";
+import SelectionIndicator from "./SelectionIndicator";
 
 interface Props {
   utxo: Utxo;
@@ -35,13 +33,7 @@ export default function UtxoItem({
       <TouchableOpacity onPress={() => onToggleSelected(utxo)}>
         <View style={styles.container}>
           <View style={styles.selectAction}>
-            <View style={[
-              styles.selectButton,
-              selected ? styles.selectButtonSelected : {}
-            ]}>
-              { ! selected && <AddIcon></AddIcon> }
-              { selected && <RemoveIcon></RemoveIcon> }
-            </View>
+            <SelectionIndicator selected={selected} />
           </View>
           <View style={styles.detailsContainer}>
             <View style={styles.details}>
@@ -81,19 +73,7 @@ const styles = StyleSheet.create({
   },
   selectAction: {
     paddingTop: 3,
-    width: '10%',
-    // opacity: 0.56,
-  },
-  selectButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.grey79,
-    height: 20,
-    width: 20,
-    borderRadius: 10
-  },
-  selectButtonSelected: {
-    backgroundColor: Colors.red3
+    width: '10%'
   },
   detailsContainer: {
     width: '90%',
