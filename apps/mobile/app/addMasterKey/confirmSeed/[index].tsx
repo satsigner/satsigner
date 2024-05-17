@@ -185,7 +185,7 @@ export default function ConfirmSeed() {
               {accountStore.currentAccount.seedWordCount}
             </SSText>
           </SSHStack>
-          <SSText uppercase>
+          <SSText uppercase center>
             {i18n.t('bitcoin.notYourKeys')}
             {'\n'}
             {i18n.t('bitcoin.notYourCoins')}
