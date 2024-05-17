@@ -61,7 +61,7 @@ export default function ImportSeed() {
     const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
     const seedWord = seedWords[index]
 
-    seedWord.value = word
+    seedWord.value = word.trim()
 
     if (wordList.includes(word)) seedWord.valid = true
     else
@@ -72,7 +72,7 @@ export default function ImportSeed() {
     setCurrentWordText(word)
     setSeedWordsInfo(seedWords)
 
-    const mnemonicSeedWords = seedWords.map((seedWord) => seedWord.value)
+    const mnemonicSeedWords = seedWordsInfo.map((seedWord) => seedWord.value)
     const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
 
     if (checksumValid)
