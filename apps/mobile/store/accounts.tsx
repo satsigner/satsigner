@@ -105,7 +105,6 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
           accounts: [...state.accounts, account],
           currentAccount: { ...state.currentAccount, ...account }
         }))
-        // await saveAccounts(get().accounts) // TODO:
       },
       updateAccount: async (account) => {
         // TODO
