@@ -23,6 +23,7 @@ export default function AddMasterKey() {
   function handleOnPressAddMasterKey(
     creationType: Account['accountCreationType']
   ) {
+    accountStore.resetCurrentAccount()
     accountStore.currentAccount.name = accountName
     accountStore.currentAccount.accountCreationType = creationType
     router.navigate('/addMasterKey/accountOptions')

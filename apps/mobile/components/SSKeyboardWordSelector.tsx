@@ -13,9 +13,9 @@ import {
 } from 'react-native'
 
 import { getWordList } from '@/api/bip39'
+import { i18n } from '@/locales'
 import { Colors, Sizes } from '@/styles'
 import usePrevious from '@/utils/hooks/usePrevious'
-import { i18n } from '@/locales'
 
 type WordInfo = {
   index: number

@@ -232,7 +232,7 @@ export default function ImportSeed() {
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />
-                {accountStore.currentAccount.fingerprint && (
+                {checksumValid && accountStore.currentAccount.fingerprint && (
                   <SSFingerprint
                     value={accountStore.currentAccount.fingerprint}
                   />
