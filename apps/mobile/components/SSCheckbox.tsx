@@ -20,7 +20,7 @@ export default function SSCheckbox({
 }: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.innerIconStyleBase, {
-      borderColor: selected ? Colors.white : undefined
+      borderColor: selected ? Colors.white : Colors.transparent
     })
   }, [selected])
 
