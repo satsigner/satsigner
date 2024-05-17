@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
+import { setStatusBarStyle, StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
+import { useEffect } from 'react'
 import { Platform, StyleSheet, UIManager, View } from 'react-native'
 
 import { Colors } from '@/styles'
@@ -16,6 +17,12 @@ if (
 }
 
 export default function Layout() {
+  useEffect(() => {
+    setTimeout(() => {
+      setStatusBarStyle('light')
+    }, 1)
+  }, []) // Workaround for now to set the statusBarStyle
+
   return (
     <View style={styles.container}>
       <Stack

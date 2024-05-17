@@ -37,7 +37,6 @@ export default function SSSelectModal({
     if (!visible)
       return StatusBar.setStatusBarBackgroundColor('transparent', false)
 
-    StatusBar.setStatusBarStyle('light')
     StatusBar.setStatusBarBackgroundColor('black', false)
   }, [visible])
 
