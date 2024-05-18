@@ -6,6 +6,8 @@ import { Colors } from "../../../styles";
 
 import TransactionItem from "./TransactionItem";
 
+import { compareTimestampedAsc, compareTimestampedDesc } from '../../../utils/compareTimestamped';
+
 interface Props {
   blockchainHeight: number;
   transactions: Transaction[];
@@ -25,21 +27,9 @@ export default function TransactionList({
   function sortTransactions(transactions: Transaction[]): Transaction[] {
     return transactions?.sort(
       sortDirection === SortDirection.Ascending ?
-        compareTransactionsAsc :
-        compareTransactionsDesc
+        compareTimestampedAsc :
+        compareTimestampedDesc
     );
-  }
-
-  function compareTransactionsAsc(txn1: Transaction, txn2: Transaction) {
-    const t1 = new Date(txn1.timestamp as Date);
-    const t2 = new Date(txn2.timestamp as Date);
-    return (t1?.getTime() || 0) - (t2?.getTime() || 0);
-  }
-
-  function compareTransactionsDesc(txn1: Transaction, txn2: Transaction) {
-    const t1 = new Date(txn1.timestamp as Date);
-    const t2 = new Date(txn2.timestamp as Date);
-    return (t2?.getTime() || 0) - (t1?.getTime() || 0);
   }
 
   return (
