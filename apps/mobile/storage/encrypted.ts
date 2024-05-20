@@ -5,7 +5,7 @@ const VERSION = '1'
 /**
  * Store an item in the SharedPreferences (android) or Keychain (iOS)
  * @param {string} key The key by which to do a lookup
- * @param {string }value The value to be stored
+ * @param {string} value The value to be stored
  * @returns {Promise<void>}
  */
 async function setItem(key: string, value: string) {
