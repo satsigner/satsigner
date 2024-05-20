@@ -8,16 +8,19 @@ import { NavigationProp } from '@react-navigation/native';
 
 import { Canvas } from '@shopify/react-native-skia';
 import { hierarchy, pack } from 'd3';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
 import { Utxo } from '../../models/Utxo';
 import { Layout } from '../../styles';
 import { BubblePacking } from './components/BubblePacking';
 import { GestureHandler } from './components/GestureHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useZoomGesture } from './hooks/useZoomGesture';
+// import { useZoomGesture } from './hooks/useZoomGesture';
 import navUtils from '../../utils/NavUtils';
 import { useHeaderHeight } from '@react-navigation/elements';
+import { useGestures } from './hooks/useGestures';
+import { useImageLayout } from './hooks/useImageLayout';
+// import { useImageZoomHandle } from './hooks/useImageZoomHandle';
 interface Props {
   navigation: NavigationProp<any>;
 }
@@ -68,17 +71,32 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     return createPack(utxoHierarchy()).leaves();
   }, [utxoList]);
 
-  const {
-    zoomGesture,
-    onLayout,
-    onLayoutContent,
-    transform,
-    contentContainerAnimatedStyle
-  } = useZoomGesture({
-    doubleTapConfig: {
-      defaultScale: 2
-    }
+  // const {
+  //   zoomGesture,
+  //   // onLayout,
+  //   onLayoutContent,
+  //   // transform,
+  //   contentContainerAnimatedStyle
+  // } = useZoomGesture({ååå
+  //   doubleTapConfig: {
+  //     defaultScale: 2
+  //   }
+  // });
+
+  // const ref = useRef(null);
+
+  const { width: w, height: h, center, onImageLayout } = useImageLayout({});
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: 2,
+    minPanPointers: 1,
+    maxScale: 50,
+    minScale: 0.1
   });
+  // useImageZoomHandle(ref, reset);
 
   const [selectedCircle, setSelectedCircle] = useState<string[]>([]);
 
@@ -88,30 +106,38 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container]} onLayout={onLayout}>
+      <View style={[styles.container]}>
         <Canvas
-          style={{
-            ...canvasSize,
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1
-          }}
-          onLayout={onLayoutContent}>
+          style={[
+            {
+              ...canvasSize,
+              borderWidth: 1,
+              borderColor: 'red'
+
+              // ...animatedStyle
+              // justifyContent: 'center',
+              // alignItems: 'center',
+              // flex: 1
+            }
+            // animatedStyle
+          ]}
+          onLayout={onImageLayout}>
           <BubblePacking
             transform={transform}
             selectedCircle={selectedCircle}
             utxoPack={utxoPack}
             canvasSize={canvasSize}
+            // animatedStyle={animatedStyle}
           />
         </Canvas>
         <GestureHandler
-          contentContainerAnimatedStyle={contentContainerAnimatedStyle}
+          contentContainerAnimatedStyle={animatedStyle}
           canvasSize={canvasSize}
-          onLayoutContent={onLayoutContent}
+          onLayoutContent={onImageLayout}
           selectedCircle={selectedCircle}
           setSelectedCircle={setSelectedCircle}
           bubblePack={utxoPack}
-          zoomGesture={zoomGesture}
+          zoomGesture={gestures}
         />
       </View>
     </GestureHandlerRootView>

@@ -26,7 +26,8 @@ export const BubblePacking = ({
   utxoPack,
   transform,
   canvasSize
-}: BubblePackingProps) => {
+}: // onLayout
+BubblePackingProps) => {
   const centerX = canvasSize.width / 2;
   const centerY = canvasSize.height / 2;
   return (

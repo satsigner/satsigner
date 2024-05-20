@@ -63,8 +63,8 @@ export const GestureHandler = ({
         <Animated.View
           style={[
             {
-              ...canvasSize,
-              position: 'absolute'
+              ...canvasSize
+              // position: 'absolute'
             },
             contentContainerAnimatedStyle
           ]}
