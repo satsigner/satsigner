@@ -60,24 +60,34 @@ export default function Account() {
             <SSVStack>
               <SSText center>3</SSText>
               <SSText center>
-                {i18n.t('accountList.totalTransactions').split(' ').join('\n')}
+                {i18n.t('accountList.totalTransactions.0')}
+                {'\n'}
+                {i18n.t('accountList.totalTransactions.1')}
               </SSText>
             </SSVStack>
             <SSVStack>
               <SSText center>4</SSText>
               <SSText center>
-                {i18n.t('accountList.childAccounts').split(' ').join('\n')}
+                {i18n.t('accountList.childAccounts.0')}
+                {'\n'}
+                {i18n.t('accountList.childAccounts.1')}
               </SSText>
             </SSVStack>
             <SSVStack>
               <SSText center>3</SSText>
               <SSText center>
-                {i18n.t('accountList.spendableOutputs').split(' ').join('\n')}
+                {i18n.t('accountList.spendableOutputs.0')}
+                {'\n'}
+                {i18n.t('accountList.spendableOutputs.1')}
               </SSText>
             </SSVStack>
             <SSVStack>
               <SSText center>0</SSText>
-              <SSText center>{i18n.t('accountList.satsInMempool')}</SSText>
+              <SSText center>
+                {i18n.t('accountList.satsInMempool.0')}
+                {'\n'}
+                {i18n.t('accountList.satsInMempool.1')}
+              </SSText>
             </SSVStack>
           </SSHStack>
         </SSVStack>
