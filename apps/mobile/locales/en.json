@@ -35,10 +35,10 @@
     },
     "accountList": {
       "noKeysYet": "No keys yet",
-      "childAccounts": "Child Accounts",
-      "totalTransactions": "Total Transactions",
-      "spendableOutputs": "Spendable Outputs",
-      "satsInMempool": "Sats in Mempool"
+      "childAccounts": ["Child", "Accounts"],
+      "totalTransactions": ["Total", "Transactions"],
+      "spendableOutputs": ["Spendable", "Outputs"],
+      "satsInMempool": ["Sats in", "Mempool"]
     },
     "account": {
       "signAndSend": "Sign & Send",

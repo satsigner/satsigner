@@ -46,7 +46,9 @@ export default function SSAccountCard({
             <SSVStack gap="xxs">
               <SSText color="white">{account.summary.numberOfAddresses}</SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.childAccounts').split(' ').join('\n')}
+                {i18n.t('accountList.childAccounts.0')}
+                {'\n'}
+                {i18n.t('accountList.childAccounts.1')}
               </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
@@ -54,19 +56,25 @@ export default function SSAccountCard({
                 {account.summary.numberOfTransactions}
               </SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.totalTransactions').split(' ').join('\n')}
+                {i18n.t('accountList.totalTransactions.0')}
+                {'\n'}
+                {i18n.t('accountList.totalTransactions.1')}
               </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
               <SSText color="white">{account.summary.numberOfUtxos}</SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.spendableOutputs').split(' ').join('\n')}
+                {i18n.t('accountList.spendableOutputs.0')}
+                {'\n'}
+                {i18n.t('accountList.spendableOutputs.1')}
               </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
               <SSText color="white">{account.summary.satsInMempool}</SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.satsInMempool')}
+                {i18n.t('accountList.satsInMempool.0')}
+                {'\n'}
+                {i18n.t('accountList.satsInMempool.1')}
               </SSText>
             </SSVStack>
           </SSHStack>
