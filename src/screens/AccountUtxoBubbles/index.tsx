@@ -2,7 +2,7 @@
 // Hence, the Canvas is not nested inside the GestureHandler
 // https://shopify.github.io/react-native-skia/docs/animations/gestures#element-tracking
 
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 
@@ -75,9 +75,9 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     height: h,
     center,
     isDoubleTapEnabled: true,
-    maxPanPointers: 2,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     minPanPointers: 1,
-    maxScale: 50,
+    maxScale: 100,
     minScale: 0.1
   });
 
