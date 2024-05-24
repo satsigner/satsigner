@@ -9,6 +9,7 @@
       "invalid": "Invalid",
       "optional": "Optional",
       "select": "Select",
+      "selected": "Selected",
       "next": "Next",
       "confirm": "Confirm",
       "close": "Close",
@@ -17,7 +18,8 @@
       "of": "Of",
       "to": "To",
       "more": "More",
-      "less": "Less"
+      "less": "Less",
+      "total": "Total"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -45,6 +47,10 @@
       "newInvoice": "New Invoice",
       "parentAccountActivity": "Parent Account Activity",
       "noMemo": "No memo"
+    },
+    "signAndSend": {
+      "selectSpendableOutputs": "Select spendable outputs",
+      "addAsInputToMessage": "Add as input to message"
     },
     "addMasterKey": {
       "title": "Add Master Key",
