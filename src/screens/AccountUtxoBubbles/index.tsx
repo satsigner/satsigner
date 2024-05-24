@@ -15,12 +15,10 @@ import { Layout } from '../../styles';
 import { BubblePacking } from './components/BubblePacking';
 import { GestureHandler } from './components/GestureHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-// import { useZoomGesture } from './hooks/useZoomGesture';
 import navUtils from '../../utils/NavUtils';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useGestures } from './hooks/useGestures';
 import { useImageLayout } from './hooks/useImageLayout';
-// import { useImageZoomHandle } from './hooks/useImageZoomHandle';
 interface Props {
   navigation: NavigationProp<any>;
 }
@@ -71,20 +69,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     return createPack(utxoHierarchy()).leaves();
   }, [utxoList]);
 
-  // const {
-  //   zoomGesture,
-  //   // onLayout,
-  //   onLayoutContent,
-  //   // transform,
-  //   contentContainerAnimatedStyle
-  // } = useZoomGesture({ååå
-  //   doubleTapConfig: {
-  //     defaultScale: 2
-  //   }
-  // });
-
-  // const ref = useRef(null);
-
   const { width: w, height: h, center, onImageLayout } = useImageLayout({});
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
@@ -96,7 +80,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     maxScale: 50,
     minScale: 0.1
   });
-  // useImageZoomHandle(ref, reset);
 
   const [selectedCircle, setSelectedCircle] = useState<string[]>([]);
 
@@ -113,13 +96,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
               ...canvasSize,
               borderWidth: 1,
               borderColor: 'red'
-
-              // ...animatedStyle
-              // justifyContent: 'center',
-              // alignItems: 'center',
-              // flex: 1
             }
-            // animatedStyle
           ]}
           onLayout={onImageLayout}>
           <BubblePacking
@@ -127,7 +104,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
             selectedCircle={selectedCircle}
             utxoPack={utxoPack}
             canvasSize={canvasSize}
-            // animatedStyle={animatedStyle}
           />
         </Canvas>
         <GestureHandler
