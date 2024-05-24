@@ -62,27 +62,6 @@ export const useGestures = ({
   const savedTranslate = { x: useSharedValue(0), y: useSharedValue(0) };
   const translate = { x: useSharedValue(0), y: useSharedValue(0) };
 
-  useAnimatedReaction(
-    () => {
-      return {
-        scale: scale.value,
-        focalX: focal.x.value,
-        translateX: translate.x.value,
-        focalY: focal.y.value,
-        translateY: translate.y.value
-      };
-    },
-    ({ scale, focalX, translateX, focalY, translateY }) => {
-      console.log('---start---');
-      console.log('scale', scale);
-      console.log('focalX', focalX);
-      console.log('focalY', focalY);
-      console.log('translateX', translateX);
-      console.log('translateY', translateY);
-      console.log('---end---');
-    }
-  );
-
   const { getInteractionId, updateInteractionId } = useInteractionId();
   const { onAnimationEnd } = useAnimationEnd(onResetAnimationEnd);
 
@@ -268,12 +247,20 @@ export const useGestures = ({
     })
     .onUpdate(event => {
       scale.value = clamp(savedScale.value * event.scale, minScale, maxScale);
-      focal.x.value =
+      let scaleChangeScale =
+        (scale.value - savedScale.value) / savedScale.value;
+      let centerOffsetX =
         savedFocal.x.value +
-        (center.x - initialFocal.x.value) * (scale.value - savedScale.value);
-      focal.y.value =
+        translate.x.value +
+        center.x -
+        initialFocal.x.value;
+      let centerOffsetY =
         savedFocal.y.value +
-        (center.y - initialFocal.y.value) * (scale.value - savedScale.value);
+        translate.y.value +
+        center.y -
+        initialFocal.y.value;
+      focal.x.value = centerOffsetX * scaleChangeScale + savedFocal.x.value;
+      focal.y.value = centerOffsetY * scaleChangeScale + savedFocal.y.value;
     })
     .onEnd((...args) => {
       runOnJS(onPinchEnded)(...args);
