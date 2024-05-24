@@ -1,5 +1,5 @@
 import { Image } from 'expo-image'
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
 import SSActionButton from '@/components/SSActionButton'
@@ -14,8 +14,14 @@ import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 
+type AccountSearchParams = {
+  id: string
+}
+
 export default function Account() {
   const accountStore = useAccountStore()
+  const router = useRouter()
+  const { id } = useLocalSearchParams<AccountSearchParams>()
 
   return (
     <>
@@ -29,7 +35,7 @@ export default function Account() {
       <SSBackgroundGradient orientation="horizontal">
         <SSVStack itemsCenter>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" color="white">
+            <SSText size="3xl" color="white" weight="light">
               3000
             </SSText>
             <SSText size="xl" color="muted">
@@ -42,20 +48,42 @@ export default function Account() {
               USD
             </SSText>
           </SSHStack>
-          <SSHStack justifyEvenly gap="none">
-            <SSActionButton style={{ width: '40%' }}>
-              <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
-            </SSActionButton>
-            <SSActionButton style={{ width: '20%' }}>
-              <Image
-                style={{ width: 18, height: 13 }}
-                source={require('@/assets/icons/camera.svg')}
-              />
-            </SSActionButton>
-            <SSActionButton style={{ width: '40%' }}>
-              <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
-            </SSActionButton>
-          </SSHStack>
+          <SSVStack gap="none">
+            <SSSeparator color="gradient" />
+            <SSHStack justifyEvenly gap="none">
+              <SSActionButton
+                onPress={() =>
+                  router.navigate(
+                    `/accountList/account/${id}/signAndSend/selectUtxoList`
+                  )
+                }
+                style={{
+                  width: '40%',
+                  borderRightWidth: 1,
+                  borderRightColor: Colors.gray[700]
+                }}
+              >
+                <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
+              </SSActionButton>
+              <SSActionButton onPress={() => {}} style={{ width: '20%' }}>
+                <Image
+                  style={{ width: 18, height: 13 }}
+                  source={require('@/assets/icons/camera.svg')}
+                />
+              </SSActionButton>
+              <SSActionButton
+                onPress={() => {}}
+                style={{
+                  width: '40%',
+                  borderLeftWidth: 1,
+                  borderLeftColor: Colors.gray[700]
+                }}
+              >
+                <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
+              </SSActionButton>
+            </SSHStack>
+            <SSSeparator color="gradient" />
+          </SSVStack>
           <SSHStack>
             <SSVStack>
               <SSText center>3</SSText>
