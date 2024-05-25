@@ -3,6 +3,7 @@ import {
   Animated,
   FlatList,
   Keyboard,
+  Platform,
   StyleProp,
   StyleSheet,
   Text,
@@ -15,7 +16,8 @@ import {
 import { getWordList } from '@/api/bip39'
 import { i18n } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import usePrevious from '@/utils/hooks/usePrevious'
+import usePrevious from '@/hooks/usePrevious'
+import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 
 type WordInfo = {
   index: number
@@ -48,6 +50,7 @@ export default function SSKeyboardWordSelector({
   const flatList = useRef<FlatList>(null)
 
   const previousWordStart = usePrevious(wordStart)
+  const keyboardHeight = useKeyboardHeight()
 
   const opacityAnimated = useRef(new Animated.Value(0)).current
 
@@ -88,10 +91,14 @@ export default function SSKeyboardWordSelector({
   }, [handleKeyboardHidden])
 
   const containerStyle = useMemo(() => {
+    let bottomValue = 0
+    if (Platform.OS === 'ios') bottomValue = keyboardHeight
+
     return StyleSheet.compose(
       {
         ...styles.containerBase,
         width,
+        bottom: bottomValue,
         opacity: opacityAnimated,
         zIndex: opacityAnimated.interpolate({
           inputRange: [0, 0.0001],
@@ -136,7 +143,6 @@ export default function SSKeyboardWordSelector({
 const styles = StyleSheet.create({
   containerBase: {
     position: 'absolute',
-    bottom: 0,
     backgroundColor: Colors.white,
     color: Colors.black,
     zIndex: 1
