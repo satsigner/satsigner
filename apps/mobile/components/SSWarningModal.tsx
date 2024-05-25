@@ -1,11 +1,12 @@
 import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView } from 'react-native'
+import { Modal, Platform, ScrollView, SafeAreaView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { i18n } from '@/locales'
 
 import SSButton from './SSButton'
+import { Colors } from '@/styles'
 
 type SSWarningModalProps = {
   visible: boolean
@@ -29,14 +30,16 @@ export default function SSWarningModal({
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SSMainLayout black>
-        <ScrollView>{children}</ScrollView>
-        <SSButton
-          label={i18n.t('common.acknowledge')}
-          variant="secondary"
-          onPress={() => onClose()}
-        />
-      </SSMainLayout>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
+        <SSMainLayout black>
+          <ScrollView>{children}</ScrollView>
+          <SSButton
+            label={i18n.t('common.acknowledge')}
+            variant="secondary"
+            onPress={() => onClose()}
+          />
+        </SSMainLayout>
+      </SafeAreaView>
     </Modal>
   )
 }

@@ -1,6 +1,6 @@
 import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView } from 'react-native'
+import { Modal, Platform, ScrollView, SafeAreaView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -8,6 +8,7 @@ import { i18n } from '@/locales'
 
 import SSButton from './SSButton'
 import SSText from './SSText'
+import { Colors } from '@/styles'
 
 type SSSelectModalProps = {
   visible: boolean
@@ -40,48 +41,50 @@ export default function SSSelectModal({
 
   return (
     <Modal visible={visible} transparent={false}>
-      <SSMainLayout black>
-        <ScrollView>
-          <SSVStack gap="lg">
-            <SSVStack>
-              <SSText color="muted" size="lg" style={{ alignSelf: 'center' }}>
-                {title}
-              </SSText>
-              <SSVStack gap="sm">
-                <SSText uppercase>
-                  {splitSelectedText.length > 1 ? (
-                    <>
-                      <SSText weight="bold">{splitSelectedText[0]}</SSText>
-                      {' - '}
-                      {splitSelectedText[1]}
-                    </>
-                  ) : (
-                    selectedText
-                  )}
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
+        <SSMainLayout black>
+          <ScrollView>
+            <SSVStack gap="lg">
+              <SSVStack>
+                <SSText color="muted" size="lg" style={{ alignSelf: 'center' }}>
+                  {title}
                 </SSText>
-                {typeof selectedDescription === 'string' ? (
-                  <SSText color="muted">{selectedDescription}</SSText>
-                ) : (
-                  selectedDescription
-                )}
+                <SSVStack gap="sm">
+                  <SSText uppercase>
+                    {splitSelectedText.length > 1 ? (
+                      <>
+                        <SSText weight="bold">{splitSelectedText[0]}</SSText>
+                        {' - '}
+                        {splitSelectedText[1]}
+                      </>
+                    ) : (
+                      selectedText
+                    )}
+                  </SSText>
+                  {typeof selectedDescription === 'string' ? (
+                    <SSText color="muted">{selectedDescription}</SSText>
+                  ) : (
+                    selectedDescription
+                  )}
+                </SSVStack>
               </SSVStack>
+              <SSVStack>{children}</SSVStack>
             </SSVStack>
-            <SSVStack>{children}</SSVStack>
+          </ScrollView>
+          <SSVStack>
+            <SSButton
+              label={i18n.t('common.select')}
+              variant="secondary"
+              onPress={() => onSelect()}
+            />
+            <SSButton
+              label={i18n.t('common.cancel')}
+              variant="ghost"
+              onPress={() => onCancel()}
+            />
           </SSVStack>
-        </ScrollView>
-        <SSVStack>
-          <SSButton
-            label={i18n.t('common.select')}
-            variant="secondary"
-            onPress={() => onSelect()}
-          />
-          <SSButton
-            label={i18n.t('common.cancel')}
-            variant="ghost"
-            onPress={() => onCancel()}
-          />
-        </SSVStack>
-      </SSMainLayout>
+        </SSMainLayout>
+      </SafeAreaView>
     </Modal>
   )
 }
