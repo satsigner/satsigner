@@ -8,7 +8,7 @@ import { NavigationProp } from '@react-navigation/native';
 
 import { Canvas } from '@shopify/react-native-skia';
 import { hierarchy, pack } from 'd3';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
 import { Utxo } from '../../models/Utxo';
 import { Layout } from '../../styles';
@@ -18,7 +18,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import navUtils from '../../utils/NavUtils';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useGestures } from './hooks/useGestures';
-import { useImageLayout } from './hooks/useImageLayout';
+import { useLayout } from './hooks/useLayout';
 interface Props {
   navigation: NavigationProp<any>;
 }
@@ -69,7 +69,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     return createPack(utxoHierarchy()).leaves();
   }, [utxoList]);
 
-  const { width: w, height: h, center, onImageLayout } = useImageLayout({});
+  const { width: w, height: h, center, onCanvasLayout } = useLayout();
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
     height: h,
@@ -77,7 +77,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     isDoubleTapEnabled: true,
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     minPanPointers: 1,
-    maxScale: 100,
+    maxScale: 1000,
     minScale: 0.1
   });
 
@@ -98,7 +98,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
               borderColor: 'red'
             }
           ]}
-          onLayout={onImageLayout}>
+          onLayout={onCanvasLayout}>
           <BubblePacking
             transform={transform}
             selectedCircle={selectedCircle}
@@ -109,7 +109,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
         <GestureHandler
           contentContainerAnimatedStyle={animatedStyle}
           canvasSize={canvasSize}
-          onLayoutContent={onImageLayout}
+          onLayoutContent={onCanvasLayout}
           selectedCircle={selectedCircle}
           setSelectedCircle={setSelectedCircle}
           bubblePack={utxoPack}

@@ -1,8 +1,4 @@
-import type {
-  ImageProps,
-  ImageSourcePropType,
-  LayoutRectangle
-} from 'react-native';
+import type { LayoutRectangle } from 'react-native';
 import type {
   GestureStateChangeEvent,
   PanGestureHandlerEventPayload,
@@ -59,16 +55,7 @@ export type OnResetAnimationEndCallback = (
   >
 ) => void;
 
-export type ImageZoomProps = Omit<ImageProps, 'source'> & {
-  /**
-   * The image's URI, which can be overridden by the `source` prop.
-   * @default ''
-   */
-  uri?: string;
-  /**
-   * The minimum scale allowed for zooming.
-   * @default 1
-   */
+export type ZoomProps = {
   minScale?: number;
   /**
    * The maximum scale allowed for zooming.
@@ -155,12 +142,9 @@ export type ImageZoomProps = Omit<ImageProps, 'source'> & {
    * @see https://facebook.github.io/react-native/docs/image.html#source
    * @default undefined
    */
-  source?: ImageSourcePropType;
 };
 
-export type ImageZoomUseLayoutProps = Pick<ImageZoomProps, 'onLayout'>;
-
-export type ImageZoomLayoutState = LayoutRectangle & {
+export type ZoomLayoutState = LayoutRectangle & {
   /**
    * An object containing the x and y coordinates of the center point of the image, relative to the top-left corner of the container.
    */
@@ -176,12 +160,12 @@ export type ImageZoomLayoutState = LayoutRectangle & {
   };
 };
 
-export type ImageZoomUseGesturesProps = Pick<
-  ImageZoomLayoutState,
+export type ZoomUseGesturesProps = Pick<
+  ZoomLayoutState,
   'width' | 'height' | 'center'
 > &
   Pick<
-    ImageZoomProps,
+    ZoomProps,
     | 'minScale'
     | 'maxScale'
     | 'doubleTapScale'
@@ -201,10 +185,3 @@ export type ImageZoomUseGesturesProps = Pick<
     | 'onDoubleTap'
     | 'onResetAnimationEnd'
   >;
-
-export type ImageZoomRef = {
-  /**
-   * Resets the image zoom level to its original scale.
-   */
-  reset: () => void;
-};

@@ -2,7 +2,6 @@ import { useCallback, useRef } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   runOnJS,
-  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -14,7 +13,7 @@ import { clamp } from '../utils/clamp';
 import { limits } from '../utils/limits';
 import { sum } from '../utils/sum';
 import {
-  type ImageZoomUseGesturesProps,
+  type ZoomUseGesturesProps,
   type OnPanEndCallback,
   type OnPanStartCallback,
   type OnPinchEndCallback,
@@ -49,7 +48,7 @@ export const useGestures = ({
   onSingleTap = () => {},
   onDoubleTap = () => {},
   onResetAnimationEnd
-}: ImageZoomUseGesturesProps) => {
+}: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false);
   const isPinching = useRef(false);
   const { isPanning, startPan, endPan } = usePanGestureCount();
