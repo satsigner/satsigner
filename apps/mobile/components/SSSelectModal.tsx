@@ -1,6 +1,6 @@
 import * as StatusBar from 'expo-status-bar'
-import { useEffect, useMemo } from 'react'
-import { Modal, ScrollView } from 'react-native'
+import { useEffect } from 'react'
+import { Modal, Platform, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -31,6 +31,7 @@ export default function SSSelectModal({
   const splitSelectedText = selectedText.split(' - ')
 
   useEffect(() => {
+    if (Platform.OS !== 'android') return
     if (!visible)
       return StatusBar.setStatusBarBackgroundColor('transparent', false)
 

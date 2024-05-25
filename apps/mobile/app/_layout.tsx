@@ -7,13 +7,11 @@ import { Platform, StyleSheet, UIManager, View } from 'react-native'
 
 import { Colors } from '@/styles'
 
-SystemUI.setBackgroundColorAsync(Colors.gray[950])
+if (Platform.OS === 'android') {
+  SystemUI.setBackgroundColorAsync(Colors.gray[950])
 
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true)
+  if (UIManager.setLayoutAnimationEnabledExperimental)
+    UIManager.setLayoutAnimationEnabledExperimental(true)
 }
 
 export default function Layout() {
