@@ -5,7 +5,7 @@ import getAddress from "../shared/getAddress";
 import { Keychain, Utxo } from "../../models/Utxo";
 
 export default async function toUtxo(utxo: LocalUtxo, transactions: TransactionDetails[]): Promise<Utxo> {
-  const addressTo = await getAddress(utxo, Network.Testnet);
+  const addressTo = await getAddress(utxo, Network.Signet);
   const txid = utxo?.outpoint.txid;
   const txnDetails = getTransaction(txid, transactions);
 

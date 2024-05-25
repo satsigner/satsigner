@@ -9,7 +9,7 @@ export default async function toTransaction(txnDetails: TransactionDetails, utxo
   let address = '';
   const utxo = txnUtxos?.[0];
   if (utxo) {
-    address = await getAddress(utxo, Network.Testnet);
+    address = await getAddress(utxo, Network.Signet);
   }
 
   return {

@@ -67,11 +67,11 @@ export default function AccountTransactionsScreen({ navigation }: Props) {
   async function refreshAccount() {
     const externalDescriptor = await new Descriptor().create(
       currentAccount.external_descriptor as string,
-      Network.Testnet
+      Network.Signet
     );
     const internalDescriptor = await new Descriptor().create(
       currentAccount.internal_descriptor as string,
-      Network.Testnet
+      Network.Signet
     );
 
     const wallet = await accountsContext.loadWalletFromDescriptor(

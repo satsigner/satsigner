@@ -13,10 +13,11 @@ import {
   Network,
   KeychainKind,
   AddressIndex,
-  WordCount
+  WordCount,
+  BlockChainNames
 } from 'bdk-rn/lib/lib/enums';
 
-import { blockchainElectrumConfig } from '../../config';
+import { blockchainConfig } from '../../config';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
@@ -51,7 +52,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const getBlockchainHeight = async(): Promise<number> => {
-    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    const blockchain = await new Blockchain().create(blockchainConfig, BlockChainNames.Esplora);
     return await blockchain.getHeight();
   };
 
@@ -59,11 +60,11 @@ export const AccountsProvider = ({ children }) => {
     try {
       const mnemonic = await new Mnemonic().fromString(mnemonicString);
       const descriptorSecretKey = await new DescriptorSecretKey().create(
-        Network.Testnet,
+        Network.Signet,
         mnemonic,
         passphrase
       );
-      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
+      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Signet);
       const descriptorString = await descriptor.asString();
       
       const { fingerprint } = parseDescriptor(descriptorString);
@@ -100,18 +101,18 @@ export const AccountsProvider = ({ children }) => {
   ): Promise<Descriptor> => {
     const mnemonic = await new Mnemonic().fromString(mnemonicString);
     const descriptorSecretKey = await new DescriptorSecretKey().create(
-      Network.Testnet,
+      Network.Signet,
       mnemonic,
       passphrase
     );
 
     switch (scriptVersion) {
       case ScriptVersion.P2PKH:
-        return await new Descriptor().newBip44(descriptorSecretKey, kind, Network.Testnet);
+        return await new Descriptor().newBip44(descriptorSecretKey, kind, Network.Signet);
       case ScriptVersion.P2SH_P2WPKH:
-        return await new Descriptor().newBip49(descriptorSecretKey, kind, Network.Testnet);
+        return await new Descriptor().newBip49(descriptorSecretKey, kind, Network.Signet);
       case ScriptVersion.P2WPKH:
-        return await new Descriptor().newBip84(descriptorSecretKey, kind, Network.Testnet);
+        return await new Descriptor().newBip84(descriptorSecretKey, kind, Network.Signet);
       case ScriptVersion.P2TR:
         throw new Error('Not implemented');
     }
@@ -152,7 +153,7 @@ export const AccountsProvider = ({ children }) => {
     const wallet = await new Wallet().create(
       externalDescriptor,
       internalDescriptor,
-      Network.Testnet,
+      Network.Signet,
       dbConfig
     );
 
@@ -160,7 +161,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
-    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    const blockchain = await new Blockchain().create(blockchainConfig, BlockChainNames.Esplora);
     await wallet.sync(blockchain);
   };
 
