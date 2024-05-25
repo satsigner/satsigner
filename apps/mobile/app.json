@@ -39,6 +39,7 @@
         "expo-font",
         {
           "fonts": [
+            "./assets/fonts/SF Pro Text Ultralight.otf",
             "./assets/fonts/SF Pro Text Light.otf",
             "./assets/fonts/SF Pro Text Regular.otf",
             "./assets/fonts/SF Pro Text Medium.otf",

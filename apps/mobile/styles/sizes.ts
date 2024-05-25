@@ -10,7 +10,8 @@ export const text = {
     '3xl': 24,
     '4xl': 30,
     '5xl': 36,
-    '6xl': 42
+    '6xl': 42,
+    '7xl': 50
   }
 }
 

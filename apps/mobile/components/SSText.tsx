@@ -7,7 +7,7 @@ import { type TextFontSize } from '@/styles/sizes'
 type SSTextProps = {
   color?: 'white' | 'black' | 'muted'
   size?: TextFontSize
-  weight?: 'light' | 'regular' | 'medium' | 'bold'
+  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold'
   uppercase?: boolean
   center?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
@@ -27,6 +27,7 @@ export default function SSText({
     if (color === 'muted') colorStyle = styles.textColorMuted
 
     let weightStyle = styles.textRegular
+    if (weight === 'ultralight') weightStyle = styles.textUltralight
     if (weight === 'light') weightStyle = styles.textLight
     if (weight === 'medium') weightStyle = styles.textMedium
     if (weight === 'bold') weightStyle = styles.textBold
@@ -65,6 +66,9 @@ const styles = StyleSheet.create({
   },
   center: {
     textAlign: 'center'
+  },
+  textUltralight: {
+    fontFamily: Typography.sfProTextUltralight
   },
   textLight: {
     fontFamily: Typography.sfProTextLight
