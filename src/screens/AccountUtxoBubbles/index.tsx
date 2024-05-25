@@ -93,9 +93,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
         <Canvas
           style={[
             {
-              ...canvasSize,
-              borderWidth: 1,
-              borderColor: 'red'
+              ...canvasSize
             }
           ]}
           onLayout={onCanvasLayout}>
