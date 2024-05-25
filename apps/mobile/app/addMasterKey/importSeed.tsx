@@ -150,13 +150,14 @@ export default function ImportSeed() {
       (seedWord) => seedWord.value
     )
 
+    setLoadingAccount(true)
+
     const wallet = await accountStore.loadWalletFromMnemonic(
       accountStore.currentAccount.seedWords,
       accountStore.currentAccount.scriptVersion,
       accountStore.currentAccount.passphrase
     )
 
-    setLoadingAccount(true)
     setAccountAddedModalVisible(true)
 
     await accountStore.syncWallet(wallet)
@@ -244,6 +245,7 @@ export default function ImportSeed() {
             <SSButton
               label={i18n.t('addMasterKey.importExistingSeed.action')}
               variant="secondary"
+              loading={loadingAccount}
               disabled={!checksumValid}
               onPress={() => handleOnPressImportSeed()}
             />
