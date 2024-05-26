@@ -5,7 +5,7 @@ import RefreshIcon from '../../../assets/images/refresh.svg';
 import { Colors, Typography } from "../../../styles";
 import { SortDirection } from "../../../enums/SortDirection";
 
-import SortDirectionToggle from "./SortDirectionToggle";
+import SortDirectionToggle from "../../../components/shared/SortDirectionToggle";
 
 interface Props {
   refreshing: boolean;
