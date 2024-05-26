@@ -183,34 +183,39 @@ export const useGestures = ({
     onInteractionEnded();
   };
 
+  // Define the pan gesture configuration
   const panGesture = Gesture.Pan()
-    .enabled(isPanEnabled)
-    .minPointers(minPanPointers)
-    .maxPointers(maxPanPointers)
+    .enabled(isPanEnabled) // Enable or disable the pan gesture based on isPanEnabled
+    .minPointers(minPanPointers) // Set the minimum number of pointers required to recognize the gesture
+    .maxPointers(maxPanPointers) // Set the maximum number of pointers allowed
     .onStart(event => {
-      runOnJS(onPanStarted)(event);
-      savedTranslate.x.value = translate.x.value;
-      savedTranslate.y.value = translate.y.value;
+      runOnJS(onPanStarted)(event); // Call the onPanStarted function when the pan starts
+      savedTranslate.x.value = translate.x.value; // Save the current x translation
+      savedTranslate.y.value = translate.y.value; // Save the current y translation
     })
     .onUpdate(event => {
+      // Update the translation values based on the pan movement
       translate.x.value = savedTranslate.x.value + event.translationX;
       translate.y.value = savedTranslate.y.value + event.translationY;
     })
     .onEnd((event, success) => {
+      // Calculate the limits for translation based on the current scale
       const rightLimit = limits.right(width, scale);
       const leftLimit = -rightLimit;
       const bottomLimit = limits.bottom(height, scale);
       const topLimit = -bottomLimit;
 
+      // Apply decay to the translation values if the scale is greater than 1
       if (scale.value > 1) {
         translate.x.value = withDecay(
           {
-            velocity: event.velocityX * 0.6,
-            rubberBandEffect: true,
-            rubberBandFactor: 0.9,
-            clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value]
+            velocity: event.velocityX * 0.6, // Apply decay based on the x velocity
+            rubberBandEffect: true, // Enable rubber band effect
+            rubberBandFactor: 0.9, // Set rubber band factor
+            clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value] // Clamp values to prevent excessive movement
           },
           () => {
+            // End the pan gesture if the x velocity is greater than or equal to the y velocity
             if (event.velocityX >= event.velocityY) {
               runOnJS(onPanEnded)(event, success);
             }
@@ -218,36 +223,44 @@ export const useGestures = ({
         );
         translate.y.value = withDecay(
           {
-            velocity: event.velocityY * 0.6,
-            rubberBandEffect: true,
-            rubberBandFactor: 0.9,
-            clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value]
+            velocity: event.velocityY * 0.6, // Apply decay based on the y velocity
+            rubberBandEffect: true, // Enable rubber band effect
+            rubberBandFactor: 0.9, // Set rubber band factor
+            clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value] // Clamp values to prevent excessive movement
           },
           () => {
+            // End the pan gesture if the y velocity is greater than the x velocity
             if (event.velocityY > event.velocityX) {
               runOnJS(onPanEnded)(event, success);
             }
           }
         );
       } else {
+        // End the pan gesture immediately if the scale is not greater than 1
         runOnJS(onPanEnded)(event, success);
       }
     });
 
+  // Define the pinch gesture handler
   const pinchGesture = Gesture.Pinch()
-    .enabled(isPinchEnabled)
+    .enabled(isPinchEnabled) // Enable pinch gesture based on isPinchEnabled flag
     .onStart(event => {
-      runOnJS(onPinchStarted)(event);
+      runOnJS(onPinchStarted)(event); // Trigger the pinch start event
+      // Save the initial scale and focal points
       savedScale.value = scale.value;
       savedFocal.x.value = focal.x.value;
       savedFocal.y.value = focal.y.value;
+      // Record the initial focal points from the event
       initialFocal.x.value = event.focalX;
       initialFocal.y.value = event.focalY;
     })
     .onUpdate(event => {
+      // Update the scale within allowed limits
       scale.value = clamp(savedScale.value * event.scale, minScale, maxScale);
+      // Calculate the scale change ratio
       const scaleChangeScale =
         (scale.value - savedScale.value) / savedScale.value;
+      // Compute the offsets for focal points
       const centerOffsetX =
         savedFocal.x.value +
         translate.x.value +
@@ -258,11 +271,12 @@ export const useGestures = ({
         translate.y.value +
         center.y -
         initialFocal.y.value;
+      // Adjust focal points based on the scale change
       focal.x.value = centerOffsetX * scaleChangeScale + savedFocal.x.value;
       focal.y.value = centerOffsetY * scaleChangeScale + savedFocal.y.value;
     })
     .onEnd((...args) => {
-      runOnJS(onPinchEnded)(...args);
+      runOnJS(onPinchEnded)(...args); // Trigger the pinch end event
     });
 
   const doubleTapGesture = Gesture.Tap()
