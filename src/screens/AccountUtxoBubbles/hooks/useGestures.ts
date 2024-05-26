@@ -246,14 +246,14 @@ export const useGestures = ({
     })
     .onUpdate(event => {
       scale.value = clamp(savedScale.value * event.scale, minScale, maxScale);
-      let scaleChangeScale =
+      const scaleChangeScale =
         (scale.value - savedScale.value) / savedScale.value;
-      let centerOffsetX =
+      const centerOffsetX =
         savedFocal.x.value +
         translate.x.value +
         center.x -
         initialFocal.x.value;
-      let centerOffsetY =
+      const centerOffsetY =
         savedFocal.y.value +
         translate.y.value +
         center.y -
