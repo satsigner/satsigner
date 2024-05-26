@@ -3,21 +3,16 @@ import React from 'react';
 import {
   DescriptorSecretKey,
   Mnemonic,
-  Blockchain,
   Wallet,
   DatabaseConfig,
   Descriptor
 } from 'bdk-rn';
 
 import {
-  Network,
   KeychainKind,
   AddressIndex,
   WordCount,
-  BlockChainNames
 } from 'bdk-rn/lib/lib/enums';
-
-import { blockchainConfig } from '../../config';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
@@ -27,8 +22,11 @@ import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import toTransaction from './toTransaction';
 import toUtxo from './toUtxo';
+import { useBlockchainContext } from './BlockchainContext';
 
 export const AccountsProvider = ({ children }) => {
+
+  const blockchainContext = useBlockchainContext();
 
   const [storage, setStorage] = React.useState<Storage>(new Storage());
   
@@ -52,7 +50,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const getBlockchainHeight = async(): Promise<number> => {
-    const blockchain = await new Blockchain().create(blockchainConfig, BlockChainNames.Esplora);
+    const blockchain = await blockchainContext.getBlockchain();
     return await blockchain.getHeight();
   };
 
@@ -60,11 +58,11 @@ export const AccountsProvider = ({ children }) => {
     try {
       const mnemonic = await new Mnemonic().fromString(mnemonicString);
       const descriptorSecretKey = await new DescriptorSecretKey().create(
-        Network.Signet,
+        blockchainContext.network,
         mnemonic,
         passphrase
       );
-      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Signet);
+      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, blockchainContext.network);
       const descriptorString = await descriptor.asString();
       
       const { fingerprint } = parseDescriptor(descriptorString);
@@ -101,18 +99,18 @@ export const AccountsProvider = ({ children }) => {
   ): Promise<Descriptor> => {
     const mnemonic = await new Mnemonic().fromString(mnemonicString);
     const descriptorSecretKey = await new DescriptorSecretKey().create(
-      Network.Signet,
+      blockchainContext.network,
       mnemonic,
       passphrase
     );
 
     switch (scriptVersion) {
       case ScriptVersion.P2PKH:
-        return await new Descriptor().newBip44(descriptorSecretKey, kind, Network.Signet);
+        return await new Descriptor().newBip44(descriptorSecretKey, kind, blockchainContext.network);
       case ScriptVersion.P2SH_P2WPKH:
-        return await new Descriptor().newBip49(descriptorSecretKey, kind, Network.Signet);
+        return await new Descriptor().newBip49(descriptorSecretKey, kind, blockchainContext.network);
       case ScriptVersion.P2WPKH:
-        return await new Descriptor().newBip84(descriptorSecretKey, kind, Network.Signet);
+        return await new Descriptor().newBip84(descriptorSecretKey, kind, blockchainContext.network);
       case ScriptVersion.P2TR:
         throw new Error('Not implemented');
     }
@@ -153,7 +151,7 @@ export const AccountsProvider = ({ children }) => {
     const wallet = await new Wallet().create(
       externalDescriptor,
       internalDescriptor,
-      Network.Signet,
+      blockchainContext.network,
       dbConfig
     );
 
@@ -161,7 +159,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
-    const blockchain = await new Blockchain().create(blockchainConfig, BlockChainNames.Esplora);
+    const blockchain = await blockchainContext.getBlockchain();
     await wallet.sync(blockchain);
   };
 
