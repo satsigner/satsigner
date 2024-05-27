@@ -14,10 +14,10 @@ import {
 } from 'react-native'
 
 import { getWordList } from '@/api/bip39'
+import useKeyboardHeight from '@/hooks/useKeyboardHeight'
+import usePrevious from '@/hooks/usePrevious'
 import { i18n } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import usePrevious from '@/hooks/usePrevious'
-import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 
 type WordInfo = {
   index: number
@@ -107,7 +107,7 @@ export default function SSKeyboardWordSelector({
       },
       style
     )
-  }, [width, opacityAnimated, style])
+  }, [width, opacityAnimated, keyboardHeight, style])
 
   return (
     <Animated.View style={containerStyle}>

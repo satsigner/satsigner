@@ -1,14 +1,14 @@
 import * as StatusBar from 'expo-status-bar'
 import { useEffect } from 'react'
-import { Modal, Platform, ScrollView, SafeAreaView } from 'react-native'
+import { Modal, Platform, SafeAreaView, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { Colors } from '@/styles'
 
 import SSButton from './SSButton'
 import SSText from './SSText'
-import { Colors } from '@/styles'
 
 type SSSelectModalProps = {
   visible: boolean
