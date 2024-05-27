@@ -1,6 +1,12 @@
 import { Image } from 'expo-image'
 import { useMemo } from 'react'
-import { ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native'
+import {
+  ActivityIndicator,
+  StyleProp,
+  StyleSheet,
+  TextStyle,
+  TouchableOpacity
+} from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
@@ -11,6 +17,7 @@ type SSButtonProps = {
   variant?: 'default' | 'secondary' | 'ghost'
   loading?: boolean
   withSelect?: boolean
+  textStyle?: StyleProp<TextStyle>
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 export default function SSButton({
@@ -20,6 +27,7 @@ export default function SSButton({
   loading,
   withSelect,
   style,
+  textStyle,
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
@@ -39,13 +47,13 @@ export default function SSButton({
     )
   }, [variant, disabled, withSelect, style])
 
-  const textStyle = useMemo(() => {
+  const textStyles = useMemo(() => {
     let textVariantStyles = styles.textDefault
     if (variant === 'secondary') textVariantStyles = styles.textSecondary
     if (variant === 'ghost') textVariantStyles = styles.textGhost
 
-    return textVariantStyles
-  }, [variant])
+    return StyleSheet.compose({ ...textVariantStyles }, textStyle)
+  }, [variant, textStyle])
 
   const activityIndicatorColor = useMemo(() => {
     return variant === 'secondary'
@@ -61,7 +69,7 @@ export default function SSButton({
       {...props}
     >
       {!loading ? (
-        <SSText uppercase style={textStyle}>
+        <SSText uppercase style={textStyles}>
           {label}
         </SSText>
       ) : (

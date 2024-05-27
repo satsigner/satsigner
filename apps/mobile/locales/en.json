@@ -9,6 +9,7 @@
       "invalid": "Invalid",
       "optional": "Optional",
       "select": "Select",
+      "selectAll": "Select All",
       "selected": "Selected",
       "next": "Next",
       "confirm": "Confirm",

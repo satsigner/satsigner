@@ -34,20 +34,22 @@ export default function Account() {
       />
       <SSBackgroundGradient orientation="horizontal">
         <SSVStack itemsCenter>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" color="white" weight="light">
-              3000
-            </SSText>
-            <SSText size="xl" color="muted">
-              {i18n.t('bitcoin.sats').toLowerCase()}
-            </SSText>
-          </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText color="muted">2.19</SSText>
-            <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              USD
-            </SSText>
-          </SSHStack>
+          <SSVStack itemsCenter gap="none">
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText size="7xl" color="white" weight="ultralight">
+                3000
+              </SSText>
+              <SSText size="xl" color="muted">
+                {i18n.t('bitcoin.sats').toLowerCase()}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText color="muted">2.19</SSText>
+              <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                USD
+              </SSText>
+            </SSHStack>
+          </SSVStack>
           <SSVStack gap="none">
             <SSSeparator color="gradient" />
             <SSHStack justifyEvenly gap="none">
