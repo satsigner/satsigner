@@ -20,14 +20,15 @@ import { BubblePacking } from './components/BubblePacking';
 import { GestureHandler } from './components/GestureHandler';
 import { useGestures } from './hooks/useGestures';
 import { useLayout } from './hooks/useLayout';
+import { useTransactionBuilderContext } from '../../components/accounts/TransactionBuilderContext';
 
 interface Props {
   navigation: NavigationProp<any>;
 }
 
-export const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
+export const getOutpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
-export interface UtxoListBubble {
+export interface UtxoListBubble extends Partial<Utxo> {
   id: string;
   value: number;
   children: UtxoListBubble[];
@@ -48,9 +49,15 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   const utxoList = currentAccount?.utxos.map(data => {
     return {
-      id: outpoint(data),
+      id: getOutpoint(data),
       children: [],
-      value: data.value
+      value: data.value,
+      timestamp: data.timestamp,
+      txid: data.txid,
+      vout: data.vout,
+      label: data.label || '',
+      addressTo: data.addressTo || '',
+      keychain: data.keychain
     };
   });
 
@@ -83,7 +90,8 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     minScale: 0.1
   });
 
-  const [selectedCircle, setSelectedCircle] = useState<string[]>([]);
+  const txnBuilderContext = useTransactionBuilderContext();
+  const inputs = txnBuilderContext.getInputs();
 
   useEffect(() => {
     navUtils.setHeaderTitle(accountsContext.currentAccount.name, navigation);
@@ -119,9 +127,9 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
           onLayout={onCanvasLayout}>
           <BubblePacking
             transform={transform}
-            selectedCircle={selectedCircle}
             utxoPack={utxoPack}
             canvasSize={canvasSize}
+            inputs={inputs}
           />
         </Canvas>
 
@@ -129,8 +137,6 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
           contentContainerAnimatedStyle={animatedStyle}
           canvasSize={canvasSize}
           onLayoutContent={onCanvasLayout}
-          selectedCircle={selectedCircle}
-          setSelectedCircle={setSelectedCircle}
           bubblePack={utxoPack}
           zoomGesture={gestures}
         />

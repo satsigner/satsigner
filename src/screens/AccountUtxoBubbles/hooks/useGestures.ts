@@ -1,3 +1,7 @@
+// Most of the gesture code is from
+// https://github.com/likashefqet/react-native-image-zoom
+// with a few modifications to work with Skia and focal points pinching improvements
+
 import { useCallback, useRef } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
@@ -37,7 +41,6 @@ export const useGestures = ({
   maxPanPointers = 2,
   isPanEnabled = true,
   isPinchEnabled = true,
-  isSingleTapEnabled = false,
   isDoubleTapEnabled = false,
   onInteractionStart,
   onInteractionEnd,
@@ -46,8 +49,7 @@ export const useGestures = ({
   onPanStart,
   onPanEnd,
   onSingleTap = () => {},
-  onDoubleTap = () => {},
-  onResetAnimationEnd
+  onDoubleTap = () => {}
 }: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false);
   const isPinching = useRef(false);
@@ -62,7 +64,7 @@ export const useGestures = ({
   const translate = { x: useSharedValue(0), y: useSharedValue(0) };
 
   const { getInteractionId, updateInteractionId } = useInteractionId();
-  const { onAnimationEnd } = useAnimationEnd(onResetAnimationEnd);
+  const { onAnimationEnd } = useAnimationEnd();
 
   const moveIntoView = () => {
     'worklet';
@@ -295,13 +297,6 @@ export const useGestures = ({
       }
     });
 
-  const singleTapGesture = Gesture.Tap()
-    .enabled(isSingleTapEnabled)
-    .numberOfTaps(1)
-    .onStart(event => {
-      runOnJS(onSingleTap)(event);
-    });
-
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: translate.y.value },
@@ -320,12 +315,11 @@ export const useGestures = ({
     { scale: scale.value }
   ]);
 
-  const pinchPanGestures = Gesture.Simultaneous(pinchGesture, panGesture);
-  const tapGestures = Gesture.Exclusive(doubleTapGesture, singleTapGesture);
-  const gestures =
-    isDoubleTapEnabled || isSingleTapEnabled
-      ? Gesture.Race(tapGestures, pinchPanGestures)
-      : pinchPanGestures;
+  const gestures = Gesture.Simultaneous(
+    doubleTapGesture,
+    pinchGesture,
+    panGesture
+  );
 
   return { gestures, animatedStyle, reset, transform };
 };
