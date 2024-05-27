@@ -102,13 +102,12 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
       <View style={[styles.container]}>
         <LinearGradient
           style={{
-            ...Layout.container.topPaddedThin,
+            ...Layout.container.topPadded,
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             zIndex: 20,
-            paddingBottom: 20,
             width: '100%'
           }}
           locations={[0.185, 0.5554, 0.7713, 1]}
