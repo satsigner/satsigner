@@ -94,33 +94,33 @@ export type ZoomProps = {
   isSingleTapEnabled?: boolean;
   /**
    * Enables or disables the double tap feature.
-   * When enabled, this feature prevents automatic reset of the image zoom to its initial position, allowing continuous zooming.
+   * When enabled, this feature prevents automatic reset of the canvas zoom to its initial position, allowing continuous zooming.
    * To return to the initial position, double tap again or zoom out to a scale level less than 1.
    * @default false
    */
   isDoubleTapEnabled?: boolean;
   /**
-   * A callback triggered when the image interaction starts.
+   * A callback triggered when the canvas interaction starts.
    */
   onInteractionStart?: () => void;
   /**
-   * A callback triggered when the image interaction ends.
+   * A callback triggered when the canvas interaction ends.
    */
   onInteractionEnd?: () => void;
   /**
-   * A callback triggered when the image pinching starts.
+   * A callback triggered when the canvas pinching starts.
    */
   onPinchStart?: OnPinchStartCallback;
   /**
-   * A callback triggered when the image pinching ends.
+   * A callback triggered when the canvas pinching ends.
    */
   onPinchEnd?: OnPinchEndCallback;
   /**
-   * A callback triggered when the image panning starts.
+   * A callback triggered when the canvas panning starts.
    */
   onPanStart?: OnPanStartCallback;
   /**
-   * A callback triggered when the image panning ends.
+   * A callback triggered when the canvas panning ends.
    */
   onPanEnd?: OnPanEndCallback;
   /**
@@ -137,11 +137,6 @@ export type ZoomProps = {
    * otherwise, it is false, indicating interruption by another gesture or unforeseen circumstances.
    * The values parameter provides additional detailed information for each animation value.
    */
-  onResetAnimationEnd?: OnResetAnimationEndCallback;
-  /**
-   * @see https://facebook.github.io/react-native/docs/image.html#source
-   * @default undefined
-   */
 };
 
 export type ZoomLayoutState = LayoutRectangle & {
@@ -150,11 +145,11 @@ export type ZoomLayoutState = LayoutRectangle & {
    */
   center: {
     /**
-     * The x-coordinate of the center point of the image.
+     * The x-coordinate of the center point of the canvas.
      */
     x: number;
     /**
-     * The y-coordinate of the center point of the image.
+     * The y-coordinate of the center point of the canvas.
      */
     y: number;
   };
@@ -183,5 +178,4 @@ export type ZoomUseGesturesProps = Pick<
     | 'onPanEnd'
     | 'onSingleTap'
     | 'onDoubleTap'
-    | 'onResetAnimationEnd'
   >;

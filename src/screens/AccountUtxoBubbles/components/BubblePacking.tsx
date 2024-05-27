@@ -5,7 +5,7 @@ import {
   useFont
 } from '@shopify/react-native-skia';
 import { HierarchyCircularNode, text } from 'd3';
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   useDerivedValue,
   withTiming,
@@ -13,6 +13,7 @@ import {
 } from 'react-native-reanimated';
 import { UtxoListBubble } from '..';
 import { Colors } from '../../../styles';
+import { Platform } from 'react-native';
 
 interface BubblePackingProps {
   transform: Readonly<SharedValue<any>>;
@@ -63,13 +64,14 @@ BubblePackingProps) => {
           const textDimensions = isSelected
             ? selectedFont?.measureText(data?.value ? text : '')
             : font?.measureText(data?.value ? text : '');
-          let offset = 1.5;
-          return x - (textDimensions?.width || 0) / 2 + offset;
+
+          let platformOffset = Platform.OS === 'ios' ? 1.5 : 0.5;
+
+          return x - (textDimensions?.width || 0) / 2 + platformOffset;
         };
 
         // center the text inside the circle vertically
         const getY = () => {
-          // TODO: find a better way to center the text vertically
           // "/3" is just to make the text align properly in smaller Circle
           return y + (font?.getSize() || 0) / 3;
         };

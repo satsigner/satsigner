@@ -64,7 +64,6 @@ export const GestureHandler = ({
           style={[
             {
               ...canvasSize
-              // position: 'absolute'
             },
             contentContainerAnimatedStyle
           ]}
