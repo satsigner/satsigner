@@ -1,4 +1,4 @@
-import { HierarchyCircularNode, text } from 'd3';
+import { HierarchyCircularNode } from 'd3';
 import React from 'react';
 import {
   GestureResponderEvent,
@@ -13,6 +13,9 @@ import Animated from 'react-native-reanimated';
 import { DefaultStyle } from 'react-native-reanimated/lib/typescript/reanimated2/hook/commonTypes';
 import { UtxoListBubble } from '..';
 import { Colors } from '../../../styles';
+import notImplementedAlert from '../../../components/shared/NotImplementedAlert';
+import { useTransactionBuilderContext } from '../../../components/accounts/TransactionBuilderContext';
+import Button from '../../../components/shared/Button';
 
 interface GestureHandlerProps {
   debug?: boolean;
@@ -35,6 +38,10 @@ export const GestureHandler = ({
   onLayoutContent,
   contentContainerAnimatedStyle
 }: GestureHandlerProps) => {
+  const txnBuilderContext = useTransactionBuilderContext();
+
+  const hasSelectedUtxos = txnBuilderContext.getInputs().length > 0;
+
   const onPressCircle =
     (selectedId: string, r: number, x: number, y: number) =>
     (event: GestureResponderEvent) => {
@@ -100,9 +107,15 @@ export const GestureHandler = ({
             <Text style={styles.secondaryText}>SELECT ALL</Text>
           </Pressable>
         </View>
-        <Pressable style={styles.button} onPress={() => {}}>
-          <Text style={styles.text}>ADD AS INPUTS TO MESSAGE</Text>
-        </Pressable>
+        <View style={styles.submitContainer}>
+          <Button
+            title="Add As Inputs To Message"
+            style={
+              hasSelectedUtxos ? styles.submitEnabled : styles.submitDisabled
+            }
+            disabled={!hasSelectedUtxos}
+            onPress={notImplementedAlert}></Button>
+        </View>
       </View>
     </GestureDetector>
   );
@@ -155,5 +168,22 @@ const styles = StyleSheet.create({
     marginRight: 30,
     marginLeft: 30,
     color: Colors.grey19
+  },
+  submitEnabled: {
+    width: '92%',
+    backgroundColor: Colors.defaultActionBackground,
+    color: Colors.defaultActionText
+  },
+  submitDisabled: {
+    width: '92%',
+    backgroundColor: Colors.disabledActionBackground,
+    color: Colors.disabledActionText
+  },
+  submitContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 20,
+    width: '100%'
   }
 });

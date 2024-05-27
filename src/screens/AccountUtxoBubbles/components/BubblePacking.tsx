@@ -4,7 +4,7 @@ import {
   Text as SkiaText,
   useFont
 } from '@shopify/react-native-skia';
-import { HierarchyCircularNode, text } from 'd3';
+import { HierarchyCircularNode } from 'd3';
 import React from 'react';
 import {
   useDerivedValue,

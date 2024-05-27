@@ -3,22 +3,24 @@
 // https://shopify.github.io/react-native-skia/docs/animations/gestures#element-tracking
 
 import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
+import { useHeaderHeight } from '@react-navigation/elements';
 import { NavigationProp } from '@react-navigation/native';
-
 import { Canvas } from '@shopify/react-native-skia';
 import { hierarchy, pack } from 'd3';
 import React, { useEffect, useMemo, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
+import SelectedUtxosHeader from '../../components/accounts/SelectedUtxosHeader';
 import { Utxo } from '../../models/Utxo';
 import { Layout } from '../../styles';
+import navUtils from '../../utils/NavUtils';
 import { BubblePacking } from './components/BubblePacking';
 import { GestureHandler } from './components/GestureHandler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import navUtils from '../../utils/NavUtils';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { useGestures } from './hooks/useGestures';
 import { useLayout } from './hooks/useLayout';
+
 interface Props {
   navigation: NavigationProp<any>;
 }
@@ -42,9 +44,9 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
 
-  const { utxos } = accountsContext.currentAccount;
+  const currentAccount = accountsContext.currentAccount;
 
-  const utxoList = utxos.map(data => {
+  const utxoList = currentAccount?.utxos.map(data => {
     return {
       id: outpoint(data),
       children: [],
@@ -90,6 +92,24 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[styles.container]}>
+        <LinearGradient
+          style={{
+            ...Layout.container.topPaddedThin,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            paddingBottom: 20,
+            width: '100%'
+          }}
+          locations={[0.185, 0.5554, 0.7713, 1]}
+          colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}>
+          <SelectedUtxosHeader
+            toggleScreenAction={'list'}
+            navigation={navigation}
+          />
+        </LinearGradient>
         <Canvas
           style={[
             {
@@ -104,6 +124,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
             canvasSize={canvasSize}
           />
         </Canvas>
+
         <GestureHandler
           contentContainerAnimatedStyle={animatedStyle}
           canvasSize={canvasSize}
