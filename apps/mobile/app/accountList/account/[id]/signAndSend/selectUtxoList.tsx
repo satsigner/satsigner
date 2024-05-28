@@ -12,6 +12,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 
 export default function SelectUtxoList() {
   const accountStore = useAccountStore()
@@ -90,22 +91,28 @@ export default function SelectUtxoList() {
         </SSVStack>
       </SSMainLayout>
       <SSSeparator color="grayDark" style={{ width: '100%', marginTop: 12 }} />
-      <SSVStack style={{ paddingHorizontal: 16 }}>
-        <SSHStack justifyBetween>
-          <SSButton
-            variant="ghost"
-            label={`${i18n.t('common.selectAll').toUpperCase()} 3000 ${i18n.t('bitcoin.sats').toLowerCase()}`}
-            textStyle={{
-              color: Colors.gray[75],
-              textTransform: 'none',
-              textDecorationLine: 'underline'
-            }}
+      <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
+        <SSButton
+          variant="ghost"
+          label={`${i18n.t('common.selectAll').toUpperCase()} 3000 ${i18n.t('bitcoin.sats').toLowerCase()}`}
+          style={{ width: 'auto' }}
+          textStyle={{
+            color: Colors.gray[75],
+            textTransform: 'none',
+            textDecorationLine: 'underline'
+          }}
+        />
+        <SSHStack>
+          <SSSortDirectionToggle
+            label={i18n.t('common.date')}
+            onDirectionChanged={() => {}}
           />
-          <SSHStack>
-            <SSText>H</SSText>
-          </SSHStack>
+          <SSSortDirectionToggle
+            label={i18n.t('common.amount')}
+            onDirectionChanged={() => {}}
+          />
         </SSHStack>
-      </SSVStack>
+      </SSHStack>
       <SSMainLayout style={{ paddingTop: 0 }}>
         <View style={styles.absoluteSubmitContainer}>
           <SSButton label="Add as inputs to message" variant="secondary" />

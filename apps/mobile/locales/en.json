@@ -20,7 +20,9 @@
       "to": "To",
       "more": "More",
       "less": "Less",
-      "total": "Total"
+      "total": "Total",
+      "date": "Date",
+      "amount": "Amount"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
