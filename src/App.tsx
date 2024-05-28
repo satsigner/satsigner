@@ -17,6 +17,7 @@ import AccountTransactionsScreen from './screens/AccountTransactions';
 import AccountUtxoBubblesScreen from './screens/AccountUtxoBubbles';
 import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 import AccountUtxoListScreen from './screens/AccountUtxoList';
+import ConfigBlockchainScreen from './screens/ConfigBlockchain';
 
 import NavUtils from './utils/NavUtils';
 import { AccountsProvider } from './components/accounts/AccountsProvider';
@@ -87,6 +88,11 @@ export default function App() {
                     name="AccountUtxoList"
                     component={AccountUtxoListScreen}
                     options={NavUtils.getHeaderOptions(APP_TITLE)}
+                  />
+                  <Stack.Screen
+                    name="ConfigBlockchain"
+                    component={ConfigBlockchainScreen}
+                    options={NavUtils.getHeaderOptions('Configure Blockchain')}
                   />
                 </Stack.Navigator>
               </NavigationContainer>

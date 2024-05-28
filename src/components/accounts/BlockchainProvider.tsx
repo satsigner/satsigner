@@ -1,20 +1,51 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { Blockchain } from "bdk-rn";
+import { BlockChainNames, BlockchainElectrumConfig, BlockchainEsploraConfig } from "bdk-rn/lib/lib/enums";
+import * as encrypted from '../shared/encrypted';
 
 import { BlockchainContext } from "./BlockchainContext";
 import { Backend } from "../../enums/Backend";
 import { Network } from "../../enums/Network";
-import { BlockChainNames, BlockchainElectrumConfig, BlockchainEsploraConfig } from "bdk-rn/lib/lib/enums";
-import { Blockchain } from "bdk-rn";
 
-// use 'encrypted' getItem / setItem to presist values
+const BACKEND = 'config.blockchain.backend';
+const NETWORK = 'config.blockchain.network';
+const URL = 'config.blockchain.url';
 
 export const BlockchainProvider = ({ children }) => {
-  const [ backend, setBackend ] = useState(Backend.Esplora);
-  const [ network, setNetwork ] = useState(Network.Signet);
-
+  const defaultBackend = Backend.Esplora;
+  const defaultNetwork = Network.Signet;
   // ssl://electrum.blockstream.info:60002
   // https://mutinynet.com/api
-  const [ url, setUrl ] = useState('https://mutinynet.com/api');
+  const defaultUrl = 'https://mutinynet.com/api';
+
+  const [ backend, setBackendState ] = useState(defaultBackend);
+  const [ network, setNetworkState ] = useState(defaultNetwork);
+  const [ url, setUrlState ] = useState(defaultUrl);
+
+  useEffect(() => {
+    encrypted.getItem(BACKEND)
+        .then(backend => setBackendState(backend as unknown as Backend || defaultBackend));
+    encrypted.getItem(NETWORK)
+      .then(network => setNetworkState(network as unknown as Network || defaultNetwork));
+    encrypted.getItem(URL)
+      .then(url => setUrlState(url || defaultUrl));
+  }, []);
+
+  const setBackend = (backend: Backend): Promise<void> => {
+    setBackendState(backend);
+    return encrypted.setItem(BACKEND, backend);
+  }
+
+  const setNetwork = (network: Network): Promise<void> => {
+    setNetworkState(network);
+    return encrypted.setItem(NETWORK, network);
+  }
+
+  const setUrl = (url: string): Promise<void> => {
+    setUrlState(url);
+    return encrypted.setItem(URL, url);
+  }
 
   const getBlockchainConfig = (): BlockchainElectrumConfig | BlockchainEsploraConfig => {
     switch (backend) {
