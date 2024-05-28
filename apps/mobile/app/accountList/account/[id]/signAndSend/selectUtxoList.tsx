@@ -1,21 +1,58 @@
 import { Image } from 'expo-image'
 import { Stack } from 'expo-router'
-import { StyleSheet, View } from 'react-native'
+import { useMemo, useState } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
+import SSUtxoItem from '@/components/SSUtxoItem'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
+import { type Direction } from '@/types/logic/sort'
+import { type Utxo } from '@/types/models/Utxo'
+import { compareAmount, compareTimestamp } from '@/utils/sort'
+
+type SortField = 'date' | 'amount'
 
 export default function SelectUtxoList() {
   const accountStore = useAccountStore()
+  const transactionBuilderStore = useTransactionBuilderStore()
+
+  const [sortDirection, setSortDirection] = useState<Direction>('desc')
+  const [sortField, setSortField] = useState<SortField>('amount')
+
+  const largestValue = useMemo(
+    () =>
+      Math.max(...accountStore.currentAccount.utxos.map((utxo) => utxo.value)),
+    [accountStore.currentAccount.utxos]
+  )
+
+  function sortUtxos(utxos: Utxo[]) {
+    return utxos.sort((utxo1, utxo2) =>
+      sortDirection === 'asc'
+        ? sortField === 'date'
+          ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
+          : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
+        : sortField === 'date'
+          ? compareAmount(utxo1.value, utxo2.value)
+          : compareAmount(utxo2.value, utxo1.value)
+    )
+  }
+
+  function handleOnToggleSelected(utxo: Utxo) {
+    const includesInput = transactionBuilderStore.hasInput(utxo)
+
+    if (includesInput) transactionBuilderStore.removeInput(utxo)
+    else transactionBuilderStore.addInput(utxo)
+  }
 
   return (
     <>
@@ -113,6 +150,17 @@ export default function SelectUtxoList() {
           />
         </SSHStack>
       </SSHStack>
+      <ScrollView>
+        {sortUtxos(accountStore.currentAccount.utxos).map((utxo) => (
+          <SSUtxoItem
+            key={`${utxo.txid}:${utxo.vout}`}
+            utxo={utxo}
+            selected={transactionBuilderStore.hasInput(utxo)}
+            onToggleSelected={handleOnToggleSelected}
+            largestValue={largestValue}
+          />
+        ))}
+      </ScrollView>
       <SSMainLayout style={{ paddingTop: 0 }}>
         <View style={styles.absoluteSubmitContainer}>
           <SSButton label="Add as inputs to message" variant="secondary" />

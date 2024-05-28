@@ -2,9 +2,9 @@ import { Image } from 'expo-image'
 import { useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
-import SSText from './SSText'
+import { type Direction } from '@/types/logic/sort'
 
-type Direction = 'asc' | 'desc'
+import SSText from './SSText'
 
 type SSSortDirectionToggleProps = {
   label?: string

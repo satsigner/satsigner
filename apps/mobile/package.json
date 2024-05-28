@@ -16,6 +16,7 @@
   "dependencies": {
     "bdk-rn": "^0.30.0",
     "bip39": "^3.1.0",
+    "d3": "^7.9.0",
     "expo": "~50.0.14",
     "expo-constants": "~15.4.5",
     "expo-font": "^11.10.3",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@types/d3": "^7.4.3",
     "@types/jest": "^29.5.12",
     "@types/react": "~18.2.45",
     "@types/react-timeago": "^4.1.7",

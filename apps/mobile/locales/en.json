@@ -36,7 +36,8 @@
       "script": "Script",
       "notYourKeys": "Not your keys",
       "notYourCoins": "Not your coins",
-      "sats": "Sats"
+      "sats": "Sats",
+      "memo": "Memo"
     },
     "accountList": {
       "noKeysYet": "No keys yet",
