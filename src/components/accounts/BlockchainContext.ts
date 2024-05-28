@@ -5,7 +5,6 @@ import { Network } from '../../enums/Network';
 import { Blockchain } from 'bdk-rn';
 
 export const BlockchainContext = createContext({
-  getIt: () => '',
   backend: Backend.Electrum,
   setBackend: (backend: Backend) => {},
   network: Network.Testnet,

@@ -200,13 +200,13 @@ export const AccountsProvider = ({ children }) => {
   
       account.transactions = await Promise.all(
         (transactions || []).map(
-          txnDetails => toTransaction(txnDetails, utxos)
+          txnDetails => toTransaction(txnDetails, utxos, blockchainContext.network)
         )
       );
   
       account.utxos = await Promise.all(
         (utxos || []).map(
-          localUtxo => toUtxo(localUtxo, transactions)
+          localUtxo => toUtxo(localUtxo, transactions, blockchainContext.network)
         )
       );
     } else {
