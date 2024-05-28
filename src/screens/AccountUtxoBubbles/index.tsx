@@ -9,7 +9,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { NavigationProp } from '@react-navigation/native';
 import { Canvas } from '@shopify/react-native-skia';
 import { hierarchy, pack } from 'd3';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
 import SelectedUtxosHeader from '../../components/accounts/SelectedUtxosHeader';
@@ -21,6 +21,8 @@ import { GestureHandler } from './components/GestureHandler';
 import { useGestures } from './hooks/useGestures';
 import { useLayout } from './hooks/useLayout';
 import { useTransactionBuilderContext } from '../../components/accounts/TransactionBuilderContext';
+import { ZOOM_TYPE } from './types';
+import { SharedValue } from 'react-native-reanimated';
 
 interface Props {
   navigation: NavigationProp<any>;
@@ -78,6 +80,30 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     return createPack(utxoHierarchy()).leaves();
   }, [utxoList]);
 
+  const checkFocalPointInsideCircles = useCallback(
+    (
+      translateX: number,
+      translateY: number,
+      descriptionVisible: SharedValue<string[]>
+    ) => {
+      for (const circle of utxoPack) {
+        const distance = Math.sqrt(
+          (circle.x - translateX) ** 2 + (circle.y - translateY) ** 2
+        );
+        if (distance <= circle.r) {
+          descriptionVisible?.value.push(circle.data.id);
+          console.log(
+            `Focal point is inside the circle with center (${circle.data.value}`
+          );
+          return true;
+        }
+      }
+      console.log('Focal point is not inside any circle');
+      return false;
+    },
+    [utxoPack]
+  );
+
   const { width: w, height: h, center, onCanvasLayout } = useLayout();
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
@@ -87,7 +113,16 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     minPanPointers: 1,
     maxScale: 1000,
-    minScale: 0.1
+    minScale: 0.1,
+    onDoubleTap: (zoomType, translate, descriptionVisible) => {
+      if (zoomType === ZOOM_TYPE.ZOOM_IN) {
+        checkFocalPointInsideCircles(
+          translate?.x ?? 0,
+          translate?.y ?? 0,
+          descriptionVisible!
+        );
+      }
+    }
   });
 
   const txnBuilderContext = useTransactionBuilderContext();

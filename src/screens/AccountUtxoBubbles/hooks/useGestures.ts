@@ -6,6 +6,7 @@ import { useCallback, useRef } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -62,6 +63,7 @@ export const useGestures = ({
   const focal = { x: useSharedValue(0), y: useSharedValue(0) };
   const savedTranslate = { x: useSharedValue(0), y: useSharedValue(0) };
   const translate = { x: useSharedValue(0), y: useSharedValue(0) };
+  const descriptionVisible = useSharedValue<string[]>([]);
 
   const { getInteractionId, updateInteractionId } = useInteractionId();
   const { onAnimationEnd } = useAnimationEnd();
@@ -281,18 +283,34 @@ export const useGestures = ({
       runOnJS(onPinchEnded)(...args); // Trigger the pinch end event
     });
 
+  useAnimatedReaction(
+    () => {
+      return descriptionVisible.value;
+    },
+    descriptionVisible => {
+      console.log('visible->', descriptionVisible);
+    }
+  );
+
   const doubleTapGesture = Gesture.Tap()
     .enabled(isDoubleTapEnabled)
     .numberOfTaps(2)
     .maxDuration(250)
     .onStart(event => {
       if (scale.value === 1) {
-        runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN);
         scale.value = withTiming(doubleTapScale);
         focal.x.value = withTiming((center.x - event.x) * (doubleTapScale - 1));
         focal.y.value = withTiming((center.y - event.y) * (doubleTapScale - 1));
+        runOnJS(onDoubleTap)(
+          ZOOM_TYPE.ZOOM_IN,
+          {
+            x: event.x,
+            y: event.y
+          },
+          descriptionVisible
+        );
       } else {
-        runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT);
+        runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT, {});
         reset();
       }
     });

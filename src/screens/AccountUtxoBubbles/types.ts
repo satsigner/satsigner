@@ -5,7 +5,7 @@ import type {
   PinchGestureHandlerEventPayload,
   TapGestureHandlerEventPayload
 } from 'react-native-gesture-handler';
-import { AnimatableValue } from 'react-native-reanimated';
+import { AnimatableValue, SharedValue } from 'react-native-reanimated';
 
 export type OnPinchStartCallback = (
   event: GestureStateChangeEvent<PinchGestureHandlerEventPayload>
@@ -34,7 +34,11 @@ export enum ZOOM_TYPE {
   ZOOM_OUT = 'ZOOM_OUT'
 }
 
-export type OnDoubleTapCallback = (zoomType: ZOOM_TYPE) => void;
+export type OnDoubleTapCallback = (
+  zoomType: ZOOM_TYPE,
+  { x, y }: { x?: number; y?: number },
+  descriptionVisible?: SharedValue<string[]>
+) => void;
 
 export enum ANIMATION_VALUE {
   SCALE = 'SCALE',
