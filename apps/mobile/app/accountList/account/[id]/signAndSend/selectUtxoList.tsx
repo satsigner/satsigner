@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
+import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -12,7 +13,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 
 export default function SelectUtxoList() {
   const accountStore = useAccountStore()
