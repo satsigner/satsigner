@@ -150,31 +150,40 @@ export default function SelectUtxoList() {
           />
         </SSHStack>
       </SSHStack>
-      <ScrollView>
-        {sortUtxos(accountStore.currentAccount.utxos).map((utxo) => (
-          <SSUtxoItem
-            key={`${utxo.txid}:${utxo.vout}`}
-            utxo={utxo}
-            selected={transactionBuilderStore.hasInput(utxo)}
-            onToggleSelected={handleOnToggleSelected}
-            largestValue={largestValue}
-          />
-        ))}
-      </ScrollView>
-      <SSMainLayout style={{ paddingTop: 0 }}>
-        <View style={styles.absoluteSubmitContainer}>
-          <SSButton label="Add as inputs to message" variant="secondary" />
-        </View>
+      <View>
+        <View style={styles.scrollBackgroundBase} />
+        <ScrollView>
+          {sortUtxos(accountStore.currentAccount.utxos).map((utxo) => (
+            <SSUtxoItem
+              key={`${utxo.txid}:${utxo.vout}`}
+              utxo={utxo}
+              selected={transactionBuilderStore.hasInput(utxo)}
+              onToggleSelected={handleOnToggleSelected}
+              largestValue={largestValue}
+            />
+          ))}
+        </ScrollView>
+      </View>
+      <SSMainLayout style={styles.absoluteSubmitContainer}>
+        <SSButton label="Add as inputs to message" variant="secondary" />
       </SSMainLayout>
     </>
   )
 }
 
 const styles = StyleSheet.create({
+  scrollBackgroundBase: {
+    position: 'absolute',
+    width: '100%',
+    backgroundColor: Colors.gray[900],
+    top: 2,
+    height: 1000
+  },
   absoluteSubmitContainer: {
     position: 'absolute',
     bottom: 20,
     width: '100%',
-    alignSelf: 'center'
+    alignSelf: 'center',
+    backgroundColor: Colors.transparent
   }
 })

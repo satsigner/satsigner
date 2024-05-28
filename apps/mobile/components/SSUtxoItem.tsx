@@ -39,8 +39,7 @@ export default function SSUtxoItem({
         <SSHStack
           style={{
             paddingHorizontal: '5%',
-            paddingVertical: 16,
-            alignItems: 'baseline'
+            paddingVertical: 16
           }}
           justifyBetween
         >
@@ -76,7 +75,7 @@ export default function SSUtxoItem({
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSVStack gap="xs">
+          <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
             <SSText>
               {utxo.addressTo ? formatAddress(utxo.addressTo) : ''}
             </SSText>
