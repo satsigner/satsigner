@@ -18,6 +18,7 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
+import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
 
 type SortField = 'date' | 'amount'
@@ -33,6 +34,18 @@ export default function SelectUtxoList() {
     () =>
       Math.max(...accountStore.currentAccount.utxos.map((utxo) => utxo.value)),
     [accountStore.currentAccount.utxos]
+  )
+
+  const utxosValue = (utxos: Utxo[]): number =>
+    utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+
+  const utxosTotalValue = useMemo(
+    () => utxosValue(accountStore.currentAccount.utxos),
+    [accountStore.currentAccount.utxos]
+  )
+  const utxosSelectedValue = useMemo(
+    () => utxosValue([...transactionBuilderStore.inputs]),
+    [transactionBuilderStore.inputs]
   )
 
   function handleSelectAllUtxos() {
@@ -86,7 +99,9 @@ export default function SelectUtxoList() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                1 {i18n.t('common.of').toLowerCase()} 3{' '}
+                {transactionBuilderStore.inputs.size}{' '}
+                {i18n.t('common.of').toLowerCase()}{' '}
+                {accountStore.currentAccount.utxos.length}{' '}
                 {i18n.t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
@@ -94,7 +109,7 @@ export default function SelectUtxoList() {
                   {i18n.t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  3,000
+                  {formatNumber(utxosTotalValue)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {i18n.t('bitcoin.sats').toLowerCase()}
@@ -115,7 +130,7 @@ export default function SelectUtxoList() {
                   weight="ultralight"
                   style={{ lineHeight: 62 }}
                 >
-                  3000
+                  {formatNumber(utxosSelectedValue)}
                 </SSText>
                 <SSText size="xl" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}
