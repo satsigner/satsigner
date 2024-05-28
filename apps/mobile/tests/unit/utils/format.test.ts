@@ -39,5 +39,9 @@ describe('format utils', () => {
     it('should return the correct formatted date', () => {
       expect(formatDate(new Date(1231006505000))).toBe('Jan 3, 2009')
     })
+
+    it('should work with string date', () => {
+      expect(formatDate('2024-03-28T11:51:36.000Z')).toBe('Mar 28, 2024')
+    })
   })
 })
