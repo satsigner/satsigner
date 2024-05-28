@@ -35,6 +35,12 @@ export default function SelectUtxoList() {
     [accountStore.currentAccount.utxos]
   )
 
+  function handleSelectAllUtxos() {
+    for (const utxo of accountStore.currentAccount.utxos) {
+      transactionBuilderStore.addInput(utxo)
+    }
+  }
+
   function sortUtxos(utxos: Utxo[]) {
     return utxos.sort((utxo1, utxo2) =>
       sortDirection === 'asc'
@@ -138,6 +144,7 @@ export default function SelectUtxoList() {
             textTransform: 'none',
             textDecorationLine: 'underline'
           }}
+          onPress={() => handleSelectAllUtxos()}
         />
         <SSHStack>
           <SSSortDirectionToggle

@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { Utxo } from '@/types/models/Utxo'
 
 type TransactionBuilderState = {
-  inputs: Utxo[]
+  inputs: Set<Utxo>
 }
 
 type TransactionBuilderAction = {
@@ -15,16 +15,18 @@ type TransactionBuilderAction = {
 const useTransactionBuilderStore = create<
   TransactionBuilderState & TransactionBuilderAction
 >()((set, get) => ({
-  inputs: [],
+  inputs: new Set(),
   hasInput: (utxo) => {
-    return get().inputs.includes(utxo)
+    return get().inputs.has(utxo)
   },
   addInput: (utxo) => {
-    set({ inputs: [...get().inputs, utxo] })
+    set({ inputs: new Set([...get().inputs, utxo]) })
   },
   removeInput: (utxo) => {
     set({
-      inputs: [...get().inputs.filter((currentUtxo) => currentUtxo !== utxo)]
+      inputs: new Set(
+        [...get().inputs].filter((currentUtxo) => currentUtxo !== utxo)
+      )
     })
   }
 }))
