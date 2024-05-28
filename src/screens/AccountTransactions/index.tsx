@@ -11,6 +11,7 @@ import { Typography, Colors, Layout } from '../../styles';
 import { SortDirection } from '../../enums/SortDirection';
 
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
+import { useBlockchainContext } from '../../components/accounts/BlockchainContext';
 import BackgroundGradient from '../../components/shared/BackgroundGradient';
 import { Sats } from '../../components/accounts/Sats';
 
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function AccountTransactionsScreen({ navigation }: Props) {
+  const blockchainContext = useBlockchainContext();
   const accountsContext = useAccountsContext();
   const { currentAccount } = accountsContext;
 
@@ -67,11 +69,11 @@ export default function AccountTransactionsScreen({ navigation }: Props) {
   async function refreshAccount() {
     const externalDescriptor = await new Descriptor().create(
       currentAccount.external_descriptor as string,
-      Network.Testnet
+      blockchainContext.network
     );
     const internalDescriptor = await new Descriptor().create(
       currentAccount.internal_descriptor as string,
-      Network.Testnet
+      blockchainContext.network
     );
 
     const wallet = await accountsContext.loadWalletFromDescriptor(

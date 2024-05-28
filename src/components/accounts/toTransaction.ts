@@ -2,14 +2,14 @@ import { LocalUtxo, TransactionDetails } from "bdk-rn/lib/classes/Bindings";
 
 import { Transaction, TransactionType } from "../../models/Transaction";
 import getAddress from "../shared/getAddress";
-import { Network } from "bdk-rn/lib/lib/enums";
+import { Network } from '../../enums/Network';
 
-export default async function toTransaction(txnDetails: TransactionDetails, utxos: LocalUtxo[]): Promise<Transaction> {
+export default async function toTransaction(txnDetails: TransactionDetails, utxos: LocalUtxo[], network: Network): Promise<Transaction> {
   const txnUtxos = getTransactionUtxos(txnDetails.txid, utxos);
   let address = '';
   const utxo = txnUtxos?.[0];
   if (utxo) {
-    address = await getAddress(utxo, Network.Testnet);
+    address = await getAddress(utxo, network);
   }
 
   return {

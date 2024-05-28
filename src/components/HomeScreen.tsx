@@ -6,8 +6,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Typography, Layout } from '../styles';
 import Button from './shared/Button';
 
-const BUTTON_TITLE = 'Account List';
-
 export default function HomeScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -18,8 +16,12 @@ export default function HomeScreen() {
       </View>
       <View style={styles.actions}>
         <Button
-          title={BUTTON_TITLE}
+          title="Account List"
           onPress={() => navigation.navigate('AccountList')}
+        />
+        <Button
+          title="Configure Blockchain"
+          onPress={() => navigation.navigate('ConfigBlockchain')}
         />
       </View>
     </View>

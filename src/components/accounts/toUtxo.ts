@@ -1,11 +1,11 @@
 import { LocalUtxo, TransactionDetails } from "bdk-rn/lib/classes/Bindings";
-import { Network } from "bdk-rn/lib/lib/enums";
+import { Network } from '../../enums/Network';
 
 import getAddress from "../shared/getAddress";
 import { Keychain, Utxo } from "../../models/Utxo";
 
-export default async function toUtxo(utxo: LocalUtxo, transactions: TransactionDetails[]): Promise<Utxo> {
-  const addressTo = await getAddress(utxo, Network.Testnet);
+export default async function toUtxo(utxo: LocalUtxo, transactions: TransactionDetails[], network: Network): Promise<Utxo> {
+  const addressTo = await getAddress(utxo, network);
   const txid = utxo?.outpoint.txid;
   const txnDetails = getTransaction(txid, transactions);
 

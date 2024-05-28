@@ -9,4 +9,5 @@ type RootStackParamList = {
   ImportSeed: undefined;
   GenerateSeed: undefined;
   ConfirmWord: undefined;
+  ConfigBlockchain: undefined;
 };

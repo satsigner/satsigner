@@ -22,8 +22,12 @@ export default function CheckboxGroup(props: any) {
     };
   });
 
+  const initialIndex = props.values.findIndex((value: string) => value === props.initialValue);
+  const initialValue = '' + initialIndex;
+
   return (
     <BouncyCheckboxGroup
+      initial={initialValue}
       data={data}
       style={{ flexDirection: "column" }}
       onChange={(selectedItem: ICheckboxButton) => {

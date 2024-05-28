@@ -3,20 +3,16 @@ import React from 'react';
 import {
   DescriptorSecretKey,
   Mnemonic,
-  Blockchain,
   Wallet,
   DatabaseConfig,
   Descriptor
 } from 'bdk-rn';
 
 import {
-  Network,
   KeychainKind,
   AddressIndex,
-  WordCount
+  WordCount,
 } from 'bdk-rn/lib/lib/enums';
-
-import { blockchainElectrumConfig } from '../../config';
 
 import { Storage } from '../shared/storage';
 import { AccountsContext } from "./AccountsContext";
@@ -26,8 +22,11 @@ import { SeedWordCount } from '../../enums/SeedWordCount';
 import { ScriptVersion } from '../../enums/ScriptVersion';
 import toTransaction from './toTransaction';
 import toUtxo from './toUtxo';
+import { useBlockchainContext } from './BlockchainContext';
 
 export const AccountsProvider = ({ children }) => {
+
+  const blockchainContext = useBlockchainContext();
 
   const [storage, setStorage] = React.useState<Storage>(new Storage());
   
@@ -51,7 +50,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const getBlockchainHeight = async(): Promise<number> => {
-    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    const blockchain = await blockchainContext.getBlockchain();
     return await blockchain.getHeight();
   };
 
@@ -59,11 +58,11 @@ export const AccountsProvider = ({ children }) => {
     try {
       const mnemonic = await new Mnemonic().fromString(mnemonicString);
       const descriptorSecretKey = await new DescriptorSecretKey().create(
-        Network.Testnet,
+        blockchainContext.network,
         mnemonic,
         passphrase
       );
-      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, Network.Testnet);
+      const descriptor = await new Descriptor().newBip84(descriptorSecretKey, KeychainKind.External, blockchainContext.network);
       const descriptorString = await descriptor.asString();
       
       const { fingerprint } = parseDescriptor(descriptorString);
@@ -100,18 +99,18 @@ export const AccountsProvider = ({ children }) => {
   ): Promise<Descriptor> => {
     const mnemonic = await new Mnemonic().fromString(mnemonicString);
     const descriptorSecretKey = await new DescriptorSecretKey().create(
-      Network.Testnet,
+      blockchainContext.network,
       mnemonic,
       passphrase
     );
 
     switch (scriptVersion) {
       case ScriptVersion.P2PKH:
-        return await new Descriptor().newBip44(descriptorSecretKey, kind, Network.Testnet);
+        return await new Descriptor().newBip44(descriptorSecretKey, kind, blockchainContext.network);
       case ScriptVersion.P2SH_P2WPKH:
-        return await new Descriptor().newBip49(descriptorSecretKey, kind, Network.Testnet);
+        return await new Descriptor().newBip49(descriptorSecretKey, kind, blockchainContext.network);
       case ScriptVersion.P2WPKH:
-        return await new Descriptor().newBip84(descriptorSecretKey, kind, Network.Testnet);
+        return await new Descriptor().newBip84(descriptorSecretKey, kind, blockchainContext.network);
       case ScriptVersion.P2TR:
         throw new Error('Not implemented');
     }
@@ -152,7 +151,7 @@ export const AccountsProvider = ({ children }) => {
     const wallet = await new Wallet().create(
       externalDescriptor,
       internalDescriptor,
-      Network.Testnet,
+      blockchainContext.network,
       dbConfig
     );
 
@@ -160,7 +159,7 @@ export const AccountsProvider = ({ children }) => {
   };
 
   const syncWallet = async(wallet: Wallet): Promise<void> => {
-    const blockchain = await new Blockchain().create(blockchainElectrumConfig);
+    const blockchain = await blockchainContext.getBlockchain();
     await wallet.sync(blockchain);
   };
 
@@ -201,13 +200,13 @@ export const AccountsProvider = ({ children }) => {
   
       account.transactions = await Promise.all(
         (transactions || []).map(
-          txnDetails => toTransaction(txnDetails, utxos)
+          txnDetails => toTransaction(txnDetails, utxos, blockchainContext.network)
         )
       );
   
       account.utxos = await Promise.all(
         (utxos || []).map(
-          localUtxo => toUtxo(localUtxo, transactions)
+          localUtxo => toUtxo(localUtxo, transactions, blockchainContext.network)
         )
       );
     } else {
