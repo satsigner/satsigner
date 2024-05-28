@@ -2,29 +2,33 @@
 // Hence, the Canvas is not nested inside the GestureHandler
 // https://shopify.github.io/react-native-skia/docs/animations/gestures#element-tracking
 
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
+import { useHeaderHeight } from '@react-navigation/elements';
 import { NavigationProp } from '@react-navigation/native';
-
 import { Canvas } from '@shopify/react-native-skia';
 import { hierarchy, pack } from 'd3';
 import React, { useEffect, useMemo, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAccountsContext } from '../../components/accounts/AccountsContext';
+import SelectedUtxosHeader from '../../components/accounts/SelectedUtxosHeader';
 import { Utxo } from '../../models/Utxo';
 import { Layout } from '../../styles';
+import navUtils from '../../utils/NavUtils';
 import { BubblePacking } from './components/BubblePacking';
 import { GestureHandler } from './components/GestureHandler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useZoomGesture } from './hooks/useZoomGesture';
-import navUtils from '../../utils/NavUtils';
-import { useHeaderHeight } from '@react-navigation/elements';
+import { useGestures } from './hooks/useGestures';
+import { useLayout } from './hooks/useLayout';
+import { useTransactionBuilderContext } from '../../components/accounts/TransactionBuilderContext';
+
 interface Props {
   navigation: NavigationProp<any>;
 }
 
-export const outpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
+export const getOutpoint = (u: Utxo) => `${u.txid}:${u.vout}`;
 
-export interface UtxoListBubble {
+export interface UtxoListBubble extends Partial<Utxo> {
   id: string;
   value: number;
   children: UtxoListBubble[];
@@ -41,13 +45,19 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT };
 
-  const { utxos } = accountsContext.currentAccount;
+  const currentAccount = accountsContext.currentAccount;
 
-  const utxoList = utxos.map(data => {
+  const utxoList = currentAccount?.utxos.map(data => {
     return {
-      id: outpoint(data),
+      id: getOutpoint(data),
       children: [],
-      value: data.value
+      value: data.value,
+      timestamp: data.timestamp,
+      txid: data.txid,
+      vout: data.vout,
+      label: data.label || '',
+      addressTo: data.addressTo || '',
+      keychain: data.keychain
     };
   });
 
@@ -68,19 +78,20 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
     return createPack(utxoHierarchy()).leaves();
   }, [utxoList]);
 
-  const {
-    zoomGesture,
-    onLayout,
-    onLayoutContent,
-    transform,
-    contentContainerAnimatedStyle
-  } = useZoomGesture({
-    doubleTapConfig: {
-      defaultScale: 2
-    }
+  const { width: w, height: h, center, onCanvasLayout } = useLayout();
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    maxScale: 1000,
+    minScale: 0.1
   });
 
-  const [selectedCircle, setSelectedCircle] = useState<string[]>([]);
+  const txnBuilderContext = useTransactionBuilderContext();
+  const inputs = txnBuilderContext.getInputs();
 
   useEffect(() => {
     navUtils.setHeaderTitle(accountsContext.currentAccount.name, navigation);
@@ -88,30 +99,45 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container]} onLayout={onLayout}>
-        <Canvas
+      <View style={[styles.container]}>
+        <LinearGradient
           style={{
-            ...canvasSize,
-            justifyContent: 'center',
-            alignItems: 'center',
-            flex: 1
+            ...Layout.container.topPadded,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            width: '100%'
           }}
-          onLayout={onLayoutContent}>
+          locations={[0.185, 0.5554, 0.7713, 1]}
+          colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}>
+          <SelectedUtxosHeader
+            toggleScreenAction={'list'}
+            navigation={navigation}
+          />
+        </LinearGradient>
+        <Canvas
+          style={[
+            {
+              ...canvasSize
+            }
+          ]}
+          onLayout={onCanvasLayout}>
           <BubblePacking
             transform={transform}
-            selectedCircle={selectedCircle}
             utxoPack={utxoPack}
             canvasSize={canvasSize}
+            inputs={inputs}
           />
         </Canvas>
+
         <GestureHandler
-          contentContainerAnimatedStyle={contentContainerAnimatedStyle}
+          contentContainerAnimatedStyle={animatedStyle}
           canvasSize={canvasSize}
-          onLayoutContent={onLayoutContent}
-          selectedCircle={selectedCircle}
-          setSelectedCircle={setSelectedCircle}
+          onLayoutContent={onCanvasLayout}
           bubblePack={utxoPack}
-          zoomGesture={zoomGesture}
+          zoomGesture={gestures}
         />
       </View>
     </GestureHandlerRootView>

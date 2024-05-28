@@ -1,5 +1,5 @@
-import { HierarchyCircularNode, text } from 'd3';
-import React from 'react';
+import { HierarchyCircularNode } from 'd3';
+import React, { useCallback } from 'react';
 import {
   GestureResponderEvent,
   LayoutChangeEvent,
@@ -13,13 +13,15 @@ import Animated from 'react-native-reanimated';
 import { DefaultStyle } from 'react-native-reanimated/lib/typescript/reanimated2/hook/commonTypes';
 import { UtxoListBubble } from '..';
 import { Colors } from '../../../styles';
+import notImplementedAlert from '../../../components/shared/NotImplementedAlert';
+import { useTransactionBuilderContext } from '../../../components/accounts/TransactionBuilderContext';
+import Button from '../../../components/shared/Button';
+import { Utxo } from '../../../models/Utxo';
 
 interface GestureHandlerProps {
   debug?: boolean;
   bubblePack: HierarchyCircularNode<UtxoListBubble>[];
-  selectedCircle: string[];
   zoomGesture: ComposedGesture;
-  setSelectedCircle: (selectedCircle: string[]) => void;
   onLayoutContent: (e: LayoutChangeEvent) => void;
   canvasSize: { width: number; height: number };
   contentContainerAnimatedStyle: DefaultStyle;
@@ -29,15 +31,27 @@ export const GestureHandler = ({
   debug,
   canvasSize,
   bubblePack,
-  setSelectedCircle,
-  selectedCircle,
   zoomGesture,
   onLayoutContent,
   contentContainerAnimatedStyle
 }: GestureHandlerProps) => {
+  const txnBuilderContext = useTransactionBuilderContext();
+
+  const hasSelectedUtxos = txnBuilderContext.getInputs().length > 0;
+
+  const toggleSelected = useCallback(
+    (utxo: Utxo): void => {
+      const txnHasInput = txnBuilderContext.hasInput(utxo);
+
+      txnHasInput
+        ? txnBuilderContext.removeInput(utxo)
+        : txnBuilderContext.addInput(utxo);
+    },
+    [txnBuilderContext]
+  );
+
   const onPressCircle =
-    (selectedId: string, r: number, x: number, y: number) =>
-    (event: GestureResponderEvent) => {
+    (r: number, utxo: Utxo) => (event: GestureResponderEvent) => {
       const circleCenterX = r;
       const circleCenterY = r;
       const touchPointX = event.nativeEvent.locationX;
@@ -48,12 +62,7 @@ export const GestureHandler = ({
       );
       // register a tap only when the tap is inside the circle
       if (distance <= r) {
-        if (selectedCircle.includes(selectedId)) {
-          return setSelectedCircle(
-            selectedCircle.filter(id => id !== selectedId)
-          );
-        }
-        setSelectedCircle([...selectedCircle, selectedId]);
+        toggleSelected(utxo);
       }
     };
 
@@ -63,8 +72,7 @@ export const GestureHandler = ({
         <Animated.View
           style={[
             {
-              ...canvasSize,
-              position: 'absolute'
+              ...canvasSize
             },
             contentContainerAnimatedStyle
           ]}
@@ -87,7 +95,15 @@ export const GestureHandler = ({
                   borderRadius: r,
                   overflow: 'hidden'
                 }}
-                onPress={onPressCircle(data.id, r, x, y)}>
+                onPress={onPressCircle(r, {
+                  txid: data.txid!,
+                  vout: data.vout!,
+                  keychain: data.keychain!,
+                  addressTo: data.addressTo,
+                  label: data.label,
+                  timestamp: data.timestamp,
+                  value: data.value
+                })}>
                 <Animated.View />
               </Pressable>
             );
@@ -101,9 +117,15 @@ export const GestureHandler = ({
             <Text style={styles.secondaryText}>SELECT ALL</Text>
           </Pressable>
         </View>
-        <Pressable style={styles.button} onPress={() => {}}>
-          <Text style={styles.text}>ADD AS INPUTS TO MESSAGE</Text>
-        </Pressable>
+        <View style={styles.submitContainer}>
+          <Button
+            title="Add As Inputs To Message"
+            style={
+              hasSelectedUtxos ? styles.submitEnabled : styles.submitDisabled
+            }
+            disabled={!hasSelectedUtxos}
+            onPress={notImplementedAlert}></Button>
+        </View>
       </View>
     </GestureDetector>
   );
@@ -156,5 +178,22 @@ const styles = StyleSheet.create({
     marginRight: 30,
     marginLeft: 30,
     color: Colors.grey19
+  },
+  submitEnabled: {
+    width: '92%',
+    backgroundColor: Colors.defaultActionBackground,
+    color: Colors.defaultActionText
+  },
+  submitDisabled: {
+    width: '92%',
+    backgroundColor: Colors.disabledActionBackground,
+    color: Colors.disabledActionText
+  },
+  submitContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    position: 'absolute',
+    bottom: 20,
+    width: '100%'
   }
 });
