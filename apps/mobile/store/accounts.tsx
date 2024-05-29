@@ -117,7 +117,7 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
       }
     }),
     {
-      name: 'satsigner',
+      name: 'satsigner-accounts',
       storage: createJSONStorage(() => mmkvStorage)
     }
   )

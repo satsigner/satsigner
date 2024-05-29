@@ -41,6 +41,10 @@ export default function App() {
           loading={deletingAccounts}
           onPress={() => handleDeleteAccount()}
         />
+        <SSButton
+          label="Configure Blockchain"
+          onPress={() => router.navigate('/settings/configureBlockchain')}
+        />
       </SSVStack>
     </SSMainLayout>
   )
