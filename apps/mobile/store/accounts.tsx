@@ -10,8 +10,11 @@ import {
   syncWallet,
   validateMnemonic
 } from '@/api/bdk'
+import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+
+import { useBlockchainStore } from './blockchain'
 
 type AccountsState = {
   accounts: Account[]
@@ -94,7 +97,9 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
         return wallet
       },
       syncWallet: async (wallet) => {
-        await syncWallet(wallet)
+        const { backend, url } = useBlockchainStore.getState()
+
+        await syncWallet(wallet, backend, getBlockchainConfig(backend, url))
       },
       getPopulatedAccount: async (wallet, account) => {
         const { transactions, utxos, summary } = await getWalletData(wallet)

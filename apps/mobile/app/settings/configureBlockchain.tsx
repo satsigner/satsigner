@@ -64,7 +64,7 @@ export default function ConfigureBlockchain() {
             </SSVStack>
             <SSVStack>
               <SSText uppercase>Url</SSText>
-              <SSTextInput onChangeText={(url) => setUrl(url)} />
+              <SSTextInput value={url} onChangeText={(url) => setUrl(url)} />
             </SSVStack>
           </SSVStack>
         </ScrollView>
