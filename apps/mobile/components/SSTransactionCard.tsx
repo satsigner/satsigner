@@ -5,7 +5,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
-import { formatAddress } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
 
@@ -37,9 +37,11 @@ export default function SSTransactionCard({
           <SSText color="muted">11:51am - Mar 28, 2024</SSText>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl">
-              {transaction.type === 'receive'
-                ? transaction.received
-                : -transaction.sent}
+              {formatNumber(
+                transaction.type === 'receive'
+                  ? transaction.received
+                  : -transaction.sent
+              )}
             </SSText>
             <SSText color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}

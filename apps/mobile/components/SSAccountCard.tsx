@@ -6,6 +6,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
+import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
 
@@ -30,7 +31,7 @@ export default function SSAccountCard({
           </SSText>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" color="white">
-              {account.summary.balance}
+              {formatNumber(account.summary.balance)}
             </SSText>
             <SSText size="xl" color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}
@@ -44,7 +45,9 @@ export default function SSAccountCard({
           </SSHStack>
           <SSHStack>
             <SSVStack gap="xxs">
-              <SSText color="white">{account.summary.numberOfAddresses}</SSText>
+              <SSText color="white">
+                {formatNumber(account.summary.numberOfAddresses)}
+              </SSText>
               <SSText size="xs" color="muted">
                 {i18n.t('accountList.childAccounts.0')}
                 {'\n'}
@@ -53,7 +56,7 @@ export default function SSAccountCard({
             </SSVStack>
             <SSVStack gap="xxs">
               <SSText color="white">
-                {account.summary.numberOfTransactions}
+                {formatNumber(account.summary.numberOfTransactions)}
               </SSText>
               <SSText size="xs" color="muted">
                 {i18n.t('accountList.totalTransactions.0')}
@@ -62,7 +65,9 @@ export default function SSAccountCard({
               </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
-              <SSText color="white">{account.summary.numberOfUtxos}</SSText>
+              <SSText color="white">
+                {formatNumber(account.summary.numberOfUtxos)}
+              </SSText>
               <SSText size="xs" color="muted">
                 {i18n.t('accountList.spendableOutputs.0')}
                 {'\n'}
@@ -70,7 +75,9 @@ export default function SSAccountCard({
               </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
-              <SSText color="white">{account.summary.satsInMempool}</SSText>
+              <SSText color="white">
+                {formatNumber(account.summary.satsInMempool)}
+              </SSText>
               <SSText size="xs" color="muted">
                 {i18n.t('accountList.satsInMempool.0')}
                 {'\n'}
