@@ -8,12 +8,19 @@ import {
   Wallet
 } from 'bdk-rn'
 import { LocalUtxo, TransactionDetails } from 'bdk-rn/lib/classes/Bindings'
-import { AddressIndex, KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
+import {
+  AddressIndex,
+  BlockchainElectrumConfig,
+  BlockchainEsploraConfig,
+  BlockChainNames,
+  KeychainKind,
+  Network
+} from 'bdk-rn/lib/lib/enums'
 
-import { electrumBlockstream } from '@/config/servers'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { Backend } from '@/types/settings/blockchain'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
@@ -132,8 +139,23 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
-async function syncWallet(wallet: Wallet) {
-  const blockchain = await new Blockchain().create(electrumBlockstream) // TODO: change
+async function getBlockchain(
+  backend: Backend,
+  config: BlockchainElectrumConfig | BlockchainEsploraConfig
+) {
+  const blockchainName: BlockChainNames =
+    backend === 'electrum' ? BlockChainNames.Electrum : BlockChainNames.Esplora
+
+  const blockchain = await new Blockchain().create(config, blockchainName)
+  return blockchain
+}
+
+async function syncWallet(
+  wallet: Wallet,
+  backend: Backend,
+  blockchainConfig: BlockchainElectrumConfig | BlockchainEsploraConfig
+) {
+  const blockchain = await getBlockchain(backend, blockchainConfig)
   await wallet.sync(blockchain)
 }
 
@@ -245,6 +267,7 @@ async function getWalletData(
 
 export {
   generateMnemonic,
+  getBlockchain,
   getDescriptor,
   getFingerprint,
   getWalletData,
