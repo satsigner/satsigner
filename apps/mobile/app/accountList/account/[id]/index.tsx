@@ -33,8 +33,8 @@ export default function Account() {
         }}
       />
       <SSBackgroundGradient orientation="horizontal">
-        <SSVStack itemsCenter>
-          <SSVStack itemsCenter gap="none">
+        <SSVStack itemsCenter gap="none">
+          <SSVStack itemsCenter gap="none" style={{ paddingVertical: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
                 3000
@@ -86,34 +86,42 @@ export default function Account() {
             </SSHStack>
             <SSSeparator color="gradient" />
           </SSVStack>
-          <SSHStack>
-            <SSVStack>
-              <SSText center>3</SSText>
-              <SSText center>
+          <SSHStack style={{ paddingVertical: 12 }}>
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                3
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.totalTransactions.0')}
                 {'\n'}
                 {i18n.t('accountList.totalTransactions.1')}
               </SSText>
             </SSVStack>
-            <SSVStack>
-              <SSText center>4</SSText>
-              <SSText center>
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                4
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.childAccounts.0')}
                 {'\n'}
                 {i18n.t('accountList.childAccounts.1')}
               </SSText>
             </SSVStack>
-            <SSVStack>
-              <SSText center>3</SSText>
-              <SSText center>
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                3
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.spendableOutputs.0')}
                 {'\n'}
                 {i18n.t('accountList.spendableOutputs.1')}
               </SSText>
             </SSVStack>
-            <SSVStack>
-              <SSText center>0</SSText>
-              <SSText center>
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                0
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.satsInMempool.0')}
                 {'\n'}
                 {i18n.t('accountList.satsInMempool.1')}
