@@ -6,9 +6,14 @@ import {
 } from '@shopify/react-native-skia';
 import React from 'react';
 import { Platform } from 'react-native';
-import { useDerivedValue, withTiming } from 'react-native-reanimated';
+import {
+  SharedValue,
+  useDerivedValue,
+  withTiming
+} from 'react-native-reanimated';
 import { Utxo } from '../../../models/Utxo';
 import { Colors } from '../../../styles';
+import formatAddress from '../../../utils/formatAddress';
 
 interface BubbleProps {
   data: Utxo;
@@ -16,9 +21,17 @@ interface BubbleProps {
   y: number;
   radius: number;
   isSelected: boolean;
+  descriptionOpacity: Readonly<SharedValue<0 | 1>>;
 }
 
-export const Bubble = ({ data, x, y, radius, isSelected }: BubbleProps) => {
+export const Bubble = ({
+  data,
+  x,
+  y,
+  radius,
+  isSelected,
+  descriptionOpacity
+}: BubbleProps) => {
   const bgColor = useDerivedValue(() => {
     if (isSelected) {
       return withTiming(Colors.white);
@@ -40,23 +53,64 @@ export const Bubble = ({ data, x, y, radius, isSelected }: BubbleProps) => {
     fontSize
   );
 
-  const text = data.value.toLocaleString() + ' sats';
+  const descriptionLightFont = useFont(
+    require('../../../assets/fonts/SF-Pro-Display-Light.otf'),
+    fontSize / 2.85
+  );
 
+  const text = data.value.toLocaleString() + ' sats';
+  const dateText = new Date(data?.timestamp || '').toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  const memoText = `memo ${data.label || '-'}`;
+  const fromText = `from ${formatAddress(data.addressTo || '')}`;
+
+  let platformOffset = Platform.OS === 'ios' ? 1.5 : 0.5;
   // center the text inside the circle horizontally
   const getX = () => {
     const textDimensions = isSelected
       ? selectedFont?.measureText(data?.value ? text : '')
       : font?.measureText(data?.value ? text : '');
 
-    let platformOffset = Platform.OS === 'ios' ? 1.5 : 0.5;
-
     return x - (textDimensions?.width || 0) / 2 + platformOffset;
+  };
+
+  const dateDimensions = descriptionLightFont?.measureText(dateText);
+  const memoDimensions = descriptionLightFont?.measureText(memoText);
+  const fromDimensions = descriptionLightFont?.measureText(fromText);
+
+  const getXDate = () => {
+    return x - (dateDimensions?.width || 0) / 2 + platformOffset;
+  };
+
+  const getXMemo = () => {
+    return x - (memoDimensions?.width || 0) / 2 + platformOffset;
+  };
+
+  const getXFrom = () => {
+    return x - (fromDimensions?.width || 0) / 2 + platformOffset;
   };
 
   // center the text inside the circle vertically
   const getY = () => {
     // "/3" is just to make the text align properly in smaller Circle
     return y + (font?.getSize() || 0) / 3;
+  };
+
+  const spacingY = (descriptionLightFont?.getSize() || 0) * 4;
+
+  const getYDate = () => {
+    return getY() - spacingY;
+  };
+
+  const getYMemo = () => {
+    return getY() + spacingY / 1.5;
+  };
+
+  const getYFrom = () => {
+    return getY() + spacingY * 1.2;
   };
 
   if (!font) {
@@ -73,16 +127,51 @@ export const Bubble = ({ data, x, y, radius, isSelected }: BubbleProps) => {
         style="fill"
       />
       {data.value && font && (
-        <SkiaText
-          text={text}
-          x={getX()}
-          y={getY()}
-          font={isSelected ? selectedFont : font}
-          style={'fill'}
-          color={'#000000'}
-          strokeWidth={1}
-          antiAlias={true}
-        />
+        <Group>
+          <SkiaText
+            text={dateText}
+            x={getXDate()}
+            y={getYDate()}
+            font={descriptionLightFont}
+            style={'fill'}
+            color={Colors.grey51}
+            strokeWidth={1}
+            opacity={descriptionOpacity}
+            antiAlias={true}
+          />
+          <SkiaText
+            text={text}
+            x={getX()}
+            y={getY()}
+            font={isSelected ? selectedFont : font}
+            style={'fill'}
+            color={Colors.black}
+            strokeWidth={1}
+            antiAlias={true}
+          />
+          <SkiaText
+            text={memoText}
+            x={getXMemo()}
+            y={getYMemo()}
+            font={descriptionLightFont}
+            style={'fill'}
+            color={Colors.grey51}
+            opacity={descriptionOpacity}
+            strokeWidth={1}
+            antiAlias={true}
+          />
+          <SkiaText
+            text={fromText}
+            x={getXFrom()}
+            y={getYFrom()}
+            font={descriptionLightFont}
+            style={'fill'}
+            color={Colors.grey51}
+            opacity={descriptionOpacity}
+            strokeWidth={1}
+            antiAlias={true}
+          />
+        </Group>
       )}
     </Group>
   );

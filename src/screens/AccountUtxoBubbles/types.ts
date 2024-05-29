@@ -34,11 +34,7 @@ export enum ZOOM_TYPE {
   ZOOM_OUT = 'ZOOM_OUT'
 }
 
-export type OnDoubleTapCallback = (
-  zoomType: ZOOM_TYPE,
-  { x, y }: { x?: number; y?: number },
-  descriptionVisible?: SharedValue<string[]>
-) => void;
+export type OnDoubleTapCallback = (zoomType: ZOOM_TYPE) => void;
 
 export enum ANIMATION_VALUE {
   SCALE = 'SCALE',

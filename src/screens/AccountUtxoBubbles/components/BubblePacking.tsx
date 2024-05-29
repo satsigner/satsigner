@@ -11,13 +11,15 @@ interface BubblePackingProps {
   utxoPack: HierarchyCircularNode<UtxoListBubble>[];
   canvasSize: { width: number; height: number };
   inputs: Utxo[];
+  descriptionOpacity: Readonly<SharedValue<0 | 1>>;
 }
 
 export const BubblePacking = ({
   utxoPack,
   transform,
   canvasSize,
-  inputs
+  inputs,
+  descriptionOpacity
 }: BubblePackingProps) => {
   const centerX = canvasSize.width / 2;
   const centerY = canvasSize.height / 2;
@@ -47,6 +49,7 @@ export const BubblePacking = ({
             y={y}
             radius={radius}
             isSelected={isSelected}
+            descriptionOpacity={descriptionOpacity}
           />
         );
       })}
