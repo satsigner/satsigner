@@ -187,7 +187,11 @@ export default function SelectUtxoList() {
         </ScrollView>
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
-        <SSButton label="Add as inputs to message" variant="secondary" />
+        <SSButton
+          label="Add as inputs to message"
+          variant="secondary"
+          disabled={transactionBuilderStore.inputs.size === 0}
+        />
       </SSMainLayout>
     </>
   )
