@@ -7,7 +7,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
-import { formatAddress, formatDate } from '@/utils/format'
+import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
@@ -60,7 +60,7 @@ export default function SSUtxoItem({
             <SSVStack gap="xs">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="white">
-                  3000
+                  {formatNumber(utxo.value)}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}

@@ -13,6 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { formatNumber } from '@/utils/format'
 
 type AccountSearchParams = {
   id: string
@@ -37,7 +38,7 @@ export default function Account() {
           <SSVStack itemsCenter gap="none" style={{ paddingVertical: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
-                3000
+                {formatNumber(accountStore.currentAccount.summary.balance)}
               </SSText>
               <SSText size="xl" color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
