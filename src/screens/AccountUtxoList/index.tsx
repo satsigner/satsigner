@@ -62,7 +62,7 @@ export default function AccountUtxoListScreen({ navigation }: Props) {
           title="Add As Inputs To Message"
           style={ hasSelectedUtxos ? styles.submitEnabled : styles.submitDisabled }
           disabled={! hasSelectedUtxos}
-          onPress={notImplementedAlert}
+          onPress={() => navigation.navigate('InputsOutputsPreview')}
         ></Button>
       </View>
     </View>

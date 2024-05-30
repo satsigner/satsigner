@@ -15,6 +15,7 @@ import GenerateSeedScreen from './components/accounts/GenerateSeedScreen';
 import AccountListScreen from './components/accounts/AccountListScreen';
 import AccountTransactionsScreen from './screens/AccountTransactions';
 import AccountUtxoBubblesScreen from './screens/AccountUtxoBubbles';
+import InputsOutputsPreviewScreen from './screens/InputsOutputsPreview';
 import ConfirmWordScreen from './components/accounts/ConfirmWordScreen';
 import AccountUtxoListScreen from './screens/AccountUtxoList';
 import ConfigBlockchainScreen from './screens/ConfigBlockchain';
@@ -87,6 +88,11 @@ export default function App() {
                   <Stack.Screen
                     name="AccountUtxoList"
                     component={AccountUtxoListScreen}
+                    options={NavUtils.getHeaderOptions(APP_TITLE)}
+                  />
+                  <Stack.Screen
+                    name="InputsOutputsPreview"
+                    component={InputsOutputsPreviewScreen}
                     options={NavUtils.getHeaderOptions(APP_TITLE)}
                   />
                   <Stack.Screen
