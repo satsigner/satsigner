@@ -66,6 +66,11 @@ export default function SelectUtxoList() {
     )
   }
 
+  function handleOnDirectionChanged(field: SortField, direction: Direction) {
+    setSortField(field)
+    setSortDirection(direction)
+  }
+
   function handleOnToggleSelected(utxo: Utxo) {
     const includesInput = transactionBuilderStore.hasInput(utxo)
 
@@ -161,14 +166,20 @@ export default function SelectUtxoList() {
           }}
           onPress={() => handleSelectAllUtxos()}
         />
-        <SSHStack>
+        <SSHStack gap="sm">
           <SSSortDirectionToggle
             label={i18n.t('common.date')}
-            onDirectionChanged={() => {}}
+            showArrow={sortField === 'date'}
+            onDirectionChanged={(direction) =>
+              handleOnDirectionChanged('date', direction)
+            }
           />
           <SSSortDirectionToggle
             label={i18n.t('common.amount')}
-            onDirectionChanged={() => {}}
+            showArrow={sortField === 'amount'}
+            onDirectionChanged={(direction) =>
+              handleOnDirectionChanged('amount', direction)
+            }
           />
         </SSHStack>
       </SSHStack>
