@@ -130,8 +130,8 @@ export default function Account() {
           </SSHStack>
         </SSVStack>
       </SSBackgroundGradient>
-      <SSMainLayout>
-        <SSHStack justifyBetween>
+      <SSMainLayout style={{ paddingTop: 0 }}>
+        <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
           <Image
             style={{ width: 18, height: 22 }}
             source={require('@/assets/icons/refresh.svg')}
@@ -145,9 +145,9 @@ export default function Account() {
           />
         </SSHStack>
         <ScrollView>
-          <SSVStack style={{ marginTop: 16 }}>
+          <SSVStack>
             {accountStore.currentAccount.transactions.map((transaction) => (
-              <SSVStack key={transaction.id}>
+              <SSVStack gap="xs" key={transaction.id}>
                 <SSSeparator
                   key={`separator-${transaction.id}`}
                   color="grayDark"

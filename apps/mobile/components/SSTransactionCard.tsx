@@ -90,7 +90,14 @@ export default function SSTransactionCard({
             {getConfirmationsText()}
           </SSText>
           <SSVStack gap="xs">
-            <SSText size="md" style={{ textAlign: 'right' }} numberOfLines={1}>
+            <SSText
+              size="md"
+              style={[
+                { textAlign: 'right' },
+                !transaction.memo && { color: Colors.gray[100] }
+              ]}
+              numberOfLines={1}
+            >
               {transaction.memo || i18n.t('account.noMemo')}
             </SSText>
             <SSHStack gap="xs">
