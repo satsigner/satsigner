@@ -1,4 +1,5 @@
 import { Image } from 'expo-image'
+import { StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -18,8 +19,43 @@ export default function SSTransactionCard({
   transaction,
   blockHeight
 }: SSTransactionCardProps) {
+  const confirmations = transaction.blockHeight
+    ? blockHeight - transaction.blockHeight + 1
+    : 0
+
+  function getConfirmationsText() {
+    if (confirmations <= 0) return i18n.t('bitcoin.confirmations.unconfirmed')
+    else if (confirmations === 1)
+      return `1 ${i18n.t('bitcoin.confirmations.oneBlock').toLowerCase()}`
+    else if (confirmations < 6)
+      return `${confirmations} ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+    else if (confirmations < 10)
+      return `6+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+    else if (confirmations < 100)
+      return `10+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+    else if (confirmations < 1_000)
+      return `100+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+    else if (confirmations < 10_000)
+      return `1k+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+    else if (confirmations < 100_000)
+      return `10k+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+    else
+      return `100k ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
+  }
+
+  function getConfirmationsColor() {
+    if (confirmations <= 0) return styles.unconfirmed
+    else if (confirmations < 6) return styles.confirmedFew
+    else return styles.confirmedEnough
+  }
+
   return (
-    <SSHStack style={{ paddingVertical: 16, alignItems: 'flex-start' }}>
+    <SSHStack
+      style={{
+        paddingVertical: 16,
+        alignItems: 'flex-start'
+      }}
+    >
       {transaction.type === 'receive' && (
         <Image
           style={{ width: 19, height: 19 }}
@@ -32,7 +68,7 @@ export default function SSTransactionCard({
           source={require('@/assets/icons/outgoing.svg')}
         />
       )}
-      <SSHStack>
+      <SSHStack justifyBetween style={{ flex: 1 }}>
         <SSVStack gap="xs">
           <SSText color="muted">11:51am - Mar 28, 2024</SSText>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
@@ -50,7 +86,9 @@ export default function SSTransactionCard({
           <SSText style={{ color: Colors.gray[400] }}>0.73 USD</SSText>
         </SSVStack>
         <SSVStack>
-          <SSText style={{ textAlign: 'right' }}>1k+ blocks deep</SSText>
+          <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
+            {getConfirmationsText()}
+          </SSText>
           <SSVStack gap="xs">
             <SSText size="md" style={{ textAlign: 'right' }} numberOfLines={1}>
               {transaction.memo || i18n.t('account.noMemo')}
@@ -65,3 +103,15 @@ export default function SSTransactionCard({
     </SSHStack>
   )
 }
+
+const styles = StyleSheet.create({
+  unconfirmed: {
+    color: Colors.white
+  },
+  confirmedFew: {
+    color: Colors.warning
+  },
+  confirmedEnough: {
+    color: Colors.success
+  }
+})

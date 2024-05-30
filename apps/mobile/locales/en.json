@@ -38,7 +38,12 @@
       "notYourKeys": "Not your keys",
       "notYourCoins": "Not your coins",
       "sats": "Sats",
-      "memo": "Memo"
+      "memo": "Memo",
+      "confirmations": {
+        "unconfirmed": "Unconfirmed",
+        "oneBlock": "Block deep",
+        "manyBlocks": "Blocks deep"
+      }
     },
     "accountList": {
       "noKeysYet": "No keys yet",
