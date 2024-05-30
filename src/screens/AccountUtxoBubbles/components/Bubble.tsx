@@ -41,7 +41,7 @@ export const Bubble = ({
   });
 
   // size of font relative to the radius of the circle
-  const fontSize = radius / 6;
+  const fontSize = radius / 5;
 
   const font = useFont(
     require('../../../assets/fonts/SF-Pro-Display-Light.otf'),
