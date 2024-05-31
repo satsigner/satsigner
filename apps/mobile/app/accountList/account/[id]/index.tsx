@@ -1,10 +1,12 @@
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSSeparator from '@/components/SSSeparator'
+import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSHStack from '@/layouts/SSHStack'
@@ -14,14 +16,27 @@ import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { type Direction } from '@/types/logic/sort'
+import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { compareTimestamp } from '@/utils/sort'
 
 export default function Account() {
   const accountStore = useAccountStore()
   const priceStore = usePriceStore()
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+
+  const [sortDirection, setSortDirection] = useState<Direction>('desc')
+
+  function sortTransactions(transactions: Transaction[]) {
+    return transactions.sort((transaction1, transaction2) =>
+      sortDirection === 'asc'
+        ? compareTimestamp(transaction1.timestamp, transaction2.timestamp)
+        : compareTimestamp(transaction2.timestamp, transaction1.timestamp)
+    )
+  }
 
   return (
     <>
@@ -146,14 +161,15 @@ export default function Account() {
           <SSText color="muted">
             {i18n.t('account.parentAccountActivity')}
           </SSText>
-          <Image
-            style={{ width: 11.6, height: 6 }}
-            source={require('@/assets/icons/chevron-down.svg')}
+          <SSSortDirectionToggle
+            onDirectionChanged={(direction) => setSortDirection(direction)}
           />
         </SSHStack>
         <ScrollView>
           <SSVStack>
-            {accountStore.currentAccount.transactions.map((transaction) => (
+            {sortTransactions([
+              ...accountStore.currentAccount.transactions
+            ]).map((transaction) => (
               <SSVStack gap="xs" key={transaction.id}>
                 <SSSeparator
                   key={`separator-${transaction.id}`}

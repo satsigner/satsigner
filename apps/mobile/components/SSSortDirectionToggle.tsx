@@ -28,7 +28,7 @@ export default function SSSortDirectionToggle({
 
   return (
     <TouchableOpacity
-      style={styles.buttonBase}
+      style={[styles.buttonBase, !label && { paddingVertical: 8 }]}
       activeOpacity={0.7}
       onPress={() => handleToggle()}
     >
