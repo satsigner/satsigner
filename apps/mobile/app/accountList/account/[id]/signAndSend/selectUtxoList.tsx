@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Platform, ScrollView, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
@@ -35,6 +35,8 @@ export default function SelectUtxoList() {
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')
+
+  const hasSelectedUtxos = transactionBuilderStore.inputs.size > 0
 
   const largestValue = useMemo(
     () =>
@@ -197,23 +199,36 @@ export default function SelectUtxoList() {
       </SSHStack>
       <View>
         <View style={styles.scrollBackgroundBase} />
-        <ScrollView>
-          {sortUtxos([...accountStore.currentAccount.utxos]).map((utxo) => (
-            <SSUtxoItem
-              key={`${utxo.txid}:${utxo.vout}`}
-              utxo={utxo}
-              selected={transactionBuilderStore.hasInput(utxo)}
-              onToggleSelected={handleOnToggleSelected}
-              largestValue={largestValue}
-            />
-          ))}
+        <ScrollView
+          contentContainerStyle={{
+            paddingBottom: Platform.OS === 'android' ? 356 : 286
+          }}
+        >
+          <View style={{ marginTop: 2 }}>
+            {sortUtxos([...accountStore.currentAccount.utxos]).map((utxo) => (
+              <SSUtxoItem
+                key={`${utxo.txid}:${utxo.vout}`}
+                utxo={utxo}
+                selected={transactionBuilderStore.hasInput(utxo)}
+                onToggleSelected={handleOnToggleSelected}
+                largestValue={largestValue}
+              />
+            ))}
+          </View>
         </ScrollView>
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
         <SSButton
           label="Add as inputs to message"
           variant="secondary"
-          disabled={transactionBuilderStore.inputs.size === 0}
+          disabled={!hasSelectedUtxos}
+          style={[
+            { width: '92%', opacity: 100 },
+            !hasSelectedUtxos && {
+              backgroundColor: Colors.gray[700]
+            }
+          ]}
+          textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
         />
       </SSMainLayout>
     </>
@@ -232,7 +247,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     width: '100%',
-    alignSelf: 'center',
-    backgroundColor: Colors.transparent
+    flexDirection: 'row',
+    justifyContent: 'center',
+    backgroundColor: Colors.transparent,
+    paddingHorizontal: 0,
+    paddingTop: 0
   }
 })
