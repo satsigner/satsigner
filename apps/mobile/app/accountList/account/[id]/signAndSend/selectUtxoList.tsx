@@ -167,7 +167,7 @@ export default function SelectUtxoList() {
       <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
         <SSButton
           variant="ghost"
-          label={`${i18n.t('common.selectAll').toUpperCase()} 3000 ${i18n.t('bitcoin.sats').toLowerCase()}`}
+          label={`${i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],
@@ -196,7 +196,7 @@ export default function SelectUtxoList() {
       <View>
         <View style={styles.scrollBackgroundBase} />
         <ScrollView>
-          {sortUtxos(accountStore.currentAccount.utxos).map((utxo) => (
+          {sortUtxos([...accountStore.currentAccount.utxos]).map((utxo) => (
             <SSUtxoItem
               key={`${utxo.txid}:${utxo.vout}`}
               utxo={utxo}
