@@ -13,11 +13,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
-
-type AccountSearchParams = {
-  id: string
-}
 
 export default function Account() {
   const accountStore = useAccountStore()

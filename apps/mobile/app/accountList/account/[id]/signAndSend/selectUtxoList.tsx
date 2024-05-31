@@ -1,5 +1,5 @@
 import { Image } from 'expo-image'
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
@@ -18,14 +18,18 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
 
 type SortField = 'date' | 'amount'
 
 export default function SelectUtxoList() {
+  const router = useRouter()
   const accountStore = useAccountStore()
   const transactionBuilderStore = useTransactionBuilderStore()
+
+  const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')
@@ -94,7 +98,13 @@ export default function SelectUtxoList() {
             <SSText size="md">
               {i18n.t('signAndSend.selectSpendableOutputs')}
             </SSText>
-            <SSIconButton>
+            <SSIconButton
+              onPress={() =>
+                router.navigate(
+                  `/accountList/account/${id}/signAndSend/selectUtxoBubbles`
+                )
+              }
+            >
               <Image
                 style={{ width: 24, height: 22 }}
                 source={require('@/assets/icons/bubbles.svg')}
