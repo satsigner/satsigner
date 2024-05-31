@@ -9,6 +9,13 @@ describe('sort utils', () => {
       expect(compareTimestamp(date1, date2)).toBeLessThan(0)
       expect(compareTimestamp(date1, date1)).toBe(0)
       expect(compareTimestamp(date2, date1)).toBeGreaterThan(0)
+
+      const date3 = '2024-05-30T13:38:59.281Z'
+      const date4 = '2024-05-31T13:38:59.281Z'
+
+      expect(compareTimestamp(date3, date4)).toBeLessThan(0)
+      expect(compareTimestamp(date3, date3)).toBe(0)
+      expect(compareTimestamp(date4, date3)).toBeGreaterThan(0)
     })
   })
 
