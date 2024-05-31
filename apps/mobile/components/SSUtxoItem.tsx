@@ -5,6 +5,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
@@ -25,6 +26,8 @@ export default function SSUtxoItem({
   largestValue,
   onToggleSelected
 }: SSUtxoItemProps) {
+  const priceStore = usePriceStore()
+
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected
@@ -67,8 +70,10 @@ export default function SSUtxoItem({
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="white">0.72</SSText>
-                <SSText color="muted">USD</SSText>
+                <SSText color="white">
+                  {formatNumber(priceStore.satsToFiat(utxo.value), 2)}
+                </SSText>
+                <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
               <SSText>
                 {utxo.label && `${i18n.t('bitcoin.memo')}: ${utxo.label}`}

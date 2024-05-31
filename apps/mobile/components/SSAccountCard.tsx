@@ -4,6 +4,7 @@ import { TouchableOpacity } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
@@ -19,6 +20,8 @@ export default function SSAccountCard({
   account,
   onPress
 }: SSAccountCardProps) {
+  const priceStore = usePriceStore()
+
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween>
@@ -38,14 +41,16 @@ export default function SSAccountCard({
             </SSText>
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText color="muted">2.19</SSText>
+            <SSText color="muted">
+              {formatNumber(priceStore.satsToFiat(account.summary.balance), 2)}
+            </SSText>
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              USD
+              {priceStore.fiatCurrency}
             </SSText>
           </SSHStack>
           <SSHStack>
-            <SSVStack gap="xxs">
-              <SSText color="white">
+            <SSVStack gap="none">
+              <SSText color="white" size="md">
                 {formatNumber(account.summary.numberOfAddresses)}
               </SSText>
               <SSText size="xs" color="muted">
@@ -54,8 +59,8 @@ export default function SSAccountCard({
                 {i18n.t('accountList.childAccounts.1')}
               </SSText>
             </SSVStack>
-            <SSVStack gap="xxs">
-              <SSText color="white">
+            <SSVStack gap="none">
+              <SSText color="white" size="md">
                 {formatNumber(account.summary.numberOfTransactions)}
               </SSText>
               <SSText size="xs" color="muted">
@@ -64,8 +69,8 @@ export default function SSAccountCard({
                 {i18n.t('accountList.totalTransactions.1')}
               </SSText>
             </SSVStack>
-            <SSVStack gap="xxs">
-              <SSText color="white">
+            <SSVStack gap="none">
+              <SSText color="white" size="md">
                 {formatNumber(account.summary.numberOfUtxos)}
               </SSText>
               <SSText size="xs" color="muted">
@@ -74,8 +79,8 @@ export default function SSAccountCard({
                 {i18n.t('accountList.spendableOutputs.1')}
               </SSText>
             </SSVStack>
-            <SSVStack gap="xxs">
-              <SSText color="white">
+            <SSVStack gap="none">
+              <SSText color="white" size="md">
                 {formatNumber(account.summary.satsInMempool)}
               </SSText>
               <SSText size="xs" color="muted">

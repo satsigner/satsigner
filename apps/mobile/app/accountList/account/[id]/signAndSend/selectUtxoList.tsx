@@ -14,6 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -28,6 +29,7 @@ export default function SelectUtxoList() {
   const router = useRouter()
   const accountStore = useAccountStore()
   const transactionBuilderStore = useTransactionBuilderStore()
+  const priceStore = usePriceStore()
 
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -130,10 +132,10 @@ export default function SelectUtxoList() {
                   {i18n.t('bitcoin.sats').toLowerCase()}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  2.18
+                  {formatNumber(priceStore.satsToFiat(utxosTotalValue), 2)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  USD
+                  {priceStore.fiatCurrency}
                 </SSText>
               </SSHStack>
             </SSVStack>
@@ -153,10 +155,10 @@ export default function SelectUtxoList() {
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="muted">
-                  0.72
+                  {formatNumber(priceStore.satsToFiat(utxosSelectedValue), 2)}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  USD
+                  {priceStore.fiatCurrency}
                 </SSText>
               </SSHStack>
             </SSVStack>

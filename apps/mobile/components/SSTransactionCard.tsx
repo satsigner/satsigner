@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress, formatNumber } from '@/utils/format'
@@ -19,6 +20,8 @@ export default function SSTransactionCard({
   transaction,
   blockHeight
 }: SSTransactionCardProps) {
+  const priceStore = usePriceStore()
+
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
     : 0
@@ -83,7 +86,17 @@ export default function SSTransactionCard({
               {i18n.t('bitcoin.sats').toLowerCase()}
             </SSText>
           </SSHStack>
-          <SSText style={{ color: Colors.gray[400] }}>0.73 USD</SSText>
+          <SSText style={{ color: Colors.gray[400] }}>
+            {formatNumber(
+              priceStore.satsToFiat(
+                transaction.type === 'receive'
+                  ? transaction.received
+                  : -transaction.sent
+              ),
+              2
+            )}{' '}
+            {priceStore.fiatCurrency}
+          </SSText>
         </SSVStack>
         <SSVStack>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>

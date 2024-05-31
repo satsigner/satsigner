@@ -12,12 +12,14 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
 export default function Account() {
   const accountStore = useAccountStore()
+  const priceStore = usePriceStore()
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -42,9 +44,16 @@ export default function Account() {
               </SSText>
             </SSHStack>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText color="muted">2.19</SSText>
+              <SSText color="muted">
+                {formatNumber(
+                  priceStore.satsToFiat(
+                    accountStore.currentAccount.summary.balance
+                  ),
+                  2
+                )}
+              </SSText>
               <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                USD
+                {priceStore.fiatCurrency}
               </SSText>
             </SSHStack>
           </SSVStack>
