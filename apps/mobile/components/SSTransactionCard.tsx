@@ -10,6 +10,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress, formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
+import SSTimeAgoText from './SSTimeAgoText'
 
 type SSTransactionCardProps = {
   transaction: Transaction
@@ -73,7 +74,11 @@ export default function SSTransactionCard({
       )}
       <SSHStack justifyBetween style={{ flex: 1 }}>
         <SSVStack gap="xs">
-          <SSText color="muted">11:51am - Mar 28, 2024</SSText>
+          <SSText color="muted">
+            {transaction.timestamp && (
+              <SSTimeAgoText date={new Date(transaction.timestamp)} />
+            )}
+          </SSText>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl">
               {formatNumber(
