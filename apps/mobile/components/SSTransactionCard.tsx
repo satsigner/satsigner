@@ -56,7 +56,7 @@ export default function SSTransactionCard({
   return (
     <SSHStack
       style={{
-        paddingVertical: 16,
+        paddingTop: 8,
         alignItems: 'flex-start'
       }}
     >
@@ -119,8 +119,13 @@ export default function SSTransactionCard({
               {transaction.memo || i18n.t('account.noMemo')}
             </SSText>
             <SSHStack gap="xs">
-              <SSText color="muted">{i18n.t('common.to').toLowerCase()}</SSText>
-              <SSText>{formatAddress(transaction.address || '')}</SSText>
+              <SSText color="muted">
+                {transaction.address && i18n.t('common.to').toLowerCase()}
+              </SSText>
+              <SSText>
+                {transaction.address &&
+                  formatAddress(transaction.address || '')}
+              </SSText>
             </SSHStack>
           </SSVStack>
         </SSVStack>

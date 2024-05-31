@@ -166,7 +166,7 @@ export default function Account() {
           />
         </SSHStack>
         <ScrollView>
-          <SSVStack>
+          <SSVStack style={{ marginBottom: 16 }}>
             {sortTransactions([
               ...accountStore.currentAccount.transactions
             ]).map((transaction) => (
