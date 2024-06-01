@@ -121,7 +121,13 @@ async function getWalletFromMnemonic(
     getWalletFromDescriptor(externalDescriptor, internalDescriptor)
   ])
 
-  return { fingerprint, derivationPath, wallet }
+  return {
+    fingerprint,
+    derivationPath,
+    externalDescriptor: await externalDescriptor.asString(),
+    internalDescriptor: await internalDescriptor.asString(),
+    wallet
+  }
 }
 
 async function getWalletFromDescriptor(
@@ -271,6 +277,7 @@ export {
   getDescriptor,
   getFingerprint,
   getWalletData,
+  getWalletFromDescriptor,
   getWalletFromMnemonic,
   parseDescriptor,
   syncWallet,

@@ -1,4 +1,4 @@
-import { Wallet } from 'bdk-rn'
+import { Descriptor, Wallet } from 'bdk-rn'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -6,6 +6,7 @@ import {
   generateMnemonic,
   getFingerprint,
   getWalletData,
+  getWalletFromDescriptor,
   getWalletFromMnemonic,
   syncWallet,
   validateMnemonic
@@ -37,6 +38,10 @@ type AccountsAction = {
     seedWords: NonNullable<Account['seedWords']>,
     scriptVersion: NonNullable<Account['scriptVersion']>,
     passphrase?: Account['passphrase']
+  ) => Promise<Wallet>
+  loadWalletFromDescriptor: (
+    externalDescriptor: Descriptor,
+    internalDescriptor: Descriptor
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet) => Promise<void>
   getPopulatedAccount: (wallet: Wallet, account: Account) => Promise<Account>
@@ -85,15 +90,32 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
         }))
       },
       loadWalletFromMnemonic: async (seedWords, scriptVersion, passphrase) => {
-        const { fingerprint, derivationPath, wallet } =
-          await getWalletFromMnemonic(seedWords, scriptVersion, passphrase)
+        const {
+          fingerprint,
+          derivationPath,
+          externalDescriptor,
+          internalDescriptor,
+          wallet
+        } = await getWalletFromMnemonic(seedWords, scriptVersion, passphrase)
         set((state) => ({
           currentAccount: {
             ...state.currentAccount,
             fingerprint,
-            derivationPath
+            derivationPath,
+            externalDescriptor,
+            internalDescriptor
           }
         }))
+        return wallet
+      },
+      loadWalletFromDescriptor: async (
+        externalDescriptor,
+        internalDescriptor
+      ) => {
+        const wallet = getWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor
+        )
         return wallet
       },
       syncWallet: async (wallet) => {
@@ -107,12 +129,28 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
       },
       saveAccount: async (account) => {
         set((state) => ({
-          accounts: [...state.accounts, account],
+          accounts: [
+            ...state.accounts,
+            { ...get().currentAccount, ...account }
+          ],
           currentAccount: { ...state.currentAccount, ...account }
         }))
       },
       updateAccount: async (account) => {
-        // TODO
+        const accounts = get().accounts
+        const toUpdateAccountIndex = accounts.findIndex(
+          (currentAccount) => currentAccount.name === account.name
+        )
+        if (toUpdateAccountIndex >= 0)
+          accounts[toUpdateAccountIndex] = {
+            ...get().currentAccount,
+            ...account
+          }
+
+        set(() => ({
+          accounts,
+          currentAccount: { ...get().currentAccount, ...account }
+        }))
       },
       deleteAccounts: async () => {
         set(() => ({

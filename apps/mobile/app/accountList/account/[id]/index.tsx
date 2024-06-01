@@ -1,10 +1,13 @@
+import { Descriptor } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { RefreshControl, ScrollView } from 'react-native'
 
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
+import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
@@ -30,14 +33,13 @@ export default function Account() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
+  const [refreshing, setRefreshing] = useState(false)
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
-
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
   useEffect(() => {
     ;(async () => {
-      const height = await blockchainStore.getBlockchainHeight()
-      setBlockchainHeight(height)
+      await refresh()
     })()
   })
 
@@ -47,6 +49,53 @@ export default function Account() {
         ? compareTimestamp(transaction1.timestamp, transaction2.timestamp)
         : compareTimestamp(transaction2.timestamp, transaction1.timestamp)
     )
+  }
+
+  async function refreshBlockchainHeight() {
+    const height = await blockchainStore.getBlockchainHeight()
+    setBlockchainHeight(height)
+  }
+
+  async function refreshAccount() {
+    // TODO: refactor
+    if (
+      !accountStore.currentAccount.externalDescriptor ||
+      !accountStore.currentAccount.internalDescriptor
+    )
+      return
+
+    const externalDescriptor = await new Descriptor().create(
+      accountStore.currentAccount.externalDescriptor,
+      blockchainStore.network as Network
+    )
+    const internalDescriptor = await new Descriptor().create(
+      accountStore.currentAccount.internalDescriptor,
+      blockchainStore.network as Network
+    )
+
+    const wallet = await accountStore.loadWalletFromDescriptor(
+      externalDescriptor,
+      internalDescriptor
+    )
+
+    await accountStore.syncWallet(wallet)
+    const account = await accountStore.getPopulatedAccount(
+      wallet,
+      accountStore.currentAccount
+    )
+
+    await accountStore.updateAccount(account)
+  }
+
+  async function refresh() {
+    await refreshBlockchainHeight()
+    await refreshAccount()
+  }
+
+  async function handleOnRefresh() {
+    setRefreshing(true)
+    await refresh()
+    setRefreshing(false)
   }
 
   return (
@@ -165,10 +214,12 @@ export default function Account() {
       </SSBackgroundGradient>
       <SSMainLayout style={{ paddingTop: 0 }}>
         <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-          <Image
-            style={{ width: 18, height: 22 }}
-            source={require('@/assets/icons/refresh.svg')}
-          />
+          <SSIconButton onPress={() => handleOnRefresh()}>
+            <Image
+              style={{ width: 18, height: 22 }}
+              source={require('@/assets/icons/refresh.svg')}
+            />
+          </SSIconButton>
           <SSText color="muted">
             {i18n.t('account.parentAccountActivity')}
           </SSText>
@@ -176,7 +227,16 @@ export default function Account() {
             onDirectionChanged={(direction) => setSortDirection(direction)}
           />
         </SSHStack>
-        <ScrollView>
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleOnRefresh}
+              colors={[Colors.gray[900]]}
+              progressBackgroundColor={Colors.white}
+            />
+          }
+        >
           <SSVStack style={{ marginBottom: 16 }}>
             {sortTransactions([
               ...accountStore.currentAccount.transactions
