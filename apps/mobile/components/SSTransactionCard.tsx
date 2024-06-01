@@ -72,7 +72,13 @@ export default function SSTransactionCard({
           source={require('@/assets/icons/outgoing.svg')}
         />
       )}
-      <SSHStack justifyBetween style={{ flex: 1 }}>
+      <SSHStack
+        justifyBetween
+        style={{
+          flex: 1,
+          alignItems: 'stretch'
+        }}
+      >
         <SSVStack gap="xs">
           <SSText color="muted">
             {transaction.timestamp && (
@@ -103,7 +109,7 @@ export default function SSTransactionCard({
             {priceStore.fiatCurrency}
           </SSText>
         </SSVStack>
-        <SSVStack>
+        <SSVStack justifyBetween>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
             {getConfirmationsText()}
           </SSText>
@@ -118,7 +124,7 @@ export default function SSTransactionCard({
             >
               {transaction.memo || i18n.t('account.noMemo')}
             </SSText>
-            <SSHStack gap="xs">
+            <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
               <SSText color="muted">
                 {transaction.address && i18n.t('common.to').toLowerCase()}
               </SSText>
