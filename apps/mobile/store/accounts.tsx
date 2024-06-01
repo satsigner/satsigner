@@ -24,6 +24,7 @@ type AccountsState = {
 
 type AccountsAction = {
   resetCurrentAccount: () => void
+  hasAccountWithName: (name: string) => boolean
   generateMnemonic: (
     count: NonNullable<Account['seedWordCount']>
   ) => Promise<void>
@@ -71,6 +72,9 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
       currentAccount: initialCurrentAccountState,
       resetCurrentAccount: () => {
         set({ currentAccount: initialCurrentAccountState })
+      },
+      hasAccountWithName: (name) => {
+        return !!get().accounts.find((account) => account.name === name)
       },
       generateMnemonic: async (count) => {
         const mnemonic = await generateMnemonic(count)

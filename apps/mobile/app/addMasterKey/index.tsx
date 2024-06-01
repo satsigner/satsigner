@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { Alert } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -21,6 +22,11 @@ export default function AddMasterKey() {
   function handleOnPressAddMasterKey(
     creationType: Account['accountCreationType']
   ) {
+    if (accountStore.hasAccountWithName(accountName)) {
+      Alert.alert(i18n.t('addMasterKey.hasAccountWithName'))
+      setAccountName('')
+      return
+    }
     accountStore.currentAccount.name = accountName
     accountStore.currentAccount.accountCreationType = creationType
     router.navigate('/addMasterKey/accountOptions')
@@ -40,6 +46,7 @@ export default function AddMasterKey() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={i18n.t('addMasterKey.masterKeyName')} />
             <SSTextInput
+              value={accountName}
               onChangeText={(accountName) => setAccountName(accountName)}
             />
           </SSFormLayout.Item>

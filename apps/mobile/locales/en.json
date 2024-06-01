@@ -65,6 +65,7 @@
     "addMasterKey": {
       "title": "Add Master Key",
       "masterKeyName": "Master Key Name",
+      "hasAccountWithName": "Account with that name already exists",
       "generateNewSeed": {
         "title": "Generate New Secret Seed",
         "action": "Confirm Seed"
