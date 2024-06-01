@@ -1,6 +1,6 @@
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSActionButton from '@/components/SSActionButton'
@@ -14,6 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -25,10 +26,20 @@ import { compareTimestamp } from '@/utils/sort'
 export default function Account() {
   const accountStore = useAccountStore()
   const priceStore = usePriceStore()
+  const blockchainStore = useBlockchainStore()
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
+
+  const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
+
+  useEffect(() => {
+    ;(async () => {
+      const height = await blockchainStore.getBlockchainHeight()
+      setBlockchainHeight(height)
+    })()
+  })
 
   function sortTransactions(transactions: Transaction[]) {
     return transactions.sort((transaction1, transaction2) =>
@@ -178,7 +189,7 @@ export default function Account() {
                 <SSTransactionCard
                   key={transaction.id}
                   transaction={transaction}
-                  blockHeight={840000}
+                  blockHeight={blockchainHeight}
                 />
               </SSVStack>
             ))}
