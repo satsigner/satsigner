@@ -219,7 +219,7 @@ export default function SelectUtxoList() {
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
         <SSButton
-          label="Add as inputs to message"
+          label={i18n.t('signAndSend.addAsInputToMessage')}
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[

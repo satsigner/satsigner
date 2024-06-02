@@ -60,7 +60,9 @@
     },
     "signAndSend": {
       "selectSpendableOutputs": "Select spendable outputs",
-      "addAsInputToMessage": "Add as input to message"
+      "addAsInputToMessage": "Add as input to message",
+      "customAmount": "Custom amount",
+      "selectAll": "Select all"
     },
     "addMasterKey": {
       "title": "Add Master Key",
