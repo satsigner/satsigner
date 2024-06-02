@@ -19,6 +19,7 @@ import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Transaction } from '@/types/models/Transaction'
@@ -30,6 +31,7 @@ export default function Account() {
   const accountStore = useAccountStore()
   const priceStore = usePriceStore()
   const blockchainStore = useBlockchainStore()
+  const transactionBuilderStore = useTransactionBuilderStore()
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -39,7 +41,11 @@ export default function Account() {
 
   useEffect(() => {
     ;(async () => {
-      await refresh()
+      try {
+        await refresh()
+      } catch (_err) {
+        //
+      }
     })()
   })
 
@@ -98,6 +104,11 @@ export default function Account() {
     setRefreshing(false)
   }
 
+  function navigateToSignAndSend() {
+    transactionBuilderStore.clearTransaction()
+    router.navigate(`/accountList/account/${id}/signAndSend/selectUtxoList`)
+  }
+
   return (
     <>
       <Stack.Screen
@@ -136,11 +147,7 @@ export default function Account() {
             <SSSeparator color="gradient" />
             <SSHStack justifyEvenly gap="none">
               <SSActionButton
-                onPress={() =>
-                  router.navigate(
-                    `/accountList/account/${id}/signAndSend/selectUtxoList`
-                  )
-                }
+                onPress={() => navigateToSignAndSend()}
                 style={{
                   width: '40%',
                   borderRightWidth: 1,

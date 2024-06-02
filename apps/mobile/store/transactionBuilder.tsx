@@ -7,6 +7,7 @@ type TransactionBuilderState = {
 }
 
 type TransactionBuilderAction = {
+  clearTransaction: () => void
   hasInput: (utxo: Utxo) => boolean
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
@@ -16,6 +17,9 @@ const useTransactionBuilderStore = create<
   TransactionBuilderState & TransactionBuilderAction
 >()((set, get) => ({
   inputs: new Set(),
+  clearTransaction: () => {
+    set({ inputs: new Set() })
+  },
   hasInput: (utxo) => {
     return get().inputs.has(utxo)
   },
