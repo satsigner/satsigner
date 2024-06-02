@@ -47,7 +47,10 @@ export default function Account() {
         //
       }
     })()
-  })
+
+    return () => {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function sortTransactions(transactions: Transaction[]) {
     return transactions.sort((transaction1, transaction2) =>
