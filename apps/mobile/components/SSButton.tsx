@@ -70,15 +70,7 @@ export default function SSButton({
       {...props}
     >
       {variant === 'gradient' && (
-        <SSBackgroundGradient
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        />
+        <SSBackgroundGradient style={styles.buttonGradient} />
       )}
       {!loading ? (
         <SSText uppercase style={textStyles}>
@@ -120,6 +112,13 @@ const styles = StyleSheet.create({
   },
   buttonGhost: {
     backgroundColor: Colors.transparent
+  },
+  buttonGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   buttonWithSelect: {
     backgroundColor: Colors.gray[850]
