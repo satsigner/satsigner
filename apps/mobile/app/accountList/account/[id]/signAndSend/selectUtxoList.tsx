@@ -51,10 +51,7 @@ export default function SelectUtxoList() {
     () => utxosValue(accountStore.currentAccount.utxos),
     [accountStore.currentAccount.utxos]
   )
-  const utxosSelectedValue = useMemo(
-    () => utxosValue([...transactionBuilderStore.inputs]),
-    [transactionBuilderStore.inputs]
-  )
+  const utxosSelectedValue = utxosValue(transactionBuilderStore.getInputs())
 
   function handleSelectAllUtxos() {
     for (const utxo of accountStore.currentAccount.utxos) {

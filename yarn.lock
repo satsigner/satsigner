@@ -2595,13 +2595,13 @@
     component-type "^1.2.1"
     join-component "^1.1.0"
 
-"@shopify/react-native-skia@^1.3.2":
-  version "1.3.2"
-  resolved "https://registry.npmjs.org/@shopify/react-native-skia/-/react-native-skia-1.3.2.tgz#fd602b1043964ee92754162e0214cf91b2d8e443"
-  integrity sha512-7vctiRB4uECpD4VElXHdOq+zQwUsOBbNcEElBroOnaRsoKjVTEX4yoApfFRQ9fLWCY5S6+9HXWjxXVKBPJeU0g==
+"@shopify/react-native-skia@0.1.221":
+  version "0.1.221"
+  resolved "https://registry.npmjs.org/@shopify/react-native-skia/-/react-native-skia-0.1.221.tgz#79e610d28537fa7bff397df9d41ffaccc682f82b"
+  integrity sha512-hbwl6NJzVRBKVP39JrjVUg6r3sGNlDt17WUluPoF3h1Pv3A4qzwc9VrWNqvWr3H/0XZPuZPCop7EEz2ereYDfA==
   dependencies:
     canvaskit-wasm "0.39.1"
-    react-reconciler "0.27.0"
+    react-reconciler "^0.27.0"
 
 "@sideway/address@^4.1.5":
   version "4.1.5"
@@ -10584,7 +10584,7 @@ react-native@0.73.6:
     ws "^6.2.2"
     yargs "^17.6.2"
 
-react-reconciler@0.27.0:
+react-reconciler@^0.27.0:
   version "0.27.0"
   resolved "https://registry.npmjs.org/react-reconciler/-/react-reconciler-0.27.0.tgz#360124fdf2d76447c7491ee5f0e04503ed9acf5b"
   integrity sha512-HmMDKciQjYmBRGuuhIaKA1ba/7a+UsM5FzOZsMO2JYHt9Jh8reCb7j1eDC95NOyUlKM9KRyvdx0flBuDvYSBoA==

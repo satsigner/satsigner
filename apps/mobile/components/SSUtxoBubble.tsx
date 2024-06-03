@@ -1,8 +1,9 @@
 import {
   Circle,
   Group,
-  Text as SkiaText,
-  useFont
+  listFontFamilies,
+  matchFont,
+  Text as SkiaText
 } from '@shopify/react-native-skia'
 import { Platform } from 'react-native'
 import { useDerivedValue, withTiming } from 'react-native-reanimated'
@@ -33,14 +34,17 @@ export default function SSUtxoBubble({
 
   const fontSize = radius / 6
 
-  const font = useFont(
-    require('@/assets/fonts/SF Pro Text Light.otf'),
+  const fontFamilies = listFontFamilies() // TODO: Add SF Pro Text
+
+  const font = matchFont({
+    fontFamily: fontFamilies[0],
     fontSize
-  )
-  const selectedFont = useFont(
-    require('@/assets/fonts/SF Pro Text Medium.otf'),
-    fontSize
-  )
+  })
+  const selectedFont = matchFont({
+    fontFamily: fontFamilies[0],
+    fontSize,
+    fontWeight: '500'
+  })
 
   const text = `${utxo.value.toLocaleString()} ${i18n.t('bitcoin.sats').toLowerCase()}`
 
