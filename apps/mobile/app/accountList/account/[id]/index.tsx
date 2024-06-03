@@ -3,7 +3,7 @@ import { Network } from 'bdk-rn/lib/lib/enums'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { RefreshControl, ScrollView } from 'react-native'
+import { RefreshControl, ScrollView, View } from 'react-native'
 
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
@@ -188,6 +188,16 @@ export default function Account() {
                 {'\n'}
                 {i18n.t('accountList.totalTransactions.1')}
               </SSText>
+              <View
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: 2,
+                  bottom: -12,
+                  backgroundColor: Colors.white
+                }}
+              />
+              {/* Temp selected tab underline */}
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
