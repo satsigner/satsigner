@@ -160,14 +160,21 @@ export default function Account() {
             </SSHStack>
           </SSVStack>
           <SSVStack gap="none">
-            <SSSeparator color="gradient" />
-            <SSHStack justifyEvenly gap="none">
+            <SSSeparator
+              color="gradient"
+              colors={[Colors.gray[600], Colors.gray[850]]}
+            />
+            <SSHStack
+              justifyEvenly
+              gap="none"
+              style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+            >
               <SSActionButton
                 onPress={() => navigateToSignAndSend()}
                 style={{
                   width: '40%',
                   borderRightWidth: 1,
-                  borderRightColor: Colors.gray[700]
+                  borderRightColor: Colors.gray[600]
                 }}
               >
                 <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
@@ -183,13 +190,16 @@ export default function Account() {
                 style={{
                   width: '40%',
                   borderLeftWidth: 1,
-                  borderLeftColor: Colors.gray[700]
+                  borderLeftColor: Colors.gray[600]
                 }}
               >
                 <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
               </SSActionButton>
             </SSHStack>
-            <SSSeparator color="gradient" />
+            <SSSeparator
+              color="gradient"
+              colors={[Colors.gray[600], Colors.gray[850]]}
+            />
           </SSVStack>
           <SSHStack style={{ paddingVertical: 12 }}>
             <SSVStack gap="none">
