@@ -14,6 +14,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
+import { setStateWithLayoutAnimation } from '@/utils/animation'
 
 export default function AccountOptions() {
   const router = useRouter()
@@ -191,21 +192,25 @@ export default function AccountOptions() {
             'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
           )} (P2PKH)`}
           selected={scriptVersion === 'P2PKH'}
-          onPress={() => setScriptVersion('P2PKH')}
+          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')}
         />
         <SSRadioButton
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
           )} (P2SH-P2WPKH)`}
           selected={scriptVersion === 'P2SH-P2WPKH'}
-          onPress={() => setScriptVersion('P2SH-P2WPKH')}
+          onPress={() =>
+            setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
+          }
         />
         <SSRadioButton
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
           )} (P2WPKH)`}
           selected={scriptVersion === 'P2WPKH'}
-          onPress={() => setScriptVersion('P2WPKH')}
+          onPress={() =>
+            setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
+          }
         />
         <SSRadioButton
           label={`${i18n.t(
@@ -228,27 +233,27 @@ export default function AccountOptions() {
         <SSRadioButton
           label={`24 ${i18n.t('bitcoin.words').toLowerCase()}`}
           selected={seedWordCount === 24}
-          onPress={() => setSeedWordCount(24)}
+          onPress={() => setStateWithLayoutAnimation(setSeedWordCount, 24)}
         />
         <SSRadioButton
           label={`21 ${i18n.t('bitcoin.words').toLowerCase()}`}
           selected={seedWordCount === 21}
-          onPress={() => setSeedWordCount(21)}
+          onPress={() => setStateWithLayoutAnimation(setSeedWordCount, 21)}
         />
         <SSRadioButton
           label={`18 ${i18n.t('bitcoin.words').toLowerCase()}`}
           selected={seedWordCount === 18}
-          onPress={() => setSeedWordCount(18)}
+          onPress={() => setStateWithLayoutAnimation(setSeedWordCount, 18)}
         />
         <SSRadioButton
           label={`15 ${i18n.t('bitcoin.words').toLowerCase()}`}
           selected={seedWordCount === 15}
-          onPress={() => setSeedWordCount(15)}
+          onPress={() => setStateWithLayoutAnimation(setSeedWordCount, 15)}
         />
         <SSRadioButton
           label={`12 ${i18n.t('bitcoin.words').toLowerCase()}`}
           selected={seedWordCount === 12}
-          onPress={() => setSeedWordCount(12)}
+          onPress={() => setStateWithLayoutAnimation(setSeedWordCount, 12)}
         />
       </SSSelectModal>
     </SSMainLayout>
