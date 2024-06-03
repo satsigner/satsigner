@@ -181,7 +181,7 @@ export default function Account() {
           <SSHStack style={{ paddingVertical: 12 }}>
             <SSVStack gap="none">
               <SSText center size="lg">
-                3
+                {accountStore.currentAccount.summary.numberOfTransactions}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.totalTransactions.0')}
@@ -191,7 +191,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                4
+                {accountStore.currentAccount.summary.numberOfAddresses}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.childAccounts.0')}
@@ -201,7 +201,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                3
+                {accountStore.currentAccount.summary.numberOfUtxos}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.spendableOutputs.0')}
@@ -211,7 +211,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                0
+                {accountStore.currentAccount.summary.satsInMempool}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.satsInMempool.0')}
