@@ -31,6 +31,7 @@ export default function AccountList() {
       <View>
         <SSButton
           label={i18n.t('addMasterKey.title')}
+          variant="gradient"
           style={{ borderRadius: 0 }}
           onPress={() => router.navigate('/addMasterKey/')}
         />

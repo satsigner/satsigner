@@ -1,14 +1,17 @@
 import { LinearGradient } from 'expo-linear-gradient'
+import { StyleProp, ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
 
 type SSBackgroundGradientProps = {
-  orientation: 'horizontal' | 'diagonal'
-  children: React.ReactNode
+  orientation?: 'horizontal' | 'diagonal'
+  style?: StyleProp<ViewStyle>
+  children?: React.ReactNode
 }
 
 export default function SSBackgroundGradient({
-  orientation,
+  orientation = 'diagonal',
+  style,
   children
 }: SSBackgroundGradientProps) {
   const start =
@@ -18,6 +21,7 @@ export default function SSBackgroundGradient({
 
   return (
     <LinearGradient
+      style={style}
       colors={[Colors.gray[900], Colors.gray[800]]}
       start={start}
       end={end}

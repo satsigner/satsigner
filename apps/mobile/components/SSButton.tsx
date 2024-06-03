@@ -10,11 +10,12 @@ import {
 
 import { Colors, Sizes } from '@/styles'
 
+import SSBackgroundGradient from './SSBackgroundGradient'
 import SSText from './SSText'
 
 type SSButtonProps = {
   label: string
-  variant?: 'default' | 'secondary' | 'ghost'
+  variant?: 'default' | 'secondary' | 'ghost' | 'gradient'
   loading?: boolean
   withSelect?: boolean
   textStyle?: StyleProp<TextStyle>
@@ -68,6 +69,17 @@ export default function SSButton({
       disabled={disabled || loading}
       {...props}
     >
+      {variant === 'gradient' && (
+        <SSBackgroundGradient
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        />
+      )}
       {!loading ? (
         <SSText uppercase style={textStyles}>
           {label}
