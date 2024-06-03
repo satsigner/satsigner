@@ -98,33 +98,33 @@ UTXO consumption
 
 ### Prerequisites
 
-- Node.js (minimum version 20.9.0)
+- Node.js (minimum version 18)
 - [Yarn](https://yarnpkg.com/getting-started/install)
 
-### Android
+### Install dependencies
 
-1. Go to the [React Native CLI Quickstart](https://reactnative.dev/docs/environment-setup?guide=native)
-2. Choose your Development OS and Target OS of Android
-3. Follow the directions in the "Installing dependencies" section to setup RN dependencies including Node, the React Native command line interface, a JDK, Android Studio, and Watchman if on macOS.
-4. From satsigner repo, to install satsigner dependencies
-   `yarn`
-5. Run satsigner
-   `yarn start`
-   `yarn android`
+Install the dependencies at the root of the repository
 
-From time to time you may need to update dependencies with `yarn`.
+```bash
+yarn install
+```
 
-### iOS
+### Set up your environment
 
-1. Go to the [React Native CLI Quickstart](https://reactnative.dev/docs/environment-setup?guide=native)
-2. Choose macOS and iOS
-3. Follow the directions in the "Installing dependencies" section to setup RN dependencies including Node, Watchman, the React Native command line interface, Xcode and CocoaPods.
-4. From satsigner repo, to install satsigner dependencies
-   `yarn`
-5. Install pods
-   `cd ios && pod install`
-6. Run satsigner
-   `yarn start`
-   `yarn ios`
+Follow the expo documentation [here](https://docs.expo.dev/get-started/set-up-your-environment/)
 
-From time to time you may need to `pod install` and update dependencies with `yarn`.
+### Run the app
+
+Make sure you are on the `mobile` folder
+
+```bash
+cd apps/mobile
+```
+
+Run for android or iOS
+
+```bash
+yarn android
+
+yarn ios
+```
