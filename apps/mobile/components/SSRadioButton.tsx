@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
   selected: {
     backgroundColor: Colors.gray[600],
     borderWidth: Sizes.radioButton.borderWidth,
-    borderStyle: 'solid'
+    borderStyle: 'solid',
+    borderColor: 'rgba(255, 255, 255, 0.68)'
   },
   unselected: {
     backgroundColor: Colors.gray[950]
