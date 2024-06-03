@@ -1,6 +1,7 @@
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, View } from 'react-native'
@@ -118,12 +119,24 @@ export default function Account() {
         options={{
           headerTitle: () => (
             <SSText uppercase>{accountStore.currentAccount.name}</SSText>
+          ),
+          headerBackground: () => (
+            <LinearGradient
+              style={{
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+              colors={[Colors.gray[900], Colors.gray[800]]}
+              start={{ x: 0.86, y: 1.0 }}
+              end={{ x: 0.14, y: 1 }}
+            />
           )
         }}
       />
       <SSBackgroundGradient orientation="horizontal">
         <SSVStack itemsCenter gap="none">
-          <SSVStack itemsCenter gap="none" style={{ paddingVertical: 12 }}>
+          <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
                 {formatNumber(accountStore.currentAccount.summary.balance)}
