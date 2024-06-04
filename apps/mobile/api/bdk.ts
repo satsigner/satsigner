@@ -132,13 +132,14 @@ async function getWalletFromMnemonic(
 
 async function getWalletFromDescriptor(
   externalDescriptor: Descriptor,
-  internalDescriptor: Descriptor
+  internalDescriptor: Descriptor,
+  network: Network
 ) {
   const dbConfig = await new DatabaseConfig().memory()
   const wallet = await new Wallet().create(
     externalDescriptor,
     internalDescriptor,
-    Network.Testnet,
+    network,
     dbConfig
   )
 

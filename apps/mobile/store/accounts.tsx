@@ -1,4 +1,5 @@
 import { Descriptor, Wallet } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -116,9 +117,12 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
         externalDescriptor,
         internalDescriptor
       ) => {
+        const { network } = useBlockchainStore.getState()
+
         const wallet = getWalletFromDescriptor(
           externalDescriptor,
-          internalDescriptor
+          internalDescriptor,
+          network as Network
         )
         return wallet
       },
