@@ -1,0 +1,28 @@
+# Layouts
+
+Layouts are just components that are used to wrap components together.
+Using them gives us standardization across the app.
+
+For example, if you want to display items in a flex column, use SSVStack:
+
+```tsx
+<SSVStack>
+  <SSButton
+    label={i18n.t('addMasterKey.generateNewSeed.action')}
+    variant="secondary"
+    disabled={!checksumValid}
+    onPress={() => router.navigate('/addMasterKey/confirmSeed/0')}
+  />
+  <SSButton
+    label={i18n.t('common.cancel')}
+    variant="ghost"
+    onPress={() => router.replace('/accountList/')}
+  />
+</SSVStack>
+```
+
+Check the available props before trying to override styles with the `style` prop.
+
+import { Callout } from 'nextra/components'
+
+<Callout type="info">Note that all Layouts are prefixed with "SS"</Callout>

@@ -1,4 +1,22 @@
-- prefix
-- type props
-- best practices
-- base styles outside
+# Components
+
+Components in **satsigner** are prefixed with "SS" so we can quickly distinguish them from other components.
+
+## Anatomy & Best practices
+
+The following table shows the anatomy of a **satsigner** component, from the top of the file to the bottom.
+
+| Block of code        | Description                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Imports              | Imports on the top of the file. We use path alias `@` and imports are automatically sorted using `eslint-plugin-simple-import-sort` |
+| Prop type            | The type of the props the component will receive                                                                                    |
+| Function declaration | Declare the component function and export it as default. Use object destructuring for the props and set default values.             |
+| Logic                | Component logic                                                                                                                     |
+| Computed styles      | Styles that are conditional, based on props, are computed here                                                                      |
+| Tsx                  | Return the tsx                                                                                                                      |
+| Base styles          | Keep the base styles on the bottom of the file                                                                                      |
+
+## When to create components
+
+If you are going to write new components, first make sure if a new component is really needed or you can just place the code inside the page.
+Can we reuse the component or is it big enough/has enough logic to export to a new file?

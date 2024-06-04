@@ -1,0 +1,14 @@
+# Localization
+
+Strings come from `json` files under `locales` folder
+We can quickly add new languages to the app.
+
+Here is an example on how to use these strings:
+
+```tsx
+<SSText size="xxs" style={{ color: Colors.gray[400] }}>
+  {i18n.t('bitcoin.sats').toLowerCase()}
+</SSText>
+```
+
+Check any of the `json` files to see the json structure for these strings.
