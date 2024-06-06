@@ -95,13 +95,19 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
         }))
       },
       loadWalletFromMnemonic: async (seedWords, scriptVersion, passphrase) => {
+        const { network } = useBlockchainStore.getState()
         const {
           fingerprint,
           derivationPath,
           externalDescriptor,
           internalDescriptor,
           wallet
-        } = await getWalletFromMnemonic(seedWords, scriptVersion, passphrase)
+        } = await getWalletFromMnemonic(
+          seedWords,
+          scriptVersion,
+          passphrase,
+          network as Network
+        )
         set((state) => ({
           currentAccount: {
             ...state.currentAccount,

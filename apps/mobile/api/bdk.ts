@@ -109,7 +109,8 @@ async function getFingerprint(
 async function getWalletFromMnemonic(
   seedWords: NonNullable<Account['seedWords']>,
   scriptVersion: NonNullable<Account['scriptVersion']>,
-  passphrase: Account['passphrase']
+  passphrase: Account['passphrase'],
+  network: Network
 ) {
   const [externalDescriptor, internalDescriptor] = await Promise.all([
     getDescriptor(seedWords, scriptVersion, KeychainKind.External, passphrase),
@@ -118,7 +119,7 @@ async function getWalletFromMnemonic(
 
   const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
     parseDescriptor(externalDescriptor),
-    getWalletFromDescriptor(externalDescriptor, internalDescriptor)
+    getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
   ])
 
   return {
