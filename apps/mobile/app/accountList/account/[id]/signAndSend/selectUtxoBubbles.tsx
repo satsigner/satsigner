@@ -103,16 +103,17 @@ export default function SelectUtxoBubbles() {
   }, [GRAPH_WIDTH, GRAPH_HEIGHT, utxoList])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-  const { animatedStyle, gestures, transform } = useGestures({
-    width: w,
-    height: h,
-    center,
-    isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
-    maxScale: 1000,
-    minScale: 0.1
-  })
+  const { animatedStyle, gestures, transform, descriptionOpacity } =
+    useGestures({
+      width: w,
+      height: h,
+      center,
+      isDoubleTapEnabled: true,
+      maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+      minPanPointers: 1,
+      maxScale: 1000,
+      minScale: 0.1
+    })
   const centerX = canvasSize.width / 2
   const centerY = canvasSize.height / 2
 
@@ -259,6 +260,7 @@ export default function SelectUtxoBubbles() {
                   y={packedUtxo.y}
                   radius={packedUtxo.r}
                   selected={selected}
+                  descriptionOpacity={descriptionOpacity}
                 />
               )
             })}

@@ -23,7 +23,9 @@
       "total": "Total",
       "date": "Date",
       "amount": "Amount",
-      "save": "Save"
+      "save": "Save",
+      "from": "From",
+      "memo": "Memo"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"

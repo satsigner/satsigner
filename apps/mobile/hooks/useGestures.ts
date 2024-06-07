@@ -46,8 +46,6 @@ export const useGestures = ({
   onPinchEnd,
   onPanStart,
   onPanEnd,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onSingleTap = () => {},
   onDoubleTap = () => {}
 }: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false)
@@ -61,6 +59,7 @@ export const useGestures = ({
   const focal = { x: useSharedValue(0), y: useSharedValue(0) }
   const savedTranslate = { x: useSharedValue(0), y: useSharedValue(0) }
   const translate = { x: useSharedValue(0), y: useSharedValue(0) }
+  const isDescriptionVisible = useSharedValue(false)
 
   const { getInteractionId, updateInteractionId } = useInteractionId()
   const { onAnimationEnd } = useAnimationEnd()
@@ -271,6 +270,7 @@ export const useGestures = ({
       focal.y.value = centerOffsetY * scaleChangeScale + savedFocal.y.value
     })
     .onEnd((...args) => {
+      isDescriptionVisible.value = args[0].scale > 1
       runOnJS(onPinchEnded)(...args) // Trigger the pinch end event
     })
 
@@ -280,11 +280,13 @@ export const useGestures = ({
     .maxDuration(250)
     .onStart((event) => {
       if (scale.value === 1) {
+        isDescriptionVisible.value = true
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN)
         scale.value = withTiming(doubleTapScale)
         focal.x.value = withTiming((center.x - event.x) * (doubleTapScale - 1))
         focal.y.value = withTiming((center.y - event.y) * (doubleTapScale - 1))
       } else {
+        isDescriptionVisible.value = false
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT)
         reset()
       }
@@ -300,6 +302,12 @@ export const useGestures = ({
     ]
   }))
 
+  const descriptionOpacity = useDerivedValue(() => {
+    return withTiming(isDescriptionVisible.value ? 1 : 0, {
+      duration: 200
+    })
+  })
+
   const transform = useDerivedValue(() => [
     { translateY: translate.y.value },
     { translateX: translate.x.value },
@@ -314,5 +322,5 @@ export const useGestures = ({
     panGesture
   )
 
-  return { gestures, animatedStyle, reset, transform }
+  return { gestures, animatedStyle, reset, transform, descriptionOpacity }
 }
