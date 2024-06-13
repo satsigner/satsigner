@@ -95,9 +95,10 @@ export default function SSUtxoBubble({
     year: 'numeric'
   })
   const getDateY = () => {
+    // spacing based on radius because Skia is not consistent for now
     if (radius > 10) return mainY - radius / 8
     if (radius > 5) return mainY - radius / 12
-    return mainY - radius / 2
+    return mainY - radius / 4
   }
 
   const dateX = x - 100 / 2
@@ -127,6 +128,7 @@ export default function SSUtxoBubble({
   // Utxo Memo
 
   const getMemoY = () => {
+    // spacing based on radius because Skia is not consistent for now
     if (radius > 10) return mainY + radius / 4
     if (radius > 5) return mainY + radius / 3.2
     return mainY + radius / 7
@@ -167,6 +169,7 @@ export default function SSUtxoBubble({
 
   // Utxo from address
   const getFromY = () => {
+    // spacing based on radius because Skia is not consistent for now
     if (radius > 10) return mainY + radius / 2.5
     if (radius > 5) return mainY + radius / 2.2
     return mainY + radius / 3.5
