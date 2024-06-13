@@ -26,7 +26,6 @@ import SSUtxoBubble from '@/components/SSUtxoBubble'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import SSHStack from '@/layouts/SSHStack'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
@@ -313,7 +312,12 @@ export default function SelectUtxoBubbles() {
           </View>
         </GestureDetector>
       </View>
-      <SSMainLayout style={styles.absoluteSubmitContainer}>
+
+      <LinearGradient
+        locations={[0, 0.1255, 0.2678, 1]}
+        style={[styles.absoluteSubmitContainer]}
+        colors={['#00000000', '#0000000F', '#0000002A', '#000000']}
+      >
         <SSVStack style={{ width: '92%' }}>
           <SSHStack justifyBetween>
             <SSButton
@@ -341,7 +345,7 @@ export default function SelectUtxoBubbles() {
             textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
           />
         </SSVStack>
-      </SSMainLayout>
+      </LinearGradient>
     </GestureHandlerRootView>
   )
 }
@@ -356,12 +360,13 @@ const styles = StyleSheet.create({
   },
   absoluteSubmitContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 0,
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
     backgroundColor: Colors.transparent,
     paddingHorizontal: 0,
-    paddingTop: 0
+    paddingTop: 0,
+    paddingBottom: 20
   }
 })
