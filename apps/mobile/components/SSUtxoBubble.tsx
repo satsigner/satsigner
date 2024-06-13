@@ -94,7 +94,12 @@ export default function SSUtxoBubble({
     day: 'numeric',
     year: 'numeric'
   })
-  const dateY = radius > 10 ? mainY - radius / 8 : mainY - radius / 5
+  const getDateY = () => {
+    if (radius > 10) return mainY - radius / 8
+    if (radius > 5) return mainY - radius / 12
+    return mainY - radius / 2
+  }
+
   const dateX = x - 100 / 2
   const dateParagraph = useMemo(() => {
     if (!customFontMgr) return null
@@ -120,7 +125,12 @@ export default function SSUtxoBubble({
   }, [customFontMgr, descriptionFontSize, dateText])
 
   // Utxo Memo
-  const memoY = radius > 10 ? mainY + radius / 4 : mainY + radius / 7
+
+  const getMemoY = () => {
+    if (radius > 10) return mainY + radius / 4
+    if (radius > 5) return mainY + radius / 3.2
+    return mainY + radius / 7
+  }
   const memoX = x - 150 / 2
   const memoParagraph = useMemo(() => {
     if (!customFontMgr) return null
@@ -156,8 +166,11 @@ export default function SSUtxoBubble({
   }, [customFontMgr, utxo.label, descriptionFontSize])
 
   // Utxo from address
-  const fromY = radius > 10 ? mainY + radius / 2.5 : mainY + radius / 3.5
-
+  const getFromY = () => {
+    if (radius > 10) return mainY + radius / 2.5
+    if (radius > 5) return mainY + radius / 2.2
+    return mainY + radius / 3.5
+  }
   const fromParagraph = useMemo(() => {
     if (!customFontMgr) return null
 
@@ -210,7 +223,7 @@ export default function SSUtxoBubble({
             <Paragraph
               paragraph={dateParagraph}
               x={dateX}
-              y={dateY}
+              y={getDateY()}
               width={100}
             />
           </Group>
@@ -224,13 +237,13 @@ export default function SSUtxoBubble({
             <Paragraph
               paragraph={memoParagraph}
               x={memoX}
-              y={memoY}
+              y={getMemoY()}
               width={150}
             />
             <Paragraph
               paragraph={fromParagraph}
               x={memoX}
-              y={fromY}
+              y={getFromY()}
               width={150}
             />
           </Group>
