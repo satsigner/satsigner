@@ -12,6 +12,11 @@ type SSTextProps = {
   center?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
 
+type WeightStyle = {
+  fontFamily: string
+  fontWeight: '200' | '300' | '400' | '500' | '600'
+}
+
 export default function SSText({
   color = 'white',
   size = 'sm',
@@ -26,11 +31,11 @@ export default function SSText({
     if (color === 'black') colorStyle = styles.textColorBlack
     if (color === 'muted') colorStyle = styles.textColorMuted
 
-    let weightStyle = styles.textRegular
-    if (weight === 'ultralight') weightStyle = styles.textUltralight
-    if (weight === 'light') weightStyle = styles.textLight
-    if (weight === 'medium') weightStyle = styles.textMedium
-    if (weight === 'bold') weightStyle = styles.textBold
+    let weightStyle: WeightStyle = styles.textRegular
+    if (weight === 'ultralight') weightStyle = { ...styles.textUltralight }
+    if (weight === 'light') weightStyle = { ...styles.textLight }
+    if (weight === 'medium') weightStyle = { ...styles.textMedium }
+    if (weight === 'bold') weightStyle = { ...styles.textBold }
 
     return StyleSheet.compose(
       {
@@ -68,18 +73,23 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   textUltralight: {
-    fontFamily: Typography.sfProTextUltralight
+    fontFamily: Typography.sfProTextUltralight,
+    fontWeight: '200'
   },
   textLight: {
-    fontFamily: Typography.sfProTextLight
+    fontFamily: Typography.sfProTextLight,
+    fontWeight: '300'
   },
   textRegular: {
-    fontFamily: Typography.sfProTextRegular
+    fontFamily: Typography.sfProTextRegular,
+    fontWeight: '400'
   },
   textMedium: {
-    fontFamily: Typography.sfProTextMedium
+    fontFamily: Typography.sfProTextMedium,
+    fontWeight: '500'
   },
   textBold: {
-    fontFamily: Typography.sfProTextBold
+    fontFamily: Typography.sfProTextBold,
+    fontWeight: '600'
   }
 })
