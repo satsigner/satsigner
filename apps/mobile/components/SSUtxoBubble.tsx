@@ -1,10 +1,13 @@
 import {
   Circle,
   Group,
-  Text as SkiaText,
-  useFont
+  Paint,
+  Paragraph,
+  Skia,
+  TextAlign,
+  useFonts
 } from '@shopify/react-native-skia'
-import { Platform } from 'react-native'
+import React, { useMemo } from 'react'
 import {
   SharedValue,
   useDerivedValue,
@@ -35,82 +38,177 @@ export default function SSUtxoBubble({
 }: SSUtxoBubbleProps) {
   const backgroundColor = useDerivedValue(() => {
     if (selected) return withTiming(Colors.white)
+    if (descriptionOpacity.value) return withTiming(Colors.gray[300])
     return withTiming(Colors.gray[400])
-  })
+  }, [descriptionOpacity, selected])
 
   const fontSize = radius / 6
+  const satsFontSize = fontSize / 1.5
+  const descriptionFontSize = fontSize / 2.5
 
-  const font = useFont(
-    require(`../assets/fonts/SF-Pro-Text-Light.otf`),
-    fontSize
-  )
+  const customFontMgr = useFonts({
+    'SF Pro Text': [
+      require(`../assets/fonts/SF-Pro-Text-Light.otf`),
+      require(`../assets/fonts/SF-Pro-Text-Regular.otf`),
+      require(`../assets/fonts/SF-Pro-Text-Medium.otf`)
+    ]
+  })
 
-  const selectedFont = useFont(
-    require(`../assets/fonts/SF-Pro-Text-Regular.otf`),
-    fontSize
-  )
+  // Utxo value
+  const mainParagraph = useMemo(() => {
+    if (!customFontMgr) return null
 
-  const descriptionLightFont = useFont(
-    require(`../assets/fonts/SF-Pro-Text-Light.otf`),
-    fontSize / 2.7
-  )
+    const textStyle = {
+      color: Skia.Color('black'),
+      fontFamilies: ['SF Pro Text'],
+      fontSize,
+      fontStyle: {
+        weight: selected ? 400 : 300
+      }
+    }
+    const para = Skia.ParagraphBuilder.Make({
+      maxLines: 1,
+      textAlign: TextAlign.Center
+    })
+      .pushStyle(textStyle)
+      .addText(`${utxo.value.toLocaleString()}`)
+      .pushStyle({
+        ...textStyle,
+        color: Skia.Color(Colors.gray[600]),
+        fontSize: satsFontSize
+      })
+      .addText(`${i18n.t('bitcoin.sats').toLowerCase()}`)
+      .pop()
+      .build()
+    para.layout(200)
+    return para
+  }, [customFontMgr, selected, utxo.value, fontSize, satsFontSize])
 
-  const text = `${utxo.value.toLocaleString()} ${i18n.t('bitcoin.sats').toLowerCase()}`
+  const mainX = x - 200 / 2
+  const mainTextheight = mainParagraph?.getHeight() || 0
+  const mainY = y - (mainTextheight / 2 || 0)
+
+  // Utxo date
   const dateText = new Date(utxo?.timestamp || '').toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
   })
-  const memo = `${i18n.t('common.memo').toLowerCase()} ${utxo.label || '-'}`
-
-  const fromText = `${i18n.t('common.from').toLowerCase()} ${formatAddress(utxo.addressTo || '')}`
-
-  const platformOffset = Platform.OS === 'ios' ? 1.5 : 0.5
-
-  function getX() {
-    const textDimensions = selected
-      ? selectedFont?.measureText(utxo.value ? text : '')
-      : font?.measureText(utxo.value ? text : '')
-
-    return x - (textDimensions?.width || 0) / 2 + platformOffset
+  const getDateY = () => {
+    // spacing based on radius because Skia is not consistent for now
+    if (radius > 10) return mainY - radius / 8
+    if (radius > 5) return mainY - radius / 12
+    return mainY - radius / 4
   }
 
-  const dateDimensions = descriptionLightFont?.measureText(dateText)
-  const memoDimensions = descriptionLightFont?.measureText(memo)
-  const fromDimensions = descriptionLightFont?.measureText(fromText)
+  const dateX = x - 100 / 2
+  const dateParagraph = useMemo(() => {
+    if (!customFontMgr) return null
 
-  const getXDate = () => {
-    return x - (dateDimensions?.width || 0) / 2 + platformOffset
+    const textStyle = {
+      color: Skia.Color(Colors.gray[700]),
+      fontFamilies: ['SF Pro Text'],
+      fontSize: descriptionFontSize,
+      fontStyle: {
+        weight: 400
+      }
+    }
+    const para = Skia.ParagraphBuilder.Make({
+      maxLines: 1,
+      textAlign: TextAlign.Center
+    })
+      .pushStyle(textStyle)
+      .addText(`${dateText}`)
+      .pop()
+      .build()
+    para.layout(100)
+    return para
+  }, [customFontMgr, descriptionFontSize, dateText])
+
+  // Utxo Memo
+
+  const getMemoY = () => {
+    // spacing based on radius because Skia is not consistent for now
+    if (radius > 10) return mainY + radius / 4
+    if (radius > 5) return mainY + radius / 3.2
+    return mainY + radius / 7
   }
+  const memoX = x - 150 / 2
+  const memoParagraph = useMemo(() => {
+    if (!customFontMgr) return null
 
-  const getXMemo = () => {
-    return x - (memoDimensions?.width || 0) / 2 + platformOffset
+    const textStyle = {
+      color: Skia.Color('black'),
+      fontFamilies: ['SF Pro Text'],
+      fontSize: descriptionFontSize,
+      fontStyle: {
+        weight: 400
+      }
+    }
+    const para = Skia.ParagraphBuilder.Make({
+      maxLines: 1,
+      textAlign: TextAlign.Center
+    })
+      .pushStyle({
+        ...textStyle,
+        color: Skia.Color(Colors.gray[500])
+      })
+      .addText(`${i18n.t('common.memo').toLowerCase()}`)
+      .pushStyle({
+        ...textStyle,
+        fontStyle: {
+          weight: 500
+        }
+      })
+      .addText(`  ${formatAddress(utxo.label || '-')}`)
+      .pop()
+      .build()
+    para.layout(150)
+    return para
+  }, [customFontMgr, utxo.label, descriptionFontSize])
+
+  // Utxo from address
+  const getFromY = () => {
+    // spacing based on radius because Skia is not consistent for now
+    if (radius > 10) return mainY + radius / 2.5
+    if (radius > 5) return mainY + radius / 2.2
+    return mainY + radius / 3.5
   }
+  const fromParagraph = useMemo(() => {
+    if (!customFontMgr) return null
 
-  const getXFrom = () => {
-    return x - (fromDimensions?.width || 0) / 2 + platformOffset
-  }
+    const textStyle = {
+      color: Skia.Color('black'),
+      fontFamilies: ['SF Pro Text'],
+      fontSize: descriptionFontSize,
+      fontStyle: {
+        weight: 400
+      }
+    }
+    const para = Skia.ParagraphBuilder.Make({
+      maxLines: 1,
+      textAlign: TextAlign.Center
+    })
+      .pushStyle({
+        ...textStyle,
+        color: Skia.Color(Colors.gray[500])
+      })
+      .addText(`${i18n.t('common.from').toLowerCase()}`)
+      .pushStyle({
+        ...textStyle,
 
-  function getY() {
-    // "/ 3" is just to make the text align properly in smaller Circle
-    return y + (font?.getSize() || 0) / 3
-  }
+        fontStyle: {
+          weight: 500
+        }
+      })
+      .addText(`  ${formatAddress(utxo.addressTo || '')}`)
+      .pop()
+      .build()
+    para.layout(150)
+    return para
+  }, [customFontMgr, utxo.addressTo, descriptionFontSize])
 
-  const spacingY = (descriptionLightFont?.getSize() || 0) * 3
-
-  const getYDate = () => {
-    return getY() - spacingY
-  }
-
-  const getYMemo = () => {
-    return getY() + spacingY / 1.4
-  }
-
-  const getYFrom = () => {
-    return getY() + spacingY * 1.4
-  }
-
-  if (!font) return null
+  if (!customFontMgr) return null
 
   return (
     <Group>
@@ -122,53 +220,36 @@ export default function SSUtxoBubble({
         style="fill"
         antiAlias
       />
-      {utxo.value && font && (
+      {utxo.value && customFontMgr && (
         <Group>
-          <SkiaText
-            text={dateText}
-            x={getXDate()}
-            y={getYDate()}
-            font={descriptionLightFont}
-            style="fill"
-            color="#333333"
-            strokeWidth={1}
-            opacity={descriptionOpacity}
-            antiAlias
+          <Group layer={<Paint opacity={descriptionOpacity} />}>
+            <Paragraph
+              paragraph={dateParagraph}
+              x={dateX}
+              y={getDateY()}
+              width={100}
+            />
+          </Group>
+          <Paragraph
+            paragraph={mainParagraph}
+            x={mainX}
+            y={mainY}
+            width={200}
           />
-          <SkiaText
-            text={text}
-            x={getX()}
-            y={getY()}
-            font={selected ? selectedFont : font}
-            style="fill"
-            color={Colors.black}
-            strokeWidth={1}
-            antiAlias
-          />
-
-          <SkiaText
-            text={memo}
-            x={getXMemo()}
-            y={getYMemo()}
-            font={descriptionLightFont}
-            style="fill"
-            color="#333333"
-            opacity={descriptionOpacity}
-            strokeWidth={1}
-            antiAlias
-          />
-
-          <SkiaText
-            text={fromText}
-            x={getXFrom()}
-            y={getYFrom()}
-            font={descriptionLightFont}
-            style="fill"
-            color="#333333"
-            opacity={descriptionOpacity}
-            strokeWidth={1}
-            antiAlias
-          />
+          <Group layer={<Paint opacity={descriptionOpacity} />}>
+            <Paragraph
+              paragraph={memoParagraph}
+              x={memoX}
+              y={getMemoY()}
+              width={150}
+            />
+            <Paragraph
+              paragraph={fromParagraph}
+              x={memoX}
+              y={getFromY()}
+              width={150}
+            />
+          </Group>
         </Group>
       )}
     </Group>
