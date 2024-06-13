@@ -7,6 +7,7 @@ import {
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
+import React, { useMemo } from 'react'
 import {
   SharedValue,
   useDerivedValue,
@@ -17,7 +18,6 @@ import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
-import React, { useMemo } from 'react'
 
 type SSUtxoBubbleProps = {
   utxo: Utxo
@@ -61,7 +61,7 @@ export default function SSUtxoBubble({
     const textStyle = {
       color: Skia.Color('black'),
       fontFamilies: ['SF Pro Text'],
-      fontSize: fontSize,
+      fontSize,
       fontStyle: {
         weight: selected ? 400 : 300
       }
@@ -82,7 +82,7 @@ export default function SSUtxoBubble({
       .build()
     para.layout(200)
     return para
-  }, [customFontMgr, selected, utxo.value, fontSize])
+  }, [customFontMgr, selected, utxo.value, fontSize, satsFontSize])
 
   const mainX = x - 200 / 2
   const mainTextheight = mainParagraph?.getHeight() || 0
@@ -222,7 +222,7 @@ export default function SSUtxoBubble({
       />
       {utxo.value && customFontMgr && (
         <Group>
-          <Group layer={<Paint opacity={descriptionOpacity}></Paint>}>
+          <Group layer={<Paint opacity={descriptionOpacity} />}>
             <Paragraph
               paragraph={dateParagraph}
               x={dateX}
@@ -236,7 +236,7 @@ export default function SSUtxoBubble({
             y={mainY}
             width={200}
           />
-          <Group layer={<Paint opacity={descriptionOpacity}></Paint>}>
+          <Group layer={<Paint opacity={descriptionOpacity} />}>
             <Paragraph
               paragraph={memoParagraph}
               x={memoX}
