@@ -1,3 +1,4 @@
+import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
@@ -27,6 +28,9 @@ export default function Init() {
   )
 
   const pinFilled = pin.findIndex((text) => text === '') === -1
+  const confirmationPinFilled =
+    confirmationPin.findIndex((text) => text === '') === -1
+  const pinsMatch = pin.join('') === confirmationPin.join('')
 
   function handleSetPinLater() {
     authStore.setFirstTime(false)
@@ -41,6 +45,10 @@ export default function Init() {
     setPin(Array(PIN_SIZE).fill(''))
   }
 
+  function clearConfirmationPin() {
+    setConfirmationPin(Array(PIN_SIZE).fill(''))
+  }
+
   async function handleSetPin() {
     if (pin.join('') !== confirmationPin.join('')) return
     setLoading(true)
@@ -52,7 +60,7 @@ export default function Init() {
 
   async function handleGoBack() {
     clearPin()
-    setConfirmationPin(Array(PIN_SIZE).fill(''))
+    clearConfirmationPin()
     setStage('set')
   }
 
@@ -89,6 +97,28 @@ export default function Init() {
             {stage === 're-enter' && (
               <SSPinInput pin={confirmationPin} setPin={setConfirmationPin} />
             )}
+            {confirmationPinFilled && pinsMatch && (
+              <SSVStack itemsCenter gap="sm">
+                <Image
+                  style={{ width: 40, height: 40 }}
+                  source={require('@/assets/icons/check-circle-thin.svg')}
+                />
+                <SSText uppercase size="lg" color="muted" center>
+                  {i18n.t('auth.pinsMatch')}
+                </SSText>
+              </SSVStack>
+            )}
+            {confirmationPinFilled && !pinsMatch && (
+              <SSVStack itemsCenter gap="sm">
+                <Image
+                  style={{ width: 40, height: 40 }}
+                  source={require('@/assets/icons/circle-x-thin.svg')}
+                />
+                <SSText uppercase size="lg" color="muted" center>
+                  {i18n.t('auth.pinsDontMatch')}
+                </SSText>
+              </SSVStack>
+            )}
           </SSVStack>
           <SSVStack style={{ width: '100%' }}>
             {stage === 'set' && pinFilled && (
@@ -98,7 +128,7 @@ export default function Init() {
                 onPress={() => handleConfirmPin()}
               />
             )}
-            {stage === 're-enter' && (
+            {stage === 're-enter' && confirmationPinFilled && pinsMatch && (
               <SSButton
                 label={i18n.t('auth.set')}
                 variant="secondary"
@@ -120,11 +150,18 @@ export default function Init() {
                 onPress={() => clearPin()}
               />
             )}
-            {stage === 're-enter' && (
+            {stage === 're-enter' && !confirmationPinFilled && (
               <SSButton
                 label={i18n.t('common.goBack')}
                 variant="ghost"
                 onPress={() => handleGoBack()}
+              />
+            )}
+            {stage === 're-enter' && confirmationPinFilled && (
+              <SSButton
+                label={i18n.t('common.clear')}
+                variant="ghost"
+                onPress={() => clearConfirmationPin()}
               />
             )}
           </SSVStack>

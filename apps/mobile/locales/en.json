@@ -54,7 +54,9 @@
       "reenterPin": ["Re-enter your", "pin number"],
       "confirm": "Confirm pin number",
       "set": "Set pin number",
-      "setLater": "Set pin later"
+      "setLater": "Set pin later",
+      "pinsMatch": "Pin number match",
+      "pinsDontMatch": "No pin number match"
     },
     "accountList": {
       "noKeysYet": "No keys yet",
