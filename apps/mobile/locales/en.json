@@ -25,7 +25,9 @@
       "amount": "Amount",
       "save": "Save",
       "from": "From",
-      "memo": "Memo"
+      "memo": "Memo",
+      "clear": "Clear",
+      "goBack": "Go back"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -46,6 +48,13 @@
         "oneBlock": "Block deep",
         "manyBlocks": "Blocks deep"
       }
+    },
+    "auth": {
+      "setPin": ["Set pin number to", "enter the app"],
+      "reenterPin": ["Re-enter your", "pin number"],
+      "confirm": "Confirm pin number",
+      "set": "Set pin number",
+      "setLater": "Set pin later"
     },
     "accountList": {
       "noKeysYet": "No keys yet",
