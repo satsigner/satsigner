@@ -1,4 +1,4 @@
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
 

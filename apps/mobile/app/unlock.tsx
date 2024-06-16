@@ -1,6 +1,5 @@
-import { Stack, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { View } from 'react-native'
 import Animated from 'react-native-reanimated'
 
 import SSPinInput from '@/components/SSPinInput'
