@@ -34,12 +34,7 @@ export default function SSPinInput2({
 
     if (text === '') return
 
-    if (index + 1 < PIN_SIZE) {
-      inputRefs.current[index + 1]?.focus()
-    } else {
-      onFillEnded?.()
-      Keyboard.dismiss()
-    }
+    if (index + 1 < PIN_SIZE) inputRefs.current[index + 1]?.focus()
   }
 
   function handleOnKeyPress(
@@ -50,6 +45,11 @@ export default function SSPinInput2({
       setIsBackspace(true)
       if (index - 1 >= 0) {
         inputRefs.current[index - 1]?.focus()
+      }
+    } else {
+      if (index + 1 === PIN_SIZE) {
+        onFillEnded?.()
+        Keyboard.dismiss()
       }
     }
   }

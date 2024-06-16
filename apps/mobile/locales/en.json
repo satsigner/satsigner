@@ -56,7 +56,9 @@
       "set": "Set pin number",
       "setLater": "Set pin later",
       "pinsMatch": "Pin number match",
-      "pinsDontMatch": "No pin number match"
+      "pinsDontMatch": "No pin number match",
+      "unlock": "Unlock sat signer",
+      "triesLeft": "Tries left"
     },
     "accountList": {
       "noKeysYet": "No keys yet",

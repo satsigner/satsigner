@@ -24,8 +24,6 @@ export default function App() {
     Alert.alert('Accounts deleted')
   }
 
-  if (authStore.firstTime) return <Redirect href="/auth/init" />
-
   return (
     <SSMainLayout>
       <Stack.Screen
