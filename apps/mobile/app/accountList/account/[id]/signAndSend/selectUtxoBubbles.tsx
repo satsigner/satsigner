@@ -1,10 +1,10 @@
 import { useHeaderHeight } from '@react-navigation/elements'
-import { Canvas, Group } from '@shopify/react-native-skia'
+import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
 import { hierarchy, pack } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import {
   GestureResponderEvent,
   Platform,
@@ -43,7 +43,9 @@ type UtxoListBubble = Partial<Utxo> & {
   children: UtxoListBubble[]
 }
 
-export default function SelectUtxoBubbles() {
+export default memo(SelectUtxoBubbles)
+
+function SelectUtxoBubbles() {
   const router = useRouter()
   const accountStore = useAccountStore()
   const transactionBuilderStore = useTransactionBuilderStore()
@@ -56,14 +58,18 @@ export default function SelectUtxoBubbles() {
 
   const hasSelectedUtxos = transactionBuilderStore.inputs.size > 0
 
-  const utxosValue = (utxos: Utxo[]): number =>
-    utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+  const utxosValue = useCallback(
+    (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
+    []
+  )
 
   const utxosTotalValue = useMemo(
     () => utxosValue(accountStore.currentAccount.utxos),
-    [accountStore.currentAccount.utxos]
+    [accountStore.currentAccount.utxos, utxosValue]
   )
-  const utxosSelectedValue = utxosValue(transactionBuilderStore.getInputs())
+  const utxosSelectedValue = useMemo(() => {
+    return utxosValue(transactionBuilderStore.getInputs())
+  }, [transactionBuilderStore, utxosValue])
 
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
@@ -116,29 +122,35 @@ export default function SelectUtxoBubbles() {
   const centerX = canvasSize.width / 2
   const centerY = canvasSize.height / 2
 
-  function handleOnToggleSelected(utxo: Utxo) {
-    const includesInput = transactionBuilderStore.hasInput(utxo)
+  const handleOnToggleSelected = useCallback(
+    (utxo: Utxo) => {
+      const includesInput = transactionBuilderStore.hasInput(utxo)
 
-    if (includesInput) transactionBuilderStore.removeInput(utxo)
-    else transactionBuilderStore.addInput(utxo)
-  }
+      if (includesInput) transactionBuilderStore.removeInput(utxo)
+      else transactionBuilderStore.addInput(utxo)
+    },
+    [transactionBuilderStore]
+  )
 
-  function handleOnPressCircle(r: number, utxo: Utxo) {
-    return (event: GestureResponderEvent) => {
-      const circleCenterX = r
-      const circleCenterY = r
-      const touchPointX = event.nativeEvent.locationX
-      const touchPointY = event.nativeEvent.locationY
-      const distance = Math.sqrt(
-        Math.pow(touchPointX - circleCenterX, 2) +
-          Math.pow(touchPointY - circleCenterY, 2)
-      )
-      // register a tap only when the tap is inside the circle
-      if (distance <= r) {
-        handleOnToggleSelected(utxo)
+  const handleOnPressCircle = useCallback(
+    (r: number, utxo: Utxo) => {
+      return (event: GestureResponderEvent) => {
+        const circleCenterX = r
+        const circleCenterY = r
+        const touchPointX = event.nativeEvent.locationX
+        const touchPointY = event.nativeEvent.locationY
+        const distance = Math.sqrt(
+          Math.pow(touchPointX - circleCenterX, 2) +
+            Math.pow(touchPointY - circleCenterY, 2)
+        )
+        // register a tap only when the tap is inside the circle
+        if (distance <= r) {
+          handleOnToggleSelected(utxo)
+        }
       }
-    }
-  }
+    },
+    [handleOnToggleSelected]
+  )
 
   function handleSelectAllUtxos() {
     for (const utxo of accountStore.currentAccount.utxos) {
@@ -146,6 +158,13 @@ export default function SelectUtxoBubbles() {
     }
   }
 
+  const customFontManager = useFonts({
+    'SF Pro Text': [
+      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+    ]
+  })
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen
@@ -260,6 +279,7 @@ export default function SelectUtxoBubbles() {
                   radius={packedUtxo.r}
                   selected={selected}
                   descriptionOpacity={descriptionOpacity}
+                  customFontManager={customFontManager}
                 />
               )
             })}
