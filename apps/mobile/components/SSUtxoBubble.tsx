@@ -73,7 +73,7 @@ function SSUtxoBubble({
         color: Skia.Color(Colors.gray[600]),
         fontSize: satsFontSize
       })
-      .addText(`${i18n.t('bitcoin.sats').toLowerCase()}`)
+      .addText(` ${i18n.t('bitcoin.sats').toLowerCase()}`)
       .pop()
       .build()
     para.layout(200)
