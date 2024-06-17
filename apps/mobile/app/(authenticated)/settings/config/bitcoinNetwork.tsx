@@ -11,7 +11,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 
-export default function ConfigureBlockchain() {
+export default function BitcoinNetwork() {
   const router = useRouter()
   const blockchainStore = useBlockchainStore()
 
@@ -23,14 +23,18 @@ export default function ConfigureBlockchain() {
     blockchainStore.backend = backend
     blockchainStore.network = network
     blockchainStore.url = url
-    router.replace('/')
+    router.back()
   }
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>Configure Blockchain</SSText>
+          headerTitle: () => (
+            <SSText uppercase>{i18n.t('settings.bitcoinNetwork.title')}</SSText>
+          ),
+          headerLeft: () => <></>,
+          headerRight: undefined
         }}
       />
       <SSVStack justifyBetween>

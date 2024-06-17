@@ -1,11 +1,11 @@
 import { Image } from 'expo-image'
-import { TouchableOpacity, StyleSheet } from 'react-native'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { Colors } from '@/styles'
 
 import SSText from './SSText'
-import { Colors } from '@/styles'
 
 type SSSettingsCardsProps = {
   title: string

@@ -65,6 +65,7 @@ export default function Init() {
             <SSPinInput
               pin={pin}
               setPin={setPin}
+              autoFocus
               onFillEnded={() => handleOnFillEnded()}
             />
           </Animated.View>

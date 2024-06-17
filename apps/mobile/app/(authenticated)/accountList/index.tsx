@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { ScrollView, View } from 'react-native'
+import { ScrollView } from 'react-native'
 
 import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
@@ -28,14 +28,12 @@ export default function AccountList() {
           )
         }}
       />
-      <View>
-        <SSButton
-          label={i18n.t('addMasterKey.title')}
-          variant="gradient"
-          style={{ borderRadius: 0 }}
-          onPress={() => router.navigate('/addMasterKey/')}
-        />
-      </View>
+      <SSButton
+        label={i18n.t('addMasterKey.title')}
+        variant="gradient"
+        style={{ borderRadius: 0 }}
+        onPress={() => router.navigate('/addMasterKey/')}
+      />
       <SSMainLayout style={{ paddingHorizontal: '5%' }}>
         <ScrollView>
           {accountStore.accounts.length === 0 && (

@@ -30,7 +30,7 @@ export default function RootLayout() {
   }, []) // Workaround for now to set the statusBarStyle
 
   useEffect(() => {
-    authStore.setLockTriggered(true)
+    if (!authStore.firstTime) authStore.setLockTriggered(true)
 
     const subscription = AppState.addEventListener(
       'change',

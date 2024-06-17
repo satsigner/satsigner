@@ -60,6 +60,20 @@
       "unlock": "Unlock sat signer",
       "triesLeft": "Tries left"
     },
+    "settings": {
+      "bitcoinNetwork": {
+        "title": "Bitcoin Network",
+        "description": "Connect to your own, or someone elses node to communicated with the bitcoin network"
+      },
+      "appSecurity": {
+        "title": "App Security",
+        "description": "Change app wide security settings to protect access in case of a compromised device"
+      },
+      "developer": {
+        "title": "Developer",
+        "description": "Available in dev mode only. Useful tools for developers for faster development"
+      }
+    },
     "accountList": {
       "noKeysYet": "No keys yet",
       "childAccounts": ["Child", "Accounts"],
