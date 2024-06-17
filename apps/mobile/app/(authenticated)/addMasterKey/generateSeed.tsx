@@ -103,7 +103,7 @@ export default function GenerateSeed() {
             <SSButton
               label={i18n.t('common.cancel')}
               variant="ghost"
-              onPress={() => router.replace('/accountList/')}
+              onPress={() => router.replace('/')}
             />
           </SSVStack>
         </SSVStack>

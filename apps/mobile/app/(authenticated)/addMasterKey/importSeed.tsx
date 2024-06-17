@@ -172,7 +172,7 @@ export default function ImportSeed() {
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
-    router.navigate('/accountList/')
+    router.navigate('/')
   }
 
   return (
@@ -252,7 +252,7 @@ export default function ImportSeed() {
             <SSButton
               label={i18n.t('common.cancel')}
               variant="ghost"
-              onPress={() => router.replace('/accountList/')}
+              onPress={() => router.replace('/')}
             />
           </SSVStack>
         </SSVStack>
