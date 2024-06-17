@@ -110,7 +110,7 @@ export default function Account() {
 
   function navigateToSignAndSend() {
     transactionBuilderStore.clearTransaction()
-    router.navigate(`/accountList/account/${id}/signAndSend/selectUtxoList`)
+    router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
   return (

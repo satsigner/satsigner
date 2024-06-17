@@ -101,9 +101,7 @@ export default function SelectUtxoList() {
             </SSText>
             <SSIconButton
               onPress={() =>
-                router.navigate(
-                  `/accountList/account/${id}/signAndSend/selectUtxoBubbles`
-                )
+                router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
               }
             >
               <Image
