@@ -63,11 +63,16 @@
     "settings": {
       "bitcoinNetwork": {
         "title": "Bitcoin Network",
-        "description": "Connect to your own, or someone elses node to communicated with the bitcoin network"
+        "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
+        "backend": "Backend",
+        "network": "Network",
+        "url": "Url"
       },
       "appSecurity": {
         "title": "App Security",
-        "description": "Change app wide security settings to protect access in case of a compromised device"
+        "description": "Change app wide security settings to protect access in case of a compromised device",
+        "maxPinTries": "Maximum pin tries",
+        "backgroundLockTime": "Background lock time"
       },
       "developer": {
         "title": "Developer",

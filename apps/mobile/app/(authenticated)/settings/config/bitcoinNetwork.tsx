@@ -41,7 +41,9 @@ export default function BitcoinNetwork() {
         <ScrollView>
           <SSVStack gap="lg">
             <SSVStack>
-              <SSText uppercase>Backend</SSText>
+              <SSText uppercase>
+                {i18n.t('settings.bitcoinNetwork.backend')}
+              </SSText>
               <SSCheckbox
                 label="Electrum"
                 selected={backend === 'electrum'}
@@ -54,7 +56,9 @@ export default function BitcoinNetwork() {
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>Network</SSText>
+              <SSText uppercase>
+                {i18n.t('settings.bitcoinNetwork.network')}
+              </SSText>
               <SSCheckbox
                 label="testnet"
                 selected={network === 'testnet'}
@@ -67,7 +71,7 @@ export default function BitcoinNetwork() {
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>Url</SSText>
+              <SSText uppercase>{i18n.t('settings.bitcoinNetwork.url')}</SSText>
               <SSTextInput value={url} onChangeText={(url) => setUrl(url)} />
             </SSVStack>
           </SSVStack>

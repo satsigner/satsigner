@@ -27,6 +27,8 @@ type AuthAction = {
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
   resetPinTries: () => void
+  setPinMaxTries: (maxTries: number) => void
+  setLockDeltaTime: (deltaTime: number) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -61,6 +63,12 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       resetPinTries: () => {
         set({ pinTries: 0 })
+      },
+      setPinMaxTries: (maxTries) => {
+        set({ pinMaxTries: maxTries })
+      },
+      setLockDeltaTime: (deltaTime) => {
+        set({ lockDeltaTime: deltaTime })
       }
     }),
     {
