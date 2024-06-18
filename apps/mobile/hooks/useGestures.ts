@@ -46,7 +46,8 @@ export const useGestures = ({
   onPinchEnd,
   onPanStart,
   onPanEnd,
-  onDoubleTap = () => {}
+  onDoubleTap = () => {},
+  onSingleTap = () => {}
 }: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false)
   const isPinching = useRef(false)
@@ -292,6 +293,12 @@ export const useGestures = ({
       }
     })
 
+  const singleTapGesture = Gesture.Tap()
+    .numberOfTaps(1)
+    .onStart((event) => {
+      runOnJS(onSingleTap)(event)
+    })
+
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: translate.y.value },
@@ -316,11 +323,9 @@ export const useGestures = ({
     { scale: scale.value }
   ])
 
-  const gestures = Gesture.Simultaneous(
-    doubleTapGesture,
-    pinchGesture,
-    panGesture
-  )
+  const pinchPanGestures = Gesture.Simultaneous(pinchGesture, panGesture)
+  const tapGestures = Gesture.Exclusive(doubleTapGesture, singleTapGesture)
+  const gestures = Gesture.Race(tapGestures, pinchPanGestures)
 
   return { gestures, animatedStyle, reset, transform, descriptionOpacity }
 }

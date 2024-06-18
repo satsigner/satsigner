@@ -6,7 +6,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useMemo } from 'react'
 import {
-  GestureResponderEvent,
   Platform,
   Pressable,
   StyleSheet,
@@ -15,7 +14,9 @@ import {
 } from 'react-native'
 import {
   GestureDetector,
-  GestureHandlerRootView
+  GestureHandlerRootView,
+  GestureStateChangeEvent,
+  TapGestureHandlerEventPayload
 } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -108,19 +109,6 @@ function SelectUtxoBubbles() {
   }, [GRAPH_WIDTH, GRAPH_HEIGHT, utxoList])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-  const { animatedStyle, gestures, transform, descriptionOpacity } =
-    useGestures({
-      width: w,
-      height: h,
-      center,
-      isDoubleTapEnabled: true,
-      maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-      minPanPointers: 1,
-      maxScale: 1000,
-      minScale: 0.1
-    })
-  const centerX = canvasSize.width / 2
-  const centerY = canvasSize.height / 2
 
   const handleOnToggleSelected = useCallback(
     (utxo: Utxo) => {
@@ -132,25 +120,60 @@ function SelectUtxoBubbles() {
     [transactionBuilderStore]
   )
 
-  const handleOnPressCircle = useCallback(
-    (r: number, utxo: Utxo) => {
-      return (event: GestureResponderEvent) => {
-        const circleCenterX = r
-        const circleCenterY = r
-        const touchPointX = event.nativeEvent.locationX
-        const touchPointY = event.nativeEvent.locationY
-        const distance = Math.sqrt(
-          Math.pow(touchPointX - circleCenterX, 2) +
-            Math.pow(touchPointY - circleCenterY, 2)
-        )
-        // register a tap only when the tap is inside the circle
-        if (distance <= r) {
-          handleOnToggleSelected(utxo)
-        }
+  const onSingleTap = useCallback(
+    (event: GestureStateChangeEvent<TapGestureHandlerEventPayload>) => {
+      const { x, y } = event
+      const tappedUtxo = utxoPack.find((packedUtxo) => {
+        const dx = x - packedUtxo.x
+        const dy = y - packedUtxo.y
+        return dx * dx + dy * dy <= packedUtxo.r * packedUtxo.r
+      })
+
+      if (tappedUtxo) {
+        handleOnToggleSelected({
+          txid: tappedUtxo.data.txid!,
+          vout: tappedUtxo.data.vout!,
+          value: tappedUtxo.data.value!,
+          timestamp: tappedUtxo.data.timestamp,
+          label: tappedUtxo.data.label,
+          addressTo: tappedUtxo.data.addressTo,
+          keychain: tappedUtxo.data.keychain!
+        })
       }
     },
-    [handleOnToggleSelected]
+    [utxoPack, handleOnToggleSelected]
   )
+  const { animatedStyle, gestures, transform, descriptionOpacity } =
+    useGestures({
+      width: w,
+      height: h,
+      center,
+      isDoubleTapEnabled: true,
+      maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+      minPanPointers: 1,
+      maxScale: 1000,
+      minScale: 0.1,
+      onSingleTap
+    })
+  const centerX = canvasSize.width / 2
+  const centerY = canvasSize.height / 2
+
+  // const handleOnPressCircle = useCallback(
+  //   (r: number, utxo: Utxo) => {
+  //     const rSquared = r * r // Pre-calculate r squared
+  //     return (event: GestureResponderEvent) => {
+  //       const touchPointX = event.nativeEvent.locationX
+  //       const touchPointY = event.nativeEvent.locationY
+  //       const distanceSquared =
+  //         Math.pow(touchPointX - r, 2) + Math.pow(touchPointY - r, 2)
+  //       // Compare squared distances to avoid using Math.sqrt()
+  //       if (distanceSquared <= rSquared) {
+  //         handleOnToggleSelected(utxo)
+  //       }
+  //     }
+  //   },
+  //   [handleOnToggleSelected]
+  // )
 
   function handleSelectAllUtxos() {
     for (const utxo of accountStore.currentAccount.utxos) {
@@ -301,7 +324,8 @@ function SelectUtxoBubbles() {
               onLayout={onCanvasLayout}
             >
               {utxoPack.map((packedUtxo) => (
-                <Pressable
+                <View
+                  // <View
                   key={packedUtxo.data.id}
                   hitSlop={0}
                   pressRetentionOffset={0}
@@ -315,18 +339,19 @@ function SelectUtxoBubbles() {
                     overflow: 'hidden',
                     backgroundColor: 'transparent'
                   }}
-                  onPress={handleOnPressCircle(packedUtxo.r, {
-                    txid: packedUtxo.data.txid!,
-                    vout: packedUtxo.data.vout!,
-                    value: packedUtxo.data.value,
-                    timestamp: packedUtxo.data.timestamp,
-                    label: packedUtxo.data.label,
-                    addressTo: packedUtxo.data.addressTo,
-                    keychain: packedUtxo.data.keychain!
-                  })}
+                  // onPress={handleOnPressCircle(packedUtxo.r, {
+                  //   txid: packedUtxo.data.txid!,
+                  //   vout: packedUtxo.data.vout!,
+                  //   value: packedUtxo.data.value,
+                  //   timestamp: packedUtxo.data.timestamp,
+                  //   label: packedUtxo.data.label,
+                  //   addressTo: packedUtxo.data.addressTo,
+                  //   keychain: packedUtxo.data.keychain!
+                  // })}
                 >
                   <Animated.View />
-                </Pressable>
+                  {/* </Pressable> */}
+                </View>
               ))}
             </Animated.View>
           </View>
