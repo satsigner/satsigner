@@ -1,10 +1,14 @@
-import { LinearGradient } from 'expo-linear-gradient'
-import { Stack } from 'expo-router'
-import { setStatusBarStyle, StatusBar } from 'expo-status-bar'
+import { Slot } from 'expo-router'
+import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
-import { useEffect } from 'react'
-import { Platform, StyleSheet, UIManager, View } from 'react-native'
+import { useEffect, useRef } from 'react'
+import { AppState, AppStateStatus, Platform, UIManager } from 'react-native'
 
+import {
+  getLastBackgroundTimestamp,
+  setLastBackgroundTimestamp
+} from '@/storage/mmkv'
+import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 
 if (Platform.OS === 'android') {
@@ -14,45 +18,47 @@ if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true)
 }
 
-export default function Layout() {
+export default function RootLayout() {
+  const authStore = useAuthStore()
+
+  const appState = useRef(AppState.currentState)
+
   useEffect(() => {
     setTimeout(() => {
       setStatusBarStyle('light')
     }, 1)
   }, []) // Workaround for now to set the statusBarStyle
 
-  return (
-    <View style={styles.container}>
-      <Stack
-        screenOptions={{
-          contentStyle: {
-            backgroundColor: Colors.gray[950]
-          },
-          headerBackground: () => (
-            <LinearGradient
-              style={{
-                height: '100%',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-              colors={[Colors.gray[900], Colors.gray[800]]}
-              start={{ x: 0.94, y: 1.0 }}
-              end={{ x: 0.86, y: -0.64 }}
-            />
-          ),
-          headerTitleAlign: 'center',
-          headerTintColor: Colors.gray[200],
-          headerBackTitleVisible: false
-        }}
-      />
-      <StatusBar style="light" />
-    </View>
-  )
-}
+  useEffect(() => {
+    if (!authStore.firstTime) authStore.setLockTriggered(true)
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.gray[900]
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChanged
+    )
+
+    return () => {
+      subscription.remove()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handleAppStateChanged(nextAppState: AppStateStatus) {
+    if (nextAppState === 'background' && authStore.requiresAuth) {
+      setLastBackgroundTimestamp(Date.now())
+    } else if (
+      nextAppState === 'active' &&
+      appState.current.match(/background/) &&
+      authStore.requiresAuth
+    ) {
+      const inactivityStartTime = getLastBackgroundTimestamp()
+      const elapsed = (Date.now() - (inactivityStartTime || 0)) / 1000
+
+      if (elapsed >= authStore.lockDeltaTime) authStore.setLockTriggered(true)
+    }
+
+    appState.current = nextAppState
   }
-})
+
+  return <Slot />
+}

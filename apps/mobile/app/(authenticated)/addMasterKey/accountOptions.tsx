@@ -149,7 +149,7 @@ export default function AccountOptions() {
           <SSButton
             label={i18n.t('common.cancel')}
             variant="ghost"
-            onPress={() => router.navigate('/accountList/')}
+            onPress={() => router.navigate('/')}
           />
         </SSVStack>
       </SSVStack>

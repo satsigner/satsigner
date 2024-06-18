@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router'
+import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
 
@@ -8,10 +8,11 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
+import { useAuthStore } from '@/store/auth'
 
-export default function App() {
-  const router = useRouter()
+export default function Developer() {
   const accountStore = useAccountStore()
+  const authStore = useAuthStore()
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
 
@@ -23,29 +24,29 @@ export default function App() {
   }
 
   return (
-    <SSMainLayout>
+    <>
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{i18n.t('satsigner.name')}</SSText>
-          )
+            <SSText uppercase>{i18n.t('settings.developer.title')}</SSText>
+          ),
+          headerLeft: () => <></>,
+          headerRight: undefined
         }}
       />
-      <SSVStack>
-        <SSButton
-          label="Account List"
-          onPress={() => router.navigate('/accountList/')}
-        />
-        <SSButton
-          label="Delete Accounts"
-          loading={deletingAccounts}
-          onPress={() => handleDeleteAccount()}
-        />
-        <SSButton
-          label="Configure Blockchain"
-          onPress={() => router.navigate('/settings/configureBlockchain')}
-        />
-      </SSVStack>
-    </SSMainLayout>
+      <SSMainLayout>
+        <SSVStack>
+          <SSButton
+            label="Delete Accounts"
+            loading={deletingAccounts}
+            onPress={() => handleDeleteAccount()}
+          />
+          <SSButton
+            label="Set PIN First Time"
+            onPress={() => authStore.setFirstTime(true)}
+          />
+        </SSVStack>
+      </SSMainLayout>
+    </>
   )
 }

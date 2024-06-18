@@ -102,7 +102,7 @@ export default function ConfirmSeed() {
 
   function handleCloseWordsWarning() {
     setWarningModalVisible(false)
-    router.navigate('/accountList/')
+    router.navigate('/')
   }
 
   return (
@@ -148,7 +148,7 @@ export default function ConfirmSeed() {
           <SSButton
             label={i18n.t('common.cancel')}
             variant="ghost"
-            onPress={() => router.replace('/accountList/')}
+            onPress={() => router.replace('/')}
           />
         </SSVStack>
       </SSVStack>

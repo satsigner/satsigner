@@ -188,9 +188,7 @@ function SelectUtxoBubbles() {
             </SSText>
             <SSIconButton
               onPress={() =>
-                router.navigate(
-                  `/accountList/account/${id}/signAndSend/selectUtxoList`
-                )
+                router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
               }
             >
               <Image

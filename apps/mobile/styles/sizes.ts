@@ -52,3 +52,9 @@ export const wordInput = {
   fontSize: text.fontSize.lg,
   lineHeight: 12
 }
+
+export const pinInput = {
+  borderRadius: 3,
+  height: 58,
+  width: 58
+}

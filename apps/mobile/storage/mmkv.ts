@@ -1,6 +1,8 @@
 import { MMKV } from 'react-native-mmkv'
 import { StateStorage } from 'zustand/middleware'
 
+const LAST_BACKGROUND_TIMESTAMP_KEY = 'lastBackgroundTimestamp'
+
 const storage = new MMKV({ id: 'mmkv.satsigner' })
 
 const mmkvStorage: StateStorage = {
@@ -16,4 +18,13 @@ const mmkvStorage: StateStorage = {
   }
 }
 
+function setLastBackgroundTimestamp(timestamp: number) {
+  storage.set(LAST_BACKGROUND_TIMESTAMP_KEY, timestamp)
+}
+
+function getLastBackgroundTimestamp() {
+  return storage.getNumber(LAST_BACKGROUND_TIMESTAMP_KEY) ?? null
+}
+
 export default mmkvStorage
+export { getLastBackgroundTimestamp, mmkvStorage, setLastBackgroundTimestamp }

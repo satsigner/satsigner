@@ -25,7 +25,9 @@
       "amount": "Amount",
       "save": "Save",
       "from": "From",
-      "memo": "Memo"
+      "memo": "Memo",
+      "clear": "Clear",
+      "goBack": "Go back"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -45,6 +47,36 @@
         "unconfirmed": "Unconfirmed",
         "oneBlock": "Block deep",
         "manyBlocks": "Blocks deep"
+      }
+    },
+    "auth": {
+      "setPin": ["Set pin number to", "enter the app"],
+      "reenterPin": ["Re-enter your", "pin number"],
+      "confirm": "Confirm pin number",
+      "set": "Set pin number",
+      "setLater": "Set pin later",
+      "pinsMatch": "Pin number match",
+      "pinsDontMatch": "No pin number match",
+      "unlock": "Unlock sat signer",
+      "triesLeft": "Tries left"
+    },
+    "settings": {
+      "bitcoinNetwork": {
+        "title": "Bitcoin Network",
+        "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
+        "backend": "Backend",
+        "network": "Network",
+        "url": "Url"
+      },
+      "appSecurity": {
+        "title": "App Security",
+        "description": "Change app wide security settings to protect access in case of a compromised device",
+        "maxPinTries": "Maximum pin tries",
+        "backgroundLockTime": "Background lock time"
+      },
+      "developer": {
+        "title": "Developer",
+        "description": "Available in dev mode only. Useful tools for developers for faster development"
       }
     },
     "accountList": {
