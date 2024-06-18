@@ -25,8 +25,9 @@ type SSUtxoBubbleProps = {
   y: number
   radius: number
   selected: boolean
-  descriptionOpacity: Readonly<SharedValue<0 | 1>>
+  isZoomedIn: Readonly<SharedValue<boolean>>
   customFontManager: SkTypefaceFontProvider | null
+  scale: Readonly<SharedValue<number>>
 }
 
 export default React.memo(SSUtxoBubble)
@@ -37,14 +38,20 @@ function SSUtxoBubble({
   y,
   radius,
   selected,
-  descriptionOpacity,
-  customFontManager
+  isZoomedIn,
+  customFontManager,
+  scale
 }: SSUtxoBubbleProps) {
   const backgroundColor = useDerivedValue(() => {
     if (selected) return withTiming(Colors.white)
-    if (descriptionOpacity.value) return withTiming(Colors.gray[300])
+    if (isZoomedIn?.value) return withTiming(Colors.gray[300])
     return withTiming(Colors.gray[400])
-  }, [descriptionOpacity, selected])
+  }, [isZoomedIn, selected])
+
+  const descriptionOpacity = useDerivedValue(() => {
+    const zoomedRadius = scale.value * radius
+    return withTiming(scale.value === 1 || zoomedRadius <= 100 ? 0 : 1)
+  }, [scale, radius])
 
   const fontSize = radius / 6
   const satsFontSize = fontSize / 1.5

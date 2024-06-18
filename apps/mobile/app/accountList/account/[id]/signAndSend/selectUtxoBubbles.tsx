@@ -1,17 +1,11 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, pack, style } from 'd3'
+import { hierarchy, pack } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useMemo } from 'react'
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import {
   GestureDetector,
   GestureHandlerRootView,
@@ -143,8 +137,8 @@ function SelectUtxoBubbles() {
     },
     [utxoPack, handleOnToggleSelected]
   )
-  const { animatedStyle, gestures, transform, descriptionOpacity } =
-    useGestures({
+  const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
+    {
       width: w,
       height: h,
       center,
@@ -154,26 +148,10 @@ function SelectUtxoBubbles() {
       maxScale: 1000,
       minScale: 0.1,
       onSingleTap
-    })
+    }
+  )
   const centerX = canvasSize.width / 2
   const centerY = canvasSize.height / 2
-
-  // const handleOnPressCircle = useCallback(
-  //   (r: number, utxo: Utxo) => {
-  //     const rSquared = r * r // Pre-calculate r squared
-  //     return (event: GestureResponderEvent) => {
-  //       const touchPointX = event.nativeEvent.locationX
-  //       const touchPointY = event.nativeEvent.locationY
-  //       const distanceSquared =
-  //         Math.pow(touchPointX - r, 2) + Math.pow(touchPointY - r, 2)
-  //       // Compare squared distances to avoid using Math.sqrt()
-  //       if (distanceSquared <= rSquared) {
-  //         handleOnToggleSelected(utxo)
-  //       }
-  //     }
-  //   },
-  //   [handleOnToggleSelected]
-  // )
 
   function handleSelectAllUtxos() {
     for (const utxo of accountStore.currentAccount.utxos) {
@@ -301,8 +279,9 @@ function SelectUtxoBubbles() {
                   y={packedUtxo.y}
                   radius={packedUtxo.r}
                   selected={selected}
-                  descriptionOpacity={descriptionOpacity}
+                  isZoomedIn={isZoomedIn}
                   customFontManager={customFontManager}
+                  scale={scale}
                 />
               )
             })}
@@ -325,10 +304,7 @@ function SelectUtxoBubbles() {
             >
               {utxoPack.map((packedUtxo) => (
                 <View
-                  // <View
                   key={packedUtxo.data.id}
-                  // hitSlop={0}
-                  // pressRetentionOffset={0}
                   style={{
                     width: packedUtxo.r * 2,
                     height: packedUtxo.r * 2,
@@ -339,18 +315,8 @@ function SelectUtxoBubbles() {
                     overflow: 'hidden',
                     backgroundColor: 'transparent'
                   }}
-                  // onPress={handleOnPressCircle(packedUtxo.r, {
-                  //   txid: packedUtxo.data.txid!,
-                  //   vout: packedUtxo.data.vout!,
-                  //   value: packedUtxo.data.value,
-                  //   timestamp: packedUtxo.data.timestamp,
-                  //   label: packedUtxo.data.label,
-                  //   addressTo: packedUtxo.data.addressTo,
-                  //   keychain: packedUtxo.data.keychain!
-                  // })}
                 >
                   <Animated.View />
-                  {/* </Pressable> */}
                 </View>
               ))}
             </Animated.View>
