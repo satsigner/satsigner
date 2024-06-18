@@ -4,8 +4,8 @@ import {
   Paint,
   Paragraph,
   Skia,
-  TextAlign,
-  useFonts
+  SkTypefaceFontProvider,
+  TextAlign
 } from '@shopify/react-native-skia'
 import React, { useMemo } from 'react'
 import {
@@ -25,38 +25,41 @@ type SSUtxoBubbleProps = {
   y: number
   radius: number
   selected: boolean
-  descriptionOpacity: Readonly<SharedValue<0 | 1>>
+  isZoomedIn: Readonly<SharedValue<boolean>>
+  customFontManager: SkTypefaceFontProvider | null
+  scale: Readonly<SharedValue<number>>
 }
 
-export default function SSUtxoBubble({
+export default React.memo(SSUtxoBubble)
+
+function SSUtxoBubble({
   utxo,
   x,
   y,
   radius,
   selected,
-  descriptionOpacity
+  isZoomedIn,
+  customFontManager,
+  scale
 }: SSUtxoBubbleProps) {
   const backgroundColor = useDerivedValue(() => {
     if (selected) return withTiming(Colors.white)
-    if (descriptionOpacity.value) return withTiming(Colors.gray[300])
+    if (isZoomedIn?.value) return withTiming(Colors.gray[300])
     return withTiming(Colors.gray[400])
-  }, [descriptionOpacity, selected])
+  }, [isZoomedIn, selected])
+
+  const descriptionOpacity = useDerivedValue(() => {
+    const zoomedRadius = scale.value * radius
+    return withTiming(scale.value === 1 || zoomedRadius <= 100 ? 0 : 1)
+  }, [scale, radius])
 
   const fontSize = radius / 6
   const satsFontSize = fontSize / 1.5
   const descriptionFontSize = fontSize / 2.5
 
-  const customFontMgr = useFonts({
-    'SF Pro Text': [
-      require(`../assets/fonts/SF-Pro-Text-Light.otf`),
-      require(`../assets/fonts/SF-Pro-Text-Regular.otf`),
-      require(`../assets/fonts/SF-Pro-Text-Medium.otf`)
-    ]
-  })
-
   // Utxo value
   const mainParagraph = useMemo(() => {
-    if (!customFontMgr) return null
+    if (!customFontManager) return null
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -77,12 +80,12 @@ export default function SSUtxoBubble({
         color: Skia.Color(Colors.gray[600]),
         fontSize: satsFontSize
       })
-      .addText(`${i18n.t('bitcoin.sats').toLowerCase()}`)
+      .addText(` ${i18n.t('bitcoin.sats').toLowerCase()}`)
       .pop()
       .build()
     para.layout(200)
     return para
-  }, [customFontMgr, selected, utxo.value, fontSize, satsFontSize])
+  }, [customFontManager, selected, utxo.value, fontSize, satsFontSize])
 
   const mainX = x - 200 / 2
   const mainTextheight = mainParagraph?.getHeight() || 0
@@ -94,16 +97,15 @@ export default function SSUtxoBubble({
     day: 'numeric',
     year: 'numeric'
   })
-  const getDateY = () => {
-    // spacing based on radius because Skia is not consistent for now
+  const dateY = useMemo(() => {
     if (radius > 10) return mainY - radius / 8
     if (radius > 5) return mainY - radius / 12
     return mainY - radius / 4
-  }
+  }, [radius, mainY])
 
   const dateX = x - 100 / 2
   const dateParagraph = useMemo(() => {
-    if (!customFontMgr) return null
+    if (!customFontManager) return null
 
     const textStyle = {
       color: Skia.Color(Colors.gray[700]),
@@ -123,19 +125,18 @@ export default function SSUtxoBubble({
       .build()
     para.layout(100)
     return para
-  }, [customFontMgr, descriptionFontSize, dateText])
+  }, [customFontManager, descriptionFontSize, dateText])
 
   // Utxo Memo
-
-  const getMemoY = () => {
+  const memoY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
     if (radius > 10) return mainY + radius / 4
     if (radius > 5) return mainY + radius / 3.2
     return mainY + radius / 7
-  }
+  }, [radius, mainY])
   const memoX = x - 150 / 2
   const memoParagraph = useMemo(() => {
-    if (!customFontMgr) return null
+    if (!customFontManager) return null
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -165,17 +166,18 @@ export default function SSUtxoBubble({
       .build()
     para.layout(150)
     return para
-  }, [customFontMgr, utxo.label, descriptionFontSize])
+  }, [customFontManager, utxo.label, descriptionFontSize])
 
   // Utxo from address
-  const getFromY = () => {
+  const fromY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
     if (radius > 10) return mainY + radius / 2.5
     if (radius > 5) return mainY + radius / 2.2
     return mainY + radius / 3.5
-  }
+  }, [radius, mainY])
+
   const fromParagraph = useMemo(() => {
-    if (!customFontMgr) return null
+    if (!customFontManager) return null
 
     const textStyle = {
       color: Skia.Color('black'),
@@ -196,7 +198,6 @@ export default function SSUtxoBubble({
       .addText(`${i18n.t('common.from').toLowerCase()}`)
       .pushStyle({
         ...textStyle,
-
         fontStyle: {
           weight: 500
         }
@@ -206,9 +207,9 @@ export default function SSUtxoBubble({
       .build()
     para.layout(150)
     return para
-  }, [customFontMgr, utxo.addressTo, descriptionFontSize])
+  }, [customFontManager, utxo.addressTo, descriptionFontSize])
 
-  if (!customFontMgr) return null
+  if (!customFontManager) return null
 
   return (
     <Group>
@@ -220,13 +221,13 @@ export default function SSUtxoBubble({
         style="fill"
         antiAlias
       />
-      {utxo.value && customFontMgr && (
+      {utxo.value && customFontManager && (
         <Group>
           <Group layer={<Paint opacity={descriptionOpacity} />}>
             <Paragraph
               paragraph={dateParagraph}
               x={dateX}
-              y={getDateY()}
+              y={dateY}
               width={100}
             />
           </Group>
@@ -240,13 +241,13 @@ export default function SSUtxoBubble({
             <Paragraph
               paragraph={memoParagraph}
               x={memoX}
-              y={getMemoY()}
+              y={memoY}
               width={150}
             />
             <Paragraph
               paragraph={fromParagraph}
               x={memoX}
-              y={getFromY()}
+              y={fromY}
               width={150}
             />
           </Group>

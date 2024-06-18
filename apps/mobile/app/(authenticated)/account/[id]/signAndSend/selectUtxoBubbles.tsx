@@ -1,21 +1,16 @@
 import { useHeaderHeight } from '@react-navigation/elements'
-import { Canvas, Group } from '@shopify/react-native-skia'
+import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
 import { hierarchy, pack } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo } from 'react'
-import {
-  GestureResponderEvent,
-  Platform,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { memo, useCallback, useMemo } from 'react'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import {
   GestureDetector,
-  GestureHandlerRootView
+  GestureHandlerRootView,
+  GestureStateChangeEvent,
+  TapGestureHandlerEventPayload
 } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -43,7 +38,9 @@ type UtxoListBubble = Partial<Utxo> & {
   children: UtxoListBubble[]
 }
 
-export default function SelectUtxoBubbles() {
+export default memo(SelectUtxoBubbles)
+
+function SelectUtxoBubbles() {
   const router = useRouter()
   const accountStore = useAccountStore()
   const transactionBuilderStore = useTransactionBuilderStore()
@@ -56,14 +53,18 @@ export default function SelectUtxoBubbles() {
 
   const hasSelectedUtxos = transactionBuilderStore.inputs.size > 0
 
-  const utxosValue = (utxos: Utxo[]): number =>
-    utxos.reduce((acc, utxo) => acc + utxo.value, 0)
+  const utxosValue = useCallback(
+    (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
+    []
+  )
 
   const utxosTotalValue = useMemo(
     () => utxosValue(accountStore.currentAccount.utxos),
-    [accountStore.currentAccount.utxos]
+    [accountStore.currentAccount.utxos, utxosValue]
   )
-  const utxosSelectedValue = utxosValue(transactionBuilderStore.getInputs())
+  const utxosSelectedValue = useMemo(() => {
+    return utxosValue(transactionBuilderStore.getInputs())
+  }, [transactionBuilderStore, utxosValue])
 
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
@@ -102,8 +103,42 @@ export default function SelectUtxoBubbles() {
   }, [GRAPH_WIDTH, GRAPH_HEIGHT, utxoList])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-  const { animatedStyle, gestures, transform, descriptionOpacity } =
-    useGestures({
+
+  const handleOnToggleSelected = useCallback(
+    (utxo: Utxo) => {
+      const includesInput = transactionBuilderStore.hasInput(utxo)
+
+      if (includesInput) transactionBuilderStore.removeInput(utxo)
+      else transactionBuilderStore.addInput(utxo)
+    },
+    [transactionBuilderStore]
+  )
+
+  const onSingleTap = useCallback(
+    (event: GestureStateChangeEvent<TapGestureHandlerEventPayload>) => {
+      const { x, y } = event
+      const tappedUtxo = utxoPack.find((packedUtxo) => {
+        const dx = x - packedUtxo.x
+        const dy = y - packedUtxo.y
+        return dx * dx + dy * dy <= packedUtxo.r * packedUtxo.r
+      })
+
+      if (tappedUtxo) {
+        handleOnToggleSelected({
+          txid: tappedUtxo.data.txid!,
+          vout: tappedUtxo.data.vout!,
+          value: tappedUtxo.data.value!,
+          timestamp: tappedUtxo.data.timestamp,
+          label: tappedUtxo.data.label,
+          addressTo: tappedUtxo.data.addressTo,
+          keychain: tappedUtxo.data.keychain!
+        })
+      }
+    },
+    [utxoPack, handleOnToggleSelected]
+  )
+  const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
+    {
       width: w,
       height: h,
       center,
@@ -111,40 +146,26 @@ export default function SelectUtxoBubbles() {
       maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
       minPanPointers: 1,
       maxScale: 1000,
-      minScale: 0.1
-    })
+      minScale: 0.1,
+      onSingleTap
+    }
+  )
   const centerX = canvasSize.width / 2
   const centerY = canvasSize.height / 2
-
-  function handleOnToggleSelected(utxo: Utxo) {
-    const includesInput = transactionBuilderStore.hasInput(utxo)
-
-    if (includesInput) transactionBuilderStore.removeInput(utxo)
-    else transactionBuilderStore.addInput(utxo)
-  }
-
-  function handleOnPressCircle(r: number, utxo: Utxo) {
-    return (event: GestureResponderEvent) => {
-      const circleCenterX = r
-      const circleCenterY = r
-      const touchPointX = event.nativeEvent.locationX
-      const touchPointY = event.nativeEvent.locationY
-      const distance = Math.sqrt(
-        Math.pow(touchPointX - circleCenterX, 2) +
-          Math.pow(touchPointY - circleCenterY, 2)
-      )
-      // register a tap only when the tap is inside the circle
-      if (distance <= r) {
-        handleOnToggleSelected(utxo)
-      }
-    }
-  }
 
   function handleSelectAllUtxos() {
     for (const utxo of accountStore.currentAccount.utxos) {
       transactionBuilderStore.addInput(utxo)
     }
   }
+
+  const customFontManager = useFonts({
+    'SF Pro Text': [
+      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+    ]
+  })
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -257,7 +278,9 @@ export default function SelectUtxoBubbles() {
                   y={packedUtxo.y}
                   radius={packedUtxo.r}
                   selected={selected}
-                  descriptionOpacity={descriptionOpacity}
+                  isZoomedIn={isZoomedIn}
+                  customFontManager={customFontManager}
+                  scale={scale}
                 />
               )
             })}
@@ -279,10 +302,8 @@ export default function SelectUtxoBubbles() {
               onLayout={onCanvasLayout}
             >
               {utxoPack.map((packedUtxo) => (
-                <Pressable
+                <View
                   key={packedUtxo.data.id}
-                  hitSlop={0}
-                  pressRetentionOffset={0}
                   style={{
                     width: packedUtxo.r * 2,
                     height: packedUtxo.r * 2,
@@ -293,18 +314,9 @@ export default function SelectUtxoBubbles() {
                     overflow: 'hidden',
                     backgroundColor: 'transparent'
                   }}
-                  onPress={handleOnPressCircle(packedUtxo.r, {
-                    txid: packedUtxo.data.txid!,
-                    vout: packedUtxo.data.vout!,
-                    value: packedUtxo.data.value,
-                    timestamp: packedUtxo.data.timestamp,
-                    label: packedUtxo.data.label,
-                    addressTo: packedUtxo.data.addressTo,
-                    keychain: packedUtxo.data.keychain!
-                  })}
                 >
                   <Animated.View />
-                </Pressable>
+                </View>
               ))}
             </Animated.View>
           </View>
