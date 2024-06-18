@@ -1,6 +1,6 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, pack } from 'd3'
+import { hierarchy, pack, style } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -327,8 +327,8 @@ function SelectUtxoBubbles() {
                 <View
                   // <View
                   key={packedUtxo.data.id}
-                  hitSlop={0}
-                  pressRetentionOffset={0}
+                  // hitSlop={0}
+                  // pressRetentionOffset={0}
                   style={{
                     width: packedUtxo.r * 2,
                     height: packedUtxo.r * 2,
