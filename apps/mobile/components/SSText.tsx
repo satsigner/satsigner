@@ -14,7 +14,7 @@ type SSTextProps = {
 
 type WeightStyle = {
   fontFamily: string
-  fontWeight: '200' | '300' | '400' | '500' | '600'
+  fontWeight: '200' | '300' | '400' | '500' | '700'
 }
 
 export default function SSText({
@@ -32,10 +32,10 @@ export default function SSText({
     if (color === 'muted') colorStyle = styles.textColorMuted
 
     let weightStyle: WeightStyle = styles.textRegular
-    if (weight === 'ultralight') weightStyle = { ...styles.textUltralight }
-    if (weight === 'light') weightStyle = { ...styles.textLight }
-    if (weight === 'medium') weightStyle = { ...styles.textMedium }
-    if (weight === 'bold') weightStyle = { ...styles.textBold }
+    if (weight === 'ultralight') weightStyle = styles.textUltralight
+    if (weight === 'light') weightStyle = styles.textLight
+    if (weight === 'medium') weightStyle = styles.textMedium
+    if (weight === 'bold') weightStyle = styles.textBold
 
     return StyleSheet.compose(
       {
@@ -90,6 +90,6 @@ const styles = StyleSheet.create({
   },
   textBold: {
     fontFamily: Typography.sfProTextBold,
-    fontWeight: '600'
+    fontWeight: '700'
   }
 })
