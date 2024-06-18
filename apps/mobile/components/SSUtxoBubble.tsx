@@ -128,7 +128,6 @@ function SSUtxoBubble({
   }, [customFontManager, descriptionFontSize, dateText])
 
   // Utxo Memo
-
   const memoY = useMemo(() => {
     // spacing based on radius because Skia is not consistent for now
     if (radius > 10) return mainY + radius / 4

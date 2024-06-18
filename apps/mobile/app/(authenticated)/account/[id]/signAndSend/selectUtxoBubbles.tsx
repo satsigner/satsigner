@@ -166,6 +166,7 @@ function SelectUtxoBubbles() {
       require('@/assets/fonts/SF-Pro-Text-Medium.otf')
     ]
   })
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen
