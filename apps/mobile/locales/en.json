@@ -58,6 +58,7 @@
       "pinsMatch": "Pin number match",
       "pinsDontMatch": "No pin number match",
       "unlock": "Unlock sat signer",
+      "tryLeft": "Try left",
       "triesLeft": "Tries left"
     },
     "settings": {

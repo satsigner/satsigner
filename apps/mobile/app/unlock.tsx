@@ -71,7 +71,10 @@ export default function Init() {
           </Animated.View>
           {triesLeft !== null && (
             <SSText uppercase color="muted" center>
-              {triesLeft} {i18n.t('auth.triesLeft')}
+              {triesLeft}{' '}
+              {triesLeft > 1
+                ? i18n.t('auth.triesLeft')
+                : i18n.t('auth.tryLeft')}
             </SSText>
           )}
         </SSVStack>
