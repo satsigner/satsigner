@@ -43,14 +43,22 @@ function SSUtxoBubble({
   scale
 }: SSUtxoBubbleProps) {
   const backgroundColor = useDerivedValue(() => {
-    if (selected) return withTiming(Colors.white)
-    if (isZoomedIn?.value) return withTiming(Colors.gray[300])
-    return withTiming(Colors.gray[400])
+    if (selected)
+      return withTiming(Colors.white, {
+        duration: 0
+      })
+    if (isZoomedIn?.value)
+      return withTiming(Colors.gray[300], {
+        duration: 0
+      })
+    return withTiming(Colors.gray[400], {
+      duration: 0
+    })
   }, [isZoomedIn, selected])
 
   const descriptionOpacity = useDerivedValue(() => {
     const zoomedRadius = scale.value * radius
-    return withTiming(scale.value === 1 || zoomedRadius <= 100 ? 0 : 1)
+    return withTiming(scale.value <= 1 || zoomedRadius <= 100 ? 0 : 1)
   }, [scale, radius])
 
   const fontSize = radius / 6

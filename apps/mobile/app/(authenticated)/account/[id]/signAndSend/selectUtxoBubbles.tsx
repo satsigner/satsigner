@@ -1,16 +1,21 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, pack } from 'd3'
+import { hierarchy, HierarchyCircularNode, pack } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useMemo } from 'react'
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  GestureResponderEvent,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import {
   GestureDetector,
-  GestureHandlerRootView,
-  GestureStateChangeEvent,
-  TapGestureHandlerEventPayload
+  GestureHandlerRootView
 } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -114,29 +119,6 @@ function SelectUtxoBubbles() {
     [transactionBuilderStore]
   )
 
-  const onSingleTap = useCallback(
-    (event: GestureStateChangeEvent<TapGestureHandlerEventPayload>) => {
-      const { x, y } = event
-      const tappedUtxo = utxoPack.find((packedUtxo) => {
-        const dx = x - packedUtxo.x
-        const dy = y - packedUtxo.y
-        return dx * dx + dy * dy <= packedUtxo.r * packedUtxo.r
-      })
-
-      if (tappedUtxo) {
-        handleOnToggleSelected({
-          txid: tappedUtxo.data.txid!,
-          vout: tappedUtxo.data.vout!,
-          value: tappedUtxo.data.value!,
-          timestamp: tappedUtxo.data.timestamp,
-          label: tappedUtxo.data.label,
-          addressTo: tappedUtxo.data.addressTo,
-          keychain: tappedUtxo.data.keychain!
-        })
-      }
-    },
-    [utxoPack, handleOnToggleSelected]
-  )
   const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
     {
       width: w,
@@ -146,8 +128,7 @@ function SelectUtxoBubbles() {
       maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
       minPanPointers: 1,
       maxScale: 1000,
-      minScale: 0.1,
-      onSingleTap
+      minScale: 0.1
     }
   )
   const centerX = canvasSize.width / 2
@@ -166,6 +147,33 @@ function SelectUtxoBubbles() {
       require('@/assets/fonts/SF-Pro-Text-Medium.otf')
     ]
   })
+
+  const handleOnPressCircle = useCallback(
+    (packedUtxo: HierarchyCircularNode<UtxoListBubble>) => {
+      const rSquared = packedUtxo.r * packedUtxo.r // Pre-calculate r squared
+      return (event: GestureResponderEvent) => {
+        const touchPointX = event.nativeEvent.locationX
+        const touchPointY = event.nativeEvent.locationY
+        const distanceSquared =
+          Math.pow(touchPointX - packedUtxo.r, 2) +
+          Math.pow(touchPointY - packedUtxo.r, 2)
+
+        // Compare squared distances to avoid using Math.sqrt()
+        if (distanceSquared <= rSquared) {
+          handleOnToggleSelected({
+            txid: packedUtxo.data.txid!,
+            vout: packedUtxo.data.vout!,
+            value: packedUtxo.data.value,
+            timestamp: packedUtxo.data.timestamp,
+            label: packedUtxo.data.label,
+            addressTo: packedUtxo.data.addressTo,
+            keychain: packedUtxo.data.keychain!
+          })
+        }
+      }
+    },
+    [handleOnToggleSelected]
+  )
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -301,23 +309,28 @@ function SelectUtxoBubbles() {
               style={[canvasSize, animatedStyle]}
               onLayout={onCanvasLayout}
             >
-              {utxoPack.map((packedUtxo) => (
-                <View
-                  key={packedUtxo.data.id}
-                  style={{
-                    width: packedUtxo.r * 2,
-                    height: packedUtxo.r * 2,
-                    position: 'absolute',
-                    left: packedUtxo.x - packedUtxo.r,
-                    top: packedUtxo.y - packedUtxo.r,
-                    borderRadius: packedUtxo.r,
-                    overflow: 'hidden',
-                    backgroundColor: 'transparent'
-                  }}
-                >
-                  <Animated.View />
-                </View>
-              ))}
+              {utxoPack.map((packedUtxo) => {
+                return (
+                  <TouchableOpacity
+                    key={packedUtxo.data.id}
+                    style={{
+                      width: packedUtxo.r * 2,
+                      height: packedUtxo.r * 2,
+                      position: 'absolute',
+                      left: packedUtxo.x - packedUtxo.r,
+                      top: packedUtxo.y - packedUtxo.r,
+                      borderRadius: packedUtxo.r,
+                      overflow: 'hidden',
+                      backgroundColor: 'transparent'
+                    }}
+                    delayPressIn={0}
+                    delayPressOut={0}
+                    onPress={handleOnPressCircle(packedUtxo)}
+                  >
+                    <Animated.View />
+                  </TouchableOpacity>
+                )
+              })}
             </Animated.View>
           </View>
         </GestureDetector>
