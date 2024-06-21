@@ -1,0 +1,13 @@
+{
+  "index": "Introduction",
+  "getting-started": "Getting Started",
+  "develop": "Develop",
+  "code-quality": "Code Quality",
+  "design": "Design",
+  "contact": {
+    "title": "Contact ↗",
+    "type": "page",
+    "href": "https://twitter.com/satsigner",
+    "newWindow": true
+  }
+}
