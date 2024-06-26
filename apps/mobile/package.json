@@ -36,6 +36,7 @@
     "react": "18.2.0",
     "react-native": "0.73.6",
     "react-native-bouncy-checkbox": "^4.0.0",
+    "react-native-device-info": "^11.1.0",
     "react-native-gesture-handler": "~2.14.0",
     "react-native-mmkv": "^2.12.2",
     "react-native-reanimated": "~3.6.2",

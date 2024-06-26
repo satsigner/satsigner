@@ -53,6 +53,17 @@ export default function Settings() {
             }
             onPress={() => router.navigate('/settings/config/appSecurity')}
           />
+          <SSSettingsCards
+            title={i18n.t('settings.about.title')}
+            description={i18n.t('settings.about.description')}
+            icon={
+              <Image
+                style={{ width: 26, height: 26 }}
+                source={require('@/assets/icons/about.svg')}
+              />
+            }
+            onPress={() => router.navigate('/settings/config/about')}
+          />
           {__DEV__ && (
             <SSSettingsCards
               title={i18n.t('settings.developer.title')}

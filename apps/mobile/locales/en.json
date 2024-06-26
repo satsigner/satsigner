@@ -27,7 +27,8 @@
       "from": "From",
       "memo": "Memo",
       "clear": "Clear",
-      "goBack": "Go back"
+      "goBack": "Go back",
+      "version": "Version"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -74,6 +75,10 @@
         "description": "Change app wide security settings to protect access in case of a compromised device",
         "maxPinTries": "Maximum pin tries",
         "backgroundLockTime": "Background lock time"
+      },
+      "about": {
+        "title": "About",
+        "description": "App version and other versioning information"
       },
       "developer": {
         "title": "Developer",
