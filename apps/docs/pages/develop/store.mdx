@@ -1,0 +1,10 @@
+# State Management
+
+We use [zustand](https://zustand-demo.pmnd.rs/) for our state management solution.
+Less boilerplate, renders components only on changes, centralized, action-based state management (comparing with context).
+
+Stores should **not** implement business logic, only manage app state.
+
+import { Callout } from 'nextra/components'
+
+<Callout type="info">Some stores automatically persist their state</Callout>

@@ -1,0 +1,7 @@
+{
+  "requirements": "Requirements",
+  "dependencies": "Dependencies",
+  "setup": "Setup",
+  "run": "Run",
+  "knownIssues": "Known Issues"
+}

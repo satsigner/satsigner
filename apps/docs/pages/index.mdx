@@ -1,0 +1,52 @@
+# Satsigner
+
+**Satsigner** is a Bitcoin only mobile wallet for Android and iOS with emphasis on data visualization, privacy and security.
+An intuitive, accessible and powerful mobile bitcoin app, great for beginners and amazing for advanced users.
+
+## Quick Start
+
+import { Cards, Card } from 'nextra/components'
+
+New to satsigner? Are you a developer? A designer? Just want to learn more about satsigner?
+
+<Cards num={2}>
+  <Card
+    image
+    arrow
+    title="Start developing"
+    href="/getting-started/requirements"
+  >
+    <>![Development](/assets/dev.png)</>
+  </Card>
+  <Card
+    image
+    arrow
+    title="Satsigner design"
+    href="https://www.figma.com/design/bGTIqefDHHt1uruCqFWwPQ/satsigner?node-id=26-2&t=SF1Rf0dtyaV9J3qU-1"
+    target="_blank"
+  >
+    <>![Satsigner design](/assets/design.png)</>
+  </Card>
+</Cards>
+
+You can also contact us via [twitter](https://x.com/satsigner).
+
+## Satsigner FAQ
+
+The Satsigner FAQ is a collection of useful questions ans answers about the project. If your questions wasn't answered here, please contact us via twitter.
+
+export function FAQBox({ title, open, children }) {
+  return (
+    <details open={open} style={{ padding: 16 }}>
+      <summary>
+        <strong>{title}</strong>
+      </summary>
+      <div style={{ paddingTop: 8 }}>{children}</div>
+    </details>
+  )
+}
+
+<FAQBox title="What are the satsigner dependencies?" open>
+  Satsigner mobile app dependencies are listed
+  [here](/getting-started/dependencies)
+</FAQBox>

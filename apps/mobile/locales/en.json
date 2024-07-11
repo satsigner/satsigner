@@ -1,0 +1,197 @@
+{
+  "en": {
+    "satsigner": {
+      "name": "SatSigner"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "valid": "Valid",
+      "invalid": "Invalid",
+      "optional": "Optional",
+      "select": "Select",
+      "selectAll": "Select All",
+      "selected": "Selected",
+      "next": "Next",
+      "confirm": "Confirm",
+      "close": "Close",
+      "acknowledge": "Acknowledge",
+      "warning": "Warning",
+      "of": "Of",
+      "to": "To",
+      "more": "More",
+      "less": "Less",
+      "total": "Total",
+      "date": "Date",
+      "amount": "Amount",
+      "save": "Save",
+      "from": "From",
+      "memo": "Memo",
+      "clear": "Clear",
+      "goBack": "Go back",
+      "version": "Version"
+    },
+    "time": {
+      "lessThanAMinute": "Less than a minute"
+    },
+    "bitcoin": {
+      "word": "Word",
+      "words": "Words",
+      "checksum": "Checksum",
+      "fingerprint": "Fingerprint",
+      "passphrase": "Passphrase",
+      "script": "Script",
+      "notYourKeys": "Not your keys",
+      "notYourCoins": "Not your coins",
+      "sats": "Sats",
+      "memo": "Memo",
+      "confirmations": {
+        "unconfirmed": "Unconfirmed",
+        "oneBlock": "Block deep",
+        "manyBlocks": "Blocks deep"
+      }
+    },
+    "auth": {
+      "setPin": ["Set pin number to", "enter the app"],
+      "reenterPin": ["Re-enter your", "pin number"],
+      "confirm": "Confirm pin number",
+      "set": "Set pin number",
+      "setLater": "Set pin later",
+      "pinsMatch": "Pin number match",
+      "pinsDontMatch": "No pin number match",
+      "unlock": "Unlock sat signer",
+      "tryLeft": "Try left",
+      "triesLeft": "Tries left"
+    },
+    "settings": {
+      "bitcoinNetwork": {
+        "title": "Bitcoin Network",
+        "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
+        "backend": "Backend",
+        "network": "Network",
+        "url": "Url"
+      },
+      "appSecurity": {
+        "title": "App Security",
+        "description": "Change app wide security settings to protect access in case of a compromised device",
+        "maxPinTries": "Maximum pin tries",
+        "backgroundLockTime": "Background lock time"
+      },
+      "about": {
+        "title": "About",
+        "description": "App version and other versioning information"
+      },
+      "developer": {
+        "title": "Developer",
+        "description": "Available in dev mode only. Useful tools for developers for faster development"
+      }
+    },
+    "accountList": {
+      "noKeysYet": "No keys yet",
+      "childAccounts": ["Child", "Accounts"],
+      "totalTransactions": ["Total", "Transactions"],
+      "spendableOutputs": ["Spendable", "Outputs"],
+      "satsInMempool": ["Sats in", "Mempool"]
+    },
+    "account": {
+      "signAndSend": "Sign & Send",
+      "newInvoice": "New Invoice",
+      "parentAccountActivity": "Parent Account Activity",
+      "noMemo": "No memo"
+    },
+    "signAndSend": {
+      "selectSpendableOutputs": "Select spendable outputs",
+      "addAsInputToMessage": "Add as input to message",
+      "customAmount": "Custom amount",
+      "selectAll": "Select all"
+    },
+    "addMasterKey": {
+      "title": "Add Master Key",
+      "masterKeyName": "Master Key Name",
+      "hasAccountWithName": "Account with that name already exists",
+      "generateNewSeed": {
+        "title": "Generate New Secret Seed",
+        "action": "Confirm Seed"
+      },
+      "confirmSeed": {
+        "incorrectWordModal": {
+          "warning": "Selected word doesn't match the original seed",
+          "action": "Review and try again"
+        },
+        "warningModal": {
+          "warning": "Keep this information secret and backed up.",
+          "disclaimer1": "Anyone with this information can move the sats to another account.",
+          "disclaimer2": "Consider an air-gapped hardware device for generating keys for significant amounts.",
+          "disclaimer3": "Losing this information will lose the funds."
+        }
+      },
+      "importExistingSeed": {
+        "title": "Import Existing Seed",
+        "action": "Save Secret Seed",
+        "accountAdded": "Parent account has been added",
+        "accountAddedModal": {
+          "derivationPath": "Derivation path",
+          "utxos": "Found UTXOs",
+          "sats": "Total spendable sats"
+        },
+        "noMatchingWords": "No Matching Words"
+      },
+      "accountOptions": {
+        "policyType": "Policy Type",
+        "policyTypes": {
+          "singleSignature": "Single Signature"
+        },
+        "scriptVersion": "Script Version",
+        "scriptVersions": {
+          "names": {
+            "p2pkh": "Legacy",
+            "p2sh-p2wpkh": "Nested Segwit",
+            "p2wpkh": "Native Segwit",
+            "p2tr": "Taproot"
+          },
+          "descriptions": {
+            "p2pkh": [
+              "A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ],
+            "p2sh-p2wpkh": [
+              "*P2SH-P2WPKH placeholder* A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ],
+            "p2wpkh": [
+              "*P2WPKH placeholder* A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ],
+            "p2tr": [
+              "*P2TR placeholder* A type of",
+              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+            ]
+          },
+          "links": {
+            "name": {
+              "p2pkh": "ScriptPubKey",
+              "p2sh-p2wpkh": "ScriptPubKey",
+              "p2wpkh": "ScriptPubKey",
+              "p2tr": "ScriptPubKey"
+            },
+            "url": {
+              "p2pkh": "https://river.com/learn/terms/s/scriptpubkey/",
+              "p2sh-p2wpkh": "https://river.com/learn/terms/s/scriptpubkey/",
+              "p2wpkh": "https://river.com/learn/terms/s/scriptpubkey/",
+              "p2tr": "https://river.com/learn/terms/s/scriptpubkey/"
+            }
+          }
+        },
+        "mnemonic": "Mnemonic Seed Words (BIP39)",
+        "mnemonics": {
+          "24": "24 words generated from 256 bits of entropy.",
+          "21": "21 words generated from 224 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+          "18": "18 words generated from 192 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+          "15": "15 words generated from 160 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+          "12": "12 words generated from 128 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts."
+        },
+        "generateNewSeed": "Generate New Seed",
+        "importSeed": "Import Seed"
+      }
+    }
+  }
+}

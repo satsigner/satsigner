@@ -1,0 +1,8 @@
+{
+  "navigation": "Navigation",
+  "layouts": "Layouts",
+  "components": "Components",
+  "store": "Store",
+  "storage": "Storage",
+  "localization": "Localization"
+}

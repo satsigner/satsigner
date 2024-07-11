@@ -1,0 +1,14 @@
+# Storage
+
+We use [mmkv](https://github.com/mrousavy/react-native-mmkv) to store unencrypted data on the phone.
+
+Some `stores` persist their state automatically using mmkv.
+
+To save data more securely, we use [expo-secure-store](https://docs.expo.dev/versions/latest/sdk/securestore/).
+Data is stored in SharedPreferences (android) or Keychain (iOS).
+
+import { Callout } from 'nextra/components'
+
+<Callout>
+  In `expo-secure-store`, the size limit for a value is 2048 bytes.
+</Callout>
