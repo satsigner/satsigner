@@ -11,6 +11,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Layout } from '@/styles'
+import { Platform } from 'react-native'
 
 type Stage = 'set' | 're-enter'
 
@@ -73,7 +74,7 @@ export default function Init() {
     >
       <SSVStack style={{ height: '100%' }} itemsCenter justifyBetween>
         <SSVStack gap="lg" style={{ marginTop: '10%' }}>
-          <SSVStack style={{ gap: -8 }}>
+          <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
             <SSText uppercase size="lg" color="muted" center>
               {stage === 'set'
                 ? i18n.t('auth.setPin.0')
