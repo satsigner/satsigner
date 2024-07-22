@@ -225,7 +225,7 @@ async function parseLocalUtxoToUtxo(
 
 async function getWalletData(
   wallet: Wallet
-): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
+): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary' | 'address'>> {
   if (wallet) {
     const [balance, addressInfo, transactionsDetails, localUtxos] =
       await Promise.all([
@@ -242,12 +242,17 @@ async function getWalletData(
     )
 
     const utxos = await Promise.all(
-      (localUtxos || []).map((localUtxo) =>
-        parseLocalUtxoToUtxo(localUtxo, transactionsDetails)
-      )
+      (localUtxos || []).map(async (localUtxo) => {
+        const utxo = await parseLocalUtxoToUtxo(localUtxo, transactionsDetails)
+        const txDetails = transactionsDetails.find(
+          (tx) => tx.txid === localUtxo.outpoint.txid
+        )
+        return { ...utxo, txDetails }
+      })
     )
 
     return {
+      address: await addressInfo.address.asString(),
       transactions,
       utxos,
       summary: {
@@ -260,6 +265,7 @@ async function getWalletData(
     }
   } else {
     return {
+      address: '',
       transactions: [],
       utxos: [],
       summary: {
