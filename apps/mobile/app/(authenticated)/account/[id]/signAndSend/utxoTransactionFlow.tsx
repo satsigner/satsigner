@@ -1,53 +1,33 @@
 import { useHeaderHeight } from '@react-navigation/elements'
-import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, HierarchyCircularNode, pack } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  GestureResponderEvent,
-  Platform,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
-import {
-  GestureDetector,
-  GestureHandlerRootView
-} from 'react-native-gesture-handler'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
-import UtxoFlow from '@/components/SSUtxoFlow'
-import { useGestures } from '@/hooks/useGestures'
-import { useLayout } from '@/hooks/useLayout'
+import UtxoFlow from '@/components/utxoFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
+import { useEnhancedTransactionBuilderStore } from '@/store/enhancedTransactionBuilder'
 import { usePriceStore } from '@/store/price'
-import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-
-type UtxoListBubble = Partial<Utxo> & {
-  id: string
-  value: number
-  children: UtxoListBubble[]
-}
 
 export default memo(UTXOTransactionFlow)
 
 function UTXOTransactionFlow() {
   const router = useRouter()
   const accountStore = useAccountStore()
-  const transactionBuilderStore = useTransactionBuilderStore()
+  const transactionBuilderStore = useEnhancedTransactionBuilderStore()
   const priceStore = usePriceStore()
   // const blockchainStore = useBlockchainStore()
   const account = useAccountStore()
@@ -57,7 +37,9 @@ function UTXOTransactionFlow() {
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
 
-  const hasSelectedUtxos = transactionBuilderStore.inputs.size > 0
+  const hasSelectedUtxos = useMemo(() => {
+    return transactionBuilderStore.getCurrentInputs().length > 0
+  }, [transactionBuilderStore])
 
   const utxosValue = useCallback(
     (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
@@ -69,12 +51,12 @@ function UTXOTransactionFlow() {
     [accountStore.currentAccount.utxos, utxosValue]
   )
   const utxosSelectedValue = useMemo(() => {
-    return utxosValue(transactionBuilderStore.getInputs())
+    return utxosValue(transactionBuilderStore.getCurrentInputs())
   }, [transactionBuilderStore, utxosValue])
 
   // Add this to log the transaction details of selected inputs
-  const selectedInputDetails = transactionBuilderStore.getInputDetails()
-  // console.log('Selected input transaction details:', selectedInputDetails)
+  const selectedInputDetails = transactionBuilderStore.getCurrentInputDetails()
+  console.log('Selected input transaction details:', selectedInputDetails)
 
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
@@ -84,39 +66,38 @@ function UTXOTransactionFlow() {
   const centerX = canvasSize.width / 2
   const centerY = canvasSize.height / 2
 
-  const outputs = transactionBuilderStore.getOutputs()
-  const inputs = transactionBuilderStore.getInputs()
-  const [transactionFlow, setTransactionFlow] = useState<{
-    inputs: Utxo[]
-    outputs: { type: string; value: number }[]
-    totalValue: number
-    vSize: number
+  const [transactionFlows, setTransactionFlows] = useState<{
+    current: {
+      inputs: Utxo[]
+      outputs: { type: string; value: number }[]
+      totalValue: number
+      vSize: number
+    }
+    previous: {
+      [transactionId: string]: {
+        inputs: Utxo[]
+        outputs: { type: string; value: number }[]
+        totalValue: number
+        vSize: number
+      }
+    }
   } | null>(null)
 
   useEffect(() => {
-    const fetchTransactionFlow = async () => {
+    const fetchTransactionFlows = async () => {
       try {
-        const flow = await transactionBuilderStore.getTransactionFlow()
-        setTransactionFlow(flow)
-
-        // // Store the outputs in the transactionBuilderStore
-        // flow.outputs.forEach((output) => {
-        //   transactionBuilderStore.addOutput(output.type, output.value)
-        // })
+        const flows = await transactionBuilderStore.getAllTransactionFlows()
+        setTransactionFlows(flows)
       } catch (error) {
-        console.error('Error fetching transaction flow:', error)
+        console.error('Error fetching transaction flows:', error)
       }
     }
 
-    fetchTransactionFlow()
-  }, [])
+    fetchTransactionFlows()
+  }, [transactionBuilderStore])
 
   const sankeyWidth = canvasSize.width
   const sankeyHeight = canvasSize.height - 200
-
-  // console.log({ OUT: transactionFlow?.outputs })
-  // console.log({ IN: transactionFlow?.inputs })
-  console.log({ yyy: account.currentAccount.address })
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -152,7 +133,7 @@ function UTXOTransactionFlow() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {transactionBuilderStore.inputs.size}{' '}
+                {transactionBuilderStore.getCurrentInputs().length}{' '}
                 {i18n.t('common.of').toLowerCase()}{' '}
                 {accountStore.currentAccount.utxos.length}{' '}
                 {i18n.t('common.selected').toLowerCase()}
@@ -202,21 +183,47 @@ function UTXOTransactionFlow() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 100 }}>
-        {(transactionFlow?.inputs?.length ?? 0) > 0 &&
-        (transactionFlow?.outputs?.length ?? 0) > 0 ? (
-          <UtxoFlow
-            inputs={transactionFlow?.inputs}
-            outputs={transactionFlow?.outputs}
-            width={sankeyWidth}
-            height={sankeyHeight}
-            centerX={centerX}
-            centerY={centerY}
-            vSize={transactionFlow?.vSize ?? 0}
-            walletAddress={formatAddress(account.currentAccount.address ?? '')}
-            // walletAddress={account.currentAccount.address ?? ''}
-          />
-        ) : null}
-
+        <UtxoFlow
+          width={sankeyWidth}
+          height={sankeyHeight}
+          centerX={centerX}
+          centerY={centerY}
+          walletAddress={formatAddress(account.currentAccount.address ?? '')}
+        />
+        {/* {transactionFlows && (
+          <>
+            <UtxoFlow
+              key="current"
+              inputs={transactionFlows.current.inputs}
+              outputs={transactionFlows.current.outputs}
+              width={sankeyWidth}
+              height={sankeyHeight}
+              centerX={centerX}
+              centerY={centerY}
+              vSize={transactionFlows.current.vSize}
+              walletAddress={formatAddress(
+                account.currentAccount.address ?? ''
+              )}
+            />
+            {Object.entries(transactionFlows.previous).map(
+              ([transactionId, flow]) => (
+                <UtxoFlow
+                  key={transactionId}
+                  inputs={flow.inputs}
+                  outputs={flow.outputs}
+                  width={sankeyWidth}
+                  height={sankeyHeight}
+                  centerX={centerX}
+                  centerY={centerY}
+                  vSize={flow.vSize}
+                  walletAddress={formatAddress(
+                    account.currentAccount.address ?? ''
+                  )}
+                />
+              )
+            )}
+          </>
+        )} */}
         <View
           style={{
             flex: 1,
