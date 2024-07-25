@@ -107,6 +107,20 @@ interface TransactionFlowSankeyProps {
   walletAddress: string
 }
 
+// Add this function to identify connecting nodes
+const findConnectingNodes = (nodes) => {
+  const completedOutputs = nodes.filter((node) =>
+    node.id.startsWith('completed-output')
+  )
+  const pendingInputs = nodes.filter((node) =>
+    node.id.startsWith('pending-input')
+  )
+
+  return completedOutputs.filter((output) =>
+    pendingInputs.some((input) => input.value === output.value)
+  )
+}
+
 const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
   width,
   height,
@@ -329,6 +343,14 @@ const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
             const textAlign = node.id.includes('output')
               ? TextAlign.Right
               : TextAlign.Left
+
+            // Check if this node should be hidden
+            const connectingNodes = findConnectingNodes(nodes)
+            const shouldHideNode = connectingNodes.some((n) => n.id === node.id)
+
+            if (shouldHideNode) {
+              return null // Skip rendering this node
+            }
 
             return (
               <Group key={node.id}>

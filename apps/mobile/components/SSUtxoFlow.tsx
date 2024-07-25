@@ -9,18 +9,12 @@ import {
   useFonts
 } from '@shopify/react-native-skia'
 import type { SankeyLink, SankeyNode } from 'd3-sankey'
-import {
-  sankey,
-  sankeyCenter,
-  sankeyJustify,
-  sankeyLeft,
-  sankeyLinkHorizontal,
-  sankeyRight
-} from 'd3-sankey'
+import { sankey, sankeyLinkHorizontal } from 'd3-sankey'
 import React, { useCallback, useMemo } from 'react'
 import { View } from 'react-native'
 
 import { Colors } from '@/styles'
+import { Utxo } from '@/types/models/Utxo'
 
 interface NodeData {
   name: string
@@ -46,12 +40,11 @@ interface TransactionFlowSankeyProps {
   height: number
   centerX: number
   centerY: number
-  inputs: any
-  outputs: any
+  inputs: Utxo[]
+  outputs: { type: string; value: number }[]
   vSize: number
   walletAddress: string
 }
-
 const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
   width,
   height,
@@ -72,53 +65,51 @@ const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
       return { nodes: [], links: [] }
     }
 
-    return {
-      nodes: [
-        ...inputs.map((input, index) => ({
-          name: `${input.value.toLocaleString()} sats`,
-          value: input.value,
-          index,
-          fromAddress: ` ${walletAddress}`,
-          label: input.label,
-          children: [`${vSize} vB`]
-        })),
-        {
-          name: `${vSize} vB`,
-          value: inputs.reduce((acc, input) => acc + input.value, 0),
-          index: inputs.length,
-          fromAddress: ``,
-          label: '',
-          children: outputs.map((output) => `${output.value} sats`)
-        },
-        ...outputs.map((output, index) => ({
-          name: `${output.value.toLocaleString()} sats`,
-          value: output.value,
-          index: inputs.length + 1 + index,
-          fromAddress: ``,
-          children: [],
-          label: ''
-        }))
-      ],
-      links: [
-        // Links from inputs to vSize
-        ...inputs.map((input, index) => ({
-          source: index,
-          target: inputs.length,
-          value: input.value
-        })),
-        // Links from vSize to outputs
-        ...outputs.map((output, index) => ({
-          source: inputs.length,
-          target: inputs.length + 1 + index,
-          value: output.value
-        }))
-      ]
-    }
-  }, [inputs, outputs, vSize, walletAddress])
+    const nodes: NodeData[] = [
+      ...inputs.map((input, index) => ({
+        id: `input-${index}-${input.txid.slice(0, 8)}`,
+        name: `${input.value.toLocaleString()} sats`,
+        value: input.value,
+        index,
+        fromAddress: ` ${walletAddress}`,
+        label: input.label || '',
+        children: [`${vSize} vB`]
+      })),
+      {
+        id: 'vsize',
+        name: `${vSize} vB`,
+        value: inputs.reduce((acc, input) => acc + input.value, 0),
+        index: inputs.length,
+        fromAddress: ``,
+        label: '',
+        children: outputs.map((output) => `${output.value} sats`)
+      },
+      ...outputs.map((output, index) => ({
+        id: `output-${index}`,
+        name: `${output.value.toLocaleString()} sats`,
+        value: output.value,
+        index: inputs.length + 1 + index,
+        fromAddress: ``,
+        children: [],
+        label: ''
+      }))
+    ]
 
-  console.log('Inputs:', inputs)
-  console.log('Outputs:', outputs)
-  console.log('Data->:', data)
+    const links: LinkData[] = [
+      ...inputs.map((input, index) => ({
+        source: index,
+        target: inputs.length,
+        value: input.value
+      })),
+      ...outputs.map((output, index) => ({
+        source: inputs.length,
+        target: inputs.length + 1 + index,
+        value: output.value
+      }))
+    ]
+
+    return { nodes, links }
+  }, [inputs, outputs, vSize, walletAddress])
 
   const sankeyLayout: any = sankey()
     .nodeWidth(48)
@@ -127,7 +118,7 @@ const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
       [20, 160],
       [width - 20, height - 160]
     ])
-  // .nodeId((node: any) => node.name)
+    .nodeId((node: any) => node.id)
   // .nodeAlign(sankeyRight)
 
   const { nodes, links } = sankeyLayout(data)
@@ -139,8 +130,6 @@ const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
       require('@/assets/fonts/SF-Pro-Text-Medium.otf')
     ]
   })
-
-  // console.log({ height })
 
   const nodeParagraph = useCallback(
     (text: string, textAlign = TextAlign.Left) => {
@@ -178,7 +167,6 @@ const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
   const fromParagraph = useCallback(
     (walletAddress: string) => {
       if (!customFontManager) return null
-      // console.log('ysysysys', { walletAddress })
 
       const textStyle = {
         color: Skia.Color('white'),

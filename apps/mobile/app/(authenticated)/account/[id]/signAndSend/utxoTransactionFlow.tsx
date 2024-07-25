@@ -4,8 +4,17 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import Animated from 'react-native-reanimated'
+import {
+  GestureHandlerRootView,
+  PanGestureHandler,
+  PanGestureHandlerGestureEvent
+} from 'react-native-gesture-handler'
+import Animated, {
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withDecay
+} from 'react-native-reanimated'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
@@ -21,6 +30,7 @@ import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { clamp } from '@/utils/worklet'
 
 export default memo(UTXOTransactionFlow)
 
@@ -61,7 +71,7 @@ function UTXOTransactionFlow() {
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
 
-  const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT }
+  const canvasSize = { width: GRAPH_WIDTH * 2, height: GRAPH_HEIGHT }
 
   const centerX = canvasSize.width / 2
   const centerY = canvasSize.height / 2
@@ -83,18 +93,43 @@ function UTXOTransactionFlow() {
     }
   } | null>(null)
 
-  useEffect(() => {
-    const fetchTransactionFlows = async () => {
-      try {
-        const flows = await transactionBuilderStore.getAllTransactionFlows()
-        setTransactionFlows(flows)
-      } catch (error) {
-        console.error('Error fetching transaction flows:', error)
-      }
-    }
+  // useEffect(() => {
+  //   const fetchTransactionFlows = async () => {
+  //     try {
+  //       const flows = await transactionBuilderStore.getAllTransactionFlows()
+  //       setTransactionFlows(flows)
+  //     } catch (error) {
+  //       console.error('Error fetching transaction flows:', error)
+  //     }
+  //   }
 
-    fetchTransactionFlows()
-  }, [transactionBuilderStore])
+  //   fetchTransactionFlows()
+  // }, [transactionBuilderStore])
+
+  const translateX = useSharedValue(0)
+
+  const panGestureEvent =
+    useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
+      onActive: (event) => {
+        translateX.value += event.translationX
+      },
+      onEnd: (event) => {
+        const contentWidth = GRAPH_WIDTH * 2 // Assuming the content is twice the width of the visible area
+        const minTranslateX = -contentWidth + GRAPH_WIDTH // Ensure the right edge of content aligns with right edge of screen
+
+        translateX.value = clamp(
+          translateX.value + event.translationX,
+          minTranslateX,
+          0
+        )
+      }
+    })
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }]
+    }
+  })
 
   const sankeyWidth = canvasSize.width
   const sankeyHeight = canvasSize.height - 200
@@ -183,13 +218,29 @@ function UTXOTransactionFlow() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 100 }}>
+        <PanGestureHandler onGestureEvent={panGestureEvent}>
+          <Animated.View style={[{ width: sankeyWidth }, animatedStyle]}>
+            <UtxoFlow
+              width={sankeyWidth}
+              height={sankeyHeight}
+              centerX={centerX}
+              centerY={centerY}
+              walletAddress={formatAddress(
+                account.currentAccount.address ?? ''
+              )}
+            />
+          </Animated.View>
+        </PanGestureHandler>
+        {/* </View>
+      <View style={{ position: 'absolute', top: 100 }}>
         <UtxoFlow
           width={sankeyWidth}
           height={sankeyHeight}
           centerX={centerX}
           centerY={centerY}
           walletAddress={formatAddress(account.currentAccount.address ?? '')}
-        />
+        /> */}
+
         {/* {transactionFlows && (
           <>
             <UtxoFlow
