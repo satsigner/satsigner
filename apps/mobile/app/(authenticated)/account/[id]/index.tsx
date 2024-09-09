@@ -179,14 +179,17 @@ export default function Account() {
               >
                 <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
               </SSActionButton>
-              <SSActionButton onPress={() => {}} style={{ width: '20%' }}>
+              <SSActionButton
+                onPress={() => router.navigate(`/account/${id}/camera`)}
+                style={{ width: '20%' }}
+              >
                 <Image
                   style={{ width: 18, height: 13 }}
                   source={require('@/assets/icons/camera.svg')}
                 />
               </SSActionButton>
               <SSActionButton
-                onPress={() => {}}
+                onPress={() => router.navigate(`/account/${id}/newInvoice`)}
                 style={{
                   width: '40%',
                   borderLeftWidth: 1,
