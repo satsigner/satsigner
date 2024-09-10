@@ -33,6 +33,7 @@ export default function AppSecurity() {
           headerTitle: () => (
             <SSText uppercase>{i18n.t('settings.appSecurity.title')}</SSText>
           ),
+          headerBackVisible: true,
           headerLeft: () => <></>,
           headerRight: undefined
         }}

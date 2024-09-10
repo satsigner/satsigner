@@ -33,6 +33,7 @@ export default function BitcoinNetwork() {
           headerTitle: () => (
             <SSText uppercase>{i18n.t('settings.bitcoinNetwork.title')}</SSText>
           ),
+          headerBackVisible: true,
           headerLeft: () => <></>,
           headerRight: undefined
         }}

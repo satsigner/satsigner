@@ -30,6 +30,7 @@ export default function Developer() {
           headerTitle: () => (
             <SSText uppercase>{i18n.t('settings.developer.title')}</SSText>
           ),
+          headerBackVisible: true,
           headerLeft: () => <></>,
           headerRight: undefined
         }}
