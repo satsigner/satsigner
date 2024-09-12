@@ -104,6 +104,14 @@
       "customAmount": "Custom amount",
       "selectAll": "Select all"
     },
+    "newInvoice": {
+      "invoice": "Invoice",
+      "path": "Path",
+      "address": "Address",
+      "customAmount": "Custom Amount",
+      "memo": "Memo",
+      "generateAnotherInvoice": "Generate another invoice"
+    },
     "addMasterKey": {
       "title": "Add Master Key",
       "masterKeyName": "Master Key Name",
