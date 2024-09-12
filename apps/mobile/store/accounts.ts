@@ -161,9 +161,9 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
             ...account
           }
 
-        set(() => ({
+        set((state) => ({
           accounts,
-          currentAccount: { ...get().currentAccount, ...account }
+          currentAccount: { ...state.currentAccount, ...account }
         }))
       },
       deleteAccounts: async () => {
