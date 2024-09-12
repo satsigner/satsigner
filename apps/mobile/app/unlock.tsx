@@ -56,8 +56,8 @@ export default function Init() {
         paddingTop: '25%'
       }}
     >
-      <SSVStack style={{ height: '100%' }} itemsCenter justifyBetween>
-        <SSVStack gap="lg" style={{ marginTop: '25%' }}>
+      <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
+        <SSVStack gap="lg" itemsCenter style={{ marginTop: '25%' }}>
           <SSText uppercase size="lg" color="muted" center>
             {i18n.t('auth.unlock')}
           </SSText>
