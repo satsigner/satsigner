@@ -39,6 +39,17 @@ const exampleState3 = useExampleStore((state) => state.exampleState3)
 const exampleAction5 = useExampleStore((state) => state.exampleAction5)
 ```
 
+Use `useShallow` when picking multiple state to prevent unnecessary rerenders
+
+```ts
+const { exampleState3, exampleAction5 } = useBearStore(
+  useShallow((state) => ({
+    exampleState3: state.exampleState3,
+    exampleAction5: state.exampleAction5
+  }))
+)
+```
+
 4. Update state
 
 Use the store setters to update state
