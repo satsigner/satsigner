@@ -8,3 +8,50 @@ Stores should **not** implement business logic, only manage app state.
 import { Callout } from 'nextra/components'
 
 <Callout type="info">Some stores automatically persist their state</Callout>
+
+## Best Practices
+
+1. Set state (actions)
+
+Use `set` function to update state inside actions:
+
+```ts
+set((state) => ({}))
+```
+
+2. Get state (actions)
+
+Use `get` function to get state inside actions:
+
+```ts
+get().
+```
+
+3. Use store state and actions
+
+Select the needed state and actions only
+
+```ts
+// bad
+const exampleStore = useExampleStore()
+// good
+const exampleState3 = useExampleStore((state) => state.exampleState3)
+const exampleAction5 = useExampleStore((state) => state.exampleAction5)
+```
+
+4. Update state
+
+Use the store setters to update state
+
+```ts
+// bad
+exampleStore.example = 'example'
+// good
+const setExample = useExampleStore((state) => state.setExample)
+setExample('example')
+```
+
+<Callout type="info">
+  Learn more about Zustand
+  [here](https://zustand.docs.pmnd.rs/guides/updating-state)
+</Callout>
