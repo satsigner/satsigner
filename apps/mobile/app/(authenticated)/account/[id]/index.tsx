@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { RefreshControl, ScrollView, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
@@ -29,12 +30,32 @@ import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 
 export default function Account() {
-  const accountStore = useAccountStore()
-  const priceStore = usePriceStore()
-  const blockchainStore = useBlockchainStore()
-  const transactionBuilderStore = useTransactionBuilderStore()
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const [
+    currentAccount,
+    loadWalletFromDescriptor,
+    syncWallet,
+    getPopulatedAccount,
+    updateAccount
+  ] = useAccountStore(
+    useShallow((state) => [
+      state.currentAccount,
+      state.loadWalletFromDescriptor,
+      state.syncWallet,
+      state.getPopulatedAccount,
+      state.updateAccount
+    ])
+  )
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+  const [network, getBlockchainHeight] = useBlockchainStore(
+    useShallow((state) => [state.network, state.getBlockchainHeight])
+  )
+  const clearTransaction = useTransactionBuilderStore(
+    (state) => state.clearTransaction
+  )
 
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
@@ -62,39 +83,36 @@ export default function Account() {
   }
 
   async function refreshBlockchainHeight() {
-    const height = await blockchainStore.getBlockchainHeight()
+    const height = await getBlockchainHeight()
     setBlockchainHeight(height)
   }
 
   async function refreshAccount() {
     // TODO: refactor
     if (
-      !accountStore.currentAccount.externalDescriptor ||
-      !accountStore.currentAccount.internalDescriptor
+      !currentAccount.externalDescriptor ||
+      !currentAccount.internalDescriptor
     )
       return
 
     const externalDescriptor = await new Descriptor().create(
-      accountStore.currentAccount.externalDescriptor,
-      blockchainStore.network as Network
+      currentAccount.externalDescriptor,
+      network as Network
     )
     const internalDescriptor = await new Descriptor().create(
-      accountStore.currentAccount.internalDescriptor,
-      blockchainStore.network as Network
+      currentAccount.internalDescriptor,
+      network as Network
     )
 
-    const wallet = await accountStore.loadWalletFromDescriptor(
+    const wallet = await loadWalletFromDescriptor(
       externalDescriptor,
       internalDescriptor
     )
 
-    await accountStore.syncWallet(wallet)
-    const account = await accountStore.getPopulatedAccount(
-      wallet,
-      accountStore.currentAccount
-    )
+    await syncWallet(wallet)
+    const account = await getPopulatedAccount(wallet, currentAccount)
 
-    await accountStore.updateAccount(account)
+    await updateAccount(account)
   }
 
   async function refresh() {
@@ -109,7 +127,7 @@ export default function Account() {
   }
 
   function navigateToSignAndSend() {
-    transactionBuilderStore.clearTransaction()
+    clearTransaction()
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
@@ -117,9 +135,7 @@ export default function Account() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>,
           headerBackground: () => (
             <LinearGradient
               style={{
@@ -139,7 +155,7 @@ export default function Account() {
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
-                {formatNumber(accountStore.currentAccount.summary.balance)}
+                {formatNumber(currentAccount.summary.balance)}
               </SSText>
               <SSText size="xl" color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
@@ -147,15 +163,10 @@ export default function Account() {
             </SSHStack>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText color="muted">
-                {formatNumber(
-                  priceStore.satsToFiat(
-                    accountStore.currentAccount.summary.balance
-                  ),
-                  2
-                )}
+                {formatNumber(satsToFiat(currentAccount.summary.balance), 2)}
               </SSText>
               <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {priceStore.fiatCurrency}
+                {fiatCurrency}
               </SSText>
             </SSHStack>
           </SSVStack>
@@ -207,7 +218,7 @@ export default function Account() {
           <SSHStack style={{ paddingVertical: 12 }}>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {accountStore.currentAccount.summary.numberOfTransactions}
+                {currentAccount.summary.numberOfTransactions}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.totalTransactions.0')}
@@ -227,7 +238,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {accountStore.currentAccount.summary.numberOfAddresses}
+                {currentAccount.summary.numberOfAddresses}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.childAccounts.0')}
@@ -237,7 +248,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {accountStore.currentAccount.summary.numberOfUtxos}
+                {currentAccount.summary.numberOfUtxos}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.spendableOutputs.0')}
@@ -247,7 +258,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {accountStore.currentAccount.summary.satsInMempool}
+                {currentAccount.summary.satsInMempool}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.satsInMempool.0')}
@@ -284,21 +295,21 @@ export default function Account() {
           }
         >
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([
-              ...accountStore.currentAccount.transactions
-            ]).map((transaction) => (
-              <SSVStack gap="xs" key={transaction.id}>
-                <SSSeparator
-                  key={`separator-${transaction.id}`}
-                  color="grayDark"
-                />
-                <SSTransactionCard
-                  key={transaction.id}
-                  transaction={transaction}
-                  blockHeight={blockchainHeight}
-                />
-              </SSVStack>
-            ))}
+            {sortTransactions([...currentAccount.transactions]).map(
+              (transaction) => (
+                <SSVStack gap="xs" key={transaction.id}>
+                  <SSSeparator
+                    key={`separator-${transaction.id}`}
+                    color="grayDark"
+                  />
+                  <SSTransactionCard
+                    key={transaction.id}
+                    transaction={transaction}
+                    blockHeight={blockchainHeight}
+                  />
+                </SSVStack>
+              )
+            )}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

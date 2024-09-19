@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -11,14 +12,18 @@ import { useAccountStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 
 export default function Developer() {
-  const accountStore = useAccountStore()
-  const authStore = useAuthStore()
+  const [deleteAccounts] = useAccountStore(
+    useShallow((state) => [state.deleteAccounts])
+  )
+  const [setFirstTime] = useAuthStore(
+    useShallow((state) => [state.setFirstTime])
+  )
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
 
   async function handleDeleteAccount() {
     setDeletingAccounts(true)
-    await accountStore.deleteAccounts()
+    await deleteAccounts()
     setDeletingAccounts(false)
     Alert.alert('Accounts deleted')
   }
@@ -44,7 +49,7 @@ export default function Developer() {
           />
           <SSButton
             label="Set PIN First Time"
-            onPress={() => authStore.setFirstTime(true)}
+            onPress={() => setFirstTime(true)}
           />
         </SSVStack>
       </SSMainLayout>

@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -14,7 +15,17 @@ import { type Account } from '@/types/models/Account'
 
 export default function AddMasterKey() {
   const router = useRouter()
-  const accountStore = useAccountStore()
+  const [
+    hasAccountWithName,
+    setCurrentAccountName,
+    setCurrentAccountCreationType
+  ] = useAccountStore(
+    useShallow((state) => [
+      state.hasAccountWithName,
+      state.setCurrentAccountName,
+      state.setCurrentAccountCreationType
+    ])
+  )
 
   const [accountName, setAccountName] = useState('')
   const actionsDisabled = accountName.length < 1
@@ -22,13 +33,13 @@ export default function AddMasterKey() {
   function handleOnPressAddMasterKey(
     creationType: Account['accountCreationType']
   ) {
-    if (accountStore.hasAccountWithName(accountName)) {
+    if (hasAccountWithName(accountName)) {
       Alert.alert(i18n.t('addMasterKey.hasAccountWithName'))
       setAccountName('')
       return
     }
-    accountStore.currentAccount.name = accountName
-    accountStore.currentAccount.accountCreationType = creationType
+    setCurrentAccountName(accountName)
+    setCurrentAccountCreationType(creationType)
     router.navigate('/addMasterKey/accountOptions')
   }
 

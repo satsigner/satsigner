@@ -24,6 +24,23 @@ type AccountsState = {
 }
 
 type AccountsAction = {
+  setCurrentAccount: (account: Account) => void
+  setCurrentAccountName: (name: string) => void
+  setCurrentAccountCreationType: (
+    creationType: Account['accountCreationType']
+  ) => void
+  setCurrentAccountScriptVersion: (
+    scriptVersion: Account['scriptVersion']
+  ) => void
+  setCurrentAccountSeedWords: (
+    seedWords: NonNullable<Account['seedWords']>
+  ) => void
+  setCurrentAccountSeedWordCount: (
+    seedWordCount: Account['seedWordCount']
+  ) => void
+  setCurrentAccountPassphrase: (
+    passphrase: NonNullable<Account['passphrase']>
+  ) => void
   resetCurrentAccount: () => void
   hasAccountWithName: (name: string) => boolean
   generateMnemonic: (
@@ -71,6 +88,40 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
     (set, get) => ({
       accounts: [],
       currentAccount: initialCurrentAccountState,
+      setCurrentAccount: (account) => {
+        set({ currentAccount: account }) // TODO: Might need to spread on all levels
+      },
+      setCurrentAccountName: (name) => {
+        set((state) => ({ currentAccount: { ...state.currentAccount, name } })) // TODO: Might need to spread on all levels
+      },
+      setCurrentAccountCreationType: (creationType) => {
+        set((state) => ({
+          currentAccount: {
+            ...state.currentAccount,
+            accountCreationType: creationType
+          }
+        })) // TODO: Might need to spread on all levels
+      },
+      setCurrentAccountScriptVersion: (scriptVersion) => {
+        set((state) => ({
+          currentAccount: { ...state.currentAccount, scriptVersion }
+        })) // TODO: Might need to spread on all levels
+      },
+      setCurrentAccountSeedWords: (seedWords) => {
+        set((state) => ({
+          currentAccount: { ...state.currentAccount, seedWords }
+        })) // TODO: Might need to spread on all levels
+      },
+      setCurrentAccountSeedWordCount: (seedWordCount) => {
+        set((state) => ({
+          currentAccount: { ...state.currentAccount, seedWordCount }
+        })) // TODO: Might need to spread on all levels
+      },
+      setCurrentAccountPassphrase: (passphrase) => {
+        set((state) => ({
+          currentAccount: { ...state.currentAccount, passphrase }
+        })) // TODO: Might need to spread on all levels
+      },
       resetCurrentAccount: () => {
         set({ currentAccount: initialCurrentAccountState })
       },

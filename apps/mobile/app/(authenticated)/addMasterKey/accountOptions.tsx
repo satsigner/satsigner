@@ -1,6 +1,7 @@
 import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -18,7 +19,19 @@ import { setStateWithLayoutAnimation } from '@/utils/animation'
 
 export default function AccountOptions() {
   const router = useRouter()
-  const accountStore = useAccountStore()
+  const [
+    currentAccount,
+    setCurrentAccountScriptVersion,
+    setCurrentAccountSeedWordCount,
+    generateMnemonic
+  ] = useAccountStore(
+    useShallow((state) => [
+      state.currentAccount,
+      state.setCurrentAccountScriptVersion,
+      state.setCurrentAccountSeedWordCount,
+      state.generateMnemonic
+    ])
+  )
 
   const [scriptVersion, setScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
@@ -61,7 +74,7 @@ export default function AccountOptions() {
   }
 
   function getContinueButtonLabel() {
-    const accountCreationType = accountStore.currentAccount.accountCreationType
+    const accountCreationType = currentAccount.accountCreationType
 
     if (accountCreationType === 'generate')
       return i18n.t('addMasterKey.accountOptions.generateNewSeed')
@@ -72,14 +85,14 @@ export default function AccountOptions() {
   }
 
   async function handleOnPressConfirmAccountOptions() {
-    accountStore.currentAccount.scriptVersion = scriptVersion
-    accountStore.currentAccount.seedWordCount = seedWordCount
+    setCurrentAccountScriptVersion(scriptVersion)
+    setCurrentAccountSeedWordCount(seedWordCount)
 
-    const accountCreationType = accountStore.currentAccount.accountCreationType
+    const accountCreationType = currentAccount.accountCreationType
 
     if (accountCreationType === 'generate') {
       setLoading(true)
-      await accountStore.generateMnemonic(seedWordCount)
+      await generateMnemonic(seedWordCount)
       setLoading(false)
       router.navigate('/addMasterKey/generateSeed')
     } else if (accountCreationType === 'import')
@@ -87,12 +100,12 @@ export default function AccountOptions() {
   }
 
   function handleOnSelectScriptVersion() {
-    accountStore.currentAccount.scriptVersion = scriptVersion
+    setCurrentAccountScriptVersion(scriptVersion)
     setScriptVersionModalVisible(false)
   }
 
   function handleOnSelectSeedWordCount() {
-    accountStore.currentAccount.seedWordCount = seedWordCount
+    setCurrentAccountSeedWordCount(seedWordCount)
     setSeedWordCountModalVisibile(false)
   }
 
@@ -100,9 +113,7 @@ export default function AccountOptions() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>
         }}
       />
       <SSVStack justifyBetween>

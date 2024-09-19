@@ -1,6 +1,7 @@
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -19,17 +20,31 @@ type ConfirmSeedSearchParams = {
 }
 
 export default function ConfirmSeed() {
-  const accountStore = useAccountStore()
   const router = useRouter()
   const { index } = useLocalSearchParams<ConfirmSeedSearchParams>()
+  const [
+    currentAccount,
+    loadWalletFromMnemonic,
+    syncWallet,
+    getPopulatedAccount,
+    saveAccount
+  ] = useAccountStore(
+    useShallow((state) => [
+      state.currentAccount,
+      state.loadWalletFromMnemonic,
+      state.syncWallet,
+      state.getPopulatedAccount,
+      state.saveAccount
+    ])
+  )
 
   const candidateWords = useMemo(() => {
-    if (!accountStore.currentAccount.seedWords) return []
+    if (!currentAccount.seedWords) return []
     return getConfirmWordCandidates(
-      accountStore.currentAccount.seedWords[+index],
-      accountStore.currentAccount.seedWords
+      currentAccount.seedWords[+index],
+      currentAccount.seedWords
     )
-  }, [accountStore.currentAccount.seedWords, index])
+  }, [currentAccount.seedWords, index])
 
   const [selectedCheckbox1, setSelectedCheckbox1] = useState(false)
   const [selectedCheckbox2, setSelectedCheckbox2] = useState(false)
@@ -54,11 +69,7 @@ export default function ConfirmSeed() {
   }
 
   async function handleNavigateNextWord() {
-    if (
-      !accountStore.currentAccount.seedWordCount ||
-      !accountStore.currentAccount.seedWords
-    )
-      return
+    if (!currentAccount.seedWordCount || !currentAccount.seedWords) return
 
     const selectedWord = selectedCheckbox1
       ? candidateWords[0]
@@ -66,35 +77,28 @@ export default function ConfirmSeed() {
         ? candidateWords[1]
         : candidateWords[2]
 
-    if (selectedWord !== accountStore.currentAccount.seedWords[+index])
+    if (selectedWord !== currentAccount.seedWords[+index])
       return setIncorrectWordModalVisible(true)
 
-    if (+index + 1 < accountStore.currentAccount.seedWordCount)
+    if (+index + 1 < currentAccount.seedWordCount)
       router.push(`/addMasterKey/confirmSeed/${+index + 1}`)
     else return handleFinishWordsConfirmation()
   }
 
   async function handleFinishWordsConfirmation() {
-    if (
-      !accountStore.currentAccount.seedWords ||
-      !accountStore.currentAccount.scriptVersion
-    )
-      return
+    if (!currentAccount.seedWords || !currentAccount.scriptVersion) return
 
     setLoadingAccount(true)
 
-    const wallet = await accountStore.loadWalletFromMnemonic(
-      accountStore.currentAccount.seedWords,
-      accountStore.currentAccount.scriptVersion,
-      accountStore.currentAccount.passphrase
+    const wallet = await loadWalletFromMnemonic(
+      currentAccount.seedWords,
+      currentAccount.scriptVersion,
+      currentAccount.passphrase
     )
 
-    await accountStore.syncWallet(wallet)
-    const account = await accountStore.getPopulatedAccount(
-      wallet,
-      accountStore.currentAccount
-    )
-    await accountStore.saveAccount(account)
+    await syncWallet(wallet)
+    const account = await getPopulatedAccount(wallet, currentAccount)
+    await saveAccount(account)
 
     setLoadingAccount(false)
     setWarningModalVisible(true)
@@ -109,9 +113,7 @@ export default function ConfirmSeed() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>
         }}
       />
       <SSVStack justifyBetween>
@@ -178,9 +180,8 @@ export default function ConfirmSeed() {
               source={require('@/assets/icons/check-circle.svg')}
             />
             <SSText size="3xl">
-              {accountStore.currentAccount.seedWordCount}{' '}
-              {i18n.t('common.of').toLowerCase()}{' '}
-              {accountStore.currentAccount.seedWordCount}
+              {currentAccount.seedWordCount} {i18n.t('common.of').toLowerCase()}{' '}
+              {currentAccount.seedWordCount}
             </SSText>
           </SSHStack>
           <SSText uppercase center>

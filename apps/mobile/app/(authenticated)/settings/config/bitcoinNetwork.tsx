@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -13,16 +14,26 @@ import { useBlockchainStore } from '@/store/blockchain'
 
 export default function BitcoinNetwork() {
   const router = useRouter()
-  const blockchainStore = useBlockchainStore()
+  const [backend, setBackend, network, setNetwork, url, setUrl] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.backend,
+        state.setBackend,
+        state.network,
+        state.setNetwork,
+        state.url,
+        state.setUrl
+      ])
+    )
 
-  const [backend, setBackend] = useState(blockchainStore.backend)
-  const [network, setNetwork] = useState(blockchainStore.network)
-  const [url, setUrl] = useState(blockchainStore.url)
+  const [currentBackend, setCurrentBackend] = useState(backend)
+  const [currentNetwork, setCurrentNetwork] = useState(network)
+  const [currentUrl, setCurrentUrl] = useState(url)
 
   function handleOnSave() {
-    blockchainStore.backend = backend
-    blockchainStore.network = network
-    blockchainStore.url = url
+    setBackend(currentBackend)
+    setNetwork(currentNetwork)
+    setUrl(currentUrl)
     router.back()
   }
 
@@ -48,12 +59,12 @@ export default function BitcoinNetwork() {
               <SSCheckbox
                 label="Electrum"
                 selected={backend === 'electrum'}
-                onPress={() => setBackend('electrum')}
+                onPress={() => setCurrentBackend('electrum')}
               />
               <SSCheckbox
                 label="Esplora"
                 selected={backend === 'esplora'}
-                onPress={() => setBackend('esplora')}
+                onPress={() => setCurrentBackend('esplora')}
               />
             </SSVStack>
             <SSVStack>
@@ -63,17 +74,20 @@ export default function BitcoinNetwork() {
               <SSCheckbox
                 label="testnet"
                 selected={network === 'testnet'}
-                onPress={() => setNetwork('testnet')}
+                onPress={() => setCurrentNetwork('testnet')}
               />
               <SSCheckbox
                 label="signet"
                 selected={network === 'signet'}
-                onPress={() => setNetwork('signet')}
+                onPress={() => setCurrentNetwork('signet')}
               />
             </SSVStack>
             <SSVStack>
               <SSText uppercase>{i18n.t('settings.bitcoinNetwork.url')}</SSText>
-              <SSTextInput value={url} onChangeText={(url) => setUrl(url)} />
+              <SSTextInput
+                value={url}
+                onChangeText={(url) => setCurrentUrl(url)}
+              />
             </SSVStack>
           </SSVStack>
         </ScrollView>

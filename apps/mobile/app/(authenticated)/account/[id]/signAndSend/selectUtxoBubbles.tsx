@@ -18,6 +18,7 @@ import {
   GestureHandlerRootView
 } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
@@ -47,16 +48,29 @@ export default memo(SelectUtxoBubbles)
 
 function SelectUtxoBubbles() {
   const router = useRouter()
-  const accountStore = useAccountStore()
-  const transactionBuilderStore = useTransactionBuilderStore()
-  const priceStore = usePriceStore()
+  const [currentAccount] = useAccountStore(
+    useShallow((state) => [state.currentAccount])
+  )
+  const [inputs, getInputs, hasInput, addInput, removeInput] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.inputs,
+        state.getInputs,
+        state.hasInput,
+        state.addInput,
+        state.removeInput
+      ])
+    )
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
 
-  const hasSelectedUtxos = transactionBuilderStore.inputs.size > 0
+  const hasSelectedUtxos = inputs.size > 0
 
   const utxosValue = useCallback(
     (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
@@ -64,19 +78,19 @@ function SelectUtxoBubbles() {
   )
 
   const utxosTotalValue = useMemo(
-    () => utxosValue(accountStore.currentAccount.utxos),
-    [accountStore.currentAccount.utxos, utxosValue]
+    () => utxosValue(currentAccount.utxos),
+    [currentAccount.utxos, utxosValue]
   )
   const utxosSelectedValue = useMemo(() => {
-    return utxosValue(transactionBuilderStore.getInputs())
-  }, [transactionBuilderStore, utxosValue])
+    return utxosValue(getInputs())
+  }, [getInputs, utxosValue])
 
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
 
   const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT }
 
-  const utxoList = accountStore.currentAccount.utxos.map((utxo) => {
+  const utxoList = currentAccount.utxos.map((utxo) => {
     return {
       id: `${utxo.txid}:${utxo.vout}`,
       children: [],
@@ -111,12 +125,12 @@ function SelectUtxoBubbles() {
 
   const handleOnToggleSelected = useCallback(
     (utxo: Utxo) => {
-      const includesInput = transactionBuilderStore.hasInput(utxo)
+      const includesInput = hasInput(utxo)
 
-      if (includesInput) transactionBuilderStore.removeInput(utxo)
-      else transactionBuilderStore.addInput(utxo)
+      if (includesInput) removeInput(utxo)
+      else addInput(utxo)
     },
-    [transactionBuilderStore]
+    [hasInput, removeInput, addInput]
   )
 
   const { animatedStyle, gestures, transform, isZoomedIn, scale } = useGestures(
@@ -135,8 +149,8 @@ function SelectUtxoBubbles() {
   const centerY = canvasSize.height / 2
 
   function handleSelectAllUtxos() {
-    for (const utxo of accountStore.currentAccount.utxos) {
-      transactionBuilderStore.addInput(utxo)
+    for (const utxo of currentAccount.utxos) {
+      addInput(utxo)
     }
   }
 
@@ -179,9 +193,7 @@ function SelectUtxoBubbles() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>
         }}
       />
       <LinearGradient
@@ -209,9 +221,8 @@ function SelectUtxoBubbles() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {transactionBuilderStore.inputs.size}{' '}
-                {i18n.t('common.of').toLowerCase()}{' '}
-                {accountStore.currentAccount.utxos.length}{' '}
+                {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
+                {currentAccount.utxos.length}{' '}
                 {i18n.t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
@@ -225,10 +236,10 @@ function SelectUtxoBubbles() {
                   {i18n.t('bitcoin.sats').toLowerCase()}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(priceStore.satsToFiat(utxosTotalValue), 2)}
+                  {formatNumber(satsToFiat(utxosTotalValue), 2)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {priceStore.fiatCurrency}
+                  {fiatCurrency}
                 </SSText>
               </SSHStack>
             </SSVStack>
@@ -248,10 +259,10 @@ function SelectUtxoBubbles() {
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="muted">
-                  {formatNumber(priceStore.satsToFiat(utxosSelectedValue), 2)}
+                  {formatNumber(satsToFiat(utxosSelectedValue), 2)}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {priceStore.fiatCurrency}
+                  {fiatCurrency}
                 </SSText>
               </SSHStack>
             </SSVStack>
@@ -272,11 +283,9 @@ function SelectUtxoBubbles() {
                 keychain: packedUtxo.data.keychain!
               }
 
-              const selected = transactionBuilderStore
-                .getInputs()
-                .some(
-                  (input) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
-                )
+              const selected = getInputs().some(
+                (input) => getUtxoOutpoint(input) === getUtxoOutpoint(utxo)
+              )
 
               return (
                 <SSUtxoBubble

@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSSlider from '@/components/SSSlider'
@@ -17,12 +18,14 @@ import { useAuthStore } from '@/store/auth'
 
 export default function AppSecurity() {
   const router = useRouter()
-  const authStore = useAuthStore()
+  const [pinMaxTries, setPinMaxTries] = useAuthStore(
+    useShallow((state) => [state.pinMaxTries, state.setPinMaxTries])
+  )
 
-  const [pinMaxTries, setPinMaxTries] = useState(authStore.pinMaxTries)
+  const [currentPinMaxTries, setCurrentPinMaxTries] = useState(pinMaxTries)
 
   function handleOnSave() {
-    authStore.setPinMaxTries(pinMaxTries)
+    setPinMaxTries(currentPinMaxTries)
     router.back()
   }
 
@@ -53,7 +56,7 @@ export default function AppSecurity() {
                   min={SETTINGS_PIN_MIN_POSSIBLE_TRIES}
                   max={SETTINGS_PIN_MAX_POSSIBLE_TRIES}
                   value={pinMaxTries}
-                  onValueChange={(value) => setPinMaxTries(value)}
+                  onValueChange={(value) => setCurrentPinMaxTries(value)}
                   style={{ width: '90%' }}
                 />
                 <SSText center style={{ width: '5%' }}>

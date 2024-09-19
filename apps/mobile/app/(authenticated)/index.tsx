@@ -1,5 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
@@ -12,10 +13,12 @@ import { type Account } from '@/types/models/Account'
 
 export default function AccountList() {
   const router = useRouter()
-  const accountStore = useAccountStore()
+  const [setCurrentAccount, accounts] = useAccountStore(
+    useShallow((state) => [state.setCurrentAccount, state.accounts])
+  )
 
   function handleOnPressAccount(account: Account) {
-    accountStore.currentAccount = account
+    setCurrentAccount(account)
     router.navigate(`/account/${account.name}`)
   }
 
@@ -36,14 +39,14 @@ export default function AccountList() {
       />
       <SSMainLayout style={{ paddingHorizontal: '5%' }}>
         <ScrollView>
-          {accountStore.accounts.length === 0 && (
+          {accounts.length === 0 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
                 {i18n.t('accountList.noKeysYet')}
               </SSText>
             </SSVStack>
           )}
-          {accountStore.accounts.map((account) => (
+          {accounts.map((account) => (
             <SSAccountCard
               account={account}
               key={account.name}
