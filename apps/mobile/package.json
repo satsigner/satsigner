@@ -35,6 +35,7 @@
     "expo-system-ui": "^2.9.4",
     "expo-web-browser": "~12.8.2",
     "i18n-js": "^4.4.3",
+    "immer": "^10.1.1",
     "react": "18.2.0",
     "react-native": "0.73.6",
     "react-native-bouncy-checkbox": "^4.0.0",

@@ -19,6 +19,18 @@ Use `set` function to update state inside actions:
 set((state) => ({}))
 ```
 
+Use `immer` function `produce` to set complex state:
+
+```ts
+set(
+  product((state: AccountsState) => {
+    state.accounts.push(account)
+  })
+)
+```
+
+Read more about `immer`: [Zustand Immer](https://zustand.docs.pmnd.rs/guides/updating-state#with-immer) and [Immer Documentation](https://immerjs.github.io/immer/update-patterns)
+
 2. Get state (actions)
 
 Use `get` function to get state inside actions:
