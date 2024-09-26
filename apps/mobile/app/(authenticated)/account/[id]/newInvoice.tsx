@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -10,18 +10,16 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function NewInvoice() {
-  const currentAccountName = useAccountStore(
-    (state) => state.currentAccount.name
-  )
+  const { id } = useLocalSearchParams<AccountSearchParams>()
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{currentAccountName}</SSText>
+          headerTitle: () => <SSText uppercase>{id}</SSText>
         }}
       />
       <ScrollView>

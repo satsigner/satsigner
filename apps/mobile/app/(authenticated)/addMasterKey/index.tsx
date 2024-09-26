@@ -10,21 +10,17 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 
 export default function AddMasterKey() {
   const router = useRouter()
-  const [
-    hasAccountWithName,
-    setCurrentAccountName,
-    setCurrentAccountCreationType
-  ] = useAccountStore(
-    useShallow((state) => [
-      state.hasAccountWithName,
-      state.setCurrentAccountName,
-      state.setCurrentAccountCreationType
-    ])
+  const hasAccountWithName = useAccountsStore(
+    (state) => state.hasAccountWithName
+  )
+  const [setName, setType] = useAccountBuilderStore(
+    useShallow((state) => [state.setName, state.setType])
   )
 
   const [accountName, setAccountName] = useState('')
@@ -38,8 +34,9 @@ export default function AddMasterKey() {
       setAccountName('')
       return
     }
-    setCurrentAccountName(accountName)
-    setCurrentAccountCreationType(creationType)
+
+    setName(accountName)
+    setType(creationType)
     router.navigate('/addMasterKey/accountOptions')
   }
 

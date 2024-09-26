@@ -75,3 +75,27 @@ setExample('example')
   Learn more about Zustand
   [here](https://zustand.docs.pmnd.rs/guides/updating-state)
 </Callout>
+
+5. Be careful with stale state
+
+If a function in your store is updating state and you are calling that function inside a page and want to use that piece of state afterwards, that piece of state might be stale.
+
+```tsx
+// stale state
+async function test() {
+  await storeFunctionThatSetsTestVariable()
+  console.log(testVariable) // Might be stale
+}
+
+// fix 1
+async function test() {
+  const testVariable = await storeFunctionThatSetsTestVariable() // Store function returns the variable
+  console.log(testVariable)
+}
+
+// fix 2
+async function test() {
+  await storeFunctionThatSetsTestVariable()
+  console.log(useStore.getState().testVariable)
+}
+```

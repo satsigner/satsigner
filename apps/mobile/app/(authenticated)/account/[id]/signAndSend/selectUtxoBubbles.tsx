@@ -29,7 +29,7 @@ import { useLayout } from '@/hooks/useLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
@@ -48,9 +48,9 @@ export default memo(SelectUtxoBubbles)
 
 function SelectUtxoBubbles() {
   const router = useRouter()
-  const [currentAccount] = useAccountStore(
-    useShallow((state) => [state.currentAccount])
-  )
+  const { id } = useLocalSearchParams<AccountSearchParams>()
+
+  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -65,7 +65,7 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
@@ -78,8 +78,8 @@ function SelectUtxoBubbles() {
   )
 
   const utxosTotalValue = useMemo(
-    () => utxosValue(currentAccount.utxos),
-    [currentAccount.utxos, utxosValue]
+    () => utxosValue(account.utxos),
+    [account.utxos, utxosValue]
   )
   const utxosSelectedValue = useMemo(() => {
     return utxosValue(getInputs())
@@ -90,7 +90,7 @@ function SelectUtxoBubbles() {
 
   const canvasSize = { width: GRAPH_WIDTH, height: GRAPH_HEIGHT }
 
-  const utxoList = currentAccount.utxos.map((utxo) => {
+  const utxoList = account.utxos.map((utxo) => {
     return {
       id: `${utxo.txid}:${utxo.vout}`,
       children: [],
@@ -149,7 +149,7 @@ function SelectUtxoBubbles() {
   const centerY = canvasSize.height / 2
 
   function handleSelectAllUtxos() {
-    for (const utxo of currentAccount.utxos) {
+    for (const utxo of account.utxos) {
       addInput(utxo)
     }
   }
@@ -193,7 +193,7 @@ function SelectUtxoBubbles() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
       <LinearGradient
@@ -222,8 +222,7 @@ function SelectUtxoBubbles() {
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
-                {currentAccount.utxos.length}{' '}
-                {i18n.t('common.selected').toLowerCase()}
+                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>

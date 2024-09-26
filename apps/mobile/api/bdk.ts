@@ -40,40 +40,25 @@ async function getDescriptor(
   seedWords: NonNullable<Account['seedWords']>,
   scriptVersion: NonNullable<Account['scriptVersion']>,
   kind: KeychainKind,
-  passphrase: Account['passphrase']
+  passphrase: Account['passphrase'],
+  network: Network
 ) {
   const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
   const descriptorSecretKey = await new DescriptorSecretKey().create(
-    Network.Testnet, // TODO: change
+    network,
     mnemonic,
     passphrase
   )
 
   switch (scriptVersion) {
     case 'P2PKH':
-      return new Descriptor().newBip44(
-        descriptorSecretKey,
-        kind,
-        Network.Testnet
-      )
+      return new Descriptor().newBip44(descriptorSecretKey, kind, network)
     case 'P2SH-P2WPKH':
-      return new Descriptor().newBip49(
-        descriptorSecretKey,
-        kind,
-        Network.Testnet
-      )
+      return new Descriptor().newBip49(descriptorSecretKey, kind, network)
     case 'P2WPKH':
-      return new Descriptor().newBip84(
-        descriptorSecretKey,
-        kind,
-        Network.Testnet
-      )
+      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
     case 'P2TR':
-      return new Descriptor().newBip86(
-        descriptorSecretKey,
-        kind,
-        Network.Testnet
-      )
+      return new Descriptor().newBip86(descriptorSecretKey, kind, network)
   }
 }
 
@@ -88,18 +73,19 @@ async function parseDescriptor(descriptor: Descriptor) {
 
 async function getFingerprint(
   seedWords: NonNullable<Account['seedWords']>,
-  passphrase?: Account['passphrase']
+  passphrase: Account['passphrase'],
+  network: Network
 ) {
   const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
   const descriptorSecretKey = await new DescriptorSecretKey().create(
-    Network.Testnet, // TODO: change
+    network,
     mnemonic,
     passphrase
   )
   const descriptor = await new Descriptor().newBip84(
     descriptorSecretKey,
     KeychainKind.External,
-    Network.Testnet // TODO: change
+    network
   )
 
   const { fingerprint } = await parseDescriptor(descriptor)
@@ -113,8 +99,20 @@ async function getWalletFromMnemonic(
   network: Network
 ) {
   const [externalDescriptor, internalDescriptor] = await Promise.all([
-    getDescriptor(seedWords, scriptVersion, KeychainKind.External, passphrase),
-    getDescriptor(seedWords, scriptVersion, KeychainKind.Internal, passphrase)
+    getDescriptor(
+      seedWords,
+      scriptVersion,
+      KeychainKind.External,
+      passphrase,
+      network
+    ),
+    getDescriptor(
+      seedWords,
+      scriptVersion,
+      KeychainKind.Internal,
+      passphrase,
+      network
+    )
   ])
 
   const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
@@ -175,7 +173,8 @@ async function getAddress(utxo: LocalUtxo, network: Network) {
 
 async function parseTransactionDetailsToTransaction(
   transactionDetails: TransactionDetails,
-  utxos: LocalUtxo[]
+  utxos: LocalUtxo[],
+  network: Network
 ): Promise<Transaction> {
   const transactionUtxos = utxos.filter(
     (utxo) => utxo?.outpoint?.txid === transactionDetails.txid
@@ -183,7 +182,7 @@ async function parseTransactionDetailsToTransaction(
   let address = ''
   const utxo = transactionUtxos?.[0]
   if (utxo) {
-    address = await getAddress(utxo, Network.Testnet)
+    address = await getAddress(utxo, network)
   }
 
   return {
@@ -202,9 +201,10 @@ async function parseTransactionDetailsToTransaction(
 
 async function parseLocalUtxoToUtxo(
   localUtxo: LocalUtxo,
-  transactionsDetails: TransactionDetails[]
+  transactionsDetails: TransactionDetails[],
+  network: Network
 ): Promise<Utxo> {
-  const addressTo = await getAddress(localUtxo, Network.Testnet)
+  const addressTo = await getAddress(localUtxo, network)
   const transactionId = localUtxo?.outpoint.txid
   const transactionDetails = transactionsDetails.find(
     (transactionDetails) => transactionDetails.txid === transactionId
@@ -224,7 +224,8 @@ async function parseLocalUtxoToUtxo(
 }
 
 async function getWalletData(
-  wallet: Wallet
+  wallet: Wallet,
+  netWork: Network
 ): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
   if (wallet) {
     const [balance, addressInfo, transactionsDetails, localUtxos] =
@@ -237,13 +238,17 @@ async function getWalletData(
 
     const transactions = await Promise.all(
       (transactionsDetails || []).map((transactionDetails) =>
-        parseTransactionDetailsToTransaction(transactionDetails, localUtxos)
+        parseTransactionDetailsToTransaction(
+          transactionDetails,
+          localUtxos,
+          netWork
+        )
       )
     )
 
     const utxos = await Promise.all(
       (localUtxos || []).map((localUtxo) =>
-        parseLocalUtxoToUtxo(localUtxo, transactionsDetails)
+        parseLocalUtxoToUtxo(localUtxo, transactionsDetails, netWork)
       )
     )
 

@@ -1,17 +1,10 @@
 import { Descriptor, Wallet } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
+import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import {
-  generateMnemonic,
-  getFingerprint,
-  getWalletData,
-  getWalletFromDescriptor,
-  getWalletFromMnemonic,
-  syncWallet,
-  validateMnemonic
-} from '@/api/bdk'
+import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
 import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
@@ -20,155 +13,30 @@ import { useBlockchainStore } from './blockchain'
 
 type AccountsState = {
   accounts: Account[]
-  currentAccount: Account
 }
 
 type AccountsAction = {
-  setCurrentAccount: (account: Account) => void
-  setCurrentAccountName: (name: string) => void
-  setCurrentAccountCreationType: (
-    creationType: Account['accountCreationType']
-  ) => void
-  setCurrentAccountScriptVersion: (
-    scriptVersion: Account['scriptVersion']
-  ) => void
-  setCurrentAccountSeedWords: (
-    seedWords: NonNullable<Account['seedWords']>
-  ) => void
-  setCurrentAccountSeedWordCount: (
-    seedWordCount: Account['seedWordCount']
-  ) => void
-  setCurrentAccountPassphrase: (
-    passphrase: NonNullable<Account['passphrase']>
-  ) => void
-  resetCurrentAccount: () => void
+  getCurrentAccount: (name: string) => Account | undefined
   hasAccountWithName: (name: string) => boolean
-  generateMnemonic: (
-    count: NonNullable<Account['seedWordCount']>
-  ) => Promise<void>
-  validateMnemonic: (
-    seedWords: NonNullable<Account['seedWords']>
-  ) => Promise<boolean>
-  updateFingerprint: (
-    seedWords: NonNullable<Account['seedWords']>,
-    passphrase?: Account['passphrase']
-  ) => Promise<void>
-  loadWalletFromMnemonic: (
-    seedWords: NonNullable<Account['seedWords']>,
-    scriptVersion: NonNullable<Account['scriptVersion']>,
-    passphrase?: Account['passphrase']
-  ) => Promise<Wallet>
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor
   ) => Promise<Wallet>
-  syncWallet: (wallet: Wallet) => Promise<void>
-  getPopulatedAccount: (wallet: Wallet, account: Account) => Promise<Account>
-  saveAccount: (account: Account) => Promise<void>
+  syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
+  addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
-  deleteAccounts: () => Promise<void>
+  deleteAccounts: () => void
 }
 
-const initialCurrentAccountState: Account = {
-  name: '',
-  accountCreationType: null,
-  transactions: [],
-  utxos: [],
-  summary: {
-    balance: 0,
-    numberOfAddresses: 0,
-    numberOfTransactions: 0,
-    numberOfUtxos: 0,
-    satsInMempool: 0
-  }
-}
-
-const useAccountStore = create<AccountsState & AccountsAction>()(
+const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
       accounts: [],
-      currentAccount: initialCurrentAccountState,
-      setCurrentAccount: (account) => {
-        set({ currentAccount: account }) // TODO: Might need to spread on all levels
-      },
-      setCurrentAccountName: (name) => {
-        set((state) => ({ currentAccount: { ...state.currentAccount, name } })) // TODO: Might need to spread on all levels
-      },
-      setCurrentAccountCreationType: (creationType) => {
-        set((state) => ({
-          currentAccount: {
-            ...state.currentAccount,
-            accountCreationType: creationType
-          }
-        })) // TODO: Might need to spread on all levels
-      },
-      setCurrentAccountScriptVersion: (scriptVersion) => {
-        set((state) => ({
-          currentAccount: { ...state.currentAccount, scriptVersion }
-        })) // TODO: Might need to spread on all levels
-      },
-      setCurrentAccountSeedWords: (seedWords) => {
-        set((state) => ({
-          currentAccount: { ...state.currentAccount, seedWords }
-        })) // TODO: Might need to spread on all levels
-      },
-      setCurrentAccountSeedWordCount: (seedWordCount) => {
-        set((state) => ({
-          currentAccount: { ...state.currentAccount, seedWordCount }
-        })) // TODO: Might need to spread on all levels
-      },
-      setCurrentAccountPassphrase: (passphrase) => {
-        set((state) => ({
-          currentAccount: { ...state.currentAccount, passphrase }
-        })) // TODO: Might need to spread on all levels
-      },
-      resetCurrentAccount: () => {
-        set({ currentAccount: initialCurrentAccountState })
+      getCurrentAccount: (name) => {
+        return get().accounts.find((account) => account.name === name)
       },
       hasAccountWithName: (name) => {
         return !!get().accounts.find((account) => account.name === name)
-      },
-      generateMnemonic: async (count) => {
-        const mnemonic = await generateMnemonic(count)
-        set((state) => ({
-          currentAccount: { ...state.currentAccount, seedWords: mnemonic }
-        }))
-        await get().updateFingerprint(mnemonic)
-      },
-      validateMnemonic: async (seedWords) => {
-        const isValid = await validateMnemonic(seedWords)
-        return isValid
-      },
-      updateFingerprint: async (seedWords, passphrase) => {
-        const fingerprint = await getFingerprint(seedWords, passphrase)
-        set((state) => ({
-          currentAccount: { ...state.currentAccount, fingerprint }
-        }))
-      },
-      loadWalletFromMnemonic: async (seedWords, scriptVersion, passphrase) => {
-        const { network } = useBlockchainStore.getState()
-        const {
-          fingerprint,
-          derivationPath,
-          externalDescriptor,
-          internalDescriptor,
-          wallet
-        } = await getWalletFromMnemonic(
-          seedWords,
-          scriptVersion,
-          passphrase,
-          network as Network
-        )
-        set((state) => ({
-          currentAccount: {
-            ...state.currentAccount,
-            fingerprint,
-            derivationPath,
-            externalDescriptor,
-            internalDescriptor
-          }
-        }))
-        return wallet
       },
       loadWalletFromDescriptor: async (
         externalDescriptor,
@@ -183,45 +51,37 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
         )
         return wallet
       },
-      syncWallet: async (wallet) => {
-        const { backend, url } = useBlockchainStore.getState()
+      syncWallet: async (wallet, account) => {
+        const { backend, network, url } = useBlockchainStore.getState()
 
         await syncWallet(wallet, backend, getBlockchainConfig(backend, url))
-      },
-      getPopulatedAccount: async (wallet, account) => {
-        const { transactions, utxos, summary } = await getWalletData(wallet)
+
+        const { transactions, utxos, summary } = await getWalletData(
+          wallet,
+          network as Network
+        )
+
         return { ...account, transactions, utxos, summary }
       },
-      saveAccount: async (account) => {
-        set((state) => ({
-          accounts: [
-            ...state.accounts,
-            { ...get().currentAccount, ...account }
-          ],
-          currentAccount: { ...state.currentAccount, ...account }
-        }))
+      addAccount: async (account) => {
+        set(
+          produce((state: AccountsState) => {
+            state.accounts.push(account)
+          })
+        )
       },
       updateAccount: async (account) => {
-        const accounts = get().accounts
-        const toUpdateAccountIndex = accounts.findIndex(
-          (currentAccount) => currentAccount.name === account.name
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (_account) => _account.name === account.name
+            )
+            if (index !== -1) state.accounts[index] = account
+          })
         )
-        if (toUpdateAccountIndex >= 0)
-          accounts[toUpdateAccountIndex] = {
-            ...get().currentAccount,
-            ...account
-          }
-
-        set((state) => ({
-          accounts,
-          currentAccount: { ...state.currentAccount, ...account }
-        }))
       },
-      deleteAccounts: async () => {
-        set(() => ({
-          accounts: [],
-          currentAccount: initialCurrentAccountState
-        }))
+      deleteAccounts: () => {
+        set(() => ({ accounts: [] }))
       }
     }),
     {
@@ -231,4 +91,4 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
   )
 )
 
-export { useAccountStore }
+export { useAccountsStore }

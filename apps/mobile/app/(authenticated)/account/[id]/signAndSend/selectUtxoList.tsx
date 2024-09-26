@@ -14,7 +14,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
@@ -28,7 +28,9 @@ type SortField = 'date' | 'amount'
 
 export default function SelectUtxoList() {
   const router = useRouter()
-  const currentAccount = useAccountStore((state) => state.currentAccount)
+  const { id } = useLocalSearchParams<AccountSearchParams>()
+
+  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -43,7 +45,7 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')
@@ -51,21 +53,21 @@ export default function SelectUtxoList() {
   const hasSelectedUtxos = inputs.size > 0
 
   const largestValue = useMemo(
-    () => Math.max(...currentAccount.utxos.map((utxo) => utxo.value)),
-    [currentAccount.utxos]
+    () => Math.max(...account.utxos.map((utxo) => utxo.value)),
+    [account.utxos]
   )
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
 
   const utxosTotalValue = useMemo(
-    () => utxosValue(currentAccount.utxos),
-    [currentAccount.utxos]
+    () => utxosValue(account.utxos),
+    [account.utxos]
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
   function handleSelectAllUtxos() {
-    for (const utxo of currentAccount.utxos) {
+    for (const utxo of account.utxos) {
       addInput(utxo)
     }
   }
@@ -98,7 +100,7 @@ export default function SelectUtxoList() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>
+          headerTitle: () => <SSText uppercase>{id}</SSText>
         }}
       />
       <SSMainLayout style={{ flex: 0 }}>
@@ -123,8 +125,7 @@ export default function SelectUtxoList() {
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
-                {currentAccount.utxos.length}{' '}
-                {i18n.t('common.selected').toLowerCase()}
+                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
@@ -208,7 +209,7 @@ export default function SelectUtxoList() {
           }}
         >
           <View style={{ marginTop: 2 }}>
-            {sortUtxos([...currentAccount.utxos]).map((utxo) => (
+            {sortUtxos([...account.utxos]).map((utxo) => (
               <SSUtxoItem
                 key={`${utxo.txid}:${utxo.vout}`}
                 utxo={utxo}

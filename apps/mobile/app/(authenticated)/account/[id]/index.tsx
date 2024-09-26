@@ -18,7 +18,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -32,18 +32,17 @@ import { compareTimestamp } from '@/utils/sort'
 export default function Account() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+
   const [
-    currentAccount,
+    getCurrentAccount,
     loadWalletFromDescriptor,
     syncWallet,
-    getPopulatedAccount,
     updateAccount
-  ] = useAccountStore(
+  ] = useAccountsStore(
     useShallow((state) => [
-      state.currentAccount,
+      state.getCurrentAccount,
       state.loadWalletFromDescriptor,
       state.syncWallet,
-      state.getPopulatedAccount,
       state.updateAccount
     ])
   )
@@ -57,6 +56,7 @@ export default function Account() {
     (state) => state.clearTransaction
   )
 
+  const [account, setAccount] = useState(getCurrentAccount(id)!) // Make use of non-null assertion operator for now
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
@@ -88,31 +88,22 @@ export default function Account() {
   }
 
   async function refreshAccount() {
-    // TODO: refactor
-    if (
-      !currentAccount.externalDescriptor ||
-      !currentAccount.internalDescriptor
-    )
+    if (!account || !account.externalDescriptor || !account.internalDescriptor)
       return
 
-    const externalDescriptor = await new Descriptor().create(
-      currentAccount.externalDescriptor,
-      network as Network
-    )
-    const internalDescriptor = await new Descriptor().create(
-      currentAccount.internalDescriptor,
-      network as Network
-    )
+    const [externalDescriptor, internalDescriptor] = await Promise.all([
+      new Descriptor().create(account.externalDescriptor, network as Network),
+      new Descriptor().create(account.internalDescriptor, network as Network)
+    ])
 
     const wallet = await loadWalletFromDescriptor(
       externalDescriptor,
       internalDescriptor
     )
 
-    await syncWallet(wallet)
-    const account = await getPopulatedAccount(wallet, currentAccount)
-
-    await updateAccount(account)
+    const syncedAccount = await syncWallet(wallet, account)
+    setAccount(syncedAccount)
+    await updateAccount(syncedAccount)
   }
 
   async function refresh() {
@@ -135,7 +126,7 @@ export default function Account() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{currentAccount.name}</SSText>,
+          headerTitle: () => <SSText uppercase>{id}</SSText>,
           headerBackground: () => (
             <LinearGradient
               style={{
@@ -155,7 +146,7 @@ export default function Account() {
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
-                {formatNumber(currentAccount.summary.balance)}
+                {formatNumber(account.summary.balance || 0)}
               </SSText>
               <SSText size="xl" color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
@@ -163,7 +154,7 @@ export default function Account() {
             </SSHStack>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText color="muted">
-                {formatNumber(satsToFiat(currentAccount.summary.balance), 2)}
+                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
               </SSText>
               <SSText size="xs" style={{ color: Colors.gray[500] }}>
                 {fiatCurrency}
@@ -218,7 +209,7 @@ export default function Account() {
           <SSHStack style={{ paddingVertical: 12 }}>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {currentAccount.summary.numberOfTransactions}
+                {account.summary.numberOfTransactions}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.totalTransactions.0')}
@@ -238,7 +229,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {currentAccount.summary.numberOfAddresses}
+                {account.summary.numberOfAddresses}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.childAccounts.0')}
@@ -248,7 +239,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {currentAccount.summary.numberOfUtxos}
+                {account.summary.numberOfUtxos}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.spendableOutputs.0')}
@@ -258,7 +249,7 @@ export default function Account() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
-                {currentAccount.summary.satsInMempool}
+                {account.summary.satsInMempool}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.satsInMempool.0')}
@@ -295,21 +286,15 @@ export default function Account() {
           }
         >
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...currentAccount.transactions]).map(
-              (transaction) => (
-                <SSVStack gap="xs" key={transaction.id}>
-                  <SSSeparator
-                    key={`separator-${transaction.id}`}
-                    color="grayDark"
-                  />
-                  <SSTransactionCard
-                    key={transaction.id}
-                    transaction={transaction}
-                    blockHeight={blockchainHeight}
-                  />
-                </SSVStack>
-              )
-            )}
+            {sortTransactions([...account.transactions]).map((transaction) => (
+              <SSVStack gap="xs" key={transaction.id}>
+                <SSSeparator color="grayDark" />
+                <SSTransactionCard
+                  transaction={transaction}
+                  blockHeight={blockchainHeight}
+                />
+              </SSVStack>
+            ))}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

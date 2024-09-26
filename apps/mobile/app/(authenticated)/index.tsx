@@ -1,26 +1,18 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
+import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import { useAccountsStore } from '@/store/accounts'
 
 export default function AccountList() {
   const router = useRouter()
-  const [setCurrentAccount, accounts] = useAccountStore(
-    useShallow((state) => [state.setCurrentAccount, state.accounts])
-  )
-
-  function handleOnPressAccount(account: Account) {
-    setCurrentAccount(account)
-    router.navigate(`/account/${account.name}`)
-  }
+  const accounts = useAccountsStore((state) => state.accounts)
 
   return (
     <>
@@ -37,7 +29,7 @@ export default function AccountList() {
         style={{ borderRadius: 0 }}
         onPress={() => router.navigate('/addMasterKey/')}
       />
-      <SSMainLayout style={{ paddingHorizontal: '5%' }}>
+      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
           {accounts.length === 0 && (
             <SSVStack itemsCenter>
@@ -46,13 +38,17 @@ export default function AccountList() {
               </SSText>
             </SSVStack>
           )}
-          {accounts.map((account) => (
-            <SSAccountCard
-              account={account}
-              key={account.name}
-              onPress={() => handleOnPressAccount(account)}
-            />
-          ))}
+          <SSVStack>
+            {accounts.map((account) => (
+              <SSVStack key={account.name}>
+                <SSAccountCard
+                  account={account}
+                  onPress={() => router.navigate(`/account/${account.name}`)}
+                />
+                <SSSeparator color="gradient" />
+              </SSVStack>
+            ))}
+          </SSVStack>
         </ScrollView>
       </SSMainLayout>
     </>
