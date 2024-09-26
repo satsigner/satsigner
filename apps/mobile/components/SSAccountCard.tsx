@@ -25,15 +25,15 @@ export default function SSAccountCard({
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween>
-        <SSVStack gap="xs">
-          <SSText size="xs" style={{ color: Colors.gray[500] }}>
+        <SSVStack gap="none">
+          <SSText size="xs" style={{ color: Colors.gray[500], lineHeight: 10 }}>
             {account.fingerprint}
           </SSText>
           <SSText size="lg" color="muted">
             {account.name}
           </SSText>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" color="white">
+            <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>
               {formatNumber(account.summary.balance)}
             </SSText>
             <SSText size="xl" color="muted">
@@ -48,7 +48,7 @@ export default function SSAccountCard({
               {priceStore.fiatCurrency}
             </SSText>
           </SSHStack>
-          <SSHStack>
+          <SSHStack style={{ marginTop: 8 }}>
             <SSVStack gap="none">
               <SSText color="white" size="md">
                 {formatNumber(account.summary.numberOfAddresses)}
