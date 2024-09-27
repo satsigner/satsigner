@@ -82,9 +82,7 @@ function SelectUtxoBubbles() {
     () => utxosValue(account.utxos),
     [account.utxos, utxosValue]
   )
-  const utxosSelectedValue = useMemo(() => {
-    return utxosValue(getInputs())
-  }, [getInputs, utxosValue])
+  const utxosSelectedValue = utxosValue(getInputs())
 
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
