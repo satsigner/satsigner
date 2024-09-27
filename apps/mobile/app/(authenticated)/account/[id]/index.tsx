@@ -366,20 +366,6 @@ export default function AccountView() {
     )
   }
 
-  // const renderIndicator = () => {
-  //   return (
-  //     <View
-  //       style={{
-  //         position: 'absolute',
-  //         width: '100%',
-  //         height: 2,
-  //         bottom: -12,
-  //         backgroundColor: Colors.white
-  //       }}
-  //     />
-  //   )
-  // }
-
   return (
     <>
       <Stack.Screen
@@ -464,57 +450,6 @@ export default function AccountView() {
               colors={[Colors.gray[600], Colors.gray[850]]}
             />
           </SSVStack>
-          {/* <SSHStack style={{ paddingVertical: 12 }}>
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.numberOfTransactions}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.totalTransactions.0')}
-                {'\n'}
-                {i18n.t('accountList.totalTransactions.1')}
-              </SSText>
-              <View
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: 2,
-                  bottom: -12,
-                  backgroundColor: Colors.white
-                }}
-              />
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.numberOfAddresses}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.childAccounts.0')}
-                {'\n'}
-                {i18n.t('accountList.childAccounts.1')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.numberOfUtxos}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.spendableOutputs.0')}
-                {'\n'}
-                {i18n.t('accountList.spendableOutputs.1')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.satsInMempool}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.satsInMempool.0')}
-                {'\n'}
-                {i18n.t('accountList.satsInMempool.1')}
-              </SSText>
-            </SSVStack>
-          </SSHStack> */}
         </SSVStack>
       </SSBackgroundGradient>
       <TabView
@@ -524,44 +459,6 @@ export default function AccountView() {
         onIndexChange={setTabIndex}
         initialLayout={{ width }}
       />
-      {/* <SSMainLayout style={{ paddingTop: 0 }}>
-        <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-          <SSIconButton onPress={() => handleOnRefresh()}>
-            <Image
-              style={{ width: 18, height: 22 }}
-              source={require('@/assets/icons/refresh.svg')}
-            />
-          </SSIconButton>
-          <SSText color="muted">
-            {i18n.t('account.parentAccountActivity')}
-          </SSText>
-          <SSSortDirectionToggle
-            onDirectionChanged={(direction) => setSortDirection(direction)}
-          />
-        </SSHStack>
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleOnRefresh}
-              colors={[Colors.gray[900]]}
-              progressBackgroundColor={Colors.white}
-            />
-          }
-        >
-          <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...account.transactions]).map((transaction) => (
-              <SSVStack gap="xs" key={transaction.id}>
-                <SSSeparator color="grayDark" />
-                <SSTransactionCard
-                  transaction={transaction}
-                  blockHeight={blockchainHeight}
-                />
-              </SSVStack>
-            ))}
-          </SSVStack>
-        </ScrollView>
-      </SSMainLayout> */}
     </>
   )
 }
