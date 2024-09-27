@@ -20,6 +20,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
+import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -32,6 +33,7 @@ import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
@@ -101,10 +103,54 @@ function ChildAccounts() {
   )
 }
 
-function SpendableOutputs({ account }: TabProps) {
+type SpendableOutputsProps = {
+  account: Account
+  handleOnRefresh: () => Promise<void>
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
+  refreshing: boolean
+  sortUtxos: (utxos: Utxo[]) => Utxo[]
+}
+
+function SpendableOutputs({
+  account,
+  handleOnRefresh,
+  setSortDirection,
+  refreshing,
+  sortUtxos
+}: SpendableOutputsProps) {
   return (
-    <SSMainLayout>
-      <SSText>Being built...</SSText>
+    <SSMainLayout style={{ paddingTop: 0 }}>
+      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
+        <SSIconButton onPress={() => {}}>
+          <Image
+            style={{ width: 18, height: 22 }}
+            source={require('@/assets/icons/refresh.svg')}
+          />
+        </SSIconButton>
+        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSSortDirectionToggle
+          onDirectionChanged={(direction) => setSortDirection(direction)}
+        />
+      </SSHStack>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleOnRefresh}
+            colors={[Colors.gray[900]]}
+            progressBackgroundColor={Colors.white}
+          />
+        }
+      >
+        <SSVStack style={{ marginBottom: 16 }}>
+          {sortUtxos([...account.utxos]).map((utxo) => (
+            <SSVStack gap="xs" key={utxo.txid}>
+              <SSSeparator color="grayDark" />
+              <SSUtxoCard utxo={utxo} />
+            </SSVStack>
+          ))}
+        </SSVStack>
+      </ScrollView>
     </SSMainLayout>
   )
 }
@@ -147,7 +193,10 @@ export default function AccountView() {
 
   const [account, setAccount] = useState(getCurrentAccount(id)!) // Make use of non-null assertion operator for now
   const [refreshing, setRefreshing] = useState(false)
-  const [sortDirection, setSortDirection] = useState<Direction>('desc')
+  const [sortDirectionTransactions, setSortDirectionTransactions] =
+    useState<Direction>('desc')
+  const [sortDirectionUtxos, setSortDirectionUtxos] =
+    useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
   const tabs = [
@@ -166,7 +215,7 @@ export default function AccountView() {
           <TotalTransactions
             account={account}
             handleOnRefresh={handleOnRefresh}
-            setSortDirection={setSortDirection}
+            setSortDirection={setSortDirectionTransactions}
             refreshing={refreshing}
             sortTransactions={sortTransactions}
             blockchainHeight={blockchainHeight}
@@ -175,7 +224,15 @@ export default function AccountView() {
       case 'childAccounts':
         return <ChildAccounts />
       case 'spendableOutputs':
-        return <SpendableOutputs account={account} />
+        return (
+          <SpendableOutputs
+            account={account}
+            handleOnRefresh={handleOnRefresh}
+            setSortDirection={setSortDirectionUtxos}
+            refreshing={refreshing}
+            sortUtxos={sortUtxos}
+          />
+        )
       case 'satsInMempool':
         return <SatsInMempool />
       default:
@@ -198,9 +255,17 @@ export default function AccountView() {
 
   function sortTransactions(transactions: Transaction[]) {
     return transactions.sort((transaction1, transaction2) =>
-      sortDirection === 'asc'
+      sortDirectionTransactions === 'asc'
         ? compareTimestamp(transaction1.timestamp, transaction2.timestamp)
         : compareTimestamp(transaction2.timestamp, transaction1.timestamp)
+    )
+  }
+
+  function sortUtxos(utxos: Utxo[]) {
+    return utxos.sort((utxo1, utxo2) =>
+      sortDirectionUtxos === 'asc'
+        ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
+        : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
     )
   }
 

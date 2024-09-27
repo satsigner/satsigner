@@ -29,7 +29,8 @@
       "memo": "Memo",
       "clear": "Clear",
       "goBack": "Go back",
-      "version": "Version"
+      "version": "Version",
+      "address": "Address"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -98,7 +99,8 @@
       "signAndSend": "Sign & Send",
       "newInvoice": "New Invoice",
       "parentAccountActivity": "Parent Account Activity",
-      "noMemo": "No memo"
+      "noMemo": "No memo",
+      "noLabel": "No label"
     },
     "signAndSend": {
       "selectSpendableOutputs": "Select spendable outputs",
