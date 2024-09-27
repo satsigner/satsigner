@@ -129,7 +129,9 @@ export default function SSTransactionCard({
             </SSText>
             <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
               <SSText color="muted">
-                {transaction.address && i18n.t('common.to').toLowerCase()}
+                {transaction.address && transaction.type === 'receive'
+                  ? i18n.t('common.from').toLowerCase()
+                  : i18n.t('common.to').toLowerCase()}
               </SSText>
               <SSText>
                 {transaction.address &&
