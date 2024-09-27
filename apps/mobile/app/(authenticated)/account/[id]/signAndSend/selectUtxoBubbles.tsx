@@ -71,6 +71,7 @@ function SelectUtxoBubbles() {
   const { width, height } = useWindowDimensions()
 
   const hasSelectedUtxos = inputs.size > 0
+  const selectedAllUtxos = inputs.size === account.utxos.length
 
   const utxosValue = useCallback(
     (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
@@ -151,6 +152,12 @@ function SelectUtxoBubbles() {
   function handleSelectAllUtxos() {
     for (const utxo of account.utxos) {
       addInput(utxo)
+    }
+  }
+
+  function handleDeselectAllUtxos() {
+    for (const utxo of account.utxos) {
+      removeInput(utxo)
     }
   }
 
@@ -356,10 +363,18 @@ function SelectUtxoBubbles() {
               style={{ width: 'auto', height: 'auto' }}
             />
             <SSButton
-              label={i18n.t('signAndSend.selectAll')}
+              label={
+                selectedAllUtxos
+                  ? i18n.t('signAndSend.deselectAll')
+                  : i18n.t('signAndSend.selectAll')
+              }
               variant="ghost"
               style={{ width: 'auto', height: 'auto' }}
-              onPress={() => handleSelectAllUtxos()}
+              onPress={() =>
+                selectedAllUtxos
+                  ? handleDeselectAllUtxos()
+                  : handleSelectAllUtxos()
+              }
             />
           </SSHStack>
           <SSButton

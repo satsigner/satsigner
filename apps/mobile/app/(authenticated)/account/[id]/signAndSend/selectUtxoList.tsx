@@ -51,6 +51,7 @@ export default function SelectUtxoList() {
   const [sortField, setSortField] = useState<SortField>('amount')
 
   const hasSelectedUtxos = inputs.size > 0
+  const selectedAllUtxos = inputs.size === account.utxos.length
 
   const largestValue = useMemo(
     () => Math.max(...account.utxos.map((utxo) => utxo.value)),
@@ -69,6 +70,12 @@ export default function SelectUtxoList() {
   function handleSelectAllUtxos() {
     for (const utxo of account.utxos) {
       addInput(utxo)
+    }
+  }
+
+  function handleDeselectAllUtxos() {
+    for (const utxo of account.utxos) {
+      removeInput(utxo)
     }
   }
 
@@ -175,14 +182,16 @@ export default function SelectUtxoList() {
       <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
         <SSButton
           variant="ghost"
-          label={`${i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
+          label={`${selectedAllUtxos ? i18n.t('common.deselectAll').toUpperCase() : i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],
             textTransform: 'none',
             textDecorationLine: 'underline'
           }}
-          onPress={() => handleSelectAllUtxos()}
+          onPress={() =>
+            selectedAllUtxos ? handleDeselectAllUtxos() : handleSelectAllUtxos()
+          }
         />
         <SSHStack gap="sm">
           <SSSortDirectionToggle

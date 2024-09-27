@@ -11,6 +11,7 @@
       "select": "Select",
       "selectAll": "Select All",
       "selected": "Selected",
+      "deselectAll": "Deselect All",
       "next": "Next",
       "confirm": "Confirm",
       "close": "Close",
@@ -102,7 +103,8 @@
       "selectSpendableOutputs": "Select spendable outputs",
       "addAsInputToMessage": "Add as input to message",
       "customAmount": "Custom amount",
-      "selectAll": "Select all"
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all"
     },
     "newInvoice": {
       "invoice": "Invoice",
