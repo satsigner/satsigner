@@ -89,8 +89,8 @@
     },
     "accountList": {
       "noKeysYet": "No keys yet",
-      "childAccounts": ["Child", "Accounts"],
       "totalTransactions": ["Total", "Transactions"],
+      "childAccounts": ["Child", "Accounts"],
       "spendableOutputs": ["Spendable", "Outputs"],
       "satsInMempool": ["Sats in", "Mempool"]
     },
