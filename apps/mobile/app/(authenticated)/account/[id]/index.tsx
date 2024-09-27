@@ -3,8 +3,14 @@ import { Network } from 'bdk-rn/lib/lib/enums'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { RefreshControl, ScrollView, View } from 'react-native'
+import { type Dispatch, useEffect, useState } from 'react'
+import {
+  RefreshControl,
+  ScrollView,
+  useWindowDimensions,
+  View
+} from 'react-native'
+import { SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSActionButton from '@/components/SSActionButton'
@@ -24,14 +30,97 @@ import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
+import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 
-export default function Account() {
+type TotalTransactionsProps = {
+  account: Account
+  handleOnRefresh: () => Promise<void>
+  setSortDirection: Dispatch<React.SetStateAction<Direction>>
+  refreshing: boolean
+  sortTransactions: (transactions: Transaction[]) => Transaction[]
+  blockchainHeight: number
+}
+
+function TotalTransactions({
+  account,
+  handleOnRefresh,
+  setSortDirection,
+  refreshing,
+  sortTransactions,
+  blockchainHeight
+}: TotalTransactionsProps) {
+  return (
+    <SSMainLayout style={{ paddingTop: 0 }}>
+      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
+        <SSIconButton onPress={() => handleOnRefresh()}>
+          <Image
+            style={{ width: 18, height: 22 }}
+            source={require('@/assets/icons/refresh.svg')}
+          />
+        </SSIconButton>
+        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSSortDirectionToggle
+          onDirectionChanged={(direction) => setSortDirection(direction)}
+        />
+      </SSHStack>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleOnRefresh}
+            colors={[Colors.gray[900]]}
+            progressBackgroundColor={Colors.white}
+          />
+        }
+      >
+        <SSVStack style={{ marginBottom: 16 }}>
+          {sortTransactions([...account.transactions]).map((transaction) => (
+            <SSVStack gap="xs" key={transaction.id}>
+              <SSSeparator color="grayDark" />
+              <SSTransactionCard
+                transaction={transaction}
+                blockHeight={blockchainHeight}
+              />
+            </SSVStack>
+          ))}
+        </SSVStack>
+      </ScrollView>
+    </SSMainLayout>
+  )
+}
+
+function ChildAccounts() {
+  return (
+    <SSMainLayout>
+      <SSText>Being built...</SSText>
+    </SSMainLayout>
+  )
+}
+
+function SpendableOutputs({ account }: TabProps) {
+  return (
+    <SSMainLayout>
+      <SSText>Being built...</SSText>
+    </SSMainLayout>
+  )
+}
+
+function SatsInMempool() {
+  return (
+    <SSMainLayout>
+      <SSText>Being built...</SSText>
+    </SSMainLayout>
+  )
+}
+
+export default function AccountView() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { width } = useWindowDimensions()
 
   const [
     getCurrentAccount,
@@ -60,6 +149,39 @@ export default function Account() {
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
+
+  const tabs = [
+    { key: 'totalTransactions' },
+    { key: 'childAccounts' },
+    { key: 'spendableOutputs' },
+    { key: 'satsInMempool' }
+  ]
+  const [tabIndex, setTabIndex] = useState(0)
+  const renderScene = ({
+    route
+  }: SceneRendererProps & { route: { key: string } }) => {
+    switch (route.key) {
+      case 'totalTransactions':
+        return (
+          <TotalTransactions
+            account={account}
+            handleOnRefresh={handleOnRefresh}
+            setSortDirection={setSortDirection}
+            refreshing={refreshing}
+            sortTransactions={sortTransactions}
+            blockchainHeight={blockchainHeight}
+          />
+        )
+      case 'childAccounts':
+        return <ChildAccounts />
+      case 'spendableOutputs':
+        return <SpendableOutputs account={account} />
+      case 'satsInMempool':
+        return <SatsInMempool />
+      default:
+        return null
+    }
+  }
 
   useEffect(() => {
     ;(async () => {
@@ -121,6 +243,142 @@ export default function Account() {
     clearTransaction()
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
+
+  const renderTab = () => {
+    // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
+
+    return (
+      <SSBackgroundGradient orientation="horizontal">
+        <SSHStack
+          gap="none"
+          style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
+        >
+          <SSActionButton
+            style={{ width: '25%' }}
+            onPress={() => setTabIndex(0)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {account.summary.numberOfTransactions}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {i18n.t('accountList.totalTransactions.0')}
+                {'\n'}
+                {i18n.t('accountList.totalTransactions.1')}
+              </SSText>
+              {tabIndex === 0 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: 2,
+                    bottom: -12,
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
+          <SSActionButton
+            style={{ width: '25%' }}
+            onPress={() => setTabIndex(1)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {account.summary.numberOfAddresses}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {i18n.t('accountList.childAccounts.0')}
+                {'\n'}
+                {i18n.t('accountList.childAccounts.1')}
+              </SSText>
+              {tabIndex === 1 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: 2,
+                    bottom: -12,
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
+          <SSActionButton
+            style={{ width: '25%' }}
+            onPress={() => setTabIndex(2)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {account.summary.numberOfUtxos}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {i18n.t('accountList.spendableOutputs.0')}
+                {'\n'}
+                {i18n.t('accountList.spendableOutputs.1')}
+              </SSText>
+              {tabIndex === 2 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: 2,
+                    bottom: -12,
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
+          <SSActionButton
+            style={{ width: '25%' }}
+            onPress={() => setTabIndex(3)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {account.summary.satsInMempool}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {i18n.t('accountList.satsInMempool.0')}
+                {'\n'}
+                {i18n.t('accountList.satsInMempool.1')}
+              </SSText>
+              {tabIndex === 3 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: 2,
+                    bottom: -12,
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
+        </SSHStack>
+      </SSBackgroundGradient>
+    )
+  }
+
+  // const renderIndicator = () => {
+  //   return (
+  //     <View
+  //       style={{
+  //         position: 'absolute',
+  //         width: '100%',
+  //         height: 2,
+  //         bottom: -12,
+  //         backgroundColor: Colors.white
+  //       }}
+  //     />
+  //   )
+  // }
 
   return (
     <>
@@ -206,7 +464,7 @@ export default function Account() {
               colors={[Colors.gray[600], Colors.gray[850]]}
             />
           </SSVStack>
-          <SSHStack style={{ paddingVertical: 12 }}>
+          {/* <SSHStack style={{ paddingVertical: 12 }}>
             <SSVStack gap="none">
               <SSText center size="lg">
                 {account.summary.numberOfTransactions}
@@ -225,7 +483,6 @@ export default function Account() {
                   backgroundColor: Colors.white
                 }}
               />
-              {/* Temp selected tab underline */}
             </SSVStack>
             <SSVStack gap="none">
               <SSText center size="lg">
@@ -257,10 +514,17 @@ export default function Account() {
                 {i18n.t('accountList.satsInMempool.1')}
               </SSText>
             </SSVStack>
-          </SSHStack>
+          </SSHStack> */}
         </SSVStack>
       </SSBackgroundGradient>
-      <SSMainLayout style={{ paddingTop: 0 }}>
+      <TabView
+        navigationState={{ index: tabIndex, routes: tabs }}
+        renderScene={renderScene}
+        renderTabBar={renderTab}
+        onIndexChange={setTabIndex}
+        initialLayout={{ width }}
+      />
+      {/* <SSMainLayout style={{ paddingTop: 0 }}>
         <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
           <SSIconButton onPress={() => handleOnRefresh()}>
             <Image
@@ -297,7 +561,7 @@ export default function Account() {
             ))}
           </SSVStack>
         </ScrollView>
-      </SSMainLayout>
+      </SSMainLayout> */}
     </>
   )
 }
