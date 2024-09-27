@@ -64,6 +64,7 @@
       "triesLeft": "Tries left"
     },
     "settings": {
+      "title": "Config",
       "bitcoinNetwork": {
         "title": "Bitcoin Network",
         "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",

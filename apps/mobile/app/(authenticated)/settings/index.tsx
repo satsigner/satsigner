@@ -2,7 +2,6 @@ import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import SSIconButton from '@/components/SSIconButton'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -15,18 +14,10 @@ export default function Settings() {
     <>
       <Stack.Screen
         options={{
-          headerBackground: () => null,
-          headerBackVisible: false,
-          headerTitle: '',
-          headerLeft: () => <SSText size="xl">Config</SSText>,
-          headerRight: () => (
-            <SSIconButton onPress={() => router.back()}>
-              <Image
-                style={{ width: 18, height: 18 }}
-                source={require('@/assets/icons/home.svg')}
-              />
-            </SSIconButton>
-          )
+          headerTitle: () => (
+            <SSText size="xl">{i18n.t('settings.title')}</SSText>
+          ),
+          headerRight: undefined
         }}
       />
       <ScrollView>
