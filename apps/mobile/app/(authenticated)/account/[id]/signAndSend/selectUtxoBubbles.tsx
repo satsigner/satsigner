@@ -4,7 +4,7 @@ import { hierarchy, HierarchyCircularNode, pack } from 'd3'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import {
   GestureResponderEvent,
   Platform,
@@ -22,6 +22,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSUtxoBubble from '@/components/SSUtxoBubble'
 import { useGestures } from '@/hooks/useGestures'
@@ -69,6 +70,8 @@ function SelectUtxoBubbles() {
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
+
+  const [customAmountModalVisible, setCustomAmountModalVisible] = useState(true)
 
   const hasSelectedUtxos = inputs.size > 0
   const selectedAllUtxos = inputs.size === account.utxos.length
@@ -359,6 +362,7 @@ function SelectUtxoBubbles() {
               label={i18n.t('signAndSend.customAmount')}
               variant="ghost"
               style={{ width: 'auto', height: 'auto' }}
+              onPress={() => setCustomAmountModalVisible(true)}
             />
             <SSButton
               label={
@@ -389,6 +393,16 @@ function SelectUtxoBubbles() {
           />
         </SSVStack>
       </LinearGradient>
+      <SSModal
+        visible={customAmountModalVisible}
+        onClose={() => setCustomAmountModalVisible(false)}
+      >
+        <SSVStack>
+          <SSText size="lg" center style={{ maxWidth: 240 }}>
+            TYPE CUSTOM AMOUNT FOR AUTOMATIC SELECTION
+          </SSText>
+        </SSVStack>
+      </SSModal>
     </GestureHandlerRootView>
   )
 }
