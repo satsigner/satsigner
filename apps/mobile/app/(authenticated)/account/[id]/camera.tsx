@@ -1,66 +1,61 @@
-import { Camera as ExpoCamera } from 'expo-camera'
+import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { AppState, AppStateStatus, View } from 'react-native'
+import { AppState, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSCameraOverlay from '@/components/SSCameraOverlay'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { i18n } from '@/locales'
 import { Colors, Layout } from '@/styles'
 
 export default function Camera() {
-  const [startCamera, setStartCamera] = useState(false)
-  const [hasToPaste, setHasToPaste] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
 
   const appState = useRef(AppState.currentState)
-
-  async function handleAppStateChanged(nextAppState: AppStateStatus) {
-    if (nextAppState === 'active') await handleHasToPaste()
-
-    appState.current = nextAppState
-  }
-
-  async function handleHasToPaste() {
-    const text = await Clipboard.getStringAsync()
-    setHasToPaste(!!text)
-  }
+  const [hasToPaste, setHasToPaste] = useState(false)
 
   useEffect(() => {
     ;(async () => {
-      await handleHasToPaste()
+      const text = await Clipboard.getStringAsync()
+      setHasToPaste(!!text)
     })()
 
-    const clipboardListener = Clipboard.addClipboardListener(() => {
-      Clipboard.getStringAsync().then((content) => setHasToPaste(!!content))
-    })
-
-    const appStateListener = AppState.addEventListener(
+    const subscription = AppState.addEventListener(
       'change',
-      handleAppStateChanged
+      async (nextAppState) => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === 'active'
+        ) {
+          setTimeout(async () => {
+            const text = await Clipboard.getStringAsync()
+            setHasToPaste(!!text)
+          }, 1) // Refactor: without timeout, getStringAsync returns false
+        }
+        appState.current = nextAppState
+      }
     )
 
     return () => {
-      appStateListener.remove()
-      Clipboard.removeClipboardListener(clipboardListener)
+      subscription.remove()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const __startCamera = async () => {
-    const { status } = await ExpoCamera.requestCameraPermissionsAsync()
-    if (status === 'granted') {
-      // start the camera
-      setStartCamera(true)
-    } else {
-      console.log('else')
-    }
+  async function handlePaste() {
+    // Temporary
+    const text = await Clipboard.getStringAsync()
+    console.log(text)
+    await Clipboard.setStringAsync('')
+    setHasToPaste(false)
   }
 
   return (
-    <View style={{ position: 'relative' }}>
+    <View style={StyleSheet.absoluteFillObject}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>Scan QRCode</SSText>,
@@ -79,45 +74,49 @@ export default function Camera() {
           headerRight: undefined
         }}
       />
-      <ExpoCamera style={{ width: '100%', height: '100%' }} />
+      <CameraView
+        onBarcodeScanned={(res) => {
+          console.log(res.raw)
+        }}
+        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <SSCameraOverlay active={permission?.granted} />
       <SSMainLayout
         style={{
-          paddingBottom: Layout.mainContainer.paddingBottom,
           position: 'absolute',
+          width: '100%',
+          height: '100%',
           top: 0,
-          opacity: 0.3,
-          height: '100%'
+          paddingTop: 368,
+          paddingBottom: Layout.mainContainer.paddingBottom,
+          backgroundColor: 'transparent'
         }}
       >
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>
-            <View
-              style={{
-                borderColor: Colors.gray[700],
-                borderWidth: 2,
-                aspectRatio: 1,
-                borderRadius: 10,
-                width: '100%'
-              }}
-            />
-            {startCamera ? (
+            {permission ? (
               <SSText center style={{ maxWidth: 250 }}>
-                Scan any Bitcoin or Lightning related QR code.
+                {i18n.t('camera.scanText')}
               </SSText>
             ) : (
               <>
                 <SSText center style={{ maxWidth: 250 }}>
-                  Enable camera access in your phone's settings to scan a
-                  QRCode.
+                  {i18n.t('camera.permissions')}
                 </SSText>
                 <SSButton
                   label="Enable Camera Access"
-                  onPress={() => __startCamera()}
+                  onPress={requestPermission}
                 />
               </>
             )}
           </SSVStack>
-          <SSButton variant="secondary" label="Paste" disabled={!hasToPaste} />
+          <SSButton
+            variant="secondary"
+            label="Paste"
+            disabled={!hasToPaste}
+            onPress={handlePaste}
+          />
         </SSVStack>
       </SSMainLayout>
     </View>

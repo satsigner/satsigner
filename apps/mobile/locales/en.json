@@ -109,6 +109,10 @@
       "selectAll": "Select all",
       "deselectAll": "Deselect all"
     },
+    "camera": {
+      "scanText": "Scan any Bitcoin or Lightning related QR code.",
+      "permissions": "Enable camera access in your phone's settings to scan a QR code."
+    },
     "newInvoice": {
       "invoice": "Invoice",
       "path": "Path",
