@@ -95,7 +95,7 @@ export default function Camera() {
       >
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>
-            {permission ? (
+            {permission?.granted ? (
               <SSText center style={{ maxWidth: 250 }}>
                 {i18n.t('camera.scanText')}
               </SSText>
