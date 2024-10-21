@@ -11,19 +11,19 @@ import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes } from '@/styles'
 
-type SSPinInput2Props = {
+type SSPinInputProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   autoFocus?: boolean
   onFillEnded?(): void
 }
 
-export default function SSPinInput2({
+export default function SSPinInput({
   pin,
   setPin,
   autoFocus,
   onFillEnded
-}: SSPinInput2Props) {
+}: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
 

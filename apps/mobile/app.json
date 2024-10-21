@@ -47,7 +47,19 @@
           ]
         }
       ],
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-camera",
+        { "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera" }
+      ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ab95f67d-1c03-4593-940d-fde0b7cdc34a"
+      }
+    }
   }
 }

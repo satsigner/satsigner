@@ -1,7 +1,9 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
+import { validateMnemonic } from '@/api/bdk'
 import { getWordList } from '@/api/bip39'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -19,32 +21,55 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-
-type SeedWordInfo = {
-  value: string
-  index: number
-  valid: boolean
-  dirty: boolean
-}
+import { type SeedWordInfo } from '@/types/logic/seedWord'
+import { type Account } from '@/types/models/Account'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
 
 export default function ImportSeed() {
   const router = useRouter()
-  const accountStore = useAccountStore()
+  const [syncWallet, addAccount] = useAccountsStore(
+    useShallow((state) => [state.syncWallet, state.addAccount])
+  )
+  const [
+    name,
+    scriptVersion,
+    seedWordCount,
+    fingerprint,
+    derivationPath,
+    clearAccount,
+    getAccount,
+    setSeedWords,
+    setPassphrase,
+    updateFingerprint,
+    loadWallet
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.scriptVersion,
+      state.seedWordCount,
+      state.fingerprint,
+      state.derivationPath,
+      state.clearAccount,
+      state.getAccount,
+      state.setSeedWords,
+      state.setPassphrase,
+      state.updateFingerprint,
+      state.loadWallet
+    ])
+  )
 
   const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>(
-    [...Array(accountStore.currentAccount.seedWordCount || 0)].map(
-      (_, index) => ({
-        value: '',
-        index,
-        dirty: false,
-        valid: false
-      })
-    )
+    [...Array(seedWordCount)].map((_, index) => ({
+      value: '',
+      index,
+      dirty: false,
+      valid: false
+    }))
   )
   const [checksumValid, setChecksumValid] = useState(false)
   const [currentWordText, setCurrentWordText] = useState('')
@@ -56,36 +81,38 @@ export default function ImportSeed() {
     useState(false)
 
   const [loadingAccount, setLoadingAccount] = useState(false)
+  const [syncedAccount, setSyncedAccount] = useState<Account>()
 
   async function handleOnChangeTextWord(word: string, index: number) {
-    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWords = [...seedWordsInfo]
     const seedWord = seedWords[index]
 
     seedWord.value = word.trim()
 
     if (wordList.includes(word)) seedWord.valid = true
-    else
+    else {
+      seedWord.valid = false
       setKeyboardWordSelectorVisible(
         word.length >= MIN_LETTERS_TO_SHOW_WORD_SELECTOR
       )
+    }
 
     setCurrentWordText(word)
     setSeedWordsInfo(seedWords)
 
     const mnemonicSeedWords = seedWordsInfo.map((seedWord) => seedWord.value)
-    const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
 
-    if (checksumValid)
-      await accountStore.updateFingerprint(
-        mnemonicSeedWords,
-        accountStore.currentAccount.passphrase
-      )
-
+    const checksumValid = await validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
+
+    if (checksumValid) {
+      setSeedWords(mnemonicSeedWords)
+      await updateFingerprint()
+    }
   }
 
   function handleOnEndEditingWord(word: string, index: number) {
-    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWords = [...seedWordsInfo]
     const seedWord = seedWords[index]
 
     seedWord.value = word
@@ -94,10 +121,12 @@ export default function ImportSeed() {
 
     setSeedWordsInfo(seedWords)
     setCurrentWordText(word)
+
+    // TODO: Set focus to next?
   }
 
   function handleOnFocusWord(word: string | undefined, index: number) {
-    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWords = [...seedWordsInfo]
     const seedWord = seedWords[index]
 
     setCurrentWordText(word || '')
@@ -109,7 +138,7 @@ export default function ImportSeed() {
   }
 
   async function handleOnWordSelected(word: string) {
-    const seedWords = seedWordsInfo.map((seedWordInfo) => seedWordInfo)
+    const seedWords = [...seedWordsInfo]
     seedWords[currentWordIndex].value = word
 
     if (wordList.includes(word)) {
@@ -120,58 +149,50 @@ export default function ImportSeed() {
     setSeedWordsInfo(seedWords)
 
     const mnemonicSeedWords = seedWords.map((seedWord) => seedWord.value)
-    const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
 
-    if (checksumValid)
-      await accountStore.updateFingerprint(
-        mnemonicSeedWords,
-        accountStore.currentAccount.passphrase
-      )
-
+    const checksumValid = await validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
+
+    if (checksumValid) {
+      setSeedWords(mnemonicSeedWords)
+      await updateFingerprint()
+    }
   }
 
   async function handleUpdatePassphrase(passphrase: string) {
-    accountStore.currentAccount.passphrase = passphrase
+    setPassphrase(passphrase)
+
     const mnemonicSeedWords = seedWordsInfo.map((seedWord) => seedWord.value)
 
-    const checksumValid = await accountStore.validateMnemonic(mnemonicSeedWords)
-
-    if (checksumValid)
-      await accountStore.updateFingerprint(mnemonicSeedWords, passphrase)
-
+    const checksumValid = await validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
+
+    if (checksumValid) {
+      setSeedWords(mnemonicSeedWords)
+      await updateFingerprint()
+    }
   }
 
   async function handleOnPressImportSeed() {
-    if (!accountStore.currentAccount.scriptVersion) return
-
-    accountStore.currentAccount.seedWords = seedWordsInfo.map(
-      (seedWord) => seedWord.value
-    )
+    const seedWords = seedWordsInfo.map((seedWord) => seedWord.value)
+    setSeedWords(seedWords)
 
     setLoadingAccount(true)
 
-    const wallet = await accountStore.loadWalletFromMnemonic(
-      accountStore.currentAccount.seedWords,
-      accountStore.currentAccount.scriptVersion,
-      accountStore.currentAccount.passphrase
-    )
+    const wallet = await loadWallet()
 
     setAccountAddedModalVisible(true)
 
-    await accountStore.syncWallet(wallet)
-    const account = await accountStore.getPopulatedAccount(
-      wallet,
-      accountStore.currentAccount
-    )
+    const syncedAccount = await syncWallet(wallet, getAccount())
+    setSyncedAccount(syncedAccount)
+    await addAccount(syncedAccount)
 
     setLoadingAccount(false)
-    await accountStore.saveAccount(account)
   }
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
+    clearAccount()
     router.navigate('/')
   }
 
@@ -179,9 +200,7 @@ export default function ImportSeed() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
       <SSKeyboardWordSelector
@@ -197,8 +216,8 @@ export default function ImportSeed() {
               <SSFormLayout.Label
                 label={i18n.t('addMasterKey.accountOptions.mnemonic')}
               />
-              {accountStore.currentAccount.seedWordCount && (
-                <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
+              {seedWordCount && (
+                <SSSeedLayout count={seedWordCount}>
                   {[...Array(seedWordsInfo.length)].map((_, index) => (
                     <SSWordInput
                       value={seedWordsInfo[index].value}
@@ -233,10 +252,8 @@ export default function ImportSeed() {
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />
-                {checksumValid && accountStore.currentAccount.fingerprint && (
-                  <SSFingerprint
-                    value={accountStore.currentAccount.fingerprint}
-                  />
+                {checksumValid && fingerprint && (
+                  <SSFingerprint value={fingerprint} />
                 )}
               </SSHStack>
             </SSFormLayout.Item>
@@ -264,7 +281,7 @@ export default function ImportSeed() {
         <SSVStack style={{ marginVertical: 32, width: '100%' }}>
           <SSVStack itemsCenter gap="xs">
             <SSText color="white" size="2xl">
-              {accountStore.currentAccount.name}
+              {name}
             </SSText>
             <SSText color="muted" size="lg">
               {i18n.t('addMasterKey.importExistingSeed.accountAdded')}
@@ -278,10 +295,10 @@ export default function ImportSeed() {
               </SSText>
               <SSText size="md" color="muted" center>
                 {i18n.t(
-                  `addMasterKey.accountOptions.scriptVersions.names.${accountStore.currentAccount.scriptVersion?.toLowerCase()}`
+                  `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion.toLowerCase()}`
                 )}
                 {'\n'}
-                {`(${accountStore.currentAccount.scriptVersion})`}
+                {`(${scriptVersion})`}
               </SSText>
             </SSVStack>
             <SSVStack itemsCenter>
@@ -289,7 +306,7 @@ export default function ImportSeed() {
                 {i18n.t('bitcoin.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {accountStore.currentAccount.fingerprint}
+                {fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -302,7 +319,7 @@ export default function ImportSeed() {
                 )}
               </SSText>
               <SSText size="md" color="muted">
-                {accountStore.currentAccount.derivationPath}
+                {derivationPath}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>
@@ -312,11 +329,11 @@ export default function ImportSeed() {
                     'addMasterKey.importExistingSeed.accountAddedModal.utxos'
                   )}
                 </SSText>
-                {loadingAccount ? (
+                {loadingAccount || !syncedAccount ? (
                   <SSEllipsisAnimation />
                 ) : (
                   <SSText size="md" color="muted">
-                    {accountStore.currentAccount.summary.numberOfUtxos}
+                    {syncedAccount.summary.numberOfUtxos}
                   </SSText>
                 )}
               </SSVStack>
@@ -326,11 +343,11 @@ export default function ImportSeed() {
                     'addMasterKey.importExistingSeed.accountAddedModal.sats'
                   )}
                 </SSText>
-                {loadingAccount ? (
+                {loadingAccount || !syncedAccount ? (
                   <SSEllipsisAnimation />
                 ) : (
                   <SSText size="md" color="muted">
-                    {accountStore.currentAccount.summary.balance}
+                    {syncedAccount.summary.balance}
                   </SSText>
                 )}
               </SSVStack>

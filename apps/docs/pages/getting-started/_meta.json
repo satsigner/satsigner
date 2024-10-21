@@ -3,5 +3,6 @@
   "dependencies": "Dependencies",
   "setup": "Setup",
   "run": "Run",
+  "build": "Build",
   "knownIssues": "Known Issues"
 }

@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import Animated from 'react-native-reanimated'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
@@ -12,9 +13,25 @@ import { i18n } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Layout } from '@/styles'
 
-export default function Init() {
+export default function Unlock() {
   const router = useRouter()
-  const authStore = useAuthStore()
+  const [
+    validatePin,
+    setLockTriggered,
+    resetPinTries,
+    incrementPinTries,
+    setFirstTime,
+    setRequiresAuth
+  ] = useAuthStore(
+    useShallow((state) => [
+      state.validatePin,
+      state.setLockTriggered,
+      state.resetPinTries,
+      state.incrementPinTries,
+      state.setFirstTime,
+      state.setRequiresAuth
+    ])
+  )
   const { shake, shakeStyle } = useAnimatedShake()
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
@@ -25,23 +42,23 @@ export default function Init() {
   }
 
   async function handleOnFillEnded() {
-    const isPinValid = await authStore.validatePin(pin.join(''))
+    const isPinValid = await validatePin(pin.join(''))
     if (isPinValid) {
-      authStore.setLockTriggered(false)
-      authStore.resetPinTries()
+      setLockTriggered(false)
+      resetPinTries()
       router.replace('/')
     } else {
       shake()
       clearPin()
 
-      const triesLeft = authStore.incrementPinTries()
+      const triesLeft = incrementPinTries()
       if (triesLeft === 0) {
         // TODO: Delete accounts?
-        authStore.setFirstTime(true)
-        authStore.setRequiresAuth(false)
-        authStore.setLockTriggered(false)
+        setFirstTime(true)
+        setRequiresAuth(false)
+        setLockTriggered(false)
         router.replace('/')
-        authStore.resetPinTries()
+        resetPinTries()
         return
       }
 
@@ -56,8 +73,8 @@ export default function Init() {
         paddingTop: '25%'
       }}
     >
-      <SSVStack style={{ height: '100%' }} itemsCenter justifyBetween>
-        <SSVStack gap="lg" style={{ marginTop: '25%' }}>
+      <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
+        <SSVStack gap="lg" itemsCenter style={{ marginTop: '25%' }}>
           <SSText uppercase size="lg" color="muted" center>
             {i18n.t('auth.unlock')}
           </SSText>

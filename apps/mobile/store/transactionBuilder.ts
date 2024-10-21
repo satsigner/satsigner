@@ -1,7 +1,10 @@
+import { enableMapSet, produce } from 'immer'
 import { create } from 'zustand'
 
 import { Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+enableMapSet()
 
 type TransactionBuilderState = {
   inputs: Map<string, Utxo>
@@ -29,16 +32,18 @@ const useTransactionBuilderStore = create<
     return get().inputs.has(getUtxoOutpoint(utxo))
   },
   addInput: (utxo) => {
-    const newMap = get().inputs
-    const key = getUtxoOutpoint(utxo)
-    newMap.set(key, utxo)
-    set({ inputs: newMap })
+    set(
+      produce((state: TransactionBuilderState) => {
+        state.inputs.set(getUtxoOutpoint(utxo), utxo)
+      })
+    )
   },
   removeInput: (utxo) => {
-    const newMap = get().inputs
-    const key = getUtxoOutpoint(utxo)
-    newMap.delete(key)
-    set({ inputs: newMap })
+    set(
+      produce((state: TransactionBuilderState) => {
+        state.inputs.delete(getUtxoOutpoint(utxo))
+      })
+    )
   }
 }))
 

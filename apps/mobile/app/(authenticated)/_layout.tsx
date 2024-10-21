@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
@@ -10,11 +11,16 @@ import { Colors } from '@/styles'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
-  const authStore = useAuthStore()
+  const [firstTime, requiresAuth, lockTriggered] = useAuthStore(
+    useShallow((state) => [
+      state.firstTime,
+      state.requiresAuth,
+      state.lockTriggered
+    ])
+  )
 
-  if (authStore.firstTime) return <Redirect href="/setPin" />
-  if (authStore.requiresAuth && authStore.lockTriggered)
-    return <Redirect href="/unlock" />
+  if (firstTime) return <Redirect href="/setPin" />
+  if (requiresAuth && lockTriggered) return <Redirect href="/unlock" />
 
   return (
     <View style={styles.container}>

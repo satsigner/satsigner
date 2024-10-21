@@ -1,5 +1,6 @@
 import { Image } from 'expo-image'
 import { StyleSheet } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -21,7 +22,9 @@ export default function SSTransactionCard({
   transaction,
   blockHeight
 }: SSTransactionCardProps) {
-  const priceStore = usePriceStore()
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
@@ -99,14 +102,14 @@ export default function SSTransactionCard({
           </SSHStack>
           <SSText style={{ color: Colors.gray[400] }}>
             {formatNumber(
-              priceStore.satsToFiat(
+              satsToFiat(
                 transaction.type === 'receive'
                   ? transaction.received
                   : -transaction.sent
               ),
               2
             )}{' '}
-            {priceStore.fiatCurrency}
+            {fiatCurrency}
           </SSText>
         </SSVStack>
         <SSVStack justifyBetween>
@@ -126,7 +129,9 @@ export default function SSTransactionCard({
             </SSText>
             <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
               <SSText color="muted">
-                {transaction.address && i18n.t('common.to').toLowerCase()}
+                {transaction.address && transaction.type === 'receive'
+                  ? i18n.t('common.from').toLowerCase()
+                  : i18n.t('common.to').toLowerCase()}
               </SSText>
               <SSText>
                 {transaction.address &&

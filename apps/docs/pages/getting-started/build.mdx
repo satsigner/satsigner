@@ -1,0 +1,39 @@
+# Build SatSigner
+
+## Build with EAS
+
+1. Create an account with Expo [here](https://expo.dev/signup)
+
+2. Install `eas` on your machine
+
+```bash
+npm install --global eas-cli
+```
+
+3. Configure `eas`
+
+The `apps/mobile/eas.json` file must be present.
+
+```json
+{
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
+```
+
+4. Run `eas`
+
+```bash
+npx eas-cli build --platform=android --profile=preview
+```
+
+5. Download the build
+
+After the build is finished, you can download the build in the expo dashboard.
+
+## Build locally

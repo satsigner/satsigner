@@ -7,18 +7,18 @@ import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 
 export default function Developer() {
-  const accountStore = useAccountStore()
-  const authStore = useAuthStore()
+  const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
+  const setFirstTime = useAuthStore((state) => state.setFirstTime)
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
 
   async function handleDeleteAccount() {
     setDeletingAccounts(true)
-    await accountStore.deleteAccounts()
+    await deleteAccounts()
     setDeletingAccounts(false)
     Alert.alert('Accounts deleted')
   }
@@ -30,6 +30,7 @@ export default function Developer() {
           headerTitle: () => (
             <SSText uppercase>{i18n.t('settings.developer.title')}</SSText>
           ),
+          headerBackVisible: true,
           headerLeft: () => <></>,
           headerRight: undefined
         }}
@@ -43,7 +44,7 @@ export default function Developer() {
           />
           <SSButton
             label="Set PIN First Time"
-            onPress={() => authStore.setFirstTime(true)}
+            onPress={() => setFirstTime(true)}
           />
         </SSVStack>
       </SSMainLayout>
