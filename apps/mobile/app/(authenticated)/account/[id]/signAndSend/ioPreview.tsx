@@ -54,7 +54,7 @@ export default function IOPreview() {
         }}
       />
       {/* Keep "Selected spendable outputs" and the other buttons? */}
-      <SSMainLayout style={{ flex: 0 }}>
+      <SSMainLayout>
         <SSVStack>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
@@ -138,16 +138,16 @@ export default function IOPreview() {
             align="left"
             placeholder={i18n.t('ioPreview.typeMemo')}
           />
-          <SSHStack gap="none">
+          <SSHStack>
             <SSButton
-              style={{ width: '50%' }}
               variant="outline"
               label={i18n.t('ioPreview.addInput')}
+              style={{ flex: 1 }}
             />
             <SSButton
-              style={{ width: '50%' }}
               variant="secondary"
               label={i18n.t('ioPreview.addOutput')}
+              style={{ flex: 1 }}
               onPress={() => setAddOutputModalVisible(true)}
             />
           </SSHStack>
