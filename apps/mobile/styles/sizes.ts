@@ -42,8 +42,14 @@ export const radioButton = {
 
 export const textInput = {
   borderRadius: 3,
-  height: 58,
-  fontSize: text.fontSize['2xl']
+  height: {
+    default: 58,
+    small: 34
+  },
+  fontSize: {
+    default: text.fontSize['2xl'],
+    small: text.fontSize['sm']
+  }
 }
 
 export const wordInput = {

@@ -390,6 +390,9 @@ function SelectUtxoBubbles() {
               }
             ]}
             textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+            onPress={() =>
+              router.navigate(`/account/${id}/signAndSend/ioPreview`)
+            }
           />
         </SSVStack>
       </LinearGradient>
