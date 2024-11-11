@@ -3,9 +3,11 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
+import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
@@ -18,7 +20,7 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import type { Utxo } from '@/types/models/Utxo'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 export default function IOPreview() {
@@ -45,6 +47,8 @@ export default function IOPreview() {
     [account.utxos]
   )
   const utxosSelectedValue = utxosValue(getInputs())
+
+  const [outputValue, setOutputValue] = useState(1)
 
   return (
     <>
@@ -121,16 +125,44 @@ export default function IOPreview() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-        <SSVStack>
-          <SSText>Inputs:</SSText>
-          {[...inputs.values()].map((utxo) => (
-            <SSText key={getUtxoOutpoint(utxo)}>
-              <SSText>
-                {utxo.value} sats, {utxo.txid}
-              </SSText>
-            </SSText>
-          ))}
-        </SSVStack>
+        <SSHStack>
+          <SSVStack>
+            <SSText>Inputs:</SSText>
+            {[...inputs.values()].map((utxo) => (
+              <SSVStack gap="none" key={getUtxoOutpoint(utxo)}>
+                <SSText>{formatNumber(utxo.value)} sats</SSText>
+                <SSHStack gap="xs">
+                  <SSText color="muted" size="xs">
+                    from
+                  </SSText>
+                  <SSText size="xs">
+                    {formatAddress(utxo.addressTo || '')}
+                  </SSText>
+                </SSHStack>
+              </SSVStack>
+            ))}
+          </SSVStack>
+          <SSVStack gap="none">
+            <SSText color="muted">Bytes:</SSText>
+            <SSText>...</SSText>
+          </SSVStack>
+          <SSVStack>
+            <SSText>Outputs:</SSText>
+            {[...inputs.values()].map((utxo) => (
+              <SSVStack gap="none" key={getUtxoOutpoint(utxo)}>
+                <SSText>{formatNumber(utxo.value)} sats</SSText>
+                <SSHStack gap="xs">
+                  <SSText color="muted" size="xs">
+                    from
+                  </SSText>
+                  <SSText size="xs">
+                    {formatAddress(utxo.addressTo || '')}
+                  </SSText>
+                </SSHStack>
+              </SSVStack>
+            ))}
+          </SSVStack>
+        </SSHStack>
         <SSVStack>
           <SSTextInput
             variant="outline"
@@ -143,6 +175,9 @@ export default function IOPreview() {
               variant="outline"
               label={i18n.t('ioPreview.addInput')}
               style={{ flex: 1 }}
+              onPress={() =>
+                router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
+              }
             />
             <SSButton
               variant="secondary"
@@ -165,7 +200,48 @@ export default function IOPreview() {
         fullOpacity
         onClose={() => setAddOutputModalVisible(false)}
       >
-        <SSText>Hello</SSText>
+        <SSText color="muted" uppercase>
+          Add Output
+        </SSText>
+        <SSTextInput
+          placeholder="Address"
+          align="left"
+          actionRight={
+            <SSIconButton>
+              <ScanIcon />
+            </SSIconButton>
+          }
+        />
+        <SSVStack style={{ width: '100%' }}>
+          <SSHStack style={{ width: '100%' }}>
+            <SSButton label="Paynyms" style={{ flex: 1 }} />
+            <SSButton label="Public Keys" style={{ flex: 1 }} />
+          </SSHStack>
+          <SSHStack style={{ width: '100%' }}>
+            <SSButton label="Nostr Nip05" style={{ flex: 1 }} />
+            <SSButton label="OP_RETURN" style={{ flex: 1 }} />
+          </SSHStack>
+        </SSVStack>
+        <SSVStack gap="none" itemsCenter>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSText size="2xl" weight="medium">
+              {formatNumber(outputValue)}
+            </SSText>
+            <SSText color="muted" size="lg">
+              sats
+            </SSText>
+          </SSHStack>
+          <SSText style={{ color: Colors.gray[600] }}>
+            max {formatNumber(14519)} sats
+          </SSText>
+          <SSSlider
+            min={1}
+            max={14519}
+            value={outputValue}
+            step={1}
+            onValueChange={(value) => setOutputValue(value)}
+          />
+        </SSVStack>
       </SSModal>
     </>
   )

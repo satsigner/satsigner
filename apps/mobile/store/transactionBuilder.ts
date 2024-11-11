@@ -1,13 +1,15 @@
 import { enableMapSet, produce } from 'immer'
 import { create } from 'zustand'
 
-import { Utxo } from '@/types/models/Utxo'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
 
 type TransactionBuilderState = {
-  inputs: Map<string, Utxo>
+  inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
+  outputs: Map<Output['to'], Output['amount']>
 }
 
 type TransactionBuilderAction = {
@@ -21,9 +23,13 @@ type TransactionBuilderAction = {
 const useTransactionBuilderStore = create<
   TransactionBuilderState & TransactionBuilderAction
 >()((set, get) => ({
-  inputs: new Map<string, Utxo>(),
+  inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+  outputs: new Map<Output['to'], Output['amount']>(),
   clearTransaction: () => {
-    set({ inputs: new Map<string, Utxo>() })
+    set({
+      inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
+      outputs: new Map<Output['to'], Output['amount']>()
+    })
   },
   getInputs: () => {
     return Array.from(get().inputs.values())
