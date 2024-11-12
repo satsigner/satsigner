@@ -38,6 +38,7 @@ export default function IOPreview() {
   const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
@@ -49,6 +50,10 @@ export default function IOPreview() {
   const utxosSelectedValue = utxosValue(getInputs())
 
   const [outputValue, setOutputValue] = useState(1)
+
+  function handleAddOutputAndClose() {
+    setAddOutputModalVisible(false)
+  }
 
   return (
     <>
@@ -207,7 +212,7 @@ export default function IOPreview() {
           placeholder="Address"
           align="left"
           actionRight={
-            <SSIconButton>
+            <SSIconButton onPress={() => setCameraModalVisible(true)}>
               <ScanIcon />
             </SSIconButton>
           }
@@ -222,7 +227,7 @@ export default function IOPreview() {
             <SSButton label="OP_RETURN" style={{ flex: 1 }} />
           </SSHStack>
         </SSVStack>
-        <SSVStack gap="none" itemsCenter>
+        <SSVStack gap="none" itemsCenter style={{ width: '100%' }}>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="2xl" weight="medium">
               {formatNumber(outputValue)}
@@ -238,10 +243,27 @@ export default function IOPreview() {
             min={1}
             max={14519}
             value={outputValue}
-            step={1}
+            step={100}
             onValueChange={(value) => setOutputValue(value)}
           />
+          <SSVStack style={{ width: '100%' }}>
+            <SSTextInput placeholder="Add note" align="left" />
+            <SSButton
+              label="Continue"
+              variant="secondary"
+              onPress={() => handleAddOutputAndClose()}
+            />
+          </SSVStack>
         </SSVStack>
+        <SSModal
+          visible={cameraModalVisible}
+          fullOpacity
+          onClose={() => setCameraModalVisible(false)}
+        >
+          <SSText color="muted" uppercase>
+            Read QRCode
+          </SSText>
+        </SSModal>
       </SSModal>
     </>
   )
