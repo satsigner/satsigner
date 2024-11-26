@@ -28,8 +28,13 @@ export default function IOPreview() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
-  const [inputs, getInputs] = useTransactionBuilderStore(
-    useShallow((state) => [state.inputs, state.getInputs])
+  const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.outputs,
+      state.getInputs,
+      state.addOutput
+    ])
   )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -39,6 +44,7 @@ export default function IOPreview() {
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [outputAddress, setOutputAddress] = useState('')
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
@@ -52,6 +58,7 @@ export default function IOPreview() {
   const [outputValue, setOutputValue] = useState(1)
 
   function handleAddOutputAndClose() {
+    addOutput({ to: outputAddress, amount: 100 })
     setAddOutputModalVisible(false)
   }
 
@@ -153,16 +160,14 @@ export default function IOPreview() {
           </SSVStack>
           <SSVStack>
             <SSText>Outputs:</SSText>
-            {[...inputs.values()].map((utxo) => (
-              <SSVStack gap="none" key={getUtxoOutpoint(utxo)}>
-                <SSText>{formatNumber(utxo.value)} sats</SSText>
+            {[...outputs.keys()].map((script) => (
+              <SSVStack gap="none" key={script}>
+                <SSText>{formatNumber(outputs.get(script) || 0)} sats</SSText>
                 <SSHStack gap="xs">
                   <SSText color="muted" size="xs">
                     from
                   </SSText>
-                  <SSText size="xs">
-                    {formatAddress(utxo.addressTo || '')}
-                  </SSText>
+                  <SSText size="xs">{formatAddress(script || '')}</SSText>
                 </SSHStack>
               </SSVStack>
             ))}
@@ -185,7 +190,7 @@ export default function IOPreview() {
               }
             />
             <SSButton
-              variant="secondary"
+              variant={outputs.size > 0 ? 'outline' : 'secondary'}
               label={i18n.t('ioPreview.addOutput')}
               style={{ flex: 1 }}
               onPress={() => setAddOutputModalVisible(true)}
@@ -216,6 +221,7 @@ export default function IOPreview() {
               <ScanIcon />
             </SSIconButton>
           }
+          onChangeText={(text) => setOutputAddress(text)}
         />
         <SSVStack style={{ width: '100%' }}>
           <SSHStack style={{ width: '100%' }}>

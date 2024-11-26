@@ -18,6 +18,7 @@ type TransactionBuilderAction = {
   hasInput: (utxo: Utxo) => boolean
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
+  addOutput: (output: Output) => void
 }
 
 const useTransactionBuilderStore = create<
@@ -48,6 +49,13 @@ const useTransactionBuilderStore = create<
     set(
       produce((state: TransactionBuilderState) => {
         state.inputs.delete(getUtxoOutpoint(utxo))
+      })
+    )
+  },
+  addOutput: (output) => {
+    set(
+      produce((state: TransactionBuilderState) => {
+        state.outputs.set(output.to, output.amount)
       })
     )
   }
