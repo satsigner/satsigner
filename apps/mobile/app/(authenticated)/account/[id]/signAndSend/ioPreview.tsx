@@ -55,10 +55,12 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
-  const [outputValue, setOutputValue] = useState(1)
+  const [outputTo, setOutputTo] = useState('')
+  const [outputAmount, setOutputAmount] = useState(1)
+  const [outputLabel, setOutputLabel] = useState('')
 
   function handleAddOutputAndClose() {
-    addOutput({ to: outputAddress, amount: 100 })
+    addOutput({ to: outputAddress, amount: 100, label: 'hello' })
     setAddOutputModalVisible(false)
   }
 
@@ -160,15 +162,18 @@ export default function IOPreview() {
           </SSVStack>
           <SSVStack>
             <SSText>Outputs:</SSText>
-            {[...outputs.keys()].map((script) => (
-              <SSVStack gap="none" key={script}>
-                <SSText>{formatNumber(outputs.get(script) || 0)} sats</SSText>
+            {[...outputs].map((output) => (
+              <SSVStack gap="none" key={output.localId}>
+                <SSText>{formatNumber(output.amount)} sats</SSText>
                 <SSHStack gap="xs">
                   <SSText color="muted" size="xs">
                     from
                   </SSText>
-                  <SSText size="xs">{formatAddress(script || '')}</SSText>
+                  <SSText size="xs">{formatAddress(output.to)}</SSText>
                 </SSHStack>
+                <SSText color="muted" size="xxs">
+                  "{output.label}"
+                </SSText>
               </SSVStack>
             ))}
           </SSVStack>
@@ -190,7 +195,7 @@ export default function IOPreview() {
               }
             />
             <SSButton
-              variant={outputs.size > 0 ? 'outline' : 'secondary'}
+              variant={outputs.length > 0 ? 'outline' : 'secondary'}
               label={i18n.t('ioPreview.addOutput')}
               style={{ flex: 1 }}
               onPress={() => setAddOutputModalVisible(true)}
@@ -236,7 +241,7 @@ export default function IOPreview() {
         <SSVStack gap="none" itemsCenter style={{ width: '100%' }}>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="2xl" weight="medium">
-              {formatNumber(outputValue)}
+              {formatNumber(outputAmount)}
             </SSText>
             <SSText color="muted" size="lg">
               sats
@@ -248,9 +253,9 @@ export default function IOPreview() {
           <SSSlider
             min={1}
             max={14519}
-            value={outputValue}
+            value={outputAmount}
             step={100}
-            onValueChange={(value) => setOutputValue(value)}
+            onValueChange={(value) => setOutputAmount(value)}
           />
           <SSVStack style={{ width: '100%' }}>
             <SSTextInput placeholder="Add note" align="left" />
