@@ -4,10 +4,10 @@ import { useState } from 'react'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
-import SSVStack from '@/layouts/SSVStack'
 import { formatAddress } from '@/utils/format'
 
 export default function SignMessage() {
@@ -18,7 +18,7 @@ export default function SignMessage() {
 
   const account = getCurrentAccount(id)!
 
-  const [signed, setSigned] = useState(false)
+  const [signed, setSigned] = useState(true)
 
   return (
     <>

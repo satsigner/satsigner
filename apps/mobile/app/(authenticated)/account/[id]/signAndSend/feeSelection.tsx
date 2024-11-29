@@ -23,7 +23,7 @@ export default function FeeSelection() {
 
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
-    useState(true)
+    useState(false)
 
   function handleOnPressPreviewTxMessage() {
     if (feeSelected > 5000)
