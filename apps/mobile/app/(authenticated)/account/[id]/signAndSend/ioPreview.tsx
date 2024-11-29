@@ -258,11 +258,11 @@ export default function IOPreview() {
             </SSText>
           </SSHStack>
           <SSText style={{ color: Colors.gray[600] }}>
-            max {formatNumber(14519)} sats
+            max {formatNumber(utxosSelectedValue)} sats
           </SSText>
           <SSSlider
             min={1}
-            max={14519}
+            max={utxosSelectedValue}
             value={outputAmount}
             step={100}
             style={{ width: 340 }}
