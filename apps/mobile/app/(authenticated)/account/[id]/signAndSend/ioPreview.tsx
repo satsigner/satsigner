@@ -1,6 +1,8 @@
+import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import ScanIcon from '@/components/icons/ScanIcon'
@@ -26,6 +28,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const [permission, requestPermission] = useCameraPermissions()
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
@@ -59,8 +62,14 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(1)
   const [outputLabel, setOutputLabel] = useState('')
 
+  function handleQRCodeScanned(address: string | undefined) {
+    if (!address) return
+    setOutputTo(address)
+    setCameraModalVisible(false)
+  }
+
   function handleAddOutputAndClose() {
-    addOutput({ to: outputAddress, amount: 100, label: 'hello' })
+    addOutput({ to: outputAddress, amount: outputAmount, label: outputLabel })
     setAddOutputModalVisible(false)
   }
 
@@ -219,6 +228,7 @@ export default function IOPreview() {
           Add Output
         </SSText>
         <SSTextInput
+          value={outputTo}
           placeholder="Address"
           align="left"
           actionRight={
@@ -255,13 +265,19 @@ export default function IOPreview() {
             max={14519}
             value={outputAmount}
             step={100}
+            style={{ width: 340 }}
             onValueChange={(value) => setOutputAmount(value)}
           />
           <SSVStack style={{ width: '100%' }}>
-            <SSTextInput placeholder="Add note" align="left" />
+            <SSTextInput
+              placeholder="Add note"
+              align="left"
+              onChangeText={(text) => setOutputLabel(text)}
+            />
             <SSButton
               label="Continue"
               variant="secondary"
+              disabled={!outputTo || !outputAmount || !outputLabel}
               onPress={() => handleAddOutputAndClose()}
             />
           </SSVStack>
@@ -274,6 +290,17 @@ export default function IOPreview() {
           <SSText color="muted" uppercase>
             Read QRCode
           </SSText>
+          <CameraView
+            onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
+            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+            style={{ width: 340, height: 340 }}
+          />
+          {!permission?.granted && (
+            <SSButton
+              label="Enable Camera Access"
+              onPress={requestPermission}
+            />
+          )}
         </SSModal>
       </SSModal>
     </>
