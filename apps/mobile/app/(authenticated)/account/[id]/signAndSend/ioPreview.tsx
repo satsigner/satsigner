@@ -2,7 +2,6 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import ScanIcon from '@/components/icons/ScanIcon'
