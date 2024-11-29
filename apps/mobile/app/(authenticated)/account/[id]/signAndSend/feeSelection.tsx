@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import SSButton from '@/components/SSButton'
+import SSGradientModal from '@/components/SSGradientModal'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -21,6 +22,14 @@ export default function FeeSelection() {
   const account = getCurrentAccount(id)!
 
   const [feeSelected, setFeeSelected] = useState(1)
+  const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
+    useState(true)
+
+  function handleOnPressPreviewTxMessage() {
+    if (feeSelected > 5000)
+      setInsufficientSatsModalVisible(true) // to remove
+    else router.navigate(`/account/${id}/signAndSend/previewMessage`)
+  }
 
   return (
     <>
@@ -63,7 +72,7 @@ export default function FeeSelection() {
               >
                 <SSVStack gap="none">
                   <SSText size="md" weight="medium">
-                    {formatNumber(1503)} sats
+                    {formatNumber(feeSelected)} sats
                   </SSText>
                   <SSText size="xs" color="muted">
                     0.44 USD
@@ -74,7 +83,7 @@ export default function FeeSelection() {
               </SSHStack>
               <SSSlider
                 min={100}
-                max={1000}
+                max={10000}
                 value={feeSelected}
                 step={100}
                 onValueChange={(value) => setFeeSelected(value)}
@@ -84,12 +93,30 @@ export default function FeeSelection() {
             <SSButton
               variant="secondary"
               label={i18n.t('feeSelection.previewTxMessage')}
-              onPress={() =>
-                router.navigate(`/account/${id}/signAndSend/previewMessage`)
-              }
+              onPress={() => handleOnPressPreviewTxMessage()}
             />
           </SSVStack>
         </SSVStack>
+        <SSGradientModal
+          visible={insufficientSatsModalVisible}
+          closeText={i18n.t('common.cancel')}
+          onClose={() => setInsufficientSatsModalVisible(false)}
+        >
+          <SSVStack style={{ marginTop: 16 }}>
+            <SSText color="muted" size="lg" uppercase>
+              Insufficient Sats
+            </SSText>
+          </SSVStack>
+          <SSVStack
+            itemsCenter
+            style={{ marginVertical: 32, width: '100%', paddingHorizontal: 32 }}
+          >
+            <SSButton label="Remove or Decrease Outputs" />
+            <SSButton label="Add Inputs" />
+            <SSButton label="Set Highest Fee Possible" />
+            <SSButton label="Set Minimum Automatic Fee" />
+          </SSVStack>
+        </SSGradientModal>
       </SSMainLayout>
     </>
   )

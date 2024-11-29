@@ -11,6 +11,7 @@ enableMapSet()
 type TransactionBuilderState = {
   inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
   outputs: Output[]
+  feeRate: number
 }
 
 type TransactionBuilderAction = {
@@ -27,6 +28,7 @@ const useTransactionBuilderStore = create<
 >()((set, get) => ({
   inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
   outputs: [],
+  feeRate: 0,
   clearTransaction: () => {
     set({
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
