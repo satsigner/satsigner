@@ -109,6 +109,28 @@
       "selectAll": "Select all",
       "deselectAll": "Deselect all"
     },
+    "ioPreview": {
+      "typeMemo": "Type memo",
+      "addInput": "Add input",
+      "addOutput": "Add output",
+      "setMessageFee": "Set message fee"
+    },
+    "feeSelection": {
+      "previewTxMessage": "Preview tx message"
+    },
+    "previewMessage": {
+      "signTxMessage": "Sign tx message"
+    },
+    "signMessage": {
+      "broadcastTxMessage": "Broadcast tx message"
+    },
+    "messageConfirmation": {
+      "messageBroadcasted": "Message broadcasted",
+      "messageId": "Message id",
+      "copyTxMessageId": "Copy tx message id",
+      "trackOnChain": "Track on chain",
+      "backToAccountHome": "Back to account home"
+    },
     "camera": {
       "scanText": "Scan any Bitcoin or Lightning related QR code.",
       "permissions": "Enable camera access in your phone's settings to scan a QR code."

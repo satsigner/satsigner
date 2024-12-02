@@ -100,6 +100,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     backgroundColor: Colors.gray[850],
     color: Colors.white,
-    fontSize: Sizes.textInput.fontSize
+    fontSize: Sizes.textInput.fontSize.default
   }
 })
