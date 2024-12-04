@@ -40,7 +40,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       lockDeltaTime: DEFAULT_LOCK_DELTA_TIME_SECONDS,
       pinTries: 0,
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
-      setFirstTime: (firstTime: boolean) => {
+      setFirstTime: (firstTime) => {
         set({ firstTime })
       },
       setRequiresAuth: (requiresAuth) => {
