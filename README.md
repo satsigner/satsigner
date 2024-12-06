@@ -113,6 +113,10 @@ yarn install
 
 Follow the expo documentation [here](https://docs.expo.dev/get-started/set-up-your-environment/)
 
+Make sure to select "Development build" and disabled "Build with Expo Application Services (EAS)"
+
+Note: When starting a development server, do NOT run: `npx expo start`
+
 ### Run the app
 
 Make sure you are on the `mobile` folder
