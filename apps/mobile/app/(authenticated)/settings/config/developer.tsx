@@ -1,18 +1,18 @@
+import { Blockchain } from 'bdk-rn'
+import { FeeRate } from 'bdk-rn/lib/classes/Bindings'
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSConsoleOutput from '@/components/SSConsoleOutput'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
-
 import { useBlockchainStore } from '@/store/blockchain'
-import { Blockchain } from 'bdk-rn'
-import { FeeRate } from 'bdk-rn/lib/classes/Bindings'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
@@ -21,7 +21,7 @@ export default function Developer() {
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
   const [gettingBdkInfo, setGettingBdkInfo] = useState(false)
-  const [consoleTxt, setConsoleTxt] = useState(['...'])
+  const [consoleTxt, setConsoleTxt] = useState([''])
 
   async function handleDeleteAccount() {
     setDeletingAccounts(true)
@@ -32,7 +32,6 @@ export default function Developer() {
 
   async function handleGetBdkInfo() {
     setGettingBdkInfo(true)
-    setConsoleTxt(['<Loading>...'])
     try {
       const lines: [string] = ['METHODS ON BLOCKCHAIN OBJECT']
       const blockchain: Blockchain = await getBlockChain()
@@ -84,8 +83,10 @@ export default function Developer() {
             loading={gettingBdkInfo}
             onPress={() => handleGetBdkInfo()}
           />
-          <SSText>
-            {consoleTxt.join('\n')}</SSText>
+          <SSConsoleOutput
+            generating={gettingBdkInfo}
+            consoleTxt={consoleTxt}
+          />
         </SSVStack>
       </SSMainLayout>
     </>
