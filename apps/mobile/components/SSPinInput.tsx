@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useRef, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   NativeSyntheticEvent,
@@ -27,6 +27,16 @@ export default function SSPinInput({
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
 
+  function resetFocusOnClear() {
+    if (pin.join('') == '') {
+      inputRefs.current[0]?.focus()
+    }
+  }
+
+  useEffect(() => {
+    resetFocusOnClear()
+  }, [pin, resetFocusOnClear])
+
   function handleOnChangeText(text: string, index: number) {
     const newPin = [...pin]
     newPin[index] = text
@@ -43,20 +53,20 @@ export default function SSPinInput({
   ) {
     const key = event.nativeEvent.key
     const newPin = [...pin]
-    const isLastPin = index + 1 === PIN_SIZE;
+    const isLastPin = index + 1 === PIN_SIZE
     if (key === 'Backspace') {
       setIsBackspace(true)
       const previousPinIndex = index - 1
-      const currentPinNotEmpty = pin[index] !== ""
+      const currentPinNotEmpty = pin[index] !== ''
 
       if (currentPinNotEmpty) {
-        newPin[index] = ""
+        newPin[index] = ''
         setPin(newPin)
         return
       }
 
       if (previousPinIndex >= 0) {
-        newPin[previousPinIndex] = ""
+        newPin[previousPinIndex] = ''
         setPin(newPin)
         inputRefs.current[previousPinIndex]?.focus()
         return
