@@ -27,15 +27,15 @@ export default function SSPinInput({
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
 
-  function resetFocusOnClear() {
-    if (pin.join('') == '') {
-      inputRefs.current[0]?.focus()
-    }
-  }
-
   useEffect(() => {
+    function resetFocusOnClear() {
+      if (pin.join('') === '') {
+        inputRefs.current[0]?.focus()
+      }
+    }
+
     resetFocusOnClear()
-  }, [pin, resetFocusOnClear])
+  }, [pin])
 
   function handleOnChangeText(text: string, index: number) {
     const newPin = [...pin]
