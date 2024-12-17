@@ -15,7 +15,7 @@ type SSPinInputProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   autoFocus?: boolean
-  onFillEnded?(): void
+  onFillEnded?: (pin?: string) => void
 }
 
 export default function SSPinInput({
@@ -41,14 +41,18 @@ export default function SSPinInput({
     event: NativeSyntheticEvent<TextInputKeyPressEventData>,
     index: number
   ) {
-    if (event.nativeEvent.key === 'Backspace') {
+    const key = event.nativeEvent.key;
+    if (key === 'Backspace') {
       setIsBackspace(true)
-      if (index - 1 >= 0) {
-        inputRefs.current[index - 1]?.focus()
+      const previousPinIndex = index - 1;
+      if (previousPinIndex >= 0) {
+        inputRefs.current[previousPinIndex]?.focus()
       }
     } else {
       if (index + 1 === PIN_SIZE) {
-        onFillEnded?.()
+        const newPin = [...pin]
+        newPin[index] = key
+        onFillEnded?.(newPin.join(''))
         Keyboard.dismiss()
       }
     }
