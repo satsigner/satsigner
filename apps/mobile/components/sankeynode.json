@@ -1,0 +1,136 @@
+[
+  { "indexC": 0.1, "type": "text", "depthH": 1, "textInfo": [] },
+  { "indexC": 1, "type": "text", "depthH": 1, "textInfo": [] },
+  { "indexC": 2, "type": "text", "depthH": 1, "textInfo": [] },
+  { "indexC": 3, "type": "text", "depthH": 1, "textInfo": [] },
+
+  {
+    "indexC": 4,
+    "type": "block",
+    "depthH": 2,
+    "textInfo": ["642,573 sats", "sQBg...", "521 B"]
+  },
+  { "indexC": 5, "type": "text", "depthH": 2, "textInfo": [] },
+
+  {
+    "indexC": 6,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["9,351 sats", "from 31zi8K…..sQBg7"]
+  },
+  {
+    "indexC": 7,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["9,351 sats", "from 31zi8K...sQBg7"]
+  },
+  {
+    "indexC": 8,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["9,351 sats", "from 312i8K...sQBg7"]
+  },
+  {
+    "indexC": 9,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["51 sats", "from 31zi8K..sQBg7"]
+  },
+  {
+    "indexC": 10,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["9,351 sats", "from 31zi8K...sQBg7"]
+  },
+  {
+    "indexC": 11,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["9,351 sats", "from 31zi8K..sQBg7"]
+  },
+  { "indexC": 12, "type": "text", "depthH": 3, "textInfo": ["9,351 sats"] },
+  { "indexC": 13, "type": "text", "depthH": 3, "textInfo": ["231 sats"] },
+  { "indexC": 14, "type": "text", "depthH": 3, "textInfo": ["31 sats"] },
+  { "indexC": 15, "type": "text", "depthH": 3, "textInfo": ["495 sats"] },
+  {
+    "indexC": 16,
+    "type": "text",
+    "depthH": 3,
+    "textInfo": ["9,351 sats", "from 31zi8K...sQBg7"]
+  },
+
+  {
+    "indexC": 17,
+    "type": "block",
+    "depthH": 4,
+    "textInfo": ["642,564 sats", "3gt6...", "521 B"]
+  },
+  {
+    "indexC": 18,
+    "type": "block",
+    "depthH": 4,
+    "textInfo": ["782,910 sats", "sQBg...", "490 B"]
+  },
+  {
+    "indexC": 19,
+    "type": "block",
+    "depthH": 4,
+    "textInfo": ["582,547 sats", "3gt6...", "638 B"]
+  },
+
+  {
+    "indexC": 20,
+    "type": "text",
+    "depthH": 5,
+    "textInfo": ["9,351 sats", "from 31zi8K...sQBg 7"]
+  },
+  {
+    "indexC": 21,
+    "type": "text",
+    "depthH": 5,
+    "textInfo": ["9,351 sats", "from 31zi8K...sQBg7"]
+  },
+  {
+    "indexC": 22,
+    "type": "text",
+    "depthH": 5,
+    "textInfo": ["9,351 sats", "from 31zi8K..sQBg7"]
+  },
+  {
+    "indexC": 23,
+    "type": "text",
+    "depthH": 5,
+    "textInfo": ["23 sats", "from 31zi8K...sQBg7"]
+  },
+  { "indexC": 23.5, "type": "text", "depthH": 5, "textInfo": [] },
+  {
+    "indexC": 24,
+    "type": "text",
+    "depthH": 5,
+    "textInfo": ["5,101 sats", "Invoice for Job #2404..."]
+  },
+  { "indexC": 25, "type": "text", "depthH": 5, "textInfo": ["6,483 sats"] },
+  { "indexC": 26, "type": "text", "depthH": 5, "textInfo": ["9,156 sats"] },
+  { "indexC": 27, "type": "text", "depthH": 5, "textInfo": ["231 sats"] },
+
+  { "indexC": 28, "type": "block", "depthH": 6, "textInfo": ["", "", "100 B"] },
+
+  {
+    "indexC": 29,
+    "type": "text",
+    "depthH": 7,
+    "textInfo": ["11,351 sats", "Shopping payment"]
+  },
+  {
+    "indexC": 30,
+    "type": "text",
+    "depthH": 7,
+    "textInfo": ["3,543 sats", "change"]
+  },
+  {
+    "indexC": 31,
+    "type": "text",
+    "depthH": 7,
+    "textInfo": ["1503 sats", "mining fee"]
+  }
+]

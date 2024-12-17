@@ -102,7 +102,10 @@
       "selectSpendableOutputs": "Select spendable outputs",
       "addAsInputToMessage": "Add as input to message",
       "customAmount": "Custom amount",
-      "selectAll": "Select all"
+      "selectAll": "Select all",
+      "setMessageFee": "Set message fee",
+      "addInput": "Add input",
+      "addOutput": "Add output"
     },
     "addMasterKey": {
       "title": "Add Master Key",

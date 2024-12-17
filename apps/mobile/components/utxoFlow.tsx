@@ -108,16 +108,16 @@ interface TransactionFlowSankeyProps {
 }
 
 // Add this function to identify connecting nodes
-const findConnectingNodes = (nodes) => {
-  const completedOutputs = nodes.filter((node) =>
+const findConnectingNodes = (nodes: any) => {
+  const completedOutputs = nodes.filter((node: any) =>
     node.id.startsWith('completed-output')
   )
-  const pendingInputs = nodes.filter((node) =>
+  const pendingInputs = nodes.filter((node: any) =>
     node.id.startsWith('pending-input')
   )
 
-  return completedOutputs.filter((output) =>
-    pendingInputs.some((input) => input.value === output.value)
+  return completedOutputs.filter((output: any) =>
+    pendingInputs.some((input: any) => input.value === output.value)
   )
 }
 
@@ -346,7 +346,9 @@ const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
 
             // Check if this node should be hidden
             const connectingNodes = findConnectingNodes(nodes)
-            const shouldHideNode = connectingNodes.some((n) => n.id === node.id)
+            const shouldHideNode = connectingNodes.some(
+              (n: any) => n.id === node.id
+            )
 
             if (shouldHideNode) {
               return null // Skip rendering this node

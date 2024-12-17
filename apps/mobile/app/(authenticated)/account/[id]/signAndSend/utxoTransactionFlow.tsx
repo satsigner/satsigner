@@ -2,24 +2,22 @@ import { useHeaderHeight } from '@react-navigation/elements'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import {
-  GestureHandlerRootView,
-  PanGestureHandler,
-  PanGestureHandlerGestureEvent
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView
 } from 'react-native-gesture-handler'
 import Animated, {
-  useAnimatedGestureHandler,
   useAnimatedStyle,
-  useSharedValue,
-  withDecay
+  useSharedValue
 } from 'react-native-reanimated'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
-import UtxoFlow from '@/components/utxoFlow'
+import UtxoFlow from '@/components/SSUtxoFlow-copy'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -29,7 +27,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 import { clamp } from '@/utils/worklet'
 
 export default memo(UTXOTransactionFlow)
@@ -43,9 +41,6 @@ function UTXOTransactionFlow() {
   const account = useAccountStore()
 
   const { id } = useLocalSearchParams<AccountSearchParams>()
-
-  const topHeaderHeight = useHeaderHeight()
-  const { width, height } = useWindowDimensions()
 
   const hasSelectedUtxos = useMemo(() => {
     return transactionBuilderStore.getCurrentInputs().length > 0
@@ -68,14 +63,53 @@ function UTXOTransactionFlow() {
   const selectedInputDetails = transactionBuilderStore.getCurrentInputDetails()
   console.log('Selected input transaction details:', selectedInputDetails)
 
+  const topHeaderHeight = useHeaderHeight()
+  const { width, height } = useWindowDimensions()
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
 
-  const canvasSize = { width: GRAPH_WIDTH * 2, height: GRAPH_HEIGHT }
-
-  const centerX = canvasSize.width / 2
+  const canvasSize = { width: GRAPH_WIDTH * 1.5, height: GRAPH_HEIGHT } // Reduced from 3 to 1.5
+  const centerX = canvasSize.width / 3 // Changed from 4 to 3
   const centerY = canvasSize.height / 2
+  const sankeyWidth = canvasSize.width
+  const sankeyHeight = canvasSize.height - 200
 
+  // Add shared values for gestures
+  const scale = useSharedValue(0.8) // Changed from 0.6 to 0.8
+  const savedScale = useSharedValue(0.8)
+  const translateX = useSharedValue(-width * 0.4) // Changed from 0.8 to 0.4
+  const translateY = useSharedValue(0)
+  const savedTranslateX = useSharedValue(-width * 0.4)
+  const savedTranslateY = useSharedValue(0)
+
+  // Create gesture handlers
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((event) => {
+      scale.value = clamp(savedScale.value * event.scale, 0.5, 2)
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value
+    })
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = savedTranslateX.value + event.translationX
+      translateY.value = savedTranslateY.value + event.translationY
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value
+      savedTranslateY.value = translateY.value
+    })
+
+  const composed = Gesture.Simultaneous(pinchGesture, panGesture)
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value }
+    ]
+  }))
   const [transactionFlows, setTransactionFlows] = useState<{
     current: {
       inputs: Utxo[]
@@ -105,34 +139,6 @@ function UTXOTransactionFlow() {
 
   //   fetchTransactionFlows()
   // }, [transactionBuilderStore])
-
-  const translateX = useSharedValue(0)
-
-  const panGestureEvent =
-    useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
-      onActive: (event) => {
-        translateX.value += event.translationX
-      },
-      onEnd: (event) => {
-        const contentWidth = GRAPH_WIDTH * 2 // Assuming the content is twice the width of the visible area
-        const minTranslateX = -contentWidth + GRAPH_WIDTH // Ensure the right edge of content aligns with right edge of screen
-
-        translateX.value = clamp(
-          translateX.value + event.translationX,
-          minTranslateX,
-          0
-        )
-      }
-    })
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }]
-    }
-  })
-
-  const sankeyWidth = canvasSize.width
-  const sankeyHeight = canvasSize.height - 200
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -217,76 +223,25 @@ function UTXOTransactionFlow() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <View style={{ position: 'absolute', top: 100 }}>
-        <PanGestureHandler onGestureEvent={panGestureEvent}>
-          <Animated.View style={[{ width: sankeyWidth }, animatedStyle]}>
+      <View style={{ position: 'absolute', flex: 1, top: 100 }}>
+        <GestureDetector gesture={composed}>
+          <Animated.View
+            style={[
+              { width: sankeyWidth, height: sankeyHeight },
+              animatedStyle
+            ]}
+          >
             <UtxoFlow
-              width={sankeyWidth}
-              height={sankeyHeight}
-              centerX={centerX}
-              centerY={centerY}
-              walletAddress={formatAddress(
-                account.currentAccount.address ?? ''
-              )}
+            // width={sankeyWidth}
+            // height={sankeyHeight}
+            // centerX={centerX}
+            // centerY={centerY}
+            // walletAddress={formatAddress(
+            //   account.currentAccount.address ?? ''
+            // )}
             />
           </Animated.View>
-        </PanGestureHandler>
-        {/* </View>
-      <View style={{ position: 'absolute', top: 100 }}>
-        <UtxoFlow
-          width={sankeyWidth}
-          height={sankeyHeight}
-          centerX={centerX}
-          centerY={centerY}
-          walletAddress={formatAddress(account.currentAccount.address ?? '')}
-        /> */}
-
-        {/* {transactionFlows && (
-          <>
-            <UtxoFlow
-              key="current"
-              inputs={transactionFlows.current.inputs}
-              outputs={transactionFlows.current.outputs}
-              width={sankeyWidth}
-              height={sankeyHeight}
-              centerX={centerX}
-              centerY={centerY}
-              vSize={transactionFlows.current.vSize}
-              walletAddress={formatAddress(
-                account.currentAccount.address ?? ''
-              )}
-            />
-            {Object.entries(transactionFlows.previous).map(
-              ([transactionId, flow]) => (
-                <UtxoFlow
-                  key={transactionId}
-                  inputs={flow.inputs}
-                  outputs={flow.outputs}
-                  width={sankeyWidth}
-                  height={sankeyHeight}
-                  centerX={centerX}
-                  centerY={centerY}
-                  vSize={flow.vSize}
-                  walletAddress={formatAddress(
-                    account.currentAccount.address ?? ''
-                  )}
-                />
-              )
-            )}
-          </>
-        )} */}
-        <View
-          style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0
-          }}
-        >
-          <Animated.View></Animated.View>
-        </View>
+        </GestureDetector>
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
@@ -294,8 +249,34 @@ function UTXOTransactionFlow() {
         colors={['#00000000', '#0000000F', '#0000002A', '#000000']}
       >
         <SSVStack style={{ width: '92%' }}>
+          <SSHStack justifyBetween style={{ width: '100%' }}>
+            <SSButton
+              label={i18n.t('signAndSend.addInput')}
+              variant="default"
+              // disabled={!hasSelectedUtxos}
+              style={[
+                { opacity: 100, width: '48%' },
+                !hasSelectedUtxos && {
+                  backgroundColor: Colors.gray[700]
+                }
+              ]}
+              textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+            />
+            <SSButton
+              label={i18n.t('signAndSend.addOutput')}
+              variant="secondary"
+              // disabled={!hasSelectedUtxos}
+              style={[
+                { opacity: 100, width: '48%' },
+                !hasSelectedUtxos && {
+                  backgroundColor: Colors.gray[700]
+                }
+              ]}
+              textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+            />
+          </SSHStack>
           <SSButton
-            label={i18n.t('signAndSend.addAsInputToMessage')}
+            label={i18n.t('signAndSend.setMessageFee')}
             variant="secondary"
             disabled={!hasSelectedUtxos}
             style={[
