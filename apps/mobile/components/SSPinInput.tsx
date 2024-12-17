@@ -42,19 +42,19 @@ export default function SSPinInput({
     index: number
   ) {
     const key = event.nativeEvent.key
+    const newPin = [...pin]
     if (key === 'Backspace') {
       setIsBackspace(true)
       const previousPinIndex = index - 1
       if (previousPinIndex >= 0) {
+        newPin[previousPinIndex] = ""
+        setPin(newPin)
         inputRefs.current[previousPinIndex]?.focus()
       }
-    } else {
-      if (index + 1 === PIN_SIZE) {
-        const newPin = [...pin]
-        newPin[index] = key
-        onFillEnded?.(newPin.join(''))
-        Keyboard.dismiss()
-      }
+    } else if (index + 1 === PIN_SIZE) {
+      newPin[index] = key
+      onFillEnded?.(newPin.join(''))
+      Keyboard.dismiss()
     }
   }
 
