@@ -41,10 +41,10 @@ export default function SSPinInput({
     event: NativeSyntheticEvent<TextInputKeyPressEventData>,
     index: number
   ) {
-    const key = event.nativeEvent.key;
+    const key = event.nativeEvent.key
     if (key === 'Backspace') {
       setIsBackspace(true)
-      const previousPinIndex = index - 1;
+      const previousPinIndex = index - 1
       if (previousPinIndex >= 0) {
         inputRefs.current[previousPinIndex]?.focus()
       }
