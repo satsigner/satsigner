@@ -43,15 +43,27 @@ export default function SSPinInput({
   ) {
     const key = event.nativeEvent.key
     const newPin = [...pin]
+    const isLastPin = index + 1 === PIN_SIZE;
     if (key === 'Backspace') {
       setIsBackspace(true)
       const previousPinIndex = index - 1
+      const currentPinNotEmpty = pin[index] !== ""
+
+      if (currentPinNotEmpty) {
+        newPin[index] = ""
+        setPin(newPin)
+        return
+      }
+
       if (previousPinIndex >= 0) {
         newPin[previousPinIndex] = ""
         setPin(newPin)
         inputRefs.current[previousPinIndex]?.focus()
+        return
       }
-    } else if (index + 1 === PIN_SIZE) {
+    }
+
+    if (isLastPin) {
       newPin[index] = key
       onFillEnded?.(newPin.join(''))
       Keyboard.dismiss()
