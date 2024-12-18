@@ -86,6 +86,7 @@ function TotalTransactions({
               <SSTransactionCard
                 transaction={transaction}
                 blockHeight={blockchainHeight}
+                onPress={()=>{console.warn("You pressed a transaction")}}
               />
             </SSVStack>
           ))}
