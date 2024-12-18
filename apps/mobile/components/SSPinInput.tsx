@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useRef, useState } from 'react'
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
 import {
   Keyboard,
   NativeSyntheticEvent,
@@ -15,7 +15,7 @@ type SSPinInputProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   autoFocus?: boolean
-  onFillEnded?(): void
+  onFillEnded?: (pin?: string) => void
 }
 
 export default function SSPinInput({
@@ -26,6 +26,16 @@ export default function SSPinInput({
 }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
+
+  useEffect(() => {
+    function resetFocusOnClear() {
+      if (pin.join('') === '') {
+        inputRefs.current[0]?.focus()
+      }
+    }
+
+    resetFocusOnClear()
+  }, [pin])
 
   function handleOnChangeText(text: string, index: number) {
     const newPin = [...pin]
@@ -41,16 +51,32 @@ export default function SSPinInput({
     event: NativeSyntheticEvent<TextInputKeyPressEventData>,
     index: number
   ) {
-    if (event.nativeEvent.key === 'Backspace') {
+    const key = event.nativeEvent.key
+    const newPin = [...pin]
+    const isLastPin = index + 1 === PIN_SIZE
+    if (key === 'Backspace') {
       setIsBackspace(true)
-      if (index - 1 >= 0) {
-        inputRefs.current[index - 1]?.focus()
+      const previousPinIndex = index - 1
+      const currentPinNotEmpty = pin[index] !== ''
+
+      if (currentPinNotEmpty) {
+        newPin[index] = ''
+        setPin(newPin)
+        return
       }
-    } else {
-      if (index + 1 === PIN_SIZE) {
-        onFillEnded?.()
-        Keyboard.dismiss()
+
+      if (previousPinIndex >= 0) {
+        newPin[previousPinIndex] = ''
+        setPin(newPin)
+        inputRefs.current[previousPinIndex]?.focus()
+        return
       }
+    }
+
+    if (isLastPin) {
+      newPin[index] = key
+      onFillEnded?.(newPin.join(''))
+      Keyboard.dismiss()
     }
   }
 

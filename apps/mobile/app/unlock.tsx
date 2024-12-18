@@ -41,8 +41,8 @@ export default function Unlock() {
     setPin(Array(PIN_SIZE).fill(''))
   }
 
-  async function handleOnFillEnded() {
-    const isPinValid = await validatePin(pin.join(''))
+  async function handleOnFillEnded(pinString?: string) {
+    const isPinValid = await validatePin(pinString || pin.join(''))
     if (isPinValid) {
       setLockTriggered(false)
       resetPinTries()
@@ -83,7 +83,7 @@ export default function Unlock() {
               pin={pin}
               setPin={setPin}
               autoFocus
-              onFillEnded={() => handleOnFillEnded()}
+              onFillEnded={handleOnFillEnded}
             />
           </Animated.View>
           {triesLeft !== null && (
