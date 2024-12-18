@@ -18,7 +18,7 @@ export default function TransactionPage() {
         }}
       />
       <SSMainLayout>
-        <SSText>The param passed in is:{txid}</SSText>
+        <SSText>Transaction id: {txid}</SSText>
         <SSBdkTransactionConsole txid={txid} />
       </SSMainLayout>
     </>
