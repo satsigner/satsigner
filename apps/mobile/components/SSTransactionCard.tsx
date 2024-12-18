@@ -33,6 +33,8 @@ export default function SSTransactionCard({
     ? blockHeight - transaction.blockHeight + 1
     : 0
 
+  const firstDigit = transaction.id.length > 0 ? transaction.id.charAt(0) : 'X'
+
   function getConfirmationsText() {
     if (confirmations <= 0) return i18n.t('bitcoin.confirmations.unconfirmed')
     else if (confirmations === 1)
@@ -148,7 +150,7 @@ export default function SSTransactionCard({
           </SSHStack>
         </SSHStack>
       </TouchableOpacity>
-
+      <SSText>{firstDigit}</SSText>
       <SSBdkTransactionConsole txid={transaction.id} />
     </SSVStack>
   )
