@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 
+import SSBdkTransactionConsole from '@/components/SSBdkTransactionConsole'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 
@@ -18,6 +19,7 @@ export default function TransactionPage() {
       />
       <SSMainLayout>
         <SSText>The param passed in is:{txid}</SSText>
+        <SSBdkTransactionConsole txid={txid} />
       </SSMainLayout>
     </>
   )
