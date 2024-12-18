@@ -147,6 +147,10 @@ export default function SSTransactionCard({
             </SSVStack>
           </SSVStack>
         </SSHStack>
+        <Image
+          style={{ width: 6, height: 11.6, marginTop: 40 }}
+          source={require('@/assets/icons/chevron-right.svg')}
+        />
       </SSHStack>
     </TouchableOpacity>
   )
