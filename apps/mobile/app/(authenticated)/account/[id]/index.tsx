@@ -88,8 +88,8 @@ function TotalTransactions({
               <SSTransactionCard
                 transaction={transaction}
                 blockHeight={blockchainHeight}
-                onPress={() => {
-                  router.navigate('/transaction/N')
+                onPress={(txid: string) => {
+                  router.navigate('/transaction/' + txid)
                 }}
               />
             </SSVStack>

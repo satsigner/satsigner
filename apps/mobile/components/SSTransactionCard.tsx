@@ -17,7 +17,7 @@ import SSTimeAgoText from './SSTimeAgoText'
 type SSTransactionCardProps = {
   transaction: Transaction
   blockHeight: number
-  onPress: () => void
+  onPress: (txid: string) => void
 }
 
 export default function SSTransactionCard({
@@ -63,7 +63,10 @@ export default function SSTransactionCard({
 
   return (
     <SSVStack>
-      <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
+      <TouchableOpacity
+        activeOpacity={0.5}
+        onPress={() => onPress(transaction.id)}
+      >
         <SSHStack
           style={{
             paddingTop: 8,
