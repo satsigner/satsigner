@@ -144,7 +144,7 @@ export default function SSTransactionCard({
           </SSVStack>
         </SSHStack>
       </SSHStack>
-      <SSBdkTransactionConsole transaction={transaction} />
+      <SSBdkTransactionConsole txid={transaction.id} />
     </SSVStack>
   )
 }

@@ -4,14 +4,13 @@ import { View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSConsoleOutput from '@/components/SSConsoleOutput'
-import { type Transaction } from '@/types/models/Transaction'
 
 type SSBdkTransactionConsoleProps = {
-  transaction: Transaction
+  txid: string
 }
 
 export default function SSBdkTransactionConsole({
-  transaction
+  txid
 }: SSBdkTransactionConsoleProps) {
   const [generating, setGenerating] = React.useState(false)
   const [consoleTxt, setConsoleTxt] = React.useState([''])
@@ -21,7 +20,7 @@ export default function SSBdkTransactionConsole({
     try {
       // ToDo get mutinynet url from settings
       const response = await fetch(
-        'https://mutinynet.com/api' + '/tx/' + transaction.id + '/hex'
+        'https://mutinynet.com/api' + '/tx/' + txid + '/hex'
       )
       const txt = await response.text()
       const bytes = asciiHexToBytes(txt)
@@ -29,7 +28,7 @@ export default function SSBdkTransactionConsole({
       const tranBdk1 = new TransactionBdk()
       const tranBdk2 = await tranBdk1.create(bytes)
 
-      const txid = await tranBdk2.txid()
+      const txid2 = await tranBdk2.txid()
       const inputs = await tranBdk2.input()
       const outputs = await tranBdk2.output()
       const isCoinBase = await tranBdk2.isCoinBase()
@@ -43,7 +42,7 @@ export default function SSBdkTransactionConsole({
       const weight = await tranBdk2.weight()
 
       const lines: [string] = ['METHODS ON BDK TRANSACTION OBJECT']
-      lines.push('Transaction.txid(): ' + txid)
+      lines.push('Transaction.txid(): ' + txid2)
       lines.push('Transaction.input().length: ' + inputs.length.toString())
       lines.push('Transaction.output().length: ' + outputs.length.toString())
       lines.push('Transaction.isCoinBase(): ' + isCoinBase.toString())
@@ -80,7 +79,7 @@ export default function SSBdkTransactionConsole({
 
   return (
     <View>
-      <SSButton label={'BDK Info (Transaction)'} onPress={handleButtonPress} />
+      <SSButton label="BDK Info (Transaction)" onPress={handleButtonPress} />
       <SSConsoleOutput generating={generating} consoleTxt={consoleTxt} />
     </View>
   )
