@@ -2,7 +2,6 @@ import { Image } from 'expo-image'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSBdkTransactionConsole from '@/components/SSBdkTransactionConsole'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -33,8 +32,6 @@ export default function SSTransactionCard({
     ? blockHeight - transaction.blockHeight + 1
     : 0
 
-  const firstDigit = transaction.id.length > 0 ? transaction.id.charAt(0) : 'X'
-
   function getConfirmationsText() {
     if (confirmations <= 0) return i18n.t('bitcoin.confirmations.unconfirmed')
     else if (confirmations === 1)
@@ -62,100 +59,96 @@ export default function SSTransactionCard({
   }
 
   return (
-    <SSVStack>
-      <TouchableOpacity
-        activeOpacity={0.5}
-        onPress={() => onPress(transaction.id)}
+    <TouchableOpacity
+      activeOpacity={0.5}
+      onPress={() => onPress(transaction.id)}
+    >
+      <SSHStack
+        style={{
+          paddingTop: 8,
+          alignItems: 'flex-start'
+        }}
       >
+        {transaction.type === 'receive' && (
+          <Image
+            style={{ width: 19, height: 19 }}
+            source={require('@/assets/icons/incoming.svg')}
+          />
+        )}
+        {transaction.type === 'send' && (
+          <Image
+            style={{ width: 19, height: 19 }}
+            source={require('@/assets/icons/outgoing.svg')}
+          />
+        )}
         <SSHStack
+          justifyBetween
           style={{
-            paddingTop: 8,
-            alignItems: 'flex-start'
+            flex: 1,
+            alignItems: 'stretch'
           }}
         >
-          {transaction.type === 'receive' && (
-            <Image
-              style={{ width: 19, height: 19 }}
-              source={require('@/assets/icons/incoming.svg')}
-            />
-          )}
-          {transaction.type === 'send' && (
-            <Image
-              style={{ width: 19, height: 19 }}
-              source={require('@/assets/icons/outgoing.svg')}
-            />
-          )}
-          <SSHStack
-            justifyBetween
-            style={{
-              flex: 1,
-              alignItems: 'stretch'
-            }}
-          >
-            <SSVStack gap="xs">
-              <SSText color="muted">
-                {transaction.timestamp && (
-                  <SSTimeAgoText date={new Date(transaction.timestamp)} />
+          <SSVStack gap="xs">
+            <SSText color="muted">
+              {transaction.timestamp && (
+                <SSTimeAgoText date={new Date(transaction.timestamp)} />
+              )}
+            </SSText>
+            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+              <SSText size="3xl">
+                {formatNumber(
+                  transaction.type === 'receive'
+                    ? transaction.received
+                    : -transaction.sent
                 )}
               </SSText>
-              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                <SSText size="3xl">
-                  {formatNumber(
-                    transaction.type === 'receive'
-                      ? transaction.received
-                      : -transaction.sent
-                  )}
-                </SSText>
+              <SSText color="muted">
+                {i18n.t('bitcoin.sats').toLowerCase()}
+              </SSText>
+            </SSHStack>
+            <SSText style={{ color: Colors.gray[400] }}>
+              {formatNumber(
+                satsToFiat(
+                  transaction.type === 'receive'
+                    ? transaction.received
+                    : -transaction.sent
+                ),
+                2
+              )}{' '}
+              {fiatCurrency}
+            </SSText>
+          </SSVStack>
+          <SSVStack justifyBetween>
+            <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
+              {getConfirmationsText()}
+            </SSText>
+            <SSVStack gap="xs">
+              <SSText
+                size="md"
+                style={[
+                  { textAlign: 'right' },
+                  !transaction.memo && { color: Colors.gray[100] }
+                ]}
+                numberOfLines={1}
+              >
+                {transaction.memo || i18n.t('account.noMemo')}
+              </SSText>
+              <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
                 <SSText color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {transaction.address && transaction.type === 'receive'
+                    ? i18n.t('common.from').toLowerCase()
+                    : i18n.t('common.to').toLowerCase()}
+                </SSText>
+                <SSText>
+                  {transaction.address &&
+                    formatAddress(transaction.address || '')}
                 </SSText>
               </SSHStack>
-              <SSText style={{ color: Colors.gray[400] }}>
-                {formatNumber(
-                  satsToFiat(
-                    transaction.type === 'receive'
-                      ? transaction.received
-                      : -transaction.sent
-                  ),
-                  2
-                )}{' '}
-                {fiatCurrency}
-              </SSText>
             </SSVStack>
-            <SSVStack justifyBetween>
-              <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
-                {getConfirmationsText()}
-              </SSText>
-              <SSVStack gap="xs">
-                <SSText
-                  size="md"
-                  style={[
-                    { textAlign: 'right' },
-                    !transaction.memo && { color: Colors.gray[100] }
-                  ]}
-                  numberOfLines={1}
-                >
-                  {transaction.memo || i18n.t('account.noMemo')}
-                </SSText>
-                <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
-                  <SSText color="muted">
-                    {transaction.address && transaction.type === 'receive'
-                      ? i18n.t('common.from').toLowerCase()
-                      : i18n.t('common.to').toLowerCase()}
-                  </SSText>
-                  <SSText>
-                    {transaction.address &&
-                      formatAddress(transaction.address || '')}
-                  </SSText>
-                </SSHStack>
-              </SSVStack>
-            </SSVStack>
-          </SSHStack>
+          </SSVStack>
         </SSHStack>
-      </TouchableOpacity>
-      <SSText>{firstDigit}</SSText>
-      <SSBdkTransactionConsole txid={transaction.id} />
-    </SSVStack>
+      </SSHStack>
+    </TouchableOpacity>
   )
 }
 
