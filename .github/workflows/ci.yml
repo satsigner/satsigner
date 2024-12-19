@@ -25,18 +25,18 @@ jobs:
         with:
           cmd: install
 
-      - name: run tests
+      - name: test
         uses: borales/actions-yarn@v4.2.0
         with:
           cmd: test
           dir: apps/mobile
 
-      - name: run linter
+      - name: lint
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: run lint
+          cmd: lint
 
-      - name: check code style
+      - name: format
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: run format
+          cmd: format
