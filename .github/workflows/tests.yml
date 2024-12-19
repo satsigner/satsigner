@@ -1,0 +1,32 @@
+name: Automated tests
+
+on:
+  push:
+    branches: ['master']
+  pull_request:
+    branches: ['master']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: set up node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: install dependencies
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: install # will run `yarn install` command
+
+      - name: run tests
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: test # will run `yarn test` command
+          dir: apps/mobile
