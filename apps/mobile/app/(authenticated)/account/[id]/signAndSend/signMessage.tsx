@@ -18,7 +18,8 @@ export default function SignMessage() {
 
   const account = getCurrentAccount(id)!
 
-  const [signed, setSigned] = useState(true)
+  // const [signed, setSigned] = useState(true)
+  const signed = useState(true)[0]
 
   return (
     <>
