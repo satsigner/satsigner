@@ -55,6 +55,8 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const router = useRouter()
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
@@ -86,6 +88,9 @@ function TotalTransactions({
               <SSTransactionCard
                 transaction={transaction}
                 blockHeight={blockchainHeight}
+                onPress={(txid: string) => {
+                  router.navigate('/transaction/' + txid)
+                }}
               />
             </SSVStack>
           ))}
