@@ -111,7 +111,7 @@ yarn install
 
 ### Set up Android environment
 
-Set up Android Studio as usual.  Otherwise, if you are using other IDE,
+Set up Android Studio as usual. Otherwise, if you are using other IDE,
 then install the packages `android-sdk`, `android-sdk-build-tools`,
 `android-sdk-platform-tools`, and `android-tools`.
 

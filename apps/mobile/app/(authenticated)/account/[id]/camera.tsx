@@ -47,9 +47,6 @@ export default function Camera() {
   }, [])
 
   async function handlePaste() {
-    // Temporary
-    const text = await Clipboard.getStringAsync()
-    console.log(text)
     await Clipboard.setStringAsync('')
     setHasToPaste(false)
   }
@@ -75,8 +72,8 @@ export default function Camera() {
         }}
       />
       <CameraView
-        onBarcodeScanned={(res) => {
-          console.log(res.raw)
+        onBarcodeScanned={() => {
+          //
         }}
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         style={StyleSheet.absoluteFillObject}
