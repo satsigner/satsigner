@@ -1,4 +1,4 @@
-name: Automated tests
+name: CI
 
 on:
   push:
@@ -23,10 +23,20 @@ jobs:
       - name: install dependencies
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: install # will run `yarn install` command
+          cmd: install
 
       - name: run tests
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: test # will run `yarn test` command
+          cmd: test
           dir: apps/mobile
+
+      - name: run linter
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: run lint
+
+      - name: check code style
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: run format
