@@ -1,5 +1,5 @@
 import { Image } from 'expo-image'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -16,11 +16,13 @@ import SSTimeAgoText from './SSTimeAgoText'
 type SSTransactionCardProps = {
   transaction: Transaction
   blockHeight: number
+  onPress: (txid: string) => void
 }
 
 export default function SSTransactionCard({
   transaction,
-  blockHeight
+  blockHeight,
+  onPress
 }: SSTransactionCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -57,91 +59,100 @@ export default function SSTransactionCard({
   }
 
   return (
-    <SSHStack
-      style={{
-        paddingTop: 8,
-        alignItems: 'flex-start'
-      }}
+    <TouchableOpacity
+      activeOpacity={0.5}
+      onPress={() => onPress(transaction.id)}
     >
-      {transaction.type === 'receive' && (
-        <Image
-          style={{ width: 19, height: 19 }}
-          source={require('@/assets/icons/incoming.svg')}
-        />
-      )}
-      {transaction.type === 'send' && (
-        <Image
-          style={{ width: 19, height: 19 }}
-          source={require('@/assets/icons/outgoing.svg')}
-        />
-      )}
       <SSHStack
-        justifyBetween
         style={{
-          flex: 1,
-          alignItems: 'stretch'
+          paddingTop: 8,
+          alignItems: 'flex-start'
         }}
       >
-        <SSVStack gap="xs">
-          <SSText color="muted">
-            {transaction.timestamp && (
-              <SSTimeAgoText date={new Date(transaction.timestamp)} />
-            )}
-          </SSText>
-          <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl">
-              {formatNumber(
-                transaction.type === 'receive'
-                  ? transaction.received
-                  : -transaction.sent
+        {transaction.type === 'receive' && (
+          <Image
+            style={{ width: 19, height: 19 }}
+            source={require('@/assets/icons/incoming.svg')}
+          />
+        )}
+        {transaction.type === 'send' && (
+          <Image
+            style={{ width: 19, height: 19 }}
+            source={require('@/assets/icons/outgoing.svg')}
+          />
+        )}
+        <SSHStack
+          justifyBetween
+          style={{
+            flex: 1,
+            alignItems: 'stretch'
+          }}
+        >
+          <SSVStack gap="xs">
+            <SSText color="muted">
+              {transaction.timestamp && (
+                <SSTimeAgoText date={new Date(transaction.timestamp)} />
               )}
             </SSText>
-            <SSText color="muted">
-              {i18n.t('bitcoin.sats').toLowerCase()}
-            </SSText>
-          </SSHStack>
-          <SSText style={{ color: Colors.gray[400] }}>
-            {formatNumber(
-              satsToFiat(
-                transaction.type === 'receive'
-                  ? transaction.received
-                  : -transaction.sent
-              ),
-              2
-            )}{' '}
-            {fiatCurrency}
-          </SSText>
-        </SSVStack>
-        <SSVStack justifyBetween>
-          <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
-            {getConfirmationsText()}
-          </SSText>
-          <SSVStack gap="xs">
-            <SSText
-              size="md"
-              style={[
-                { textAlign: 'right' },
-                !transaction.memo && { color: Colors.gray[100] }
-              ]}
-              numberOfLines={1}
-            >
-              {transaction.memo || i18n.t('account.noMemo')}
-            </SSText>
-            <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
-              <SSText color="muted">
-                {transaction.address && transaction.type === 'receive'
-                  ? i18n.t('common.from').toLowerCase()
-                  : i18n.t('common.to').toLowerCase()}
+            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+              <SSText size="3xl">
+                {formatNumber(
+                  transaction.type === 'receive'
+                    ? transaction.received
+                    : -transaction.sent
+                )}
               </SSText>
-              <SSText>
-                {transaction.address &&
-                  formatAddress(transaction.address || '')}
+              <SSText color="muted">
+                {i18n.t('bitcoin.sats').toLowerCase()}
               </SSText>
             </SSHStack>
+            <SSText style={{ color: Colors.gray[400] }}>
+              {formatNumber(
+                satsToFiat(
+                  transaction.type === 'receive'
+                    ? transaction.received
+                    : -transaction.sent
+                ),
+                2
+              )}{' '}
+              {fiatCurrency}
+            </SSText>
           </SSVStack>
-        </SSVStack>
+          <SSVStack justifyBetween>
+            <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
+              {getConfirmationsText()}
+            </SSText>
+            <SSVStack gap="xs">
+              <SSText
+                size="md"
+                style={[
+                  { textAlign: 'right' },
+                  !transaction.memo && { color: Colors.gray[100] }
+                ]}
+                numberOfLines={1}
+              >
+                {transaction.memo || i18n.t('account.noMemo')}
+              </SSText>
+              <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
+                <SSText color="muted">
+                  {transaction.address && transaction.type === 'receive'
+                    ? i18n.t('common.from').toLowerCase()
+                    : i18n.t('common.to').toLowerCase()}
+                </SSText>
+                <SSText>
+                  {transaction.address &&
+                    formatAddress(transaction.address || '')}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+          </SSVStack>
+        </SSHStack>
+        <Image
+          style={{ width: 6, height: 11.6, marginTop: 40 }}
+          source={require('@/assets/icons/chevron-right.svg')}
+        />
       </SSHStack>
-    </SSHStack>
+    </TouchableOpacity>
   )
 }
 
