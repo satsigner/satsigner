@@ -1,24 +1,21 @@
 import {
   Canvas,
   Group,
-  LinearGradient,
-  Paragraph,
   Path,
   Rect,
   Skia,
   TextAlign,
+  TileMode,
   useFonts,
-  vec,
-  TileMode
+  vec
 } from '@shopify/react-native-skia'
 import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
 import { sankey } from 'd3-sankey'
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback } from 'react'
 
-import linkList from './sankeylinks.json'
-import nodeList from './sankeynode.json'
-import { SSSankeyNode } from './SSSankeyNode'
 import { gray } from '@/styles/colors'
+
+import { SSSankeyNode } from './SSSankeyNode'
 
 interface Link extends SankeyLinkMinimal<object, object> {
   source: string
@@ -34,11 +31,6 @@ interface Node extends SankeyNodeMinimal<object, object> {
   textInfo: string[]
 }
 
-interface Data {
-  nodes: Node[]
-  links: Link[]
-}
-
 interface LinkPoints {
   souceWidth: number
   targetWidth: number
@@ -47,8 +39,8 @@ interface LinkPoints {
   x2: number
   y2: number
 }
-const TARGET_MAX_WIDTH = 60
-const CustomLink = (points: LinkPoints, dash: boolean = false) => {
+const LINK_MAX_WIDTH = 60
+const generateCustomLink = (points: LinkPoints, dash: boolean = false) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
   // Define the coordinates of the four points
@@ -174,7 +166,7 @@ const SankeyDiagram = ({
     .nodePadding(100)
     .extent([
       [20, 160],
-      [1000 * 0.4, 1000 * (Math.max(2, inputCount) / 10)]
+      [1000 * 0.4, 1000 * (Math.max(2.4, inputCount) / 10)]
     ])
     .nodeId((node: any) => node.id)
 
@@ -194,7 +186,7 @@ const SankeyDiagram = ({
     }))
   })
 
-  const getUtxoWidth = (node: Node) => {
+  const getUtxoWidth = (node: Node, maxWidth: number) => {
     // Find all nodes at the same depth as the target node
     const nodesAtSameDepth = nodes.filter((n) => n.depthH === node.depthH)
 
@@ -207,8 +199,8 @@ const SankeyDiagram = ({
     // Get current node's sats
     const nodeSats = node?.value ?? 0
 
-    // Calculate width (30 is max width, proportional to sats percentage)
-    return (nodeSats / totalSats) * TARGET_MAX_WIDTH
+    // Calculate width (max width proportional to sats percentage)
+    return (nodeSats / totalSats) * maxWidth
   }
 
   const customFontManager = useFonts({
@@ -281,9 +273,13 @@ const SankeyDiagram = ({
 
           const points: LinkPoints = {
             souceWidth:
-              sourceNode.type === 'block' ? 5 : getUtxoWidth(sourceNode),
+              sourceNode.type === 'block'
+                ? Math.min(5, getUtxoWidth(targetNode, LINK_MAX_WIDTH))
+                : getUtxoWidth(sourceNode, LINK_MAX_WIDTH),
             targetWidth:
-              targetNode.type === 'block' ? 5 : getUtxoWidth(targetNode),
+              targetNode.type === 'block'
+                ? Math.min(5, getUtxoWidth(targetNode, LINK_MAX_WIDTH))
+                : getUtxoWidth(targetNode, LINK_MAX_WIDTH),
             x1:
               sourceNode.type === 'block'
                 ? (sourceNode.x1 ?? 0) - (sankeyGenerator.nodeWidth() - 50) / 2
@@ -295,8 +291,7 @@ const SankeyDiagram = ({
                 : targetNode.x0 ?? 0,
             y2: (link.target as Node).y0 ?? 0
           }
-          const linkData = link as Link
-          const path1 = CustomLink(points, linkData.dash ?? false)
+          const path1 = generateCustomLink(points, false)
 
           return (
             <Group key={index}>
@@ -339,7 +334,6 @@ const SankeyDiagram = ({
 
           const blockRect = () => {
             if (dataNode.type === 'block') {
-              console.log({ x: node.x0, y: node.y0 })
               return (
                 <Group>
                   <Rect
