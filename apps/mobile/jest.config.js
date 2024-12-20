@@ -1,5 +1,7 @@
 /** @type {import('jest').Config} */
 
+process.env.TZ = 'UTC'
+
 const config = {
   preset: 'jest-expo',
   transformIgnorePatterns: [
