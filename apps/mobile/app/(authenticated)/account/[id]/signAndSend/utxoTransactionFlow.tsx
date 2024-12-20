@@ -273,7 +273,11 @@ function UTXOTransactionFlow() {
               animatedStyle
             ]}
           >
-            <UtxoFlow sankeyNodes={sankeyNodes} sankeyLinks={sankeyLinks} />
+            <UtxoFlow
+              sankeyNodes={sankeyNodes}
+              sankeyLinks={sankeyLinks}
+              inputCount={inputs?.length ?? 0}
+            />
           </Animated.View>
         </GestureDetector>
       </View>

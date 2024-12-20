@@ -158,27 +158,32 @@ const CustomLink = (points: LinkPoints, dash: boolean = false) => {
   return dashPathStr.join('\n')
 }
 
-const sankeyGenerator = sankey()
-  .nodeWidth(76)
-  .nodePadding(100)
-  .extent([
-    [20, 160],
-    [1000 * 0.4, 1000 * 0.6]
-  ])
-  .nodeId((node: any) => node.id)
-
-sankeyGenerator.nodeAlign((node: any) => {
-  const { depthH } = node
-  const depth = depthH - 1
-  return depth
-})
-
 interface SankeyProps {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
+  inputCount: number
 }
 
-const SankeyDiagram = ({ sankeyNodes, sankeyLinks }: SankeyProps) => {
+const SankeyDiagram = ({
+  sankeyNodes,
+  sankeyLinks,
+  inputCount
+}: SankeyProps) => {
+  const sankeyGenerator = sankey()
+    .nodeWidth(76)
+    .nodePadding(100)
+    .extent([
+      [20, 160],
+      [1000 * 0.4, 1000 * (Math.max(2, inputCount) / 10)]
+    ])
+    .nodeId((node: any) => node.id)
+
+  sankeyGenerator.nodeAlign((node: any) => {
+    const { depthH } = node
+    const depth = depthH - 1
+    return depth
+  })
+
   const { nodes, links } = sankeyGenerator({
     // nodes: data.nodes,
     nodes: sankeyNodes,
