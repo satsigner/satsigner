@@ -1,7 +1,6 @@
 {
   "expo": {
     "name": "satsigner",
-    "jsEngine": "hermes",
     "slug": "satsigner",
     "version": "0.1.0",
     "orientation": "portrait",
