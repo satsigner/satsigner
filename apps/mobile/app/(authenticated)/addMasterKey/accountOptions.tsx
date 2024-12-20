@@ -50,7 +50,7 @@ export default function AccountOptions() {
     else if (localScriptVersion === 'P2WPKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
     else if (localScriptVersion === 'P2TR')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} P2TR`
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
 
     return ''
   }
@@ -221,8 +221,10 @@ export default function AccountOptions() {
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2tr'
           )} (P2TR)`}
-          selected={false}
-          disabled
+          selected={localScriptVersion === 'P2TR'}
+          onPress={() =>
+            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2TR')
+          }
         />
       </SSSelectModal>
       <SSSelectModal

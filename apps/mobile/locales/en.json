@@ -189,20 +189,20 @@
           },
           "descriptions": {
             "p2pkh": [
-              "A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Legacy",
+              "which locks bitcoin to the hash of a public key."
             ],
             "p2sh-p2wpkh": [
-              "*P2SH-P2WPKH placeholder* A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Nested Segwit",
+              "which locks bitcoin to a SegWit witness program wrapped inside a P2SH address. This allows SegWit compatibility with wallets or services that do not fully support SegWit."
             ],
             "p2wpkh": [
-              "*P2WPKH placeholder* A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Native Segwit",
+              "which locks bitcoin to a SegWit witness program. It offers reduced transaction fees and improved malleability resistance."
             ],
             "p2tr": [
-              "*P2TR placeholder* A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Taproot",
+              "which locks bitcoin to a Schnorr public key or a Merkle root of multiple conditions. It enhances privacy and efficiency by combining spending conditions into a single structure."
             ]
           },
           "links": {
