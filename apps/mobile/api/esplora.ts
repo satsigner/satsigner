@@ -78,7 +78,6 @@ export class Esplora {
         throw new Error(`Unsupported Content-Type: ${contentType}`)
       }
     } catch (error: any) {
-      console.error('Esplora Error:', error.message)
       throw new Error(error.message)
     }
   }
