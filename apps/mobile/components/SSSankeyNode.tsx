@@ -55,7 +55,6 @@ export const SSSankeyNode = ({ textInfo, width, x, y }: ISSankeyNode) => {
     }
 
     const amount = textInfo[0].replace(/\s*sats\s*/g, '')
-    console.log({ amount })
     const para = Skia.ParagraphBuilder.Make({
       maxLines: 4,
       textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
@@ -120,7 +119,7 @@ export const SSSankeyNode = ({ textInfo, width, x, y }: ISSankeyNode) => {
         fontSize: XS_FONT_SIZE,
         color: isBlock ? Skia.Color('white') : Skia.Color(gray[300])
       })
-      .addText(isBlock || isUnspent ? `${textInfo[3]}` : ``)
+      .addText(isBlock || isUnspent ? `${textInfo[3] ?? ''}` : ``)
       .pop()
       .build()
 

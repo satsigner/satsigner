@@ -1,287 +1,242 @@
 import {
   Canvas,
   Group,
-  Paragraph,
   Path,
   Rect,
   Skia,
-  TextAlign,
-  useFonts
+  TileMode,
+  vec
 } from '@shopify/react-native-skia'
-import type { SankeyLink, SankeyNode } from 'd3-sankey'
-import { sankey, sankeyLinkHorizontal } from 'd3-sankey'
-import React, { useCallback, useMemo } from 'react'
-import { View } from 'react-native'
+import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
+import { sankey } from 'd3-sankey'
+import React, { useCallback } from 'react'
 
-import { Colors } from '@/styles'
-import { Utxo } from '@/types/models/Utxo'
+import { gray } from '@/styles/colors'
 
-interface NodeData {
-  name: string
-  value: number
-  index: number
-  fromAddress: string
-  label: string
-  children: string[]
-}
+import { SSSankeyNode } from './SSSankeyNode'
 
-interface LinkData {
-  source: number
-  target: number
+interface Link extends SankeyLinkMinimal<object, object> {
+  source: string
+  target: string
   value: number
 }
 
-interface SankeyData {
-  nodes: SankeyNode<NodeData, LinkData>[]
-  links: SankeyLink<NodeData, LinkData>[]
+interface Node extends SankeyNodeMinimal<object, object> {
+  indexC: number
+  id: string
+  depthH: number
+  type?: string
+  textInfo: string[]
 }
-interface TransactionFlowSankeyProps {
-  width: number
-  height: number
-  centerX: number
-  centerY: number
-  inputs: Utxo[]
-  outputs: { type: string; value: number }[]
-  vSize: number
-  walletAddress: string
+
+interface LinkPoints {
+  souceWidth: number
+  targetWidth: number
+  x1: number
+  y1: number
+  x2: number
+  y2: number
 }
-const TransactionFlowSankey: React.FC<TransactionFlowSankeyProps> = ({
-  width,
-  height,
-  centerX,
-  centerY,
-  inputs,
-  outputs,
-  vSize,
-  walletAddress
-}) => {
-  const data: SankeyData = useMemo(() => {
-    if (
-      !inputs ||
-      !outputs ||
-      !Array.isArray(inputs) ||
-      !Array.isArray(outputs)
-    ) {
-      return { nodes: [], links: [] }
-    }
 
-    const nodes: NodeData[] = [
-      ...inputs.map((input, index) => ({
-        id: `input-${index}-${input.txid.slice(0, 8)}`,
-        name: `${input.value.toLocaleString()} sats`,
-        value: input.value,
-        index,
-        fromAddress: ` ${walletAddress}`,
-        label: input.label || '',
-        children: [`${vSize} vB`]
-      })),
-      {
-        id: 'vsize',
-        name: `${vSize} vB`,
-        value: inputs.reduce((acc, input) => acc + input.value, 0),
-        index: inputs.length,
-        fromAddress: ``,
-        label: '',
-        children: outputs.map((output) => `${output.value} sats`)
-      },
-      ...outputs.map((output, index) => ({
-        id: `output-${index}`,
-        name: `${output.value.toLocaleString()} sats`,
-        value: output.value,
-        index: inputs.length + 1 + index,
-        fromAddress: ``,
-        children: [],
-        label: ''
-      }))
-    ]
+interface SankeyProps {
+  sankeyNodes: Node[]
+  sankeyLinks: Link[]
+  inputCount: number
+}
 
-    const links: LinkData[] = [
-      ...inputs.map((input, index) => ({
-        source: index,
-        target: inputs.length,
-        value: input.value
-      })),
-      ...outputs.map((output, index) => ({
-        source: inputs.length,
-        target: inputs.length + 1 + index,
-        value: output.value
-      }))
-    ]
+const LINK_MAX_WIDTH = 60
+const VERTICAL_OFFSET_NODE = 22
+const generateCustomLink = (points: LinkPoints) => {
+  const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
-    return { nodes, links }
-  }, [inputs, outputs, vSize, walletAddress])
+  // Define the coordinates of the four points
+  const A = [x1, y1 - souceWidth / 2] // Point A
+  const B = [x1, y1 + souceWidth / 2] // Point B
+  const C = [x2, y2 - targetWidth / 2] // Point C
+  const D = [x2, y2 + targetWidth / 2] // Point D
 
-  const sankeyLayout: any = sankey()
-    .nodeWidth(48)
-    .nodePadding(80)
+  // Solid line path
+  const moveToA = `M ${A[0]} ${A[1]}`
+  const lineToB = `L ${B[0]} ${B[1]}`
+
+  let curveToCenterD = `C ${B[0]} ${B[1]}`
+  curveToCenterD += ` ${B[0] + (D[0] - B[0]) / 3} ${B[1]}`
+  curveToCenterD += ` ${B[0] + (D[0] - B[0]) / 2} ${B[1] + (D[1] - B[1]) / 2}`
+
+  let curveToD = `C ${B[0] + (D[0] - B[0]) / 2} ${B[1] + (D[1] - B[1]) / 2}`
+  curveToD += ` ${B[0] + ((D[0] - B[0]) / 3) * 2} ${D[1]}`
+  curveToD += ` ${D[0]} ${D[1]}`
+
+  const lineToC = `L ${C[0]} ${C[1]}`
+
+  let curveToCenterA = `C ${C[0]} ${C[1]}`
+  curveToCenterA += ` ${C[0] + (A[0] - C[0]) / 3} ${C[1]}`
+  curveToCenterA += ` ${C[0] + (A[0] - C[0]) / 2} ${C[1] + (A[1] - C[1]) / 2}`
+
+  let curveToA = `C ${C[0] + (A[0] - C[0]) / 2} ${C[1] + (A[1] - C[1]) / 2}`
+  curveToA += ` ${C[0] + ((A[0] - C[0]) / 3) * 2} ${A[1]}`
+  curveToA += ` ${A[0]} ${A[1]}`
+  return [
+    moveToA,
+    lineToB,
+    curveToCenterD,
+    curveToD,
+    lineToC,
+    curveToCenterA,
+    curveToA,
+    'Z'
+  ].join('\n')
+}
+
+const SSUtxoFlow = ({ sankeyNodes, sankeyLinks, inputCount }: SankeyProps) => {
+  const sankeyGenerator = sankey()
+    .nodeWidth(78)
+    .nodePadding(100)
     .extent([
       [20, 160],
-      [width - 20, height - 160]
+      [1000 * 0.4, 1000 * (Math.max(2.4, inputCount) / 10)]
     ])
-    .nodeId((node: any) => node.id)
-  // .nodeAlign(sankeyRight)
+    .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
-  const { nodes, links } = sankeyLayout(data)
-
-  const customFontManager = useFonts({
-    'SF Pro Text': [
-      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
-      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-    ]
+  sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
+    const { depthH } = node as Node
+    return depthH - 1
   })
 
-  const nodeParagraph = useCallback(
-    (text: string, textAlign = TextAlign.Left) => {
-      if (!customFontManager) return null
+  const { nodes, links } = sankeyGenerator({
+    nodes: sankeyNodes,
+    links: sankeyLinks.map((item) => ({
+      source: item.source,
+      target: item.target,
+      value: item.value
+    }))
+  })
 
-      const textStyle = {
-        color: Skia.Color('white'),
-        fontFamilies: ['SF Pro Text'],
-        fontSize: 14,
-        fontStyle: {
-          weight: 400
-        },
-        backgroundColor: Skia.Color('red') // Add this line
-      }
-      const para = Skia.ParagraphBuilder.Make({
-        maxLines: 1,
-        textAlign,
-        strutStyle: {
-          strutEnabled: true,
-          forceStrutHeight: true,
-          heightMultiplier: 1.5, // Adjust this value to control the background height
-          leading: 0
-        }
-      })
-        .pushStyle({ ...textStyle })
-        .addText(`${text}`)
-        .pop()
-        .build()
-      para.layout(100)
-      return para
+  const getLinkWidth = useCallback(
+    (node: Node, maxWidth: number) => {
+      // Find all nodes at the same depth as the target node
+      const nodesAtSameDepth = nodes.filter((n) => n.depth === node.depth)
+
+      // Calculate total sats at this depth
+      const totalSats = nodesAtSameDepth.reduce((sum, n) => {
+        const sats = n?.value ?? 0
+        return sum + sats
+      }, 0)
+
+      // Get current node's sats
+      const nodeSats = node?.value ?? 0
+
+      // Calculate width (max width proportional to sats percentage)
+      return (nodeSats / totalSats) * maxWidth
     },
-    [customFontManager]
+    [nodes]
   )
 
-  const fromParagraph = useCallback(
-    (walletAddress: string) => {
-      if (!customFontManager) return null
-
-      const textStyle = {
-        color: Skia.Color('white'),
-        fontFamilies: ['SF Pro Text'],
-        fontSize: 11,
-        fontStyle: {
-          weight: 400
-        }
-      }
-      const para = Skia.ParagraphBuilder.Make({
-        maxLines: 1,
-        textAlign: TextAlign.Left
-      })
-        .pushStyle({ ...textStyle, color: Skia.Color(Colors.gray[500]) })
-        .addText(`from `)
-        .pushStyle(textStyle)
-        .addText(`${walletAddress}`)
-        .pop()
-        .build()
-      para.layout(200)
-      return para
-    },
-    [customFontManager]
-  )
+  if (!nodes || !links) {
+    return null
+  }
 
   return (
-    <View>
-      <Canvas style={{ width, height, borderColor: 'red', borderWidth: 1 }}>
-        <Group origin={{ x: centerX, y: centerY }}>
-          {links?.map((link: any, i: number) => {
-            const linkGenerator = sankeyLinkHorizontal()
-            const path = linkGenerator(link)
+    <Canvas
+      style={{
+        width: 2000,
+        height: 2000
+      }}
+    >
+      <Group>
+        {links.map((link, index) => {
+          const sourceNode = link.source as Node
+          const targetNode = link.target as Node
+          const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
-            return (
+          const points: LinkPoints = {
+            souceWidth:
+              sourceNode.type === 'block'
+                ? Math.min(5, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
+            targetWidth:
+              targetNode.type === 'block'
+                ? Math.min(5, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                : getLinkWidth(targetNode, LINK_MAX_WIDTH),
+            x1:
+              sourceNode.type === 'block'
+                ? (sourceNode.x1 ?? 0) - (sankeyGenerator.nodeWidth() - 50) / 2
+                : sourceNode.x1 ?? 0,
+            y1: (link.source as Node).y1 ?? 0,
+            x2:
+              targetNode.type === 'block'
+                ? (targetNode.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
+                : targetNode.x0 ?? 0,
+            y2: (link.target as Node).y0 ?? 0
+          }
+          const path1 = generateCustomLink(points)
+
+          return (
+            <Group key={index}>
               <Path
-                key={i}
-                path={path ?? ''}
-                color={Colors.gray[700]}
-                style="stroke"
-                strokeJoin="round"
-                strokeWidth={Math.max(1, link.width)}
+                key={index}
+                path={path1}
+                style="fill"
+                color={gray[700]}
+                // Create a paint object for the gradient
+                paint={
+                  isUnspent
+                    ? (() => {
+                        const paint = Skia.Paint()
+                        paint.setShader(
+                          Skia.Shader.MakeLinearGradient(
+                            vec(points.x1, points.y1),
+                            vec(points.x2, points.y2),
+                            [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
+                            [0, 0.9],
+                            TileMode.Clamp
+                          )
+                        )
+                        return paint
+                      })()
+                    : undefined
+                }
               />
-            )
-          })}
-          {walletAddress &&
-            nodes?.map((node: any) => {
-              const isMiddleNode = node.depth === 1 // Middle layer is the source
-              const isOutput = node.depth === 2 // Output layer is the last layer
-              const isInput = node.depth === 0
-              const textAlign = isOutput ? TextAlign.Right : TextAlign.Left
+            </Group>
+          )
+        })}
 
+        {/* Draw nodes */}
+        {nodes.map((node, index) => {
+          const dataNode = node as Node
+
+          const blockRect = () => {
+            if (dataNode.type === 'block') {
               return (
-                <Group key={node.name}>
-                  {isMiddleNode ? (
-                    <Group>
-                      <Rect
-                        x={node.x0}
-                        y={node.y0}
-                        width={sankeyLayout.nodeWidth()}
-                        height={node.y1 - node.y0}
-                        color="#FFF"
-                        style="fill"
-                      />
-                      <Paragraph
-                        paragraph={nodeParagraph(node.name, TextAlign.Center)}
-                        x={node.x0}
-                        y={
-                          node.y0 +
-                          (node.y1 - node.y0) / 2 -
-                          (nodeParagraph(
-                            node.name,
-                            TextAlign.Center
-                          )?.getHeight() ?? 0) /
-                            2 +
-                          node.y1 -
-                          node.y0
-                        }
-                        width={sankeyLayout.nodeWidth()}
-                      />
-                    </Group>
-                  ) : (
-                    <Group>
-                      <Paragraph
-                        paragraph={nodeParagraph(node.name, textAlign)}
-                        x={isOutput ? node.x0 - 60 : node.x0}
-                        y={
-                          node.y0 +
-                          (node.y1 - node.y0) / 2 -
-                          (nodeParagraph(node.name)?.getHeight() ?? 0) / 2
-                        }
-                        width={100}
-                      />
-                      {isInput && (
-                        <Paragraph
-                          paragraph={fromParagraph(walletAddress)}
-                          x={node.x0}
-                          y={
-                            node.y0 +
-                            (node.y1 - node.y0) / 2 -
-                            (fromParagraph(walletAddress)?.getHeight() ?? 0) /
-                              2 +
-                            (fromParagraph(walletAddress)?.getHeight() ?? 0) * 2
-                          }
-                          width={200}
-                        />
-                      )}
-                    </Group>
-                  )}
+                <Group>
+                  <Rect
+                    x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
+                    y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
+                    width={50}
+                    //TODO: to be calculated
+                    height={100}
+                    color="#FFFFFF"
+                  />
                 </Group>
               )
-            })}
-        </Group>
-      </Canvas>
-    </View>
+            }
+            return null
+          }
+          return (
+            <Group key={index}>
+              <SSSankeyNode
+                width={sankeyGenerator.nodeWidth()}
+                x={node.x0 ?? 0}
+                y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
+                textInfo={dataNode.textInfo}
+              />
+              {blockRect()}
+            </Group>
+          )
+        })}
+      </Group>
+    </Canvas>
   )
 }
 
-export default TransactionFlowSankey
+export default SSUtxoFlow

@@ -1,8 +1,7 @@
 import { useHeaderHeight } from '@react-navigation/elements'
-import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { memo, useCallback, useMemo, useState } from 'react'
+import { Stack } from 'expo-router'
+import { memo, useCallback, useMemo } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import {
   Gesture,
@@ -14,10 +13,8 @@ import Animated, {
   useSharedValue
 } from 'react-native-reanimated'
 
-import SSButton from '@/components/SSButton'
-import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
-import UtxoFlow from '@/components/SSUtxoFlow-copy'
+import UtxoFlow from '@/components/SSUtxoFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -26,9 +23,7 @@ import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { clamp } from '@/utils/worklet'
 
 export default memo(UTXOTransactionFlow)
 
@@ -38,10 +33,6 @@ function UTXOTransactionFlow() {
   const accountStore = useAccountStore()
   const transactionBuilderStore = useTransactionBuilderStore()
   const priceStore = usePriceStore()
-
-  const hasSelectedUtxos = useMemo(() => {
-    return transactionBuilderStore.getInputs().length > 0
-  }, [transactionBuilderStore])
 
   const utxosValue = useCallback(
     (utxos: Utxo[]): number => utxos.reduce((acc, utxo) => acc + utxo.value, 0),
@@ -56,37 +47,22 @@ function UTXOTransactionFlow() {
     return utxosValue(transactionBuilderStore.getInputs())
   }, [transactionBuilderStore, utxosValue])
 
-  // Add this to log the transaction details of selected inputs
-  const selectedInputDetails = transactionBuilderStore.getInputDetails()
-  // console.log('Selected inpust transaction details:', selectedInputDetails)
-
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
 
   const canvasSize = { width: GRAPH_WIDTH * 1.5, height: GRAPH_HEIGHT } // Reduced from 3 to 1.5
-  const centerX = canvasSize.width / 3 // Changed from 4 to 3
-  const centerY = canvasSize.height / 2
+
   const sankeyWidth = canvasSize.width
   const sankeyHeight = canvasSize.height - 200
 
-  // Add shared values for gestures
-  const scale = useSharedValue(1) // Changed from 0.6 to 0.8
-  const savedScale = useSharedValue(1)
+  // Add animated values for gestures
+
   const translateX = useSharedValue(-width * 0.4) // Changed from 0.8 to 0.4
   const translateY = useSharedValue(0)
   const savedTranslateX = useSharedValue(-width * 0.4)
   const savedTranslateY = useSharedValue(0)
-
-  // Create gesture handlers
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate((event) => {
-      scale.value = clamp(savedScale.value * event.scale, 0.5, 2)
-    })
-    .onEnd(() => {
-      savedScale.value = scale.value
-    })
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
@@ -98,13 +74,10 @@ function UTXOTransactionFlow() {
       savedTranslateY.value = translateY.value
     })
 
-  const composed = Gesture.Simultaneous(pinchGesture, panGesture)
-
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value }
+      { translateY: translateY.value }
     ]
   }))
   const inputs = transactionBuilderStore.getInputs()
@@ -119,7 +92,7 @@ function UTXOTransactionFlow() {
         textInfo: [
           `${input.value}`,
           `${formatAddress(input.txid, 3)}`,
-          input.label
+          input.label ?? ''
         ],
         value: input.value
       }))
@@ -190,8 +163,6 @@ function UTXOTransactionFlow() {
 
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputs, utxosSelectedValue])
-
-  console.log({ sankeyLinks })
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -266,7 +237,7 @@ function UTXOTransactionFlow() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', flex: 1, top: 100 }}>
-        <GestureDetector gesture={composed}>
+        <GestureDetector gesture={panGesture}>
           <Animated.View
             style={[
               { width: sankeyWidth, height: sankeyHeight },
@@ -285,48 +256,7 @@ function UTXOTransactionFlow() {
         locations={[0, 0.1255, 0.2678, 1]}
         style={[styles.absoluteSubmitContainer]}
         colors={['#00000000', '#0000000F', '#0000002A', '#000000']}
-      >
-        <SSVStack style={{ width: '92%' }}>
-          <SSHStack justifyBetween style={{ width: '100%' }}>
-            <SSButton
-              label={i18n.t('signAndSend.addInput')}
-              variant="default"
-              // disabled={!hasSelectedUtxos}
-              style={[
-                { opacity: 100, width: '48%' },
-                !hasSelectedUtxos && {
-                  backgroundColor: Colors.gray[700]
-                }
-              ]}
-              textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
-            />
-            <SSButton
-              label={i18n.t('signAndSend.addOutput')}
-              variant="secondary"
-              // disabled={!hasSelectedUtxos}
-              style={[
-                { opacity: 100, width: '48%' },
-                !hasSelectedUtxos && {
-                  backgroundColor: Colors.gray[700]
-                }
-              ]}
-              textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
-            />
-          </SSHStack>
-          <SSButton
-            label={i18n.t('signAndSend.setMessageFee')}
-            variant="secondary"
-            disabled={!hasSelectedUtxos}
-            style={[
-              { opacity: 100 },
-              !hasSelectedUtxos && {
-                backgroundColor: Colors.gray[700]
-              }
-            ]}
-            textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
-          />
-        </SSVStack>
-      </LinearGradient>
+      />
     </GestureHandlerRootView>
   )
 }
