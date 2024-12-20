@@ -9,8 +9,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "types": "expo customize tsconfig.json",
-    "test": "yarn test:unit",
-    "test:unit": "TZ=UTC jest ./tests/unit",
+    "test": "yarn test:unit && yarn test:int",
+    "test:unit": "jest ./tests/unit",
+    "test:int": "jest ./tests/int",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
