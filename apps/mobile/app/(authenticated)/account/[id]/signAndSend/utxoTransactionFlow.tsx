@@ -22,28 +22,25 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountStore } from '@/store/accounts'
-import { useEnhancedTransactionBuilderStore } from '@/store/enhancedTransactionBuilder'
 import { usePriceStore } from '@/store/price'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { clamp } from '@/utils/worklet'
 
 export default memo(UTXOTransactionFlow)
 
-function UTXOTransactionFlow() {
-  const router = useRouter()
-  const accountStore = useAccountStore()
-  const transactionBuilderStore = useEnhancedTransactionBuilderStore()
-  const priceStore = usePriceStore()
-  // const blockchainStore = useBlockchainStore()
-  const account = useAccountStore()
+const MINING_FEE_VALUE = 1635
 
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+function UTXOTransactionFlow() {
+  const accountStore = useAccountStore()
+  const transactionBuilderStore = useTransactionBuilderStore()
+  const priceStore = usePriceStore()
 
   const hasSelectedUtxos = useMemo(() => {
-    return transactionBuilderStore.getCurrentInputs().length > 0
+    return transactionBuilderStore.getInputs().length > 0
   }, [transactionBuilderStore])
 
   const utxosValue = useCallback(
@@ -56,12 +53,12 @@ function UTXOTransactionFlow() {
     [accountStore.currentAccount.utxos, utxosValue]
   )
   const utxosSelectedValue = useMemo(() => {
-    return utxosValue(transactionBuilderStore.getCurrentInputs())
+    return utxosValue(transactionBuilderStore.getInputs())
   }, [transactionBuilderStore, utxosValue])
 
   // Add this to log the transaction details of selected inputs
-  const selectedInputDetails = transactionBuilderStore.getCurrentInputDetails()
-  console.log('Selected input transaction details:', selectedInputDetails)
+  const selectedInputDetails = transactionBuilderStore.getInputDetails()
+  // console.log('Selected inpust transaction details:', selectedInputDetails)
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
@@ -75,8 +72,8 @@ function UTXOTransactionFlow() {
   const sankeyHeight = canvasSize.height - 200
 
   // Add shared values for gestures
-  const scale = useSharedValue(0.8) // Changed from 0.6 to 0.8
-  const savedScale = useSharedValue(0.8)
+  const scale = useSharedValue(1) // Changed from 0.6 to 0.8
+  const savedScale = useSharedValue(1)
   const translateX = useSharedValue(-width * 0.4) // Changed from 0.8 to 0.4
   const translateY = useSharedValue(0)
   const savedTranslateX = useSharedValue(-width * 0.4)
@@ -110,35 +107,91 @@ function UTXOTransactionFlow() {
       { scale: scale.value }
     ]
   }))
-  const [transactionFlows, setTransactionFlows] = useState<{
-    current: {
-      inputs: Utxo[]
-      outputs: { type: string; value: number }[]
-      totalValue: number
-      vSize: number
+  const inputs = transactionBuilderStore.getInputs()
+
+  const sankeyNodes = useMemo(() => {
+    if (inputs.length > 0) {
+      const inputNodes = inputs.map((input, index) => ({
+        id: String(index + 1),
+        indexC: index + 1,
+        type: 'text',
+        depthH: 1,
+        textInfo: [
+          `${input.value}`,
+          `${formatAddress(input.txid, 3)}`,
+          input.label
+        ],
+        value: input.value
+      }))
+
+      const blockNode = [
+        {
+          id: String(inputs?.length + 1),
+          indexC: inputs?.length + 1,
+          type: 'block',
+          depthH: 2,
+          textInfo: ['', '', '1533 B', '1509 vB']
+        }
+      ]
+
+      const miningFee = `${MINING_FEE_VALUE}`
+      const priority = '42 sats/vB'
+      const outputNodes = [
+        {
+          id: String(inputs?.length + 2),
+          indexC: inputs?.length + 2,
+          type: 'text',
+          depthH: 3,
+          textInfo: [
+            'Unspent',
+            `${utxosSelectedValue - MINING_FEE_VALUE}`,
+            'to'
+          ],
+          value: utxosSelectedValue - MINING_FEE_VALUE
+        },
+        {
+          id: String(inputs?.length + 3),
+          indexC: inputs?.length + 3,
+          type: 'text',
+          depthH: 3,
+          textInfo: [priority, miningFee, 'mining fee'],
+          value: MINING_FEE_VALUE
+        }
+      ]
+      return [...inputNodes, ...blockNode, ...outputNodes]
+    } else {
+      return []
     }
-    previous: {
-      [transactionId: string]: {
-        inputs: Utxo[]
-        outputs: { type: string; value: number }[]
-        totalValue: number
-        vSize: number
+  }, [inputs, utxosSelectedValue])
+
+  const sankeyLinks = useMemo(() => {
+    if (inputs.length === 0) return []
+
+    // Create links from each input to the block node
+    const inputToBlockLinks = inputs.map((input, index) => ({
+      source: String(index + 1),
+      target: String(inputs.length + 1), // block node id
+      value: input.value
+    }))
+
+    // Create links from block node to output nodes
+    const blockToOutputLinks = [
+      {
+        source: String(inputs.length + 1), // from block node
+        target: String(inputs.length + 2), // to first output node (Unspent)
+        value: utxosSelectedValue - MINING_FEE_VALUE
+      },
+      {
+        source: String(inputs.length + 1), // from block node
+        target: String(inputs.length + 3), // to second output node (Mining fee)
+        value: MINING_FEE_VALUE
       }
-    }
-  } | null>(null)
+    ]
 
-  // useEffect(() => {
-  //   const fetchTransactionFlows = async () => {
-  //     try {
-  //       const flows = await transactionBuilderStore.getAllTransactionFlows()
-  //       setTransactionFlows(flows)
-  //     } catch (error) {
-  //       console.error('Error fetching transaction flows:', error)
-  //     }
-  //   }
+    return [...inputToBlockLinks, ...blockToOutputLinks]
+  }, [inputs, utxosSelectedValue])
 
-  //   fetchTransactionFlows()
-  // }, [transactionBuilderStore])
+  console.log({ sankeyLinks })
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -155,26 +208,15 @@ function UTXOTransactionFlow() {
         colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}
       >
         <SSVStack>
-          <SSHStack justifyBetween>
-            <SSText color="muted">Group</SSText>
+          <SSVStack itemsCenter>
             <SSText size="md">
-              {i18n.t('signAndSend.selectSpendableOutputs')}
+              {i18n.t('signAndSend.addRecipientOutputs')}
             </SSText>
-            <SSIconButton
-              onPress={() =>
-                router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
-              }
-            >
-              <Image
-                style={{ width: 24, height: 16 }}
-                source={require('@/assets/icons/list.svg')}
-              />
-            </SSIconButton>
-          </SSHStack>
+          </SSVStack>
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {transactionBuilderStore.getCurrentInputs().length}{' '}
+                {transactionBuilderStore.getInputs().length}{' '}
                 {i18n.t('common.of').toLowerCase()}{' '}
                 {accountStore.currentAccount.utxos.length}{' '}
                 {i18n.t('common.selected').toLowerCase()}
@@ -231,15 +273,7 @@ function UTXOTransactionFlow() {
               animatedStyle
             ]}
           >
-            <UtxoFlow
-            // width={sankeyWidth}
-            // height={sankeyHeight}
-            // centerX={centerX}
-            // centerY={centerY}
-            // walletAddress={formatAddress(
-            //   account.currentAccount.address ?? ''
-            // )}
-            />
+            <UtxoFlow sankeyNodes={sankeyNodes} sankeyLinks={sankeyLinks} />
           </Animated.View>
         </GestureDetector>
       </View>

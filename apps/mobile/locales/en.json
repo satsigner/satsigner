@@ -105,7 +105,8 @@
       "selectAll": "Select all",
       "setMessageFee": "Set message fee",
       "addInput": "Add input",
-      "addOutput": "Add output"
+      "addOutput": "Add output",
+      "addRecipientOutputs": "Add recipient outputs"
     },
     "addMasterKey": {
       "title": "Add Master Key",

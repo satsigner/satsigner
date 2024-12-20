@@ -1,25 +1,29 @@
 import {
   Canvas,
   Group,
+  LinearGradient,
   Paragraph,
   Path,
   Rect,
   Skia,
   TextAlign,
-  useFonts
+  useFonts,
+  vec,
+  TileMode
 } from '@shopify/react-native-skia'
 import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
 import { sankey } from 'd3-sankey'
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 
 import linkList from './sankeylinks.json'
 import nodeList from './sankeynode.json'
+import { SSSankeyNode } from './SSSankeyNode'
+import { gray } from '@/styles/colors'
 
 interface Link extends SankeyLinkMinimal<object, object> {
   source: string
   target: string
   value: number
-  dash?: boolean
 }
 
 interface Node extends SankeyNodeMinimal<object, object> {
@@ -35,22 +39,6 @@ interface Data {
   links: Link[]
 }
 
-const data: Data = {
-  nodes: nodeList.map((item) => ({
-    id: String(item.indexC),
-    indexC: item.indexC,
-    depthH: item.depthH,
-    type: item.type,
-    textInfo: item.textInfo
-  })),
-  links: linkList.map((item) => ({
-    source: item.source,
-    target: item.target,
-    value: 100,
-    dash: item.dash
-  }))
-}
-
 interface LinkPoints {
   souceWidth: number
   targetWidth: number
@@ -59,6 +47,7 @@ interface LinkPoints {
   x2: number
   y2: number
 }
+const TARGET_MAX_WIDTH = 60
 const CustomLink = (points: LinkPoints, dash: boolean = false) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
@@ -170,11 +159,11 @@ const CustomLink = (points: LinkPoints, dash: boolean = false) => {
 }
 
 const sankeyGenerator = sankey()
-  .nodeWidth(48)
+  .nodeWidth(76)
   .nodePadding(100)
   .extent([
     [20, 160],
-    [1000 * 1.2, 1000 - 160]
+    [1000 * 0.4, 1000 * 0.6]
   ])
   .nodeId((node: any) => node.id)
 
@@ -184,9 +173,39 @@ sankeyGenerator.nodeAlign((node: any) => {
   return depth
 })
 
-const { nodes, links } = sankeyGenerator(data)
+interface SankeyProps {
+  sankeyNodes: Node[]
+  sankeyLinks: Link[]
+}
 
-const SankeyDiagram = () => {
+const SankeyDiagram = ({ sankeyNodes, sankeyLinks }: SankeyProps) => {
+  const { nodes, links } = sankeyGenerator({
+    // nodes: data.nodes,
+    nodes: sankeyNodes,
+    links: sankeyLinks.map((item) => ({
+      source: item.source,
+      target: item.target,
+      value: item.value
+    }))
+  })
+
+  const getUtxoWidth = (node: Node) => {
+    // Find all nodes at the same depth as the target node
+    const nodesAtSameDepth = nodes.filter((n) => n.depthH === node.depthH)
+
+    // Calculate total sats at this depth
+    const totalSats = nodesAtSameDepth.reduce((sum, n) => {
+      const sats = n?.value ?? 0
+      return sum + sats
+    }, 0)
+
+    // Get current node's sats
+    const nodeSats = node?.value ?? 0
+
+    // Calculate width (30 is max width, proportional to sats percentage)
+    return (nodeSats / totalSats) * TARGET_MAX_WIDTH
+  }
+
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
@@ -196,7 +215,12 @@ const SankeyDiagram = () => {
   })
 
   const nodeParagraph = useCallback(
-    (text: string, textAlign = TextAlign.Left, color = '#4F4F4F') => {
+    ({
+      text = '',
+      textAlign = TextAlign.Left,
+      color = '#4F4F4F',
+      weight = 400
+    }) => {
       if (!customFontManager) return null
 
       const textStyle = {
@@ -204,7 +228,7 @@ const SankeyDiagram = () => {
         fontFamilies: ['SF Pro Text'],
         fontSize: 14,
         fontStyle: {
-          weight: 400
+          weight
         }
       }
       const para = Skia.ParagraphBuilder.Make({
@@ -213,7 +237,7 @@ const SankeyDiagram = () => {
         strutStyle: {
           strutEnabled: true,
           forceStrutHeight: true,
-          heightMultiplier: 1.5, // Adjust this value to control the background height
+          heightMultiplier: 1.6, // Adjust this value to control the background height
           leading: 0
         }
       })
@@ -226,6 +250,14 @@ const SankeyDiagram = () => {
     },
     [customFontManager]
   )
+
+  if (!sankeyNodes || sankeyNodes.length === 0) {
+    return null
+  }
+
+  if (!nodes || !links) {
+    return null
+  }
 
   return (
     <Canvas
@@ -240,88 +272,54 @@ const SankeyDiagram = () => {
         {links.map((link, index) => {
           const sourceNode = link.source as Node
           const targetNode = link.target as Node
-          const lineH =
-            nodeParagraph(
-              sourceNode.textInfo[0] ?? '',
-              TextAlign.Center
-            )?.getHeight() ?? 0
+          const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
-          if (sourceNode.id === '28') {
-            console.log(`${sourceNode.id}<-ID`, {
-              sy0: sourceNode.y0,
-              sy1: sourceNode.y1,
-              value: sourceNode.value,
-              deptH: sourceNode.depthH,
-              sats: sourceNode.textInfo[0]
-            })
-          }
-          if (targetNode.id === '29') {
-            console.log(`${targetNode.id}<-ID`, {
-              ty0: targetNode.y0,
-              ty1: targetNode.y1,
-              value: targetNode.value,
-              deptH: targetNode.depthH,
-              sats: targetNode.textInfo[0]
-            })
-          }
-
-          if (targetNode.id === '30') {
-            console.log(`${targetNode.id}<-ID`, {
-              ty0: targetNode.y0,
-              ty1: targetNode.y1,
-              value: targetNode.value,
-              deptH: targetNode.depthH,
-              sats: targetNode.textInfo[0]
-            })
-          }
-          const utxoWidth = () => {
-            // Find all nodes at the same depth as the target node
-            const nodesAtSameDepth = nodes.filter(
-              (n) => n.depthH === targetNode.depthH
-            )
-
-            // Calculate total sats at this depth
-            const totalSats = nodesAtSameDepth.reduce((sum, n) => {
-              const sats = n?.textInfo
-                ? parseInt(n.textInfo[0]?.replace(/[^0-9]/g, ''), 10) || 0
-                : 0
-              return sum + sats
-            }, 0)
-
-            // Get current node's sats
-            const nodeSats = targetNode?.textInfo
-              ? parseInt(targetNode.textInfo[0]?.replace(/[^0-9]/g, ''), 10) ||
-                0
-              : 0
-
-            // Calculate width (40 is max width, proportional to sats percentage)
-            return (nodeSats / totalSats) * 30
-          }
           const points: LinkPoints = {
-            souceWidth: sourceNode.type === 'block' ? 10 : 20,
-            targetWidth: targetNode.type === 'block' ? 10 : utxoWidth(),
-            x1: sourceNode.x1 ?? 0,
-            y1:
+            souceWidth:
+              sourceNode.type === 'block' ? 5 : getUtxoWidth(sourceNode),
+            targetWidth:
+              targetNode.type === 'block' ? 5 : getUtxoWidth(targetNode),
+            x1:
               sourceNode.type === 'block'
-                ? sourceNode.y1 ?? 0
-                : (sourceNode.y1 ?? 0) - 1 * lineH ?? 0,
-            x2: targetNode.x0 ?? 0,
-            y2:
+                ? (sourceNode.x1 ?? 0) - (sankeyGenerator.nodeWidth() - 50) / 2
+                : sourceNode.x1 ?? 0,
+            y1: (link.source as Node).y1 ?? 0,
+            x2:
               targetNode.type === 'block'
-                ? targetNode.y0 ?? 0
-                : (targetNode.y0 ?? 0) - 1 * lineH ?? 0
+                ? (targetNode.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
+                : targetNode.x0 ?? 0,
+            y2: (link.target as Node).y0 ?? 0
           }
           const linkData = link as Link
           const path1 = CustomLink(points, linkData.dash ?? false)
 
           return (
-            <Path
-              key={index}
-              path={path1}
-              strokeWidth={10}
-              style="fill"
-              color="#252525"
-            />
+            <Group key={index}>
+              <Path
+                key={index}
+                path={path1}
+                style="fill"
+                color={gray[700]}
+                // Create a paint object for the gradient
+                paint={
+                  isUnspent
+                    ? (() => {
+                        const paint = Skia.Paint()
+                        paint.setShader(
+                          Skia.Shader.MakeLinearGradient(
+                            vec(points.x1, points.y1),
+                            vec(points.x2, points.y2),
+                            [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
+                            [0, 0.9],
+                            TileMode.Clamp
+                          )
+                        )
+                        return paint
+                      })()
+                    : undefined
+                }
+              />
+            </Group>
           )
         })}
 
@@ -329,31 +327,23 @@ const SankeyDiagram = () => {
         {nodes.map((node, index) => {
           const dataNode = node as Node
           const lineH =
-            nodeParagraph(
-              dataNode.textInfo[0] ?? '',
-              TextAlign.Center
-            )?.getHeight() ?? 0
+            nodeParagraph({
+              text: dataNode.textInfo[0] ?? '',
+              textAlign: TextAlign.Center
+            })?.getHeight() ?? 0
 
           const blockRect = () => {
             if (dataNode.type === 'block') {
-              const padding = 4
+              console.log({ x: node.x0, y: node.y0 })
               return (
                 <Group>
                   <Rect
-                    x={(node.x0 ?? 0) - padding / 2}
-                    y={(node.y0 ?? 0) - 0.5 * lineH - padding / 2}
-                    width={(node.x1 ?? 0) - (node.x0 ?? 0) + padding}
-                    height={lineH + padding}
-                    strokeWidth={3}
-                    style="stroke"
-                    color="#7E7E7E"
-                  />
-                  <Rect
-                    x={node.x0 ?? 0}
+                    x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
                     y={(node.y0 ?? 0) - 0.5 * lineH}
-                    width={(node.x1 ?? 0) - (node.x0 ?? 0)}
-                    height={lineH}
-                    color="#393939"
+                    width={50}
+                    //TODO: to be calculated
+                    height={100}
+                    color="#FFFFFF"
                   />
                 </Group>
               )
@@ -362,45 +352,13 @@ const SankeyDiagram = () => {
           }
           return (
             <Group key={index}>
-              <Paragraph
-                paragraph={nodeParagraph(
-                  dataNode.textInfo[0] ?? '',
-                  TextAlign.Center
-                )}
+              <SSSankeyNode
+                width={sankeyGenerator.nodeWidth()}
                 x={node.x0 ?? 0}
                 y={(node.y0 ?? 0) - 1.8 * lineH}
-                width={sankeyGenerator.nodeWidth()}
+                textInfo={dataNode.textInfo}
               />
-
               {blockRect()}
-
-              <Paragraph
-                paragraph={nodeParagraph(
-                  dataNode.textInfo[1] ?? '',
-                  TextAlign.Center,
-                  dataNode.type === 'block' ? '#828282' : '#4F4F4F'
-                )}
-                x={node.x0 ?? 0}
-                y={(node.y0 ?? 0) - 0.5 * lineH}
-                width={sankeyGenerator.nodeWidth()}
-              />
-
-              <Paragraph
-                paragraph={nodeParagraph(
-                  dataNode.textInfo[2] ?? '',
-                  TextAlign.Center
-                )}
-                x={node.x0 ?? 0}
-                y={(node.y1 ?? 0) + 0.8 * lineH}
-                width={sankeyGenerator.nodeWidth()}
-              />
-
-              {/* <Paragraph
-                paragraph={nodeParagraph(dataNode.id, TextAlign.Center)}
-                x={node.x0 ?? 0}
-                y={node.y0 ?? 0}
-                width={sankeyGenerator.nodeWidth()}
-              /> */}
             </Group>
           )
         })}
