@@ -1,17 +1,17 @@
-import { BlockchainOracle, TxPriority } from "@/types/models/Blockchain";
-import { MemPoolOracle } from "@/utils/blockchain";
+import { BlockchainOracle, TxPriority } from '@/types/models/Blockchain'
+import { MemPoolOracle } from '@/utils/blockchain'
 
-let mempoolspace : BlockchainOracle = new MemPoolOracle()
+const mempoolspace: BlockchainOracle = new MemPoolOracle()
 
 describe('Blockchain » price', () => {
   it('get price at given currency', async () => {
-    const response = await mempoolspace.getPrice("CAD")
+    const response = await mempoolspace.getPrice('CAD')
     expect(typeof response).toBe('number')
   })
   it('get price at given currency at given time', async () => {
     const timestamp = 1500000000
     const expectedPrice = 1964
-    const response = await mempoolspace.getPriceAt("EUR", timestamp)
+    const response = await mempoolspace.getPriceAt('EUR', timestamp)
     expect(response).toBe(expectedPrice)
   })
 })

@@ -26,7 +26,15 @@ export interface BlockchainOracle {
 
 export type Satoshi = number
 
-export type Currency = "USD" | "EUR" | "GBP"| "CAD" | "BRL" | "CHN" | "AUD" | "JPY"
+export type Currency =
+  | 'USD'
+  | 'EUR'
+  | 'GBP'
+  | 'CAD'
+  | 'BRL'
+  | 'CHN'
+  | 'AUD'
+  | 'JPY'
 
 // ── blocks ──────────────────────────────────────────────────────────
 
@@ -49,10 +57,10 @@ export type Block = {
 // ── transactions ────────────────────────────────────────────────────
 
 export enum TxPriority {
-  none = "none",
-  low = "low",
-  medium = "medium",
-  high = "high",
+  none = 'none',
+  low = 'low',
+  medium = 'medium',
+  high = 'high'
 }
 
 export type Tx = {
@@ -104,7 +112,7 @@ export type MemPool = {
   count: number
   vsize: number
   total_fee: number
-  fee_histogram: Array<[number, number]>
+  fee_histogram: [number, number][]
 }
 
 export type MemPoolFees = {
@@ -132,14 +140,14 @@ export type DifficultyAdjustment = {
 
 export type HashRateInfo = {
   hashrate: {
-    timestamp: number,
+    timestamp: number
     avgHashRate: number
   }[]
   difficulty: {
-    timestamp: number,
-    difficulty: number,
+    timestamp: number
+    difficulty: number
     height: number
   }[]
-  currentHashRate: number,
-  currentDifficulty: number,
+  currentHashRate: number
+  currentDifficulty: number
 }
