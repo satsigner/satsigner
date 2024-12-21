@@ -13,7 +13,7 @@ import {
   TxStatus
 } from '@/types/models/Blockchain'
 
-export class MemPoolOracle implements BlockchainOracle {
+export class MempoolOracle implements BlockchainOracle {
   baseUrl: string
   constructor(baseUrl = 'https://mempool.space/api') {
     this.baseUrl = baseUrl
@@ -47,9 +47,8 @@ export class MemPoolOracle implements BlockchainOracle {
     return data as Tx[]
   }
   async getCurrentBlockHeight(): Promise<number> {
-    return this.getText(`/blocks/tip/height`).then((height: string) =>
-      Number(height)
-    )
+    const height = await this.getText(`/blocks/tip/height`)
+    return Number(height)
   }
   async getCurrentBlockHash(): Promise<string> {
     return this.getText(`/blocks/tip/hash`)

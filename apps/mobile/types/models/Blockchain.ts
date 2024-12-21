@@ -1,5 +1,3 @@
-// ── blockchain oracle ───────────────────────────────────────────────
-
 export interface BlockchainOracle {
   getBlock: (blkid: string) => Promise<Block>
   getBlockAt: (timestamp: number) => Promise<Block>
@@ -22,8 +20,6 @@ export interface BlockchainOracle {
   getTransactionStatus: (txid: string) => Promise<TxStatus>
 }
 
-// ── currencies ──────────────────────────────────────────────────────
-
 export type Satoshi = number
 
 export type Currency =
@@ -35,8 +31,6 @@ export type Currency =
   | 'CHN'
   | 'AUD'
   | 'JPY'
-
-// ── blocks ──────────────────────────────────────────────────────────
 
 export type BlockStatus = {
   height: number
@@ -53,8 +47,6 @@ export type Block = {
   timestamp: number
   previousblockhash: string
 }
-
-// ── transactions ────────────────────────────────────────────────────
 
 export enum TxPriority {
   none = 'none',
@@ -106,8 +98,6 @@ export type TxOutspends = {
   status: TxStatus
 }
 
-// ── mempool ─────────────────────────────────────────────────────────
-
 export type MemPool = {
   count: number
   vsize: number
@@ -127,8 +117,6 @@ export type MemPoolBlock = {
   medianFee: number
   feeRange: number[]
 }
-
-// ── hashrate ────────────────────────────────────────────────────────
 
 export type DifficultyAdjustment = {
   difficultyChange: number
