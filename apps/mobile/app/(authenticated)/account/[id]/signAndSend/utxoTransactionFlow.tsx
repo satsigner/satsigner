@@ -18,7 +18,7 @@ import UtxoFlow from '@/components/SSUtxoFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
@@ -30,7 +30,7 @@ export default memo(UTXOTransactionFlow)
 const MINING_FEE_VALUE = 1635
 
 function UTXOTransactionFlow() {
-  const accountStore = useAccountStore()
+  const accountStore = useAccountsStore()
   const transactionBuilderStore = useTransactionBuilderStore()
   const priceStore = usePriceStore()
 

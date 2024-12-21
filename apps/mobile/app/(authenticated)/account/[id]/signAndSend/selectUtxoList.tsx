@@ -241,9 +241,6 @@ export default function SelectUtxoList() {
               backgroundColor: Colors.gray[700]
             }
           ]}
-          onPress={() =>
-            router.navigate(`/account/${id}/signAndSend/utxoTransactionFlow`)
-          }
           textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
           onPress={() =>
             router.navigate(`/account/${id}/signAndSend/ioPreview`)

@@ -1,7 +1,9 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import ScanIcon from '@/components/icons/ScanIcon'
@@ -18,7 +20,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import type { Utxo } from '@/types/models/Utxo'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
@@ -79,9 +81,8 @@ export default function IOPreview() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      {/* Keep "Selected spendable outputs" and the other buttons? */}
-      <SSMainLayout>
-        <SSVStack>
+      <SSMainLayout style={{ position: 'relative', height: '100%' }}>
+        <SSVStack style={{ flex: 1 }}>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
             <SSText size="md">
@@ -147,46 +148,7 @@ export default function IOPreview() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-        <SSHStack>
-          <SSVStack>
-            <SSText>Inputs:</SSText>
-            {[...inputs.values()].map((utxo) => (
-              <SSVStack gap="none" key={getUtxoOutpoint(utxo)}>
-                <SSText>{formatNumber(utxo.value)} sats</SSText>
-                <SSHStack gap="xs">
-                  <SSText color="muted" size="xs">
-                    from
-                  </SSText>
-                  <SSText size="xs">
-                    {formatAddress(utxo.addressTo || '')}
-                  </SSText>
-                </SSHStack>
-              </SSVStack>
-            ))}
-          </SSVStack>
-          <SSVStack gap="none">
-            <SSText color="muted">Bytes:</SSText>
-            <SSText>...</SSText>
-          </SSVStack>
-          <SSVStack>
-            <SSText>Outputs:</SSText>
-            {[...outputs].map((output) => (
-              <SSVStack gap="none" key={output.localId}>
-                <SSText>{formatNumber(output.amount)} sats</SSText>
-                <SSHStack gap="xs">
-                  <SSText color="muted" size="xs">
-                    from
-                  </SSText>
-                  <SSText size="xs">{formatAddress(output.to)}</SSText>
-                </SSHStack>
-                <SSText color="muted" size="xxs">
-                  "{output.label}"
-                </SSText>
-              </SSVStack>
-            ))}
-          </SSVStack>
-        </SSHStack>
-        <SSVStack>
+        <SSVStack style={styles.bottomSection}>
           <SSTextInput
             variant="outline"
             size="small"
@@ -305,3 +267,14 @@ export default function IOPreview() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  bottomSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+    paddingBottom: 20
+  }
+})
