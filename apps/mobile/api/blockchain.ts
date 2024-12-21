@@ -7,11 +7,17 @@ import {
   MemPool,
   MemPoolBlock,
   MemPoolFees,
+  PriceValue,
   Tx,
   TxOutspend,
   TxPriority,
-  TxStatus
+  TxStatus,
+  UTXO
 } from '@/types/models/Blockchain'
+
+const satsPerBtc = 100000000
+const satoshiToFiat = (btcFiatPrice: number, sats: number, decimals = 2) =>
+  Number(((btcFiatPrice * sats) / satsPerBtc).toFixed(decimals))
 
 export class MempoolOracle implements BlockchainOracle {
   baseUrl: string
@@ -27,6 +33,10 @@ export class MempoolOracle implements BlockchainOracle {
     return fetch(this.baseUrl + endpoint).then((response: any) =>
       response.text()
     )
+  }
+  async getAddressUtxos(address: string): Promise<UTXO[]> {
+    const data = await this.get(`/address/${address}/utxo`)
+    return data as UTXO[]
   }
   async getBlock(blkid: string): Promise<Block> {
     const data = await this.get(`/block/${blkid}`)
@@ -113,24 +123,51 @@ export class MempoolOracle implements BlockchainOracle {
     for (const time of timestamps) prices.push(time2price[time])
     return prices
   }
-  async getPricesAddress(currency: string, address: string): Promise<number[]> {
-    const utxos: TxOutspend[] = await this.get(`/${address}/utxo`)
-    const timestamps = utxos.map((o: TxOutspend) => o.status.block_height)
-    return this.getPricesAt(currency, timestamps)
+  async getPricesAddress(
+    currency: Currency,
+    address: string
+  ): Promise<PriceValue[]> {
+    const utxos = await this.getAddressUtxos(address)
+    const timestamps = utxos.map((o: UTXO) => o.status.block_time)
+    const fiatPrices = await this.getPricesAt(currency, timestamps)
+    const priceValues: PriceValue[] = []
+    for (let i = 0; i < fiatPrices.length; i++) {
+      const fiatPrice = fiatPrices[i]
+      const value = utxos[i].value
+      const fiatValue = satoshiToFiat(fiatPrice, value)
+      priceValues.push({ currency, value, fiatValue, fiatPrice })
+    }
+    return priceValues
   }
-  async getPricesTx(currency: string, txid: string): Promise<number[]> {
-    const outspends: TxOutspend[] = await this.getTransactionOutspends(txid)
-    const timestamps = outspends.map((o: TxOutspend) => o.status.block_height)
-    return this.getPricesAt(currency, timestamps)
+  async getPricesTxInputs(
+    currency: Currency,
+    txid: string
+  ): Promise<PriceValue[]> {
+    const tx: Tx = await this.getTransaction(txid)
+    const timestamp = tx.status.block_time
+    const fiatPrice = await this.getPriceAt(currency, timestamp)
+    const priceValues: PriceValue[] = []
+    for (const vin of tx.vin) {
+      const value = vin.prevout.value
+      const fiatValue = satoshiToFiat(fiatPrice, value)
+      priceValues.push({ currency, fiatPrice, value, fiatValue })
+    }
+    return priceValues
   }
-  async getPriceUtxo(
-    currency: string,
-    txid: string,
-    vout: string
-  ): Promise<number> {
-    const data: TxOutspend = await this.get(`/tx/${txid}/outspend/${vout}`)
-    const timestamp = data.status.block_time
-    return this.getPriceAt(currency, timestamp)
+  async getPricesTxOuputs(
+    currency: Currency,
+    txid: string
+  ): Promise<PriceValue[]> {
+    const tx: Tx = await this.getTransaction(txid)
+    const timestamp = tx.status.block_time
+    const fiatPrice = await this.getPriceAt(currency, timestamp)
+    const priceValues: PriceValue[] = []
+    for (const vOut of tx.vout) {
+      const value = vOut.value
+      const fiatValue = satoshiToFiat(fiatPrice, value)
+      priceValues.push({ currency, fiatPrice, value, fiatValue })
+    }
+    return priceValues
   }
   async getTransaction(txid: string): Promise<Tx> {
     const data: any = await this.get(`/tx/${txid}`)

@@ -1,4 +1,5 @@
 export interface BlockchainOracle {
+  getAddressUtxos: (address: string) => Promise<UTXO[]>
   getBlock: (blkid: string) => Promise<Block>
   getBlockAt: (timestamp: number) => Promise<Block>
   getBlockStatus: (blkid: string) => Promise<BlockStatus>
@@ -12,15 +13,15 @@ export interface BlockchainOracle {
   getMemPool: () => Promise<MemPool>
   getMemPoolBlocks: () => Promise<MemPoolBlock[]>
   getMemPoolFees: () => Promise<MemPoolFees>
-  getPrice: (currency: Currency) => Promise<Satoshi>
-  getPriceAt: (currency: string, timestamp: number) => Promise<Satoshi>
-  getPricesAddress: (currency: string, address: string) => Promise<Satoshi[]>
-  getPricesTx: (currency: string, txid: string) => Promise<Satoshi[]>
-  getPriceUtxo: (
-    currency: string,
-    txid: string,
-    vout: string
-  ) => Promise<Satoshi>
+  getPrice: (currency: Currency) => Promise<number>
+  getPriceAt: (currency: Currency, timestamp: number) => Promise<number>
+  getPricesAddress: (
+    currency: Currency,
+    address: string
+  ) => Promise<PriceValue[]>
+  getPricesTxOuputs: (currency: Currency, txid: string) => Promise<PriceValue[]>
+  getPricesTxInputs: (currency: Currency, txid: string) => Promise<PriceValue[]>
+  // getPriceTxOutspend: (currency: Currency, txid: string) => Promise<PriceValue>
   getTransaction: (txid: string) => Promise<Tx>
   getTransactionHex: (txid: string) => Promise<string>
   getTransactionOutspends: (txid: string) => Promise<TxOutspend[]>
@@ -28,6 +29,13 @@ export interface BlockchainOracle {
 }
 
 export type Satoshi = number
+
+export type PriceValue = {
+  currency: Currency
+  fiatPrice: number
+  fiatValue: number
+  value: number
+}
 
 export type Currency =
   | 'USD'
@@ -66,7 +74,7 @@ export type Tx = {
   txid: string
   version: number
   locktime: number
-  vin: TxInput[]
+  vin: TxIn[]
   vout: TxOut[]
   fee: Satoshi
   weight: number
@@ -82,13 +90,14 @@ export type TxOut = {
   scriptpubkey_address?: string
 }
 
-export type TxInput = {
+export type TxIn = {
   txid: string
   vout: number
   scriptsig: string
   scriptsig_asm: string
   sequence: number
   is_coinbase: boolean
+  prevout: TxOut
 }
 
 export type TxStatus = {
@@ -102,6 +111,13 @@ export type TxOutspend = {
   spent: boolean
   txid: string
   vin: number
+  status: TxStatus
+}
+
+export type UTXO = {
+  txid: string
+  vout: number
+  value: number
   status: TxStatus
 }
 
