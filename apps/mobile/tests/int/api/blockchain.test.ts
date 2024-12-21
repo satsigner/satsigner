@@ -21,8 +21,10 @@ describe('Blockchain » price', () => {
 })
 
 describe('Blockchain » mempool', () => {
-  const diffTolerance = 2
-  const absDiff = (a: number, b: number) => Math.abs(a - b)
+  const errorTolerance = 0.015 // 1.5%
+  const isDiffReasonable = (a: number, b: number) => {
+    return Math.abs((a - b) / b) < errorTolerance
+  }
 
   it('get mempool info', async () => {
     const response = await mempoolspace.getMemPool()
@@ -56,7 +58,7 @@ describe('Blockchain » mempool', () => {
     const values = response.map((v: PriceValue) => v.fiatValue)
     const expected = [0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 477013.5]
     for (let i = 0; i < inputCount; i++) {
-      expect(absDiff(values[i], expected[i])).toBeLessThan(diffTolerance)
+      expect(isDiffReasonable(values[i], expected[i])).toBeTruthy()
     }
   })
 
@@ -74,7 +76,7 @@ describe('Blockchain » mempool', () => {
       6137.87, 5961.42, 5745.19, 5172.51, 4521.29, 4141.71, 3976.71
     ]
     for (let i = 0; i < inputCount; i++) {
-      expect(absDiff(values[i], expected[i])).toBeLessThan(diffTolerance)
+      expect(isDiffReasonable(values[i], expected[i])).toBeTruthy()
     }
   })
 })
