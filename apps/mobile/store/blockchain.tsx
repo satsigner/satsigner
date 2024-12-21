@@ -16,7 +16,6 @@ type BlockchainState = {
 type BlockchainAction = {
   getBlockchain: () => Promise<Blockchain>
   getBlockchainHeight: () => Promise<number>
-  getEstimatedFee: (confirmationTarget?: number) => Promise<number>
 }
 
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
@@ -32,18 +31,6 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       },
       getBlockchainHeight: async () => {
         return (await get().getBlockchain()).getHeight()
-      },
-      getEstimatedFee: async (confirmationTarget: number = 6) => {
-        const blockchain = await get().getBlockchain()
-        const estimatedFee = await blockchain.estimateFee(confirmationTarget)
-
-        if (estimatedFee === undefined) {
-          throw new Error(
-            `No fee estimate available for ${confirmationTarget} block confirmation target`
-          )
-        }
-
-        return estimatedFee.asSatPerVb() //
       }
     }),
     {

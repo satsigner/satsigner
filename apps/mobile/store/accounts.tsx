@@ -57,7 +57,6 @@ const initialCurrentAccountState: Account = {
   accountCreationType: null,
   transactions: [],
   utxos: [],
-  address: '',
   summary: {
     balance: 0,
     numberOfAddresses: 0,
@@ -139,9 +138,8 @@ const useAccountStore = create<AccountsState & AccountsAction>()(
         await syncWallet(wallet, backend, getBlockchainConfig(backend, url))
       },
       getPopulatedAccount: async (wallet, account) => {
-        const { transactions, utxos, summary, address } =
-          await getWalletData(wallet)
-        return { ...account, transactions, utxos, summary, address }
+        const { transactions, utxos, summary } = await getWalletData(wallet)
+        return { ...account, transactions, utxos, summary }
       },
       saveAccount: async (account) => {
         set((state) => ({
