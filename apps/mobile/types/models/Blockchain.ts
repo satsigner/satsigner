@@ -3,20 +3,27 @@ export interface BlockchainOracle {
   getBlockAt: (timestamp: number) => Promise<Block>
   getBlockStatus: (blkid: string) => Promise<BlockStatus>
   getBlockTransactions: (blkid: string) => Promise<Tx[]>
-  getCurrentBlockHeight: () => Promise<number>
   getCurrentBlockHash: () => Promise<string>
-  getCurrentFeeRate: (priority: TxPriority) => Promise<Satoshi>
+  getCurrentBlockHeight: () => Promise<number>
   getCurrentDifficulty: () => Promise<number>
+  getCurrentFeeRate: (priority: TxPriority) => Promise<Satoshi>
   getCurrentHashRate: () => Promise<number>
   getDifficultyAdjustment: () => Promise<DifficultyAdjustment>
   getMemPool: () => Promise<MemPool>
-  getMemPoolFees: () => Promise<MemPoolFees>
   getMemPoolBlocks: () => Promise<MemPoolBlock[]>
-  getPriceAt: (currency: string, timestamp: number) => Promise<Satoshi>
+  getMemPoolFees: () => Promise<MemPoolFees>
   getPrice: (currency: Currency) => Promise<Satoshi>
+  getPriceAt: (currency: string, timestamp: number) => Promise<Satoshi>
+  getPricesAddress: (currency: string, address: string) => Promise<Satoshi[]>
+  getPricesTx: (currency: string, txid: string) => Promise<Satoshi[]>
+  getPriceUtxo: (
+    currency: string,
+    txid: string,
+    vout: string
+  ) => Promise<Satoshi>
   getTransaction: (txid: string) => Promise<Tx>
   getTransactionHex: (txid: string) => Promise<string>
-  getTransactionOutspends: (txid: string) => Promise<TxOutspends>
+  getTransactionOutspends: (txid: string) => Promise<TxOutspend[]>
   getTransactionStatus: (txid: string) => Promise<TxStatus>
 }
 
@@ -91,7 +98,7 @@ export type TxStatus = {
   block_time: number
 }
 
-export type TxOutspends = {
+export type TxOutspend = {
   spent: boolean
   txid: string
   vin: number

@@ -8,7 +8,7 @@ import {
   MemPoolBlock,
   MemPoolFees,
   Tx,
-  TxOutspends,
+  TxOutspend,
   TxPriority,
   TxStatus
 } from '@/types/models/Blockchain'
@@ -87,6 +87,10 @@ export class MempoolOracle implements BlockchainOracle {
     const data: any = await this.get(`/v1/fees/mempool-blocks`)
     return data as MemPoolBlock[]
   }
+  async getPrice(currency: Currency): Promise<number> {
+    const data: any = await this.get(`/v1/prices`)
+    return data[currency] as number
+  }
   async getPriceAt(currency: string, timestamp: number): Promise<number> {
     const data: any = await this.get(
       `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
@@ -94,9 +98,39 @@ export class MempoolOracle implements BlockchainOracle {
     const prices = data.prices
     return prices[0][currency] as number
   }
-  async getPrice(currency: Currency): Promise<number> {
-    const data: any = await this.get(`/v1/prices`)
-    return data[currency] as number
+  async getPricesAt(currency: string, timestamps: number[]): Promise<number[]> {
+    // create a set of unique timestamps to avoid duplicate requests
+    const uniqueTimestamps = [...new Set(timestamps)]
+    // build a map to track time->price
+    const time2price = {} as { [key: string]: number }
+    // make requests without duplicates
+    for (const time of uniqueTimestamps) {
+      const price = await this.getPriceAt(currency, time)
+      time2price[time] = price
+    }
+    // build the price array
+    const prices: number[] = []
+    for (const time of timestamps) prices.push(time2price[time])
+    return prices
+  }
+  async getPricesAddress(currency: string, address: string): Promise<number[]> {
+    const utxos: TxOutspend[] = await this.get(`/${address}/utxo`)
+    const timestamps = utxos.map((o: TxOutspend) => o.status.block_height)
+    return this.getPricesAt(currency, timestamps)
+  }
+  async getPricesTx(currency: string, txid: string): Promise<number[]> {
+    const outspends: TxOutspend[] = await this.getTransactionOutspends(txid)
+    const timestamps = outspends.map((o: TxOutspend) => o.status.block_height)
+    return this.getPricesAt(currency, timestamps)
+  }
+  async getPriceUtxo(
+    currency: string,
+    txid: string,
+    vout: string
+  ): Promise<number> {
+    const data: TxOutspend = await this.get(`/tx/${txid}/outspend/${vout}`)
+    const timestamp = data.status.block_time
+    return this.getPriceAt(currency, timestamp)
   }
   async getTransaction(txid: string): Promise<Tx> {
     const data: any = await this.get(`/tx/${txid}`)
@@ -106,9 +140,9 @@ export class MempoolOracle implements BlockchainOracle {
     const data: string = await this.getText(`/tx/${txid}`)
     return data
   }
-  async getTransactionOutspends(txid: string): Promise<TxOutspends> {
+  async getTransactionOutspends(txid: string): Promise<TxOutspend[]> {
     const data: any = await this.getText(`/tx/${txid}/outspends`)
-    return data as TxOutspends
+    return data as TxOutspend[]
   }
   async getTransactionStatus(txid: string): Promise<TxStatus> {
     const data: any = await this.getText(`/tx/${txid}/status`)
