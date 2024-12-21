@@ -152,11 +152,11 @@ const SSUtxoFlow = ({ sankeyNodes, sankeyLinks, inputCount }: SankeyProps) => {
           const points: LinkPoints = {
             souceWidth:
               sourceNode.type === 'block'
-                ? Math.min(5, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
                 : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
             targetWidth:
               targetNode.type === 'block'
-                ? Math.min(5, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
                 : getLinkWidth(targetNode, LINK_MAX_WIDTH),
             x1:
               sourceNode.type === 'block'
