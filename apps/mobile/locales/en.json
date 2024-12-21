@@ -11,6 +11,7 @@
       "select": "Select",
       "selectAll": "Select All",
       "selected": "Selected",
+      "deselectAll": "Deselect All",
       "next": "Next",
       "confirm": "Confirm",
       "close": "Close",
@@ -28,7 +29,8 @@
       "memo": "Memo",
       "clear": "Clear",
       "goBack": "Go back",
-      "version": "Version"
+      "version": "Version",
+      "address": "Address"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -63,6 +65,7 @@
       "triesLeft": "Tries left"
     },
     "settings": {
+      "title": "Config",
       "bitcoinNetwork": {
         "title": "Bitcoin Network",
         "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
@@ -87,8 +90,8 @@
     },
     "accountList": {
       "noKeysYet": "No keys yet",
-      "childAccounts": ["Child", "Accounts"],
       "totalTransactions": ["Total", "Transactions"],
+      "childAccounts": ["Child", "Accounts"],
       "spendableOutputs": ["Spendable", "Outputs"],
       "satsInMempool": ["Sats in", "Mempool"]
     },
@@ -96,7 +99,8 @@
       "signAndSend": "Sign & Send",
       "newInvoice": "New Invoice",
       "parentAccountActivity": "Parent Account Activity",
-      "noMemo": "No memo"
+      "noMemo": "No memo",
+      "noLabel": "No label"
     },
     "signAndSend": {
       "selectSpendableOutputs": "Select spendable outputs",
@@ -106,7 +110,42 @@
       "setMessageFee": "Set message fee",
       "addInput": "Add input",
       "addOutput": "Add output",
-      "addRecipientOutputs": "Add recipient outputs"
+      "addRecipientOutputs": "Add recipient outputs",
+      "deselectAll": "Deselect all"
+    },
+    "ioPreview": {
+      "typeMemo": "Type memo",
+      "addInput": "Add input",
+      "addOutput": "Add output",
+      "setMessageFee": "Set message fee"
+    },
+    "feeSelection": {
+      "previewTxMessage": "Preview tx message"
+    },
+    "previewMessage": {
+      "signTxMessage": "Sign tx message"
+    },
+    "signMessage": {
+      "broadcastTxMessage": "Broadcast tx message"
+    },
+    "messageConfirmation": {
+      "messageBroadcasted": "Message broadcasted",
+      "messageId": "Message id",
+      "copyTxMessageId": "Copy tx message id",
+      "trackOnChain": "Track on chain",
+      "backToAccountHome": "Back to account home"
+    },
+    "camera": {
+      "scanText": "Scan any Bitcoin or Lightning related QR code.",
+      "permissions": "Enable camera access in your phone's settings to scan a QR code."
+    },
+    "newInvoice": {
+      "invoice": "Invoice",
+      "path": "Path",
+      "address": "Address",
+      "customAmount": "Custom Amount",
+      "memo": "Memo",
+      "generateAnotherInvoice": "Generate another invoice"
     },
     "addMasterKey": {
       "title": "Add Master Key",
@@ -154,20 +193,20 @@
           },
           "descriptions": {
             "p2pkh": [
-              "A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Legacy",
+              "which locks bitcoin to the hash of a public key."
             ],
             "p2sh-p2wpkh": [
-              "*P2SH-P2WPKH placeholder* A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Nested Segwit",
+              "which locks bitcoin to a SegWit witness program wrapped inside a P2SH address. This allows SegWit compatibility with wallets or services that do not fully support SegWit."
             ],
             "p2wpkh": [
-              "*P2WPKH placeholder* A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Native Segwit",
+              "which locks bitcoin to a SegWit witness program. It offers reduced transaction fees and improved malleability resistance."
             ],
             "p2tr": [
-              "*P2TR placeholder* A type of",
-              "which locks bitcoin to the hash of a public key. A P2PKH transaction is one where the inputs were locked using the P2PKH ScriptPubKey."
+              "Taproot",
+              "which locks bitcoin to a Schnorr public key or a Merkle root of multiple conditions. It enhances privacy and efficiency by combining spending conditions into a single structure."
             ]
           },
           "links": {

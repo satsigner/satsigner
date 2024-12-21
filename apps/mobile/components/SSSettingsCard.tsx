@@ -27,17 +27,19 @@ export default function SSSettingsCards({
       onPress={() => onPress()}
     >
       <SSHStack justifyBetween>
-        <SSHStack style={{ alignItems: 'center' }}>
+        <SSHStack style={{ alignItems: 'center', width: '94%' }}>
           {icon}
-          <SSVStack gap="none" style={{ maxWidth: '86%' }}>
+          <SSVStack gap="none" style={{ flexShrink: 1 }}>
             <SSText size="lg">{title}</SSText>
             <SSText color="muted">{description}</SSText>
           </SSVStack>
         </SSHStack>
-        <Image
-          style={{ width: 6, height: 11.6 }}
-          source={require('@/assets/icons/chevron-right.svg')}
-        />
+        <SSHStack>
+          <Image
+            style={{ width: 6, height: 11.6 }}
+            source={require('@/assets/icons/chevron-right.svg')}
+          />
+        </SSHStack>
       </SSHStack>
     </TouchableOpacity>
   )

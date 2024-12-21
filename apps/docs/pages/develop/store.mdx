@@ -8,3 +8,94 @@ Stores should **not** implement business logic, only manage app state.
 import { Callout } from 'nextra/components'
 
 <Callout type="info">Some stores automatically persist their state</Callout>
+
+## Best Practices
+
+1. Set state (actions)
+
+Use `set` function to update state inside actions:
+
+```ts
+set((state) => ({}))
+```
+
+Use `immer` function `produce` to set complex state:
+
+```ts
+set(
+  product((state: AccountsState) => {
+    state.accounts.push(account)
+  })
+)
+```
+
+Read more about `immer`: [Zustand Immer](https://zustand.docs.pmnd.rs/guides/updating-state#with-immer) and [Immer Documentation](https://immerjs.github.io/immer/update-patterns)
+
+2. Get state (actions)
+
+Use `get` function to get state inside actions:
+
+```ts
+get().
+```
+
+3. Use store state and actions
+
+Select the needed state and actions only
+
+```ts
+// bad
+const exampleStore = useExampleStore()
+// good
+const exampleState3 = useExampleStore((state) => state.exampleState3)
+const exampleAction5 = useExampleStore((state) => state.exampleAction5)
+```
+
+Use `useShallow` when picking multiple state to prevent unnecessary rerenders
+
+```ts
+const [exampleState3, exampleAction5] = useBearStore(
+  useShallow((state) => [state.exampleState3, state.exampleAction5])
+)
+```
+
+4. Update state
+
+Use the store setters to update state
+
+```ts
+// bad
+exampleStore.example = 'example'
+// good
+const setExample = useExampleStore((state) => state.setExample)
+setExample('example')
+```
+
+<Callout type="info">
+  Learn more about Zustand
+  [here](https://zustand.docs.pmnd.rs/guides/updating-state)
+</Callout>
+
+5. Be careful with stale state
+
+If a function in your store is updating state and you are calling that function inside a page and want to use that piece of state afterwards, that piece of state might be stale.
+
+```tsx
+// stale state
+async function test() {
+  await storeFunctionThatSetsTestVariable()
+  console.log(testVariable) // Might be stale
+}
+
+// fix 1
+async function test() {
+  const testVariable = await storeFunctionThatSetsTestVariable() // Store function returns the variable
+  console.log(testVariable)
+}
+
+// fix 2
+async function test() {
+  await storeFunctionThatSetsTestVariable()
+  console.log(useStore.getState().testVariable)
+}
+```

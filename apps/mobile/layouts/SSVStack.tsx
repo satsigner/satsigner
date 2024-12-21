@@ -8,6 +8,7 @@ type SSVStackProps = {
   gap?: VStackGap
   justifyBetween?: boolean
   itemsCenter?: boolean
+  widthFull?: boolean
   children: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof View>
 
@@ -15,6 +16,7 @@ export default function SSVStack({
   gap = 'md',
   justifyBetween,
   itemsCenter,
+  widthFull,
   children,
   style
 }: SSVStackProps) {
@@ -24,11 +26,12 @@ export default function SSVStack({
         ...styles.containerBase,
         ...{ gap: Layout.vStack.gap[gap] },
         ...(justifyBetween ? styles.justifyBetween : {}),
-        ...(itemsCenter ? styles.itemsCenter : {})
+        ...(itemsCenter ? styles.itemsCenter : {}),
+        ...(widthFull ? styles.widthFull : {})
       },
       style
     )
-  }, [gap, justifyBetween, itemsCenter, style])
+  }, [gap, justifyBetween, itemsCenter, widthFull, style])
 
   return <View style={containerStyle}>{children}</View>
 }
@@ -43,5 +46,8 @@ const styles = StyleSheet.create({
   },
   itemsCenter: {
     alignItems: 'center'
+  },
+  widthFull: {
+    width: '100%'
   }
 })

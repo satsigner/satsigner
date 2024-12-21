@@ -1,6 +1,8 @@
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
+import { Platform } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
@@ -14,25 +16,31 @@ import { Layout } from '@/styles'
 
 type Stage = 'set' | 're-enter'
 
-export default function Init() {
+export default function SetPin() {
   const router = useRouter()
-  const authStore = useAuthStore()
+  const [setFirstTime, setPin, setRequiresAuth] = useAuthStore(
+    useShallow((state) => [
+      state.setFirstTime,
+      state.setPin,
+      state.setRequiresAuth
+    ])
+  )
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
 
-  const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
-  const [confirmationPin, setConfirmationPin] = useState<string[]>(
+  const [pinArray, setPinArray] = useState<string[]>(Array(PIN_SIZE).fill(''))
+  const [confirmationPinArray, setConfirmationPinArray] = useState<string[]>(
     Array(PIN_SIZE).fill('')
   )
 
-  const pinFilled = pin.findIndex((text) => text === '') === -1
+  const pinFilled = pinArray.findIndex((text) => text === '') === -1
   const confirmationPinFilled =
-    confirmationPin.findIndex((text) => text === '') === -1
-  const pinsMatch = pin.join('') === confirmationPin.join('')
+    confirmationPinArray.findIndex((text) => text === '') === -1
+  const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
   function handleSetPinLater() {
-    authStore.setFirstTime(false)
+    setFirstTime(false)
     router.replace('/')
   }
 
@@ -41,21 +49,21 @@ export default function Init() {
   }
 
   function clearPin() {
-    setPin(Array(PIN_SIZE).fill(''))
+    setPinArray(Array(PIN_SIZE).fill(''))
   }
 
   function clearConfirmationPin() {
-    setConfirmationPin(Array(PIN_SIZE).fill(''))
+    setConfirmationPinArray(Array(PIN_SIZE).fill(''))
   }
 
   async function handleSetPin() {
-    if (pin.join('') !== confirmationPin.join('')) return
+    if (pinArray.join('') !== confirmationPinArray.join('')) return
     setLoading(true)
-    await authStore.setPin(pin.join(''))
+    await setPin(pinArray.join(''))
     setLoading(false)
     router.replace('/')
-    authStore.setFirstTime(false)
-    authStore.setRequiresAuth(true)
+    setFirstTime(false)
+    setRequiresAuth(true)
   }
 
   async function handleGoBack() {
@@ -73,7 +81,7 @@ export default function Init() {
     >
       <SSVStack style={{ height: '100%' }} itemsCenter justifyBetween>
         <SSVStack gap="lg" style={{ marginTop: '10%' }}>
-          <SSVStack style={{ gap: -8 }}>
+          <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
             <SSText uppercase size="lg" color="muted" center>
               {stage === 'set'
                 ? i18n.t('auth.setPin.0')
@@ -85,9 +93,14 @@ export default function Init() {
                 : i18n.t('auth.reenterPin.1')}
             </SSText>
           </SSVStack>
-          {stage === 'set' && <SSPinInput pin={pin} setPin={setPin} />}
+          {stage === 'set' && (
+            <SSPinInput pin={pinArray} setPin={setPinArray} />
+          )}
           {stage === 're-enter' && (
-            <SSPinInput pin={confirmationPin} setPin={setConfirmationPin} />
+            <SSPinInput
+              pin={confirmationPinArray}
+              setPin={setConfirmationPinArray}
+            />
           )}
           {confirmationPinFilled && pinsMatch && (
             <SSVStack itemsCenter gap="sm">
@@ -112,7 +125,7 @@ export default function Init() {
             </SSVStack>
           )}
         </SSVStack>
-        <SSVStack style={{ width: '100%' }}>
+        <SSVStack widthFull>
           {stage === 'set' && pinFilled && (
             <SSButton
               label={i18n.t('auth.confirm')}

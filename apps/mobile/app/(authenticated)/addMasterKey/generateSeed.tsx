@@ -1,7 +1,9 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
+import { validateMnemonic } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -14,38 +16,44 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
 
 export default function GenerateSeed() {
   const router = useRouter()
-  const accountStore = useAccountStore()
+  const [
+    name,
+    seedWordCount,
+    seedWords,
+    fingerprint,
+    setPassphrase,
+    updateFingerprint
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.seedWordCount,
+      state.seedWords,
+      state.fingerprint,
+      state.setPassphrase,
+      state.updateFingerprint
+    ])
+  )
 
   const [checksumValid, setChecksumValid] = useState(true)
 
   async function handleUpdatePassphrase(passphrase: string) {
-    if (!accountStore.currentAccount.seedWords) return
-    accountStore.currentAccount.passphrase = passphrase
+    setPassphrase(passphrase)
 
-    const checksumValid = await accountStore.validateMnemonic(
-      accountStore.currentAccount.seedWords
-    )
-
-    if (checksumValid)
-      await accountStore.updateFingerprint(
-        accountStore.currentAccount.seedWords,
-        passphrase
-      )
-
+    const checksumValid = await validateMnemonic(seedWords)
     setChecksumValid(checksumValid)
+
+    if (checksumValid) await updateFingerprint()
   }
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
       <ScrollView>
@@ -55,22 +63,16 @@ export default function GenerateSeed() {
               <SSFormLayout.Label
                 label={i18n.t('addMasterKey.accountOptions.mnemonic')}
               />
-              {accountStore.currentAccount.seedWordCount && (
-                <SSSeedLayout count={accountStore.currentAccount.seedWordCount}>
-                  {[...Array(accountStore.currentAccount.seedWordCount)].map(
-                    (_, index) => (
-                      <SSWordInput
-                        key={index}
-                        position={index + 1}
-                        value={
-                          accountStore.currentAccount.seedWords
-                            ? accountStore.currentAccount.seedWords[index]
-                            : ''
-                        }
-                        editable={false}
-                      />
-                    )
-                  )}
+              {seedWordCount && (
+                <SSSeedLayout count={seedWordCount}>
+                  {[...Array(seedWordCount)].map((_, index) => (
+                    <SSWordInput
+                      key={index}
+                      position={index + 1}
+                      value={seedWords ? seedWords[index] : ''}
+                      editable={false}
+                    />
+                  ))}
                 </SSSeedLayout>
               )}
             </SSFormLayout.Item>
@@ -85,11 +87,7 @@ export default function GenerateSeed() {
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />
-                {accountStore.currentAccount.fingerprint && (
-                  <SSFingerprint
-                    value={accountStore.currentAccount.fingerprint}
-                  />
-                )}
+                {fingerprint && <SSFingerprint value={fingerprint} />}
               </SSHStack>
             </SSFormLayout.Item>
           </SSFormLayout>

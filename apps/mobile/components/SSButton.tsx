@@ -15,7 +15,7 @@ import SSText from './SSText'
 
 type SSButtonProps = {
   label: string
-  variant?: 'default' | 'secondary' | 'ghost' | 'gradient'
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'gradient'
   loading?: boolean
   withSelect?: boolean
   textStyle?: StyleProp<TextStyle>
@@ -34,6 +34,7 @@ export default function SSButton({
   const buttonStyle = useMemo(() => {
     let buttonVariantStyles = styles.buttonDefault
     if (variant === 'secondary') buttonVariantStyles = styles.buttonSecondary
+    if (variant === 'outline') buttonVariantStyles = styles.buttonOutline
     if (variant === 'ghost') buttonVariantStyles = styles.buttonGhost
     if (variant === 'default' && withSelect)
       buttonVariantStyles = styles.buttonWithSelect
@@ -109,6 +110,11 @@ const styles = StyleSheet.create({
   },
   buttonSecondary: {
     backgroundColor: Colors.white
+  },
+  buttonOutline: {
+    backgroundColor: Colors.transparent,
+    borderWidth: 1,
+    borderColor: Colors.white
   },
   buttonGhost: {
     backgroundColor: Colors.transparent

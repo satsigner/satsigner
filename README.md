@@ -109,9 +109,74 @@ Install the dependencies at the root of the repository
 yarn install
 ```
 
-### Set up your environment
+### Set up Android environment
+
+Set up Android Studio as usual. Otherwise, if you are using other IDE,
+then install the packages `android-sdk`, `android-sdk-build-tools`,
+`android-sdk-platform-tools`, and `android-tools`.
+
+Once installed, set the environment variable `ANDROID_HOME` to point to
+the location where the packages were installed, and update your `PATH`:
+
+```bash
+export ANDROID_HOME=/opt/android-sdk
+export PATH=${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator
+```
+
+On some Linux systems, `ANDROID_HOME` may be `/opt/android-sdk`. On Windows,
+it may be `/Users/username/Library/Android/sdk`. Set it accordingly.
+
+Install Java JDK 8 in order to donwload the images from the upstream.
+Also, make sure to enable JDK 8 before running `sdkmanager` commands,
+because they seem to work only with this version. To enable it on
+arch-based systems, run:
+
+```bash
+sudo archlinux-java set java-8-openjdk
+```
+
+This will make JDK 8 the default Java environment. We can then proceed to
+using `sdkmanager`.
+
+You can list the images with the following command:
+
+```bash
+sdkmanager --list
+```
+
+Select the SDK that fits your platform (`x86_64`, `arm64`, or other). Then
+install the image with the command:
+
+```bash
+sdkmanager --install 'system-images;android-34;default;x86_64'
+```
+
+Of course, replace `system-images;android-34;default;arm64-v8a` with
+the desired image name. This examples uses the default image for Android
+SDK 34 for the `x86_64` (intel CPU) platform.
+
+Then, create an emulator device:
+
+```bash
+avdmanager create avd -n myemulator -k 'system-images;android-34;default;x86_64'
+```
+
+Replace `myemulator` with the desired name for the emulator device and replace
+`system-images;android-34;default;x86_64` with the image donwloaded earlier.
+
+Once the device has been created, switch your Java environment to Java
+JDK 17 in order to run and build this application. Lastly, if you get
+the error `[CXX5304]` while building, try running `unset _JAVA_OPTIONS`
+because this variable is source automatically and may pass options that
+intefere with the building.
+
+### Set up Expo environment
 
 Follow the expo documentation [here](https://docs.expo.dev/get-started/set-up-your-environment/)
+
+Make sure to select "Development build" and disabled "Build with Expo Application Services (EAS)"
+
+Note: When starting a development server, do NOT run: `npx expo start`
 
 ### Run the app
 

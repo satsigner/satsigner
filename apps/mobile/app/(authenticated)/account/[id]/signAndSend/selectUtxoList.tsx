@@ -2,6 +2,7 @@ import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
@@ -13,7 +14,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountStore } from '@/store/accounts'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
@@ -27,35 +28,54 @@ type SortField = 'date' | 'amount'
 
 export default function SelectUtxoList() {
   const router = useRouter()
-  const accountStore = useAccountStore()
-  const transactionBuilderStore = useTransactionBuilderStore()
-  const priceStore = usePriceStore()
-
   const { id } = useLocalSearchParams<AccountSearchParams>()
+
+  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const [inputs, getInputs, hasInput, addInput, removeInput] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.inputs,
+        state.getInputs,
+        state.hasInput,
+        state.addInput,
+        state.removeInput
+      ])
+    )
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
+  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')
 
-  const hasSelectedUtxos = transactionBuilderStore.inputs.size > 0
+  const hasSelectedUtxos = inputs.size > 0
+  const selectedAllUtxos = inputs.size === account.utxos.length
 
   const largestValue = useMemo(
-    () =>
-      Math.max(...accountStore.currentAccount.utxos.map((utxo) => utxo.value)),
-    [accountStore.currentAccount.utxos]
+    () => Math.max(...account.utxos.map((utxo) => utxo.value)),
+    [account.utxos]
   )
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
 
   const utxosTotalValue = useMemo(
-    () => utxosValue(accountStore.currentAccount.utxos),
-    [accountStore.currentAccount.utxos]
+    () => utxosValue(account.utxos),
+    [account.utxos]
   )
-  const utxosSelectedValue = utxosValue(transactionBuilderStore.getInputs())
+  const utxosSelectedValue = utxosValue(getInputs())
 
   function handleSelectAllUtxos() {
-    for (const utxo of accountStore.currentAccount.utxos) {
-      transactionBuilderStore.addInput(utxo)
+    for (const utxo of account.utxos) {
+      addInput(utxo)
+    }
+  }
+
+  function handleDeselectAllUtxos() {
+    for (const utxo of account.utxos) {
+      removeInput(utxo)
     }
   }
 
@@ -77,19 +97,17 @@ export default function SelectUtxoList() {
   }
 
   function handleOnToggleSelected(utxo: Utxo) {
-    const includesInput = transactionBuilderStore.hasInput(utxo)
+    const includesInput = hasInput(utxo)
 
-    if (includesInput) transactionBuilderStore.removeInput(utxo)
-    else transactionBuilderStore.addInput(utxo)
+    if (includesInput) removeInput(utxo)
+    else addInput(utxo)
   }
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{id}</SSText>
         }}
       />
       <SSMainLayout style={{ flex: 0 }}>
@@ -113,10 +131,8 @@ export default function SelectUtxoList() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {transactionBuilderStore.inputs.size}{' '}
-                {i18n.t('common.of').toLowerCase()}{' '}
-                {accountStore.currentAccount.utxos.length}{' '}
-                {i18n.t('common.selected').toLowerCase()}
+                {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
+                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
@@ -129,10 +145,10 @@ export default function SelectUtxoList() {
                   {i18n.t('bitcoin.sats').toLowerCase()}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(priceStore.satsToFiat(utxosTotalValue), 2)}
+                  {formatNumber(satsToFiat(utxosTotalValue), 2)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {priceStore.fiatCurrency}
+                  {fiatCurrency}
                 </SSText>
               </SSHStack>
             </SSVStack>
@@ -152,10 +168,10 @@ export default function SelectUtxoList() {
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="muted">
-                  {formatNumber(priceStore.satsToFiat(utxosSelectedValue), 2)}
+                  {formatNumber(satsToFiat(utxosSelectedValue), 2)}
                 </SSText>
                 <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {priceStore.fiatCurrency}
+                  {fiatCurrency}
                 </SSText>
               </SSHStack>
             </SSVStack>
@@ -166,14 +182,16 @@ export default function SelectUtxoList() {
       <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
         <SSButton
           variant="ghost"
-          label={`${i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
+          label={`${selectedAllUtxos ? i18n.t('common.deselectAll').toUpperCase() : i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],
             textTransform: 'none',
             textDecorationLine: 'underline'
           }}
-          onPress={() => handleSelectAllUtxos()}
+          onPress={() =>
+            selectedAllUtxos ? handleDeselectAllUtxos() : handleSelectAllUtxos()
+          }
         />
         <SSHStack gap="sm">
           <SSSortDirectionToggle
@@ -200,11 +218,11 @@ export default function SelectUtxoList() {
           }}
         >
           <View style={{ marginTop: 2 }}>
-            {sortUtxos([...accountStore.currentAccount.utxos]).map((utxo) => (
+            {sortUtxos([...account.utxos]).map((utxo) => (
               <SSUtxoItem
                 key={`${utxo.txid}:${utxo.vout}`}
                 utxo={utxo}
-                selected={transactionBuilderStore.hasInput(utxo)}
+                selected={hasInput(utxo)}
                 onToggleSelected={handleOnToggleSelected}
                 largestValue={largestValue}
               />
@@ -227,6 +245,9 @@ export default function SelectUtxoList() {
             router.navigate(`/account/${id}/signAndSend/utxoTransactionFlow`)
           }
           textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
+          onPress={() =>
+            router.navigate(`/account/${id}/signAndSend/ioPreview`)
+          }
         />
       </SSMainLayout>
     </>

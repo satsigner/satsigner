@@ -3,6 +3,7 @@ import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef } from 'react'
 import { AppState, AppStateStatus, Platform, UIManager } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import {
   getLastBackgroundTimestamp,
@@ -19,7 +20,15 @@ if (Platform.OS === 'android') {
 }
 
 export default function RootLayout() {
-  const authStore = useAuthStore()
+  const [firstTime, setLockTriggered, requiresAuth, lockDeltaTime] =
+    useAuthStore(
+      useShallow((state) => [
+        state.firstTime,
+        state.setLockTriggered,
+        state.requiresAuth,
+        state.lockDeltaTime
+      ])
+    )
 
   const appState = useRef(AppState.currentState)
 
@@ -30,7 +39,7 @@ export default function RootLayout() {
   }, []) // Workaround for now to set the statusBarStyle
 
   useEffect(() => {
-    if (!authStore.firstTime) authStore.setLockTriggered(true)
+    if (!firstTime) setLockTriggered(true)
 
     const subscription = AppState.addEventListener(
       'change',
@@ -44,17 +53,17 @@ export default function RootLayout() {
   }, [])
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {
-    if (nextAppState === 'background' && authStore.requiresAuth) {
+    if (nextAppState === 'background' && requiresAuth) {
       setLastBackgroundTimestamp(Date.now())
     } else if (
       nextAppState === 'active' &&
       appState.current.match(/background/) &&
-      authStore.requiresAuth
+      requiresAuth
     ) {
       const inactivityStartTime = getLastBackgroundTimestamp()
       const elapsed = (Date.now() - (inactivityStartTime || 0)) / 1000
 
-      if (elapsed >= authStore.lockDeltaTime) authStore.setLockTriggered(true)
+      if (elapsed >= lockDeltaTime) setLockTriggered(true)
     }
 
     appState.current = nextAppState
