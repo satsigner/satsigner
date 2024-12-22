@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { useWindowDimensions, View } from 'react-native'
 import {
   Gesture,
   GestureDetector,
@@ -21,7 +21,7 @@ import SSModal from '@/components/SSModal'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import UtxoFlow from '@/components/SSUtxoFlow'
+import SSUtxoFlow from '@/components/SSUtxoFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -272,7 +272,16 @@ export default function IOPreview() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-        <SSVStack style={styles.bottomSection}>
+        <SSVStack
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+            paddingBottom: 20
+          }}
+        >
           <SSTextInput
             variant="outline"
             size="small"
@@ -312,7 +321,7 @@ export default function IOPreview() {
               animatedStyle
             ]}
           >
-            <UtxoFlow
+            <SSUtxoFlow
               sankeyNodes={sankeyNodes}
               sankeyLinks={sankeyLinks}
               inputCount={inputs.size ?? 0}
@@ -407,14 +416,3 @@ export default function IOPreview() {
     </GestureHandlerRootView>
   )
 }
-
-const styles = StyleSheet.create({
-  bottomSection: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-    paddingBottom: 20
-  }
-})
