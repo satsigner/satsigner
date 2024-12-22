@@ -18,10 +18,10 @@ import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
+import SSSankeyDiagram from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import SSUtxoFlow from '@/components/SSUtxoFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -321,7 +321,7 @@ export default function IOPreview() {
               animatedStyle
             ]}
           >
-            <SSUtxoFlow
+            <SSSankeyDiagram
               sankeyNodes={sankeyNodes}
               sankeyLinks={sankeyLinks}
               inputCount={inputs.size ?? 0}
