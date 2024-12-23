@@ -88,7 +88,11 @@ const generateCustomLink = (points: LinkPoints) => {
   ].join('\n')
 }
 
-const SSUtxoFlow = ({ sankeyNodes, sankeyLinks, inputCount }: SankeyProps) => {
+const SSSankeyDiagram = ({
+  sankeyNodes,
+  sankeyLinks,
+  inputCount
+}: SankeyProps) => {
   const sankeyGenerator = sankey()
     .nodeWidth(78)
     .nodePadding(100)
@@ -239,4 +243,4 @@ const SSUtxoFlow = ({ sankeyNodes, sankeyLinks, inputCount }: SankeyProps) => {
   )
 }
 
-export default SSUtxoFlow
+export default SSSankeyDiagram
