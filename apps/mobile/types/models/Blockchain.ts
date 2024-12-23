@@ -1,26 +1,41 @@
 export interface BlockchainOracle {
+  getAddressUtxos: (address: string) => Promise<UTXO[]>
   getBlock: (blkid: string) => Promise<Block>
   getBlockAt: (timestamp: number) => Promise<Block>
   getBlockStatus: (blkid: string) => Promise<BlockStatus>
   getBlockTransactions: (blkid: string) => Promise<Tx[]>
-  getCurrentBlockHeight: () => Promise<number>
   getCurrentBlockHash: () => Promise<string>
-  getCurrentFeeRate: (priority: TxPriority) => Promise<Satoshi>
+  getCurrentBlockHeight: () => Promise<number>
   getCurrentDifficulty: () => Promise<number>
+  getCurrentFeeRate: (priority: TxPriority) => Promise<Satoshi>
   getCurrentHashRate: () => Promise<number>
   getDifficultyAdjustment: () => Promise<DifficultyAdjustment>
   getMemPool: () => Promise<MemPool>
-  getMemPoolFees: () => Promise<MemPoolFees>
   getMemPoolBlocks: () => Promise<MemPoolBlock[]>
-  getPriceAt: (currency: string, timestamp: number) => Promise<Satoshi>
-  getPrice: (currency: Currency) => Promise<Satoshi>
+  getMemPoolFees: () => Promise<MemPoolFees>
+  getPrice: (currency: Currency) => Promise<number>
+  getPriceAt: (currency: Currency, timestamp: number) => Promise<number>
+  getPricesAddress: (
+    currency: Currency,
+    address: string
+  ) => Promise<PriceValue[]>
+  getPricesTxOuputs: (currency: Currency, txid: string) => Promise<PriceValue[]>
+  getPricesTxInputs: (currency: Currency, txid: string) => Promise<PriceValue[]>
+  // getPriceTxOutspend: (currency: Currency, txid: string) => Promise<PriceValue>
   getTransaction: (txid: string) => Promise<Tx>
   getTransactionHex: (txid: string) => Promise<string>
-  getTransactionOutspends: (txid: string) => Promise<TxOutspends>
+  getTransactionOutspends: (txid: string) => Promise<TxOutspend[]>
   getTransactionStatus: (txid: string) => Promise<TxStatus>
 }
 
 export type Satoshi = number
+
+export type PriceValue = {
+  currency: Currency
+  fiatPrice: number
+  fiatValue: number
+  value: number
+}
 
 export type Currency =
   | 'USD'
@@ -59,7 +74,7 @@ export type Tx = {
   txid: string
   version: number
   locktime: number
-  vin: TxInput[]
+  vin: TxIn[]
   vout: TxOut[]
   fee: Satoshi
   weight: number
@@ -75,13 +90,14 @@ export type TxOut = {
   scriptpubkey_address?: string
 }
 
-export type TxInput = {
+export type TxIn = {
   txid: string
   vout: number
   scriptsig: string
   scriptsig_asm: string
   sequence: number
   is_coinbase: boolean
+  prevout: TxOut
 }
 
 export type TxStatus = {
@@ -91,10 +107,17 @@ export type TxStatus = {
   block_time: number
 }
 
-export type TxOutspends = {
+export type TxOutspend = {
   spent: boolean
   txid: string
   vin: number
+  status: TxStatus
+}
+
+export type UTXO = {
+  txid: string
+  vout: number
+  value: number
   status: TxStatus
 }
 

@@ -1,5 +1,9 @@
 import { MempoolOracle } from '@/api/blockchain'
-import { BlockchainOracle, TxPriority } from '@/types/models/Blockchain'
+import {
+  type BlockchainOracle,
+  PriceValue,
+  TxPriority
+} from '@/types/models/Blockchain'
 
 const mempoolspace: BlockchainOracle = new MempoolOracle()
 
@@ -17,6 +21,11 @@ describe('Blockchain » price', () => {
 })
 
 describe('Blockchain » mempool', () => {
+  const errorTolerance = 0.015 // 1.5%
+  const isDiffReasonable = (a: number, b: number) => {
+    return Math.abs((a - b) / b) < errorTolerance
+  }
+
   it('get mempool info', async () => {
     const response = await mempoolspace.getMemPool()
     expect(typeof response.count).toBe('number')
@@ -26,6 +35,7 @@ describe('Blockchain » mempool', () => {
     expect(response.fee_histogram[0]).toHaveLength(2)
     expect(typeof response.fee_histogram[0][0]).toBe('number')
   })
+
   it('get mempool fees', async () => {
     const response = await mempoolspace.getMemPoolFees()
     expect(response).toHaveProperty(TxPriority.low)
@@ -34,6 +44,40 @@ describe('Blockchain » mempool', () => {
     expect(typeof response[TxPriority.low]).toBe('number')
     expect(typeof response[TxPriority.medium]).toBe('number')
     expect(typeof response[TxPriority.high]).toBe('number')
+  })
+
+  it('get fiat price of transaction outputs', async () => {
+    const txid =
+      '4e3e822fb9d80a550198cdf460ebb964953f3daf616948d159c79e7ceed9ae75'
+    const response: PriceValue[] = await mempoolspace.getPricesTxOuputs(
+      'USD',
+      txid
+    )
+    const inputCount = 8
+    expect(response).toHaveLength(inputCount)
+    const values = response.map((v: PriceValue) => v.fiatValue)
+    const expected = [0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 0.55, 477013.5]
+    for (let i = 0; i < inputCount; i++) {
+      expect(isDiffReasonable(values[i], expected[i])).toBeTruthy()
+    }
+  })
+
+  it('get fiat price of transaction inputs', async () => {
+    const txid =
+      'f436666296299ff113db64a7fcc05b58328595c0981ffea9f3cc9c8cae2ea90f'
+    const response: PriceValue[] = await mempoolspace.getPricesTxInputs(
+      'USD',
+      txid
+    )
+    const inputCount = 7
+    expect(response).toHaveLength(inputCount)
+    const values = response.map((v: PriceValue) => v.fiatValue)
+    const expected = [
+      6137.87, 5961.42, 5745.19, 5172.51, 4521.29, 4141.71, 3976.71
+    ]
+    for (let i = 0; i < inputCount; i++) {
+      expect(isDiffReasonable(values[i], expected[i])).toBeTruthy()
+    }
   })
 })
 
