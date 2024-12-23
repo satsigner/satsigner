@@ -1,4 +1,4 @@
-import {
+import type {
   Block,
   BlockchainOracle,
   BlockStatus,
@@ -15,9 +15,9 @@ import {
   UTXO
 } from '@/types/models/Blockchain'
 
-const satsPerBtc = 100000000
+const SATS_PER_BTC = 100000000
 const satoshiToFiat = (btcFiatPrice: number, sats: number, decimals = 2) =>
-  Number(((btcFiatPrice * sats) / satsPerBtc).toFixed(decimals))
+  Number(((btcFiatPrice * sats) / SATS_PER_BTC).toFixed(decimals))
 
 export class MempoolOracle implements BlockchainOracle {
   baseUrl: string
