@@ -1,6 +1,6 @@
 import { MempoolOracle } from '@/api/blockchain'
-import type {
-  BlockchainOracle,
+import {
+  type BlockchainOracle,
   PriceValue,
   TxPriority
 } from '@/types/models/Blockchain'
