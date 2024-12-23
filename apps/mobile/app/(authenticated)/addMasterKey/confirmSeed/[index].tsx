@@ -24,8 +24,12 @@ export default function ConfirmSeed() {
   const router = useRouter()
   const { index } = useLocalSearchParams<ConfirmSeedSearchParams>()
 
-  const [syncWallet, addAccount] = useAccountsStore(
-    useShallow((state) => [state.syncWallet, state.addAccount])
+  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.syncWallet,
+      state.addAccount,
+      state.updateAccount
+    ])
   )
   const [name, seedWordCount, seedWords, clearAccount, getAccount, loadWallet] =
     useAccountBuilderStore(
@@ -50,6 +54,7 @@ export default function ConfirmSeed() {
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
+  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
 
   async function handleNavigateNextWord() {
     if (!seedWordCount || !selectedCheckbox) return
@@ -67,11 +72,18 @@ export default function ConfirmSeed() {
 
     const wallet = await loadWallet()
 
-    const syncedAccount = await syncWallet(wallet, getAccount()) // TODO: load but sync later?
-    await addAccount(syncedAccount)
+    const account = getAccount()
+    await addAccount(account)
 
-    setLoadingAccount(false)
-    setWarningModalVisible(true)
+    try {
+      const syncedAccount = await syncWallet(wallet, account)
+      await updateAccount(syncedAccount)
+    } catch {
+      setWalletSyncFailed(true)
+    } finally {
+      setLoadingAccount(false)
+      setWarningModalVisible(true)
+    }
   }
 
   function handleCloseWordsWarning() {
@@ -177,6 +189,11 @@ export default function ConfirmSeed() {
           <SSText size="xl" color="muted" center>
             {i18n.t('addMasterKey.confirmSeed.warningModal.disclaimer3')}
           </SSText>
+          {walletSyncFailed && (
+            <SSText size="3xl" color="muted" center>
+              {i18n.t('addMasterKey.walletSyncFailed')}
+            </SSText>
+          )}
         </SSVStack>
       </SSWarningModal>
     </SSMainLayout>
