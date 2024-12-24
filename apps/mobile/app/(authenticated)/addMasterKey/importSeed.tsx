@@ -87,6 +87,7 @@ export default function ImportSeed() {
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
   const inputRefs = useRef<TextInput[]>([])
+  const passphraseRef = useRef<TextInput>()
 
   useEffect(() => {
     const checkTextHasSeed = async (text: string): Promise<string[]> => {
@@ -122,12 +123,12 @@ export default function ImportSeed() {
           })
         )
         setChecksumValid(true)
-        inputRefs.current[0].blur()
+        if (passphraseRef.current) passphraseRef.current.focus()
         await updateFingerprint()
       }
     }
     readSeedFromClipboard()
-  })
+  }, [seedWordCount, setSeedWords, updateFingerprint])
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
@@ -165,6 +166,8 @@ export default function ImportSeed() {
     const nextIndex = currentIndex + 1
     if (nextIndex < seedWordCount) {
       inputRefs.current[nextIndex]?.focus()
+    } else if (passphraseRef.current) {
+      passphraseRef.current.focus()
     }
   }
 
@@ -311,6 +314,7 @@ export default function ImportSeed() {
                 label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
               />
               <SSTextInput
+                ref={(input: TextInput) => (passphraseRef.current = input)}
                 onChangeText={(text) => handleUpdatePassphrase(text)}
               />
             </SSFormLayout.Item>
