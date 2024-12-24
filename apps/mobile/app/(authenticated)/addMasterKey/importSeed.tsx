@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { useState, useRef } from 'react'
+import { ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'
@@ -87,6 +87,7 @@ export default function ImportSeed() {
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
+  const inputRefs = useRef<TextInput[]>([])
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
@@ -116,6 +117,13 @@ export default function ImportSeed() {
     }
   }
 
+  function focusNextWord(currentIndex: number) {
+    const nextIndex = currentIndex+1
+    if (nextIndex < seedWordCount) {
+      inputRefs.current[nextIndex]?.focus()
+    }
+  }
+
   function handleOnEndEditingWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
     const seedWord = seedWords[index]
@@ -126,8 +134,9 @@ export default function ImportSeed() {
 
     setSeedWordsInfo(seedWords)
     setCurrentWordText(word)
-
-    // TODO: Set focus to next?
+    if (seedWord.valid) {
+      focusNextWord(index)
+    }
   }
 
   function handleOnFocusWord(word: string | undefined, index: number) {
@@ -162,6 +171,7 @@ export default function ImportSeed() {
       setSeedWords(mnemonicSeedWords)
       await updateFingerprint()
     }
+    focusNextWord(currentWordIndex)
   }
 
   async function handleUpdatePassphrase(passphrase: string) {
@@ -237,6 +247,8 @@ export default function ImportSeed() {
                         seedWordsInfo[index].dirty
                       }
                       key={index}
+                      index={index}
+                      ref={(input: TextInput) => inputRefs.current.push(input)}
                       position={index + 1}
                       onChangeText={(text) =>
                         handleOnChangeTextWord(text, index)
