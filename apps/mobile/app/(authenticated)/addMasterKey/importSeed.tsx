@@ -1,5 +1,6 @@
+import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -67,7 +68,6 @@ export default function ImportSeed() {
       state.loadWallet
     ])
   )
-
   const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(seedWordCount)].map((_, index) => ({
       value: '',
@@ -81,14 +81,53 @@ export default function ImportSeed() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
     useState(false)
-
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
-
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
   const inputRefs = useRef<TextInput[]>([])
+
+  useEffect(() => {
+    const checkTextHasSeed = async (text: string): Promise<string[]> => {
+      if (text === null || text === '') {
+        return []
+      }
+      const delimiters = [' ', '\n']
+      for (const delimiter of delimiters) {
+        const seedCandidate = text.split(delimiter)
+        if (seedCandidate.length !== seedWordCount) {
+          continue
+        }
+        const validWords = seedCandidate.every((x) => wordList.includes(x))
+        if (!validWords) {
+          continue
+        }
+        const checksum = await validateMnemonic(seedCandidate)
+        if (!checksum) {
+          continue
+        }
+        return seedCandidate
+      }
+      return []
+    }
+    const readSeedFromClipboard = async () => {
+      const text = (await Clipboard.getStringAsync()).trim()
+      const seed = await checkTextHasSeed(text)
+      if (seed.length > 0) {
+        setSeedWords(seed)
+        setSeedWordsInfo(
+          seed.map((value, index) => {
+            return { value, index, dirty: false, valid: true }
+          })
+        )
+        setChecksumValid(true)
+        inputRefs.current[0].blur()
+        await updateFingerprint()
+      }
+    }
+    readSeedFromClipboard()
+  })
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
