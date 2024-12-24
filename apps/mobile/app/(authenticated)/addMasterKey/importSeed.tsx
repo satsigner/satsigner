@@ -115,6 +115,8 @@ export default function ImportSeed() {
       setSeedWords(mnemonicSeedWords)
       await updateFingerprint()
     }
+
+    if (seedWord.valid) focusNextWord(index)
   }
 
   function focusNextWord(currentIndex: number) {
@@ -134,9 +136,6 @@ export default function ImportSeed() {
 
     setSeedWordsInfo(seedWords)
     setCurrentWordText(word)
-    if (seedWord.valid) {
-      focusNextWord(index)
-    }
   }
 
   function handleOnFocusWord(word: string | undefined, index: number) {
