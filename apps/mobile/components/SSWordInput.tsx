@@ -1,4 +1,4 @@
-import { useMemo, forwardRef, ForwardedRef } from 'react'
+import { ForwardedRef, forwardRef, useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -13,43 +13,48 @@ type SSWordInputProps = {
   index: number
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-const SSWordInput = forwardRef(({
-  value,
-  invalid,
-  position,
-  editable = true,
-  index,
-  style,
-  ...props
-}: SSWordInputProps, ref) => {
-  const textInputStyle = useMemo(() => {
-    return StyleSheet.compose(
-      {
-        ...styles.textInputBase,
-        ...(invalid ? styles.textInputInvalid : {})
-      },
-      style
-    )
-  }, [invalid, style])
+const SSWordInput = forwardRef(
+  (
+    {
+      value,
+      invalid,
+      position,
+      editable = true,
+      index,
+      style,
+      ...props
+    }: SSWordInputProps,
+    ref
+  ) => {
+    const textInputStyle = useMemo(() => {
+      return StyleSheet.compose(
+        {
+          ...styles.textInputBase,
+          ...(invalid ? styles.textInputInvalid : {})
+        },
+        style
+      )
+    }, [invalid, style])
 
-  return (
-    <View style={styles.containerBase}>
-      <TextInput
-        style={textInputStyle}
-        value={value}
-        autoFocus={index === 0}
-        ref={ref as ForwardedRef<TextInput>}
-        editable={editable}
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect={false}
-        spellCheck={false}
-        {...props}
-      />
-      <SSText style={styles.wordPositionLabelBase}>{position}</SSText>
-    </View>
-  )
-})
+    return (
+      <View style={styles.containerBase}>
+        <TextInput
+          style={textInputStyle}
+          value={value}
+          autoFocus={index === 0}
+          ref={ref as ForwardedRef<TextInput>}
+          editable={editable}
+          autoCapitalize="none"
+          autoComplete="off"
+          autoCorrect={false}
+          spellCheck={false}
+          {...props}
+        />
+        <SSText style={styles.wordPositionLabelBase}>{position}</SSText>
+      </View>
+    )
+  }
+)
 
 export default SSWordInput
 

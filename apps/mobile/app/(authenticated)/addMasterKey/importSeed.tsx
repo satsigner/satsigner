@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { useState, useRef } from 'react'
+import { useRef, useState } from 'react'
 import { ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -118,7 +118,7 @@ export default function ImportSeed() {
   }
 
   function focusNextWord(currentIndex: number) {
-    const nextIndex = currentIndex+1
+    const nextIndex = currentIndex + 1
     if (nextIndex < seedWordCount) {
       inputRefs.current[nextIndex]?.focus()
     }
