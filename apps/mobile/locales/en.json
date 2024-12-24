@@ -107,6 +107,10 @@
       "addAsInputToMessage": "Add as input to message",
       "customAmount": "Custom amount",
       "selectAll": "Select all",
+      "setMessageFee": "Set message fee",
+      "addInput": "Add input",
+      "addOutput": "Add output",
+      "addRecipientOutputs": "Add recipient outputs",
       "deselectAll": "Deselect all"
     },
     "ioPreview": {
