@@ -1,4 +1,4 @@
-import { useMemo, forwardRef } from 'react'
+import { useMemo, forwardRef, ForwardedRef } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -38,7 +38,7 @@ const SSWordInput = forwardRef(({
         style={textInputStyle}
         value={value}
         autoFocus={index === 0}
-        ref={ref as any}
+        ref={ref as ForwardedRef<TextInput>}
         editable={editable}
         autoCapitalize="none"
         autoComplete="off"
