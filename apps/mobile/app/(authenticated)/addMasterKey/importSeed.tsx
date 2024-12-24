@@ -32,8 +32,12 @@ const wordList = getWordList()
 
 export default function ImportSeed() {
   const router = useRouter()
-  const [syncWallet, addAccount] = useAccountsStore(
-    useShallow((state) => [state.syncWallet, state.addAccount])
+  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.syncWallet,
+      state.addAccount,
+      state.updateAccount
+    ])
   )
   const [
     name,
@@ -82,6 +86,7 @@ export default function ImportSeed() {
 
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
+  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
@@ -183,11 +188,17 @@ export default function ImportSeed() {
 
     setAccountAddedModalVisible(true)
 
-    const syncedAccount = await syncWallet(wallet, getAccount())
-    setSyncedAccount(syncedAccount)
-    await addAccount(syncedAccount)
-
-    setLoadingAccount(false)
+    const account = getAccount()
+    await addAccount(account)
+    try {
+      const syncedAccount = await syncWallet(wallet, account)
+      setSyncedAccount(syncedAccount)
+      await updateAccount(syncedAccount)
+    } catch {
+      setWalletSyncFailed(true)
+    } finally {
+      setLoadingAccount(false)
+    }
   }
 
   async function handleOnCloseAccountAddedModal() {
@@ -351,6 +362,13 @@ export default function ImportSeed() {
                   </SSText>
                 )}
               </SSVStack>
+            </SSHStack>
+            <SSHStack>
+              {walletSyncFailed && (
+                <SSText size="3xl" color="muted" center>
+                  {i18n.t('addMasterKey.walletSyncFailed')}
+                </SSText>
+              )}
             </SSHStack>
           </SSVStack>
         </SSVStack>
