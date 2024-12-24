@@ -1,6 +1,7 @@
+import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'
@@ -66,7 +67,6 @@ export default function ImportSeed() {
       state.loadWallet
     ])
   )
-
   const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(seedWordCount)].map((_, index) => ({
       value: '',
@@ -80,13 +80,54 @@ export default function ImportSeed() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
     useState(false)
-
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
-
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
+  const inputRefs = useRef<TextInput[]>([])
+  const passphraseRef = useRef<TextInput>()
+
+  useEffect(() => {
+    const checkTextHasSeed = async (text: string): Promise<string[]> => {
+      if (text === null || text === '') {
+        return []
+      }
+      const delimiters = [' ', '\n']
+      for (const delimiter of delimiters) {
+        const seedCandidate = text.split(delimiter)
+        if (seedCandidate.length !== seedWordCount) {
+          continue
+        }
+        const validWords = seedCandidate.every((x) => wordList.includes(x))
+        if (!validWords) {
+          continue
+        }
+        const checksum = await validateMnemonic(seedCandidate)
+        if (!checksum) {
+          continue
+        }
+        return seedCandidate
+      }
+      return []
+    }
+    const readSeedFromClipboard = async () => {
+      const text = (await Clipboard.getStringAsync()).trim()
+      const seed = await checkTextHasSeed(text)
+      if (seed.length > 0) {
+        setSeedWords(seed)
+        setSeedWordsInfo(
+          seed.map((value, index) => {
+            return { value, index, dirty: false, valid: true }
+          })
+        )
+        setChecksumValid(true)
+        if (passphraseRef.current) passphraseRef.current.focus()
+        await updateFingerprint()
+      }
+    }
+    readSeedFromClipboard()
+  }, [seedWordCount, setSeedWords, updateFingerprint])
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
@@ -114,6 +155,17 @@ export default function ImportSeed() {
       setSeedWords(mnemonicSeedWords)
       await updateFingerprint()
     }
+
+    if (seedWord.valid) focusNextWord(index)
+  }
+
+  function focusNextWord(currentIndex: number) {
+    const nextIndex = currentIndex + 1
+    if (nextIndex < seedWordCount) {
+      inputRefs.current[nextIndex]?.focus()
+    } else if (passphraseRef.current) {
+      passphraseRef.current.focus()
+    }
   }
 
   function handleOnEndEditingWord(word: string, index: number) {
@@ -126,8 +178,6 @@ export default function ImportSeed() {
 
     setSeedWordsInfo(seedWords)
     setCurrentWordText(word)
-
-    // TODO: Set focus to next?
   }
 
   function handleOnFocusWord(word: string | undefined, index: number) {
@@ -162,6 +212,7 @@ export default function ImportSeed() {
       setSeedWords(mnemonicSeedWords)
       await updateFingerprint()
     }
+    focusNextWord(currentWordIndex)
   }
 
   async function handleUpdatePassphrase(passphrase: string) {
@@ -237,6 +288,8 @@ export default function ImportSeed() {
                         seedWordsInfo[index].dirty
                       }
                       key={index}
+                      index={index}
+                      ref={(input: TextInput) => inputRefs.current.push(input)}
                       position={index + 1}
                       onChangeText={(text) =>
                         handleOnChangeTextWord(text, index)
@@ -257,6 +310,7 @@ export default function ImportSeed() {
                 label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
               />
               <SSTextInput
+                ref={(input: TextInput) => (passphraseRef.current = input)}
                 onChangeText={(text) => handleUpdatePassphrase(text)}
               />
             </SSFormLayout.Item>
