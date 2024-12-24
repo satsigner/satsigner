@@ -13,50 +13,48 @@ type SSWordInputProps = {
   index: number
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-const SSWordInput = forwardRef(
-  (
-    {
-      value,
-      invalid,
-      position,
-      editable = true,
-      index,
-      style,
-      ...props
-    }: SSWordInputProps,
-    ref
-  ) => {
-    const textInputStyle = useMemo(() => {
-      return StyleSheet.compose(
-        {
-          ...styles.textInputBase,
-          ...(invalid ? styles.textInputInvalid : {})
-        },
-        style
-      )
-    }, [invalid, style])
-
-    return (
-      <View style={styles.containerBase}>
-        <TextInput
-          style={textInputStyle}
-          value={value}
-          autoFocus={index === 0}
-          ref={ref as ForwardedRef<TextInput>}
-          editable={editable}
-          autoCapitalize="none"
-          autoComplete="off"
-          autoCorrect={false}
-          spellCheck={false}
-          {...props}
-        />
-        <SSText style={styles.wordPositionLabelBase}>{position}</SSText>
-      </View>
+function SSWordInput(
+  {
+    value,
+    invalid,
+    position,
+    editable = true,
+    index,
+    style,
+    ...props
+  }: SSWordInputProps,
+  ref: ForwardedRef<TextInput>
+) {
+  const textInputStyle = useMemo(() => {
+    return StyleSheet.compose(
+      {
+        ...styles.textInputBase,
+        ...(invalid ? styles.textInputInvalid : {})
+      },
+      style
     )
-  }
-)
+  }, [invalid, style])
 
-export default SSWordInput
+  return (
+    <View style={styles.containerBase}>
+      <TextInput
+        style={textInputStyle}
+        value={value}
+        autoFocus={index === 0}
+        ref={ref}
+        editable={editable}
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect={false}
+        spellCheck={false}
+        {...props}
+      />
+      <SSText style={styles.wordPositionLabelBase}>{position}</SSText>
+    </View>
+  )
+}
+
+export default forwardRef(SSWordInput)
 
 const styles = StyleSheet.create({
   containerBase: {
