@@ -88,11 +88,11 @@ const generateCustomLink = (points: LinkPoints) => {
   ].join('\n')
 }
 
-const SSSankeyDiagram = ({
+function SSSankeyDiagram({
   sankeyNodes,
   sankeyLinks,
   inputCount
-}: SankeyProps) => {
+}: SankeyProps) {
   const sankeyGenerator = sankey()
     .nodeWidth(78)
     .nodePadding(100)

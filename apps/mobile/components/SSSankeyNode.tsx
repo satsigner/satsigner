@@ -22,7 +22,7 @@ const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 
-export const SSSankeyNode = ({ textInfo, width, x, y }: ISSankeyNode) => {
+export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
