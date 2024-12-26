@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { useRef, useState } from 'react'
+import { ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'
@@ -26,6 +26,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
+import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
@@ -87,6 +88,7 @@ export default function ImportSeed() {
   const [loadingAccount, setLoadingAccount] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
+  const inputRefs = useRef<TextInput[]>([])
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
@@ -114,6 +116,17 @@ export default function ImportSeed() {
       setSeedWords(mnemonicSeedWords)
       await updateFingerprint()
     }
+
+    if (seedWord.valid && !seedWordsPrefixOfAnother[word]) {
+      focusNextWord(index)
+    }
+  }
+
+  function focusNextWord(currentIndex: number) {
+    const nextIndex = currentIndex + 1
+    if (nextIndex < seedWordCount) {
+      inputRefs.current[nextIndex]?.focus()
+    }
   }
 
   function handleOnEndEditingWord(word: string, index: number) {
@@ -126,8 +139,6 @@ export default function ImportSeed() {
 
     setSeedWordsInfo(seedWords)
     setCurrentWordText(word)
-
-    // TODO: Set focus to next?
   }
 
   function handleOnFocusWord(word: string | undefined, index: number) {
@@ -162,6 +173,7 @@ export default function ImportSeed() {
       setSeedWords(mnemonicSeedWords)
       await updateFingerprint()
     }
+    focusNextWord(currentWordIndex)
   }
 
   async function handleUpdatePassphrase(passphrase: string) {
@@ -237,7 +249,10 @@ export default function ImportSeed() {
                         seedWordsInfo[index].dirty
                       }
                       key={index}
+                      index={index}
+                      ref={(input: TextInput) => inputRefs.current.push(input)}
                       position={index + 1}
+                      onSubmitEditing={() => focusNextWord(index)}
                       onChangeText={(text) =>
                         handleOnChangeTextWord(text, index)
                       }
