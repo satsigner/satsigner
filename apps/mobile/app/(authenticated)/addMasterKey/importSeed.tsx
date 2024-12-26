@@ -134,6 +134,12 @@ export default function ImportSeed() {
     const seedWords = [...seedWordsInfo]
     const seedWord = seedWords[index]
 
+    if (!word.match(/^[a-z]*$/)) {
+      seedWord.valid = false
+      seedWord.dirty = true
+      return
+    }
+
     seedWord.value = word.trim()
 
     if (wordList.includes(word)) seedWord.valid = true
