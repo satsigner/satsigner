@@ -26,6 +26,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
+import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
@@ -116,7 +117,9 @@ export default function ImportSeed() {
       await updateFingerprint()
     }
 
-    if (seedWord.valid) focusNextWord(index)
+    if (seedWord.valid && !seedWordsPrefixOfAnother[word]) {
+      focusNextWord(index)
+    }
   }
 
   function focusNextWord(currentIndex: number) {
@@ -249,6 +252,7 @@ export default function ImportSeed() {
                       index={index}
                       ref={(input: TextInput) => inputRefs.current.push(input)}
                       position={index + 1}
+                      onSubmitEditing={() => focusNextWord(index)}
                       onChangeText={(text) =>
                         handleOnChangeTextWord(text, index)
                       }
