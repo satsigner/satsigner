@@ -55,9 +55,10 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         set({ retries })
       },
       getBlockchain: async () => {
-        const config = getBlockchainConfig(get().backend, get().url)
-
-        return getBlockchain(get().backend, config)
+        const { backend, retries, stopGap, timeout, url } = get()
+        const opts = { retries, stopGap, timeout }
+        const config = getBlockchainConfig(backend, url, opts)
+        return getBlockchain(backend, config)
       },
       getBlockchainHeight: async () => {
         return (await get().getBlockchain()).getHeight()
