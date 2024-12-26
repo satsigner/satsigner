@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { ForwardedRef, forwardRef, useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -10,14 +10,17 @@ type SSTextInputProps = {
   actionRight?: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-export default function SSTextInput({
-  variant = 'default',
-  size = 'default',
-  align = 'center',
-  actionRight,
-  style,
-  ...props
-}: SSTextInputProps) {
+function SSTextInput(
+  {
+    variant = 'default',
+    size = 'default',
+    align = 'center',
+    actionRight,
+    style,
+    ...props
+  }: SSTextInputProps,
+  ref: ForwardedRef<TextInput>
+) {
   const textInputStyle = useMemo(() => {
     const variantStyle =
       variant === 'default' ? styles.variantDefault : styles.variantOutline
@@ -41,6 +44,7 @@ export default function SSTextInput({
   return (
     <View style={styles.containerBase}>
       <TextInput
+        ref={ref}
         placeholderTextColor={Colors.gray[400]}
         style={textInputStyle}
         {...props}
@@ -49,6 +53,8 @@ export default function SSTextInput({
     </View>
   )
 }
+
+export default forwardRef(SSTextInput)
 
 const styles = StyleSheet.create({
   containerBase: {
