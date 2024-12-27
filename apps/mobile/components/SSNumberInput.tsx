@@ -35,18 +35,14 @@ function SSTextInput(
     const sizeStyle = size === 'default' ? styles.sizeDefault : styles.sizeSmall
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
+    const borderStyle = invalid ? styles.borderInvalid : {}
     return StyleSheet.compose(
       {
         ...styles.textInputBase,
         ...variantStyle,
         ...sizeStyle,
         ...alignStyle,
-        ...(invalid
-          ? {
-              borderWidth: 2,
-              borderColor: Colors.error
-            }
-          : {})
+        ...borderStyle
       },
       style
     )
@@ -150,5 +146,9 @@ const styles = StyleSheet.create({
     top: '50%',
     right: 12,
     transform: [{ translateY: -12 }]
+  },
+  borderInvalid: {
+    borderWidth: 2,
+    borderColor: Colors.error
   }
 })

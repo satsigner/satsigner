@@ -17,7 +17,7 @@ type customBlockchainConfig = {
 function getBlockchainConfig(
   backend: Backend,
   url: string,
-  options: customBlockchainConfig
+  options: customBlockchainConfig = {}
 ): BlockchainElectrumConfig | BlockchainEsploraConfig {
   switch (backend) {
     case 'electrum':
