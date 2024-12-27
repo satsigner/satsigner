@@ -71,7 +71,10 @@
         "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
         "backend": "Backend",
         "network": "Network",
-        "url": "Url"
+        "url": "Url",
+        "retries": "Retries",
+        "timeout": "Timeout",
+        "stopGap": "Stop Gap"
       },
       "appSecurity": {
         "title": "App Security",
