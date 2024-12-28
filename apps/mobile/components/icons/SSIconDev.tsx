@@ -2,20 +2,10 @@ import Svg, { G, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconDev({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconDev({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 16 16"
-    >
-      <G
-        id="dev"
-        transform="translate(1049 -7662)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 16 16">
+      <G id="dev" transform="translate(1049 -7662)">
         <Path
           id="ph--dev-to-logo-light"
           d="M19.013,61.518v1.513h.757a.454.454,0,1,1,0,.908h-.757v1.513h1.362a.454.454,0,1,1,0,.908H18.559a.454.454,0,0,1-.454-.454V61.064a.454.454,0,0,1,.454-.454h1.816a.454.454,0,1,1,0,.908Zm6.642-.331-1.362,4.843a.454.454,0,0,1-.875,0l-1.362-4.843a.454.454,0,0,1,.875-.245l.925,3.288.925-3.288a.454.454,0,1,1,.875.245M14.322,60.61h-.605a.454.454,0,0,0-.454.454v4.843a.454.454,0,0,0,.454.454h.605a2.27,2.27,0,0,0,2.27-2.27V62.88a2.27,2.27,0,0,0-2.27-2.27m1.362,3.481a1.362,1.362,0,0,1-1.362,1.362h-.151V61.518h.151a1.362,1.362,0,0,1,1.362,1.362Z"

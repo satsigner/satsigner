@@ -1,18 +1,10 @@
-import Svg, { G, Circle, Path, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconAbout({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconAbout({ width, height }: IconProps) {
   return (
-    <Svg
-      id="about"
-      width={width}
-      height={height}
-      viewBox="0 0 19 19"
-    >
+    <Svg id="about" width={width} height={height} viewBox="0 0 19 19">
       <G id="circle">
         <Circle
           id="Ellipse_11"

@@ -1,15 +1,16 @@
-import { Image } from 'expo-image'
 import { useMemo } from 'react'
 import {
   ActivityIndicator,
   StyleProp,
   StyleSheet,
   TextStyle,
-  TouchableOpacity
+  TouchableOpacity,
+  View
 } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
+import SSIconChevronDown from './icons/SSIconChevronDown'
 import SSBackgroundGradient from './SSBackgroundGradient'
 import SSText from './SSText'
 
@@ -81,16 +82,15 @@ export default function SSButton({
         <ActivityIndicator color={activityIndicatorColor} />
       )}
       {withSelect && (
-        <Image
+        <View
           style={{
             position: 'absolute',
             right: 15,
-            top: 28,
-            width: 11.6,
-            height: 5
+            top: 28
           }}
-          source={require('@/assets/icons/chevron-down.svg')}
-        />
+        >
+          <SSIconChevronDown height={5} width={11.6} />
+        </View>
       )}
     </TouchableOpacity>
   )

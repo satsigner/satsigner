@@ -1,21 +1,11 @@
-import Svg, { G, Line, Path, type SvgProps } from 'react-native-svg'
+import Svg, { G, Line, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconList({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconList({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 16.36 9.65"
-    >
-      <G
-        id="list"
-        transform="translate(0 -3.56)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 16.36 9.65">
+      <G id="list" transform="translate(0 -3.56)">
         <Line
           id="Line_3"
           data-name="Line 3"

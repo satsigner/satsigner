@@ -31,5 +31,5 @@ export {
   SSIconRefresh,
   SSIconScriptsP2pkh,
   SSIconSettings,
-  SSIconX,
+  SSIconX
 }

@@ -1,18 +1,10 @@
-import Svg, { G, Path, Rect, type SvgProps } from 'react-native-svg'
+import Svg, { Path, Rect, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconScriptsP2pkh({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconScriptsP2pkh({ width, height }: IconProps) {
   return (
-    <Svg
-      id="p2pkh-script"
-      width={width}
-      height={height}
-      viewBox="0 0 274 61"
-    >
+    <Svg id="p2pkh-script" width={width} height={height} viewBox="0 0 274 61">
       <Rect
         id="Rectangle_78"
         data-name="Rectangle 78"

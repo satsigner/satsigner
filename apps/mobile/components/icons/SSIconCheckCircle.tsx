@@ -1,17 +1,10 @@
-import Svg, { Path, Circle, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconCheckCircle({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconCheckCircle({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 22.2 22.2"
-    >
+    <Svg width={width} height={height} viewBox="0 0 22.2 22.2">
       <Circle
         cx="10.1"
         cy="10.1"
@@ -27,5 +20,6 @@ export default function SSIconCheckCircle({
         stroke="#fff"
         stroke-width="2"
       />
-    </Svg>)
+    </Svg>
+  )
 }

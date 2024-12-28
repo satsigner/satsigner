@@ -2,20 +2,10 @@ import Svg, { G, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconRefresh({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconRefresh({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 12 14.843"
-    >
-      <G
-        id="refresh"
-        transform="translate(-0.5 -0.316)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 12 14.843">
+      <G id="refresh" transform="translate(-0.5 -0.316)">
         <Path
           id="Path_13"
           data-name="Path 13"

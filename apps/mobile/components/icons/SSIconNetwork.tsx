@@ -2,21 +2,10 @@ import Svg, { Circle, G, Line, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconNetwork({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconNetwork({ width, height }: IconProps) {
   return (
-    <Svg
-      id="network"
-      width={width}
-      height={height}
-      viewBox="0 0 19 19"
-    >
-      <G
-        id="Group_7"
-        data-name="Group 7"
-      >
+    <Svg id="network" width={width} height={height} viewBox="0 0 19 19">
+      <G id="Group_7" data-name="Group 7">
         <Circle
           id="Ellipse_11"
           data-name="Ellipse 11"

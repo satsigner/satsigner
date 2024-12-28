@@ -1,21 +1,11 @@
-import Svg, { G, Circle, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, G, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconBubbles({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconBubbles({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 17.966 16.092"
-    >
-      <G
-        id="bubbles"
-        transform="translate(-0.774 -0.944)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 17.966 16.092">
+      <G id="bubbles" transform="translate(-0.774 -0.944)">
         <Circle
           id="Ellipse_5"
           data-name="Ellipse 5"

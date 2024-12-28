@@ -1,21 +1,11 @@
-import Svg, { Path, G, type SvgProps } from 'react-native-svg'
+import Svg, { G, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconCamera({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconCamera({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 14 10.438"
-    >
-      <G
-        id="camera"
-        transform="translate(0 -0.781)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 14 10.438">
+      <G id="camera" transform="translate(0 -0.781)">
         <Path
           id="Path_8"
           data-name="Path 8"

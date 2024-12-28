@@ -2,20 +2,10 @@ import Svg, { G, Path, Rect, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconLock({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconLock({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 22.137 30.143"
-    >
-      <G
-        id="lock"
-        transform="translate(-0.265 -0.451)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 22.137 30.143">
+      <G id="lock" transform="translate(-0.265 -0.451)">
         <G id="lock-inner">
           <Rect
             id="Rectangle_90"

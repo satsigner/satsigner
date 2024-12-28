@@ -2,16 +2,9 @@ import Svg, { Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconChevronLeft({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconChevronLeft({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 4.79 11.08"
-    >
+    <Svg width={width} height={height} viewBox="0 0 4.79 11.08">
       <Path
         id="chevron-left"
         d="M4,10.5,1,6,4,1.5"

@@ -1,4 +1,3 @@
-import { Image } from 'expo-image'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -10,6 +9,8 @@ import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress, formatNumber } from '@/utils/format'
 
+import SSIconIncoming from './icons/SSIconIncoming'
+import SSIconOutgoing from './icons/SSIconOutgoing'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 
@@ -64,17 +65,9 @@ export default function SSTransactionCard({
       }}
     >
       {transaction.type === 'receive' && (
-        <Image
-          style={{ width: 19, height: 19 }}
-          source={require('@/assets/icons/incoming.svg')}
-        />
+        <SSIconIncoming height={19} width={19} />
       )}
-      {transaction.type === 'send' && (
-        <Image
-          style={{ width: 19, height: 19 }}
-          source={require('@/assets/icons/outgoing.svg')}
-        />
-      )}
+      {transaction.type === 'send' && <SSIconOutgoing height={19} width={19} />}
       <SSHStack
         justifyBetween
         style={{

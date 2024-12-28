@@ -2,20 +2,10 @@ import Svg, { Circle, G, Line, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconHideWarning({
-  width,
-  height,
-}: IconProps) {
+export default function SSIconHideWarning({ width, height }: IconProps) {
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox="0 0 171.1 108.126"
-    >
-      <G
-        id="hide-warning"
-        transform="translate(-0.979 -0.487)"
-      >
+    <Svg width={width} height={height} viewBox="0 0 171.1 108.126">
+      <G id="hide-warning" transform="translate(-0.979 -0.487)">
         <Path
           id="Path_3"
           data-name="Path 3"
@@ -24,10 +14,7 @@ export default function SSIconHideWarning({
           stroke="#fff"
           stroke-width="3"
         />
-        <G
-          id="Group_4"
-          data-name="Group 4"
-        >
+        <G id="Group_4" data-name="Group 4">
           <Circle
             id="Ellipse_2"
             data-name="Ellipse 2"
