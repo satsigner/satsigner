@@ -1,8 +1,12 @@
-import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import {
+  SSIconCheckCircleThin,
+  SSIconCircleX,
+  SSIconHideWarning
+} from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
@@ -143,10 +147,7 @@ export default function ConfirmSeed() {
         onClose={() => setIncorrectWordModalVisible(false)}
       >
         <SSVStack itemsCenter style={{ marginVertical: 32 }}>
-          <Image
-            style={{ width: 88, height: 88 }}
-            source={require('@/assets/icons/circle-x.svg')}
-          />
+          <SSIconCircleX height={88} width={88} />
           <SSText size="3xl" center style={{ maxWidth: 200 }}>
             {i18n.t('addMasterKey.confirmSeed.incorrectWordModal.warning')}
           </SSText>
@@ -158,10 +159,7 @@ export default function ConfirmSeed() {
       >
         <SSVStack itemsCenter>
           <SSHStack>
-            <Image
-              style={{ width: 30, height: 30 }}
-              source={require('@/assets/icons/check-circle.svg')}
-            />
+            <SSIconCheckCircleThin height={40} width={40} />
             <SSText size="3xl">
               {seedWordCount} {i18n.t('common.of').toLowerCase()}{' '}
               {seedWordCount}
@@ -173,10 +171,7 @@ export default function ConfirmSeed() {
             {i18n.t('bitcoin.notYourCoins')}
           </SSText>
           <SSText size="6xl">{i18n.t('common.warning')}</SSText>
-          <Image
-            style={{ width: 210, height: 132 }}
-            source={require('@/assets/icons/hide-warning.svg')}
-          />
+          <SSIconHideWarning height={132} width={210} />
           <SSText size="2xl" center style={{ maxWidth: 260 }}>
             {i18n.t('addMasterKey.confirmSeed.warningModal.warning')}
           </SSText>
