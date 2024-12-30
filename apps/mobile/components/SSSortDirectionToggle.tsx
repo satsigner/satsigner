@@ -1,9 +1,9 @@
-import { Image } from 'expo-image'
 import { useState } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import { type Direction } from '@/types/logic/sort'
 
+import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
 
 type SSSortDirectionToggleProps = {
@@ -40,15 +40,9 @@ export default function SSSortDirectionToggle({
       <View style={styles.arrowContainerBase}>
         {showArrow &&
           (direction === 'asc' ? (
-            <Image
-              style={{ width: 14, height: 5 }}
-              source={require('@/assets/icons/chevron-up.svg')}
-            />
+            <SSIconChevronUp height={5} width={14} />
           ) : (
-            <Image
-              style={{ width: 14, height: 5 }}
-              source={require('@/assets/icons/chevron-down.svg')}
-            />
+            <SSIconChevronDown height={5} width={14} />
           ))}
       </View>
     </TouchableOpacity>

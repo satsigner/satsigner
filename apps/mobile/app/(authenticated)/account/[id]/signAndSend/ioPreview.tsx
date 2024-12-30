@@ -1,5 +1,4 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useWindowDimensions, View } from 'react-native'
@@ -14,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconBubbles } from '@/components/icons'
 import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
@@ -217,10 +217,7 @@ export default function IOPreview() {
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
               }
             >
-              <Image
-                style={{ width: 24, height: 22 }}
-                source={require('@/assets/icons/bubbles.svg')}
-              />
+              <SSIconBubbles height={22} width={24} />
             </SSIconButton>
           </SSHStack>
           <SSVStack itemsCenter gap="sm">
