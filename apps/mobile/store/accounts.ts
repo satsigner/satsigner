@@ -52,9 +52,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return wallet
       },
       syncWallet: async (wallet, account) => {
-        const { backend, network, url } = useBlockchainStore.getState()
+        const { backend, network, retries, stopGap, timeout, url } =
+          useBlockchainStore.getState()
+        const opts = { retries, stopGap, timeout }
 
-        await syncWallet(wallet, backend, getBlockchainConfig(backend, url))
+        await syncWallet(
+          wallet,
+          backend,
+          getBlockchainConfig(backend, url, opts)
+        )
 
         const { transactions, utxos, summary } = await getWalletData(
           wallet,
