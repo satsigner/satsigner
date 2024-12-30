@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useWindowDimensions, View } from 'react-native'
