@@ -284,7 +284,7 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <View style={{ position: 'absolute', top: 120, left: 140 }}>
+      <View style={{ position: 'absolute', top: 100, left: 136 }}>
         <GestureDetector gesture={panGesture}>
           <Animated.View
             style={[
