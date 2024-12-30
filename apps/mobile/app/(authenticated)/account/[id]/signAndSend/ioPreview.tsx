@@ -1,5 +1,6 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useWindowDimensions, View } from 'react-native'
@@ -23,7 +24,6 @@ import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -205,7 +205,18 @@ export default function IOPreview() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      <SSMainLayout style={{ position: 'relative', height: '100%' }}>
+
+      <LinearGradient
+        style={{
+          width: '100%',
+          position: 'absolute',
+          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+          paddingTop: Layout.mainContainer.paddingTop,
+          zIndex: 20
+        }}
+        locations={[0.185, 0.5554, 0.7713, 1]}
+        colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}
+      >
         <SSVStack style={{ flex: 1 }}>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
@@ -272,14 +283,39 @@ export default function IOPreview() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
+      </LinearGradient>
+      <View style={{ position: 'absolute', top: 120, left: 140 }}>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View
+            style={[
+              { width: sankeyWidth, height: sankeyHeight },
+              animatedStyle
+            ]}
+          >
+            <SSSankeyDiagram
+              sankeyNodes={sankeyNodes}
+              sankeyLinks={sankeyLinks}
+              inputCount={inputs.size ?? 0}
+            />
+          </Animated.View>
+        </GestureDetector>
+      </View>
+      <LinearGradient
+        locations={[0, 0.1255, 0.2678, 1]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          backgroundColor: Colors.transparent,
+          paddingBottom: 20
+        }}
+        colors={['#00000000', '#0000004B', '#000000A6', '#000000F5']}
+      >
         <SSVStack
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            paddingHorizontal: Layout.mainContainer.paddingHorizontal,
-            paddingBottom: 20
+            width: '92%'
           }}
         >
           <SSTextInput
@@ -312,23 +348,7 @@ export default function IOPreview() {
             }
           />
         </SSVStack>
-      </SSMainLayout>
-      <View style={{ position: 'absolute', flex: 1, top: 100 }}>
-        <GestureDetector gesture={panGesture}>
-          <Animated.View
-            style={[
-              { width: sankeyWidth, height: sankeyHeight },
-              animatedStyle
-            ]}
-          >
-            <SSSankeyDiagram
-              sankeyNodes={sankeyNodes}
-              sankeyLinks={sankeyLinks}
-              inputCount={inputs.size ?? 0}
-            />
-          </Animated.View>
-        </GestureDetector>
-      </View>
+      </LinearGradient>
       <SSModal
         visible={addOutputModalVisible}
         fullOpacity
