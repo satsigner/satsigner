@@ -10,7 +10,7 @@ import {
 
 import { Colors, Sizes } from '@/styles'
 
-import SSIconChevronDown from './icons/SSIconChevronDown'
+import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
 import SSText from './SSText'
 

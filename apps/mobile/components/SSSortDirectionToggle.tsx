@@ -3,8 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import { type Direction } from '@/types/logic/sort'
 
-import SSIconChevronDown from './icons/SSIconChevronDown'
-import SSIconChevronUp from './icons/SSIconChevronUp'
+import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
 
 type SSSortDirectionToggleProps = {

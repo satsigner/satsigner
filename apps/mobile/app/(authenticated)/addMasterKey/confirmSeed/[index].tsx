@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  SSIconCheckCircleThin,
+  SSIconCheckCircle,
   SSIconCircleX,
   SSIconHideWarning
 } from '@/components/icons'
@@ -159,7 +159,7 @@ export default function ConfirmSeed() {
       >
         <SSVStack itemsCenter>
           <SSHStack>
-            <SSIconCheckCircleThin height={40} width={40} />
+            <SSIconCheckCircle height={30} width={30} />
             <SSText size="3xl">
               {seedWordCount} {i18n.t('common.of').toLowerCase()}{' '}
               {seedWordCount}

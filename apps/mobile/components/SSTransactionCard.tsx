@@ -9,8 +9,7 @@ import { Colors } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress, formatNumber } from '@/utils/format'
 
-import SSIconIncoming from './icons/SSIconIncoming'
-import SSIconOutgoing from './icons/SSIconOutgoing'
+import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 

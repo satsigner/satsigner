@@ -59,7 +59,7 @@ function TotalTransactions({
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSIconButton onPress={() => handleOnRefresh()}>
-          <SSIconRefresh height={18} width={18} />
+          <SSIconRefresh height={18} width={22} />
         </SSIconButton>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSSortDirectionToggle
