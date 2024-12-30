@@ -1,10 +1,10 @@
-import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
@@ -43,10 +43,7 @@ export default function AuthenticatedLayout() {
           ),
           headerRight: () => (
             <SSIconButton onPress={() => router.navigate('/settings/')}>
-              <Image
-                style={{ width: 18, height: 18 }}
-                source={require('@/assets/icons/settings.svg')}
-              />
+              <SSIconSettings height={18} width={18} />
             </SSIconButton>
           ),
           headerTitleAlign: 'center',

@@ -1,8 +1,8 @@
-import { Image } from 'expo-image'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
@@ -181,10 +181,7 @@ export default function AccountOptions() {
                 `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.1`
               )}
             </SSText>
-            <Image
-              source={require('@/assets/icons/scripts/p2pkh.svg')}
-              style={{ width: '100%', height: 80 }}
-            />
+            <SSIconScriptsP2pkh height={80} width="100%" />
           </SSCollapsible>
         }
         onSelect={() => handleOnSelectScriptVersion()}
