@@ -10,6 +10,10 @@ import { formatAddress, formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+import SSIconButton from './SSIconButton'
+import { useRouter } from 'expo-router'
+import { useRoute } from '@react-navigation/native'
+import { SSIconEdit } from './icons'
 
 type SSUtxoCardProps = {
   utxo: Utxo
@@ -20,11 +24,29 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
+  const router = useRouter()
+  const route = useRoute()
+
+  const id = (route.params as any).id as number
+  const { txid, vout } = utxo
+
   return (
     <SSHStack
       justifyBetween
       style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
     >
+      <SSVStack>
+        <SSIconButton
+          onPress={() =>
+            router.push({
+              pathname: '/account/[id]/transaction/[txid]/utxo/[vout]',
+              params: { id, txid, vout }
+            } as any)
+          }
+        >
+          <SSIconEdit height={32} width={32} />
+        </SSIconButton>
+      </SSVStack>
       <SSVStack gap="xs">
         <SSText color="muted">
           {utxo.timestamp && <SSTimeAgoText date={new Date(utxo.timestamp)} />}
