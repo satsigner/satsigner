@@ -30,8 +30,7 @@ export default function SSTagInput(props: Props) {
   }
 
   const addTag = (tag: string) => {
-    if (tag.length<2 || selectedTags.includes(tag))
-      return false
+    if (tag.length < 2 || selectedTags.includes(tag)) return false
     onSelect([...selectedTags, tag])
     return true
   }
@@ -47,9 +46,7 @@ export default function SSTagInput(props: Props) {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>
-            EXTRA SECURITY 🧐
-          </SSText>
+          headerTitle: () => <SSText uppercase>EXTRA SECURITY 🧐</SSText>
         }}
       />
 
@@ -62,17 +59,17 @@ export default function SSTagInput(props: Props) {
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             blurOnSubmit={false}
-            placeholder='Type a tag'
+            placeholder="Type a tag"
             align="left"
             size="small"
-            ref={(ref: TextInput) => inputRef.current = ref}
+            ref={(ref: TextInput) => (inputRef.current = ref)}
           />
         </View>
       </SSHStack>
-      {((inputFocused && text.length > 1) || text.length > 0) &&
-      <ScrollView>
-        <SSHStack gap="sm" style={{ flexWrap: 'wrap' }}>
-          {tags
+      {((inputFocused && text.length > 1) || text.length > 0) && (
+        <ScrollView>
+          <SSHStack gap="sm" style={{ flexWrap: 'wrap' }}>
+            {tags
               .filter((t) => !selectedTags.includes(t) && search(t, text))
               .map((tag: string) => (
                 <SSButton
@@ -87,11 +84,10 @@ export default function SSTagInput(props: Props) {
                   }}
                   onPress={() => addTag(tag)}
                 />
-              ))
-          }
-        </SSHStack>
-      </ScrollView>
-      }
+              ))}
+          </SSHStack>
+        </ScrollView>
+      )}
       <SSHStack style={{ flexWrap: 'wrap' }}>
         {selectedTags.map((tag: string) => (
           <SSHStack
@@ -104,15 +100,11 @@ export default function SSTagInput(props: Props) {
             }}
             gap="sm"
           >
-            <SSText uppercase>
-              {tag}
-            </SSText>
-            <SSIconButton
-              onPress={() => removeTag(tag)}
-            >
+            <SSText uppercase>{tag}</SSText>
+            <SSIconButton onPress={() => removeTag(tag)}>
               <SSIconCircleX
                 height={20}
-                fill='#bbb'
+                fill="#bbb"
                 stroke={Colors.gray[850]}
                 width={20}
               />

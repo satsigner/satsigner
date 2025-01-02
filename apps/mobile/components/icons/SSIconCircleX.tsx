@@ -1,6 +1,9 @@
 import Svg, { Circle, Path, type SvgProps } from 'react-native-svg'
 
-type IconProps = Pick<SvgProps, 'width' | 'height' | 'stroke' | 'fill' | 'strokeWidth'>
+type IconProps = Pick<
+  SvgProps,
+  'width' | 'height' | 'stroke' | 'fill' | 'strokeWidth'
+>
 
 export default function SSIconCircleX({
   width,

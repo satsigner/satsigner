@@ -46,7 +46,7 @@ function UtxoDetails() {
     'aa11',
     'friends',
     'shopping',
-    'exchange',
+    'exchange'
   ]
   const [selectedTags, setSelectedTags] = useState([] as string[])
 
@@ -113,9 +113,9 @@ function UtxoDetails() {
                     AMOUNT
                   </SSText>
                   <SSClipboardCopy text={tx.size}>
-                  <SSText color="muted" uppercase>
-                    {tx.size} BYTES
-                  </SSText>
+                    <SSText color="muted" uppercase>
+                      {tx.size} BYTES
+                    </SSText>
                   </SSClipboardCopy>
                 </SSVStack>
               </SSHStack>
@@ -148,10 +148,10 @@ function UtxoDetails() {
 
               <SSClipboardCopy text={vout}>
                 <SSVStack gap="none">
-                <SSText weight="bold" size="md">
-                  OUTPUT INDEX
-                </SSText>
-                <SSText color="muted">{vout}</SSText>
+                  <SSText weight="bold" size="md">
+                    OUTPUT INDEX
+                  </SSText>
+                  <SSText color="muted">{vout}</SSText>
                 </SSVStack>
               </SSClipboardCopy>
             </SSVStack>
