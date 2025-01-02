@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import SSText from "./SSText";
+import { Colors } from "@/styles";
 
 type SSSnackbarProps = {
   message: string
@@ -44,8 +45,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   messageText: {
-    backgroundColor: 'grey',
-    opacity: 0.75,
+    backgroundColor: Colors.gray[800],
     borderRadius: 5,
     paddingHorizontal: 5,
     paddingVertical: 0,

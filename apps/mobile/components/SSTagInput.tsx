@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
 import SSTextInput from './SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
-import { SSIconX } from './icons'
+import { SSIconCircleX } from './icons'
 import SSIconButton from './SSIconButton'
 import SSText from './SSText'
-import SSVStack from '@/layouts/SSVStack'
 import { ScrollView, View } from 'react-native'
 import SSButton from './SSButton'
 import { TextInput } from 'react-native-gesture-handler'
 import { Stack } from 'expo-router'
+import { Colors } from '@/styles'
 
 type Props = {
   tags: string[]
@@ -80,9 +80,8 @@ export default function SSTagInput(props: Props) {
                   key={tag}
                   style={{
                     borderRadius: 5,
-                    borderColor: 'white',
-                    borderWidth: 1,
                     paddingHorizontal: 8,
+                    backgroundColor: Colors.gray[800],
                     height: 'auto',
                     width: 'auto'
                   }}
@@ -98,23 +97,25 @@ export default function SSTagInput(props: Props) {
           <SSHStack
             key={tag}
             style={{
-              backgroundColor: 'grey',
+              backgroundColor: Colors.gray[850],
               borderRadius: 3,
               borderStyle: 'solid',
               padding: 5
             }}
             gap="sm"
           >
-            <SSText uppercase>{tag}</SSText>
+            <SSText uppercase>
+              {tag}
+            </SSText>
             <SSIconButton
               onPress={() => removeTag(tag)}
-              style={{
-                backgroundColor: 'black',
-                padding: 5,
-                borderRadius: 10,
-              }}
             >
-              <SSIconX height={10} width={10} />
+              <SSIconCircleX
+                height={20}
+                fill='#bbb'
+                stroke={Colors.gray[850]}
+                width={20}
+              />
             </SSIconButton>
           </SSHStack>
         ))}
