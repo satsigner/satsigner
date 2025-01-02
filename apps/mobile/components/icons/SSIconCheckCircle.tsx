@@ -12,13 +12,13 @@ export default function SSIconCheckCircle({ width, height }: IconProps) {
         transform="translate(1 1)"
         fill="none"
         stroke="#fff"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <Path
         d="M6.7,12.1l2.5,2.4,6.6-6.7"
         fill="none"
         stroke="#fff"
-        stroke-width="2"
+        strokeWidth="2"
       />
     </Svg>
   )

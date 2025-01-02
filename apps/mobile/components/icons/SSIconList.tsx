@@ -13,7 +13,7 @@ export default function SSIconList({ width, height }: IconProps) {
           transform="translate(5.85 4.06)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Line
           id="Line_4"
@@ -22,7 +22,7 @@ export default function SSIconList({ width, height }: IconProps) {
           transform="translate(0 4.06)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Line
           id="Line_5"
@@ -31,7 +31,7 @@ export default function SSIconList({ width, height }: IconProps) {
           transform="translate(5.85 8.38)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Line
           id="Line_6"
@@ -40,7 +40,7 @@ export default function SSIconList({ width, height }: IconProps) {
           transform="translate(0 8.38)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Line
           id="Line_7"
@@ -49,7 +49,7 @@ export default function SSIconList({ width, height }: IconProps) {
           transform="translate(5.85 12.71)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Line
           id="Line_8"
@@ -58,7 +58,7 @@ export default function SSIconList({ width, height }: IconProps) {
           transform="translate(0 12.71)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>

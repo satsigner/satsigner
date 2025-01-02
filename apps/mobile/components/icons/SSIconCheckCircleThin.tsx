@@ -15,7 +15,7 @@ export default function SSIconCheckCircleThin({ width, height }: IconProps) {
           transform="translate(1 1)"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Path
           id="Path_33"
@@ -24,7 +24,7 @@ export default function SSIconCheckCircleThin({ width, height }: IconProps) {
           transform="translate(3.894 4.645)"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>

@@ -11,9 +11,9 @@ export default function SSIconChevronLeft({ width, height }: IconProps) {
         transform="translate(-0.25 -0.46)"
         fill="none"
         stroke="#828282"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
       />
     </Svg>
   )

@@ -12,9 +12,9 @@ export default function SSIconIncoming({ width, height }: IconProps) {
           d="M8.5.5V11m0,0L11,8.5M8.5,11,6,8.5"
           fill="none"
           stroke="#a7ffaf"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1"
         />
         <Path
           id="Path_11"
@@ -22,7 +22,7 @@ export default function SSIconIncoming({ width, height }: IconProps) {
           d="M4,2a7.5,7.5,0,1,0,9,0"
           fill="none"
           stroke="#a7ffaf"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>

@@ -108,9 +108,9 @@ export default function SSIconScriptsP2pkh({ width, height }: IconProps) {
         d="M15,23.94v8H84v-8"
         fill="none"
         stroke="rgba(191,191,191,0.24)"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1"
       />
       <Path
         id="Path_25"
@@ -118,9 +118,9 @@ export default function SSIconScriptsP2pkh({ width, height }: IconProps) {
         d="M87,23.94v8H259v-8"
         fill="none"
         stroke="rgba(191,191,191,0.24)"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1"
       />
     </Svg>
   )

@@ -12,7 +12,7 @@ export default function SSIconCamera({ width, height }: IconProps) {
           d="M13.5,2.847v7.873H.5V2.847H3.267a1.618,1.618,0,0,0,1.326-.677h0l.625-.888H9.106l.625.888a1.618,1.618,0,0,0,1.326.677Z"
           fill="none"
           stroke="rgba(255,255,255,0.73)"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Path
           id="Path_9"
@@ -20,7 +20,7 @@ export default function SSIconCamera({ width, height }: IconProps) {
           d="M7,4A2.5,2.5,0,1,1,4.5,6.5,2.5,2.5,0,0,1,7,4Z"
           fill="none"
           stroke="rgba(255,255,255,0.73)"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>

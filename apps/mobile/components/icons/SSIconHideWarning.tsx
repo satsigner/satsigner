@@ -12,7 +12,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
           d="M3.1,58.2c.1-.1.3-.2.4-.4,1.1-1,2.7-2.3,4.9-4a165.452,165.452,0,0,1,17.9-12c15.2-8.8,36-17.4,59-17.4s43.8,8.7,59,17.4a155.959,155.959,0,0,1,17.9,12c2.1,1.6,3.8,3,4.9,4,.2.1.3.3.4.4-.1.1-.3.2-.4.4-1.1,1-2.7,2.3-4.9,4a165.451,165.451,0,0,1-17.9,12c-15.2,8.8-36,17.4-59,17.4s-43.8-8.7-59-17.4a155.959,155.959,0,0,1-17.9-12c-2.1-1.6-3.8-3-4.9-4Z"
           fill="none"
           stroke="#fff"
-          stroke-width="3"
+          strokeWidth="3"
         />
         <G id="Group_4" data-name="Group 4">
           <Circle
@@ -24,7 +24,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
             transform="translate(47.5 17.9)"
             fill="none"
             stroke="#fff"
-            stroke-width="3"
+            strokeWidth="3"
           />
           <Circle
             id="Ellipse_3"
@@ -35,7 +35,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
             transform="translate(71.1 41.5)"
             fill="none"
             stroke="#fff"
-            stroke-width="3"
+            strokeWidth="3"
           />
         </G>
         <Line
@@ -46,7 +46,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
           transform="translate(30.9 4.9)"
           fill="none"
           stroke="#000"
-          stroke-width="12"
+          strokeWidth="12"
         />
         <Line
           id="Line_2"
@@ -56,7 +56,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
           transform="translate(30.1 5.1)"
           fill="none"
           stroke="#fff"
-          stroke-width="3"
+          strokeWidth="3"
         />
         <Path
           id="Path_4"
@@ -64,7 +64,7 @@ export default function SSIconHideWarning({ width, height }: IconProps) {
           d="M137.9,59.8a6.007,6.007,0,0,1,10.4,0L169.2,96a6.011,6.011,0,0,1-5.2,9H122.2a6.011,6.011,0,0,1-5.2-9Z"
           fill="#fff"
           stroke="#000"
-          stroke-width="4"
+          strokeWidth="4"
         />
         <Path
           id="Path_5"

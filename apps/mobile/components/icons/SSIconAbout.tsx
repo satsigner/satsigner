@@ -15,7 +15,7 @@ export default function SSIconAbout({ width, height }: IconProps) {
           transform="translate(0.5 0.5)"
           fill="none"
           stroke="#828282"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
       <Path

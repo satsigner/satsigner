@@ -15,7 +15,7 @@ export default function SSIconCircleXThin({ width, height }: IconProps) {
           transform="translate(2.5 2.5)"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Path
           id="Path_6"
@@ -24,7 +24,7 @@ export default function SSIconCircleXThin({ width, height }: IconProps) {
           transform="translate(-16.255 -16.847)"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Path
           id="Path_7"
@@ -33,7 +33,7 @@ export default function SSIconCircleXThin({ width, height }: IconProps) {
           transform="translate(-16.154 -16.948)"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>
