@@ -26,25 +26,29 @@ export default function UtxoDetails() {
 
   const account = getCurrentAccount(id)!
 
-  const [blockTime, setBlockTime] = useState('-')
-  const [blockHeight, setBlockHeight] = useState('-')
-  const [txSize, setTxSize] = useState('-')
-  const [txAddress, setTxAddress] = useState('-')
+  const placeholder = '-'
+  const [blockTime, setBlockTime] = useState(placeholder)
+  const [blockHeight, setBlockHeight] = useState(placeholder)
+  const [txSize, setTxSize] = useState(placeholder)
+  const [txAddress, setTxAddress] = useState(placeholder)
 
   const [url] = useBlockchainStore(useShallow((state) => [state.url]))
 
   const oracle = new MempoolOracle(url)
 
   useEffect(() => {
+    const fetchUtxoInfo = async () => {
+      const tx = await oracle.getTransaction(txid)
+      setTxSize(tx.size.toString())
+      setBlockHeight(tx.status.block_height.toString())
+      setBlockTime(formatDate(tx.status.block_time as unknown as Date))
+      setTxAddress(tx.vout[Number(vout)].scriptpubkey_address || '-')
+    }
+
     try {
-      oracle.getTransaction(txid).then((tx: Tx) => {
-        setTxSize(tx.size.toString())
-        setBlockHeight(tx.status.block_height.toString())
-        setBlockTime(formatDate(tx.status.block_time as unknown as Date))
-        setTxAddress(tx.vout[Number(vout)].scriptpubkey_address || '-')
-      })
+      fetchUtxoInfo()
     } catch {
-      //
+      // TODO: show error notification via snack bar
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
@@ -80,9 +84,11 @@ export default function UtxoDetails() {
       >
         <SSVStack>
           <SSText center size="lg">
-            UTXO Details
+            {i18n.t('utxoDetails.title')}
           </SSText>
-          <SSText weight="bold">LABEL</SSText>
+          <SSText weight="bold" uppercase>
+            {i18n.t('common.label')}
+          </SSText>
           <SSTextInput
             align="left"
             multiline
@@ -93,7 +99,9 @@ export default function UtxoDetails() {
               padding: 10
             }}
           />
-          <SSText weight="bold">TAGS</SSText>
+          <SSText weight="bold" uppercase>
+            {i18n.t('common.tags')}
+          </SSText>
           <SSTagInput
             tags={tags}
             selectedTags={selectedTags}
@@ -104,28 +112,29 @@ export default function UtxoDetails() {
           <SSSeparator color="gradient" />
           <SSHStack justifyBetween>
             <SSVStack gap="none">
-              <SSText weight="bold" size="md">
-                DATE
+              <SSText weight="bold" uppercase>
+                {i18n.t('common.date')}
               </SSText>
               <SSText color="muted" uppercase>
                 {blockTime}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
-              <SSText weight="bold" size="md">
-                BLOCK
+              <SSText weight="bold" uppercase>
+                {i18n.t('common.block')}
               </SSText>
               <SSText color="muted" uppercase>
                 {blockHeight}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
-              <SSText weight="bold" size="md">
-                AMOUNT
+              <SSText weight="bold" uppercase>
+                {i18n.t('common.amount')}
               </SSText>
               <SSClipboardCopy text={txSize}>
                 <SSText color="muted" uppercase>
-                  {txSize} BYTES
+                  {txSize}{' '}
+                  {txSize !== placeholder ? i18n.t('common.bytes') : ''}
                 </SSText>
               </SSClipboardCopy>
             </SSVStack>
@@ -133,8 +142,8 @@ export default function UtxoDetails() {
           <SSSeparator color="gradient" />
           <SSClipboardCopy text={txAddress}>
             <SSVStack gap="none">
-              <SSText weight="bold" size="md">
-                ADDRESS
+              <SSText weight="bold" uppercase>
+                {i18n.t('common.address')}
               </SSText>
               <SSText color="muted">{txAddress}</SSText>
             </SSVStack>
@@ -142,8 +151,8 @@ export default function UtxoDetails() {
           <SSSeparator color="gradient" />
           <SSClipboardCopy text={txid}>
             <SSVStack gap="none">
-              <SSText weight="bold" size="md">
-                TRANSACTION
+              <SSText weight="bold" uppercase>
+                {i18n.t('common.transaction')}
               </SSText>
               <SSText color="muted">{txid}</SSText>
             </SSVStack>
@@ -151,7 +160,7 @@ export default function UtxoDetails() {
           <SSSeparator color="gradient" />
           <SSClipboardCopy text={vout}>
             <SSVStack gap="none">
-              <SSText weight="bold" size="md">
+              <SSText weight="bold">
                 OUTPUT INDEX
               </SSText>
               <SSText color="muted">{vout}</SSText>
