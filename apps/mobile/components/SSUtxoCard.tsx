@@ -1,4 +1,3 @@
-import { useRoute } from '@react-navigation/native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -8,13 +7,13 @@ import { i18n } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
+import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 
 import { SSIconEdit } from './icons'
 import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
-import { UtxoSearchParams } from '@/types/navigation/searchParams'
 
 type SSUtxoCardProps = {
   utxo: Utxo
@@ -27,7 +26,8 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
 
   const router = useRouter()
 
-  const { id, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { txid, vout } = utxo
 
   return (
     <SSHStack
@@ -37,9 +37,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
       <SSVStack>
         <SSIconButton
           onPress={() =>
-            router.navigate(
-              `/account/${id}/transaction/${txid}/utxo/${vout}`,
-            )
+            router.navigate(`/account/${id}/transaction/${txid}/utxo/${vout}`)
           }
         >
           <SSIconEdit height={24} width={24} />
