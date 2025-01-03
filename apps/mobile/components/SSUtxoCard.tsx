@@ -44,7 +44,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
             } as any)
           }
         >
-          <SSIconEdit height={32} width={32} />
+          <SSIconEdit height={24} width={24} />
         </SSIconButton>
       </SSVStack>
       <SSVStack gap="xs">
