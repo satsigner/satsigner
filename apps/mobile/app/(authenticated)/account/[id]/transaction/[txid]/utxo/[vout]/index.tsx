@@ -1,5 +1,4 @@
-import { useRoute } from '@react-navigation/native'
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,14 +13,18 @@ import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Tx } from '@/types/models/Blockchain'
+import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/format'
 
-function UtxoDetails() {
-  const route = useRoute()
-  const { params } = route as any
-  const { txid, vout } = params
+export default function UtxoDetails() {
+  const { id, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+
+  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+
+  const account = getCurrentAccount(id)!
 
   const [blockTime, setBlockTime] = useState('-')
   const [blockHeight, setBlockHeight] = useState('-')
@@ -38,7 +41,7 @@ function UtxoDetails() {
         setTxSize(tx.size.toString())
         setBlockHeight(tx.status.block_height.toString())
         setBlockTime(formatDate(tx.status.block_time as unknown as Date))
-        setTxAddress(tx.vout[vout].scriptpubkey_address || '-')
+        setTxAddress(tx.vout[Number(vout)].scriptpubkey_address || '-')
       })
     } catch {
       //
@@ -63,7 +66,7 @@ function UtxoDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>CONFIGURATION 🧐</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
       <SSVStack
@@ -79,7 +82,6 @@ function UtxoDetails() {
           <SSText center size="lg">
             UTXO Details
           </SSText>
-
           <SSText weight="bold">LABEL</SSText>
           <SSTextInput
             align="left"
@@ -91,7 +93,6 @@ function UtxoDetails() {
               padding: 10
             }}
           />
-
           <SSText weight="bold">TAGS</SSText>
           <SSTagInput
             tags={tags}
@@ -99,10 +100,8 @@ function UtxoDetails() {
             onSelect={setSelectedTags}
           />
         </SSVStack>
-
         <SSVStack>
           <SSSeparator color="gradient" />
-
           <SSHStack justifyBetween>
             <SSVStack gap="none">
               <SSText weight="bold" size="md">
@@ -131,9 +130,7 @@ function UtxoDetails() {
               </SSClipboardCopy>
             </SSVStack>
           </SSHStack>
-
           <SSSeparator color="gradient" />
-
           <SSClipboardCopy text={txAddress}>
             <SSVStack gap="none">
               <SSText weight="bold" size="md">
@@ -142,9 +139,7 @@ function UtxoDetails() {
               <SSText color="muted">{txAddress}</SSText>
             </SSVStack>
           </SSClipboardCopy>
-
           <SSSeparator color="gradient" />
-
           <SSClipboardCopy text={txid}>
             <SSVStack gap="none">
               <SSText weight="bold" size="md">
@@ -153,9 +148,7 @@ function UtxoDetails() {
               <SSText color="muted">{txid}</SSText>
             </SSVStack>
           </SSClipboardCopy>
-
           <SSSeparator color="gradient" />
-
           <SSClipboardCopy text={vout}>
             <SSVStack gap="none">
               <SSText weight="bold" size="md">
@@ -165,11 +158,8 @@ function UtxoDetails() {
             </SSVStack>
           </SSClipboardCopy>
         </SSVStack>
-
         <SSButton label={i18n.t('common.save')} variant="secondary" />
       </SSVStack>
     </ScrollView>
   )
 }
-
-export default UtxoDetails

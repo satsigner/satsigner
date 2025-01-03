@@ -1,4 +1,3 @@
-import { Stack } from 'expo-router'
 import { useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { TextInput } from 'react-native-gesture-handler'
@@ -46,12 +45,6 @@ export default function SSTagInput(props: Props) {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>EXTRA SECURITY 🧐</SSText>
-        }}
-      />
-
       <SSHStack>
         <View style={{ flexGrow: 1 }}>
           <SSTextInput
