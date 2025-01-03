@@ -17,6 +17,7 @@ import SSIconLock from './SSIconLock'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconOutgoing from './SSIconOutgoing'
 import SSIconPencil from './SSIconPencil'
+import SSIconPlus from './SSIconPlus'
 import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
@@ -43,6 +44,7 @@ export {
   SSIconNetwork,
   SSIconOutgoing,
   SSIconPencil,
+  SSIconPlus,
   SSIconRefresh,
   SSIconRemove,
   SSIconScriptsP2pkh,

@@ -9,10 +9,9 @@ import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 
-import { SSIconX } from './icons'
+import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
-import SSIconPlus from './icons/SSIconPlus'
 
 type SSUtxoItemProps = {
   utxo: Utxo
