@@ -1,3 +1,5 @@
+import { useRoute } from '@react-navigation/native'
+import { useRouter } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -8,12 +10,10 @@ import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatNumber } from '@/utils/format'
 
+import { SSIconEdit } from './icons'
+import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
-import SSIconButton from './SSIconButton'
-import { useRouter } from 'expo-router'
-import { useRoute } from '@react-navigation/native'
-import { SSIconEdit } from './icons'
 
 type SSUtxoCardProps = {
   utxo: Utxo

@@ -18,7 +18,7 @@ export default function SSIconButton({
       },
       style
     )
-  }, [rounded])
+  }, [rounded, style])
 
   return (
     <TouchableOpacity activeOpacity={0.65} style={buttonStyle} {...props}>

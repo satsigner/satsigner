@@ -1,14 +1,16 @@
+import { Stack } from 'expo-router'
 import { useRef, useState } from 'react'
-import SSTextInput from './SSTextInput'
+import { ScrollView, View } from 'react-native'
+import { TextInput } from 'react-native-gesture-handler'
+
 import SSHStack from '@/layouts/SSHStack'
+import { Colors } from '@/styles'
+
 import { SSIconCircleX } from './icons'
+import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSText from './SSText'
-import { ScrollView, View } from 'react-native'
-import SSButton from './SSButton'
-import { TextInput } from 'react-native-gesture-handler'
-import { Stack } from 'expo-router'
-import { Colors } from '@/styles'
+import SSTextInput from './SSTextInput'
 
 type Props = {
   tags: string[]

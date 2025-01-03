@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react'
-import { View, StyleSheet } from 'react-native'
-import SSText from './SSText'
+import { StyleSheet, View } from 'react-native'
+
 import { Colors } from '@/styles'
+
+import SSText from './SSText'
 
 type SSSnackbarProps = {
   message: string
@@ -23,7 +25,7 @@ export default function SSPopupText({
       }, duration)
       return () => clearTimeout(timeout)
     }
-  }, [isVisible, duration])
+  }, [isVisible, duration, onTimeout])
 
   return isVisible ? (
     <View style={styles.container}>

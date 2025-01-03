@@ -1,3 +1,8 @@
+import { useRoute } from '@react-navigation/native'
+import { useEffect, useState } from 'react'
+import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
+
 import { MempoolOracle } from '@/api/blockchain'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -11,10 +16,6 @@ import { i18n } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Tx } from '@/types/models/Blockchain'
 import { formatDate } from '@/utils/format'
-import { useRoute } from '@react-navigation/native'
-import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 function UtxoDetails() {
   const route = useRoute()
@@ -28,6 +29,7 @@ function UtxoDetails() {
 
   useEffect(() => {
     oracle.getTransaction(txid).then(setTx)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
   const tags = [
@@ -71,7 +73,7 @@ function UtxoDetails() {
               <SSText weight="bold">LABEL</SSText>
               <SSTextInput
                 align="left"
-                multiline={true}
+                multiline
                 numberOfLines={3}
                 style={{
                   height: 'auto',
@@ -85,7 +87,7 @@ function UtxoDetails() {
                 tags={tags}
                 selectedTags={selectedTags}
                 onSelect={setSelectedTags}
-              ></SSTagInput>
+              />
             </SSVStack>
 
             <SSVStack>

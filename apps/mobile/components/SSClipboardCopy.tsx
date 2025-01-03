@@ -1,7 +1,8 @@
-import { TouchableWithoutFeedback, View } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
-import SSPopupText from './SSPopupText'
 import { useState } from 'react'
+import { TouchableWithoutFeedback, View } from 'react-native'
+
+import SSPopupText from './SSPopupText'
 
 type SSTextClipboardProps = {
   text: string | number
