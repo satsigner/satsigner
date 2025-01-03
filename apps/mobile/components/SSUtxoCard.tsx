@@ -1,5 +1,5 @@
 import { useRoute } from '@react-navigation/native'
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -14,6 +14,7 @@ import { SSIconEdit } from './icons'
 import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+import { UtxoSearchParams } from '@/types/navigation/searchParams'
 
 type SSUtxoCardProps = {
   utxo: Utxo
@@ -25,10 +26,8 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   )
 
   const router = useRouter()
-  const route = useRoute()
 
-  const id = (route.params as any).id as number
-  const { txid, vout } = utxo
+  const { id, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
   return (
     <SSHStack
@@ -38,13 +37,12 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
       <SSVStack>
         <SSIconButton
           onPress={() =>
-            router.push({
-              pathname: '/account/[id]/transaction/[txid]/utxo/[vout]',
-              params: { id, txid, vout }
-            } as any)
+            router.navigate(
+              `/account/${id}/transaction/${txid}/utxo/${vout}`,
+            )
           }
         >
-          <SSIconEdit height={32} width={32} />
+          <SSIconEdit height={24} width={24} />
         </SSIconButton>
       </SSVStack>
       <SSVStack gap="xs">
