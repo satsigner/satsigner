@@ -1,4 +1,5 @@
 import { useRoute } from '@react-navigation/native'
+import { Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -21,14 +22,27 @@ function UtxoDetails() {
   const route = useRoute()
   const { params } = route as any
   const { txid, vout } = params
-  const [tx, setTx] = useState(null as unknown as Tx)
+
+  const [blockTime, setBlockTime] = useState('-')
+  const [blockHeight, setBlockHeight] = useState('-')
+  const [txSize, setTxSize] = useState('-')
+  const [txAddress, setTxAddress] = useState('-')
 
   const [url] = useBlockchainStore(useShallow((state) => [state.url]))
 
   const oracle = new MempoolOracle(url)
 
   useEffect(() => {
-    oracle.getTransaction(txid).then(setTx)
+    try {
+      oracle.getTransaction(txid).then((tx: Tx) => {
+        setTxSize(tx.size.toString())
+        setBlockHeight(tx.status.block_height.toString())
+        setBlockTime(formatDate(tx.status.block_time as unknown as Date))
+        setTxAddress(tx.vout[vout].scriptpubkey_address || '-')
+      })
+    } catch {
+      //
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
@@ -39,13 +53,6 @@ function UtxoDetails() {
     'aa2',
     'aa3',
     'aa4',
-    'aa5',
-    'aa6',
-    'aa7',
-    'aa8',
-    'aa9',
-    'aa10',
-    'aa11',
     'friends',
     'shopping',
     'exchange'
@@ -54,6 +61,11 @@ function UtxoDetails() {
 
   return (
     <ScrollView>
+      <Stack.Screen
+        options={{
+          headerTitle: () => <SSText uppercase>CONFIGURATION 🧐</SSText>
+        }}
+      />
       <SSVStack
         gap="xl"
         style={{
@@ -63,104 +75,98 @@ function UtxoDetails() {
           padding: 20
         }}
       >
-        {tx && (
-          <>
-            <SSVStack>
-              <SSText center size="lg">
-                UTXO Details
+        <SSVStack>
+          <SSText center size="lg">
+            UTXO Details
+          </SSText>
+
+          <SSText weight="bold">LABEL</SSText>
+          <SSTextInput
+            align="left"
+            multiline
+            numberOfLines={3}
+            style={{
+              height: 'auto',
+              textAlignVertical: 'top',
+              padding: 10
+            }}
+          />
+
+          <SSText weight="bold">TAGS</SSText>
+          <SSTagInput
+            tags={tags}
+            selectedTags={selectedTags}
+            onSelect={setSelectedTags}
+          />
+        </SSVStack>
+
+        <SSVStack>
+          <SSSeparator color="gradient" />
+
+          <SSHStack justifyBetween>
+            <SSVStack gap="none">
+              <SSText weight="bold" size="md">
+                DATE
               </SSText>
-
-              <SSText weight="bold">LABEL</SSText>
-              <SSTextInput
-                align="left"
-                multiline
-                numberOfLines={3}
-                style={{
-                  height: 'auto',
-                  textAlignVertical: 'top',
-                  padding: 10
-                }}
-              />
-
-              <SSText weight="bold">TAGS</SSText>
-              <SSTagInput
-                tags={tags}
-                selectedTags={selectedTags}
-                onSelect={setSelectedTags}
-              />
+              <SSText color="muted" uppercase>
+                {blockTime}
+              </SSText>
             </SSVStack>
-
-            <SSVStack>
-              <SSSeparator color="gradient" />
-
-              <SSHStack justifyBetween>
-                <SSVStack gap="none">
-                  <SSText weight="bold" size="md">
-                    DATE
-                  </SSText>
-                  <SSText color="muted" uppercase>
-                    {formatDate(tx.status.block_time)}
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText weight="bold" size="md">
-                    BLOCK
-                  </SSText>
-                  <SSText color="muted" uppercase>
-                    {tx.status.block_height}
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText weight="bold" size="md">
-                    AMOUNT
-                  </SSText>
-                  <SSClipboardCopy text={tx.size}>
-                    <SSText color="muted" uppercase>
-                      {tx.size} BYTES
-                    </SSText>
-                  </SSClipboardCopy>
-                </SSVStack>
-              </SSHStack>
-
-              <SSSeparator color="gradient" />
-
-              <SSClipboardCopy text={tx.vout[vout].scriptpubkey_address || ''}>
-                <SSVStack gap="none">
-                  <SSText weight="bold" size="md">
-                    ADDRESS
-                  </SSText>
-                  <SSText color="muted">
-                    {tx.vout[vout].scriptpubkey_address}
-                  </SSText>
-                </SSVStack>
-              </SSClipboardCopy>
-
-              <SSSeparator color="gradient" />
-
-              <SSClipboardCopy text={txid}>
-                <SSVStack gap="none">
-                  <SSText weight="bold" size="md">
-                    TRANSACTION
-                  </SSText>
-                  <SSText color="muted">{txid}</SSText>
-                </SSVStack>
-              </SSClipboardCopy>
-
-              <SSSeparator color="gradient" />
-
-              <SSClipboardCopy text={vout}>
-                <SSVStack gap="none">
-                  <SSText weight="bold" size="md">
-                    OUTPUT INDEX
-                  </SSText>
-                  <SSText color="muted">{vout}</SSText>
-                </SSVStack>
+            <SSVStack gap="none">
+              <SSText weight="bold" size="md">
+                BLOCK
+              </SSText>
+              <SSText color="muted" uppercase>
+                {blockHeight}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText weight="bold" size="md">
+                AMOUNT
+              </SSText>
+              <SSClipboardCopy text={txSize}>
+                <SSText color="muted" uppercase>
+                  {txSize} BYTES
+                </SSText>
               </SSClipboardCopy>
             </SSVStack>
+          </SSHStack>
 
-            <SSButton label={i18n.t('common.save')} variant="secondary" />
-          </>
-        )}
+          <SSSeparator color="gradient" />
+
+          <SSClipboardCopy text={txAddress}>
+            <SSVStack gap="none">
+              <SSText weight="bold" size="md">
+                ADDRESS
+              </SSText>
+              <SSText color="muted">{txAddress}</SSText>
+            </SSVStack>
+          </SSClipboardCopy>
+
+          <SSSeparator color="gradient" />
+
+          <SSClipboardCopy text={txid}>
+            <SSVStack gap="none">
+              <SSText weight="bold" size="md">
+                TRANSACTION
+              </SSText>
+              <SSText color="muted">{txid}</SSText>
+            </SSVStack>
+          </SSClipboardCopy>
+
+          <SSSeparator color="gradient" />
+
+          <SSClipboardCopy text={vout}>
+            <SSVStack gap="none">
+              <SSText weight="bold" size="md">
+                OUTPUT INDEX
+              </SSText>
+              <SSText color="muted">{vout}</SSText>
+            </SSVStack>
+          </SSClipboardCopy>
+        </SSVStack>
+
+        <SSButton label={i18n.t('common.save')} variant="secondary" />
       </SSVStack>
     </ScrollView>
   )
