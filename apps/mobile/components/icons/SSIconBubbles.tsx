@@ -15,7 +15,7 @@ export default function SSIconBubbles({ width, height }: IconProps) {
           transform="translate(8.701 1.445)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Circle
           id="Ellipse_6"
@@ -26,7 +26,7 @@ export default function SSIconBubbles({ width, height }: IconProps) {
           transform="translate(1.274 4.51)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Circle
           id="Ellipse_7"
@@ -37,7 +37,7 @@ export default function SSIconBubbles({ width, height }: IconProps) {
           transform="translate(5.59 11.968)"
           fill="none"
           stroke="#adadad"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>

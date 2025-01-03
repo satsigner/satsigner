@@ -15,7 +15,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
           transform="translate(0.5 0.5)"
           fill="none"
           stroke="#828282"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
       <Line
@@ -26,7 +26,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(1.27 3.421)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_10"
@@ -36,7 +36,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(0.911 12.492)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_11"
@@ -46,7 +46,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(11.526 2.842)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_12"
@@ -56,7 +56,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(15.502 3.05)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_13"
@@ -66,7 +66,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(7.224 13.447)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_14"
@@ -76,7 +76,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(3.483 2.871)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_15"
@@ -86,7 +86,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(3.323 2.618)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_16"
@@ -96,7 +96,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(3.416 2.723)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_17"
@@ -106,7 +106,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(4 3)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_18"
@@ -116,7 +116,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(11.576 6.735)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_19"
@@ -126,7 +126,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(1.474 3.158)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
       <Line
         id="Line_20"
@@ -136,7 +136,7 @@ export default function SSIconNetwork({ width, height }: IconProps) {
         transform="translate(4 2.5)"
         fill="none"
         stroke="#fff"
-        stroke-width="1"
+        strokeWidth="1"
       />
     </Svg>
   )

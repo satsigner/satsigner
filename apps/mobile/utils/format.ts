@@ -25,7 +25,7 @@ function formatTime(date: Date) {
     .toLowerCase()
 }
 
-function formatDate(date: Date | string) {
+function formatDate(date: Date | string | number) {
   if (typeof date === 'string') {
     date = new Date(date)
   }

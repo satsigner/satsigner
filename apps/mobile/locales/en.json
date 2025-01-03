@@ -30,7 +30,13 @@
       "clear": "Clear",
       "goBack": "Go back",
       "version": "Version",
-      "address": "Address"
+      "address": "Address",
+      "transaction": "Transaction",
+      "bytes": "Bytes",
+      "tags": "Tags",
+      "label": "Label",
+      "block": "Block",
+      "outputIndex": "Output index"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -239,6 +245,9 @@
         "generateNewSeed": "Generate New Seed",
         "importSeed": "Import Seed"
       }
+    },
+    "utxoDetails": {
+      "title": "UTXO Details"
     }
   }
 }

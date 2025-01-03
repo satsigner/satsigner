@@ -12,7 +12,7 @@ export default function SSIconPlus({ width, height }: IconProps) {
           d="M5,.667V9.333"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
         <Path
           id="Path_27"
@@ -20,7 +20,7 @@ export default function SSIconPlus({ width, height }: IconProps) {
           d="M.667,5H9.333"
           fill="none"
           stroke="#fff"
-          stroke-width="1"
+          strokeWidth="1"
         />
       </G>
     </Svg>

@@ -11,9 +11,9 @@ export default function SSIconEyeOff({ width, height }: IconProps) {
         transform="translate(-1.184 -1.939)"
         fill="none"
         stroke="#828282"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
       />
     </Svg>
   )
