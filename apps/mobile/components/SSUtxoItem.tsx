@@ -12,6 +12,7 @@ import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 import { SSIconX } from './icons'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
+import SSIconPlus from './icons/SSIconPlus'
 
 type SSUtxoItemProps = {
   utxo: Utxo
@@ -51,7 +52,7 @@ export default function SSUtxoItem({
               {selected ? (
                 <SSIconX height={8} width={8} />
               ) : (
-                <SSIconX height={8} width={8} />
+                <SSIconPlus height={8} width={8} />
               )}
             </View>
             <SSVStack gap="xs">
