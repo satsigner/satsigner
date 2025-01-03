@@ -35,7 +35,8 @@
       "bytes": "Bytes",
       "tags": "Tags",
       "label": "Label",
-      "block": "Block"
+      "block": "Block",
+      "outputIndex": "Output index"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"

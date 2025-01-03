@@ -15,7 +15,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Tx } from '@/types/models/Blockchain'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/format'
 
@@ -160,8 +159,8 @@ export default function UtxoDetails() {
           <SSSeparator color="gradient" />
           <SSClipboardCopy text={vout}>
             <SSVStack gap="none">
-              <SSText weight="bold">
-                OUTPUT INDEX
+              <SSText weight="bold" uppercase>
+                {i18n.t('common.outputIndex')}
               </SSText>
               <SSText color="muted">{vout}</SSText>
             </SSVStack>
