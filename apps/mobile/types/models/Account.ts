@@ -18,6 +18,8 @@ export type Account = {
   internalDescriptor?: string
   fingerprint?: string
   derivationPath?: string
+  usedIndexes: number[]
+  currentIndex: number
   transactions: Transaction[]
   utxos: Utxo[]
   summary: {

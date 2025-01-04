@@ -26,11 +26,11 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSUtxoBubble from '@/components/SSUtxoBubble'
 import { useGestures } from '@/hooks/useGestures'
+import { useGetAccount } from '@/hooks/useGetAccount'
 import { useLayout } from '@/hooks/useLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
@@ -51,7 +51,6 @@ function SelectUtxoBubbles() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -66,7 +65,7 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
+  const { data: account } = useGetAccount(id)
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()

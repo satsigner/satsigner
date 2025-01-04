@@ -21,7 +21,6 @@ export default function SSAccountCard({
   onPress
 }: SSAccountCardProps) {
   const priceStore = usePriceStore()
-
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween>
