@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -14,26 +15,51 @@ import { useBlockchainStore } from '@/store/blockchain'
 
 export default function BitcoinNetwork() {
   const router = useRouter()
-  const [backend, setBackend, network, setNetwork, url, setUrl] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.backend,
-        state.setBackend,
-        state.network,
-        state.setNetwork,
-        state.url,
-        state.setUrl
-      ])
-    )
+  const [
+    backend,
+    setBackend,
+    network,
+    setNetwork,
+    url,
+    setUrl,
+    retries,
+    setRetries,
+    timeout,
+    setTimeout,
+    stopGap,
+    setStopGap
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.backend,
+      state.setBackend,
+      state.network,
+      state.setNetwork,
+      state.url,
+      state.setUrl,
+      state.retries,
+      state.setRetries,
+      state.timeout,
+      state.setTimeout,
+      state.stopGap,
+      state.setStopGap
+    ])
+  )
 
-  const [currentBackend, setCurrentBackend] = useState(backend)
-  const [currentNetwork, setCurrentNetwork] = useState(network)
-  const [currentUrl, setCurrentUrl] = useState(url)
+  const [selectedBackend, setSelectedBackend] = useState(backend)
+  const [selectedNetwork, setSelectedNetwork] = useState(network)
+  const [selectedUrl, setSelectedUrl] = useState(url)
+
+  const [selectedRetries, setSelectedRetries] = useState(retries.toString())
+  const [selectedTimeout, setSelectedTimeout] = useState(timeout.toString())
+  const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
 
   function handleOnSave() {
-    setBackend(currentBackend)
-    setNetwork(currentNetwork)
-    setUrl(currentUrl)
+    setBackend(selectedBackend)
+    setNetwork(selectedNetwork)
+    setUrl(selectedUrl)
+    setRetries(Number(selectedRetries))
+    setTimeout(Number(selectedTimeout))
+    setStopGap(Number(selectedStopGap))
     router.back()
   }
 
@@ -58,13 +84,13 @@ export default function BitcoinNetwork() {
               </SSText>
               <SSCheckbox
                 label="Electrum"
-                selected={backend === 'electrum'}
-                onPress={() => setCurrentBackend('electrum')}
+                selected={selectedBackend === 'electrum'}
+                onPress={() => setSelectedBackend('electrum')}
               />
               <SSCheckbox
                 label="Esplora"
-                selected={backend === 'esplora'}
-                onPress={() => setCurrentBackend('esplora')}
+                selected={selectedBackend === 'esplora'}
+                onPress={() => setSelectedBackend('esplora')}
               />
             </SSVStack>
             <SSVStack>
@@ -73,20 +99,53 @@ export default function BitcoinNetwork() {
               </SSText>
               <SSCheckbox
                 label="testnet"
-                selected={network === 'testnet'}
-                onPress={() => setCurrentNetwork('testnet')}
+                selected={selectedNetwork === 'testnet'}
+                onPress={() => setSelectedNetwork('testnet')}
               />
               <SSCheckbox
                 label="signet"
-                selected={network === 'signet'}
-                onPress={() => setCurrentNetwork('signet')}
+                selected={selectedNetwork === 'signet'}
+                onPress={() => setSelectedNetwork('signet')}
               />
             </SSVStack>
             <SSVStack>
               <SSText uppercase>{i18n.t('settings.bitcoinNetwork.url')}</SSText>
               <SSTextInput
-                value={url}
-                onChangeText={(url) => setCurrentUrl(url)}
+                value={selectedUrl}
+                onChangeText={(url) => setSelectedUrl(url)}
+              />
+            </SSVStack>
+            <SSVStack>
+              <SSText uppercase>
+                {i18n.t('settings.bitcoinNetwork.retries')}
+              </SSText>
+              <SSNumberInput
+                value={selectedRetries}
+                min={1}
+                max={10}
+                onChangeText={setSelectedRetries}
+              />
+            </SSVStack>
+            <SSVStack>
+              <SSText uppercase>
+                {i18n.t('settings.bitcoinNetwork.timeout')}
+              </SSText>
+              <SSNumberInput
+                value={selectedTimeout}
+                min={1}
+                max={20}
+                onChangeText={setSelectedTimeout}
+              />
+            </SSVStack>
+            <SSVStack>
+              <SSText uppercase>
+                {i18n.t('settings.bitcoinNetwork.stopGap')}
+              </SSText>
+              <SSNumberInput
+                value={selectedStopGap}
+                min={1}
+                max={30}
+                onChangeText={setSelectedStopGap}
               />
             </SSVStack>
           </SSVStack>

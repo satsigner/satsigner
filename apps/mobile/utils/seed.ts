@@ -34,4 +34,59 @@ function getConfirmWordCandidates(
   return candidates
 }
 
+/*
+ * List of words that are prefixed of another, pre-computed ahead of time.
+ */
+export const seedWordsPrefixOfAnother = {
+  act: true,
+  add: true,
+  age: true,
+  air: true,
+  all: true,
+  arm: true,
+  art: true,
+  bar: true,
+  bus: true,
+  can: true,
+  car: true,
+  cat: true,
+  cry: true,
+  cup: true,
+  end: true,
+  era: true,
+  eye: true,
+  fan: true,
+  fat: true,
+  fee: true,
+  fit: true,
+  fun: true,
+  gas: true,
+  ill: true,
+  kid: true,
+  kit: true,
+  lab: true,
+  law: true,
+  leg: true,
+  man: true,
+  mix: true,
+  mom: true,
+  net: true,
+  off: true,
+  own: true,
+  pen: true,
+  pig: true,
+  rib: true,
+  run: true,
+  sad: true,
+  sea: true,
+  ski: true,
+  sun: true,
+  ten: true,
+  top: true,
+  use: true,
+  van: true,
+  win: true,
+  you: true
+} as { [k: string]: boolean }
+
 export { getConfirmWordCandidates }

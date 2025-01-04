@@ -1,9 +1,9 @@
-import { Image } from 'expo-image'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconBubbles } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -118,10 +118,7 @@ export default function SelectUtxoList() {
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
               }
             >
-              <Image
-                style={{ width: 24, height: 22 }}
-                source={require('@/assets/icons/bubbles.svg')}
-              />
+              <SSIconBubbles height={22} width={24} />
             </SSIconButton>
           </SSHStack>
           <SSVStack itemsCenter gap="sm">

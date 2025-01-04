@@ -1,8 +1,8 @@
-function formatAddress(address: string) {
+function formatAddress(address: string, character: number = 8) {
   if (address.length <= 16) return address
 
-  const beginning = address.substring(0, 8)
-  const end = address.substring(address.length - 8, address.length)
+  const beginning = address.substring(0, character)
+  const end = address.substring(address.length - character, address.length)
   return `${beginning}...${end}`
 }
 
@@ -25,7 +25,7 @@ function formatTime(date: Date) {
     .toLowerCase()
 }
 
-function formatDate(date: Date | string) {
+function formatDate(date: Date | string | number) {
   if (typeof date === 'string') {
     date = new Date(date)
   }

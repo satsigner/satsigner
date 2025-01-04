@@ -43,5 +43,9 @@ describe('format utils', () => {
     it('should work with string date', () => {
       expect(formatDate('2024-03-28T11:51:36.000Z')).toBe('Mar 28, 2024')
     })
+
+    it('should work with number date', () => {
+      expect(formatDate(1711639918000)).toBe('Mar 28, 2024')
+    })
   })
 })

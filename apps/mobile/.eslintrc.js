@@ -5,6 +5,7 @@ module.exports = {
   },
   extends: ['universe/native'],
   plugins: ['simple-import-sort'],
+  ignorePatterns: ['expo-env.d.ts'],
   rules: {
     'no-console': 'error',
     'react-hooks/exhaustive-deps': 'error',
@@ -16,6 +17,14 @@ module.exports = {
       {
         caughtErrors: 'all',
         caughtErrorsIgnorePattern: '^_'
+      }
+    ],
+    // Add rule to prefer function declarations over arrow functions for components
+    'react/function-component-definition': [
+      'error',
+      {
+        namedComponents: 'function-declaration',
+        unnamedComponents: 'arrow-function'
       }
     ]
   }

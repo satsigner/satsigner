@@ -1,4 +1,3 @@
-import { Image } from 'expo-image'
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
@@ -10,6 +9,7 @@ import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatDate, formatNumber } from '@/utils/format'
 
+import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
 
@@ -49,15 +49,9 @@ export default function SSUtxoItem({
           <SSHStack>
             <View style={selectIconStyle}>
               {selected ? (
-                <Image
-                  style={{ width: 8, height: 8 }}
-                  source={require('@/assets/icons/x.svg')}
-                />
+                <SSIconX height={8} width={8} />
               ) : (
-                <Image
-                  style={{ width: 8, height: 8 }}
-                  source={require('@/assets/icons/x.svg')}
-                />
+                <SSIconPlus height={8} width={8} />
               )}
             </View>
             <SSVStack gap="xs">

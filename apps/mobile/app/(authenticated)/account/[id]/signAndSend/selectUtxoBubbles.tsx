@@ -1,7 +1,6 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
 import { hierarchy, HierarchyCircularNode, pack } from 'd3'
-import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useMemo, useState } from 'react'
@@ -20,6 +19,7 @@ import {
 import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconList } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
@@ -219,10 +219,7 @@ function SelectUtxoBubbles() {
                 router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
               }
             >
-              <Image
-                style={{ width: 24, height: 16 }}
-                source={require('@/assets/icons/list.svg')}
-              />
+              <SSIconList height={16} width={24} />
             </SSIconButton>
           </SSHStack>
           <SSVStack itemsCenter gap="sm">
