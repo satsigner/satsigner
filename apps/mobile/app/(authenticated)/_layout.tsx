@@ -7,7 +7,6 @@ import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
@@ -51,7 +50,7 @@ export default function AuthenticatedLayout() {
               <SSIconButton onPress={() => router.navigate('/settings/')}>
                 <Image
                   style={{ width: 18, height: 18 }}
-                  source={require('@/assets/icons/settings.svg')}
+                  source={require('@/components/icons/SSIconSettings.tsx')}
                 />
               </SSIconButton>
             ),

@@ -35,11 +35,8 @@ type AccountsAction = {
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
-      // Initialize state properties
       accounts: {},
       allAccounts: [],
-
-      // Define all actions
       getAllAccounts: async () => {
         const pin = await getItem(PIN_KEY)
         const accounts = get().allAccounts
