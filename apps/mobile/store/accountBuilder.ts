@@ -18,6 +18,8 @@ type AccountBuilderState = {
   seedWordCount: NonNullable<Account['seedWordCount']>
   seedWords: NonNullable<Account['seedWords']>
   passphrase?: Account['passphrase']
+  usedIndexes: Account['usedIndexes']
+  currentIndex: Account['currentIndex']
   fingerprint?: Account['fingerprint']
   derivationPath?: Account['derivationPath']
   externalDescriptor?: Account['externalDescriptor']
@@ -53,6 +55,8 @@ const useAccountBuilderStore = create<
   scriptVersion: 'P2WPKH',
   seedWordCount: 24,
   seedWords: [],
+  usedIndexes: [],
+  currentIndex: 0,
   clearAccount: () => {
     set({
       name: '',
@@ -60,6 +64,8 @@ const useAccountBuilderStore = create<
       scriptVersion: 'P2PKH',
       seedWordCount: 24,
       seedWords: [],
+      usedIndexes: [],
+      currentIndex: 0,
       passphrase: undefined,
       fingerprint: undefined,
       derivationPath: undefined,
@@ -74,6 +80,8 @@ const useAccountBuilderStore = create<
       type,
       scriptVersion,
       seedWordCount,
+      usedIndexes,
+      currentIndex,
       seedWords,
       passphrase,
       fingerprint,
@@ -89,6 +97,8 @@ const useAccountBuilderStore = create<
       seedWordCount,
       seedWords,
       passphrase,
+      usedIndexes,
+      currentIndex,
       fingerprint,
       derivationPath,
       externalDescriptor,

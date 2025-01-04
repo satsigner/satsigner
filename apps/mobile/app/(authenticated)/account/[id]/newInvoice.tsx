@@ -5,6 +5,9 @@ import SSButton from '@/components/SSButton'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useGenerateNewAddress } from '@/hooks/useGenerateNewAddress'
+import { useGetAddress } from '@/hooks/useGetAddress'
+import { useGetPrevAddress } from '@/hooks/useGetPrevAddress'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -14,6 +17,15 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function NewInvoice() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { data, refetch } = useGetAddress(id)
+  const newAddress = useGenerateNewAddress(id)
+  const prevAddress = useGetPrevAddress(id)
+
+  useEffect(() => {
+    if (newAddress.isSuccess || prevAddress.isSuccess) {
+      refetch()
+    }
+  }, [newAddress.isSuccess, prevAddress.isSuccess, refetch])
 
   return (
     <SSMainLayout>
@@ -35,16 +47,16 @@ export default function NewInvoice() {
               <SSText color="muted" uppercase>
                 {i18n.t('newInvoice.path')}
               </SSText>
-              <SSText>m/84'/0'/0'/0/1</SSText>
+              <SSText>{data?.path}</SSText>
             </SSHStack>
-            <SSText>🟢 Never used</SSText>
+            <SSText>{data?.used ? '🔴 Used' : '🟢 Never used'}</SSText>
           </SSVStack>
-          <SSQRCode value="https://satsigner.com" />
+          <SSQRCode value={data?.address} />
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
               {i18n.t('newInvoice.address')}
             </SSText>
-            <SSText size="lg">https://satsigner.com</SSText>
+            <SSText size="md">{data?.address}</SSText>
           </SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
@@ -58,10 +70,15 @@ export default function NewInvoice() {
           </SSFormLayout>
           <SSVStack widthFull>
             <SSButton
-              label={i18n.t('newInvoice.generateAnotherInvoice')}
+              onPress={() => newAddress.mutate()}
+              label={i18n.t('newInvoice.newAddress')}
               variant="secondary"
             />
-            <SSButton label={i18n.t('common.cancel')} variant="ghost" />
+            <SSButton
+              onPress={() => prevAddress.mutate()}
+              label={i18n.t('newInvoice.prevAddress')}
+              variant="ghost"
+            />
           </SSVStack>
         </SSVStack>
       </ScrollView>

@@ -1,5 +1,3 @@
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -21,11 +19,11 @@ import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import { useGetAccount } from '@/hooks/useGetAccount'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -80,7 +78,7 @@ function TotalTransactions({
         }
       >
         <SSVStack style={{ marginBottom: 16 }}>
-          {sortTransactions([...account.transactions]).map((transaction) => (
+          {sortTransactions(account.transactions).map((transaction) => (
             <SSVStack gap="xs" key={transaction.id}>
               <SSSeparator color="grayDark" />
               <SSTransactionCard
@@ -168,30 +166,17 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [
-    getCurrentAccount,
-    loadWalletFromDescriptor,
-    syncWallet,
-    updateAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.getCurrentAccount,
-      state.loadWalletFromDescriptor,
-      state.syncWallet,
-      state.updateAccount
-    ])
-  )
+  const { data: account, isLoading } = useGetAccount(id)
+
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const [network, getBlockchainHeight] = useBlockchainStore(
+  const [getBlockchainHeight] = useBlockchainStore(
     useShallow((state) => [state.network, state.getBlockchainHeight])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
   )
-
-  const [account, setAccount] = useState(getCurrentAccount(id)!) // Make use of non-null assertion operator for now
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
@@ -206,9 +191,13 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
+
   const renderScene = ({
     route
   }: SceneRendererProps & { route: { key: string } }) => {
+    if (isLoading) {
+      return
+    }
     switch (route.key) {
       case 'totalTransactions':
         return (
@@ -277,17 +266,6 @@ export default function AccountView() {
   async function refreshAccount() {
     if (!account || !account.externalDescriptor || !account.internalDescriptor)
       return
-
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      new Descriptor().create(account.externalDescriptor, network as Network),
-      new Descriptor().create(account.internalDescriptor, network as Network)
-    ])
-
-    const wallet = await loadWalletFromDescriptor(
-      externalDescriptor,
-      internalDescriptor
-    )
-
     const syncedAccount = await syncWallet(wallet, account)
     setAccount(syncedAccount)
     await updateAccount(syncedAccount)
@@ -311,7 +289,6 @@ export default function AccountView() {
 
   const renderTab = () => {
     // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
-
     return (
       <SSBackgroundGradient orientation="horizontal">
         <SSHStack
@@ -324,7 +301,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account.summary.numberOfTransactions}
+                {account?.summary.numberOfTransactions}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.totalTransactions.0')}
@@ -351,7 +328,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account.summary.numberOfAddresses}
+                {account?.summary.numberOfAddresses}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.childAccounts.0')}
@@ -378,7 +355,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account.summary.numberOfUtxos}
+                {account?.summary.numberOfUtxos}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.spendableOutputs.0')}
@@ -405,7 +382,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account.summary.satsInMempool}
+                {account?.summary.satsInMempool}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.satsInMempool.0')}
@@ -455,7 +432,7 @@ export default function AccountView() {
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
-                {formatNumber(account.summary.balance || 0)}
+                {formatNumber(account?.summary.balance || 0)}
               </SSText>
               <SSText size="xl" color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
@@ -463,7 +440,7 @@ export default function AccountView() {
             </SSHStack>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText color="muted">
-                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+                {formatNumber(satsToFiat(account?.summary.balance || 0), 2)}
               </SSText>
               <SSText size="xs" style={{ color: Colors.gray[500] }}>
                 {fiatCurrency}
@@ -507,7 +484,7 @@ export default function AccountView() {
                   borderLeftColor: Colors.gray[600]
                 }}
               >
-                <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
+                <SSText uppercase>{i18n.t('account.receive')}</SSText>
               </SSActionButton>
             </SSHStack>
             <SSSeparator

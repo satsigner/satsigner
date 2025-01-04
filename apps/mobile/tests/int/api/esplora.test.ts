@@ -3,10 +3,7 @@ import { Esplora } from '@/api/esplora'
 let esplora: Esplora
 
 beforeAll(async () => {
-  const providers = [
-    'https://mempool.space/api',
-    'https://blockstream.info/api'
-  ]
+  const providers = ['https://mempool.space/api']
   const url = providers[Math.floor(Math.random() * providers.length)]
   esplora = new Esplora(url)
 })
@@ -91,5 +88,84 @@ describe('Esplora tests', () => {
     expect(typeof resp).toBe('object')
     expect(resp).toHaveProperty('1')
     expect(typeof resp['1']).toBe('number')
+  })
+
+  it('get block info', async () => {
+    const blockHash =
+      '0000000054487811fc4ff7a95be738aa5ad9320c394c482b27c0da28b227ad5d'
+    const resp = await esplora.getBlockInfo(blockHash)
+    expect(resp).toHaveProperty('id', blockHash)
+    expect(resp).toHaveProperty('height')
+  })
+
+  it('get block status', async () => {
+    const blockHash =
+      '0000000054487811fc4ff7a95be738aa5ad9320c394c482b27c0da28b227ad5d'
+    const resp = await esplora.getBlockStatus(blockHash)
+    expect(resp).toHaveProperty('height')
+    expect(resp).toHaveProperty('in_best_chain')
+    expect(resp).toHaveProperty('next_best')
+  })
+
+  it('get block transactions', async () => {
+    const blockHash =
+      '0000000054487811fc4ff7a95be738aa5ad9320c394c482b27c0da28b227ad5d'
+    const resp = await esplora.getBlockTransactions(blockHash, 0)
+    expect(Array.isArray(resp)).toBe(true)
+    if (resp.length > 0) {
+      expect(resp[0]).toHaveProperty('txid')
+    }
+  })
+
+  it('get block transaction IDs', async () => {
+    const blockHash =
+      '0000000054487811fc4ff7a95be738aa5ad9320c394c482b27c0da28b227ad5d'
+    const resp = await esplora.getBlockTransactionIds(blockHash)
+    expect(Array.isArray(resp)).toBe(true)
+    if (resp.length > 0) {
+      expect(typeof resp[0]).toBe('string')
+    }
+  })
+
+  it('get block hash at height', async () => {
+    const height = 123456
+    const resp = await esplora.getBlockAtHeight(height)
+    expect(typeof resp).toBe('string')
+  })
+
+  it('get latest block hash', async () => {
+    const resp = await esplora.getLatestBlockHash()
+    expect(typeof resp).toBe('string')
+  })
+
+  it('get latest block height', async () => {
+    const resp = await esplora.getLatestBlockHeight()
+    expect(!isNaN(resp)).toBe(true)
+  })
+
+  it('get blocks starting from a height', async () => {
+    const startHeight = 123450
+    const resp = await esplora.getBlocks(startHeight)
+    expect(Array.isArray(resp)).toBe(true)
+    if (resp.length > 0) {
+      expect(resp[0]).toHaveProperty('height')
+    }
+  })
+
+  it('get mempool info', async () => {
+    const resp = await esplora.getMempoolInfo()
+    expect(resp).toHaveProperty('count')
+    expect(resp).toHaveProperty('vsize')
+    expect(resp).toHaveProperty('total_fee')
+    expect(resp).toHaveProperty('fee_histogram')
+  })
+
+  it('get mempool txids', async () => {
+    const resp = await esplora.getMempoolTxIds()
+    expect(Array.isArray(resp)).toBe(true)
+  })
+  it('get last 10 mempool txns', async () => {
+    const resp = await esplora.getRecentMempool()
+    expect(Array.isArray(resp)).toBe(true)
   })
 })

@@ -10,11 +10,11 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSUtxoItem from '@/components/SSUtxoItem'
+import { useGetAccount } from '@/hooks/useGetAccount'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
@@ -29,8 +29,6 @@ type SortField = 'date' | 'amount'
 export default function SelectUtxoList() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
-
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -44,17 +42,16 @@ export default function SelectUtxoList() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-
-  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
+  const { data: account } = useGetAccount(id)
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')
 
   const hasSelectedUtxos = inputs.size > 0
-  const selectedAllUtxos = inputs.size === account.utxos.length
+  const selectedAllUtxos = inputs.size === account.utxos?.length
 
   const largestValue = useMemo(
-    () => Math.max(...account.utxos.map((utxo) => utxo.value)),
+    () => Math.max(account.utxos.map((utxo: Utxo) => utxo.value)),
     [account.utxos]
   )
 
@@ -102,7 +99,6 @@ export default function SelectUtxoList() {
     if (includesInput) removeInput(utxo)
     else addInput(utxo)
   }
-
   return (
     <>
       <Stack.Screen
