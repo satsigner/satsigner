@@ -14,6 +14,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { useEffect } from 'react'
 
 export default function NewInvoice() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
