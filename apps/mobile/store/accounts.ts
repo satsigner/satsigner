@@ -1,82 +1,49 @@
 import { Descriptor, Wallet } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
-import crypto from 'react-native-aes-crypto'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
 import { getBlockchainConfig } from '@/config/servers'
-import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 
 import { useBlockchainStore } from './blockchain'
-const PIN_KEY = 'satsigner_pin'
 
 type AccountsState = {
-  accounts: any
-  allAccounts: string[]
+  accounts: Account[]
 }
 
 type AccountsAction = {
-  getAllAccounts: () => Promise<Account[] | undefined>
-  getCurrentAccount: (name: string) => Promise<Account | undefined>
+  getAllAccounts: () => Account[]
+  getCurrentAccount: (name: string) => Account
   hasAccountWithName: (name: string) => boolean
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
-  addAccount: (account: Account) => Promise<void>
-  updateAccount: (account: Account) => Promise<void>
+  addAccount: (account: Account) => void
+  updateAccount: (account: Account) => void
   deleteAccounts: () => void
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
-      accounts: {},
-      allAccounts: [],
-      getAllAccounts: async () => {
-        const pin = await getItem(PIN_KEY)
-        const accounts = get().allAccounts
-        const decryptedAccounts: Account[] = []
-        for (let i = 0; i < accounts.length; i++) {
-          const decryptedAcount = await crypto.decrypt(
-            accounts[i],
-            pin!,
-            '',
-            'aes-256-cbc'
-          )
-          const account = JSON.parse(decryptedAcount)
-          decryptedAccounts.push(account as Account)
-        }
-        return decryptedAccounts
+      accounts: [],
+      getAllAccounts: () => {
+        return get().accounts
       },
-      addAccount: async (account) => {
-        const pin = await getItem(PIN_KEY)
-        const encryptedAccount = await crypto.encrypt(
-          JSON.stringify(account),
-          pin!,
-          '',
-          'aes-256-cbc'
-        )
+      addAccount: (account) => {
         set((state) => ({
-          accounts: { ...state.accounts, [account.name]: encryptedAccount },
-          allAccounts: [...state.allAccounts, encryptedAccount]
+          accounts: [...state.accounts, account]
         }))
       },
-      hasAccountWithName: (name) => get().accounts[name] !== undefined,
-      getCurrentAccount: async (name) => {
-        const pin = await getItem(PIN_KEY)
-        const encryptedAccount: string = get().accounts[name]
-        if (encryptedAccount.length > 0) {
-          return JSON.parse(
-            await crypto.decrypt(encryptedAccount, pin!, '', 'aes-256-cbc')
-          ) as Account
-        }
-        return undefined
-      },
+      hasAccountWithName: (name) =>
+        get().accounts.find((account) => account.name === name) !== undefined,
+      getCurrentAccount: (name) =>
+        get().accounts.find((account) => account.name === name)!,
       loadWalletFromDescriptor: async (
         externalDescriptor,
         internalDescriptor
@@ -104,22 +71,24 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         return { ...account, transactions, utxos, summary }
       },
-      updateAccount: async (account) => {
-        const pin = await getItem(PIN_KEY)
-        const encryptedAccount = await crypto.encrypt(
-          JSON.stringify(account),
-          pin!,
-          '',
-          'aes-256-cbc'
-        )
+      updateAccount: (account) => {
         set((state) => {
+          const accountToUpdateIndex = state.accounts.findIndex(
+            (_account) => _account.name === account.name
+          )
+          if (accountToUpdateIndex !== -1) {
+            state.accounts[accountToUpdateIndex] = account
+            return {
+              accounts: [...state.accounts]
+            }
+          }
           return {
-            accounts: { ...state.accounts, [account.name]: encryptedAccount }
+            accounts: [...state.accounts]
           }
         })
       },
       deleteAccounts: () => {
-        set(() => ({ accounts: {}, allAccounts: [] }))
+        set(() => ({ accounts: [] }))
       }
     }),
     {

@@ -1,5 +1,6 @@
 import { Wallet } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
+import aes from 'react-native-aes-crypto'
 import { create } from 'zustand'
 
 import {
@@ -7,6 +8,8 @@ import {
   getFingerprint,
   getWalletFromMnemonic
 } from '@/api/bdk'
+import { getItem } from '@/storage/encrypted'
+import { PIN_KEY } from '@/store/auth'
 import { type Account } from '@/types/models/Account'
 
 import { useBlockchainStore } from './blockchain'
@@ -21,9 +24,9 @@ type AccountBuilderState = {
   usedIndexes: Account['usedIndexes']
   currentIndex: Account['currentIndex']
   fingerprint?: Account['fingerprint']
-  derivationPath?: Account['derivationPath']
-  externalDescriptor?: Account['externalDescriptor']
-  internalDescriptor?: Account['internalDescriptor']
+  derivationPath: NonNullable<Account['derivationPath']>
+  externalDescriptor: NonNullable<Account['externalDescriptor']>
+  internalDescriptor: NonNullable<Account['internalDescriptor']>
   wallet?: Wallet
 }
 
@@ -38,6 +41,8 @@ type AccountBuilderAction = {
   setSeedWordCount: (
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => void
+  unlockSeed: () => Promise<void>
+  lockSeed: () => Promise<void>
   setSeedWords: (seedWords: NonNullable<Account['seedWords']>) => void
   generateMnemonic: (
     seedWordCount: NonNullable<Account['seedWordCount']>
@@ -54,7 +59,7 @@ const useAccountBuilderStore = create<
   type: null,
   scriptVersion: 'P2WPKH',
   seedWordCount: 24,
-  seedWords: [],
+  seedWords: '',
   usedIndexes: [],
   currentIndex: 0,
   clearAccount: () => {
@@ -63,7 +68,7 @@ const useAccountBuilderStore = create<
       type: null,
       scriptVersion: 'P2PKH',
       seedWordCount: 24,
-      seedWords: [],
+      seedWords: '',
       usedIndexes: [],
       currentIndex: 0,
       passphrase: undefined,
@@ -130,17 +135,52 @@ const useAccountBuilderStore = create<
     set({ seedWords })
   },
   generateMnemonic: async (seedWordCount) => {
+    const savedPin = await getItem(PIN_KEY)
     const mnemonic = await generateMnemonic(seedWordCount)
-    set({ seedWords: mnemonic })
+    const encryptedSeedWords = await aes.encrypt(
+      mnemonic.join(','),
+      savedPin!,
+      'sat_signer',
+      'aes-256-cbc'
+    )
+    set({ seedWords: encryptedSeedWords })
     await get().updateFingerprint()
   },
   setPassphrase: (passphrase) => {
     set({ passphrase })
   },
-  updateFingerprint: async () => {
-    const { network } = useBlockchainStore.getState()
-    const fingerprint = await getFingerprint(
+  lockSeed: async () => {
+    const savedPin = await getItem(PIN_KEY)
+    const encryptedSeedWords = await aes.encrypt(
+      get().seedWords.join(','),
+      savedPin!,
+      'sat_signer',
+      'aes-256-cbc'
+    )
+    set({ seedWords: encryptedSeedWords })
+  },
+  unlockSeed: async () => {
+    const savedPin = await getItem(PIN_KEY)
+    const decryptedSeed = await aes.decrypt(
       get().seedWords,
+      savedPin!,
+      'sat_signer',
+      'aes-256-cbc'
+    )
+    set({ seedWords: decryptedSeed.split(',') })
+  },
+
+  updateFingerprint: async () => {
+    const savedPin = await getItem(PIN_KEY)
+    const { network } = useBlockchainStore.getState()
+    const decryptedSeed = await aes.decrypt(
+      get().seedWords,
+      savedPin!,
+      'sat_signer',
+      'aes-256-cbc'
+    )
+    const fingerprint = await getFingerprint(
+      decryptedSeed.split(','),
       get().passphrase,
       network as Network
     )
@@ -158,7 +198,7 @@ const useAccountBuilderStore = create<
       get().seedWords,
       get().scriptVersion,
       get().passphrase,
-      network as Network
+      network
     )
     set(() => ({
       fingerprint,

@@ -9,7 +9,7 @@ import {
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 
-const PIN_KEY = 'satsigner_pin'
+export const PIN_KEY = 'satsigner_pin'
 
 type AuthState = {
   firstTime: boolean

@@ -1,20 +1,28 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
+import { useShallow } from 'zustand/react/shallow'
 
-import { useGetAccount } from '@/hooks/useGetAccount'
 import { useAccountsStore } from '@/store/accounts'
 
 export const useGetAddress = (
   id: string
-): UseQueryResult<{ address: string; used: boolean; path: string }, Error> => {
-  const { data: account, isLoading, error } = useGetAccount(id)
-  const loadWalletFromDescriptor = useAccountsStore().loadWalletFromDescriptor
-  const fetchAddressInfo = async (): {
+): UseQueryResult<
+  { account: Account; address: string; used: boolean; path: string },
+  Error
+> => {
+  const [getCurrentAccount, loadWalletFromDescriptor] = useAccountsStore(
+    useShallow((state) => [
+      state.getCurrentAccount,
+      state.loadWalletFromDescriptor
+    ])
+  )
+  const account = getCurrentAccount(id!)
+  const fetchAddressInfo = async (): Promise<{
     address: string
     used: boolean
     path: string
-  } => {
+  }> => {
     const wallet = await loadWalletFromDescriptor(
       await new Descriptor().create(
         account.externalDescriptor,
@@ -30,6 +38,7 @@ export const useGetAddress = (
         (index: number) => index === account.currentIndex
       ) !== -1
     return {
+      account,
       address: finalAddress,
       used: hasBeenUsed,
       path: account.derivationPath + `/0/` + addr.index
@@ -38,6 +47,6 @@ export const useGetAddress = (
   return useQuery({
     queryKey: ['address'],
     queryFn: fetchAddressInfo,
-    enabled: !isLoading && !error && !!account
+    enabled: !!account
   })
 }

@@ -26,11 +26,11 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSUtxoBubble from '@/components/SSUtxoBubble'
 import { useGestures } from '@/hooks/useGestures'
-import { useGetAccount } from '@/hooks/useGetAccount'
 import { useLayout } from '@/hooks/useLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
@@ -65,8 +65,10 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const { data: account } = useGetAccount(id)
-
+  const [getCurrentAccount] = useAccountsStore(
+    useShallow((state) => [state.getCurrentAccount])
+  )
+  const account = getCurrentAccount(id!)
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
 

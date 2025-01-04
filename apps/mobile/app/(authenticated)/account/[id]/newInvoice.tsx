@@ -1,33 +1,45 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useGenerateNewAddress } from '@/hooks/useGenerateNewAddress'
 import { useGetAddress } from '@/hooks/useGetAddress'
-import { useGetPrevAddress } from '@/hooks/useGetPrevAddress'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { useEffect } from 'react'
 
 export default function NewInvoice() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
-  const { data, refetch } = useGetAddress(id)
-  const newAddress = useGenerateNewAddress(id)
-  const prevAddress = useGetPrevAddress(id)
-
-  useEffect(() => {
-    if (newAddress.isSuccess || prevAddress.isSuccess) {
-      refetch()
+  const { data, refetch } = useGetAddress(id!)
+  const [updateAccount] = useAccountsStore(
+    useShallow((state) => [state.updateAccount])
+  )
+  const generateNewAddress = async (): Promise<void> => {
+    if (!data.account) {
+      throw new Error('Account data is not available.')
     }
-  }, [newAddress.isSuccess, prevAddress.isSuccess, refetch])
-
+    data!.account.usedIndexes.push(data!.account.currentIndex)
+    data!.account.currentIndex += 1
+    updateAccount(data!.account)
+    refetch().then()
+  }
+  const generatePrevAddress = (): void => {
+    if (!data.account) {
+      throw new Error('Account data is not available.')
+    }
+    if (Number(data!.account.currentIndex) - 1 >= 0) {
+      data!.account.currentIndex = data!.account.currentIndex - 1
+      updateAccount(data!.account)
+    }
+    refetch().then()
+  }
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -71,12 +83,12 @@ export default function NewInvoice() {
           </SSFormLayout>
           <SSVStack widthFull>
             <SSButton
-              onPress={() => newAddress.mutate()}
+              onPress={() => generateNewAddress()}
               label={i18n.t('newInvoice.newAddress')}
               variant="secondary"
             />
             <SSButton
-              onPress={() => prevAddress.mutate()}
+              onPress={() => generatePrevAddress()}
               label={i18n.t('newInvoice.prevAddress')}
               variant="ghost"
             />

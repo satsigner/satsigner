@@ -84,9 +84,9 @@ PODS:
   - libwebp/sharpyuv (1.3.2)
   - libwebp/webp (1.3.2):
     - libwebp/sharpyuv
-  - MMKV (2.0.0):
-    - MMKVCore (~> 2.0.0)
-  - MMKVCore (2.0.0)
+  - MMKV (2.0.2):
+    - MMKVCore (~> 2.0.2)
+  - MMKVCore (2.0.2)
   - RCT-Folly (2022.05.16.00):
     - boost
     - DoubleConversion
@@ -1467,8 +1467,8 @@ SPEC CHECKSUMS:
   libevent: 4049cae6c81cdb3654a443be001fb9bdceff7913
   libvmaf: 27f523f1e63c694d14d534cd0fddd2fab0ae8711
   libwebp: 1786c9f4ff8a279e4dac1e8f385004d5fc253009
-  MMKV: f7d1d5945c8765f97f39c3d121f353d46735d801
-  MMKVCore: c04b296010fcb1d1638f2c69405096aac12f6390
+  MMKV: 3eacda84cd1c4fc95cf848d3ecb69d85ed56006c
+  MMKVCore: 508b4d3a8ce031f1b5c8bd235f0517fb3f4c73a9
   RCT-Folly: 7169b2b1c44399c76a47b5deaaba715eeeb476c0
   RCTRequired: ca1d7414aba0b27efcfa2ccd37637edb1ab77d96
   RCTTypeSafety: 678e344fb976ff98343ca61dc62e151f3a042292

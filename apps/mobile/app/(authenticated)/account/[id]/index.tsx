@@ -1,6 +1,4 @@
-import { Image } from 'expo-image'
 import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useState } from 'react'
@@ -22,11 +20,11 @@ import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
-import { useGetAccount } from '@/hooks/useGetAccount'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -163,13 +161,25 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const { data: account, isLoading } = useGetAccount(id)
-
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const [getBlockchainHeight] = useBlockchainStore(
+  const [network, getBlockchainHeight] = useBlockchainStore(
     useShallow((state) => [state.network, state.getBlockchainHeight])
+  )
+
+  const [
+    getCurrentAccount,
+    syncWallet,
+    updateAccount,
+    loadWalletFromDescriptor
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.getCurrentAccount,
+      state.syncWallet,
+      state.updateAccount,
+      state.loadWalletFromDescriptor
+    ])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -188,13 +198,11 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
+  const account = getCurrentAccount(id!)
 
   const renderScene = ({
     route
   }: SceneRendererProps & { route: { key: string } }) => {
-    if (isLoading) {
-      return
-    }
     switch (route.key) {
       case 'totalTransactions':
         return (
@@ -212,7 +220,7 @@ export default function AccountView() {
       case 'spendableOutputs':
         return (
           <SpendableOutputs
-            account={account}
+            account={account!}
             handleOnRefresh={handleOnRefresh}
             setSortDirection={setSortDirectionUtxos}
             refreshing={refreshing}
@@ -261,11 +269,19 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account || !account.externalDescriptor || !account.internalDescriptor)
+    if (
+      !account ||
+      !account.externalDescriptor ||
+      !account.internalDescriptor
+    ) {
       return
+    }
+    const wallet = await loadWalletFromDescriptor(
+      await new Descriptor().create(account.externalDescriptor, network),
+      await new Descriptor().create(account.internalDescriptor, network)
+    )
     const syncedAccount = await syncWallet(wallet, account)
-    setAccount(syncedAccount)
-    await updateAccount(syncedAccount)
+    updateAccount(syncedAccount)
   }
 
   async function refresh() {

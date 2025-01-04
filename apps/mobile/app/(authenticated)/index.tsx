@@ -5,17 +5,14 @@ import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import { useGetAccounts } from '@/hooks/useGetAccounts'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 
 export default function AccountList() {
   const router = useRouter()
-  let { data: accounts, isLoading, error } = useGetAccounts()
-  if (error || (!accounts && !isLoading)) {
-    accounts = []
-  }
+  const accounts = useAccountsStore((state) => state.accounts)
 
   return (
     <>
@@ -34,7 +31,7 @@ export default function AccountList() {
       />
       <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
-          {accounts?.length === 0 && (
+          {accounts.length === 0 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
                 {i18n.t('accountList.noKeysYet')}
@@ -42,7 +39,7 @@ export default function AccountList() {
             </SSVStack>
           )}
           <SSVStack>
-            {accounts?.map((account) => (
+            {accounts.map((account) => (
               <SSVStack key={account.name}>
                 <SSAccountCard
                   account={account}
