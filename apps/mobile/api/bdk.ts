@@ -185,6 +185,19 @@ async function parseTransactionDetailsToTransaction(
     address = await getAddress(utxo, network)
   }
 
+  const { transaction } = transactionDetails
+
+  let size = 0
+  let vout = [] as any
+
+  if (transaction !== undefined && transaction !== null) {
+    size = await transaction.size()
+    vout = (await transaction.output()).map((utxo) => ({
+      value: utxo.value,
+      address: utxo.script
+    }))
+  }
+
   return {
     id: transactionDetails.txid,
     type: transactionDetails.sent ? 'send' : 'receive',
@@ -195,7 +208,9 @@ async function parseTransactionDetailsToTransaction(
       : undefined,
     blockHeight: transactionDetails.confirmationTime?.height,
     memo: undefined,
-    address
+    address,
+    size,
+    vout
   }
 }
 
@@ -232,7 +247,7 @@ async function getWalletData(
       await Promise.all([
         wallet.getBalance(),
         wallet.getAddress(AddressIndex.New),
-        wallet.listTransactions(false),
+        wallet.listTransactions(true),
         wallet.listUnspent()
       ])
 

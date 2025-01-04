@@ -7,4 +7,10 @@ export type Transaction = {
   blockHeight?: number
   memo?: string
   address?: string
+  label?: string
+  size: number
+  vout: {
+    value: number
+    address: string
+  }[]
 }

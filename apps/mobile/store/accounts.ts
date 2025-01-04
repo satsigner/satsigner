@@ -5,14 +5,19 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
+import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+import { TxOut } from '@/types/models/Blockchain'
+import { Transaction } from '@/types/models/Transaction'
+import { Utxo } from '@/types/models/Utxo'
 
 import { useBlockchainStore } from './blockchain'
 
 type AccountsState = {
   accounts: Account[]
+  tags: string[]
 }
 
 type AccountsAction = {
@@ -26,12 +31,111 @@ type AccountsAction = {
   addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
   deleteAccounts: () => void
+  getTags: () => string[]
+  setTags: (tags: string[]) => void
+  getTx: (accountName: string, txid: string) => Promise<Transaction>
+  getUtxo: (accountName: string, txid: string, vout: number) => Promise<Utxo>
+  // setTxLabel: (
+  //   accountName: string,
+  //   txid: string,
+  //   vout: number,
+  //   label: string
+  // ) => Promise<Utxo>
+  setUtxoLabel: (
+    accountName: string,
+    txid: string,
+    vout: number,
+    label: string
+  ) => Promise<void>
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
   persist(
     (set, get) => ({
       accounts: [],
+      tags: [],
+      getTags: () => {
+        return get().tags
+      },
+      setTags: (tags: string[]) => {
+        set({ tags })
+      },
+      getTx: async (accountName: string, txid: string) => {
+        const account = get().getCurrentAccount(accountName) as Account
+
+        let transaction = account.transactions.find((tx) => tx.id === txid)
+
+        if (transaction !== null) {
+          return transaction as Transaction
+        }
+
+        // TODO: replace MempoolOracle with BDK for enhanced privacy
+        const { url } = useBlockchainStore.getState()
+        const oracle = new MempoolOracle(url)
+        const data = await oracle.getTransaction(txid)
+
+        transaction = {
+          id: data.txid,
+          type: 'receive', // TODO: how to figure it out?
+          sent: 0,
+          received: 0,
+          timestamp: new Date(data.status.block_time),
+          size: data.size,
+          vout: data.vout.map((out: TxOut) => ({
+            value: out.value,
+            address: out.scriptpubkey_address as string
+          }))
+        }
+
+        account.transactions.push(transaction)
+        get().updateAccount(account)
+
+        return transaction
+      },
+      getUtxo: async (accountName: string, txid: string, vout: number) => {
+        const account = get().getCurrentAccount(accountName) as Account
+
+        let utxo = account.utxos.find((u) => {
+          return u.txid === txid && u.vout === vout
+        })
+
+        if (utxo !== null) {
+          return utxo as Utxo
+        }
+
+        const tx = await get().getTx(accountName, txid)
+
+        utxo = {
+          txid,
+          vout,
+          value: tx.vout[vout].value,
+          timestamp: tx.timestamp,
+          addressTo: tx.vout[vout].address,
+          keychain: 'external' // TODO: is it right?
+        }
+
+        account.utxos.push(utxo)
+        get().updateAccount(account)
+
+        return utxo
+      },
+      setUtxoLabel: async (accountName, txid, vout, label) => {
+        const account = get().getCurrentAccount(accountName) as Account
+
+        const utxoIndex = account.utxos.findIndex((u) => {
+          return u.txid === txid && u.vout === vout
+        })
+
+        if (utxoIndex === -1) {
+          const utxo = await get().getUtxo(accountName, txid, vout)
+          utxo.label = label
+          account.utxos.push(utxo)
+        } else {
+          account.utxos[utxoIndex].label = label
+        }
+
+        get().updateAccount(account)
+      },
       getCurrentAccount: (name) => {
         return get().accounts.find((account) => account.name === name)
       },

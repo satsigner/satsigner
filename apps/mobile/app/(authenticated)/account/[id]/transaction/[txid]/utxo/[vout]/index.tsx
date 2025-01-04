@@ -1,9 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSSeparator from '@/components/SSSeparator'
@@ -14,34 +12,44 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate } from '@/utils/format'
 
 export default function UtxoDetails() {
-  const { id, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+  const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const [getCurrentAccount, getTags, setTags, getTx, getUtxo, setUtxoLabel] =
+    useAccountsStore((state) => [
+      state.getCurrentAccount,
+      state.getTags,
+      state.setTags,
+      state.getTx,
+      state.getUtxo,
+      state.setUtxoLabel
+    ])
 
-  const account = getCurrentAccount(id)!
+  const account = getCurrentAccount(accountId)!
 
   const placeholder = '-'
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [txSize, setTxSize] = useState(placeholder)
-  const [txAddress, setTxAddress] = useState(placeholder)
-
-  const [url] = useBlockchainStore(useShallow((state) => [state.url]))
-
-  const oracle = new MempoolOracle(url)
+  const [utxoAddress, setUtxoAddress] = useState(placeholder)
+  const [label, setLabel] = useState('')
 
   useEffect(() => {
     const fetchUtxoInfo = async () => {
-      const tx = await oracle.getTransaction(txid)
-      setTxSize(tx.size.toString())
-      setBlockHeight(tx.status.block_height.toString())
-      setBlockTime(formatDate(tx.status.block_time as unknown as Date))
-      setTxAddress(tx.vout[Number(vout)].scriptpubkey_address || '-')
+      const tx = await getTx(accountId, txid)
+      const utxo = await getUtxo(accountId, txid, Number(vout))
+      if (tx.blockHeight) setBlockHeight(tx.blockHeight.toString())
+      if (tx.size) setTxSize(tx.size.toString())
+      if (tx.timestamp) setBlockTime(formatDate(tx.timestamp))
+      if (utxo.addressTo) setUtxoAddress(utxo.addressTo)
+      if (utxo.label) {
+        const parsedLabel = parseLabel(utxo.label)
+        setLabel(parsedLabel.label)
+        setSelectedTags(parsedLabel.tags)
+      }
     }
 
     try {
@@ -49,21 +57,47 @@ export default function UtxoDetails() {
     } catch {
       // TODO: show error notification via snack bar
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
-  const tags = [
-    'kyc',
-    'kyc-free',
-    'aa1',
-    'aa2',
-    'aa3',
-    'aa4',
-    'friends',
-    'shopping',
-    'exchange'
-  ]
+  const [tags, setLocalTags] = useState(getTags())
   const [selectedTags, setSelectedTags] = useState([] as string[])
+
+  // NOTE: should we move it to utils?
+  const stringifyTags = (tags: string[]): string => {
+    if (tags.length === 0) return ''
+    return ' tags:' + tags.join(',')
+  }
+
+  const parseLabel = (label: string) => {
+    if (!label.match(/tags:(.*)$/)) {
+      return {
+        label,
+        tags: []
+      }
+    }
+    const tags = label.replace(/^.*tags:/, '').split(',')
+    return { label, tags }
+  }
+
+  const handleSelectTag = (selected: string[]) => {
+    const createdTags = selected.filter((tag) => !tags.includes(tag))
+    if (createdTags.length > 0) {
+      const newTags = [...tags, ...createdTags]
+      setTags(newTags)
+      setLocalTags(newTags)
+    }
+    const newLabel = label + stringifyTags(selected)
+    setSelectedTags(selected)
+    setUtxoLabel(accountId, txid, Number(vout), newLabel)
+  }
+
+  const handleLabelChange = (newLabel: string) => {
+    const actualNewLabel = newLabel + stringifyTags(selectedTags)
+    setLabel(newLabel)
+    setUtxoLabel(accountId, txid, Number(vout), actualNewLabel)
+  }
 
   return (
     <ScrollView>
@@ -97,6 +131,8 @@ export default function UtxoDetails() {
               textAlignVertical: 'top',
               padding: 10
             }}
+            value={label}
+            onChangeText={handleLabelChange}
           />
           <SSText weight="bold" uppercase>
             {i18n.t('common.tags')}
@@ -104,7 +140,7 @@ export default function UtxoDetails() {
           <SSTagInput
             tags={tags}
             selectedTags={selectedTags}
-            onSelect={setSelectedTags}
+            onSelect={handleSelectTag}
           />
         </SSVStack>
         <SSVStack>
@@ -139,12 +175,12 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSHStack>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={txAddress}>
+          <SSClipboardCopy text={utxoAddress}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {i18n.t('common.address')}
               </SSText>
-              <SSText color="muted">{txAddress}</SSText>
+              <SSText color="muted">{utxoAddress}</SSText>
             </SSVStack>
           </SSClipboardCopy>
           <SSSeparator color="gradient" />
