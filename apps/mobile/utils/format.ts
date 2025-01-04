@@ -37,4 +37,16 @@ function formatDate(date: Date | string | number) {
   }).format(date)
 }
 
-export { formatAddress, formatDate, formatNumber, formatTime }
+function parseLabel(label: string) {
+  if (!label.match(/tags:.*$/)) {
+    return {
+      label,
+      tags: []
+    }
+  }
+  const tags = label.replace(/^.*tags:/, '').split(',')
+  label = label.replace(/ tags:.*$/, '')
+  return { label, tags }
+}
+
+export { formatAddress, formatDate, formatNumber, formatTime, parseLabel }

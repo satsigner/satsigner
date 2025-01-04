@@ -170,10 +170,22 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           getBlockchainConfig(backend, url, opts)
         )
 
+        const oldUtxos = account.utxos
+        const utxo2label = {} as { [key: string]: string }
+        oldUtxos.forEach((utxo) => {
+          const utxoRef = utxo.txid + ':' + utxo.vout
+          utxo2label[utxoRef] = utxo.label || ''
+        })
+
         const { transactions, utxos, summary } = await getWalletData(
           wallet,
           network as Network
         )
+
+        for (const index in utxos) {
+          const utxoRef = utxos[index].txid + ':' + utxos[index].vout
+          utxos[index].label = utxo2label[utxoRef]
+        }
 
         return { ...account, transactions, utxos, summary }
       },

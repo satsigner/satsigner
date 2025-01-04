@@ -13,7 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate } from '@/utils/format'
+import { formatDate, parseLabel } from '@/utils/format'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -60,18 +60,6 @@ export default function UtxoDetails() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
-
-  const parseLabel = (label: string) => {
-    if (!label.match(/tags:.*$/)) {
-      return {
-        label,
-        tags: []
-      }
-    }
-    const tags = label.replace(/^.*tags:/, '').split(',')
-    label = label.replace(/ tags:.*$/, '')
-    return { label, tags }
-  }
 
   const updateLabel = (label: string, tags: string[]) => {
     label = label.trim()
