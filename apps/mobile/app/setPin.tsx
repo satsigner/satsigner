@@ -1,9 +1,9 @@
-import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Platform } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
@@ -104,10 +104,7 @@ export default function SetPin() {
           )}
           {confirmationPinFilled && pinsMatch && (
             <SSVStack itemsCenter gap="sm">
-              <Image
-                style={{ width: 40, height: 40 }}
-                source={require('@/assets/icons/check-circle-thin.svg')}
-              />
+              <SSIconCheckCircleThin height={40} width={40} />
               <SSText uppercase size="lg" color="muted" center>
                 {i18n.t('auth.pinsMatch')}
               </SSText>
@@ -115,10 +112,7 @@ export default function SetPin() {
           )}
           {confirmationPinFilled && !pinsMatch && (
             <SSVStack itemsCenter gap="sm">
-              <Image
-                style={{ width: 40, height: 40 }}
-                source={require('@/assets/icons/circle-x-thin.svg')}
-              />
+              <SSIconCircleXThin height={40} width={40} />
               <SSText uppercase size="lg" color="muted" center>
                 {i18n.t('auth.pinsDontMatch')}
               </SSText>

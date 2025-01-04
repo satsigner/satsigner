@@ -1,4 +1,6 @@
 import { Image } from 'expo-image'
+import { Descriptor } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useState } from 'react'
@@ -11,6 +13,7 @@ import {
 import { SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconCamera, SSIconRefresh } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSIconButton from '@/components/SSIconButton'
@@ -57,10 +60,7 @@ function TotalTransactions({
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSIconButton onPress={() => handleOnRefresh()}>
-          <Image
-            style={{ width: 18, height: 22 }}
-            source={require('@/assets/icons/refresh.svg')}
-          />
+          <SSIconRefresh height={18} width={22} />
         </SSIconButton>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSSortDirectionToggle
@@ -120,10 +120,7 @@ function SpendableOutputs({
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
         <SSIconButton onPress={() => {}}>
-          <Image
-            style={{ width: 18, height: 22 }}
-            source={require('@/assets/icons/refresh.svg')}
-          />
+          <SSIconRefresh height={22} width={18} />
         </SSIconButton>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSSortDirectionToggle
@@ -471,10 +468,7 @@ export default function AccountView() {
                 onPress={() => router.navigate(`/account/${id}/camera`)}
                 style={{ width: '20%' }}
               >
-                <Image
-                  style={{ width: 18, height: 13 }}
-                  source={require('@/assets/icons/camera.svg')}
-                />
+                <SSIconCamera height={13} width={18} />
               </SSActionButton>
               <SSActionButton
                 onPress={() => router.navigate(`/account/${id}/newInvoice`)}

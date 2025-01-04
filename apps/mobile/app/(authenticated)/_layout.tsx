@@ -1,3 +1,4 @@
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -6,6 +7,7 @@ import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'

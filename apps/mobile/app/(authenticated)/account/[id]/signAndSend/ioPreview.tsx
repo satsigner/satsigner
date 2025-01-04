@@ -1,28 +1,40 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
+import { useWindowDimensions, View } from 'react-native'
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView
+} from 'react-native-gesture-handler'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue
+} from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconBubbles } from '@/components/icons'
 import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
+import SSSankeyDiagram from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors } from '@/styles'
+import { Colors, Layout } from '@/styles'
 import type { Utxo } from '@/types/models/Utxo'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { getUtxoOutpoint } from '@/utils/utxo'
+
+const MINING_FEE_VALUE = 1635
 
 export default function IOPreview() {
   const router = useRouter()
@@ -72,16 +84,140 @@ export default function IOPreview() {
     setAddOutputModalVisible(false)
   }
 
+  const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height - 100
+  const GRAPH_WIDTH = width
+
+  const canvasSize = { width: GRAPH_WIDTH * 1.5, height: GRAPH_HEIGHT }
+  const sankeyWidth = canvasSize.width
+  const sankeyHeight = canvasSize.height - 200
+
+  const translateX = useSharedValue(-width * 0.4)
+  const translateY = useSharedValue(0)
+  const savedTranslateX = useSharedValue(-width * 0.4)
+  const savedTranslateY = useSharedValue(0)
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = savedTranslateX.value + event.translationX
+      translateY.value = savedTranslateY.value + event.translationY
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value
+      savedTranslateY.value = translateY.value
+    })
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value }
+    ]
+  }))
+
+  const sankeyNodes = useMemo(() => {
+    if (inputs.size > 0) {
+      const inputNodes = Array.from(inputs.entries()).map(
+        ([, input], index) => ({
+          id: String(index + 1),
+          indexC: index + 1,
+          type: 'text',
+          depthH: 1,
+          textInfo: [
+            `${input.value}`,
+            `${formatAddress(input.txid, 3)}`,
+            input.label ?? ''
+          ],
+          value: input.value
+        })
+      )
+
+      const blockNode = [
+        {
+          id: String(inputs.size + 1),
+          indexC: inputs.size + 1,
+          type: 'block',
+          depthH: 2,
+          textInfo: ['', '', '1533 B', '1509 vB']
+        }
+      ]
+
+      const miningFee = `${MINING_FEE_VALUE}`
+      const priority = '42 sats/vB'
+      const outputNodes = [
+        {
+          id: String(inputs.size + 2),
+          indexC: inputs.size + 2,
+          type: 'text',
+          depthH: 3,
+          textInfo: [
+            'Unspent',
+            `${utxosSelectedValue - MINING_FEE_VALUE}`,
+            'to'
+          ],
+          value: utxosSelectedValue - MINING_FEE_VALUE
+        },
+        {
+          id: String(inputs.size + 3),
+          indexC: inputs.size + 3,
+          type: 'text',
+          depthH: 3,
+          textInfo: [priority, miningFee, 'mining fee'],
+          value: MINING_FEE_VALUE
+        }
+      ]
+      return [...inputNodes, ...blockNode, ...outputNodes]
+    } else {
+      return []
+    }
+  }, [inputs, utxosSelectedValue])
+
+  const sankeyLinks = useMemo(() => {
+    if (inputs.size === 0) return []
+
+    const inputToBlockLinks = Array.from(inputs.entries()).map(
+      ([, input], index) => ({
+        source: String(index + 1),
+        target: String(inputs.size + 1),
+        value: input.value
+      })
+    )
+
+    const blockToOutputLinks = [
+      {
+        source: String(inputs.size + 1),
+        target: String(inputs.size + 2),
+        value: utxosSelectedValue - MINING_FEE_VALUE
+      },
+      {
+        source: String(inputs.size + 1),
+        target: String(inputs.size + 3),
+        value: MINING_FEE_VALUE
+      }
+    ]
+
+    return [...inputToBlockLinks, ...blockToOutputLinks]
+  }, [inputs, utxosSelectedValue])
+
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      {/* Keep "Selected spendable outputs" and the other buttons? */}
-      <SSMainLayout>
-        <SSVStack>
+
+      <LinearGradient
+        style={{
+          width: '100%',
+          position: 'absolute',
+          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+          paddingTop: Layout.mainContainer.paddingTop,
+          zIndex: 20
+        }}
+        locations={[0.185, 0.5554, 0.7713, 1]}
+        colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}
+      >
+        <SSVStack style={{ flex: 1 }}>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
             <SSText size="md">
@@ -92,10 +228,7 @@ export default function IOPreview() {
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
               }
             >
-              <Image
-                style={{ width: 24, height: 22 }}
-                source={require('@/assets/icons/bubbles.svg')}
-              />
+              <SSIconBubbles height={22} width={24} />
             </SSIconButton>
           </SSHStack>
           <SSVStack itemsCenter gap="sm">
@@ -147,46 +280,41 @@ export default function IOPreview() {
             </SSVStack>
           </SSVStack>
         </SSVStack>
-        <SSHStack>
-          <SSVStack>
-            <SSText>Inputs:</SSText>
-            {[...inputs.values()].map((utxo) => (
-              <SSVStack gap="none" key={getUtxoOutpoint(utxo)}>
-                <SSText>{formatNumber(utxo.value)} sats</SSText>
-                <SSHStack gap="xs">
-                  <SSText color="muted" size="xs">
-                    from
-                  </SSText>
-                  <SSText size="xs">
-                    {formatAddress(utxo.addressTo || '')}
-                  </SSText>
-                </SSHStack>
-              </SSVStack>
-            ))}
-          </SSVStack>
-          <SSVStack gap="none">
-            <SSText color="muted">Bytes:</SSText>
-            <SSText>...</SSText>
-          </SSVStack>
-          <SSVStack>
-            <SSText>Outputs:</SSText>
-            {[...outputs].map((output) => (
-              <SSVStack gap="none" key={output.localId}>
-                <SSText>{formatNumber(output.amount)} sats</SSText>
-                <SSHStack gap="xs">
-                  <SSText color="muted" size="xs">
-                    from
-                  </SSText>
-                  <SSText size="xs">{formatAddress(output.to)}</SSText>
-                </SSHStack>
-                <SSText color="muted" size="xxs">
-                  "{output.label}"
-                </SSText>
-              </SSVStack>
-            ))}
-          </SSVStack>
-        </SSHStack>
-        <SSVStack>
+      </LinearGradient>
+      <View style={{ position: 'absolute', top: 100, left: 136 }}>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View
+            style={[
+              { width: sankeyWidth, height: sankeyHeight },
+              animatedStyle
+            ]}
+          >
+            <SSSankeyDiagram
+              sankeyNodes={sankeyNodes}
+              sankeyLinks={sankeyLinks}
+              inputCount={inputs.size ?? 0}
+            />
+          </Animated.View>
+        </GestureDetector>
+      </View>
+      <LinearGradient
+        locations={[0, 0.1255, 0.2678, 1]}
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          width: '100%',
+          flexDirection: 'row',
+          justifyContent: 'center',
+          backgroundColor: Colors.transparent,
+          paddingBottom: 20
+        }}
+        colors={['#00000000', '#0000004B', '#000000A6', '#000000F5']}
+      >
+        <SSVStack
+          style={{
+            width: '92%'
+          }}
+        >
           <SSTextInput
             variant="outline"
             size="small"
@@ -217,7 +345,7 @@ export default function IOPreview() {
             }
           />
         </SSVStack>
-      </SSMainLayout>
+      </LinearGradient>
       <SSModal
         visible={addOutputModalVisible}
         fullOpacity
@@ -302,6 +430,6 @@ export default function IOPreview() {
           )}
         </SSModal>
       </SSModal>
-    </>
+    </GestureHandlerRootView>
   )
 }

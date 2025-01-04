@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { ForwardedRef, forwardRef, useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -10,16 +10,21 @@ type SSWordInputProps = {
   invalid?: boolean
   position: number
   editable?: boolean
+  index: number
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-export default function SSWordInput({
-  value,
-  invalid,
-  position,
-  editable = true,
-  style,
-  ...props
-}: SSWordInputProps) {
+function SSWordInput(
+  {
+    value,
+    invalid,
+    position,
+    editable = true,
+    index,
+    style,
+    ...props
+  }: SSWordInputProps,
+  ref: ForwardedRef<TextInput>
+) {
   const textInputStyle = useMemo(() => {
     return StyleSheet.compose(
       {
@@ -35,6 +40,8 @@ export default function SSWordInput({
       <TextInput
         style={textInputStyle}
         value={value}
+        autoFocus={index === 0}
+        ref={ref}
         editable={editable}
         autoCapitalize="none"
         autoComplete="off"
@@ -46,6 +53,8 @@ export default function SSWordInput({
     </View>
   )
 }
+
+export default forwardRef(SSWordInput)
 
 const styles = StyleSheet.create({
   containerBase: {

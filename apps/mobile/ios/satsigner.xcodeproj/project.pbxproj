@@ -3,22 +3,24 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0886199558CE4D15BB5DD831 /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = DA6A9EED88AC4CE98DF90173 /* SF-Pro-Text-Light.otf */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
+		35DCDAD4B55341A4BE011D41 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 939EAF451178469583884655 /* noop-file.swift */; };
+		36E89FB7F8F547B19039BFF3 /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F5DB7DA7EC5E4AAC98B021A6 /* SF-Pro-Text-Bold.otf */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		784C49CA6B7BFCB9CCB0E017 /* libPods-satsigner.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E13C10DF074F14664F89A788 /* libPods-satsigner.a */; };
 		95DC61374BDF40A68C696AA2 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 22E5E5E5F46F4175B5418F53 /* SF-Pro-Text-Medium.otf */; };
 		A22711F373164D038400FC34 /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = D5E755E50EA2406AA4CD9856 /* SF-Pro-Text-Light.otf */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		DF9E0FAF78BB4FDE86A5E5D8 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6623789AA5F64D5F905C96C1 /* noop-file.swift */; };
-		F559A74993F5404C9E8750B3 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 5490B5043EDD4FBBB2BCA459 /* SF-Pro-Text-Regular.otf */; };
-		F75DB42BE33941B78536DA21 /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 60D402DB39FD46FC9DF41CE3 /* SF-Pro-Text-Bold.otf */; };
+		D42C54E83DE74DBF9E62CD94 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = E31DCB9B690049C0A5CC73C9 /* SF-Pro-Text-Regular.otf */; };
+		EC54A2FA2BEF454FAAD8A235 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 5247A6C53D114C319183D9A2 /* SF-Pro-Text-Medium.otf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +42,8 @@
 		D5E755E50EA2406AA4CD9856 /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
 		E13C10DF074F14664F89A788 /* libPods-satsigner.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-satsigner.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F5DB7DA7EC5E4AAC98B021A6 /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
+		F62974FC52094B50BDF4C889 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-satsigner/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -65,8 +69,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				6623789AA5F64D5F905C96C1 /* noop-file.swift */,
-				9A765A959D654FD0A39F9236 /* satsigner-Bridging-Header.h */,
+				939EAF451178469583884655 /* noop-file.swift */,
+				F62974FC52094B50BDF4C889 /* satsigner-Bridging-Header.h */,
 			);
 			name = satsigner;
 			sourceTree = "<group>";
@@ -96,7 +100,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
-				D61A621B263542B7B1454CE3 /* Resources */,
+				D392D9FC69EA40359E6C9C9F /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -128,15 +132,17 @@
 			path = satsigner/Supporting;
 			sourceTree = "<group>";
 		};
-		D61A621B263542B7B1454CE3 /* Resources */ = {
+		D392D9FC69EA40359E6C9C9F /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				D5E755E50EA2406AA4CD9856 /* SF-Pro-Text-Light.otf */,
-				5490B5043EDD4FBBB2BCA459 /* SF-Pro-Text-Regular.otf */,
-				22E5E5E5F46F4175B5418F53 /* SF-Pro-Text-Medium.otf */,
-				60D402DB39FD46FC9DF41CE3 /* SF-Pro-Text-Bold.otf */,
+				4ED4517BA3234828A5B7B3AC /* SF-Pro-Text-Ultralight.otf */,
+				DA6A9EED88AC4CE98DF90173 /* SF-Pro-Text-Light.otf */,
+				E31DCB9B690049C0A5CC73C9 /* SF-Pro-Text-Regular.otf */,
+				5247A6C53D114C319183D9A2 /* SF-Pro-Text-Medium.otf */,
+				F5DB7DA7EC5E4AAC98B021A6 /* SF-Pro-Text-Bold.otf */,
 			);
 			name = Resources;
+			path = "";
 			sourceTree = "<group>";
 		};
 		D65327D7A22EEC0BE12398D9 /* Pods */ = {
@@ -190,9 +196,7 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = FZ9PXWPFQT;
 						LastSwiftMigration = 1250;
-						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -222,10 +226,11 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				A22711F373164D038400FC34 /* SF-Pro-Text-Light.otf in Resources */,
-				F559A74993F5404C9E8750B3 /* SF-Pro-Text-Regular.otf in Resources */,
-				95DC61374BDF40A68C696AA2 /* SF-Pro-Text-Medium.otf in Resources */,
-				F75DB42BE33941B78536DA21 /* SF-Pro-Text-Bold.otf in Resources */,
+				6EF6B23489214F7D9CF0CF4E /* SF-Pro-Text-Ultralight.otf in Resources */,
+				0886199558CE4D15BB5DD831 /* SF-Pro-Text-Light.otf in Resources */,
+				D42C54E83DE74DBF9E62CD94 /* SF-Pro-Text-Regular.otf in Resources */,
+				EC54A2FA2BEF454FAAD8A235 /* SF-Pro-Text-Medium.otf in Resources */,
+				36E89FB7F8F547B19039BFF3 /* SF-Pro-Text-Bold.otf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -248,23 +253,45 @@
 			shellScript = "if [[ -f \"$PODS_ROOT/../.xcode.env\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env\"\nfi\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n# The project root by default is one level up from the ios directory\nexport PROJECT_ROOT=\"$PROJECT_DIR\"/..\n\nif [[ \"$CONFIGURATION\" = *Debug* ]]; then\n  export SKIP_BUNDLING=1\nfi\nif [[ -z \"$ENTRY_FILE\" ]]; then\n  # Set the entry JS file using the bundler's entry resolution.\n  export ENTRY_FILE=\"$(\"$NODE_BINARY\" -e \"require('expo/scripts/resolveAppEntry')\" \"$PROJECT_ROOT\" ios relative | tail -n 1)\"\nfi\n\nif [[ -z \"$CLI_PATH\" ]]; then\n  # Use Expo CLI\n  export CLI_PATH=\"$(\"$NODE_BINARY\" --print \"require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })\")\"\nfi\nif [[ -z \"$BUNDLE_COMMAND\" ]]; then\n  # Default Expo CLI command for bundling\n  export BUNDLE_COMMAND=\"export:embed\"\nfi\n\n# Source .xcode.env.updates if it exists to allow\n# SKIP_BUNDLING to be unset if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.updates\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.updates\"\nfi\n# Source local changes to allow overrides\n# if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n`\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'\"`\n\n";
 		};
 		6D8A5C9B8307DF623F1E9FDC /* [Expo] Configure project */ = {
+		08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
 			);
-			name = "[Expo] Configure project";
+			name = "[CP] Check Pods Manifest.lock";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-satsigner-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-satsigner/expo-configure-project.sh\"\n";
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		438FE1D36EA095A459BDAE6D /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		A1056F9742B4F09AFB7353A4 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -291,22 +318,24 @@
 			showEnvVarsInLog = 0;
 		};
 		AFB2037F4DEA63741D6C1799 /* [CP] Embed Pods Frameworks */ = {
+		C62B123FFF64741E8742960E /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			inputFileListPaths = (
 			);
-			name = "[CP] Embed Pods Frameworks";
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-satsigner/expo-configure-project.sh\"\n";
 		};
 		B1A556709CA2BBF22A5A0FEE /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -340,7 +369,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				DF9E0FAF78BB4FDE86A5E5D8 /* noop-file.swift in Sources */,
+				35DCDAD4B55341A4BE011D41 /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,10 +383,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = satsigner/satsigner.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FZ9PXWPFQT;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -365,10 +391,7 @@
 				);
 				INFOPLIST_FILE = satsigner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -393,16 +416,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = satsigner/satsigner.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = FZ9PXWPFQT;
 				INFOPLIST_FILE = satsigner/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
@@ -468,10 +485,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					/usr/lib/swift,
-					"$(inherited)",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift $(inherited)";
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -529,10 +543,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 13.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					/usr/lib/swift,
-					"$(inherited)",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "/usr/lib/swift $(inherited)";
 				LIBRARY_SEARCH_PATHS = "$(SDKROOT)/usr/lib/swift\"$(inherited)\"";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				OTHER_CFLAGS = "$(inherited)";

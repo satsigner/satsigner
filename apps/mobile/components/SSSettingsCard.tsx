@@ -1,10 +1,10 @@
-import { Image } from 'expo-image'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 
+import { SSIconChevronRight } from './icons'
 import SSText from './SSText'
 
 type SSSettingsCardsProps = {
@@ -35,10 +35,7 @@ export default function SSSettingsCards({
           </SSVStack>
         </SSHStack>
         <SSHStack>
-          <Image
-            style={{ width: 6, height: 11.6 }}
-            source={require('@/assets/icons/chevron-right.svg')}
-          />
+          <SSIconChevronRight height={11.6} width={6} />
         </SSHStack>
       </SSHStack>
     </TouchableOpacity>

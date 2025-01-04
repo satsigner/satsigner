@@ -11,12 +11,18 @@ type BlockchainState = {
   backend: Backend
   network: Network
   url: string
+  timeout: number
+  retries: number
+  stopGap: number
 }
 
 type BlockchainAction = {
   setBackend: (backend: Backend) => void
   setNetwork: (network: Network) => void
   setUrl: (url: string) => void
+  setTimeout: (timeout: number) => void
+  setStopGap: (stopGap: number) => void
+  setRetries: (retries: number) => void
   getBlockchain: () => Promise<Blockchain>
   getBlockchainHeight: () => Promise<number>
 }
@@ -27,6 +33,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       backend: 'esplora',
       network: 'signet',
       url: ESPLORA_MUTINYNET_URL,
+      timeout: 6,
+      retries: 7,
+      stopGap: 20,
       setBackend: (backend) => {
         set({ backend })
       },
@@ -36,10 +45,20 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       setUrl: (url) => {
         set({ url })
       },
+      setTimeout: (timeout) => {
+        set({ timeout })
+      },
+      setStopGap: (stopGap) => {
+        set({ stopGap })
+      },
+      setRetries: (retries) => {
+        set({ retries })
+      },
       getBlockchain: async () => {
-        const config = getBlockchainConfig(get().backend, get().url)
-
-        return getBlockchain(get().backend, config)
+        const { backend, retries, stopGap, timeout, url } = get()
+        const opts = { retries, stopGap, timeout }
+        const config = getBlockchainConfig(backend, url, opts)
+        return getBlockchain(backend, config)
       },
       getBlockchainHeight: async () => {
         return (await get().getBlockchain()).getHeight()

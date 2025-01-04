@@ -1,4 +1,3 @@
-import { Image } from 'expo-image'
 import { TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -9,6 +8,7 @@ import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
+import { SSIconChevronRight } from './icons'
 import SSText from './SSText'
 
 type SSAccountCardProps = {
@@ -90,10 +90,7 @@ export default function SSAccountCard({
             </SSVStack>
           </SSHStack>
         </SSVStack>
-        <Image
-          style={{ width: 6, height: 11.6 }}
-          source={require('@/assets/icons/chevron-right.svg')}
-        />
+        <SSIconChevronRight height={11.6} width={6} />
       </SSHStack>
     </TouchableOpacity>
   )

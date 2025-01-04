@@ -30,7 +30,13 @@
       "clear": "Clear",
       "goBack": "Go back",
       "version": "Version",
-      "address": "Address"
+      "address": "Address",
+      "transaction": "Transaction",
+      "bytes": "Bytes",
+      "tags": "Tags",
+      "label": "Label",
+      "block": "Block",
+      "outputIndex": "Output index"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -71,7 +77,10 @@
         "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
         "backend": "Backend",
         "network": "Network",
-        "url": "Url"
+        "url": "Url",
+        "retries": "Retries",
+        "timeout": "Timeout",
+        "stopGap": "Stop Gap"
       },
       "appSecurity": {
         "title": "App Security",
@@ -107,6 +116,10 @@
       "addAsInputToMessage": "Add as input to message",
       "customAmount": "Custom amount",
       "selectAll": "Select all",
+      "setMessageFee": "Set message fee",
+      "addInput": "Add input",
+      "addOutput": "Add output",
+      "addRecipientOutputs": "Add recipient outputs",
       "deselectAll": "Deselect all"
     },
     "ioPreview": {
@@ -234,6 +247,9 @@
         "generateNewSeed": "Generate New Seed",
         "importSeed": "Import Seed"
       }
+    },
+    "utxoDetails": {
+      "title": "UTXO Details"
     }
   }
 }
