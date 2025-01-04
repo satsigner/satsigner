@@ -61,12 +61,13 @@ export default function UtxoDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
-  const updateLabel = (label: string, tags: string[]) => {
-    label = label.trim()
-    if (tags.length > 0) {
-      label += ' tags:' + tags.join(',')
+  const updateLabel = () => {
+    let newLabel = label.trim()
+    setLabel(newLabel)
+    if (selectedTags.length > 0) {
+      newLabel += ' tags:' + selectedTags.join(',')
     }
-    setUtxoLabel(accountId, txid, Number(vout), label)
+    setUtxoLabel(accountId, txid, Number(vout), newLabel)
   }
 
   const onAddTag = (tag: string) => {
@@ -77,19 +78,11 @@ export default function UtxoDetails() {
     }
     const selected = [...selectedTags, tag]
     setSelectedTags(selected)
-    updateLabel(label, selected)
   }
 
   const onDelTag = (tag: string) => {
-    // TODO: update cached tags
     const selected = selectedTags.filter((t) => t !== tag)
     setSelectedTags(selected)
-    updateLabel(label, selected)
-  }
-
-  const handleLabelChange = (newLabel: string) => {
-    setLabel(newLabel)
-    updateLabel(newLabel, selectedTags)
   }
 
   return (
@@ -125,7 +118,7 @@ export default function UtxoDetails() {
               padding: 10
             }}
             value={label}
-            onChangeText={handleLabelChange}
+            onChangeText={setLabel}
           />
           <SSText weight="bold" uppercase>
             {i18n.t('common.tags')}
@@ -196,7 +189,11 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSClipboardCopy>
         </SSVStack>
-        <SSButton label={i18n.t('common.save')} variant="secondary" />
+        <SSButton
+          onPress={updateLabel}
+          label={i18n.t('common.save')}
+          variant="secondary"
+        />
       </SSVStack>
     </ScrollView>
   )
