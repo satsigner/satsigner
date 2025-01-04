@@ -192,10 +192,13 @@ async function parseTransactionDetailsToTransaction(
 
   if (transaction !== undefined && transaction !== null) {
     size = await transaction.size()
-    vout = (await transaction.output()).map((utxo) => ({
-      value: utxo.value,
-      address: utxo.script
-    }))
+    vout = await transaction.output()
+    for (const index in vout) {
+      const { value, script } = vout[index]
+      const addressObj = await new Address().fromScript(script, network)
+      const address = await addressObj.asString()
+      vout[index] = { value, address }
+    }
   }
 
   return {

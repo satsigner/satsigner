@@ -99,8 +99,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           return u.txid === txid && u.vout === vout
         })
 
-        if (utxo !== null) {
-          return utxo as Utxo
+        if (utxo !== undefined && utxo !== null) {
+          return utxo
         }
 
         const tx = await get().getTx(accountName, txid)
@@ -122,19 +122,23 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       setUtxoLabel: async (accountName, txid, vout, label) => {
         const account = get().getCurrentAccount(accountName) as Account
 
-        const utxoIndex = account.utxos.findIndex((u) => {
+        let utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
         })
 
         if (utxoIndex === -1) {
-          const utxo = await get().getUtxo(accountName, txid, vout)
-          utxo.label = label
-          account.utxos.push(utxo)
-        } else {
-          account.utxos[utxoIndex].label = label
+          await get().getUtxo(accountName, txid, vout)
+          utxoIndex = account.utxos.length
         }
 
-        get().updateAccount(account)
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account) => account.name === accountName
+            )
+            state.accounts[index].utxos[utxoIndex].label = label
+          })
+        )
       },
       getCurrentAccount: (name) => {
         return get().accounts.find((account) => account.name === name)

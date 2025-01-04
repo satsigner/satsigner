@@ -14,11 +14,13 @@ import SSTextInput from './SSTextInput'
 type Props = {
   tags: string[]
   selectedTags: string[]
-  onSelect: (tag: string[]) => void
+  onSelect?: (tags: string[]) => void
+  onAdd?: (tag: string) => void
+  onRemove?: (tag: string) => void
 }
 
 export default function SSTagInput(props: Props) {
-  const { tags, selectedTags, onSelect } = props
+  const { tags, selectedTags, onSelect, onRemove, onAdd } = props
   const [text, setText] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
   const inputRef = useRef<TextInput>()
@@ -31,13 +33,23 @@ export default function SSTagInput(props: Props) {
   }
 
   const addTag = (tag: string) => {
-    if (tag.length < 2 || selectedTags.includes(tag)) return false
-    onSelect([...selectedTags, tag])
+    if (tag.length < 2 || selectedTags.includes(tag)) {
+      return false
+    }
+    if (onAdd) {
+      onAdd(tag)
+    } else if (onSelect) {
+      onSelect([...selectedTags, tag])
+    }
     return true
   }
 
   const removeTag = (tag: string) => {
-    onSelect(selectedTags.filter((t) => t !== tag))
+    if (onRemove) {
+      onRemove(tag)
+    } else if (onSelect) {
+      onSelect(selectedTags.filter((t) => t !== tag))
+    }
   }
 
   const search = (a: string, b: string) =>

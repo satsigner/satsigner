@@ -28,9 +28,10 @@ export default function UtxoDetails() {
       state.setUtxoLabel
     ])
 
-  const account = getCurrentAccount(accountId)!
-
   const placeholder = '-'
+  const account = getCurrentAccount(accountId)!
+  const [tags, setLocalTags] = useState(getTags())
+  const [selectedTags, setSelectedTags] = useState([] as string[])
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [txSize, setTxSize] = useState(placeholder)
@@ -57,46 +58,50 @@ export default function UtxoDetails() {
     } catch {
       // TODO: show error notification via snack bar
     }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
-  const [tags, setLocalTags] = useState(getTags())
-  const [selectedTags, setSelectedTags] = useState([] as string[])
-
-  // NOTE: should we move it to utils?
-  const stringifyTags = (tags: string[]): string => {
-    if (tags.length === 0) return ''
-    return ' tags:' + tags.join(',')
-  }
-
   const parseLabel = (label: string) => {
-    if (!label.match(/tags:(.*)$/)) {
+    if (!label.match(/tags:.*$/)) {
       return {
         label,
         tags: []
       }
     }
     const tags = label.replace(/^.*tags:/, '').split(',')
+    label = label.replace(/ tags:.*$/, '')
     return { label, tags }
   }
 
-  const handleSelectTag = (selected: string[]) => {
-    const createdTags = selected.filter((tag) => !tags.includes(tag))
-    if (createdTags.length > 0) {
-      const newTags = [...tags, ...createdTags]
-      setTags(newTags)
-      setLocalTags(newTags)
+  const updateLabel = (label: string, tags: string[]) => {
+    label = label.trim()
+    if (tags.length > 0) {
+      label += ' tags:' + tags.join(',')
     }
-    const newLabel = label + stringifyTags(selected)
+    setUtxoLabel(accountId, txid, Number(vout), label)
+  }
+
+  const onAddTag = (tag: string) => {
+    if (!tags.includes(tag)) {
+      const allTags = [...tags, tag]
+      setTags(allTags)
+      setLocalTags(allTags)
+    }
+    const selected = [...selectedTags, tag]
     setSelectedTags(selected)
-    setUtxoLabel(accountId, txid, Number(vout), newLabel)
+    updateLabel(label, selected)
+  }
+
+  const onDelTag = (tag: string) => {
+    // TODO: update cached tags
+    const selected = selectedTags.filter((t) => t !== tag)
+    setSelectedTags(selected)
+    updateLabel(label, selected)
   }
 
   const handleLabelChange = (newLabel: string) => {
-    const actualNewLabel = newLabel + stringifyTags(selectedTags)
     setLabel(newLabel)
-    setUtxoLabel(accountId, txid, Number(vout), actualNewLabel)
+    updateLabel(newLabel, selectedTags)
   }
 
   return (
@@ -140,7 +145,8 @@ export default function UtxoDetails() {
           <SSTagInput
             tags={tags}
             selectedTags={selectedTags}
-            onSelect={handleSelectTag}
+            onAdd={onAddTag}
+            onRemove={onDelTag}
           />
         </SSVStack>
         <SSVStack>
