@@ -14,6 +14,7 @@ import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type AccountsState = {
   accounts: Account[]
@@ -134,7 +135,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
-              (account) => account.name === accountName
+              (account: Account) => account.name === accountName
             )
             state.accounts[index].utxos[utxoIndex].label = label
           })
@@ -173,8 +174,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const oldUtxos = account.utxos
         const utxo2label = {} as { [key: string]: string }
         oldUtxos.forEach((utxo) => {
-          const utxoRef = utxo.txid + ':' + utxo.vout
-          utxo2label[utxoRef] = utxo.label || ''
+          const utxoRef = getUtxoOutpoint(utxo)
+          utxo2label[utxoRef] = utxo.label
         })
 
         const { transactions, utxos, summary } = await getWalletData(
@@ -183,7 +184,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         for (const index in utxos) {
-          const utxoRef = utxos[index].txid + ':' + utxos[index].vout
+          const utxoRef = getUtxoOutpoint(utxos[index])
           utxos[index].label = utxo2label[utxoRef]
         }
 

@@ -14,6 +14,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, parseLabel } from '@/utils/format'
+import { router } from 'expo-router'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -37,6 +38,7 @@ export default function UtxoDetails() {
   const [txSize, setTxSize] = useState(placeholder)
   const [utxoAddress, setUtxoAddress] = useState(placeholder)
   const [label, setLabel] = useState('')
+  const [originalLabel, setOriginalLabel] = useState('')
 
   useEffect(() => {
     const fetchUtxoInfo = async () => {
@@ -46,11 +48,11 @@ export default function UtxoDetails() {
       if (tx.size) setTxSize(tx.size.toString())
       if (tx.timestamp) setBlockTime(formatDate(tx.timestamp))
       if (utxo.addressTo) setUtxoAddress(utxo.addressTo)
-      if (utxo.label) {
-        const parsedLabel = parseLabel(utxo.label)
-        setLabel(parsedLabel.label)
-        setSelectedTags(parsedLabel.tags)
-      }
+
+      setOriginalLabel(utxo.label)
+      const { label, tags } = parseLabel(utxo.label)
+      setLabel(label)
+      setSelectedTags(tags)
     }
 
     try {
@@ -61,13 +63,16 @@ export default function UtxoDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
-  const updateLabel = () => {
+  const saveLabel = () => {
     let newLabel = label.trim()
     setLabel(newLabel)
     if (selectedTags.length > 0) {
       newLabel += ' tags:' + selectedTags.join(',')
     }
-    setUtxoLabel(accountId, txid, Number(vout), newLabel)
+    if (newLabel !== originalLabel) {
+      setUtxoLabel(accountId, txid, Number(vout), newLabel)
+    }
+    router.back()
   }
 
   const onAddTag = (tag: string) => {
@@ -190,7 +195,7 @@ export default function UtxoDetails() {
           </SSClipboardCopy>
         </SSVStack>
         <SSButton
-          onPress={updateLabel}
+          onPress={saveLabel}
           label={i18n.t('common.save')}
           variant="secondary"
         />

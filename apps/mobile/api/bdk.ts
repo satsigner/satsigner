@@ -235,7 +235,7 @@ async function parseLocalUtxoToUtxo(
     timestamp: transactionDetails?.confirmationTime?.timestamp
       ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
       : undefined,
-    label: 'Test Label', // TODO
+    label: '',
     addressTo,
     keychain: 'external'
   }

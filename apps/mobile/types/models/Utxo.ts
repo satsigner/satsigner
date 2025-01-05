@@ -3,7 +3,7 @@ export type Utxo = {
   vout: number
   value: number
   timestamp?: Date
-  label?: string
+  label: string
   addressTo?: string
   keychain: 'internal' | 'external'
 }
