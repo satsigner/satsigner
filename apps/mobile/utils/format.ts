@@ -1,3 +1,5 @@
+import { PageParams } from '@/types/navigation/pageParams'
+
 function formatAddress(address: string, character: number = 8) {
   if (address.length <= 16) return address
 
@@ -44,4 +46,21 @@ function formatLabel(rawLabel: string) {
   return { label, tags }
 }
 
-export { formatAddress, formatDate, formatLabel, formatNumber, formatTime }
+function formatPageUrl(path: string, params: PageParams) {
+  let url = '/' + (path || '')
+  for (const key in params) {
+    const value = '' + params[key]
+    url = url.replace(new RegExp('\\[' + key + '\\]'), value)
+  }
+  url = url.replace(/index$/, '')
+  return url
+}
+
+export {
+  formatAddress,
+  formatDate,
+  formatLabel,
+  formatNumber,
+  formatPageUrl,
+  formatTime
+}

@@ -7,6 +7,8 @@ import {
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
+import { PageRoute } from '@/types/navigation/pageParams'
+import { formatPageUrl } from '@/utils/format'
 
 const PIN_KEY = 'satsigner_pin'
 
@@ -17,6 +19,7 @@ type AuthState = {
   lockDeltaTime: number
   pinTries: number
   pinMaxTries: number
+  lastVisitedPage: PageRoute
 }
 
 type AuthAction = {
@@ -29,6 +32,8 @@ type AuthAction = {
   resetPinTries: () => void
   setPinMaxTries: (maxTries: number) => void
   setLockDeltaTime: (deltaTime: number) => void
+  getLastVisitedPageUrl: () => string
+  setLastVisitedPage: (page: PageRoute) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -40,6 +45,10 @@ const useAuthStore = create<AuthState & AuthAction>()(
       lockDeltaTime: DEFAULT_LOCK_DELTA_TIME_SECONDS,
       pinTries: 0,
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
+      lastVisitedPage: {
+        path: '',
+        params: {}
+      },
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
       },
@@ -69,6 +78,13 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setLockDeltaTime: (deltaTime) => {
         set({ lockDeltaTime: deltaTime })
+      },
+      getLastVisitedPageUrl: () => {
+        const { path, params } = get().lastVisitedPage
+        return formatPageUrl(path, params)
+      },
+      setLastVisitedPage: (lastVisitedPage: PageRoute) => {
+        set({ lastVisitedPage })
       }
     }),
     {

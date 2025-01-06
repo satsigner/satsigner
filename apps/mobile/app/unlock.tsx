@@ -21,7 +21,8 @@ export default function Unlock() {
     resetPinTries,
     incrementPinTries,
     setFirstTime,
-    setRequiresAuth
+    setRequiresAuth,
+    getLastVisitedPageUrl
   ] = useAuthStore(
     useShallow((state) => [
       state.validatePin,
@@ -29,10 +30,13 @@ export default function Unlock() {
       state.resetPinTries,
       state.incrementPinTries,
       state.setFirstTime,
-      state.setRequiresAuth
+      state.setRequiresAuth,
+      state.getLastVisitedPageUrl
     ])
   )
   const { shake, shakeStyle } = useAnimatedShake()
+
+  const href = getLastVisitedPageUrl() || '/'
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
   const [triesLeft, setTriesLeft] = useState<number | null>(null)
@@ -46,7 +50,7 @@ export default function Unlock() {
     if (isPinValid) {
       setLockTriggered(false)
       resetPinTries()
-      router.replace('/')
+      router.replace(href)
     } else {
       shake()
       clearPin()
