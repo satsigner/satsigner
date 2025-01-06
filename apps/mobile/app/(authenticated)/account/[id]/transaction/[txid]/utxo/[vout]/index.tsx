@@ -95,8 +95,7 @@ export default function UtxoDetails() {
     setSelectedTags(selected)
   }
 
-  if (!account) return
-  ;<Redirect href="/" />
+  if (!account) return <Redirect href="/" />
 
   return (
     <ScrollView>

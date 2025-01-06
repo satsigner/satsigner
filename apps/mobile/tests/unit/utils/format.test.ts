@@ -1,9 +1,9 @@
 import {
   formatAddress,
   formatDate,
+  formatLabel,
   formatNumber,
-  formatTime,
-  formatLabel
+  formatTime
 } from '@/utils/format'
 
 describe('format utils', () => {
