@@ -12,9 +12,9 @@ import { type Account } from '@/types/models/Account'
 import { TxOut } from '@/types/models/Blockchain'
 import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
-import { getUtxoOutpoint } from '@/utils/utxo'
 
 type AccountsState = {
   accounts: Account[]
