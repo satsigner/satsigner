@@ -129,9 +129,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         const transaction = account.transactions.find((tx) => tx.id === txid)
 
-        if (transaction) {
-          return transaction
-        }
+        if (transaction) return transaction
 
         // TODO: replace MempoolOracle with BDK for enhanced privacy
         const { url } = useBlockchainStore.getState()
