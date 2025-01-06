@@ -13,14 +13,14 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, parseLabel } from '@/utils/format'
+import { formatDate, formatLabel } from '@/utils/format'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [getCurrentAccount, getTags, setTags, getTx, getUtxo, setUtxoLabel] =
+  const [account, getTags, setTags, getTx, getUtxo, setUtxoLabel] =
     useAccountsStore((state) => [
-      state.getCurrentAccount,
+      state.accounts.find((account) => account.name === accountId),
       state.getTags,
       state.setTags,
       state.getTx,
@@ -29,7 +29,6 @@ export default function UtxoDetails() {
     ])
 
   const placeholder = '-'
-  const account = getCurrentAccount(accountId)!
   const [tags, setLocalTags] = useState(getTags())
   const [selectedTags, setSelectedTags] = useState([] as string[])
   const [blockTime, setBlockTime] = useState(placeholder)
@@ -43,13 +42,15 @@ export default function UtxoDetails() {
     const fetchUtxoInfo = async () => {
       const tx = await getTx(accountId, txid)
       const utxo = await getUtxo(accountId, txid, Number(vout))
-      if (tx.blockHeight) setBlockHeight(tx.blockHeight.toString())
-      if (tx.size) setTxSize(tx.size.toString())
-      if (tx.timestamp) setBlockTime(formatDate(tx.timestamp))
+      if (tx) {
+        if (tx.blockHeight) setBlockHeight(tx.blockHeight.toString())
+        if (tx.size) setTxSize(tx.size.toString())
+        if (tx.timestamp) setBlockTime(formatDate(tx.timestamp))
+      }
       if (utxo.addressTo) setUtxoAddress(utxo.addressTo)
 
       setOriginalLabel(utxo.label)
-      const { label, tags } = parseLabel(utxo.label)
+      const { label, tags } = formatLabel(utxo.label)
       setLabel(label)
       setSelectedTags(tags)
     }

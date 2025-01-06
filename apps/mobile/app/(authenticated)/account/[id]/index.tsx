@@ -162,9 +162,10 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [loadWalletFromDescriptor, syncWallet, updateAccount] =
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
     useAccountsStore(
       useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
         state.loadWalletFromDescriptor,
         state.syncWallet,
         state.updateAccount
@@ -180,9 +181,6 @@ export default function AccountView() {
     (state) => state.clearTransaction
   )
 
-  const account = useAccountsStore((state) => {
-    return state.accounts.find((account) => account.name === id)
-  })
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')

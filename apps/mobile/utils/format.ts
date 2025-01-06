@@ -37,7 +37,7 @@ function formatDate(date: Date | string | number) {
   }).format(date)
 }
 
-function parseLabel(label: string) {
+function formatLabel(label: string) {
   if (!label.match(/tags:.*$/)) {
     return {
       label,
@@ -49,4 +49,4 @@ function parseLabel(label: string) {
   return { label, tags }
 }
 
-export { formatAddress, formatDate, formatNumber, formatTime, parseLabel }
+export { formatAddress, formatDate, formatLabel, formatNumber, formatTime }

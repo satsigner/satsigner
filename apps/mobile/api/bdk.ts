@@ -188,16 +188,16 @@ async function parseTransactionDetailsToTransaction(
   const { transaction } = transactionDetails
 
   let size = 0
-  let vout = [] as any
+  const vout: Transaction['vout'] = []
 
-  if (transaction !== undefined && transaction !== null) {
+  if (transaction) {
     size = await transaction.size()
-    vout = await transaction.output()
-    for (const index in vout) {
-      const { value, script } = vout[index]
+    const outputs = await transaction.output()
+    for (const index in outputs) {
+      const { value, script } = outputs[index]
       const addressObj = await new Address().fromScript(script, network)
       const address = await addressObj.asString()
-      vout[index] = { value, address }
+      vout.push({ value, address })
     }
   }
 
