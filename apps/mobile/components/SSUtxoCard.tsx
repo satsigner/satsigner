@@ -8,7 +8,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 
 import { SSIconEdit } from './icons'
 import SSIconButton from './SSIconButton'
@@ -60,7 +60,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
           size="md"
           style={{ textAlign: 'right', color: Colors.gray[100] }}
         >
-          {utxo.label || i18n.t('account.noLabel')}
+          {formatLabel(utxo.label || i18n.t('account.noLabel'))['label']}
         </SSText>
         <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
           <SSText color="muted">

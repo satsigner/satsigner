@@ -1,9 +1,7 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
-import { MempoolOracle } from '@/api/blockchain'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSSeparator from '@/components/SSSeparator'
@@ -14,34 +12,52 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate } from '@/utils/format'
+import { formatDate, formatLabel } from '@/utils/format'
 
 export default function UtxoDetails() {
-  const { id, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+  const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
-
-  const account = getCurrentAccount(id)!
+  const [account, getTags, setTags, getTx, getUtxo, setUtxoLabel] =
+    useAccountsStore((state) => [
+      state.accounts.find((account) => account.name === accountId),
+      state.getTags,
+      state.setTags,
+      state.getTx,
+      state.getUtxo,
+      state.setUtxoLabel
+    ])
 
   const placeholder = '-'
+  const [tags, setLocalTags] = useState(getTags())
+  const [selectedTags, setSelectedTags] = useState([] as string[])
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [txSize, setTxSize] = useState(placeholder)
-  const [txAddress, setTxAddress] = useState(placeholder)
-
-  const [url] = useBlockchainStore(useShallow((state) => [state.url]))
-
-  const oracle = new MempoolOracle(url)
+  const [utxoAddress, setUtxoAddress] = useState(placeholder)
+  const [label, setLabel] = useState('')
+  const [originalLabel, setOriginalLabel] = useState('')
 
   useEffect(() => {
     const fetchUtxoInfo = async () => {
-      const tx = await oracle.getTransaction(txid)
-      setTxSize(tx.size.toString())
-      setBlockHeight(tx.status.block_height.toString())
-      setBlockTime(formatDate(tx.status.block_time as unknown as Date))
-      setTxAddress(tx.vout[Number(vout)].scriptpubkey_address || '-')
+      const tx = await getTx(accountId, txid)
+      const utxo = await getUtxo(accountId, txid, Number(vout))
+
+      if (!tx) return
+      if (!utxo) return
+
+      const { blockHeight, size, timestamp } = tx
+      const { addressTo } = utxo
+
+      if (blockHeight) setBlockHeight(blockHeight.toString())
+      if (size) setTxSize(size.toString())
+      if (timestamp) setBlockTime(formatDate(timestamp))
+      if (addressTo) setUtxoAddress(addressTo)
+
+      const { label, tags } = formatLabel(utxo.label)
+      setOriginalLabel(utxo.label)
+      setLabel(label)
+      setSelectedTags(tags)
     }
 
     try {
@@ -52,18 +68,34 @@ export default function UtxoDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txid])
 
-  const tags = [
-    'kyc',
-    'kyc-free',
-    'aa1',
-    'aa2',
-    'aa3',
-    'aa4',
-    'friends',
-    'shopping',
-    'exchange'
-  ]
-  const [selectedTags, setSelectedTags] = useState([] as string[])
+  const saveLabel = () => {
+    let newLabel = label.trim()
+    setLabel(newLabel)
+
+    if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
+
+    if (newLabel !== originalLabel)
+      setUtxoLabel(accountId, txid, Number(vout), newLabel)
+
+    router.back()
+  }
+
+  const onAddTag = (tag: string) => {
+    if (!tags.includes(tag)) {
+      const allTags = [...tags, tag]
+      setTags(allTags)
+      setLocalTags(allTags)
+    }
+    const selected = [...selectedTags, tag]
+    setSelectedTags(selected)
+  }
+
+  const onDelTag = (tag: string) => {
+    const selected = selectedTags.filter((t) => t !== tag)
+    setSelectedTags(selected)
+  }
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <ScrollView>
@@ -97,6 +129,8 @@ export default function UtxoDetails() {
               textAlignVertical: 'top',
               padding: 10
             }}
+            value={label}
+            onChangeText={setLabel}
           />
           <SSText weight="bold" uppercase>
             {i18n.t('common.tags')}
@@ -104,7 +138,8 @@ export default function UtxoDetails() {
           <SSTagInput
             tags={tags}
             selectedTags={selectedTags}
-            onSelect={setSelectedTags}
+            onAdd={onAddTag}
+            onRemove={onDelTag}
           />
         </SSVStack>
         <SSVStack>
@@ -139,16 +174,16 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSHStack>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={txAddress}>
+          <SSClipboardCopy text={utxoAddress}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {i18n.t('common.address')}
               </SSText>
-              <SSText color="muted">{txAddress}</SSText>
+              <SSText color="muted">{utxoAddress}</SSText>
             </SSVStack>
           </SSClipboardCopy>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={txid}>
+          <SSClipboardCopy text={txid || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {i18n.t('common.transaction')}
@@ -157,7 +192,7 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSClipboardCopy>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={vout}>
+          <SSClipboardCopy text={vout || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {i18n.t('common.outputIndex')}
@@ -166,7 +201,11 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSClipboardCopy>
         </SSVStack>
-        <SSButton label={i18n.t('common.save')} variant="secondary" />
+        <SSButton
+          onPress={saveLabel}
+          label={i18n.t('common.save')}
+          variant="secondary"
+        />
       </SSVStack>
     </ScrollView>
   )

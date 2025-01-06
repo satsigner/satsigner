@@ -26,15 +26,22 @@ function formatTime(date: Date) {
 }
 
 function formatDate(date: Date | string | number) {
-  if (typeof date === 'string') {
-    date = new Date(date)
-  }
+  const dateObj =
+    typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  }).format(date)
+  }).format(dateObj)
 }
 
-export { formatAddress, formatDate, formatNumber, formatTime }
+function formatLabel(rawLabel: string) {
+  if (!rawLabel.match(/tags:.*$/)) return { label: rawLabel, tags: [] }
+
+  const tags = rawLabel.replace(/^.*tags:/, '').split(',')
+  const label = rawLabel.replace(/ tags:.*$/, '')
+  return { label, tags }
+}
+
+export { formatAddress, formatDate, formatLabel, formatNumber, formatTime }

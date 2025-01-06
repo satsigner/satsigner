@@ -1,6 +1,7 @@
 import {
   formatAddress,
   formatDate,
+  formatLabel,
   formatNumber,
   formatTime
 } from '@/utils/format'
@@ -46,6 +47,20 @@ describe('format utils', () => {
 
     it('should work with number date', () => {
       expect(formatDate(1711639918000)).toBe('Mar 28, 2024')
+    })
+  })
+
+  describe('formatLabel', () => {
+    it('should return label with no tags', () => {
+      const result = formatLabel('Test label')
+      expect(result.label).toBe('Test label')
+      expect(result.tags).toHaveLength(0)
+    })
+
+    it('should return label with tags', () => {
+      const result = formatLabel('Test label tags:kyc,satsigner')
+      expect(result.label).toBe('Test label')
+      expect(result.tags).toEqual(['kyc', 'satsigner'])
     })
   })
 })
