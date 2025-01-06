@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
@@ -42,15 +42,20 @@ export default function UtxoDetails() {
     const fetchUtxoInfo = async () => {
       const tx = await getTx(accountId, txid)
       const utxo = await getUtxo(accountId, txid, Number(vout))
-      if (tx) {
-        if (tx.blockHeight) setBlockHeight(tx.blockHeight.toString())
-        if (tx.size) setTxSize(tx.size.toString())
-        if (tx.timestamp) setBlockTime(formatDate(tx.timestamp))
-      }
-      if (utxo.addressTo) setUtxoAddress(utxo.addressTo)
 
-      setOriginalLabel(utxo.label)
+      if (!tx) return
+      if (!utxo) return
+
+      const { blockHeight, size, timestamp } = tx
+      const { addressTo } = utxo
+
+      if (blockHeight) setBlockHeight(blockHeight.toString())
+      if (size) setTxSize(size.toString())
+      if (timestamp) setBlockTime(formatDate(timestamp))
+      if (addressTo) setUtxoAddress(addressTo)
+
       const { label, tags } = formatLabel(utxo.label)
+      setOriginalLabel(utxo.label)
       setLabel(label)
       setSelectedTags(tags)
     }
@@ -66,12 +71,12 @@ export default function UtxoDetails() {
   const saveLabel = () => {
     let newLabel = label.trim()
     setLabel(newLabel)
-    if (selectedTags.length > 0) {
-      newLabel += ' tags:' + selectedTags.join(',')
-    }
-    if (newLabel !== originalLabel) {
+
+    if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
+
+    if (newLabel !== originalLabel)
       setUtxoLabel(accountId, txid, Number(vout), newLabel)
-    }
+
     router.back()
   }
 
@@ -89,6 +94,9 @@ export default function UtxoDetails() {
     const selected = selectedTags.filter((t) => t !== tag)
     setSelectedTags(selected)
   }
+
+  if (!account) return
+  ;<Redirect href="/" />
 
   return (
     <ScrollView>
@@ -176,7 +184,7 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSClipboardCopy>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={txid}>
+          <SSClipboardCopy text={txid || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {i18n.t('common.transaction')}
@@ -185,7 +193,7 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSClipboardCopy>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={vout}>
+          <SSClipboardCopy text={vout || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {i18n.t('common.outputIndex')}

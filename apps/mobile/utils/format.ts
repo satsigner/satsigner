@@ -26,26 +26,21 @@ function formatTime(date: Date) {
 }
 
 function formatDate(date: Date | string | number) {
-  if (typeof date === 'string') {
-    date = new Date(date)
-  }
+  const dateObj =
+    typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  }).format(date)
+  }).format(dateObj)
 }
 
-function formatLabel(label: string) {
-  if (!label.match(/tags:.*$/)) {
-    return {
-      label,
-      tags: []
-    }
-  }
-  const tags = label.replace(/^.*tags:/, '').split(',')
-  label = label.replace(/ tags:.*$/, '')
+function formatLabel(rawLabel: string) {
+  if (!rawLabel.match(/tags:.*$/)) return { label: rawLabel, tags: [] }
+
+  const tags = rawLabel.replace(/^.*tags:/, '').split(',')
+  const label = rawLabel.replace(/ tags:.*$/, '')
   return { label, tags }
 }
 

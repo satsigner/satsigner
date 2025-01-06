@@ -80,10 +80,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         const oldUtxos = account.utxos
-        const utxo2label: { [key: string]: string } = {}
+        const utxoLabelsDictionary: { [key: string]: string } = {}
         oldUtxos.forEach((utxo) => {
           const utxoRef = getUtxoOutpoint(utxo)
-          utxo2label[utxoRef] = utxo.label
+          utxoLabelsDictionary[utxoRef] = utxo.label
         })
 
         const { transactions, utxos, summary } = await getWalletData(
@@ -93,7 +93,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         for (const index in utxos) {
           const utxoRef = getUtxoOutpoint(utxos[index])
-          utxos[index].label = utxo2label[utxoRef]
+          utxos[index].label = utxoLabelsDictionary[utxoRef]
         }
 
         return { ...account, transactions, utxos, summary }
@@ -127,10 +127,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       getTx: async (accountName: string, txid: string) => {
         const account = get().getCurrentAccount(accountName) as Account
 
-        let transaction = account.transactions.find((tx) => tx.id === txid)
+        const transaction = account.transactions.find((tx) => tx.id === txid)
 
         if (transaction) {
-          return transaction as Transaction
+          return transaction
         }
 
         // TODO: replace MempoolOracle with BDK for enhanced privacy
@@ -138,7 +138,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const oracle = new MempoolOracle(url)
         const data = await oracle.getTransaction(txid)
 
-        transaction = {
+        const newTransaction: Transaction = {
           id: data.txid,
           type: 'receive', // TODO: how to figure it out?
           label: '',
@@ -152,15 +152,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           }))
         }
 
-        account.transactions.push(transaction)
+        account.transactions.push(newTransaction)
         get().updateAccount(account)
 
-        return transaction
+        return newTransaction
       },
       getUtxo: async (accountName: string, txid: string, vout: number) => {
         const account = get().getCurrentAccount(accountName) as Account
 
-        let utxo = account.utxos.find((u) => {
+        const utxo = account.utxos.find((u) => {
           return u.txid === txid && u.vout === vout
         })
 
@@ -170,7 +170,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         const tx = await get().getTx(accountName, txid)
 
-        utxo = {
+        const newUtxo: Utxo = {
           txid,
           vout,
           label: '',
@@ -180,10 +180,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           keychain: 'external' // TODO: is it right?
         }
 
-        account.utxos.push(utxo)
+        account.utxos.push(newUtxo)
         get().updateAccount(account)
 
-        return utxo
+        return newUtxo
       },
       setUtxoLabel: async (accountName, txid, vout, label) => {
         const account = get().getCurrentAccount(accountName) as Account
