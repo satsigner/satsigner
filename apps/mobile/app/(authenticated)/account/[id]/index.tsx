@@ -162,19 +162,14 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [
-    getCurrentAccount,
-    loadWalletFromDescriptor,
-    syncWallet,
-    updateAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.getCurrentAccount,
-      state.loadWalletFromDescriptor,
-      state.syncWallet,
-      state.updateAccount
-    ])
-  )
+  const [loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -185,7 +180,9 @@ export default function AccountView() {
     (state) => state.clearTransaction
   )
 
-  const [account, setAccount] = useState(getCurrentAccount(id)!) // Make use of non-null assertion operator for now
+  const account = useAccountsStore((state) => {
+    return state.accounts.find((account) => account.name === id)
+  })
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
@@ -283,7 +280,6 @@ export default function AccountView() {
     )
 
     const syncedAccount = await syncWallet(wallet, account)
-    setAccount(syncedAccount)
     await updateAccount(syncedAccount)
   }
 
