@@ -16,13 +16,13 @@ import { PageRoute } from '@/types/navigation/pageParams'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
-  const [firstTime, requiresAuth, lockTriggered, setLastVisitedPage] =
+  const [firstTime, requiresAuth, lockTriggered, markPageVisited] =
     useAuthStore(
       useShallow((state) => [
         state.firstTime,
         state.requiresAuth,
         state.lockTriggered,
-        state.setLastVisitedPage
+        state.markPageVisited
       ])
     )
 
@@ -38,7 +38,7 @@ export default function AuthenticatedLayout() {
   if (routeName !== '' && routeName !== 'index') {
     delete routeParams['params']
     delete routeParams['screen']
-    setLastVisitedPage({
+    markPageVisited({
       path: routeName,
       params: routeParams
     } as PageRoute)
