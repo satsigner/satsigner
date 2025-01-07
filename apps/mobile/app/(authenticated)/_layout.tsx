@@ -12,7 +12,7 @@ import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import { PageRoute } from '@/types/navigation/page'
+import type { PageRoute } from '@/types/navigation/page'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
@@ -30,17 +30,19 @@ export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
 
   if (firstTime) return <Redirect href="/setPin" />
-  if (requiresAuth && lockTriggered) {
-    return <Redirect href="/unlock" />
-  }
+  if (requiresAuth && lockTriggered) return <Redirect href="/unlock" />
 
   // Do not push index route
   if (routeName !== '' && routeName !== 'index') {
-    delete routeParams['params']
-    delete routeParams['screen']
+    const {
+      params: _paramsUnused,
+      screen: _screenUnused,
+      ...filteredRouteParams
+    } = routeParams
+
     markPageVisited({
       path: routeName,
-      params: routeParams
+      params: filteredRouteParams
     } as PageRoute)
   }
 
