@@ -13,6 +13,7 @@ import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+import { SSIconInfo } from './icons'
 
 type SSUtxoCardProps = {
   utxo: Utxo
@@ -36,28 +37,36 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
     >
       <SSHStack
         justifyBetween
-        style={{ paddingTop: 8, flex: 1 }}
+        style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
       >
-        <SSVStack gap="sm">
-          <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}> 
-            <SSText size="3xl">{formatNumber(utxo.value)}</SSText>
+        <SSVStack gap="none" style={{}}>
+          <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+            <SSText size="3xl" style={{ lineHeight: 30 }}>
+              {formatNumber(utxo.value)}
+            </SSText>
             <SSText color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}
             </SSText>
           </SSHStack>
-          <SSText style={{ color: Colors.gray[400] }}>
-            {formatNumber(satsToFiat(utxo.value), 2)} {fiatCurrency}
-          </SSText>
+          <SSHStack>
+            <SSText>
+              {formatNumber(satsToFiat(utxo.value), 2)}
+            </SSText>
+            <SSText style={{ color: Colors.gray[400] }}>
+              {fiatCurrency}
+            </SSText>
+          </SSHStack>
           <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
             {i18n.t('common.memo')} {': '}
             {formatLabel(utxo.label || i18n.t('account.noLabel'))['label']}
           </SSText>
         </SSVStack>
-        <SSVStack gap="sm">
+        <SSVStack gap="none">
           <SSHStack>
             <SSText>
               {utxo.addressTo && formatAddress(utxo.addressTo || '')}
             </SSText>
+            <SSIconInfo height={16} width={16} />
           </SSHStack>
           <SSText color="muted">
             {utxo.timestamp && (
