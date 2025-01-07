@@ -36,15 +36,10 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
     >
       <SSHStack
         justifyBetween
-        style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
+        style={{ paddingTop: 8, flex: 1 }}
       >
-        <SSVStack gap="xs">
-          <SSText color="muted">
-            {utxo.timestamp && (
-              <SSTimeAgoText date={new Date(utxo.timestamp)} />
-            )}
-          </SSText>
-          <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+        <SSVStack gap="sm">
+          <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}> 
             <SSText size="3xl">{formatNumber(utxo.value)}</SSText>
             <SSText color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}
@@ -53,22 +48,22 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
           <SSText style={{ color: Colors.gray[400] }}>
             {formatNumber(satsToFiat(utxo.value), 2)} {fiatCurrency}
           </SSText>
-        </SSVStack>
-        <SSVStack justifyBetween>
-          <SSText
-            size="md"
-            style={{ textAlign: 'right', color: Colors.gray[100] }}
-          >
+          <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
+            {i18n.t('common.memo')} {': '}
             {formatLabel(utxo.label || i18n.t('account.noLabel'))['label']}
           </SSText>
-          <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
-            <SSText color="muted">
-              {utxo.addressTo && i18n.t('common.address').toLowerCase()}
-            </SSText>
+        </SSVStack>
+        <SSVStack gap="sm">
+          <SSHStack>
             <SSText>
               {utxo.addressTo && formatAddress(utxo.addressTo || '')}
             </SSText>
           </SSHStack>
+          <SSText color="muted">
+            {utxo.timestamp && (
+              <SSTimeAgoText date={new Date(utxo.timestamp)} />
+            )}
+          </SSText>
         </SSVStack>
       </SSHStack>
     </TouchableOpacity>
