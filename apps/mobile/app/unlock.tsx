@@ -57,7 +57,6 @@ export default function Unlock() {
       for (const page of pages) {
         router.push(page as any)
       }
-
     } else {
       shake()
       clearPin()

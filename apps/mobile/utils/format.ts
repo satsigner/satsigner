@@ -1,4 +1,4 @@
-import { PageParams } from '@/types/navigation/pageParams'
+import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
   if (address.length <= 16) return address

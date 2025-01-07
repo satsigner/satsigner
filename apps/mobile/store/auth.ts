@@ -7,7 +7,7 @@ import {
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
-import { PageRoute } from '@/types/navigation/pageParams'
+import { PageRoute } from '@/types/navigation/page'
 import { formatPageUrl } from '@/utils/format'
 
 const PIN_KEY = 'satsigner_pin'
@@ -19,7 +19,7 @@ type AuthState = {
   lockDeltaTime: number
   pinTries: number
   pinMaxTries: number
-  pageHistory: PageRoute[]
+  pageHistory: string[]
 }
 
 type AuthAction = {
@@ -79,16 +79,25 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       markPageVisited: (page: PageRoute) => {
         const pages = get().pageHistory
-        pages.push(page)
+        const { path, params } = page
+        const actualPage = formatPageUrl(path, params)
+        const lastPage = () => pages[pages.length - 1]
+
+        // pop-out page if not a sub-page
+        if (pages.length > 0 && !actualPage.startsWith(lastPage())) {
+          pages.pop()
+        }
+
+        // when navigating backwards, pop-out page to prevent duplicate
+        if (pages.length > 0 && actualPage === lastPage()) {
+          pages.pop()
+        }
+
+        pages.push(actualPage)
         set({ pageHistory: pages })
       },
       getPagesHistory: () => {
-        const pageHistory = ['/']
-        for (const page of get().pageHistory) {
-          const { path, params } = page
-          pageHistory.push(formatPageUrl(path, params))
-        }
-        return pageHistory
+        return ['/', ...get().pageHistory]
       },
       clearPageHistory() {
         set({ pageHistory: [] })
