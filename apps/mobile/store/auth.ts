@@ -7,6 +7,8 @@ import {
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
+import { PageRoute } from '@/types/navigation/page'
+import { formatPageUrl } from '@/utils/format'
 
 const PIN_KEY = 'satsigner_pin'
 
@@ -17,6 +19,7 @@ type AuthState = {
   lockDeltaTime: number
   pinTries: number
   pinMaxTries: number
+  pageHistory: string[]
 }
 
 type AuthAction = {
@@ -29,6 +32,9 @@ type AuthAction = {
   resetPinTries: () => void
   setPinMaxTries: (maxTries: number) => void
   setLockDeltaTime: (deltaTime: number) => void
+  markPageVisited: (page: PageRoute) => void
+  getPagesHistory: () => string[]
+  clearPageHistory: () => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -40,6 +46,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       lockDeltaTime: DEFAULT_LOCK_DELTA_TIME_SECONDS,
       pinTries: 0,
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
+      pageHistory: [],
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
       },
@@ -69,6 +76,31 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       setLockDeltaTime: (deltaTime) => {
         set({ lockDeltaTime: deltaTime })
+      },
+      markPageVisited: (page: PageRoute) => {
+        const pages = get().pageHistory
+        const { path, params } = page
+        const actualPage = formatPageUrl(path, params)
+        const lastPage = () => pages[pages.length - 1]
+
+        // pop-out page if not a sub-page
+        if (pages.length > 0 && !actualPage.startsWith(lastPage())) {
+          pages.pop()
+        }
+
+        // when navigating backwards, pop-out page to prevent duplicate
+        if (pages.length > 0 && actualPage === lastPage()) {
+          pages.pop()
+        }
+
+        pages.push(actualPage)
+        set({ pageHistory: pages })
+      },
+      getPagesHistory: () => {
+        return ['/', ...get().pageHistory]
+      },
+      clearPageHistory() {
+        set({ pageHistory: [] })
       }
     }),
     {

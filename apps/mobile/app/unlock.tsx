@@ -21,7 +21,9 @@ export default function Unlock() {
     resetPinTries,
     incrementPinTries,
     setFirstTime,
-    setRequiresAuth
+    setRequiresAuth,
+    getPagesHistory,
+    clearPageHistory
   ] = useAuthStore(
     useShallow((state) => [
       state.validatePin,
@@ -29,7 +31,9 @@ export default function Unlock() {
       state.resetPinTries,
       state.incrementPinTries,
       state.setFirstTime,
-      state.setRequiresAuth
+      state.setRequiresAuth,
+      state.getPagesHistory,
+      state.clearPageHistory
     ])
   )
   const { shake, shakeStyle } = useAnimatedShake()
@@ -46,7 +50,13 @@ export default function Unlock() {
     if (isPinValid) {
       setLockTriggered(false)
       resetPinTries()
-      router.replace('/')
+
+      // this pushes the previous page history (before screen was unlocked)
+      const pages = getPagesHistory()
+      clearPageHistory()
+      for (const page of pages) {
+        router.push(page as any)
+      }
     } else {
       shake()
       clearPin()

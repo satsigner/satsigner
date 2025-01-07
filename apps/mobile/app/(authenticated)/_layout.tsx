@@ -1,5 +1,9 @@
+import {
+  getFocusedRouteNameFromRoute,
+  useRoute
+} from '@react-navigation/native'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Redirect, Stack, useGlobalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -8,19 +12,39 @@ import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
+import type { PageRoute } from '@/types/navigation/page'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
-  const [firstTime, requiresAuth, lockTriggered] = useAuthStore(
-    useShallow((state) => [
-      state.firstTime,
-      state.requiresAuth,
-      state.lockTriggered
-    ])
-  )
+  const [firstTime, requiresAuth, lockTriggered, markPageVisited] =
+    useAuthStore(
+      useShallow((state) => [
+        state.firstTime,
+        state.requiresAuth,
+        state.lockTriggered,
+        state.markPageVisited
+      ])
+    )
+
+  const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
+  const routeParams = useGlobalSearchParams()
 
   if (firstTime) return <Redirect href="/setPin" />
   if (requiresAuth && lockTriggered) return <Redirect href="/unlock" />
+
+  // Do not push index route
+  if (routeName !== '' && routeName !== 'index') {
+    const {
+      params: _paramsUnused,
+      screen: _screenUnused,
+      ...filteredRouteParams
+    } = routeParams
+
+    markPageVisited({
+      path: routeName,
+      params: filteredRouteParams
+    } as PageRoute)
+  }
 
   return (
     <View style={styles.container}>
