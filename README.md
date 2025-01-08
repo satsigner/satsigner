@@ -101,6 +101,10 @@ UTXO consumption
 - Node.js (minimum version 18)
 - [Yarn](https://yarnpkg.com/getting-started/install)
 
+```bash
+npm install --global yarn
+```
+
 ### Install dependencies
 
 Install the dependencies at the root of the repository
