@@ -41,7 +41,7 @@ type UtxoListBubble = Partial<Utxo> & {
   children: UtxoListBubble[]
 }
 
-export function SSUtxoBubbles({
+export default function SSUtxoBubbles({
   utxos,
   canvasSize,
   inputs,

@@ -7,7 +7,12 @@ import { i18n } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
-import { formatAddress, formatDate, formatLabel, formatNumber } from '@/utils/format'
+import {
+  formatAddress,
+  formatDate,
+  formatLabel,
+  formatNumber
+} from '@/utils/format'
 
 import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'

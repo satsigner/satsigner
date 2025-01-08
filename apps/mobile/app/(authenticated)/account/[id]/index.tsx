@@ -26,7 +26,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import { SSUtxoBubbles } from '@/components/SSUtxoBubbles'
+import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -124,8 +124,10 @@ function SpendableOutputs({
 }: SpendableOutputsProps) {
   const router = useRouter()
   const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = height / 2
-  const GRAPH_WIDTH = width
+  const halfHeight = height / 2
+  const horizontalPadding = 48
+  const GRAPH_HEIGHT = halfHeight
+  const GRAPH_WIDTH = width - horizontalPadding
   const [view, setView] = useState('list')
 
   return (
