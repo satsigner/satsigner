@@ -12,7 +12,12 @@ import {
 import { SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCamera, SSIconRefresh } from '@/components/icons'
+import {
+  SSIconBubbles,
+  SSIconCamera,
+  SSIconList,
+  SSIconRefresh
+} from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSIconButton from '@/components/SSIconButton'
@@ -115,6 +120,8 @@ function SpendableOutputs({
   refreshing,
   sortUtxos
 }: SpendableOutputsProps) {
+  const [view, setView] = useState('list')
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
@@ -122,9 +129,21 @@ function SpendableOutputs({
           <SSIconRefresh height={22} width={18} />
         </SSIconButton>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
-        <SSSortDirectionToggle
-          onDirectionChanged={(direction) => setSortDirection(direction)}
-        />
+        <SSHStack>
+          {view === 'list' && (
+            <SSIconButton onPress={() => setView('bubbles')}>
+              <SSIconBubbles height={16} width={16} />
+            </SSIconButton>
+          )}
+          {view === 'bubbles' && (
+            <SSIconButton onPress={() => setView('list')}>
+              <SSIconList height={16} width={16} />
+            </SSIconButton>
+          )}
+          <SSSortDirectionToggle
+            onDirectionChanged={(direction) => setSortDirection(direction)}
+          />
+        </SSHStack>
       </SSHStack>
       <ScrollView
         refreshControl={
@@ -136,14 +155,16 @@ function SpendableOutputs({
           />
         }
       >
-        <SSVStack style={{ marginBottom: 16 }}>
-          {sortUtxos([...account.utxos]).map((utxo) => (
-            <SSVStack gap="xs" key={utxo.txid}>
-              <SSSeparator color="grayDark" />
-              <SSUtxoCard utxo={utxo} />
-            </SSVStack>
-          ))}
-        </SSVStack>
+        {view === 'list' && (
+          <SSVStack style={{ marginBottom: 16 }}>
+            {sortUtxos([...account.utxos]).map((utxo) => (
+              <SSVStack gap="xs" key={utxo.txid}>
+                <SSSeparator color="grayDark" />
+                <SSUtxoCard utxo={utxo} />
+              </SSVStack>
+            ))}
+          </SSVStack>
+        )}
       </ScrollView>
     </SSMainLayout>
   )

@@ -11,9 +11,9 @@ import { type Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 
+import { SSIconInfo } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
-import { SSIconInfo } from './icons'
 
 type SSUtxoCardProps = {
   utxo: Utxo
@@ -49,12 +49,8 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
             </SSText>
           </SSHStack>
           <SSHStack>
-            <SSText>
-              {formatNumber(satsToFiat(utxo.value), 2)}
-            </SSText>
-            <SSText style={{ color: Colors.gray[400] }}>
-              {fiatCurrency}
-            </SSText>
+            <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
+            <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
           </SSHStack>
           <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
             {i18n.t('common.memo')} {': '}
