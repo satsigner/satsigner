@@ -1,5 +1,6 @@
 import { Descriptor, Wallet } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
+import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -36,9 +37,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return get().accounts
       },
       addAccount: (account) => {
-        set((state) => ({
-          accounts: [...state.accounts, account]
-        }))
+        set(
+          produce((state: AccountsState) => {
+            state.accounts.push(account)
+          })
+        )
       },
       hasAccountWithName: (name) =>
         get().accounts.find((account) => account.name === name) !== undefined,
@@ -72,20 +75,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return { ...account, transactions, utxos, summary }
       },
       updateAccount: (account) => {
-        set((state) => {
-          const accountToUpdateIndex = state.accounts.findIndex(
-            (_account) => _account.name === account.name
-          )
-          if (accountToUpdateIndex !== -1) {
-            state.accounts[accountToUpdateIndex] = account
-            return {
-              accounts: [...state.accounts]
-            }
-          }
-          return {
-            accounts: [...state.accounts]
-          }
-        })
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (_account) => _account.name === account.name
+            )
+            if (index !== -1) state.accounts[index] = account
+          })
+        )
       },
       deleteAccounts: () => {
         set(() => ({ accounts: [] }))

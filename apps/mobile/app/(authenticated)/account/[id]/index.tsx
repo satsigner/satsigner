@@ -76,7 +76,7 @@ function TotalTransactions({
         }
       >
         <SSVStack style={{ marginBottom: 16 }}>
-          {sortTransactions(account.transactions).map((transaction) => (
+          {sortTransactions([...account.transactions]).map((transaction) => (
             <SSVStack gap="xs" key={transaction.id}>
               <SSSeparator color="grayDark" />
               <SSTransactionCard
