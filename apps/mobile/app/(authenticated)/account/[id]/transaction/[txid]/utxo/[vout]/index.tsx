@@ -54,8 +54,9 @@ export default function UtxoDetails() {
       if (timestamp) setBlockTime(formatDate(timestamp))
       if (addressTo) setUtxoAddress(addressTo)
 
-      const { label, tags } = formatLabel(utxo.label)
-      setOriginalLabel(utxo.label)
+      const rawLabel = utxo.label || ''
+      const { label, tags } = formatLabel(rawLabel)
+      setOriginalLabel(rawLabel)
       setLabel(label)
       setSelectedTags(tags)
     }
