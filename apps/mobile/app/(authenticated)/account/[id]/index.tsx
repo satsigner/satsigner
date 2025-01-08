@@ -544,6 +544,7 @@ export default function AccountView() {
         </SSVStack>
       </SSBackgroundGradient>
       <TabView
+        swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}
         renderScene={renderScene}
         renderTabBar={renderTab}
