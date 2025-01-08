@@ -44,6 +44,7 @@ export function SSUtxoBubbles({
   inputs,
   onPress
 }: SSUtxoBubblesProps) {
+  console.log(utxos)
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2

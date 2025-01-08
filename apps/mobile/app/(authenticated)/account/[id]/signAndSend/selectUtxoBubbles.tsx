@@ -48,6 +48,8 @@ function SelectUtxoBubbles() {
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height - topHeaderHeight + 20
+  const GRAPH_WIDTH = width
 
   const [customAmountModalVisible, setCustomAmountModalVisible] = useState(true)
 
@@ -64,9 +66,6 @@ function SelectUtxoBubbles() {
     [account.utxos, utxosValue]
   )
   const utxosSelectedValue = utxosValue(getInputs())
-
-  const GRAPH_HEIGHT = height - topHeaderHeight + 20
-  const GRAPH_WIDTH = width
 
   const handleOnToggleSelected = useCallback(
     (utxo: Utxo) => {

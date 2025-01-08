@@ -1,3 +1,4 @@
+import { useHeaderHeight } from '@react-navigation/elements'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -42,6 +43,9 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
+import { SSUtxoBubbles } from '@/components/SSUtxoBubbles'
+import { router } from 'expo-router'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 type TotalTransactionsProps = {
   account: Account
@@ -120,6 +124,10 @@ function SpendableOutputs({
   refreshing,
   sortUtxos
 }: SpendableOutputsProps) {
+  const topHeaderHeight = useHeaderHeight()
+  const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height - topHeaderHeight + 20
+  const GRAPH_WIDTH = width
   const [view, setView] = useState('list')
 
   return (
@@ -155,6 +163,7 @@ function SpendableOutputs({
           />
         }
       >
+        <GestureHandlerRootView style={{ flex: 1 }}>
         {view === 'list' && (
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
@@ -165,6 +174,19 @@ function SpendableOutputs({
             ))}
           </SSVStack>
         )}
+        {view === 'bubbles' && (
+          <SSUtxoBubbles
+            utxos={[...account.utxos]}
+            canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+            inputs={[]}
+            onPress={({ txid, vout }: Utxo) =>
+              router.navigate(
+                `/account/${account.name}/transactions/${txid}/utxo/${vout}`
+              )
+            }
+          />
+        )}
+        </GestureHandlerRootView>
       </ScrollView>
     </SSMainLayout>
   )
