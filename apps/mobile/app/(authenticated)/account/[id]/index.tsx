@@ -1,4 +1,3 @@
-import { useHeaderHeight } from '@react-navigation/elements'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -10,6 +9,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -26,6 +26,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
+import { SSUtxoBubbles } from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -43,9 +44,6 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
-import { SSUtxoBubbles } from '@/components/SSUtxoBubbles'
-import { router } from 'expo-router'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 type TotalTransactionsProps = {
   account: Account
@@ -124,9 +122,9 @@ function SpendableOutputs({
   refreshing,
   sortUtxos
 }: SpendableOutputsProps) {
-  const topHeaderHeight = useHeaderHeight()
+  const router = useRouter()
   const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = height - topHeaderHeight + 20
+  const GRAPH_HEIGHT = height / 2
   const GRAPH_WIDTH = width
   const [view, setView] = useState('list')
 
@@ -153,18 +151,17 @@ function SpendableOutputs({
           />
         </SSHStack>
       </SSHStack>
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleOnRefresh}
-            colors={[Colors.gray[900]]}
-            progressBackgroundColor={Colors.white}
-          />
-        }
-      >
-        <GestureHandlerRootView style={{ flex: 1 }}>
-        {view === 'list' && (
+      {view === 'list' && (
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleOnRefresh}
+              colors={[Colors.gray[900]]}
+              progressBackgroundColor={Colors.white}
+            />
+          }
+        >
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
               <SSVStack gap="xs" key={utxo.txid}>
@@ -173,7 +170,9 @@ function SpendableOutputs({
               </SSVStack>
             ))}
           </SSVStack>
-        )}
+        </ScrollView>
+      )}
+      <GestureHandlerRootView style={{ flex: 1 }}>
         {view === 'bubbles' && (
           <SSUtxoBubbles
             utxos={[...account.utxos]}
@@ -181,13 +180,12 @@ function SpendableOutputs({
             inputs={[]}
             onPress={({ txid, vout }: Utxo) =>
               router.navigate(
-                `/account/${account.name}/transactions/${txid}/utxo/${vout}`
+                `/account/${account.name}/transaction/${txid}/utxo/${vout}`
               )
             }
           />
         )}
-        </GestureHandlerRootView>
-      </ScrollView>
+      </GestureHandlerRootView>
     </SSMainLayout>
   )
 }

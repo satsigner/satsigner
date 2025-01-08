@@ -1,11 +1,13 @@
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
 import { hierarchy, HierarchyCircularNode, pack } from 'd3'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   GestureResponderEvent,
   Platform,
+  StyleProp,
   TouchableOpacity,
-  View
+  View,
+  ViewStyle
 } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
@@ -25,6 +27,7 @@ type SSUtxoBubblesProps = {
   utxos: Utxo[]
   inputs: Utxo[]
   onPress: (utxo: Utxo) => void
+  style?: StyleProp<ViewStyle>
 }
 
 type UtxoListItem = Utxo & {
@@ -42,9 +45,9 @@ export function SSUtxoBubbles({
   utxos,
   canvasSize,
   inputs,
-  onPress
+  onPress,
+  style = {}
 }: SSUtxoBubblesProps) {
-  console.log(utxos)
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2
@@ -129,7 +132,7 @@ export function SSUtxoBubbles({
   }
 
   return (
-    <View style={{ position: 'absolute', top: 40 }}>
+    <View style={style}>
       <Canvas style={canvasSize} onLayout={onCanvasLayout}>
         <Group transform={transform} origin={{ x: centerX, y: centerY }}>
           {utxoPack.map((packedUtxo) => {
@@ -177,7 +180,6 @@ export function SSUtxoBubbles({
             onLayout={onCanvasLayout}
           >
             {utxoPack.map((packedUtxo) => {
-
               const style = {} as {
                 [key: string]: number
               }

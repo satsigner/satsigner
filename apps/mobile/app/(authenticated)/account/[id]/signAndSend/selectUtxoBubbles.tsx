@@ -170,6 +170,7 @@ function SelectUtxoBubbles() {
         canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
         inputs={getInputs()}
         onPress={handleOnToggleSelected}
+        style={{ position: 'absolute', top: 40 }}
       />
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
