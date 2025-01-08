@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { TextInput } from 'react-native-gesture-handler'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -78,34 +78,28 @@ export default function SSTagInput({
               .filter((t) => !selectedTags.includes(t) && search(t, text))
               .map((tag: string) => (
                 <SSButton
-                  label={tag}
                   key={tag}
-                  style={{
-                    borderRadius: 5,
-                    paddingHorizontal: 8,
-                    backgroundColor: Colors.gray[800],
-                    height: 'auto',
-                    width: 'auto'
-                  }}
+                  label={tag}
+                  style={styles['button']}
                   onPress={() => addTag(tag)}
+                  uppercase={false}
                 />
               ))}
+            {text.length > 1 && !tags.includes(text) && (
+              <SSButton
+                label={`Create tag "${text}"`}
+                style={styles['button']}
+                onPress={() => addTag(text)}
+                uppercase={false}
+              />
+            )}
           </SSHStack>
         </ScrollView>
       )}
       <SSHStack style={{ flexWrap: 'wrap' }}>
         {selectedTags.map((tag: string) => (
-          <SSHStack
-            key={tag}
-            style={{
-              backgroundColor: Colors.gray[850],
-              borderRadius: 3,
-              borderStyle: 'solid',
-              padding: 5
-            }}
-            gap="sm"
-          >
-            <SSText uppercase>{tag}</SSText>
+          <SSHStack key={tag} style={styles.tag} gap="sm">
+            <SSText>{tag}</SSText>
             <SSIconButton onPress={() => removeTag(tag)}>
               <SSIconCircleX
                 height={20}
@@ -120,3 +114,19 @@ export default function SSTagInput({
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  tag: {
+    backgroundColor: Colors.gray[850],
+    borderRadius: 3,
+    borderStyle: 'solid',
+    padding: 5
+  },
+  button: {
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    backgroundColor: Colors.gray[800],
+    height: 'auto',
+    width: 'auto'
+  }
+})
