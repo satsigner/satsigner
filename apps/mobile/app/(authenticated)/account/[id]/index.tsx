@@ -124,11 +124,13 @@ function SpendableOutputs({
 }: SpendableOutputsProps) {
   const router = useRouter()
   const { width, height } = useWindowDimensions()
+
+  const [view, setView] = useState('list')
+
   const halfHeight = height / 2
   const horizontalPadding = 48
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width - horizontalPadding
-  const [view, setView] = useState('list')
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
