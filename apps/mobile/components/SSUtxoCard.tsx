@@ -33,7 +33,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
     <TouchableOpacity
       onPress={() =>
         router.navigate(`/account/${id}/transaction/${txid}/utxo/${vout}`)
-      }
+      } // TODO: Refactor to receive as prop
     >
       <SSHStack
         justifyBetween
