@@ -1,7 +1,7 @@
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useState } from 'react'
 import {
   RefreshControl,
@@ -240,6 +240,21 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (account) await refresh()
+      } catch (_err) {
+        //
+      }
+    })()
+
+    return () => {}
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!account) return <Redirect href="/" />
+
   const renderScene = ({
     route
   }: SceneRendererProps & { route: { key: string } }) => {
@@ -273,19 +288,6 @@ export default function AccountView() {
         return null
     }
   }
-
-  useEffect(() => {
-    ;(async () => {
-      try {
-        await refresh()
-      } catch (_err) {
-        //
-      }
-    })()
-
-    return () => {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   function sortTransactions(transactions: Transaction[]) {
     return transactions.sort((transaction1, transaction2) =>
