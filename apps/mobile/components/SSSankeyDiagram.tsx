@@ -10,7 +10,12 @@ import {
 import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
 import { sankey } from 'd3-sankey'
 import React, { useCallback } from 'react'
+import { Platform, View } from 'react-native'
+import { GestureDetector } from 'react-native-gesture-handler'
+import Animated from 'react-native-reanimated'
 
+import { useGestures } from '@/hooks/useGestures'
+import { useLayout } from '@/hooks/useLayout'
 import { gray } from '@/styles/colors'
 
 import { SSSankeyNode } from './SSSankeyNode'
@@ -46,7 +51,7 @@ interface SankeyProps {
 
 const LINK_MAX_WIDTH = 60
 const VERTICAL_OFFSET_NODE = 22
-const LINK_VERTICAL_GAP = 5 // Gap between links at target node
+const LINK_VERTICAL_GAP = 3 // Gap between links at target node
 
 const generateCustomLink = (
   points: LinkPoints,
@@ -105,11 +110,24 @@ function SSSankeyDiagram({
   sankeyLinks,
   inputCount
 }: SankeyProps) {
+  const { width: w, height: h, center, onCanvasLayout } = useLayout()
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    maxScale: 10,
+    minScale: 0.5,
+    shouldResetOnInteractionEnd: false
+  })
+
   const sankeyGenerator = sankey()
     .nodeWidth(78)
     .nodePadding(100)
     .extent([
-      [20, 160],
+      [0, 160],
       [1000 * 0.4, 1000 * (Math.max(2.4, inputCount) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
@@ -153,105 +171,123 @@ function SSSankeyDiagram({
   }
 
   return (
-    <Canvas
-      style={{
-        width: 2000,
-        height: 2000
-      }}
-    >
-      <Group>
-        {links.map((link, index) => {
-          const sourceNode = link.source as Node
-          const targetNode = link.target as Node
-          const isUnspent = targetNode.textInfo[0] === 'Unspent'
+    <View style={{ flex: 1 }}>
+      <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>
+        <Group transform={transform} origin={{ x: w / 2, y: h / 2 }}>
+          {links.map((link, index) => {
+            const sourceNode = link.source as Node
+            const targetNode = link.target as Node
+            const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
-          const points: LinkPoints = {
-            souceWidth:
-              sourceNode.type === 'block'
-                ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-                : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
-            targetWidth:
-              targetNode.type === 'block'
-                ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-                : getLinkWidth(targetNode, LINK_MAX_WIDTH),
-            x1:
-              sourceNode.type === 'block'
-                ? (sourceNode.x1 ?? 0) - (sankeyGenerator.nodeWidth() - 50) / 2
-                : sourceNode.x1 ?? 0,
-            y1: (link.source as Node).y1 ?? 0,
-            x2:
-              targetNode.type === 'block'
-                ? (targetNode.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
-                : targetNode.x0 ?? 0,
-            y2: (link.target as Node).y0 ?? 0
-          }
-          const path1 = generateCustomLink(points, index, links.length)
-
-          return (
-            <Group key={index}>
-              <Path
-                key={index}
-                path={path1}
-                style="fill"
-                color={gray[700]}
-                // Create a paint object for the gradient
-                paint={
-                  isUnspent
-                    ? (() => {
-                        const paint = Skia.Paint()
-                        paint.setShader(
-                          Skia.Shader.MakeLinearGradient(
-                            vec(points.x1, points.y1),
-                            vec(points.x2, points.y2),
-                            [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
-                            [0, 0.9],
-                            TileMode.Clamp
-                          )
-                        )
-                        return paint
-                      })()
-                    : undefined
-                }
-              />
-            </Group>
-          )
-        })}
-
-        {/* Draw nodes */}
-        {nodes.map((node, index) => {
-          const dataNode = node as Node
-
-          const blockRect = () => {
-            if (dataNode.type === 'block') {
-              return (
-                <Group>
-                  <Rect
-                    x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
-                    y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
-                    width={50}
-                    //TODO: to be calculated
-                    height={100}
-                    color="#FFFFFF"
-                  />
-                </Group>
-              )
+            const points: LinkPoints = {
+              souceWidth:
+                sourceNode.type === 'block'
+                  ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                  : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
+              targetWidth:
+                targetNode.type === 'block'
+                  ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                  : getLinkWidth(targetNode, LINK_MAX_WIDTH),
+              x1:
+                sourceNode.type === 'block'
+                  ? (sourceNode.x1 ?? 0) -
+                    (sankeyGenerator.nodeWidth() - 50) / 2
+                  : sourceNode.x1 ?? 0,
+              y1: (link.source as Node).y1 ?? 0,
+              x2:
+                targetNode.type === 'block'
+                  ? (targetNode.x0 ?? 0) +
+                    (sankeyGenerator.nodeWidth() - 50) / 2
+                  : targetNode.x0 ?? 0,
+              y2: (link.target as Node).y0 ?? 0
             }
-            return null
-          }
-          return (
-            <Group key={index}>
-              <SSSankeyNode
-                width={sankeyGenerator.nodeWidth()}
-                x={node.x0 ?? 0}
-                y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
-                textInfo={dataNode.textInfo}
-              />
-              {blockRect()}
-            </Group>
-          )
-        })}
-      </Group>
-    </Canvas>
+            const path1 = generateCustomLink(points, index, links.length)
+
+            return (
+              <Group key={index}>
+                <Path
+                  key={index}
+                  path={path1}
+                  style="fill"
+                  color={gray[700]}
+                  // Create a paint object for the gradient
+                  paint={
+                    isUnspent
+                      ? (() => {
+                          const paint = Skia.Paint()
+                          paint.setShader(
+                            Skia.Shader.MakeLinearGradient(
+                              vec(points.x1, points.y1),
+                              vec(points.x2, points.y2),
+                              [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
+                              [0, 0.9],
+                              TileMode.Clamp
+                            )
+                          )
+                          return paint
+                        })()
+                      : undefined
+                  }
+                />
+              </Group>
+            )
+          })}
+
+          {/* Draw nodes */}
+          {nodes.map((node, index) => {
+            const dataNode = node as Node
+
+            const blockRect = () => {
+              if (dataNode.type === 'block') {
+                return (
+                  <Group>
+                    <Rect
+                      x={
+                        (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
+                      }
+                      y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
+                      width={50}
+                      //TODO: to be calculated
+                      height={100}
+                      color="#FFFFFF"
+                    />
+                  </Group>
+                )
+              }
+              return null
+            }
+            return (
+              <Group key={index}>
+                <SSSankeyNode
+                  width={sankeyGenerator.nodeWidth()}
+                  x={node.x0 ?? 0}
+                  y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
+                  textInfo={dataNode.textInfo}
+                />
+                {blockRect()}
+              </Group>
+            )
+          })}
+        </Group>
+      </Canvas>
+      <GestureDetector gesture={gestures}>
+        <View
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0
+          }}
+        >
+          <Animated.View
+            style={[{ width: 2000, height: 2000 }, animatedStyle]}
+            onLayout={onCanvasLayout}
+          />
+        </View>
+      </GestureDetector>
+    </View>
   )
 }
 

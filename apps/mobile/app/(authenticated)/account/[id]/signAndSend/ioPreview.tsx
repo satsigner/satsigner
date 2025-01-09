@@ -2,12 +2,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Platform, useWindowDimensions, View } from 'react-native'
-import {
-  GestureDetector,
-  GestureHandlerRootView
-} from 'react-native-gesture-handler'
-import Animated from 'react-native-reanimated'
+import { View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles } from '@/components/icons'
@@ -19,7 +15,6 @@ import SSSankeyDiagram from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { useGestures } from '@/hooks/useGestures'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -80,26 +75,6 @@ export default function IOPreview() {
     addOutput({ to: outputAddress, amount: outputAmount, label: outputLabel })
     setAddOutputModalVisible(false)
   }
-
-  const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = height - 100
-  const GRAPH_WIDTH = width
-
-  const canvasSize = { width: GRAPH_WIDTH * 1.5, height: GRAPH_HEIGHT }
-  const sankeyWidth = canvasSize.width
-  const sankeyHeight = canvasSize.height - 200
-
-  const { gestures, animatedStyle } = useGestures({
-    width: sankeyWidth,
-    height: sankeyHeight,
-    center: { x: sankeyWidth / 2, y: sankeyHeight / 2 },
-    minScale: 0.5,
-    maxScale: 10,
-    isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
-    shouldResetOnInteractionEnd: false
-  })
 
   const sankeyNodes = useMemo(() => {
     if (inputs.size > 0) {
@@ -268,21 +243,21 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <View style={{ position: 'absolute', top: 100, left: 136 }}>
-        <GestureDetector gesture={gestures}>
+      <View style={{ position: 'absolute', top: 80 }}>
+        {/* <GestureDetector gesture={gestures}>
           <Animated.View
             style={[
               { width: sankeyWidth, height: sankeyHeight },
               animatedStyle
             ]}
-          >
-            <SSSankeyDiagram
-              sankeyNodes={sankeyNodes}
-              sankeyLinks={sankeyLinks}
-              inputCount={inputs.size ?? 0}
-            />
-          </Animated.View>
-        </GestureDetector>
+          > */}
+        <SSSankeyDiagram
+          sankeyNodes={sankeyNodes}
+          sankeyLinks={sankeyLinks}
+          inputCount={inputs.size ?? 0}
+        />
+        {/* </Animated.View>
+        </GestureDetector> */}
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
