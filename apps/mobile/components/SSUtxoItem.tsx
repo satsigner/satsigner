@@ -7,7 +7,12 @@ import { i18n } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
-import { formatAddress, formatDate, formatNumber } from '@/utils/format'
+import {
+  formatAddress,
+  formatDate,
+  formatLabel,
+  formatNumber
+} from '@/utils/format'
 
 import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
@@ -35,6 +40,8 @@ export default function SSUtxoItem({
         : { backgroundColor: Colors.gray[500] })
     })
   }, [selected])
+
+  const label = formatLabel(utxo.label || '').label
 
   return (
     <View>
@@ -69,9 +76,7 @@ export default function SSUtxoItem({
                 </SSText>
                 <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
-              <SSText>
-                {utxo.label && `${i18n.t('bitcoin.memo')}: ${utxo.label}`}
-              </SSText>
+              <SSText>{label && `${i18n.t('bitcoin.memo')}: ${label}`}</SSText>
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>

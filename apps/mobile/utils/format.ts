@@ -1,3 +1,5 @@
+import { type PageParams } from '@/types/navigation/page'
+
 function formatAddress(address: string, character: number = 8) {
   if (address.length <= 16) return address
 
@@ -26,15 +28,39 @@ function formatTime(date: Date) {
 }
 
 function formatDate(date: Date | string | number) {
-  if (typeof date === 'string') {
-    date = new Date(date)
-  }
+  const dateObj =
+    typeof date === 'string' || typeof date === 'number' ? new Date(date) : date
 
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
-  }).format(date)
+  }).format(dateObj)
 }
 
-export { formatAddress, formatDate, formatNumber, formatTime }
+function formatLabel(rawLabel: string) {
+  if (!rawLabel.match(/tags:.*$/)) return { label: rawLabel, tags: [] }
+
+  const tags = rawLabel.replace(/^.*tags:/, '').split(',')
+  const label = rawLabel.replace(/ tags:.*$/, '')
+  return { label, tags }
+}
+
+function formatPageUrl(path: string, params: PageParams) {
+  let url = '/' + (path || '')
+  for (const key in params) {
+    const value = '' + params[key]
+    url = url.replace(new RegExp('\\[' + key + '\\]'), value)
+  }
+  url = url.replace(/index$/, '')
+  return url
+}
+
+export {
+  formatAddress,
+  formatDate,
+  formatLabel,
+  formatNumber,
+  formatPageUrl,
+  formatTime
+}

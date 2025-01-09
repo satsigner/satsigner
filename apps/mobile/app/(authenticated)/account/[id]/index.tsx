@@ -1,6 +1,6 @@
 import { Descriptor } from 'bdk-rn'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useState } from 'react'
 import {
   RefreshControl,
@@ -8,10 +8,16 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconCamera, SSIconRefresh } from '@/components/icons'
+import {
+  SSIconBubbles,
+  SSIconCamera,
+  SSIconList,
+  SSIconRefresh
+} from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSIconButton from '@/components/SSIconButton'
@@ -19,6 +25,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
+import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -114,6 +121,16 @@ function SpendableOutputs({
   refreshing,
   sortUtxos
 }: SpendableOutputsProps) {
+  const router = useRouter()
+  const { width, height } = useWindowDimensions()
+
+  const [view, setView] = useState('list')
+
+  const halfHeight = height / 2
+  const horizontalPadding = 48
+  const GRAPH_HEIGHT = halfHeight
+  const GRAPH_WIDTH = width - horizontalPadding
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
@@ -121,29 +138,57 @@ function SpendableOutputs({
           <SSIconRefresh height={22} width={18} />
         </SSIconButton>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
-        <SSSortDirectionToggle
-          onDirectionChanged={(direction) => setSortDirection(direction)}
-        />
-      </SSHStack>
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleOnRefresh}
-            colors={[Colors.gray[900]]}
-            progressBackgroundColor={Colors.white}
+        <SSHStack>
+          {view === 'list' && (
+            <SSIconButton onPress={() => setView('bubbles')}>
+              <SSIconBubbles height={16} width={16} />
+            </SSIconButton>
+          )}
+          {view === 'bubbles' && (
+            <SSIconButton onPress={() => setView('list')}>
+              <SSIconList height={16} width={16} />
+            </SSIconButton>
+          )}
+          <SSSortDirectionToggle
+            onDirectionChanged={(direction) => setSortDirection(direction)}
           />
-        }
-      >
-        <SSVStack style={{ marginBottom: 16 }}>
-          {sortUtxos([...account.utxos]).map((utxo) => (
-            <SSVStack gap="xs" key={utxo.txid}>
-              <SSSeparator color="grayDark" />
-              <SSUtxoCard utxo={utxo} />
-            </SSVStack>
-          ))}
-        </SSVStack>
-      </ScrollView>
+        </SSHStack>
+      </SSHStack>
+      {view === 'list' && (
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleOnRefresh}
+              colors={[Colors.gray[900]]}
+              progressBackgroundColor={Colors.white}
+            />
+          }
+        >
+          <SSVStack style={{ marginBottom: 16 }}>
+            {sortUtxos([...account.utxos]).map((utxo) => (
+              <SSVStack gap="xs" key={utxo.txid}>
+                <SSSeparator color="grayDark" />
+                <SSUtxoCard utxo={utxo} />
+              </SSVStack>
+            ))}
+          </SSVStack>
+        </ScrollView>
+      )}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {view === 'bubbles' && (
+          <SSUtxoBubbles
+            utxos={[...account.utxos]}
+            canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+            inputs={[]}
+            onPress={({ txid, vout }: Utxo) =>
+              router.navigate(
+                `/account/${account.name}/transaction/${txid}/utxo/${vout}`
+              )
+            }
+          />
+        )}
+      </GestureHandlerRootView>
     </SSMainLayout>
   )
 }
@@ -161,25 +206,20 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const [network, getBlockchainHeight] = useBlockchainStore(
     useShallow((state) => [state.network, state.getBlockchainHeight])
-  )
-
-  const [
-    getCurrentAccount,
-    syncWallet,
-    updateAccount,
-    loadWalletFromDescriptor
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.getCurrentAccount,
-      state.syncWallet,
-      state.updateAccount,
-      state.loadWalletFromDescriptor
-    ])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -198,7 +238,20 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
-  const account = getCurrentAccount(id!)
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (account) await refresh()
+      } catch (_err) {
+        //
+      }
+    })()
+
+    return () => {}
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!account) return <Redirect href="/" />
 
   const renderScene = ({
     route
@@ -233,19 +286,6 @@ export default function AccountView() {
         return null
     }
   }
-
-  useEffect(() => {
-    ;(async () => {
-      try {
-        await refresh()
-      } catch (_err) {
-        //
-      }
-    })()
-
-    return () => {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   function sortTransactions(transactions: Transaction[]) {
     return transactions.sort((transaction1, transaction2) =>
@@ -505,6 +545,7 @@ export default function AccountView() {
         </SSVStack>
       </SSBackgroundGradient>
       <TabView
+        swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}
         renderScene={renderScene}
         renderTabBar={renderTab}

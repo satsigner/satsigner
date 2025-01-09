@@ -17,7 +17,7 @@ import {
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import { formatAddress } from '@/utils/format'
+import { formatAddress, formatLabel } from '@/utils/format'
 
 type SSUtxoBubbleProps = {
   utxo: Utxo
@@ -64,6 +64,8 @@ function SSUtxoBubble({
   const fontSize = radius / 6
   const satsFontSize = fontSize / 1.5
   const descriptionFontSize = fontSize / 2.5
+
+  const label = formatLabel(utxo.label || '').label
 
   // Utxo value
   const mainParagraph = useMemo(() => {
@@ -169,12 +171,12 @@ function SSUtxoBubble({
           weight: 500
         }
       })
-      .addText(`  ${formatAddress(utxo.label || '-')}`)
+      .addText(`  ${formatAddress(label || '-')}`)
       .pop()
       .build()
     para.layout(150)
     return para
-  }, [customFontManager, utxo.label, descriptionFontSize])
+  }, [customFontManager, label, descriptionFontSize])
 
   // Utxo from address
   const fromY = useMemo(() => {

@@ -12,6 +12,7 @@ import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconIncoming from './SSIconIncoming'
+import SSIconInfo from './SSIconInfo'
 import SSIconList from './SSIconList'
 import SSIconLock from './SSIconLock'
 import SSIconNetwork from './SSIconNetwork'
@@ -39,6 +40,7 @@ export {
   SSIconEdit,
   SSIconHideWarning,
   SSIconIncoming,
+  SSIconInfo,
   SSIconList,
   SSIconLock,
   SSIconNetwork,

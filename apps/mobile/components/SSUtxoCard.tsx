@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -8,10 +9,9 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 
-import { SSIconEdit } from './icons'
-import SSIconButton from './SSIconButton'
+import { SSIconInfo } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
 
@@ -30,47 +30,47 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const { txid, vout } = utxo
 
   return (
-    <SSHStack
-      justifyBetween
-      style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
+    <TouchableOpacity
+      onPress={() =>
+        router.navigate(`/account/${id}/transaction/${txid}/utxo/${vout}`)
+      } // TODO: Refactor to receive as prop
     >
-      <SSVStack>
-        <SSIconButton
-          onPress={() =>
-            router.navigate(`/account/${id}/transaction/${txid}/utxo/${vout}`)
-          }
-        >
-          <SSIconEdit height={24} width={24} />
-        </SSIconButton>
-      </SSVStack>
-      <SSVStack gap="xs">
-        <SSText color="muted">
-          {utxo.timestamp && <SSTimeAgoText date={new Date(utxo.timestamp)} />}
-        </SSText>
-        <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-          <SSText size="3xl">{formatNumber(utxo.value)}</SSText>
-          <SSText color="muted">{i18n.t('bitcoin.sats').toLowerCase()}</SSText>
-        </SSHStack>
-        <SSText style={{ color: Colors.gray[400] }}>
-          {formatNumber(satsToFiat(utxo.value), 2)} {fiatCurrency}
-        </SSText>
-      </SSVStack>
-      <SSVStack justifyBetween>
-        <SSText
-          size="md"
-          style={{ textAlign: 'right', color: Colors.gray[100] }}
-        >
-          {utxo.label || i18n.t('account.noLabel')}
-        </SSText>
-        <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
+      <SSHStack
+        justifyBetween
+        style={{ paddingTop: 8, flex: 1, alignItems: 'stretch' }}
+      >
+        <SSVStack gap="none" style={{}}>
+          <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+            <SSText size="3xl" style={{ lineHeight: 30 }}>
+              {formatNumber(utxo.value)}
+            </SSText>
+            <SSText color="muted">
+              {i18n.t('bitcoin.sats').toLowerCase()}
+            </SSText>
+          </SSHStack>
+          <SSHStack>
+            <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
+            <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
+          </SSHStack>
+          <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
+            {i18n.t('common.memo')} {': '}
+            {formatLabel(utxo.label || i18n.t('account.noLabel'))['label']}
+          </SSText>
+        </SSVStack>
+        <SSVStack gap="none">
+          <SSHStack>
+            <SSText>
+              {utxo.addressTo && formatAddress(utxo.addressTo || '')}
+            </SSText>
+            <SSIconInfo height={16} width={16} />
+          </SSHStack>
           <SSText color="muted">
-            {utxo.addressTo && i18n.t('common.address').toLowerCase()}
+            {utxo.timestamp && (
+              <SSTimeAgoText date={new Date(utxo.timestamp)} />
+            )}
           </SSText>
-          <SSText>
-            {utxo.addressTo && formatAddress(utxo.addressTo || '')}
-          </SSText>
-        </SSHStack>
-      </SSVStack>
-    </SSHStack>
+        </SSVStack>
+      </SSHStack>
+    </TouchableOpacity>
   )
 }

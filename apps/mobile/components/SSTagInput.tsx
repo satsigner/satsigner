@@ -11,14 +11,21 @@ import SSIconButton from './SSIconButton'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 
-type Props = {
+type SSTagInputProps = {
   tags: string[]
   selectedTags: string[]
-  onSelect: (tag: string[]) => void
+  onSelect?: (tags: string[]) => void
+  onAdd?: (tag: string) => void
+  onRemove?: (tag: string) => void
 }
 
-export default function SSTagInput(props: Props) {
-  const { tags, selectedTags, onSelect } = props
+export default function SSTagInput({
+  tags,
+  selectedTags,
+  onSelect,
+  onRemove,
+  onAdd
+}: SSTagInputProps) {
   const [text, setText] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
   const inputRef = useRef<TextInput>()
@@ -27,17 +34,20 @@ export default function SSTagInput(props: Props) {
     if (addTag(text)) {
       setText('')
     }
-    // inputRef.current.focus()
   }
 
   const addTag = (tag: string) => {
     if (tag.length < 2 || selectedTags.includes(tag)) return false
-    onSelect([...selectedTags, tag])
+
+    if (onAdd) onAdd(tag)
+    else if (onSelect) onSelect([...selectedTags, tag])
+
     return true
   }
 
   const removeTag = (tag: string) => {
-    onSelect(selectedTags.filter((t) => t !== tag))
+    if (onRemove) onRemove(tag)
+    else if (onSelect) onSelect(selectedTags.filter((t) => t !== tag))
   }
 
   const search = (a: string, b: string) =>
