@@ -51,20 +51,13 @@ interface SankeyProps {
 
 const LINK_MAX_WIDTH = 60
 const VERTICAL_OFFSET_NODE = 22
-const LINK_VERTICAL_GAP = 3 // Gap between links at target node
+const BLOCK_WIDTH = 50
 
-const generateCustomLink = (
-  points: LinkPoints,
-  index: number,
-  totalLinks: number
-) => {
+const generateCustomLink = (points: LinkPoints) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
-  // Calculate vertical offset for both source and target points based on link index
-  const totalHeight = (totalLinks - 1) * LINK_VERTICAL_GAP
-  const verticalOffset = index * LINK_VERTICAL_GAP - totalHeight / 2
-  const adjustedY1 = y1 + verticalOffset
-  const adjustedY2 = y2 + verticalOffset
+  const adjustedY1 = y1
+  const adjustedY2 = y2
 
   // Define the coordinates of the four points
   const A = [x1, adjustedY1 - souceWidth / 2] // Point A (adjusted)
@@ -191,17 +184,17 @@ function SSSankeyDiagram({
               x1:
                 sourceNode.type === 'block'
                   ? (sourceNode.x1 ?? 0) -
-                    (sankeyGenerator.nodeWidth() - 50) / 2
+                    (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
                   : sourceNode.x1 ?? 0,
               y1: (link.source as Node).y1 ?? 0,
               x2:
                 targetNode.type === 'block'
                   ? (targetNode.x0 ?? 0) +
-                    (sankeyGenerator.nodeWidth() - 50) / 2
+                    (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
                   : targetNode.x0 ?? 0,
               y2: (link.target as Node).y0 ?? 0
             }
-            const path1 = generateCustomLink(points, index, links.length)
+            const path1 = generateCustomLink(points)
 
             return (
               <Group key={index}>
@@ -246,7 +239,8 @@ function SSSankeyDiagram({
                         (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
                       }
                       y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
-                      width={50}
+                      // y={node.y0 ?? 0}
+                      width={BLOCK_WIDTH}
                       //TODO: to be calculated
                       height={100}
                       color="#FFFFFF"
