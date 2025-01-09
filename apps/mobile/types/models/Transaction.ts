@@ -10,7 +10,13 @@ export type Transaction = {
   memo?: string
   address?: string
   label?: string
-  size: number
+  fee?: number
+  size?: number
+  vsize?: number
+  weight?: number
+  version?: number
+  lockTime?: number
+  raw?: number[]
   vout: {
     value: number
     address: string

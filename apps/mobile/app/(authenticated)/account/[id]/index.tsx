@@ -102,6 +102,7 @@ function TotalTransactions({
                 fiatCurrency={fiatCurrency}
                 transaction={transaction}
                 blockHeight={blockchainHeight}
+                link={`/account/${account.name}/transaction/${transaction.id}`}
               />
             </SSVStack>
           ))}

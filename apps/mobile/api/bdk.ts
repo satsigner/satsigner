@@ -179,19 +179,38 @@ async function parseTransactionDetailsToTransaction(
   const transactionUtxos = utxos.filter(
     (utxo) => utxo?.outpoint?.txid === transactionDetails.txid
   )
+
   let address = ''
   const utxo = transactionUtxos?.[0]
   if (utxo) {
     address = await getAddress(utxo, network)
   }
 
-  const { transaction } = transactionDetails
+  const {
+    txid,
+    fee,
+    transaction,
+    sent,
+    received,
+    confirmationTime,
+  } = transactionDetails
 
   let size = 0
+  let vsize = 0
+  let weight = 0
+  let version = 0
+  let lockTime = 0
+  let raw: number[] = []
   const vout: Transaction['vout'] = []
 
   if (transaction) {
     size = await transaction.size()
+    vsize = await transaction.vsize()
+    weight = await transaction.weight()
+    version = await transaction.version()
+    lockTime = await transaction.lockTime()
+    raw = await transaction.serialize()
+
     const outputs = await transaction.output()
     for (const index in outputs) {
       const { value, script } = outputs[index]
@@ -202,18 +221,25 @@ async function parseTransactionDetailsToTransaction(
   }
 
   return {
-    id: transactionDetails.txid,
-    type: transactionDetails.sent ? 'send' : 'receive',
-    sent: transactionDetails.sent,
-    received: transactionDetails.received,
-    timestamp: transactionDetails.confirmationTime?.timestamp
-      ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
+    id: txid,
+    type: sent ? 'send' : 'receive',
+    sent: sent,
+    received: received,
+    fee: fee || undefined,
+    prices: {},
+    timestamp: confirmationTime?.timestamp
+      ? new Date(confirmationTime.timestamp * 1000)
       : undefined,
-    blockHeight: transactionDetails.confirmationTime?.height,
+    blockHeight: confirmationTime?.height,
     memo: undefined,
     address,
     size,
-    vout
+    vsize,
+    vout,
+    version,
+    weight,
+    lockTime,
+    raw
   }
 }
 
