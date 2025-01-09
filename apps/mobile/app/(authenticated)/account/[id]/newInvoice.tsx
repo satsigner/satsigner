@@ -22,25 +22,25 @@ export default function NewInvoice() {
     useShallow((state) => [state.updateAccount])
   )
 
-  const generateNewAddress = async (): Promise<void> => {
-    if (!data?.account) {
-      throw new Error('Account data is not available.')
-    }
+  async function generateNewAddress() {
+    if (!data?.account) return
+
     data!.account.usedIndexes.push(data!.account.currentIndex)
     data!.account.currentIndex += 1
-    updateAccount(data!.account)
-    refetch().then()
+
+    updateAccount(data.account)
+    await refetch()
   }
 
-  const generatePrevAddress = (): void => {
-    if (!data?.account) {
-      throw new Error('Account data is not available.')
-    }
-    if (Number(data!.account.currentIndex) - 1 >= 0) {
+  async function generatePreviousAddress() {
+    if (!data?.account) return
+
+    if (Number(data.account.currentIndex) - 1 >= 0) {
       data!.account.currentIndex = data!.account.currentIndex - 1
-      updateAccount(data!.account)
+      updateAccount(data.account)
     }
-    refetch().then()
+
+    await refetch()
   }
   return (
     <SSMainLayout>
@@ -90,7 +90,7 @@ export default function NewInvoice() {
               variant="secondary"
             />
             <SSButton
-              onPress={() => generatePrevAddress()}
+              onPress={() => generatePreviousAddress()}
               label={i18n.t('newInvoice.prevAddress')}
               variant="ghost"
             />
