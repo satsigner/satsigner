@@ -4,6 +4,7 @@ import { Network } from 'bdk-rn/lib/lib/enums'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useAccountsStore } from '@/store/accounts'
+import type { Account } from '@/types/models/Account'
 
 export const useGetAddress = (
   id: string

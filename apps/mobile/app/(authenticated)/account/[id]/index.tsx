@@ -224,6 +224,7 @@ export default function AccountView() {
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
   )
+
   const [refreshing, setRefreshing] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
@@ -273,7 +274,7 @@ export default function AccountView() {
       case 'spendableOutputs':
         return (
           <SpendableOutputs
-            account={account!}
+            account={account}
             handleOnRefresh={handleOnRefresh}
             setSortDirection={setSortDirectionUtxos}
             refreshing={refreshing}
@@ -309,16 +310,17 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (
-      !account ||
-      !account.externalDescriptor ||
-      !account.internalDescriptor
-    ) {
+    if (!account || !account.externalDescriptor || !account.internalDescriptor)
       return
-    }
+
+    const [externalDescriptor, internalDescriptor] = await Promise.all([
+      new Descriptor().create(account.externalDescriptor, network),
+      new Descriptor().create(account.internalDescriptor, network)
+    ])
+
     const wallet = await loadWalletFromDescriptor(
-      await new Descriptor().create(account.externalDescriptor, network),
-      await new Descriptor().create(account.internalDescriptor, network)
+      externalDescriptor,
+      internalDescriptor
     )
     const syncedAccount = await syncWallet(wallet, account)
     updateAccount(syncedAccount)
@@ -354,7 +356,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account?.summary.numberOfTransactions}
+                {account.summary.numberOfTransactions}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.totalTransactions.0')}
@@ -381,7 +383,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account?.summary.numberOfAddresses}
+                {account.summary.numberOfAddresses}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.childAccounts.0')}
@@ -408,7 +410,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account?.summary.numberOfUtxos}
+                {account.summary.numberOfUtxos}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.spendableOutputs.0')}
@@ -435,7 +437,7 @@ export default function AccountView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account?.summary.satsInMempool}
+                {account.summary.satsInMempool}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {i18n.t('accountList.satsInMempool.0')}
@@ -485,7 +487,7 @@ export default function AccountView() {
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText size="7xl" color="white" weight="ultralight">
-                {formatNumber(account?.summary.balance || 0)}
+                {formatNumber(account.summary.balance || 0)}
               </SSText>
               <SSText size="xl" color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
@@ -493,7 +495,7 @@ export default function AccountView() {
             </SSHStack>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
               <SSText color="muted">
-                {formatNumber(satsToFiat(account?.summary.balance || 0), 2)}
+                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
               </SSText>
               <SSText size="xs" style={{ color: Colors.gray[500] }}>
                 {fiatCurrency}

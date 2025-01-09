@@ -21,8 +21,9 @@ export default function NewInvoice() {
   const [updateAccount] = useAccountsStore(
     useShallow((state) => [state.updateAccount])
   )
+
   const generateNewAddress = async (): Promise<void> => {
-    if (!data.account) {
+    if (!data?.account) {
       throw new Error('Account data is not available.')
     }
     data!.account.usedIndexes.push(data!.account.currentIndex)
@@ -30,8 +31,9 @@ export default function NewInvoice() {
     updateAccount(data!.account)
     refetch().then()
   }
+
   const generatePrevAddress = (): void => {
-    if (!data.account) {
+    if (!data?.account) {
       throw new Error('Account data is not available.')
     }
     if (Number(data!.account.currentIndex) - 1 >= 0) {
@@ -62,9 +64,9 @@ export default function NewInvoice() {
               </SSText>
               <SSText>{data?.path}</SSText>
             </SSHStack>
-            <SSText>{data?.used ? '🔴 Used' : '🟢 Never used'}</SSText>
+            <SSText>{data?.used ? '🔴 Used' : '🟢 Never used'}</SSText>
           </SSVStack>
-          <SSQRCode value={data?.address} />
+          <SSQRCode value={data?.address || ''} />
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
               {i18n.t('newInvoice.address')}
