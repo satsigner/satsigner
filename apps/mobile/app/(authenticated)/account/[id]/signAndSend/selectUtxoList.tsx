@@ -29,6 +29,7 @@ type SortField = 'date' | 'amount'
 export default function SelectUtxoList() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -102,6 +103,7 @@ export default function SelectUtxoList() {
     if (includesInput) removeInput(utxo)
     else addInput(utxo)
   }
+
   return (
     <>
       <Stack.Screen
