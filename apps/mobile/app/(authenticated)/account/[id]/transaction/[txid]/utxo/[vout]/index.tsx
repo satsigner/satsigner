@@ -1,5 +1,4 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -38,36 +37,33 @@ export default function UtxoDetails() {
   const [label, setLabel] = useState('')
   const [originalLabel, setOriginalLabel] = useState('')
 
-  useEffect(() => {
-    const fetchUtxoInfo = async () => {
-      const tx = await getTx(accountId, txid)
-      const utxo = await getUtxo(accountId, txid, Number(vout))
+  const fetchUtxoInfo = () => {
+    const tx = getTx(accountId, txid)
+    const utxo = getUtxo(accountId, txid, Number(vout))
 
-      if (!tx) return
-      if (!utxo) return
+    if (!tx) return
+    if (!utxo) return
 
-      const { blockHeight, size, timestamp } = tx
-      const { addressTo } = utxo
+    const { blockHeight, size, timestamp } = tx
+    const { addressTo } = utxo
 
-      if (blockHeight) setBlockHeight(blockHeight.toString())
-      if (size) setTxSize(size.toString())
-      if (timestamp) setBlockTime(formatDate(timestamp))
-      if (addressTo) setUtxoAddress(addressTo)
+    if (blockHeight) setBlockHeight(blockHeight.toString())
+    if (size) setTxSize(size.toString())
+    if (timestamp) setBlockTime(formatDate(timestamp))
+    if (addressTo) setUtxoAddress(addressTo)
 
-      const rawLabel = utxo.label || ''
-      const { label, tags } = formatLabel(rawLabel)
-      setOriginalLabel(rawLabel)
-      setLabel(label)
-      setSelectedTags(tags)
-    }
+    const rawLabel = utxo.label || ''
+    const { label, tags } = formatLabel(rawLabel)
+    setOriginalLabel(rawLabel)
+    setLabel(label)
+    setSelectedTags(tags)
+  }
 
-    try {
-      fetchUtxoInfo()
-    } catch {
-      // TODO: show error notification via snack bar
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txid])
+  try {
+    fetchUtxoInfo()
+  } catch {
+    // TODO: show error notification via snack bar
+  }
 
   const saveLabel = () => {
     let newLabel = label.trim()

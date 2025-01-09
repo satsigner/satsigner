@@ -1,9 +1,11 @@
+import { type Currency } from './Blockchain'
+
 export type Transaction = {
   id: string
   type: 'send' | 'receive'
   sent: number
   received: number
-  timestamp?: Date
+  timestamp: Date
   blockHeight?: number
   memo?: string
   address?: string
@@ -13,4 +15,7 @@ export type Transaction = {
     value: number
     address: string
   }[]
+  prices: {
+    [key in Currency]: number
+  }
 }

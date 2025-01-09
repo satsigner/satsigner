@@ -7,6 +7,7 @@ import type {
   MemPool,
   MemPoolBlock,
   MemPoolFees,
+  Prices,
   PriceValue,
   Tx,
   TxOutspend,
@@ -94,12 +95,16 @@ export class MempoolOracle implements BlockchainOracle {
     return fees
   }
   async getMemPoolBlocks(): Promise<MemPoolBlock[]> {
-    const data: any = await this.get(`/v1/fees/mempool-blocks`)
-    return data as MemPoolBlock[]
+    const data: MemPoolBlock[] = await this.get(`/v1/fees/mempool-blocks`)
+    return data
+  }
+  async getPrices(): Promise<Prices> {
+    const data: Prices = await this.get(`/v1/prices`)
+    return data
   }
   async getPrice(currency: Currency): Promise<number> {
-    const data: any = await this.get(`/v1/prices`)
-    return data[currency] as number
+    const data = await this.getPrices()
+    return data[currency]
   }
   async getPriceAt(currency: string, timestamp: number): Promise<number> {
     const data: any = await this.get(

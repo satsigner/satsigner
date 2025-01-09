@@ -38,6 +38,10 @@ function formatDate(date: Date | string | number) {
   }).format(dateObj)
 }
 
+function formatTimestamp(date: Date) {
+  return Math.floor(date.getTime() / 1000)
+}
+
 function formatLabel(rawLabel: string) {
   if (!rawLabel.match(/tags:.*$/)) return { label: rawLabel, tags: [] }
 
@@ -56,11 +60,25 @@ function formatPageUrl(path: string, params: PageParams) {
   return url
 }
 
+function formatPercentualChange(value: number, base: number) {
+  if (value > base)
+    return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'
+  else return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+}
+
+function formatFiatPrice(sats: number, btcPrice: number) {
+  const SATS_PER_BITCOIN = 100_000_000
+  return formatNumber((sats * btcPrice) / SATS_PER_BITCOIN, 2)
+}
+
 export {
   formatAddress,
   formatDate,
+  formatFiatPrice,
   formatLabel,
   formatNumber,
   formatPageUrl,
-  formatTime
+  formatPercentualChange,
+  formatTime,
+  formatTimestamp
 }

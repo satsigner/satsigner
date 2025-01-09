@@ -1,13 +1,18 @@
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
-import { formatAddress, formatNumber } from '@/utils/format'
+import {
+  formatAddress,
+  formatFiatPrice,
+  formatNumber,
+  formatPercentualChange
+} from '@/utils/format'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSText from './SSText'
@@ -16,16 +21,16 @@ import SSTimeAgoText from './SSTimeAgoText'
 type SSTransactionCardProps = {
   transaction: Transaction
   blockHeight: number
+  fiatCurrency: Currency
+  btcPrice: number
 }
 
 export default function SSTransactionCard({
   transaction,
-  blockHeight
+  blockHeight,
+  fiatCurrency,
+  btcPrice
 }: SSTransactionCardProps) {
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
-  )
-
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
     : 0
@@ -56,6 +61,31 @@ export default function SSTransactionCard({
     else return styles.confirmedEnough
   }
 
+  const [priceDisplay, setPriceDisplay] = useState('')
+
+  const { type, received, sent, prices } = transaction
+  const amount = type === 'receive' ? received : sent
+
+  useEffect(() => {
+    const itemsToDisplay = []
+
+    const oldPrice = prices[fiatCurrency]
+
+    if (btcPrice) itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
+
+    if (prices[fiatCurrency])
+      itemsToDisplay.push(
+        '(' + formatFiatPrice(amount, prices[fiatCurrency]) + ')'
+      )
+
+    if (btcPrice || oldPrice) itemsToDisplay.push(fiatCurrency)
+
+    if (btcPrice && oldPrice)
+      itemsToDisplay.push(formatPercentualChange(btcPrice, oldPrice))
+
+    setPriceDisplay(itemsToDisplay.join(' '))
+  }, [btcPrice, fiatCurrency, amount, prices])
+
   return (
     <SSHStack
       style={{
@@ -81,28 +111,12 @@ export default function SSTransactionCard({
             )}
           </SSText>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl">
-              {formatNumber(
-                transaction.type === 'receive'
-                  ? transaction.received
-                  : -transaction.sent
-              )}
-            </SSText>
+            <SSText size="3xl">{formatNumber(amount)}</SSText>
             <SSText color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}
             </SSText>
           </SSHStack>
-          <SSText style={{ color: Colors.gray[400] }}>
-            {formatNumber(
-              satsToFiat(
-                transaction.type === 'receive'
-                  ? transaction.received
-                  : -transaction.sent
-              ),
-              2
-            )}{' '}
-            {fiatCurrency}
-          </SSText>
+          <SSText style={{ color: Colors.gray[400] }}>{priceDisplay}</SSText>
         </SSVStack>
         <SSVStack justifyBetween>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>

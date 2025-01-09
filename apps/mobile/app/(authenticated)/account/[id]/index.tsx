@@ -62,6 +62,16 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
+    useShallow((state) => [
+      state.btcPrice,
+      state.fiatCurrency,
+      state.fetchPrices
+    ])
+  )
+
+  fetchPrices()
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
@@ -88,6 +98,8 @@ function TotalTransactions({
             <SSVStack gap="xs" key={transaction.id}>
               <SSSeparator color="grayDark" />
               <SSTransactionCard
+                btcPrice={btcPrice}
+                fiatCurrency={fiatCurrency}
                 transaction={transaction}
                 blockHeight={blockchainHeight}
               />

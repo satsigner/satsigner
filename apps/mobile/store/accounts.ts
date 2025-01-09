@@ -9,9 +9,9 @@ import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
-import { TxOut } from '@/types/models/Blockchain'
 import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
+import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
@@ -34,14 +34,14 @@ type AccountsAction = {
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  getTx: (accountName: string, txid: string) => Promise<Transaction>
-  getUtxo: (accountName: string, txid: string, vout: number) => Promise<Utxo>
+  getTx: (account: string, txid: string) => Transaction
+  getUtxo: (account: string, txid: string, vout: number) => Utxo
   setUtxoLabel: (
-    accountName: string,
+    account: string,
     txid: string,
     vout: number,
     label: string
-  ) => Promise<void>
+  ) => void
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -79,9 +79,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           getBlockchainConfig(backend, url, opts)
         )
 
-        const oldUtxos = account.utxos
         const utxoLabelsDictionary: { [key: string]: string } = {}
-        oldUtxos.forEach((utxo) => {
+        account.utxos.forEach((utxo) => {
           const utxoRef = getUtxoOutpoint(utxo)
           utxoLabelsDictionary[utxoRef] = utxo.label
         })
@@ -95,6 +94,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           const utxoRef = getUtxoOutpoint(utxos[index])
           utxos[index].label = utxoLabelsDictionary[utxoRef]
         }
+
+        const txTimestamp = (tx: Transaction) => formatTimestamp(tx.timestamp)
+        const timestamps = transactions.map(txTimestamp)
+        const oracle = new MempoolOracle()
+        const prices = await oracle.getPricesAt('USD', timestamps)
+        transactions.forEach((_, index) => {
+          transactions[index].prices = { USD: prices[index] }
+        })
 
         return { ...account, transactions, utxos, summary }
       },
@@ -124,38 +131,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       setTags: (tags: string[]) => {
         set({ tags })
       },
-      getTx: async (accountName: string, txid: string) => {
+      getTx: (accountName: string, txid: string) => {
         const account = get().getCurrentAccount(accountName) as Account
 
         const transaction = account.transactions.find((tx) => tx.id === txid)
 
         if (transaction) return transaction
 
-        // TODO: replace MempoolOracle with BDK for enhanced privacy
-        const { url } = useBlockchainStore.getState()
-        const oracle = new MempoolOracle(url)
-        const data = await oracle.getTransaction(txid)
-
-        const newTransaction: Transaction = {
-          id: data.txid,
-          type: 'receive', // TODO: how to figure it out?
-          label: '',
-          sent: 0,
-          received: 0,
-          timestamp: new Date(data.status.block_time),
-          size: data.size,
-          vout: data.vout.map((out: TxOut) => ({
-            value: out.value,
-            address: out.scriptpubkey_address as string
-          }))
-        }
-
-        account.transactions.push(newTransaction)
-        get().updateAccount(account)
-
-        return newTransaction
+        throw new Error(`Transaction ${txid} does not exist`)
       },
-      getUtxo: async (accountName: string, txid: string, vout: number) => {
+      getUtxo: (accountName: string, txid: string, vout: number) => {
         const account = get().getCurrentAccount(accountName) as Account
 
         const utxo = account.utxos.find((u) => {
@@ -166,24 +151,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           return utxo
         }
 
-        const tx = await get().getTx(accountName, txid)
-
-        const newUtxo: Utxo = {
-          txid,
-          vout,
-          label: '',
-          value: tx.vout[vout].value,
-          timestamp: tx.timestamp,
-          addressTo: tx.vout[vout].address,
-          keychain: 'external' // TODO: is it right?
-        }
-
-        account.utxos.push(newUtxo)
-        get().updateAccount(account)
-
-        return newUtxo
+        throw new Error(`Utxo ${txid}:${vout} does not exist`)
       },
-      setUtxoLabel: async (accountName, txid, vout, label) => {
+      setUtxoLabel: (accountName, txid, vout, label) => {
         const account = get().getCurrentAccount(accountName) as Account
 
         let utxoIndex = account.utxos.findIndex((u) => {
@@ -191,7 +161,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         })
 
         if (utxoIndex === -1) {
-          await get().getUtxo(accountName, txid, vout)
+          get().getUtxo(accountName, txid, vout)
           utxoIndex = account.utxos.length
         }
 
