@@ -2,16 +2,12 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { useWindowDimensions, View } from 'react-native'
+import { Platform, useWindowDimensions, View } from 'react-native'
 import {
-  Gesture,
   GestureDetector,
   GestureHandlerRootView
 } from 'react-native-gesture-handler'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue
-} from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles } from '@/components/icons'
@@ -23,6 +19,7 @@ import SSSankeyDiagram from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useGestures } from '@/hooks/useGestures'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -92,27 +89,17 @@ export default function IOPreview() {
   const sankeyWidth = canvasSize.width
   const sankeyHeight = canvasSize.height - 200
 
-  const translateX = useSharedValue(-width * 0.4)
-  const translateY = useSharedValue(0)
-  const savedTranslateX = useSharedValue(-width * 0.4)
-  const savedTranslateY = useSharedValue(0)
-
-  const panGesture = Gesture.Pan()
-    .onUpdate((event) => {
-      translateX.value = savedTranslateX.value + event.translationX
-      translateY.value = savedTranslateY.value + event.translationY
-    })
-    .onEnd(() => {
-      savedTranslateX.value = translateX.value
-      savedTranslateY.value = translateY.value
-    })
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value }
-    ]
-  }))
+  const { gestures, animatedStyle } = useGestures({
+    width: sankeyWidth,
+    height: sankeyHeight,
+    center: { x: sankeyWidth / 2, y: sankeyHeight / 2 },
+    minScale: 0.5,
+    maxScale: 10,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    shouldResetOnInteractionEnd: false
+  })
 
   const sankeyNodes = useMemo(() => {
     if (inputs.size > 0) {
@@ -282,7 +269,7 @@ export default function IOPreview() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 100, left: 136 }}>
-        <GestureDetector gesture={panGesture}>
+        <GestureDetector gesture={gestures}>
           <Animated.View
             style={[
               { width: sankeyWidth, height: sankeyHeight },
