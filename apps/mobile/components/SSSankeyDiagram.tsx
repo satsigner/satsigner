@@ -46,14 +46,26 @@ interface SankeyProps {
 
 const LINK_MAX_WIDTH = 60
 const VERTICAL_OFFSET_NODE = 22
-const generateCustomLink = (points: LinkPoints) => {
+const LINK_VERTICAL_GAP = 5 // Gap between links at target node
+
+const generateCustomLink = (
+  points: LinkPoints,
+  index: number,
+  totalLinks: number
+) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
+  // Calculate vertical offset for both source and target points based on link index
+  const totalHeight = (totalLinks - 1) * LINK_VERTICAL_GAP
+  const verticalOffset = index * LINK_VERTICAL_GAP - totalHeight / 2
+  const adjustedY1 = y1 + verticalOffset
+  const adjustedY2 = y2 + verticalOffset
+
   // Define the coordinates of the four points
-  const A = [x1, y1 - souceWidth / 2] // Point A
-  const B = [x1, y1 + souceWidth / 2] // Point B
-  const C = [x2, y2 - targetWidth / 2] // Point C
-  const D = [x2, y2 + targetWidth / 2] // Point D
+  const A = [x1, adjustedY1 - souceWidth / 2] // Point A (adjusted)
+  const B = [x1, adjustedY1 + souceWidth / 2] // Point B (adjusted)
+  const C = [x2, adjustedY2 - targetWidth / 2] // Point C (adjusted)
+  const D = [x2, adjustedY2 + targetWidth / 2] // Point D (adjusted)
 
   // Solid line path
   const moveToA = `M ${A[0]} ${A[1]}`
@@ -173,7 +185,7 @@ function SSSankeyDiagram({
                 : targetNode.x0 ?? 0,
             y2: (link.target as Node).y0 ?? 0
           }
-          const path1 = generateCustomLink(points)
+          const path1 = generateCustomLink(points, index, links.length)
 
           return (
             <Group key={index}>
