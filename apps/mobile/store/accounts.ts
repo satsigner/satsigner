@@ -62,8 +62,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       hasAccountWithName: (name) =>
         get().accounts.find((account) => account.name === name) !== undefined,
-      getCurrentAccount: (name) =>
-        get().accounts.find((account) => account.name === name)!,
       loadWalletFromDescriptor: async (
         externalDescriptor,
         internalDescriptor

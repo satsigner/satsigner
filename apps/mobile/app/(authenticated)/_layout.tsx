@@ -1,9 +1,8 @@
-
-import { Image } from 'expo-image'
 import {
   getFocusedRouteNameFromRoute,
   useRoute
 } from '@react-navigation/native'
+import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useGlobalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
