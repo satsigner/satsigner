@@ -22,8 +22,7 @@ type AccountsState = {
 }
 
 type AccountsAction = {
-  getAllAccounts: () => Account[]
-  getCurrentAccount: (name: string) => Account
+  getCurrentAccount: (name: string) => Account | undefined
   hasAccountWithName: (name: string) => boolean
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,

@@ -12,13 +12,15 @@ export const useGetAddress = (
   { account: Account; address: string; used: boolean; path: string },
   Error
 > => {
-  const [getCurrentAccount, loadWalletFromDescriptor] = useAccountsStore(
+  const [account, loadWalletFromDescriptor] = useAccountsStore(
     useShallow((state) => [
-      state.getCurrentAccount,
+      state.accounts.find((account) => account.name === id),
       state.loadWalletFromDescriptor
     ])
   )
-  const account = getCurrentAccount(id!)
+
+  if (!account) throw new Error()
+
   const fetchAddressInfo = async (): Promise<{
     address: string
     used: boolean
@@ -38,6 +40,7 @@ export const useGetAddress = (
       account.usedIndexes.findIndex(
         (index: number) => index === account.currentIndex
       ) !== -1
+
     return {
       account,
       address: finalAddress,
@@ -45,9 +48,9 @@ export const useGetAddress = (
       path: account.derivationPath + `/0/` + addr.index
     }
   }
+
   return useQuery({
     queryKey: ['address'],
-    queryFn: fetchAddressInfo,
-    enabled: !!account
+    queryFn: fetchAddressInfo
   })
 }
