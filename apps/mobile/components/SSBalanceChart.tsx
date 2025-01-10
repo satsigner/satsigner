@@ -235,7 +235,7 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
                     fontSize={10 * scale}
                     fill={d.type === 'receive' ? '#A7FFAF' : '#FF7171'}
                   >
-                    {d.memo || ''}
+                    {d.memo || 'Test'}
                   </SvgText>
                 ))}
                 {cursorX !== undefined && (
