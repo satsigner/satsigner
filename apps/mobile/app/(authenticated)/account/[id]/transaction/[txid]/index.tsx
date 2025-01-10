@@ -13,7 +13,12 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatLabel, formatFiatPrice, formatNumber } from '@/utils/format'
+import {
+  formatDate,
+  formatLabel,
+  formatFiatPrice,
+  formatNumber
+} from '@/utils/format'
 import { useEffect, useState } from 'react'
 import { Transaction } from '@/types/models/Transaction'
 
@@ -109,13 +114,15 @@ export default function TxDetails() {
               {formatFiatPrice(tx.sent || tx.received, btcPrice)}
               {fiatCurrency}
             </SSText>
-            <SSText center>
-              {formatDate(tx.timestamp)}
-            </SSText>
+            <SSText center>{formatDate(tx.timestamp)}</SSText>
             {tx.prices && (
               <SSText center>
-                ({formatFiatPrice(tx.sent || tx.received, tx.prices[fiatCurrency])})
-                {fiatCurrency}
+                (
+                {formatFiatPrice(
+                  tx.sent || tx.received,
+                  tx.prices[fiatCurrency]
+                )}
+                ){fiatCurrency}
               </SSText>
             )}
           </SSVStack>
@@ -150,31 +157,26 @@ export default function TxDetails() {
           <SSVStack gap="none" style={{ width: '33%' }}>
             <SSText>FEE SAT/B</SSText>
             <SSText>
-              {(tx?.fee && tx?.size) ?
-                formatNumber(tx.fee/tx.size, 2) + ' sats' :
-                placeholder
-              }
+              {tx?.fee && tx?.size
+                ? formatNumber(tx.fee / tx.size, 2) + ' sats'
+                : placeholder}
             </SSText>
           </SSVStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
             <SSText>FEE SAT/VB</SSText>
             <SSText>
-              {(tx?.fee && tx?.vsize) ?
-                formatNumber(tx.fee/tx.vsize, 2) + ' sats' :
-                placeholder
-              }
+              {tx?.fee && tx?.vsize
+                ? formatNumber(tx.fee / tx.vsize, 2) + ' sats'
+                : placeholder}
             </SSText>
           </SSVStack>
         </SSHStack>
         <SSVStack gap="none">
           <SSText>TRANSACTION RAW</SSText>
           <SSText>
-            {tx?.raw ?
-              tx.raw
-              .map((x) => x.toString(16).padStart(2, '0'))
-              .join(' ') :
-              placeholder
-            }
+            {tx?.raw
+              ? tx.raw.map((x) => x.toString(16).padStart(2, '0')).join(' ')
+              : placeholder}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">

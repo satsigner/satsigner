@@ -23,7 +23,7 @@ type SSTransactionCardProps = {
   transaction: Transaction
   blockHeight: number
   fiatCurrency: Currency
-  btcPrice: number,
+  btcPrice: number
   link: string
 }
 
@@ -92,71 +92,64 @@ export default function SSTransactionCard({
   const router = useRouter()
 
   return (
-    <TouchableOpacity
-      onPress={() => router.navigate(link)}
-    >
+    <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSHStack
+        justifyBetween
         style={{
-          paddingTop: 8,
-          alignItems: 'flex-start'
+          flex: 1,
+          alignItems: 'stretch'
         }}
       >
-        {transaction.type === 'receive' && (
-          <SSIconIncoming height={19} width={19} />
-        )}
-        {transaction.type === 'send' && (
-          <SSIconOutgoing height={19} width={19} />
-        )}
-        <SSHStack
-          justifyBetween
-          style={{
-            flex: 1,
-            alignItems: 'stretch'
-          }}
-        >
-          <SSVStack gap="xs">
-            <SSText color="muted">
-              {transaction.timestamp && (
-                <SSTimeAgoText date={new Date(transaction.timestamp)} />
-              )}
-            </SSText>
+        <SSVStack gap="xs">
+          <SSText color="muted">
+            {transaction.timestamp && (
+              <SSTimeAgoText date={new Date(transaction.timestamp)} />
+            )}
+          </SSText>
+          <SSHStack>
+            {transaction.type === 'receive' && (
+              <SSIconIncoming height={19} width={19} />
+            )}
+            {transaction.type === 'send' && (
+              <SSIconOutgoing height={19} width={19} />
+            )}
             <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
               <SSText size="3xl">{formatNumber(amount)}</SSText>
               <SSText color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
               </SSText>
             </SSHStack>
-            <SSText style={{ color: Colors.gray[400] }}>{priceDisplay}</SSText>
-          </SSVStack>
-          <SSVStack justifyBetween>
-            <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
-              {getConfirmationsText()}
+          </SSHStack>
+          <SSText style={{ color: Colors.gray[400] }}>{priceDisplay}</SSText>
+        </SSVStack>
+        <SSVStack justifyBetween>
+          <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
+            {getConfirmationsText()}
+          </SSText>
+          <SSVStack gap="xs">
+            <SSText
+              size="md"
+              style={[
+                { textAlign: 'right' },
+                !transaction.memo && { color: Colors.gray[100] }
+              ]}
+              numberOfLines={1}
+            >
+              {transaction.memo || i18n.t('account.noMemo')}
             </SSText>
-            <SSVStack gap="xs">
-              <SSText
-                size="md"
-                style={[
-                  { textAlign: 'right' },
-                  !transaction.memo && { color: Colors.gray[100] }
-                ]}
-                numberOfLines={1}
-              >
-                {transaction.memo || i18n.t('account.noMemo')}
+            <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
+              <SSText color="muted">
+                {transaction.address && transaction.type === 'receive'
+                  ? i18n.t('common.from').toLowerCase()
+                  : i18n.t('common.to').toLowerCase()}
               </SSText>
-              <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
-                <SSText color="muted">
-                  {transaction.address && transaction.type === 'receive'
-                    ? i18n.t('common.from').toLowerCase()
-                    : i18n.t('common.to').toLowerCase()}
-                </SSText>
-                <SSText>
-                  {transaction.address &&
-                    formatAddress(transaction.address || '')}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
+              <SSText>
+                {transaction.address &&
+                  formatAddress(transaction.address || '')}
+              </SSText>
+            </SSHStack>
           </SSVStack>
-        </SSHStack>
+        </SSVStack>
       </SSHStack>
     </TouchableOpacity>
   )

@@ -186,14 +186,8 @@ async function parseTransactionDetailsToTransaction(
     address = await getAddress(utxo, network)
   }
 
-  const {
-    txid,
-    fee,
-    transaction,
-    sent,
-    received,
-    confirmationTime,
-  } = transactionDetails
+  const { txid, fee, transaction, sent, received, confirmationTime } =
+    transactionDetails
 
   let size = 0
   let vsize = 0
