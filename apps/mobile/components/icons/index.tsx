@@ -1,6 +1,7 @@
 import SSIconAbout from './SSIconAbout'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
+import SSIconChart from './SSIconChart'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
@@ -29,6 +30,7 @@ export {
   SSIconAbout,
   SSIconBubbles,
   SSIconCamera,
+  SSIconChart,
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,
