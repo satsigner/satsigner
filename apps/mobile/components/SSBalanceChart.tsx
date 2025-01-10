@@ -26,7 +26,7 @@ export type BalanceChartData = {
 }
 
 function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
-  const margin = { top: 30, right: 30, bottom: 60, left: 40 }
+  const margin = { top: 30, right: 0, bottom: 60, left: 40 }
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
   const [scale, setScale] = useState<number>(1) // Zoom scale
