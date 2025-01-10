@@ -100,6 +100,11 @@ export type ZoomProps = {
    */
   isDoubleTapEnabled?: boolean
   /**
+   * Enables or disables the resetting the position after interaction ends.
+   * @default false
+   */
+  shouldResetOnInteractionEnd?: boolean
+  /**
    * A callback triggered when the canvas interaction starts.
    */
   onInteractionStart?: () => void
@@ -155,25 +160,28 @@ export type ZoomLayoutState = LayoutRectangle & {
   }
 }
 
-export interface ZoomUseGesturesProps {
-  width: number
-  height: number
-  center: { x: number; y: number }
-  minScale?: number
-  maxScale?: number
-  doubleTapScale?: number
-  minPanPointers?: number
-  maxPanPointers?: number
-  isPanEnabled?: boolean
-  isPinchEnabled?: boolean
-  isDoubleTapEnabled?: boolean
-  shouldResetOnInteractionEnd?: boolean
-  onInteractionStart?: () => void
-  onInteractionEnd?: () => void
-  onPinchStart?: OnPinchStartCallback
-  onPinchEnd?: OnPinchEndCallback
-  onPanStart?: OnPanStartCallback
-  onPanEnd?: OnPanEndCallback
-  onDoubleTap?: (type: ZOOM_TYPE) => void
-  onSingleTap?: (event: TapGestureHandlerEventPayload) => void
-}
+export type ZoomUseGesturesProps = Pick<
+  ZoomLayoutState,
+  'width' | 'height' | 'center'
+> &
+  Pick<
+    ZoomProps,
+    | 'minScale'
+    | 'maxScale'
+    | 'doubleTapScale'
+    | 'minPanPointers'
+    | 'maxPanPointers'
+    | 'isPanEnabled'
+    | 'isPinchEnabled'
+    | 'isSingleTapEnabled'
+    | 'isDoubleTapEnabled'
+    | 'onInteractionStart'
+    | 'onInteractionEnd'
+    | 'onPinchStart'
+    | 'onPinchEnd'
+    | 'onPanStart'
+    | 'onPanEnd'
+    | 'onSingleTap'
+    | 'onDoubleTap'
+    | 'shouldResetOnInteractionEnd'
+  >
