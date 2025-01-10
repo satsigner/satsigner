@@ -17,16 +17,14 @@ export type Transaction = {
   version?: number
   lockTime?: number
   lockTimeEnabled: boolean
-  raw?: number[]
+  raw?: Array<number>
   vin?: {
     previousOutput: {
       txid: string
       vout: number
     }
     sequence: number
-    scriptSig: {
-      id: string
-    }
+    scriptSig: number[]
     witness: number[][]
   }[]
   vout: {

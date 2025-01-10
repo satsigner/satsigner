@@ -21,6 +21,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { Backend } from '@/types/settings/blockchain'
+import { Script } from 'bdk-rn/lib/classes/Script'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
@@ -208,10 +209,15 @@ async function parseTransactionDetailsToTransaction(
     lockTimeEnabled = await transaction.isLockTimeEnabled()
     raw = await transaction.serialize()
 
-    const inputs = await transaction.input();
+    const inputs = await transaction.input()
     const outputs = await transaction.output()
 
-    vin.push(... inputs)
+    for (const index in inputs) {
+      const input = inputs[index]
+      const script = await input.scriptSig.toBytes()
+      input.scriptSig = script
+      vin.push(input)
+    }
 
     for (const index in outputs) {
       const { value, script } = outputs[index]

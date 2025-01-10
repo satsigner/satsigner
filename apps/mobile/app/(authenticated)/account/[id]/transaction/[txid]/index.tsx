@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { Transaction } from '@/types/models/Transaction'
 import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import { Colors } from '@/styles'
+import BScript from 'bscript-parser'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -46,7 +47,7 @@ export default function TxDetails() {
   const [label, setLabel] = useState('')
   const [originalLabel, setOriginalLabel] = useState('')
 
-  const placeholder = () => useState('-');
+  const placeholder = () => useState('-')
 
   const [amount, setAmount] = placeholder()
   const [fee, setFee] = placeholder()
@@ -57,6 +58,7 @@ export default function TxDetails() {
   const [price, setPrice] = placeholder()
   const [raw, setRaw] = placeholder()
   const [size, setSize] = placeholder()
+  const [timestamp, setTimestamp] = placeholder()
   const [type, setType] = placeholder()
   const [version, setVersion] = placeholder()
   const [vsize, setVsize] = placeholder()
@@ -67,44 +69,37 @@ export default function TxDetails() {
 
     if (!tx) return
 
-    const amount = (tx.type === 'receive') ? tx.received : tx.sent
+    const amount = tx.type === 'receive' ? tx.received : tx.sent
 
     setTx(tx)
     setType(tx.type)
     setAmount(formatNumber(amount))
 
-    if (btcPrice)
-      setPrice(formatFiatPrice(Number(amount), btcPrice))
+    if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
 
     if (tx.prices && tx.prices[fiatCurrency])
       setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency]))
 
-    if (tx.blockHeight)
-      setHeight(tx.blockHeight.toString())
+    if (tx.blockHeight) setHeight(tx.blockHeight.toString())
 
-    if (tx.size)
-      setSize(tx.size.toString())
+    if (tx.size) setSize(tx.size.toString())
 
-    if (tx.vsize)
-      setVsize(tx.vsize.toString())
+    if (tx.vsize) setVsize(tx.vsize.toString())
 
-    if (tx.weight)
-      setWeight(tx.weight.toString())
+    if (tx.weight) setWeight(tx.weight.toString())
 
-    if (tx.fee)
-      setFee(tx.fee.toString())
+    if (tx.fee) setFee(tx.fee.toString())
 
-    if (tx.fee && tx.size)
-      setFeePerByte(formatNumber(tx.fee/tx.size))
+    if (tx.fee && tx.size) setFeePerByte(formatNumber(tx.fee / tx.size))
 
-    if (tx.fee && tx.vsize)
-      setFeePerVByte(formatNumber(tx.fee/tx.vsize))
+    if (tx.fee && tx.vsize) setFeePerVByte(formatNumber(tx.fee / tx.vsize))
 
-    if (tx.version)
-      setVersion(tx.version.toString())
+    if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
+
+    if (tx.version) setVersion(tx.version.toString())
 
     if (tx.raw)
-      setRaw(tx.raw.map(v => v.toString(16).padStart(2, '0')).join(' '))
+      setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(' '))
 
     const rawLabel = tx.label || ''
     const { label, tags } = formatLabel(rawLabel)
@@ -124,7 +119,7 @@ export default function TxDetails() {
     // if (newLabel !== originalLabel)
     // setUtxoLabel(accountId, txid, Number(vout), newLabel)
 
-      router.back()
+    router.back()
   }
 
   const onAddTag = (tag: string) => {
@@ -172,14 +167,10 @@ export default function TxDetails() {
             {price} {fiatCurrency}
           </SSText>
           <SSHStack gap="xs">
-           {type === 'receive' && (
-              <SSIconIncoming height={12} width={12} />
-            )}
-            {type === 'send' && (
-              <SSIconOutgoing height={12} width={12} />
-            )}
+            {type === 'receive' && <SSIconIncoming height={12} width={12} />}
+            {type === 'send' && <SSIconOutgoing height={12} width={12} />}
             <SSText center color="muted">
-              {formatDate(tx.timestamp)}
+              {timestamp}
             </SSText>
           </SSHStack>
           {oldPrice !== '-' && (
@@ -191,13 +182,8 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSHStack justifyBetween>
-            <SSText size="md">
-              {label || i18n.t('account.noLabel')}
-            </SSText>
-            <SSIconEdit
-              height={32}
-              width={32}
-            />
+            <SSText size="md">{label || i18n.t('account.noLabel')}</SSText>
+            <SSIconEdit height={32} width={32} />
           </SSHStack>
           <SSHStack gap="sm">
             {selectedTags.map((tag) => (
@@ -220,56 +206,198 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSVStack gap="none">
-            <SSText weight="bold" size="md">IN BLOCK</SSText>
+            <SSText weight="bold" size="md">
+              IN BLOCK
+            </SSText>
             <SSText color="muted">{height}</SSText>
           </SSVStack>
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={txid}>
           <SSVStack gap="none">
-            <SSText weight="bold" size="md">TRANSACTION HASH</SSText>
+            <SSText weight="bold" size="md">
+              TRANSACTION HASH
+            </SSText>
             <SSText color="muted">{txid}</SSText>
           </SSVStack>
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSHStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">RAW SIZE</SSText>
+            <SSText weight="bold" size="md">
+              RAW SIZE
+            </SSText>
             <SSText color="muted">{size}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">WEIGHT</SSText>
+            <SSText weight="bold" size="md">
+              WEIGHT
+            </SSText>
             <SSText color="muted">{weight}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">VIRTUAL SIZE</SSText>
+            <SSText weight="bold" size="md">
+              VIRTUAL SIZE
+            </SSText>
             <SSText color="muted">{vsize}</SSText>
           </SSVStack>
         </SSHStack>
         <SSSeparator color="gradient" />
         <SSHStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">FEES</SSText>
+            <SSText weight="bold" size="md">
+              FEES
+            </SSText>
             <SSText color="muted">{fee}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">FEE SAT/B</SSText>
+            <SSText weight="bold" size="md">
+              FEE SAT/B
+            </SSText>
             <SSText color="muted">{feePerByte}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">FEE SAT/VB</SSText>
+            <SSText weight="bold" size="md">
+              FEE SAT/VB
+            </SSText>
             <SSText color="muted">{feePerVByte}</SSText>
           </SSVStack>
         </SSHStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
-          <SSText weight="bold" size="md">TRANSACTION RAW</SSText>
+          <SSText weight="bold" size="md">
+            TRANSACTION RAW
+          </SSText>
           <SSText color="muted">{raw}</SSText>
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
-          <SSText weight="bold" size="md">Version</SSText>
+          <SSText weight="bold" size="md">
+            TRANSACTION DECODED
+          </SSText>
+        </SSVStack>
+        <SSVStack gap="none">
+          <SSText weight="bold" size="md">
+            Version
+          </SSText>
           <SSText color="muted">{version}</SSText>
+        </SSVStack>
+        <SSVStack gap="none">
+          <SSText weight="bold" size="md">
+            Number of inputs
+          </SSText>
+          <SSText color="muted">{tx?.vin?.length || '-'}</SSText>
+        </SSVStack>
+        <SSVStack gap="none">
+          <SSText weight="bold" size="md">
+            Number of outputs
+          </SSText>
+          <SSText color="muted">{tx?.vout?.length || '-'}</SSText>
+        </SSVStack>
+        <SSVStack>
+          {(tx?.vin || []).map((vin, index) => (
+            <SSVStack key={index}>
+              <SSSeparator color="gradient" />
+              <SSText weight="bold" center>
+                Input {index}
+              </SSText>
+              <SSVStack gap="none">
+                <SSText weight="bold">Previous TX Output hash</SSText>
+                <SSClipboardCopy text={vin.previousOutput.txid}>
+                  <SSText color="muted">{vin.previousOutput.txid}</SSText>
+                </SSClipboardCopy>
+              </SSVStack>
+              <SSVStack gap="none">
+                <SSText weight="bold">Output index in transaction</SSText>
+                <SSText color="muted">{vin.previousOutput.vout}</SSText>
+              </SSVStack>
+              <SSVStack gap="none">
+                <SSText weight="bold">Sequence</SSText>
+                <SSText color="muted">{vin.sequence}</SSText>
+              </SSVStack>
+              <SSText weight="bold">SigScript</SSText>
+              <SSVStack gap="sm">
+                <SSVStack gap="none">
+                  <SSText size="xxs" weight="bold">
+                    OP_DUP
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    0x72
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    Duplicates the top stack item
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="none">
+                  <SSText size="xxs" weight="bold">
+                    OP_HASH160
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    0xa9
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    The input is hashed twice: first with SHA-256 and then with
+                    RIPEMD-160.
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="none">
+                  <SSText size="xxs" weight="bold">
+                    76A9145E4FF47CEB3A51CDF7DDD80AFC4ACC5A692DAC2D88AC
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    Raw data
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="none">
+                  <SSText size="xxs" weight="bold">
+                    OP_EQUALVERIFY
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    0x88
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    Returns 1 if the inputs are exactly equal, 0 otherwise.
+                    Afterward, OP_VERIFY is executed.
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="none">
+                  <SSText size="xxs" weight="bold">
+                    OP_CHECK_SIG
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    0xacc
+                  </SSText>
+                  <SSText size="xxs" color="muted">
+                    The entire transaction's outputs, inputs, and script (from
+                    the most recently-executed OP_CODESEPARATOR to the end) are
+                    hashed. The signature used by OP_CHECKSIG must be a valid
+                    signature for this hash and public key. If it is, 1 is
+                    returned, 0 otherwise. Afterward, OP_VERIFY is executed.
+                  </SSText>
+                </SSVStack>
+              </SSVStack>
+            </SSVStack>
+          ))}
+        </SSVStack>
+        <SSVStack>
+          {(tx?.vout || []).map((vout, index) => (
+            <SSVStack key={index}>
+              <SSSeparator color="gradient" />
+              <SSText weight="bold" center>
+                Output {index}
+              </SSText>
+              <SSVStack gap="none">
+                <SSText weight="bold">Value</SSText>
+                <SSText color="muted">{vout.value}</SSText>
+              </SSVStack>
+              <SSVStack gap="none">
+                <SSText weight="bold">Address</SSText>
+                <SSClipboardCopy text={vout.address}>
+                  <SSText color="muted">{vout.address}</SSText>
+                </SSClipboardCopy>
+              </SSVStack>
+            </SSVStack>
+          ))}
         </SSVStack>
       </SSVStack>
     </ScrollView>
