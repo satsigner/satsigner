@@ -1,13 +1,12 @@
-/* eslint-disable no-console */
 import * as Clipboard from 'expo-clipboard'
 
-import { isBitcoinAddress } from './format'
+import { isBitcoinAddress } from './bitcoin'
 
 export async function setClipboard(value: string): Promise<void> {
   try {
     await Clipboard.setStringAsync(value)
-  } catch (error) {
-    console.error(error)
+  } catch (_error) {
+    // TO DO: add error logger
   }
 }
 
@@ -21,15 +20,11 @@ export async function getClipboard(): Promise<string | void> {
       return
     }
     return value
-  } catch (error) {
-    console.error(error)
-  }
+  } catch (_error) {}
 }
 
 export async function clearClipboard(): Promise<void> {
   try {
     await Clipboard.setStringAsync('')
-  } catch (error) {
-    console.error(error)
-  }
+  } catch (_error) {}
 }
