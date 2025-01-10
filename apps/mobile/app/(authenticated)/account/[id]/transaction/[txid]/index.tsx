@@ -76,7 +76,7 @@ export default function TxDetails() {
     if (btcPrice)
       setPrice(formatFiatPrice(Number(amount), btcPrice))
 
-    if (tx.prices?.[fiatCurrency])
+    if (tx.prices && tx.prices[fiatCurrency])
       setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency]))
 
     if (tx.blockHeight)

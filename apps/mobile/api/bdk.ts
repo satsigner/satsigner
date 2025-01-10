@@ -186,15 +186,17 @@ async function parseTransactionDetailsToTransaction(
     address = await getAddress(utxo, network)
   }
 
-  const { txid, fee, transaction, sent, received, confirmationTime } =
+  const { confirmationTime, fee, received, sent, transaction, txid } =
     transactionDetails
 
+  let lockTimeEnabled = false
+  let lockTime = 0
   let size = 0
+  let version = 0
   let vsize = 0
   let weight = 0
-  let version = 0
-  let lockTime = 0
   let raw: number[] = []
+  let vin: Transaction['vin'] = []
   const vout: Transaction['vout'] = []
 
   if (transaction) {
@@ -203,9 +205,14 @@ async function parseTransactionDetailsToTransaction(
     weight = await transaction.weight()
     version = await transaction.version()
     lockTime = await transaction.lockTime()
+    lockTimeEnabled = await transaction.isLockTimeEnabled()
     raw = await transaction.serialize()
 
+    const inputs = await transaction.input();
     const outputs = await transaction.output()
+
+    vin.push(... inputs)
+
     for (const index in outputs) {
       const { value, script } = outputs[index]
       const addressObj = await new Address().fromScript(script, network)
@@ -233,7 +240,9 @@ async function parseTransactionDetailsToTransaction(
     version,
     weight,
     lockTime,
-    raw
+    lockTimeEnabled,
+    raw,
+    vin
   }
 }
 

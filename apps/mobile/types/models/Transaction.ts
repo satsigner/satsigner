@@ -5,7 +5,7 @@ export type Transaction = {
   type: 'send' | 'receive'
   sent: number
   received: number
-  timestamp: Date
+  timestamp?: Date
   blockHeight?: number
   memo?: string
   address?: string
@@ -16,12 +16,24 @@ export type Transaction = {
   weight?: number
   version?: number
   lockTime?: number
+  lockTimeEnabled: boolean
   raw?: number[]
+  vin?: {
+    previousOutput: {
+      txid: string
+      vout: number
+    }
+    sequence: number
+    scriptSig: {
+      id: string
+    }
+    witness: number[][]
+  }[]
   vout: {
     value: number
     address: string
   }[]
-  prices: {
+  prices: Partial<{
     [key in Currency]: number
-  }
+  }>
 }
