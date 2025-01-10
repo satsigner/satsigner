@@ -100,6 +100,11 @@ export type ZoomProps = {
    */
   isDoubleTapEnabled?: boolean
   /**
+   * Enables or disables the resetting the position after interaction ends.
+   * @default false
+   */
+  shouldResetOnInteractionEnd?: boolean
+  /**
    * A callback triggered when the canvas interaction starts.
    */
   onInteractionStart?: () => void
@@ -178,4 +183,5 @@ export type ZoomUseGesturesProps = Pick<
     | 'onPanEnd'
     | 'onSingleTap'
     | 'onDoubleTap'
+    | 'shouldResetOnInteractionEnd'
   >
