@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -32,9 +32,13 @@ export default function TxDetails() {
     state.satsToFiat
   ])
 
-  const getTx = useAccountsStore((state) => state.getTx)
+  // const getTx = useAccountsStore((state) => state.getTx)
+  const tx = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === accountId)
+      ?.transactions.find((tx) => tx.id === txid)
+  )
 
-  const [tx, setTx] = useState({} as Transaction)
+  // const [tx, setTx] = useState({} as Transaction)
   const [selectedTags, setSelectedTags] = useState([] as string[])
 
   const placeholder = () => useState('-')
@@ -57,11 +61,11 @@ export default function TxDetails() {
   const [label, setLabel] = useState('')
 
   function updateInfo() {
-    const tx = getTx(accountId, txid)
+    // const tx = getTx(accountId, txid)
 
     if (!tx) return
 
-    setTx(tx)
+    // setTx(tx)
 
     const amount = tx.type === 'receive' ? tx.received : tx.sent
 
@@ -100,7 +104,13 @@ export default function TxDetails() {
     setSelectedTags(tags)
   }
 
-  useEffect(updateInfo, [])
+  useEffect(() => {
+    try {
+      updateInfo()
+    } catch {
+      router.back()
+    }
+  }, [tx])
 
   return (
     <ScrollView>
@@ -356,9 +366,17 @@ export default function TxDetails() {
           {(tx?.vout || []).map((vout, index) => (
             <SSVStack key={index}>
               <SSSeparator color="gradient" />
-              <SSText weight="bold" center>
-                Output {index}
-              </SSText>
+              <TouchableOpacity
+                onPress={() =>
+                  router.navigate(
+                    `/account/${accountId}/transaction/${txid}/utxo/${index}`
+                  )
+                }
+              >
+                <SSText weight="bold" center>
+                  Output {index}
+                </SSText>
+              </TouchableOpacity>
               <SSVStack gap="none">
                 <SSText weight="bold">Value</SSText>
                 <SSText color="muted">{vout.value}</SSText>

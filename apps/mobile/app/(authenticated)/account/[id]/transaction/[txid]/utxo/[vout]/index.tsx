@@ -60,7 +60,13 @@ export default function UtxoDetails() {
     setSelectedTags(tags)
   }
 
-  useEffect(updateInfo, [])
+  useEffect(() => {
+    try {
+      updateInfo()
+    } catch {
+      router.back()
+    }
+  }, [])
 
   const saveLabel = () => {
     let newLabel = label.trim()

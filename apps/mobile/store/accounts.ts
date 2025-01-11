@@ -167,7 +167,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const account = get().getCurrentAccount(accountName) as Account
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
 
-        if (! txIndex)
+        if (!txIndex)
           throw new Error(`The transaction ${txid} does not exist in store`)
 
         set(

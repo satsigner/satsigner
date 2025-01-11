@@ -47,7 +47,6 @@ export default function SSTxLabel() {
 
     if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
 
-    console.log("new -> ", newLabel)
     if (newLabel !== originalLabel) {
       setTxLabel(accountId, txid, newLabel)
     }

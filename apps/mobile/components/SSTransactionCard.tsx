@@ -136,9 +136,10 @@ export default function SSTransactionCard({
               ]}
               numberOfLines={1}
             >
-              {formatLabel(
-                transaction.label || i18n.t('account.noLabel')
-              ).label}
+              {
+                formatLabel(transaction.label || i18n.t('account.noLabel'))
+                  .label
+              }
             </SSText>
             <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
               <SSText color="muted">
