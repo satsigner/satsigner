@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
@@ -18,7 +19,6 @@ import {
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
-import { useRouter } from 'expo-router'
 
 type SSTransactionCardProps = {
   transaction: Transaction

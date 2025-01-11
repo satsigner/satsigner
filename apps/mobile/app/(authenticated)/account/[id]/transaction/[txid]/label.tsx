@@ -1,17 +1,18 @@
-import { Account } from '@/types/models/Account'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
-import { TxSearchParams } from '@/types/navigation/searchParams'
-import { useAccountsStore } from '@/store/accounts'
-import { Stack, router, useLocalSearchParams } from 'expo-router'
+
+import SSButton from '@/components/SSButton'
+import SSTagInput from '@/components/SSTagInput'
 import SSText from '@/components/SSText'
-import { Transaction } from '@/types/models/Transaction'
+import SSTextInput from '@/components/SSTextInput'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import SSTextInput from '@/components/SSTextInput'
-import SSTagInput from '@/components/SSTagInput'
+import { useAccountsStore } from '@/store/accounts'
+import { Account } from '@/types/models/Account'
+import { Transaction } from '@/types/models/Transaction'
+import { TxSearchParams } from '@/types/navigation/searchParams'
 import { formatLabel } from '@/utils/format'
-import SSButton from '@/components/SSButton'
-import { useEffect, useState } from 'react'
 
 export default function SSTxLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -39,7 +40,7 @@ export default function SSTxLabel() {
     setSelectedTags(tags)
   }
 
-  useEffect(updateInfo, [])
+  useEffect(updateInfo, [tx])
 
   const saveLabel = () => {
     let newLabel = label.trim()

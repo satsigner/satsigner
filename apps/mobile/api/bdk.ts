@@ -21,7 +21,6 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { Backend } from '@/types/settings/blockchain'
-import { Script } from 'bdk-rn/lib/classes/Script'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
@@ -197,7 +196,7 @@ async function parseTransactionDetailsToTransaction(
   let vsize = 0
   let weight = 0
   let raw: number[] = []
-  let vin: Transaction['vin'] = []
+  const vin: Transaction['vin'] = []
   const vout: Transaction['vout'] = []
 
   if (transaction) {
@@ -230,15 +229,15 @@ async function parseTransactionDetailsToTransaction(
   return {
     id: txid,
     type: sent ? 'send' : 'receive',
-    sent: sent,
-    received: received,
-    fee: fee || undefined,
+    sent,
+    received,
+    label: '',
+    fee,
     prices: {},
     timestamp: confirmationTime?.timestamp
       ? new Date(confirmationTime.timestamp * 1000)
       : undefined,
     blockHeight: confirmationTime?.height,
-    memo: undefined,
     address,
     size,
     vsize,

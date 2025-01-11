@@ -1,8 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 
+import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -10,18 +13,14 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { Colors } from '@/styles'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
 import {
   formatDate,
-  formatLabel,
   formatFiatPrice,
+  formatLabel,
   formatNumber
 } from '@/utils/format'
-import { useEffect, useState } from 'react'
-import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
-import { Colors } from '@/styles'
-import SSIconButton from '@/components/SSIconButton'
-import { Transaction } from '@/types/models/Transaction'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -32,40 +31,35 @@ export default function TxDetails() {
     state.satsToFiat
   ])
 
-  // const getTx = useAccountsStore((state) => state.getTx)
   const tx = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === accountId)
+    state.accounts
+      .find((account) => account.name === accountId)
       ?.transactions.find((tx) => tx.id === txid)
   )
 
-  // const [tx, setTx] = useState({} as Transaction)
   const [selectedTags, setSelectedTags] = useState([] as string[])
 
-  const placeholder = () => useState('-')
-  const placeholder2 = () => useState('<?>')
+  const placeholder = '-'
+  const placeholder2 = '?'
 
-  const [amount, setAmount] = placeholder2()
-  const [fee, setFee] = placeholder()
-  const [feePerByte, setFeePerByte] = placeholder()
-  const [feePerVByte, setFeePerVByte] = placeholder()
-  const [height, setHeight] = placeholder()
-  const [oldPrice, setOldPrice] = placeholder()
-  const [price, setPrice] = placeholder2()
-  const [raw, setRaw] = placeholder()
-  const [size, setSize] = placeholder()
-  const [timestamp, setTimestamp] = placeholder()
-  const [type, setType] = placeholder()
-  const [version, setVersion] = placeholder()
-  const [vsize, setVsize] = placeholder()
-  const [weight, setWeight] = placeholder()
-  const [label, setLabel] = useState('')
+  const [amount, setAmount] = useState(placeholder2)
+  const [fee, setFee] = useState(placeholder)
+  const [feePerByte, setFeePerByte] = useState(placeholder)
+  const [feePerVByte, setFeePerVByte] = useState(placeholder)
+  const [height, setHeight] = useState(placeholder)
+  const [label, setLabel] = useState(placeholder)
+  const [oldPrice, setOldPrice] = useState(placeholder)
+  const [price, setPrice] = useState(placeholder2)
+  const [raw, setRaw] = useState(placeholder)
+  const [size, setSize] = useState(placeholder)
+  const [timestamp, setTimestamp] = useState(placeholder)
+  const [type, setType] = useState(placeholder)
+  const [version, setVersion] = useState(placeholder)
+  const [vsize, setVsize] = useState(placeholder)
+  const [weight, setWeight] = useState(placeholder)
 
   function updateInfo() {
-    // const tx = getTx(accountId, txid)
-
     if (!tx) return
-
-    // setTx(tx)
 
     const amount = tx.type === 'receive' ? tx.received : tx.sent
 
@@ -110,6 +104,7 @@ export default function TxDetails() {
     } catch {
       router.back()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx])
 
   return (

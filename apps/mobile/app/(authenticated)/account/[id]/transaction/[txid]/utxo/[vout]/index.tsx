@@ -1,4 +1,5 @@
-import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
@@ -13,20 +14,23 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatLabel } from '@/utils/format'
-import { useEffect, useState } from 'react'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [account, getTags, setTags, getTx, getUtxo, setUtxoLabel] =
-    useAccountsStore((state) => [
-      state.accounts.find((account) => account.name === accountId),
+  const [getTags, setTags, tx, utxo, setUtxoLabel] = useAccountsStore(
+    (state) => [
       state.getTags,
       state.setTags,
-      state.getTx,
-      state.getUtxo,
+      state.accounts
+        .find((account) => account.name === accountId)
+        ?.transactions.find((tx) => tx.id === txid),
+      state.accounts
+        .find((account) => account.name === accountId)
+        ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)),
       state.setUtxoLabel
-    ])
+    ]
+  )
 
   const placeholder = '-'
   const [tags, setLocalTags] = useState(getTags())
@@ -39,25 +43,22 @@ export default function UtxoDetails() {
   const [originalLabel, setOriginalLabel] = useState('')
 
   const updateInfo = () => {
-    const tx = getTx(accountId, txid)
-    const utxo = getUtxo(accountId, txid, Number(vout))
+    if (tx) {
+      const { blockHeight, size, timestamp } = tx
+      if (blockHeight) setBlockHeight(blockHeight.toString())
+      if (timestamp) setBlockTime(formatDate(timestamp))
+      if (size) setTxSize(size.toString())
+    }
 
-    if (!tx) return
-    if (!utxo) return
-
-    const { blockHeight, size, timestamp } = tx
-    const { addressTo } = utxo
-
-    if (blockHeight) setBlockHeight(blockHeight.toString())
-    if (size) setTxSize(size.toString())
-    if (timestamp) setBlockTime(formatDate(timestamp))
-    if (addressTo) setUtxoAddress(addressTo)
-
-    const rawLabel = utxo.label || ''
-    const { label, tags } = formatLabel(rawLabel)
-    setOriginalLabel(rawLabel)
-    setLabel(label)
-    setSelectedTags(tags)
+    if (utxo) {
+      const { addressTo } = utxo
+      const rawLabel = utxo.label || ''
+      const { label, tags } = formatLabel(rawLabel)
+      if (addressTo) setUtxoAddress(addressTo)
+      setOriginalLabel(rawLabel)
+      setLabel(label)
+      setSelectedTags(tags)
+    }
   }
 
   useEffect(() => {
@@ -66,7 +67,8 @@ export default function UtxoDetails() {
     } catch {
       router.back()
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tx, utxo])
 
   const saveLabel = () => {
     let newLabel = label.trim()
@@ -95,13 +97,11 @@ export default function UtxoDetails() {
     setSelectedTags(selected)
   }
 
-  if (!account) return <Redirect href="/" />
-
   return (
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
+          headerTitle: () => <SSText uppercase>{accountId}</SSText>
         }}
       />
       <SSVStack

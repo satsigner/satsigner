@@ -16,7 +16,7 @@ export type Transaction = {
   version?: number
   lockTime?: number
   lockTimeEnabled: boolean
-  raw?: Array<number>
+  raw?: number[]
   vin?: {
     previousOutput: {
       txid: string
