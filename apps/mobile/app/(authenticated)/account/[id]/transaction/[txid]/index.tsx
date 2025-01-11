@@ -2,9 +2,9 @@ import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   DimensionValue,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  TouchableOpacity
 } from 'react-native'
 
 import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
@@ -19,6 +19,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
+import { Transaction } from '@/types/models/Transaction'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
 import {
   formatDate,
@@ -26,7 +27,6 @@ import {
   formatLabel,
   formatNumber
 } from '@/utils/format'
-import { Transaction } from '@/types/models/Transaction'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -100,11 +100,9 @@ export default function TxDetails() {
     if (tx.raw)
       setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(' '))
 
-    if (tx.vin)
-      setInputsCount(tx.vin.length.toString())
+    if (tx.vin) setInputsCount(tx.vin.length.toString())
 
-    if (tx.vout)
-      setOutputsCount(tx.vout.length.toString())
+    if (tx.vout) setOutputsCount(tx.vout.length.toString())
 
     const rawLabel = tx.label || ''
     const { label, tags } = formatLabel(rawLabel)

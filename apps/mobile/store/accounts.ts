@@ -10,7 +10,6 @@ import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 import { Transaction } from '@/types/models/Transaction'
-import { Utxo } from '@/types/models/Utxo'
 import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -34,8 +33,6 @@ type AccountsAction = {
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  getTx: (account: string, txid: string) => Transaction
-  getUtxo: (account: string, txid: string, vout: number) => Utxo
   setTxLabel: (account: string, txid: string, label: string) => void
   setUtxoLabel: (
     account: string,
@@ -140,28 +137,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       setTags: (tags: string[]) => {
         set({ tags })
-      },
-      getTx: (accountName: string, txid: string) => {
-        const account = get().getCurrentAccount(accountName) as Account
-
-        const transaction = account.transactions.find((tx) => tx.id === txid)
-
-        if (transaction) return transaction
-
-        throw new Error(`Transaction ${txid} does not exist`)
-      },
-      getUtxo: (accountName: string, txid: string, vout: number) => {
-        const account = get().getCurrentAccount(accountName) as Account
-
-        const utxo = account.utxos.find((u) => {
-          return u.txid === txid && u.vout === vout
-        })
-
-        if (utxo) {
-          return utxo
-        }
-
-        throw new Error(`Utxo ${txid}:${vout} does not exist`)
       },
       setTxLabel: (accountName, txid, label) => {
         const account = get().getCurrentAccount(accountName) as Account
