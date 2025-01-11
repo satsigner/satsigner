@@ -28,6 +28,8 @@ import {
   formatNumber
 } from '@/utils/format'
 
+const t = (translate: string) => i18n.t(`txDetails.${translate}`)
+
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
@@ -123,7 +125,7 @@ export default function TxDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>TX Details</SSText>
+          headerTitle: () => <SSText>{i18n.t('txDetails.title')}</SSText>
         }}
       />
       <SSVStack style={styles.container}>
@@ -181,35 +183,43 @@ export default function TxDetails() {
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
-          <SSTxDetailsBox header="IN BLOCK" text={height} />
+          <SSTxDetailsBox header={t('block')} text={height} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={txid}>
-          <SSTxDetailsBox header="TRANSACTION HASH" text={txid} />
+          <SSTxDetailsBox header={t('hash')} text={txid} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSHStack>
-          <SSTxDetailsBox header="RAW SIZE" text={size} width="33%" />
-          <SSTxDetailsBox header="WEIGHT" text={weight} width="33%" />
-          <SSTxDetailsBox header="VIRTUAL SIZE" text={vsize} width="33%" />
+          <SSTxDetailsBox header={t('size')} text={size} width="33%" />
+          <SSTxDetailsBox header={t('weight')} text={weight} width="33%" />
+          <SSTxDetailsBox header={t('vsize')} text={vsize} width="33%" />
         </SSHStack>
         <SSSeparator color="gradient" />
         <SSHStack>
-          <SSTxDetailsBox header="FEE" text={fee} width="33%" />
-          <SSTxDetailsBox header="FEE SAT/B" text={feePerByte} width="33%" />
-          <SSTxDetailsBox header="FEE SAT/VB" text={feePerVByte} width="33%" />
+          <SSTxDetailsBox header={t('fee')} text={fee} width="33%" />
+          <SSTxDetailsBox
+            header={t('feeBytes')}
+            text={feePerByte}
+            width="33%"
+          />
+          <SSTxDetailsBox
+            header={t('feeVBytes')}
+            text={feePerVByte}
+            width="33%"
+          />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSTxDetailsBox header="Transaction raw" text={raw} />
+        <SSTxDetailsBox header={t('raw')} text={raw} />
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
-          <SSText weight="bold" size="md">
-            TRANSACTION DECODED
+          <SSText uppercase weight="bold" size="lg">
+            {t('decoded')}
           </SSText>
         </SSVStack>
-        <SSTxDetailsBox header="Version" text={version} />
-        <SSTxDetailsBox header="Number of inputs" text={inputsCount} />
-        <SSTxDetailsBox header="Number of outputs" text={outputsCount} />
+        <SSTxDetailsBox header={t('version')} text={version} />
+        <SSTxDetailsBox header={t('inputsCount')} text={inputsCount} />
+        <SSTxDetailsBox header={t('outputsCount')} text={outputsCount} />
         <SSTxDetailsInputs tx={tx} />
         <SSTxDetailsOutputs tx={tx} accountId={accountId} />
       </SSVStack>
@@ -221,16 +231,18 @@ type SSTxDetailsBoxProps = {
   header: string
   text?: string | number | undefined
   width?: DimensionValue
+  uppercase?: boolean
 }
 
 function SSTxDetailsBox({
   header,
   text = '-',
-  width = '100%'
+  width = '100%',
+  uppercase = true
 }: SSTxDetailsBoxProps) {
   return (
     <SSVStack gap="none" style={{ width }}>
-      <SSText weight="bold" size="md">
+      <SSText uppercase={uppercase} weight="bold" size="md">
         {header}
       </SSText>
       <SSText color="muted">{text}</SSText>
@@ -249,20 +261,20 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
         <SSVStack key={index}>
           <SSSeparator color="gradient" />
           <SSText weight="bold" center>
-            Input {index}
+            {t('input')} {index}
           </SSText>
           <SSVStack gap="none">
-            <SSText weight="bold">Previous TX Output hash</SSText>
+            <SSText weight="bold">{t('inputPrevTx')}</SSText>
             <SSClipboardCopy text={vin.previousOutput.txid}>
               <SSText color="muted">{vin.previousOutput.txid}</SSText>
             </SSClipboardCopy>
           </SSVStack>
           <SSVStack gap="none">
-            <SSText weight="bold">Output index in transaction</SSText>
+            <SSText weight="bold">{t('inputPrevOut')}</SSText>
             <SSText color="muted">{vin.previousOutput.vout}</SSText>
           </SSVStack>
           <SSVStack gap="none">
-            <SSText weight="bold">Sequence</SSText>
+            <SSText weight="bold">{t('inputSequence')}</SSText>
             <SSText color="muted">{vin.sequence}</SSText>
           </SSVStack>
           <SSText weight="bold">SigScript</SSText>
@@ -342,30 +354,28 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
     <SSVStack>
       {tx &&
         (tx?.vout || []).map((vout, index) => (
-          <SSVStack key={index}>
-            <SSSeparator color="gradient" />
-            <TouchableOpacity
-              onPress={() =>
-                router.navigate(
-                  `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
-                )
-              }
-            >
+          <TouchableOpacity
+            onPress={() =>
+              router.navigate(
+                `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
+              )
+            }
+          >
+            <SSVStack key={index}>
+              <SSSeparator color="gradient" />
               <SSText weight="bold" center>
-                Output {index}
+                {t('output')} {index}
               </SSText>
-            </TouchableOpacity>
-            <SSVStack gap="none">
-              <SSText weight="bold">Value</SSText>
-              <SSText color="muted">{vout.value}</SSText>
+              <SSTxDetailsBox
+                header={i18n.t('common.value')}
+                text={vout.value}
+              />
+              <SSTxDetailsBox
+                header={i18n.t('common.address')}
+                text={vout.address}
+              />
             </SSVStack>
-            <SSVStack gap="none">
-              <SSText weight="bold">Address</SSText>
-              <SSClipboardCopy text={vout.address}>
-                <SSText color="muted">{vout.address}</SSText>
-              </SSClipboardCopy>
-            </SSVStack>
-          </SSVStack>
+          </TouchableOpacity>
         ))}
     </SSVStack>
   )

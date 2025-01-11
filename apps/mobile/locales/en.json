@@ -36,7 +36,8 @@
       "tags": "Tags",
       "label": "Label",
       "block": "Block",
-      "outputIndex": "Output index"
+      "outputIndex": "Output index",
+      "value": "value"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -248,6 +249,27 @@
     },
     "utxoDetails": {
       "title": "UTXO Details"
+    },
+    "txDetails": {
+      "title": "TX Details",
+      "block": "In block",
+      "hash": "Transaction hash",
+      "size": "Raw size",
+      "weight": "Weight",
+      "vsize": "Virtual Size",
+      "fee": "Fee",
+      "feeBytes": "Fee sat/b",
+      "feeVBytes": "Fee sat/vb",
+      "raw": "Transaction raw",
+      "decoded": "Transaction decoded",
+      "version": "Version",
+      "inputsCount": "Number of inputs",
+      "outputsCount": "Number of outputs",
+      "input": "Input",
+      "output": "Output",
+      "inputPrevTx": "Previous TX Output hash",
+      "inputPrevOut": "Output index in transaction",
+      "inputSequence": "Sequence"
     }
   }
 }
