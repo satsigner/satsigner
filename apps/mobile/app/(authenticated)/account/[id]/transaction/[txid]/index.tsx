@@ -1,6 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import {
+  DimensionValue,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native'
 
 import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -21,6 +26,7 @@ import {
   formatLabel,
   formatNumber
 } from '@/utils/format'
+import { Transaction } from '@/types/models/Transaction'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -52,6 +58,8 @@ export default function TxDetails() {
   const [price, setPrice] = useState(placeholder2)
   const [raw, setRaw] = useState(placeholder)
   const [size, setSize] = useState(placeholder)
+  const [inputsCount, setInputsCount] = useState(placeholder)
+  const [outputsCount, setOutputsCount] = useState(placeholder)
   const [timestamp, setTimestamp] = useState(placeholder)
   const [type, setType] = useState(placeholder)
   const [version, setVersion] = useState(placeholder)
@@ -92,6 +100,12 @@ export default function TxDetails() {
     if (tx.raw)
       setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(' '))
 
+    if (tx.vin)
+      setInputsCount(tx.vin.length.toString())
+
+    if (tx.vout)
+      setOutputsCount(tx.vout.length.toString())
+
     const rawLabel = tx.label || ''
     const { label, tags } = formatLabel(rawLabel)
     setLabel(label)
@@ -114,14 +128,7 @@ export default function TxDetails() {
           headerTitle: () => <SSText>TX Details</SSText>
         }}
       />
-      <SSVStack
-        style={{
-          flexGrow: 1,
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: 20
-        }}
-      >
+      <SSVStack style={styles.container}>
         <SSVStack gap="none" style={{ alignItems: 'center' }}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline', width: 'auto' }}>
             <SSText size="4xl" style={{ lineHeight: 30 }}>
@@ -169,223 +176,218 @@ export default function TxDetails() {
                 key={tag}
                 label={tag}
                 uppercase={false}
-                style={{
-                  backgroundColor: Colors.gray[500],
-                  borderRadius: 5,
-                  borderStyle: 'solid',
-                  paddingHorizontal: 8,
-                  height: 'auto',
-                  width: 'auto'
-                }}
+                style={styles.button}
               />
             ))}
           </SSHStack>
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
-          <SSVStack gap="none">
-            <SSText weight="bold" size="md">
-              IN BLOCK
-            </SSText>
-            <SSText color="muted">{height}</SSText>
-          </SSVStack>
+          <SSTxDetailsBox header="IN BLOCK" text={height} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={txid}>
-          <SSVStack gap="none">
-            <SSText weight="bold" size="md">
-              TRANSACTION HASH
-            </SSText>
-            <SSText color="muted">{txid}</SSText>
-          </SSVStack>
+          <SSTxDetailsBox header="TRANSACTION HASH" text={txid} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSHStack>
-          <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">
-              RAW SIZE
-            </SSText>
-            <SSText color="muted">{size}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">
-              WEIGHT
-            </SSText>
-            <SSText color="muted">{weight}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">
-              VIRTUAL SIZE
-            </SSText>
-            <SSText color="muted">{vsize}</SSText>
-          </SSVStack>
+          <SSTxDetailsBox header="RAW SIZE" text={size} width="33%" />
+          <SSTxDetailsBox header="WEIGHT" text={weight} width="33%" />
+          <SSTxDetailsBox header="VIRTUAL SIZE" text={vsize} width="33%" />
         </SSHStack>
         <SSSeparator color="gradient" />
         <SSHStack>
-          <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">
-              FEES
-            </SSText>
-            <SSText color="muted">{fee}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">
-              FEE SAT/B
-            </SSText>
-            <SSText color="muted">{feePerByte}</SSText>
-          </SSVStack>
-          <SSVStack gap="none" style={{ width: '33%' }}>
-            <SSText weight="bold" size="md">
-              FEE SAT/VB
-            </SSText>
-            <SSText color="muted">{feePerVByte}</SSText>
-          </SSVStack>
+          <SSTxDetailsBox header="FEE" text={fee} width="33%" />
+          <SSTxDetailsBox header="FEE SAT/B" text={feePerByte} width="33%" />
+          <SSTxDetailsBox header="FEE SAT/VB" text={feePerVByte} width="33%" />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSVStack gap="none">
-          <SSText weight="bold" size="md">
-            TRANSACTION RAW
-          </SSText>
-          <SSText color="muted">{raw}</SSText>
-        </SSVStack>
+        <SSTxDetailsBox header="Transaction raw" text={raw} />
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText weight="bold" size="md">
             TRANSACTION DECODED
           </SSText>
         </SSVStack>
-        <SSVStack gap="none">
-          <SSText weight="bold" size="md">
-            Version
-          </SSText>
-          <SSText color="muted">{version}</SSText>
-        </SSVStack>
-        <SSVStack gap="none">
-          <SSText weight="bold" size="md">
-            Number of inputs
-          </SSText>
-          <SSText color="muted">{tx?.vin?.length || '-'}</SSText>
-        </SSVStack>
-        <SSVStack gap="none">
-          <SSText weight="bold" size="md">
-            Number of outputs
-          </SSText>
-          <SSText color="muted">{tx?.vout?.length || '-'}</SSText>
-        </SSVStack>
-        <SSVStack>
-          {(tx?.vin || []).map((vin, index) => (
-            <SSVStack key={index}>
-              <SSSeparator color="gradient" />
-              <SSText weight="bold" center>
-                Input {index}
-              </SSText>
-              <SSVStack gap="none">
-                <SSText weight="bold">Previous TX Output hash</SSText>
-                <SSClipboardCopy text={vin.previousOutput.txid}>
-                  <SSText color="muted">{vin.previousOutput.txid}</SSText>
-                </SSClipboardCopy>
-              </SSVStack>
-              <SSVStack gap="none">
-                <SSText weight="bold">Output index in transaction</SSText>
-                <SSText color="muted">{vin.previousOutput.vout}</SSText>
-              </SSVStack>
-              <SSVStack gap="none">
-                <SSText weight="bold">Sequence</SSText>
-                <SSText color="muted">{vin.sequence}</SSText>
-              </SSVStack>
-              <SSText weight="bold">SigScript</SSText>
-              <SSVStack gap="sm">
-                <SSVStack gap="none">
-                  <SSText size="xxs" weight="bold">
-                    OP_DUP
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    0x72
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    Duplicates the top stack item
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText size="xxs" weight="bold">
-                    OP_HASH160
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    0xa9
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    The input is hashed twice: first with SHA-256 and then with
-                    RIPEMD-160.
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText size="xxs" weight="bold">
-                    76A9145E4FF47CEB3A51CDF7DDD80AFC4ACC5A692DAC2D88AC
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    Raw data
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText size="xxs" weight="bold">
-                    OP_EQUALVERIFY
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    0x88
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    Returns 1 if the inputs are exactly equal, 0 otherwise.
-                    Afterward, OP_VERIFY is executed.
-                  </SSText>
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText size="xxs" weight="bold">
-                    OP_CHECK_SIG
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    0xacc
-                  </SSText>
-                  <SSText size="xxs" color="muted">
-                    The entire transaction's outputs, inputs, and script (from
-                    the most recently-executed OP_CODESEPARATOR to the end) are
-                    hashed. The signature used by OP_CHECKSIG must be a valid
-                    signature for this hash and public key. If it is, 1 is
-                    returned, 0 otherwise. Afterward, OP_VERIFY is executed.
-                  </SSText>
-                </SSVStack>
-              </SSVStack>
-            </SSVStack>
-          ))}
-        </SSVStack>
-        <SSVStack>
-          {(tx?.vout || []).map((vout, index) => (
-            <SSVStack key={index}>
-              <SSSeparator color="gradient" />
-              <TouchableOpacity
-                onPress={() =>
-                  router.navigate(
-                    `/account/${accountId}/transaction/${txid}/utxo/${index}`
-                  )
-                }
-              >
-                <SSText weight="bold" center>
-                  Output {index}
-                </SSText>
-              </TouchableOpacity>
-              <SSVStack gap="none">
-                <SSText weight="bold">Value</SSText>
-                <SSText color="muted">{vout.value}</SSText>
-              </SSVStack>
-              <SSVStack gap="none">
-                <SSText weight="bold">Address</SSText>
-                <SSClipboardCopy text={vout.address}>
-                  <SSText color="muted">{vout.address}</SSText>
-                </SSClipboardCopy>
-              </SSVStack>
-            </SSVStack>
-          ))}
-        </SSVStack>
+        <SSTxDetailsBox header="Version" text={version} />
+        <SSTxDetailsBox header="Number of inputs" text={inputsCount} />
+        <SSTxDetailsBox header="Number of outputs" text={outputsCount} />
+        <SSTxDetailsInputs tx={tx} />
+        <SSTxDetailsOutputs tx={tx} accountId={accountId} />
       </SSVStack>
     </ScrollView>
   )
 }
+
+type SSTxDetailsBoxProps = {
+  header: string
+  text?: string | number | undefined
+  width?: DimensionValue
+}
+
+function SSTxDetailsBox({
+  header,
+  text = '-',
+  width = '100%'
+}: SSTxDetailsBoxProps) {
+  return (
+    <SSVStack gap="none" style={{ width }}>
+      <SSText weight="bold" size="md">
+        {header}
+      </SSText>
+      <SSText color="muted">{text}</SSText>
+    </SSVStack>
+  )
+}
+
+type SSTxDetailsInputsProps = {
+  tx: Transaction | undefined
+}
+
+function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
+  return (
+    <SSVStack>
+      {(tx?.vin || []).map((vin, index) => (
+        <SSVStack key={index}>
+          <SSSeparator color="gradient" />
+          <SSText weight="bold" center>
+            Input {index}
+          </SSText>
+          <SSVStack gap="none">
+            <SSText weight="bold">Previous TX Output hash</SSText>
+            <SSClipboardCopy text={vin.previousOutput.txid}>
+              <SSText color="muted">{vin.previousOutput.txid}</SSText>
+            </SSClipboardCopy>
+          </SSVStack>
+          <SSVStack gap="none">
+            <SSText weight="bold">Output index in transaction</SSText>
+            <SSText color="muted">{vin.previousOutput.vout}</SSText>
+          </SSVStack>
+          <SSVStack gap="none">
+            <SSText weight="bold">Sequence</SSText>
+            <SSText color="muted">{vin.sequence}</SSText>
+          </SSVStack>
+          <SSText weight="bold">SigScript</SSText>
+          <SSVStack gap="sm">
+            <SSVStack gap="none">
+              <SSText size="xxs" weight="bold">
+                OP_DUP
+              </SSText>
+              <SSText size="xxs" color="muted">
+                0x72
+              </SSText>
+              <SSText size="xxs" color="muted">
+                Duplicates the top stack item
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText size="xxs" weight="bold">
+                OP_HASH160
+              </SSText>
+              <SSText size="xxs" color="muted">
+                0xa9
+              </SSText>
+              <SSText size="xxs" color="muted">
+                The input is hashed twice: first with SHA-256 and then with
+                RIPEMD-160.
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText size="xxs" weight="bold">
+                76A9145E4FF47CEB3A51CDF7DDD80AFC4ACC5A692DAC2D88AC
+              </SSText>
+              <SSText size="xxs" color="muted">
+                Raw data
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText size="xxs" weight="bold">
+                OP_EQUALVERIFY
+              </SSText>
+              <SSText size="xxs" color="muted">
+                0x88
+              </SSText>
+              <SSText size="xxs" color="muted">
+                Returns 1 if the inputs are exactly equal, 0 otherwise.
+                Afterward, OP_VERIFY is executed.
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText size="xxs" weight="bold">
+                OP_CHECK_SIG
+              </SSText>
+              <SSText size="xxs" color="muted">
+                0xacc
+              </SSText>
+              <SSText size="xxs" color="muted">
+                The entire transaction's outputs, inputs, and script (from the
+                most recently-executed OP_CODESEPARATOR to the end) are hashed.
+                The signature used by OP_CHECKSIG must be a valid signature for
+                this hash and public key. If it is, 1 is returned, 0 otherwise.
+                Afterward, OP_VERIFY is executed.
+              </SSText>
+            </SSVStack>
+          </SSVStack>
+        </SSVStack>
+      ))}
+    </SSVStack>
+  )
+}
+
+type SSTxDetailsOutputsProps = {
+  tx: Transaction | undefined
+  accountId: string
+}
+
+function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
+  return (
+    <SSVStack>
+      {tx &&
+        (tx?.vout || []).map((vout, index) => (
+          <SSVStack key={index}>
+            <SSSeparator color="gradient" />
+            <TouchableOpacity
+              onPress={() =>
+                router.navigate(
+                  `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
+                )
+              }
+            >
+              <SSText weight="bold" center>
+                Output {index}
+              </SSText>
+            </TouchableOpacity>
+            <SSVStack gap="none">
+              <SSText weight="bold">Value</SSText>
+              <SSText color="muted">{vout.value}</SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText weight="bold">Address</SSText>
+              <SSClipboardCopy text={vout.address}>
+                <SSText color="muted">{vout.address}</SSText>
+              </SSClipboardCopy>
+            </SSVStack>
+          </SSVStack>
+        ))}
+    </SSVStack>
+  )
+}
+
+const styles = StyleSheet.create({
+  button: {
+    //
+    backgroundColor: Colors.gray[500],
+    borderRadius: 5,
+    borderStyle: 'solid',
+    paddingHorizontal: 8,
+    height: 'auto',
+    width: 'auto'
+  },
+  container: {
+    //
+    flexGrow: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    padding: 20
+  }
+})
