@@ -36,6 +36,7 @@ type AccountsAction = {
   setTags: (tags: string[]) => void
   getTx: (account: string, txid: string) => Transaction
   getUtxo: (account: string, txid: string, vout: number) => Utxo
+  setTxLabel: (account: string, txid: string, label: string) => void
   setUtxoLabel: (
     account: string,
     txid: string,
@@ -79,10 +80,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           getBlockchainConfig(backend, url, opts)
         )
 
-        const utxoLabelsDictionary: { [key: string]: string } = {}
+        // TODO: move label backup elsewhere
+        const labelsDictionary: { [key: string]: string } = {}
+        account.transactions.forEach((tx) => {
+          const txRef = tx.id
+          labelsDictionary[txRef] = tx.label || ''
+        })
         account.utxos.forEach((utxo) => {
           const utxoRef = getUtxoOutpoint(utxo)
-          utxoLabelsDictionary[utxoRef] = utxo.label
+          labelsDictionary[utxoRef] = utxo.label
         })
 
         const { transactions, utxos, summary } = await getWalletData(
@@ -92,7 +98,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         for (const index in utxos) {
           const utxoRef = getUtxoOutpoint(utxos[index])
-          utxos[index].label = utxoLabelsDictionary[utxoRef]
+          utxos[index].label = labelsDictionary[utxoRef]
+        }
+        for (const index in transactions) {
+          const txRef = transactions[index].id
+          transactions[index].label = labelsDictionary[txRef]
         }
 
         const txTimestamp = (tx: Transaction) => formatTimestamp(tx.timestamp)
@@ -153,17 +163,30 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         throw new Error(`Utxo ${txid}:${vout} does not exist`)
       },
+      setTxLabel: (accountName, txid, label) => {
+        const account = get().getCurrentAccount(accountName) as Account
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+
+        if (! txIndex)
+          throw new Error(`The transaction ${txid} does not exist in store`)
+
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.name === accountName
+            )
+            state.accounts[index].transactions[txIndex].label = label
+          })
+        )
+      },
       setUtxoLabel: (accountName, txid, vout, label) => {
         const account = get().getCurrentAccount(accountName) as Account
-
-        let utxoIndex = account.utxos.findIndex((u) => {
+        const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
         })
 
-        if (utxoIndex === -1) {
-          get().getUtxo(accountName, txid, vout)
-          utxoIndex = account.utxos.length
-        }
+        if (utxoIndex === -1)
+          throw new Error(`Utxo ${txid}:${vout} does not exist`)
 
         set(
           produce((state) => {

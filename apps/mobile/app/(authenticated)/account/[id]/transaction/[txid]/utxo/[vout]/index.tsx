@@ -13,6 +13,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatLabel } from '@/utils/format'
+import { useEffect, useState } from 'react'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -37,7 +38,7 @@ export default function UtxoDetails() {
   const [label, setLabel] = useState('')
   const [originalLabel, setOriginalLabel] = useState('')
 
-  const fetchUtxoInfo = () => {
+  const updateInfo = () => {
     const tx = getTx(accountId, txid)
     const utxo = getUtxo(accountId, txid, Number(vout))
 
@@ -59,11 +60,7 @@ export default function UtxoDetails() {
     setSelectedTags(tags)
   }
 
-  try {
-    fetchUtxoInfo()
-  } catch {
-    // TODO: show error notification via snack bar
-  }
+  useEffect(updateInfo, [])
 
   const saveLabel = () => {
     let newLabel = label.trim()

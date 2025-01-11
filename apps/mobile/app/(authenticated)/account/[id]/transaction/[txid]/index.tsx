@@ -1,12 +1,10 @@
-import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSSeparator from '@/components/SSSeparator'
-import SSTagInput from '@/components/SSTagInput'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -20,42 +18,35 @@ import {
   formatNumber
 } from '@/utils/format'
 import { useEffect, useState } from 'react'
-import { Transaction } from '@/types/models/Transaction'
 import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import { Colors } from '@/styles'
-import BScript from 'bscript-parser'
+import SSIconButton from '@/components/SSIconButton'
+import { Transaction } from '@/types/models/Transaction'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [fiatCurrency, btcPrice, satsToFiat] = usePriceStore((state) => [
+  const [fiatCurrency, btcPrice] = usePriceStore((state) => [
     state.fiatCurrency,
     state.btcPrice,
     state.satsToFiat
   ])
 
-  const [account, getTags, setTags, getTx] = useAccountsStore((state) => [
-    state.accounts.find((account) => account.name === accountId),
-    state.getTags,
-    state.setTags,
-    state.getTx
-  ])
+  const getTx = useAccountsStore((state) => state.getTx)
 
   const [tx, setTx] = useState({} as Transaction)
-  const [tags, setLocalTags] = useState(getTags())
   const [selectedTags, setSelectedTags] = useState([] as string[])
-  const [label, setLabel] = useState('')
-  const [originalLabel, setOriginalLabel] = useState('')
 
   const placeholder = () => useState('-')
+  const placeholder2 = () => useState('<?>')
 
-  const [amount, setAmount] = placeholder()
+  const [amount, setAmount] = placeholder2()
   const [fee, setFee] = placeholder()
   const [feePerByte, setFeePerByte] = placeholder()
   const [feePerVByte, setFeePerVByte] = placeholder()
   const [height, setHeight] = placeholder()
   const [oldPrice, setOldPrice] = placeholder()
-  const [price, setPrice] = placeholder()
+  const [price, setPrice] = placeholder2()
   const [raw, setRaw] = placeholder()
   const [size, setSize] = placeholder()
   const [timestamp, setTimestamp] = placeholder()
@@ -63,17 +54,19 @@ export default function TxDetails() {
   const [version, setVersion] = placeholder()
   const [vsize, setVsize] = placeholder()
   const [weight, setWeight] = placeholder()
+  const [label, setLabel] = useState('')
 
-  const fetchTxInfo = () => {
+  function updateInfo() {
     const tx = getTx(accountId, txid)
 
     if (!tx) return
 
+    setTx(tx)
+
     const amount = tx.type === 'receive' ? tx.received : tx.sent
 
-    setTx(tx)
-    setType(tx.type)
     setAmount(formatNumber(amount))
+    setType(tx.type)
 
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
 
@@ -103,47 +96,17 @@ export default function TxDetails() {
 
     const rawLabel = tx.label || ''
     const { label, tags } = formatLabel(rawLabel)
-    setOriginalLabel(rawLabel)
     setLabel(label)
     setSelectedTags(tags)
   }
 
-  useEffect(fetchTxInfo, [])
-
-  const saveLabel = () => {
-    let newLabel = label.trim()
-    setLabel(newLabel)
-
-    if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
-
-    // if (newLabel !== originalLabel)
-    // setUtxoLabel(accountId, txid, Number(vout), newLabel)
-
-    router.back()
-  }
-
-  const onAddTag = (tag: string) => {
-    if (!tags.includes(tag)) {
-      const allTags = [...tags, tag]
-      setTags(allTags)
-      setLocalTags(allTags)
-    }
-    const selected = [...selectedTags, tag]
-    setSelectedTags(selected)
-  }
-
-  const onDelTag = (tag: string) => {
-    const selected = selectedTags.filter((t) => t !== tag)
-    setSelectedTags(selected)
-  }
-
-  if (!account) return <Redirect href="/" />
+  useEffect(updateInfo, [])
 
   return (
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
+          headerTitle: () => <SSText>TX Details</SSText>
         }}
       />
       <SSVStack
@@ -166,13 +129,15 @@ export default function TxDetails() {
           <SSText color="muted">
             {price} {fiatCurrency}
           </SSText>
-          <SSHStack gap="xs">
-            {type === 'receive' && <SSIconIncoming height={12} width={12} />}
-            {type === 'send' && <SSIconOutgoing height={12} width={12} />}
-            <SSText center color="muted">
-              {timestamp}
-            </SSText>
-          </SSHStack>
+          {timestamp !== '-' && (
+            <SSHStack gap="xs">
+              {type === 'receive' && <SSIconIncoming height={12} width={12} />}
+              {type === 'send' && <SSIconOutgoing height={12} width={12} />}
+              <SSText center color="muted">
+                {timestamp}
+              </SSText>
+            </SSHStack>
+          )}
           {oldPrice !== '-' && (
             <SSText center color="muted">
               ({oldPrice}) {fiatCurrency}
@@ -180,10 +145,18 @@ export default function TxDetails() {
           )}
         </SSVStack>
         <SSSeparator color="gradient" />
-        <SSVStack gap="none">
+        <SSVStack gap="sm">
           <SSHStack justifyBetween>
             <SSText size="md">{label || i18n.t('account.noLabel')}</SSText>
-            <SSIconEdit height={32} width={32} />
+            <SSIconButton
+              onPress={() =>
+                router.navigate(
+                  `/account/${accountId}/transaction/${txid}/label`
+                )
+              }
+            >
+              <SSIconEdit height={32} width={32} />
+            </SSIconButton>
           </SSHStack>
           <SSHStack gap="sm">
             {selectedTags.map((tag) => (

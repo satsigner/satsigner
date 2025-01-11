@@ -7,7 +7,6 @@ export type Transaction = {
   received: number
   timestamp?: Date
   blockHeight?: number
-  memo?: string
   address?: string
   label?: string
   fee?: number

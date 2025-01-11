@@ -10,6 +10,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   formatAddress,
   formatFiatPrice,
+  formatLabel,
   formatNumber,
   formatPercentualChange
 } from '@/utils/format'
@@ -131,11 +132,13 @@ export default function SSTransactionCard({
               size="md"
               style={[
                 { textAlign: 'right' },
-                !transaction.memo && { color: Colors.gray[100] }
+                !transaction.label && { color: Colors.gray[100] }
               ]}
               numberOfLines={1}
             >
-              {transaction.memo || i18n.t('account.noMemo')}
+              {formatLabel(
+                transaction.label || i18n.t('account.noLabel')
+              ).label}
             </SSText>
             <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
               <SSText color="muted">
