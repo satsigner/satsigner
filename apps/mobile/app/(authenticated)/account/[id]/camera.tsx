@@ -1,5 +1,4 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -12,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors, Layout } from '@/styles'
+import { clearClipboard, getClipboard } from '@/utils/clipboard'
 
 export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
@@ -21,10 +21,9 @@ export default function Camera() {
 
   useEffect(() => {
     ;(async () => {
-      const text = await Clipboard.getStringAsync()
+      const text = await getClipboard()
       setHasToPaste(!!text)
     })()
-
     const subscription = AppState.addEventListener(
       'change',
       async (nextAppState) => {
@@ -33,21 +32,23 @@ export default function Camera() {
           nextAppState === 'active'
         ) {
           setTimeout(async () => {
-            const text = await Clipboard.getStringAsync()
+            const text = await getClipboard()
             setHasToPaste(!!text)
           }, 1) // Refactor: without timeout, getStringAsync returns false
         }
         appState.current = nextAppState
       }
     )
-
     return () => {
       subscription.remove()
     }
   }, [])
 
   async function handlePaste() {
-    await Clipboard.setStringAsync('')
+    const clipboard = await getClipboard()
+    if (clipboard) {
+      await clearClipboard()
+    }
     setHasToPaste(false)
   }
 

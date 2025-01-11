@@ -40,6 +40,7 @@ export const useGestures = ({
   isPanEnabled = true,
   isPinchEnabled = true,
   isDoubleTapEnabled = false,
+  shouldResetOnInteractionEnd = true,
   onInteractionStart,
   onInteractionEnd,
   onPinchStart,
@@ -90,7 +91,7 @@ export const useGestures = ({
         translate.y.value = withTiming(topLimit)
         focal.y.value = withTiming(0)
       }
-    } else {
+    } else if (shouldResetOnInteractionEnd) {
       reset()
     }
   }
@@ -150,7 +151,7 @@ export const useGestures = ({
     if (isInteracting.current && !isPinching.current && !isPanning()) {
       if (isDoubleTapEnabled) {
         moveIntoView()
-      } else {
+      } else if (shouldResetOnInteractionEnd) {
         reset()
       }
       isInteracting.current = false
