@@ -1,2 +1,2 @@
 export type Backend = 'electrum' | 'esplora'
-export type Network = 'testnet' | 'signet'
+export type Network = 'bitcoin' | 'testnet' | 'signet'
