@@ -44,6 +44,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
   account: Account
@@ -181,7 +182,7 @@ function SpendableOutputs({
         >
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
-              <SSVStack gap="xs" key={utxo.txid}>
+              <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                 <SSSeparator color="grayDark" />
                 <SSUtxoCard utxo={utxo} />
               </SSVStack>
