@@ -98,6 +98,11 @@ export default function BitcoinNetwork() {
                 {i18n.t('settings.bitcoinNetwork.network')}
               </SSText>
               <SSCheckbox
+                label="bitcoin"
+                selected={selectedNetwork === 'bitcoin'}
+                onPress={() => setSelectedNetwork('bitcoin')}
+              />
+              <SSCheckbox
                 label="testnet"
                 selected={selectedNetwork === 'testnet'}
                 onPress={() => setSelectedNetwork('testnet')}
