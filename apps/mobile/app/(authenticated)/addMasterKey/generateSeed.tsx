@@ -71,6 +71,7 @@ export default function GenerateSeed() {
                       position={index + 1}
                       value={seedWords ? seedWords[index] : ''}
                       editable={false}
+                      index={index}
                     />
                   ))}
                 </SSSeedLayout>

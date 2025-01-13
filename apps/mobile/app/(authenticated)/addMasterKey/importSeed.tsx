@@ -52,7 +52,8 @@ export default function ImportSeed() {
     setSeedWords,
     setPassphrase,
     updateFingerprint,
-    loadWallet
+    loadWallet,
+    lockSeed
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -65,9 +66,11 @@ export default function ImportSeed() {
       state.setSeedWords,
       state.setPassphrase,
       state.updateFingerprint,
-      state.loadWallet
+      state.loadWallet,
+      state.lockSeed
     ])
   )
+
   const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(seedWordCount)].map((_, index) => ({
       value: '',
@@ -104,7 +107,7 @@ export default function ImportSeed() {
         if (!validWords) {
           continue
         }
-        const checksum = await validateMnemonic(seedCandidate)
+        const checksum = await validateMnemonic(seedCandidate.join(' '))
         if (!checksum) {
           continue
         }
@@ -116,7 +119,7 @@ export default function ImportSeed() {
       const text = (await Clipboard.getStringAsync()).trim()
       const seed = await checkTextHasSeed(text)
       if (seed.length > 0) {
-        setSeedWords(seed)
+        setSeedWords(seed.join(' '))
         setSeedWordsInfo(
           seed.map((value, index) => {
             return { value, index, dirty: false, valid: true }
@@ -153,7 +156,9 @@ export default function ImportSeed() {
     setCurrentWordText(word)
     setSeedWordsInfo(seedWords)
 
-    const mnemonicSeedWords = seedWordsInfo.map((seedWord) => seedWord.value)
+    const mnemonicSeedWords = seedWordsInfo
+      .map((seedWord) => seedWord.value)
+      .join(' ')
 
     const checksumValid = await validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
@@ -212,7 +217,9 @@ export default function ImportSeed() {
 
     setSeedWordsInfo(seedWords)
 
-    const mnemonicSeedWords = seedWords.map((seedWord) => seedWord.value)
+    const mnemonicSeedWords = seedWords
+      .map((seedWord) => seedWord.value)
+      .join(' ')
 
     const checksumValid = await validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
@@ -227,7 +234,9 @@ export default function ImportSeed() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const mnemonicSeedWords = seedWordsInfo.map((seedWord) => seedWord.value)
+    const mnemonicSeedWords = seedWordsInfo
+      .map((seedWord) => seedWord.value)
+      .join(' ')
 
     const checksumValid = await validateMnemonic(mnemonicSeedWords)
     setChecksumValid(checksumValid)
@@ -239,17 +248,19 @@ export default function ImportSeed() {
   }
 
   async function handleOnPressImportSeed() {
-    const seedWords = seedWordsInfo.map((seedWord) => seedWord.value)
+    const seedWords = seedWordsInfo.map((seedWord) => seedWord.value).join(' ')
     setSeedWords(seedWords)
 
     setLoadingAccount(true)
 
     const wallet = await loadWallet()
+    await lockSeed()
 
     setAccountAddedModalVisible(true)
 
     const account = getAccount()
     await addAccount(account)
+
     try {
       const syncedAccount = await syncWallet(wallet, account)
       setSyncedAccount(syncedAccount)

@@ -35,17 +35,25 @@ export default function ConfirmSeed() {
       state.updateAccount
     ])
   )
-  const [name, seedWordCount, seedWords, clearAccount, getAccount, loadWallet] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.name,
-        state.seedWordCount,
-        state.seedWords,
-        state.clearAccount,
-        state.getAccount,
-        state.loadWallet
-      ])
-    )
+  const [
+    name,
+    seedWordCount,
+    seedWords,
+    clearAccount,
+    getAccount,
+    loadWallet,
+    lockSeed
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.seedWordCount,
+      state.seedWords,
+      state.clearAccount,
+      state.getAccount,
+      state.loadWallet,
+      state.lockSeed
+    ])
+  )
 
   const candidateWords = useMemo(() => {
     return getConfirmWordCandidates(seedWords[+index], seedWords)
@@ -75,6 +83,7 @@ export default function ConfirmSeed() {
     setLoadingAccount(true)
 
     const wallet = await loadWallet()
+    await lockSeed()
 
     const account = getAccount()
     await addAccount(account)
