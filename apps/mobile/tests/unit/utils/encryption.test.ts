@@ -1,6 +1,6 @@
 import crypto from 'react-native-aes-crypto'
 
-import { aesEncrypt, aesDecrypt, doubleShaEncrypt } from '@/utils/crypto'
+import { aesDecrypt, aesEncrypt, doubleShaEncrypt } from '@/utils/crypto'
 
 jest.mock('react-native-aes-crypto')
 
