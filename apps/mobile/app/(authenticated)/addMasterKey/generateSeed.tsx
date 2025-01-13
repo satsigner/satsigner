@@ -1,5 +1,5 @@
 import { Stack, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -24,6 +24,7 @@ export default function GenerateSeed() {
     name,
     seedWordCount,
     seedWords,
+    unlockSeed,
     fingerprint,
     setPassphrase,
     updateFingerprint
@@ -32,11 +33,16 @@ export default function GenerateSeed() {
       state.name,
       state.seedWordCount,
       state.seedWords,
+      state.unlockSeed,
       state.fingerprint,
       state.setPassphrase,
       state.updateFingerprint
     ])
   )
+
+  useEffect(() => {
+    unlockSeed()
+  }, [unlockSeed])
 
   const [checksumValid, setChecksumValid] = useState(true)
 

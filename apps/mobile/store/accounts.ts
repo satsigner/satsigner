@@ -29,8 +29,8 @@ type AccountsAction = {
     internalDescriptor: Descriptor
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
-  addAccount: (account: Account) => Promise<void>
-  updateAccount: (account: Account) => Promise<void>
+  addAccount: (account: Account) => void
+  updateAccount: (account: Account) => void
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
@@ -52,21 +52,25 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       getCurrentAccount: (name) => {
         return get().accounts.find((account) => account.name === name)
       },
-      hasAccountWithName: (name) => {
-        return !!get().accounts.find((account) => account.name === name)
+      addAccount: (account) => {
+        set(
+          produce((state: AccountsState) => {
+            state.accounts.push(account)
+          })
+        )
       },
+      hasAccountWithName: (name) =>
+        get().accounts.find((account) => account.name === name) !== undefined,
       loadWalletFromDescriptor: async (
         externalDescriptor,
         internalDescriptor
       ) => {
         const { network } = useBlockchainStore.getState()
-
-        const wallet = getWalletFromDescriptor(
+        return getWalletFromDescriptor(
           externalDescriptor,
           internalDescriptor,
           network as Network
         )
-        return wallet
       },
       syncWallet: async (wallet, account) => {
         const { backend, network, retries, stopGap, timeout, url } =
@@ -78,34 +82,23 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           backend,
           getBlockchainConfig(backend, url, opts)
         )
-
         const oldUtxos = account.utxos
         const utxoLabelsDictionary: { [key: string]: string } = {}
         oldUtxos.forEach((utxo) => {
           const utxoRef = getUtxoOutpoint(utxo)
           utxoLabelsDictionary[utxoRef] = utxo.label
         })
-
         const { transactions, utxos, summary } = await getWalletData(
           wallet,
           network as Network
         )
-
         for (const index in utxos) {
           const utxoRef = getUtxoOutpoint(utxos[index])
           utxos[index].label = utxoLabelsDictionary[utxoRef]
         }
-
         return { ...account, transactions, utxos, summary }
       },
-      addAccount: async (account) => {
-        set(
-          produce((state: AccountsState) => {
-            state.accounts.push(account)
-          })
-        )
-      },
-      updateAccount: async (account) => {
+      updateAccount: (account) => {
         set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(

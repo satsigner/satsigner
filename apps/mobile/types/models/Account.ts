@@ -11,13 +11,15 @@ export type Account = {
     | null
     | undefined
   seedWordCount?: 12 | 15 | 18 | 21 | 24
-  seedWords?: string[]
+  seedWords: string
   passphrase?: string
-  scriptVersion?: 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
-  externalDescriptor?: string
-  internalDescriptor?: string
+  scriptVersion: 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
+  externalDescriptor: string
+  internalDescriptor: string
   fingerprint?: string
-  derivationPath?: string
+  derivationPath: string
+  usedIndexes: number[]
+  currentIndex: number
   transactions: Transaction[]
   utxos: Utxo[]
   summary: {

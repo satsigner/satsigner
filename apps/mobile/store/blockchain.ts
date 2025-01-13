@@ -1,11 +1,12 @@
 import { Blockchain } from 'bdk-rn'
+import { Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getBlockchain } from '@/api/bdk'
 import { ESPLORA_MUTINYNET_URL, getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
-import { type Backend, type Network } from '@/types/settings/blockchain'
+import { type Backend } from '@/types/settings/blockchain'
 
 type BlockchainState = {
   backend: Backend
@@ -31,7 +32,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
     (set, get) => ({
       backend: 'esplora',
-      network: 'signet',
+      network: Network.Signet,
       url: ESPLORA_MUTINYNET_URL,
       timeout: 6,
       retries: 7,

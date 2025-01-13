@@ -2662,6 +2662,18 @@
   resolved "https://registry.npmjs.org/@synonymdev/result/-/result-0.0.2.tgz#c526743e4f1d3ec1d24a1952281b5daa77ba3fbc"
   integrity sha512-Ni5qknulcf350qfPVTw3DWXqT2i6K68BoFc18zlqIAj9YA2RUOIJsKTdemX31i3wSma5LRHVcGLESVga16iAag==
 
+"@tanstack/query-core@5.62.16":
+  version "5.62.16"
+  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.62.16.tgz#f7efc92b1562a054748bc00c7f8d9d833407503b"
+  integrity sha512-9Sgft7Qavcd+sN0V25xVyo0nfmcZXBuODy3FVG7BMWTg1HMLm8wwG5tNlLlmSic1u7l1v786oavn+STiFaPH2g==
+
+"@tanstack/react-query@^5.62.11":
+  version "5.63.0"
+  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.63.0.tgz#18e00e24a485f707cfd41f4b30679f70e6ca6016"
+  integrity sha512-QWizLzSiog8xqIRYmuJRok9VELlXVBAwtINgVCgW1SNvamQwWDO5R0XFSkjoBEj53x9Of1KAthLRBUC5xmtVLQ==
+  dependencies:
+    "@tanstack/query-core" "5.62.16"
+
 "@tanstack/react-virtual@^3.0.0-beta.60":
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/@tanstack/react-virtual/-/react-virtual-3.2.1.tgz#58ac9af23ff08b5f05a6dfe6a59deac2f9451508"
@@ -10438,6 +10450,11 @@ react-is@^17.0.1:
   version "17.0.2"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-17.0.2.tgz#e691d4a8e9c789365655539ab372762b0efb54f0"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
+
+react-native-aes-crypto@^3.2.1:
+  version "3.2.1"
+  resolved "https://registry.npmjs.org/react-native-aes-crypto/-/react-native-aes-crypto-3.2.1.tgz#25d508f38a068b4b302d9dd51ad9ca87afc9dba6"
+  integrity sha512-v7KDt1I2UqYwRJRFeJrB8zABQuUsawCyWLK+h5AF2aZqsrsIaR/+DaZrqCetR9QvYRI+oEVsrwBUv9xYXhfCBQ==
 
 react-native-bouncy-checkbox@^4.0.0:
   version "4.0.0"

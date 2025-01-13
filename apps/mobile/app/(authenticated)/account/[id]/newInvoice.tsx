@@ -1,20 +1,47 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useGetAddress } from '@/hooks/useGetAddress'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function NewInvoice() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { data, refetch } = useGetAddress(id!)
+  const [updateAccount] = useAccountsStore(
+    useShallow((state) => [state.updateAccount])
+  )
 
+  async function generateNewAddress() {
+    if (!data?.account) return
+
+    data!.account.usedIndexes.push(data!.account.currentIndex)
+    data!.account.currentIndex += 1
+
+    updateAccount(data.account)
+    await refetch()
+  }
+
+  async function generatePreviousAddress() {
+    if (!data?.account) return
+
+    if (Number(data.account.currentIndex) - 1 >= 0) {
+      data!.account.currentIndex = data!.account.currentIndex - 1
+      updateAccount(data.account)
+    }
+
+    await refetch()
+  }
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -35,16 +62,16 @@ export default function NewInvoice() {
               <SSText color="muted" uppercase>
                 {i18n.t('newInvoice.path')}
               </SSText>
-              <SSText>m/84'/0'/0'/0/1</SSText>
+              <SSText>{data?.path}</SSText>
             </SSHStack>
-            <SSText>🟢 Never used</SSText>
+            <SSText>{data?.used ? '🔴 Used' : '🟢 Never used'}</SSText>
           </SSVStack>
-          <SSQRCode value="https://satsigner.com" />
+          <SSQRCode value={data?.address || ''} />
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
               {i18n.t('newInvoice.address')}
             </SSText>
-            <SSText size="lg">https://satsigner.com</SSText>
+            <SSText size="md">{data?.address}</SSText>
           </SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
@@ -58,10 +85,15 @@ export default function NewInvoice() {
           </SSFormLayout>
           <SSVStack widthFull>
             <SSButton
-              label={i18n.t('newInvoice.generateAnotherInvoice')}
+              onPress={() => generateNewAddress()}
+              label={i18n.t('newInvoice.newAddress')}
               variant="secondary"
             />
-            <SSButton label={i18n.t('common.cancel')} variant="ghost" />
+            <SSButton
+              onPress={() => generatePreviousAddress()}
+              label={i18n.t('newInvoice.prevAddress')}
+              variant="ghost"
+            />
           </SSVStack>
         </SSVStack>
       </ScrollView>

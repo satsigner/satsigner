@@ -106,7 +106,7 @@
     },
     "account": {
       "signAndSend": "Sign & Send",
-      "newInvoice": "New Invoice",
+      "receive": "Receive",
       "parentAccountActivity": "Parent Account Activity",
       "noMemo": "No memo",
       "noLabel": "No label"
@@ -154,7 +154,9 @@
       "address": "Address",
       "customAmount": "Custom Amount",
       "memo": "Memo",
-      "generateAnotherInvoice": "Generate another invoice"
+      "generateAnotherInvoice": "Generate another invoice",
+      "newAddress": "Generate new Address",
+      "prevAddress": "Previous Address"
     },
     "addMasterKey": {
       "title": "Add Master Key",

@@ -1,21 +1,19 @@
-import { type Account } from '@/types/models/Account'
-
 /**
  * Returns a shuffled 3 word list that contains the correct seed word
  *
  * @param currentWord - The current seed word
- * @param seedWords - List of seed words
+ * @param seedWords - String of seed words separated by space
  * @returns A list with 3 candidate words
  */
-function getConfirmWordCandidates(
-  currentWord: string,
-  seedWords: NonNullable<Account['seedWords']>
-) {
+function getConfirmWordCandidates(currentWord: string, seedWords: string) {
   const candidates: string[] = []
   candidates.push(currentWord)
 
+  const seedWordsArray = seedWords.split(' ')
+
   while (candidates.length < 3) {
-    const newCandidate = seedWords[Math.floor(Math.random() * seedWords.length)]
+    const newCandidate =
+      seedWordsArray[Math.floor(Math.random() * seedWordsArray.length)]
     if (!candidates.includes(newCandidate)) candidates.push(newCandidate)
   }
 

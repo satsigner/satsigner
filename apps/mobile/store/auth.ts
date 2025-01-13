@@ -1,3 +1,4 @@
+import crypto from 'react-native-aes-crypto'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -10,7 +11,7 @@ import mmkvStorage from '@/storage/mmkv'
 import { PageRoute } from '@/types/navigation/page'
 import { formatPageUrl } from '@/utils/format'
 
-const PIN_KEY = 'satsigner_pin'
+export const PIN_KEY = 'satsigner_pin'
 
 type AuthState = {
   firstTime: boolean
@@ -57,11 +58,13 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ lockTriggered })
       },
       setPin: async (pin) => {
-        await setItem(PIN_KEY, pin)
+        const hashedPin = await crypto.sha256(await crypto.sha256(pin))
+        await setItem(PIN_KEY, hashedPin)
       },
       validatePin: async (pin) => {
+        const hashedPin = await crypto.sha256(await crypto.sha256(pin))
         const savedPin = await getItem(PIN_KEY)
-        return pin === savedPin
+        return hashedPin === savedPin
       },
       incrementPinTries: () => {
         set({ pinTries: get().pinTries + 1 })

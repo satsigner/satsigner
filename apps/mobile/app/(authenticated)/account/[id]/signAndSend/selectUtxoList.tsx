@@ -30,7 +30,6 @@ export default function SelectUtxoList() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -44,17 +43,19 @@ export default function SelectUtxoList() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-
-  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
+  const [getCurrentAccount] = useAccountsStore(
+    useShallow((state) => [state.getCurrentAccount])
+  )
+  const account = getCurrentAccount(id!)
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')
 
   const hasSelectedUtxos = inputs.size > 0
-  const selectedAllUtxos = inputs.size === account.utxos.length
+  const selectedAllUtxos = inputs.size === account?.utxos.length
 
   const largestValue = useMemo(
-    () => Math.max(...account.utxos.map((utxo) => utxo.value)),
+    () => Math.max(...account.utxos.map((utxo: Utxo) => utxo.value)),
     [account.utxos]
   )
 
@@ -129,7 +130,8 @@ export default function SelectUtxoList() {
             <SSVStack itemsCenter gap="xs">
               <SSText>
                 {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
+                {account?.utxos.length}{' '}
+                {i18n.t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>

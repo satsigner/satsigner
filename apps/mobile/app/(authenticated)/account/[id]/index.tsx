@@ -1,5 +1,4 @@
 import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useState } from 'react'
@@ -315,17 +314,16 @@ export default function AccountView() {
       return
 
     const [externalDescriptor, internalDescriptor] = await Promise.all([
-      new Descriptor().create(account.externalDescriptor, network as Network),
-      new Descriptor().create(account.internalDescriptor, network as Network)
+      new Descriptor().create(account.externalDescriptor, network),
+      new Descriptor().create(account.internalDescriptor, network)
     ])
 
     const wallet = await loadWalletFromDescriptor(
       externalDescriptor,
       internalDescriptor
     )
-
     const syncedAccount = await syncWallet(wallet, account)
-    await updateAccount(syncedAccount)
+    updateAccount(syncedAccount)
   }
 
   async function refresh() {
@@ -346,7 +344,6 @@ export default function AccountView() {
 
   const renderTab = () => {
     // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
-
     return (
       <SSBackgroundGradient orientation="horizontal">
         <SSHStack
@@ -539,7 +536,7 @@ export default function AccountView() {
                   borderLeftColor: Colors.gray[600]
                 }}
               >
-                <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
+                <SSText uppercase>{i18n.t('account.receive')}</SSText>
               </SSActionButton>
             </SSHStack>
             <SSSeparator
