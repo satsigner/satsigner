@@ -11,7 +11,8 @@ export type Account = {
     | null
     | undefined
   seedWordCount?: 12 | 15 | 18 | 21 | 24
-  seedWords?: string[]
+  /** Seed phrase with seed words separated with space */
+  seedWords?: string
   passphrase?: string
   scriptVersion?: 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
   externalDescriptor?: string
