@@ -25,18 +25,24 @@ jobs:
         with:
           cmd: install
 
-      - name: test
+      - name: type check
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: test
+          cmd: type-check
           dir: apps/mobile
+
+      - name: format
+        uses: borales/actions-yarn@v4.2.0
+        with:
+          cmd: format
 
       - name: lint
         uses: borales/actions-yarn@v4.2.0
         with:
           cmd: lint
 
-      - name: format
+      - name: test
         uses: borales/actions-yarn@v4.2.0
         with:
-          cmd: format
+          cmd: test
+          dir: apps/mobile

@@ -89,12 +89,15 @@ export class Esplora {
   async getTxStatus(txid: string) {
     return await this._call('/tx/' + txid + '/status')
   }
+
   async getBlockTxids(hash: string): Promise<any> {
     return await this._call('/block/' + hash + '/txids')
   }
+
   async getTxHex(txid: string) {
     return await this._call('/tx/' + txid + '/hex')
   }
+
   async getTxRaw(txid: string) {
     return await this._call('/tx/' + txid + '/raw')
   }
@@ -105,17 +108,64 @@ export class Esplora {
     }[]
   }
 
+  async getBlockInfo(blockHash: string) {
+    return await this._call('/block/' + blockHash)
+  }
+
+  async getBlockStatus(blockHash: string) {
+    return await this._call('/block/' + blockHash + '/status')
+  }
+
+  async getBlockTransactions(blockHash: string, startIndex: number = 0) {
+    return await this._call('/block/' + blockHash + '/txs/' + startIndex)
+  }
+
+  async getBlockTransactionIds(blockHash: string) {
+    return await this._call('/block/' + blockHash + '/txids')
+  }
+
+  async getBlockAtHeight(height: number) {
+    return await this._call('/block-height/' + height)
+  }
+
+  async getLatestBlockHash() {
+    return await this._call('/blocks/tip/hash')
+  }
+
+  async getLatestBlockHeight() {
+    return await this._call('/blocks/tip/height')
+  }
+
+  async getBlocks(startHeight: number) {
+    return await this._call('/blocks/' + startHeight)
+  }
+
   async getAddressTx(address: string) {
     return await this._call('/address/' + address + '/txs')
   }
+
   async getAddressTxInMempool(address: string) {
     return (await this._call(
       '/address/' + address + '/txs/mempool'
     )) as EsploraTx[]
   }
+
   async getAddressUtxos(address: string): Promise<EsploraUtxo[]> {
     return await this._call('/address/' + address + '/utxo')
   }
+
+  async getMempoolInfo() {
+    return await this._call('/mempool')
+  }
+
+  async getMempoolTxIds() {
+    return await this._call('/mempool/txids')
+  }
+
+  async getRecentMempool() {
+    return await this._call('/mempool/recent')
+  }
+
   async getFeeEstimates() {
     return await this._call('/fee-estimates')
   }

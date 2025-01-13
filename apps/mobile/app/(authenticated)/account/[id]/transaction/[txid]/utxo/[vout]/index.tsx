@@ -77,7 +77,7 @@ export default function UtxoDetails() {
     if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
 
     if (newLabel !== originalLabel)
-      setUtxoLabel(accountId, txid, Number(vout), newLabel)
+      setUtxoLabel(accountId!, txid!, Number(vout), newLabel)
 
     router.back()
   }
