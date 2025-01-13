@@ -57,7 +57,7 @@ export default function ConfirmSeed() {
 
   const candidateWords = useMemo(() => {
     return getConfirmWordCandidates(seedWords[+index!], seedWords.join(' '))
-  }, [seedWords, index])
+  }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
