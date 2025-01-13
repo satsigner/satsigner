@@ -47,7 +47,7 @@ export default function ConfirmSeed() {
     useShallow((state) => [
       state.name,
       state.seedWordCount,
-      state.seedWords,
+      state.seedWords.split(' '),
       state.clearAccount,
       state.getAccount,
       state.loadWallet,
@@ -56,7 +56,7 @@ export default function ConfirmSeed() {
   )
 
   const candidateWords = useMemo(() => {
-    return getConfirmWordCandidates(seedWords[+index]!, seedWords)
+    return getConfirmWordCandidates(seedWords[+index], seedWords.join(' '))
   }, [seedWords, index])
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
