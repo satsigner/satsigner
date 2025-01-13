@@ -56,7 +56,7 @@ export default function ConfirmSeed() {
   )
 
   const candidateWords = useMemo(() => {
-    return getConfirmWordCandidates(seedWords[+index], seedWords.join(' '))
+    return getConfirmWordCandidates(seedWords[+index!], seedWords.join(' '))
   }, [seedWords, index])
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
@@ -71,7 +71,7 @@ export default function ConfirmSeed() {
   async function handleNavigateNextWord() {
     if (!seedWordCount || !selectedCheckbox) return
 
-    if (candidateWords[selectedCheckbox - 1] !== seedWords[+index]!)
+    if (candidateWords[selectedCheckbox - 1] !== seedWords[+index!])
       return setIncorrectWordModalVisible(true)
 
     if (+index! + 1 < seedWordCount)
