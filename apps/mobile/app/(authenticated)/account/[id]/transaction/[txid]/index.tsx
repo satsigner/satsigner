@@ -35,14 +35,6 @@ const t = (translate: string) => i18n.t(`txDetails.${translate}`)
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [fiatCurrency, btcPrice] = usePriceStore((state) => [
-    state.fiatCurrency,
-    state.btcPrice,
-    state.satsToFiat
-  ])
-
-  const getBlockchainHeight = useBlockchainStore(state => state.getBlockchainHeight)
-
   const tx = useAccountsStore((state) =>
     state.accounts
       .find((account) => account.name === accountId)
@@ -53,37 +45,21 @@ export default function TxDetails() {
 
   const placeholder = '-'
 
-  const [amount, setAmount] = useState('')
-  const [confirmations, setConfirmations] = useState(0)
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
   const [height, setHeight] = useState(placeholder)
   const [label, setLabel] = useState(placeholder)
-  const [oldPrice, setOldPrice] = useState(placeholder)
-  const [price, setPrice] = useState('')
   const [raw, setRaw] = useState(placeholder)
   const [size, setSize] = useState(placeholder)
   const [inputsCount, setInputsCount] = useState(placeholder)
   const [outputsCount, setOutputsCount] = useState(placeholder)
-  const [timestamp, setTimestamp] = useState('')
-  const [type, setType] = useState(placeholder)
   const [version, setVersion] = useState(placeholder)
   const [vsize, setVsize] = useState(placeholder)
   const [weight, setWeight] = useState(placeholder)
 
   async function updateInfo() {
     if (!tx) return
-
-    const amount = tx.type === 'receive' ? tx.received : tx.sent
-
-    setAmount(formatNumber(amount))
-    setType(tx.type)
-
-    if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
-
-    if (tx.prices && tx.prices[fiatCurrency])
-      setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency]))
 
     if (tx.blockHeight) setHeight(tx.blockHeight.toString())
 
@@ -99,8 +75,6 @@ export default function TxDetails() {
 
     if (tx.fee && tx.vsize) setFeePerVByte(formatNumber(tx.fee / tx.vsize))
 
-    if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
-
     if (tx.version) setVersion(tx.version.toString())
 
     if (tx.raw)
@@ -114,10 +88,6 @@ export default function TxDetails() {
     const { label, tags } = formatLabel(rawLabel)
     setLabel(label)
     setSelectedTags(tags)
-
-    const blockchainHeight = await getBlockchainHeight()
-    if (tx.blockHeight) setConfirmations(blockchainHeight - tx.blockHeight)
-
   }
 
   useEffect(() => {
@@ -137,59 +107,7 @@ export default function TxDetails() {
         }}
       />
       <SSVStack style={styles.container}>
-        <SSVStack gap="none" style={{ alignItems: 'center' }}>
-          {timestamp && (
-            <SSHStack gap="xs">
-              {type === 'receive' && <SSIconIncoming height={12} width={12} />}
-              {type === 'send' && <SSIconOutgoing height={12} width={12} />}
-              <SSText center color="muted">
-                {timestamp}
-              </SSText>
-            </SSHStack>
-          )}
-          <SSHStack>
-            <SSHStack
-              gap="xs"
-              style={{ alignItems: 'baseline', width: 'auto' }}
-            >
-              <SSText size="xl" style={{ lineHeight: 30 }}>
-                {amount}
-              </SSText>
-              <SSText color="muted">
-                {i18n.t('bitcoin.sats').toLowerCase()}
-              </SSText>
-            </SSHStack>
-            <SSHStack gap="xs">
-              {price && <SSText>{price}</SSText>}
-              {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
-              {(price || oldPrice) && (
-                <SSText color="muted">{fiatCurrency}</SSText>
-              )}
-            </SSHStack>
-          </SSHStack>
-          <SSHStack gap="sm">
-            <SSText
-              style={{
-                color: (confirmations < 1) ? Colors.error :
-                  (confirmations < 6) ? Colors.warning :
-                  Colors.success
-              }}
-            >
-              {formatConfirmations(confirmations)}
-            </SSText>
-            {inputsCount && (
-              <SSHStack gap="xs">
-                <SSText color="muted">
-                  {i18n.t('common.from').toLowerCase()}
-                </SSText>
-                <SSText>
-                  {inputsCount}{' '}
-                  inputs
-                </SSText>
-              </SSHStack>
-            )}
-          </SSHStack>
-        </SSVStack>
+        <SSTxDetailsHeader tx={tx} />
         <SSSeparator color="gradient" />
         <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
           <SSVStack gap="sm">
@@ -197,32 +115,28 @@ export default function TxDetails() {
               {t('labels')}
             </SSText>
             {label && <SSText>{label}</SSText>}
-            {selectedTags.length > 0 && <SSHStack gap="sm">
-              {selectedTags.map((tag) => (
-                <SSButton
-                  key={tag}
-                  label={tag}
-                  uppercase={false}
-                  style={styles.button}
-                />
-              ))}
-            </SSHStack>}
+            {selectedTags.length > 0 && (
+              <SSHStack gap="sm">
+                {selectedTags.map((tag) => (
+                  <SSButton
+                    key={tag}
+                    label={tag}
+                    uppercase={false}
+                    style={styles.button}
+                  />
+                ))}
+              </SSHStack>
+            )}
             {!label && (
-              <SSText color="muted">
-                {i18n.t('account.noLabel')}
-              </SSText>
+              <SSText color="muted">{i18n.t('account.noLabel')}</SSText>
             )}
             {selectedTags.length === 0 && (
-              <SSText color="muted">
-                {i18n.t('account.noTags')}
-              </SSText>
+              <SSText color="muted">{i18n.t('account.noTags')}</SSText>
             )}
           </SSVStack>
           <SSIconButton
             onPress={() =>
-              router.navigate(
-                `/account/${accountId}/transaction/${txid}/label`
-            )
+              router.navigate(`/account/${accountId}/transaction/${txid}/label`)
             }
           >
             <SSIconEdit height={32} width={32} />
@@ -293,6 +207,94 @@ function SSTxDetailsBox({
         {header}
       </SSText>
       <SSText color="muted">{text}</SSText>
+    </SSVStack>
+  )
+}
+
+type SSTxDetailsHeaderProps = {
+  tx: Transaction | undefined
+}
+
+export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
+  const [fiatCurrency, btcPrice] = usePriceStore((state) => [
+    state.fiatCurrency,
+    state.btcPrice
+  ])
+
+  const getBlockchainHeight = useBlockchainStore(
+    (state) => state.getBlockchainHeight
+  )
+
+  const [amount, setAmount] = useState('')
+  const [confirmations, setConfirmations] = useState(0)
+  const [oldPrice, setOldPrice] = useState('')
+  const [price, setPrice] = useState('')
+  const [timestamp, setTimestamp] = useState('')
+  const [type, setType] = useState('')
+  const [inputsCount, setInputsCount] = useState(0)
+
+  const updateInfo = async () => {
+    if (!tx) return
+
+    const amount = tx.type === 'receive' ? tx.received : tx.sent
+
+    setAmount(formatNumber(amount))
+    setType(tx.type)
+
+    if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
+
+    if (tx.prices) {
+    }
+    setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency]))
+
+    if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
+
+    if (tx.vin) setInputsCount(tx.vin.length)
+
+    if (tx.blockHeight) {
+      const blockchainHeight = await getBlockchainHeight()
+      const confirmations = blockchainHeight - tx.blockHeight
+      setConfirmations(confirmations)
+    }
+  }
+
+  useEffect(() => {
+    updateInfo()
+  }, [tx])
+
+  return (
+    <SSVStack gap="none" style={{ alignItems: 'center' }}>
+      {timestamp && (
+        <SSHStack gap="xs">
+          {type === 'receive' && <SSIconIncoming height={12} width={12} />}
+          {type === 'send' && <SSIconOutgoing height={12} width={12} />}
+          <SSText center color="muted">
+            {timestamp}
+          </SSText>
+        </SSHStack>
+      )}
+      <SSHStack>
+        <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
+          <SSText size="xl" style={{ lineHeight: 30 }}>
+            {amount}
+          </SSText>
+          <SSText color="muted">{i18n.t('bitcoin.sats').toLowerCase()}</SSText>
+        </SSHStack>
+        <SSHStack gap="xs">
+          {price && <SSText>{price}</SSText>}
+          {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
+          {(price || oldPrice) && <SSText color="muted">{fiatCurrency}</SSText>}
+        </SSHStack>
+      </SSHStack>
+      <SSHStack gap="sm">
+        <SSText style={{ color: confirmations < 1 ? Colors.error : confirmations < 6 ? Colors.warning : Colors.success }}>
+          {formatConfirmations(confirmations)}
+        </SSText>
+        <SSHStack gap="xs">
+          <SSText color="muted">{i18n.t('common.from').toLowerCase()}</SSText>
+          <SSText>{inputsCount || '?'} inputs</SSText>
+        </SSHStack>
+      </SSHStack>
     </SSVStack>
   )
 }

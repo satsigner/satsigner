@@ -13,6 +13,7 @@ import { Account } from '@/types/models/Account'
 import { Transaction } from '@/types/models/Transaction'
 import { TxSearchParams } from '@/types/navigation/searchParams'
 import { formatLabel } from '@/utils/format'
+import { SSTxDetailsHeader } from '.'
 
 export default function SSTxLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -78,9 +79,7 @@ export default function SSTxLabel() {
         }}
       />
       <SSVStack style={{ padding: 20 }}>
-        <SSText center size="lg">
-          Edit TX Label
-        </SSText>
+        <SSTxDetailsHeader tx={tx} />
         <SSText weight="bold" uppercase>
           {i18n.t('common.label')}
         </SSText>
