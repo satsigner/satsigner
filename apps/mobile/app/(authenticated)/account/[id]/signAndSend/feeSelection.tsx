@@ -19,7 +19,7 @@ export default function FeeSelection() {
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
 
-  const account = getCurrentAccount(id)!
+  const account = getCurrentAccount(id!)!
 
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
