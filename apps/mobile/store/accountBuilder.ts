@@ -167,7 +167,10 @@ const useAccountBuilderStore = create<
     const savedPin = await getItem(PIN_KEY)
     if (!savedPin) return
 
-    const encryptedSeedWords = await aesEncrypt(get().seedWords, savedPin)
+    const encryptedSeedWords = await aesEncrypt(
+      get().seedWords.replace(/\s+/g, ','),
+      savedPin
+    )
     set({ seedWords: encryptedSeedWords })
   }
 }))
