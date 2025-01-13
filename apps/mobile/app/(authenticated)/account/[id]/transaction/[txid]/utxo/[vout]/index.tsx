@@ -40,8 +40,8 @@ export default function UtxoDetails() {
 
   useEffect(() => {
     const fetchUtxoInfo = async () => {
-      const tx = await getTx(accountId, txid)
-      const utxo = await getUtxo(accountId, txid, Number(vout))
+      const tx = await getTx(accountId!, txid)
+      const utxo = await getUtxo(accountId!, txid, Number(vout))
 
       if (!tx) return
       if (!utxo) return
@@ -76,7 +76,7 @@ export default function UtxoDetails() {
     if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
 
     if (newLabel !== originalLabel)
-      setUtxoLabel(accountId, txid, Number(vout), newLabel)
+      setUtxoLabel(accountId!, txid, Number(vout), newLabel)
 
     router.back()
   }
