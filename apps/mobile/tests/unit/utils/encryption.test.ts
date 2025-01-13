@@ -15,10 +15,12 @@ describe('encryption utils', () => {
       expect(crypto.encrypt).toHaveBeenCalledWith(
         text,
         key,
-        'satsigner',
+        '7361747369676e65725f5f69766b6579',
         'aes-256-cbc'
       )
-      expect(result).toBe(`encrypted:${text}:${key}:satsigner:aes-256-cbc`)
+      expect(result).toBe(
+        `encrypted:${text}:${key}:7361747369676e65725f5f69766b6579:aes-256-cbc`
+      )
     })
 
     it('should return correct AES decrypted output', async () => {
@@ -30,11 +32,11 @@ describe('encryption utils', () => {
       expect(crypto.decrypt).toHaveBeenCalledWith(
         ciphertext,
         key,
-        'satsigner',
+        '7361747369676e65725f5f69766b6579',
         'aes-256-cbc'
       )
       expect(result).toBe(
-        `decrypted:${ciphertext}:${key}:satsigner:aes-256-cbc`
+        `decrypted:${ciphertext}:${key}:7361747369676e65725f5f69766b6579:aes-256-cbc`
       )
     })
   })
