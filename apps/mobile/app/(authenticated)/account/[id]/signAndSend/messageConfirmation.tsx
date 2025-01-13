@@ -17,7 +17,7 @@ export default function MessageConfirmation() {
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
 
-  const account = getCurrentAccount(id)!
+  const account = getCurrentAccount(id!)!
 
   return (
     <>

@@ -46,7 +46,7 @@ export default function IOPreview() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
+  const account = getCurrentAccount(id!)! // Make use of non-null assertion operator for now
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
