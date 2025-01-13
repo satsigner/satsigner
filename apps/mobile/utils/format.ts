@@ -1,3 +1,4 @@
+import { i18n } from '@/locales'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
@@ -71,9 +72,40 @@ function formatFiatPrice(sats: number, btcPrice: number) {
   return formatNumber((sats * btcPrice) / SATS_PER_BITCOIN, 2)
 }
 
+  function formatConfirmations(confirmations: number) {
+    if (confirmations <= 0)
+      return i18n.t('bitcoin.confirmations.unconfirmed')
+
+    if (confirmations === 1)
+      return `1 ${i18n.t('bitcoin.confirmations.oneBlock').toLowerCase()}`
+
+    const manyBlocks = i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()
+
+    if (confirmations < 6)
+      return `${confirmations} ${manyBlocks}`
+
+    if (confirmations < 10)
+      return `6+ ${manyBlocks}`
+
+    if (confirmations < 100)
+      return `10+ ${manyBlocks}`
+
+    if (confirmations < 1_000)
+      return `100+ ${manyBlocks}`
+
+    if (confirmations < 10_000)
+      return `1k+ ${manyBlocks}`
+
+    if (confirmations < 100_000)
+      return `10k+ ${manyBlocks}`
+
+    return `100k+ ${manyBlocks}`
+  }
+
 export {
   formatAddress,
   formatDate,
+  formatConfirmations,
   formatFiatPrice,
   formatLabel,
   formatNumber,

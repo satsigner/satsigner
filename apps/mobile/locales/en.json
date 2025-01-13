@@ -110,7 +110,8 @@
       "newInvoice": "New Invoice",
       "parentAccountActivity": "Parent Account Activity",
       "noMemo": "No memo",
-      "noLabel": "No label"
+      "noLabel": "No label",
+      "noTags": "No tags"
     },
     "signAndSend": {
       "selectSpendableOutputs": "Select spendable outputs",
@@ -269,7 +270,8 @@
       "output": "Output",
       "inputPrevTx": "Previous TX Output hash",
       "inputPrevOut": "Output index in transaction",
-      "inputSequence": "Sequence"
+      "inputSequence": "Sequence",
+      "labels": "TRANSACTION LABEL"
     }
   }
 }

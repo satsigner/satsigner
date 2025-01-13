@@ -10,6 +10,7 @@ import { Currency } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import {
   formatAddress,
+  formatConfirmations,
   formatFiatPrice,
   formatLabel,
   formatNumber,
@@ -38,26 +39,6 @@ export default function SSTransactionCard({
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
     : 0
-
-  function getConfirmationsText() {
-    if (confirmations <= 0) return i18n.t('bitcoin.confirmations.unconfirmed')
-    else if (confirmations === 1)
-      return `1 ${i18n.t('bitcoin.confirmations.oneBlock').toLowerCase()}`
-    else if (confirmations < 6)
-      return `${confirmations} ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-    else if (confirmations < 10)
-      return `6+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-    else if (confirmations < 100)
-      return `10+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-    else if (confirmations < 1_000)
-      return `100+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-    else if (confirmations < 10_000)
-      return `1k+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-    else if (confirmations < 100_000)
-      return `10k+ ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-    else
-      return `100k ${i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()}`
-  }
 
   function getConfirmationsColor() {
     if (confirmations <= 0) return styles.unconfirmed
@@ -125,7 +106,7 @@ export default function SSTransactionCard({
         </SSVStack>
         <SSVStack justifyBetween>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
-            {getConfirmationsText()}
+            {formatConfirmations(confirmations)}
           </SSText>
           <SSVStack gap="xs">
             <SSText

@@ -18,10 +18,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { Transaction } from '@/types/models/Transaction'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
 import {
+  formatConfirmations,
   formatDate,
   formatFiatPrice,
   formatLabel,
@@ -39,6 +41,8 @@ export default function TxDetails() {
     state.satsToFiat
   ])
 
+  const getBlockchainHeight = useBlockchainStore(state => state.getBlockchainHeight)
+
   const tx = useAccountsStore((state) =>
     state.accounts
       .find((account) => account.name === accountId)
@@ -48,27 +52,27 @@ export default function TxDetails() {
   const [selectedTags, setSelectedTags] = useState([] as string[])
 
   const placeholder = '-'
-  const placeholder2 = '?'
 
-  const [amount, setAmount] = useState(placeholder2)
+  const [amount, setAmount] = useState('')
+  const [confirmations, setConfirmations] = useState(0)
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
   const [height, setHeight] = useState(placeholder)
   const [label, setLabel] = useState(placeholder)
   const [oldPrice, setOldPrice] = useState(placeholder)
-  const [price, setPrice] = useState(placeholder2)
+  const [price, setPrice] = useState('')
   const [raw, setRaw] = useState(placeholder)
   const [size, setSize] = useState(placeholder)
   const [inputsCount, setInputsCount] = useState(placeholder)
   const [outputsCount, setOutputsCount] = useState(placeholder)
-  const [timestamp, setTimestamp] = useState(placeholder)
+  const [timestamp, setTimestamp] = useState('')
   const [type, setType] = useState(placeholder)
   const [version, setVersion] = useState(placeholder)
   const [vsize, setVsize] = useState(placeholder)
   const [weight, setWeight] = useState(placeholder)
 
-  function updateInfo() {
+  async function updateInfo() {
     if (!tx) return
 
     const amount = tx.type === 'receive' ? tx.received : tx.sent
@@ -110,6 +114,10 @@ export default function TxDetails() {
     const { label, tags } = formatLabel(rawLabel)
     setLabel(label)
     setSelectedTags(tags)
+
+    const blockchainHeight = await getBlockchainHeight()
+    if (tx.blockHeight) setConfirmations(blockchainHeight - tx.blockHeight)
+
   }
 
   useEffect(() => {
@@ -130,18 +138,7 @@ export default function TxDetails() {
       />
       <SSVStack style={styles.container}>
         <SSVStack gap="none" style={{ alignItems: 'center' }}>
-          <SSHStack gap="xxs" style={{ alignItems: 'baseline', width: 'auto' }}>
-            <SSText size="4xl" style={{ lineHeight: 30 }}>
-              {amount}
-            </SSText>
-            <SSText color="muted">
-              {i18n.t('bitcoin.sats').toLowerCase()}
-            </SSText>
-          </SSHStack>
-          <SSText color="muted">
-            {price} {fiatCurrency}
-          </SSText>
-          {timestamp !== '-' && (
+          {timestamp && (
             <SSHStack gap="xs">
               {type === 'receive' && <SSIconIncoming height={12} width={12} />}
               {type === 'send' && <SSIconOutgoing height={12} width={12} />}
@@ -150,37 +147,87 @@ export default function TxDetails() {
               </SSText>
             </SSHStack>
           )}
-          {oldPrice !== '-' && (
-            <SSText center color="muted">
-              ({oldPrice}) {fiatCurrency}
-            </SSText>
-          )}
-        </SSVStack>
-        <SSSeparator color="gradient" />
-        <SSVStack gap="sm">
-          <SSHStack justifyBetween>
-            <SSText size="md">{label || i18n.t('account.noLabel')}</SSText>
-            <SSIconButton
-              onPress={() =>
-                router.navigate(
-                  `/account/${accountId}/transaction/${txid}/label`
-                )
-              }
+          <SSHStack>
+            <SSHStack
+              gap="xs"
+              style={{ alignItems: 'baseline', width: 'auto' }}
             >
-              <SSIconEdit height={32} width={32} />
-            </SSIconButton>
+              <SSText size="xl" style={{ lineHeight: 30 }}>
+                {amount}
+              </SSText>
+              <SSText color="muted">
+                {i18n.t('bitcoin.sats').toLowerCase()}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs">
+              {price && <SSText>{price}</SSText>}
+              {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
+              {(price || oldPrice) && (
+                <SSText color="muted">{fiatCurrency}</SSText>
+              )}
+            </SSHStack>
           </SSHStack>
           <SSHStack gap="sm">
-            {selectedTags.map((tag) => (
-              <SSButton
-                key={tag}
-                label={tag}
-                uppercase={false}
-                style={styles.button}
-              />
-            ))}
+            <SSText
+              style={{
+                color: (confirmations < 1) ? Colors.error :
+                  (confirmations < 6) ? Colors.warning :
+                  Colors.success
+              }}
+            >
+              {formatConfirmations(confirmations)}
+            </SSText>
+            {inputsCount && (
+              <SSHStack gap="xs">
+                <SSText color="muted">
+                  {i18n.t('common.from').toLowerCase()}
+                </SSText>
+                <SSText>
+                  {inputsCount}{' '}
+                  inputs
+                </SSText>
+              </SSHStack>
+            )}
           </SSHStack>
         </SSVStack>
+        <SSSeparator color="gradient" />
+        <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
+          <SSVStack gap="sm">
+            <SSText uppercase size="md" weight="bold">
+              {t('labels')}
+            </SSText>
+            {label && <SSText>{label}</SSText>}
+            {selectedTags.length > 0 && <SSHStack gap="sm">
+              {selectedTags.map((tag) => (
+                <SSButton
+                  key={tag}
+                  label={tag}
+                  uppercase={false}
+                  style={styles.button}
+                />
+              ))}
+            </SSHStack>}
+            {!label && (
+              <SSText color="muted">
+                {i18n.t('account.noLabel')}
+              </SSText>
+            )}
+            {selectedTags.length === 0 && (
+              <SSText color="muted">
+                {i18n.t('account.noTags')}
+              </SSText>
+            )}
+          </SSVStack>
+          <SSIconButton
+            onPress={() =>
+              router.navigate(
+                `/account/${accountId}/transaction/${txid}/label`
+            )
+            }
+          >
+            <SSIconEdit height={32} width={32} />
+          </SSIconButton>
+        </SSHStack>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('block')} text={height} />
@@ -384,8 +431,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
 const styles = StyleSheet.create({
   button: {
     //
-    backgroundColor: Colors.gray[500],
-    borderRadius: 5,
+    backgroundColor: Colors.gray[700],
     borderStyle: 'solid',
     paddingHorizontal: 8,
     height: 'auto',
