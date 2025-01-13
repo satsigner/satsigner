@@ -97,8 +97,8 @@ function formatConfirmations(confirmations: number) {
 
 export {
   formatAddress,
-  formatDate,
   formatConfirmations,
+  formatDate,
   formatFiatPrice,
   formatLabel,
   formatNumber,

@@ -13,6 +13,7 @@ import { Account } from '@/types/models/Account'
 import { Transaction } from '@/types/models/Transaction'
 import { TxSearchParams } from '@/types/navigation/searchParams'
 import { formatLabel } from '@/utils/format'
+
 import { SSTxDetailsHeader } from '.'
 
 export default function SSTxLabel() {

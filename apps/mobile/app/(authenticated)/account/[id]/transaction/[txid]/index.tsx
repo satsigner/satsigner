@@ -7,7 +7,11 @@ import {
   TouchableOpacity
 } from 'react-native'
 
-import { SSIconEdit, SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import {
+  SSIconEditPencil,
+  SSIconIncoming,
+  SSIconOutgoing
+} from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSIconButton from '@/components/SSIconButton'
@@ -17,8 +21,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { usePriceStore } from '@/store/price'
 import { useBlockchainStore } from '@/store/blockchain'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { Transaction } from '@/types/models/Transaction'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
@@ -139,7 +143,7 @@ export default function TxDetails() {
               router.navigate(`/account/${accountId}/transaction/${txid}/label`)
             }
           >
-            <SSIconEdit height={32} width={32} />
+            <SSIconEditPencil height={20} width={20} />
           </SSIconButton>
         </SSHStack>
         <SSSeparator color="gradient" />
@@ -260,6 +264,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
   useEffect(() => {
     updateInfo()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx])
 
   return (
@@ -287,7 +292,16 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
         </SSHStack>
       </SSHStack>
       <SSHStack gap="sm">
-        <SSText style={{ color: confirmations < 1 ? Colors.error : confirmations < 6 ? Colors.warning : Colors.success }}>
+        <SSText
+          style={{
+            color:
+              confirmations < 1
+                ? Colors.error
+                : confirmations < 6
+                  ? Colors.warning
+                  : Colors.success
+          }}
+        >
           {formatConfirmations(confirmations)}
         </SSText>
         <SSHStack gap="xs">
@@ -410,7 +424,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
               )
             }
           >
-            <SSVStack key={index}>
+            <SSVStack key={`${tx.id}:${index}`}>
               <SSSeparator color="gradient" />
               <SSText weight="bold" center>
                 {t('output')} {index}
