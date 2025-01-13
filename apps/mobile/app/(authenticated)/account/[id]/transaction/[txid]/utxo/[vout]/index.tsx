@@ -13,7 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatLabel } from '@/utils/format'
+import { formatDate, formatLabel, formatNumber } from '@/utils/format'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -37,23 +37,23 @@ export default function UtxoDetails() {
   const [selectedTags, setSelectedTags] = useState([] as string[])
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
-  const [txSize, setTxSize] = useState(placeholder)
+  const [amount, setAmount] = useState(placeholder)
   const [utxoAddress, setUtxoAddress] = useState(placeholder)
   const [label, setLabel] = useState('')
   const [originalLabel, setOriginalLabel] = useState('')
 
   const updateInfo = () => {
     if (tx) {
-      const { blockHeight, size, timestamp } = tx
+      const { blockHeight, timestamp } = tx
       if (blockHeight) setBlockHeight(blockHeight.toString())
       if (timestamp) setBlockTime(formatDate(timestamp))
-      if (size) setTxSize(size.toString())
     }
 
     if (utxo) {
-      const { addressTo } = utxo
+      const { addressTo, value } = utxo
       const rawLabel = utxo.label || ''
       const { label, tags } = formatLabel(rawLabel)
+      if (value) setAmount(formatNumber(value))
       if (addressTo) setUtxoAddress(addressTo)
       setOriginalLabel(rawLabel)
       setLabel(label)
@@ -165,10 +165,10 @@ export default function UtxoDetails() {
               <SSText weight="bold" uppercase>
                 {i18n.t('common.amount')}
               </SSText>
-              <SSClipboardCopy text={txSize}>
+              <SSClipboardCopy text={amount}>
                 <SSText color="muted" uppercase>
-                  {txSize}{' '}
-                  {txSize !== placeholder ? i18n.t('common.bytes') : ''}
+                  {amount}{' '}
+                  {amount !== placeholder ? i18n.t('bitcoin.sats') : ''}
                 </SSText>
               </SSClipboardCopy>
             </SSVStack>
