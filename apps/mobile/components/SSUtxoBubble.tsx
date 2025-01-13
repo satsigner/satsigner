@@ -11,6 +11,9 @@ import React, { useMemo } from 'react'
 import {
   SharedValue,
   useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withSequence,
   withTiming
 } from 'react-native-reanimated'
 
@@ -28,6 +31,7 @@ type SSUtxoBubbleProps = {
   isZoomedIn: Readonly<SharedValue<boolean>>
   customFontManager: SkTypefaceFontProvider | null
   scale: Readonly<SharedValue<number>>
+  animationDelay?: number
 }
 
 export default React.memo(SSUtxoBubble)
@@ -40,8 +44,21 @@ function SSUtxoBubble({
   selected,
   isZoomedIn,
   customFontManager,
-  scale
+  scale,
+  animationDelay = 0
 }: SSUtxoBubbleProps) {
+  const opacity = useSharedValue(0)
+
+  React.useEffect(() => {
+    opacity.value = withDelay(
+      animationDelay,
+      withSequence(
+        withTiming(0, { duration: 0 }),
+        withTiming(1, { duration: 500 })
+      )
+    )
+  }, [animationDelay, opacity])
+
   const backgroundColor = useDerivedValue(() => {
     if (selected)
       return withTiming(Colors.white, {
@@ -222,7 +239,7 @@ function SSUtxoBubble({
   if (!customFontManager) return null
 
   return (
-    <Group>
+    <Group layer={<Paint opacity={opacity} />}>
       <Circle
         cx={x}
         cy={y}
