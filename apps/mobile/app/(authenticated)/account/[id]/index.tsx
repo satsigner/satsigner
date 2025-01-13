@@ -18,9 +18,9 @@ import {
   SSIconCamera,
   SSIconChart,
   SSIconList,
+  SSIconMenu,
   SSIconRefresh
 } from '@/components/icons'
-import SSIconMenu from '@/components/icons/SSIconMenu'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChart, { BalanceChartData } from '@/components/SSBalanceChart'
