@@ -135,7 +135,7 @@ export default function SSUtxoBubbles({
     <View style={style}>
       <Canvas style={canvasSize} onLayout={onCanvasLayout}>
         <Group transform={transform} origin={{ x: centerX, y: centerY }}>
-          {utxoPack.map((packedUtxo) => {
+          {utxoPack.map((packedUtxo, index) => {
             const utxo: Utxo = {
               txid: packedUtxo.data.txid!,
               vout: packedUtxo.data.vout!,
@@ -159,6 +159,7 @@ export default function SSUtxoBubbles({
                 isZoomedIn={isZoomedIn}
                 customFontManager={customFontManager}
                 scale={scale}
+                animationDelay={index * 50}
               />
             )
           })}
