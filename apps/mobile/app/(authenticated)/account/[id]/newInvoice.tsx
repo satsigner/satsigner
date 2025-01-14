@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
@@ -16,6 +16,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function NewInvoice() {
+  const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>
@@ -99,7 +100,11 @@ export default function NewInvoice() {
               variant="secondary"
               disabled
             />
-            <SSButton label={i18n.t('common.cancel')} variant="ghost" />
+            <SSButton
+              label={i18n.t('common.cancel')}
+              variant="ghost"
+              onPress={() => router.back()}
+            />
           </SSVStack>
         </SSVStack>
       </ScrollView>
