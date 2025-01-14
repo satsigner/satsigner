@@ -21,6 +21,7 @@ import Svg, {
 export type BalanceChartData = {
   memo: string
   date: Date
+  balance: number
   amount: number
   type: 'send' | 'receive'
 }
@@ -46,8 +47,8 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
   const yScale = d3
     .scaleLinear()
     .domain([
-      d3.min(data, (d) => d.amount) ?? 0,
-      (d3.max(data, (d) => d.amount) ?? 0) * 1.2
+      d3.min(data, (d) => d.balance) ?? 0,
+      (d3.max(data, (d) => d.balance) ?? 0) * 1.2
     ])
     .range([chartHeight, 0])
 
@@ -69,13 +70,13 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
     .onUpdate((event) => {
       setTranslateX((prev) =>
         Math.min(
-          Math.max(prev + event.translationX, -chartWidth * (scale - 1)),
+          Math.max(prev + event.translationX / 2, -chartWidth * (scale - 1)),
           0
         )
       )
       setTranslateY((prev) =>
         Math.min(
-          Math.max(prev + event.translationY, -chartHeight * (scale - 1)),
+          Math.max(prev + event.translationY / 2, -chartHeight * (scale - 1)),
           0
         )
       )
@@ -99,7 +100,7 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
           setCursorX(selectedDate)
           const index = data.findIndex((d) => d.date > selectedDate) - 1
           if (index >= 0) {
-            setCursorY(data[index].amount)
+            setCursorY(data[index].balance)
           }
         }
       }
@@ -115,14 +116,14 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
   const lineGenerator = d3
     .line<BalanceChartData>()
     .x((d) => transformedXScale(d.date))
-    .y((d) => transformedYScale(d.amount))
+    .y((d) => transformedYScale(d.balance))
     .curve(d3.curveStepAfter)
 
   const areaGenerator = d3
     .area<BalanceChartData>()
     .x((d) => transformedXScale(d.date))
     .y0(chartHeight * scale)
-    .y1((d) => transformedYScale(d.amount))
+    .y1((d) => transformedYScale(d.balance))
     .curve(d3.curveStepAfter)
 
   const linePath = lineGenerator(data)
@@ -229,13 +230,16 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
                 {data.map((d, index) => (
                   <SvgText
                     key={index}
-                    x={transformedXScale(d.date) + 10}
-                    y={transformedYScale(d.amount) - 10}
-                    textAnchor="middle"
-                    fontSize={10 * scale}
+                    x={
+                      transformedXScale(d.date) +
+                      (d.type === 'receive' ? 5 : -5)
+                    }
+                    y={transformedYScale(d.balance) - 10}
+                    textAnchor={d.type === 'receive' ? 'start' : 'end'}
+                    fontSize={10}
                     fill={d.type === 'receive' ? '#A7FFAF' : '#FF7171'}
                   >
-                    {d.memo || 'Test'}
+                    {d.memo || d.amount}
                   </SvgText>
                 ))}
                 {cursorX !== undefined && (
@@ -249,7 +253,7 @@ function SSBalanceChart({ data }: { data: BalanceChartData[] }) {
                       strokeDasharray="10 2"
                     />
                     <SvgText
-                      x={transformedXScale(cursorX) - 10}
+                      x={transformedXScale(cursorX)}
                       y={10}
                       textAnchor="middle"
                       fontSize={12}

@@ -10,7 +10,7 @@ import {
   View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { SceneRendererProps, TabView } from 'react-native-tab-view'
+import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -23,7 +23,9 @@ import {
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
-import SSBalanceChart, { BalanceChartData } from '@/components/SSBalanceChart'
+import SSBalanceChart, {
+  type BalanceChartData
+} from '@/components/SSBalanceChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -82,30 +84,36 @@ function TotalTransactions({
           memo: transaction.memo ?? '',
           date: new Date(transaction?.timestamp ?? new Date()),
           type: transaction.type ?? 'receive',
-          amount: sum
+          balance: sum,
+          amount:
+            transaction.type === 'receive'
+              ? transaction?.received ?? 0
+              : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
         }
       })
 
     function getPreviousDay(date: Date | string) {
       const previousDay = new Date(date)
-      previousDay.setDate(previousDay.getDate() - 1)
+      previousDay.setDate(previousDay.getDate() - 2)
       return previousDay
     }
 
     function getNextDay(date: Date | string) {
       const nextDay = new Date(date)
-      nextDay.setDate(nextDay.getDate() + 1)
+      nextDay.setDate(nextDay.getDate() + 2)
       return nextDay
     }
 
     result.unshift({
+      balance: 0,
       amount: 0,
       date: getPreviousDay(result[0].date),
       memo: '',
       type: 'receive'
     })
     result.push({
-      amount: result[result.length - 1].amount,
+      balance: result[result.length - 1].balance,
+      amount: 0,
       date: getNextDay(result[result.length - 1].date),
       memo: '',
       type: 'receive'
