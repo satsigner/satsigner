@@ -68,7 +68,6 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
-
   const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.btcPrice,
