@@ -1,6 +1,7 @@
 import SSIconAbout from './SSIconAbout'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
+import SSIconChart from './SSIconChart'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
@@ -15,6 +16,7 @@ import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
 import SSIconList from './SSIconList'
 import SSIconLock from './SSIconLock'
+import SSIconMenu from './SSIconMenu'
 import SSIconNetwork from './SSIconNetwork'
 import SSIconOutgoing from './SSIconOutgoing'
 import SSIconPencil from './SSIconPencil'
@@ -29,6 +31,7 @@ export {
   SSIconAbout,
   SSIconBubbles,
   SSIconCamera,
+  SSIconChart,
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,
@@ -43,6 +46,7 @@ export {
   SSIconInfo,
   SSIconList,
   SSIconLock,
+  SSIconMenu,
   SSIconNetwork,
   SSIconOutgoing,
   SSIconPencil,
