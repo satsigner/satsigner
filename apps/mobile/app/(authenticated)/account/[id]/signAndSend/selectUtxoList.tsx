@@ -45,7 +45,7 @@ export default function SelectUtxoList() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
+  const account = getCurrentAccount(id!)! // Make use of non-null assertion operator for now
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [sortField, setSortField] = useState<SortField>('amount')

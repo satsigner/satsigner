@@ -35,21 +35,29 @@ export default function ConfirmSeed() {
       state.updateAccount
     ])
   )
-  const [name, seedWordCount, seedWords, clearAccount, getAccount, loadWallet] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.name,
-        state.seedWordCount,
-        state.seedWords,
-        state.clearAccount,
-        state.getAccount,
-        state.loadWallet
-      ])
-    )
+  const [
+    name,
+    seedWordCount,
+    seedWords,
+    clearAccount,
+    getAccount,
+    loadWallet,
+    lockSeed
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.seedWordCount,
+      state.seedWords.split(' '),
+      state.clearAccount,
+      state.getAccount,
+      state.loadWallet,
+      state.lockSeed
+    ])
+  )
 
   const candidateWords = useMemo(() => {
-    return getConfirmWordCandidates(seedWords[+index], seedWords)
-  }, [seedWords, index])
+    return getConfirmWordCandidates(seedWords[+index!], seedWords.join(' '))
+  }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
 
@@ -63,11 +71,11 @@ export default function ConfirmSeed() {
   async function handleNavigateNextWord() {
     if (!seedWordCount || !selectedCheckbox) return
 
-    if (candidateWords[selectedCheckbox - 1] !== seedWords[+index])
+    if (candidateWords[selectedCheckbox - 1] !== seedWords[+index!])
       return setIncorrectWordModalVisible(true)
 
-    if (+index + 1 < seedWordCount)
-      router.push(`/addMasterKey/confirmSeed/${+index + 1}`)
+    if (+index! + 1 < seedWordCount)
+      router.push(`/addMasterKey/confirmSeed/${+index! + 1}`)
     else return handleFinishWordsConfirmation()
   }
 
@@ -75,6 +83,7 @@ export default function ConfirmSeed() {
     setLoadingAccount(true)
 
     const wallet = await loadWallet()
+    await lockSeed()
 
     const account = getAccount()
     await addAccount(account)
@@ -106,7 +115,7 @@ export default function ConfirmSeed() {
       <SSVStack justifyBetween>
         <SSVStack gap="lg">
           <SSText color="white" uppercase style={{ alignSelf: 'center' }}>
-            {`${i18n.t('common.confirm')} ${i18n.t('bitcoin.word')} ${+index + 1}`}
+            {`${i18n.t('common.confirm')} ${i18n.t('bitcoin.word')} ${+index! + 1}`}
           </SSText>
           <SSVStack gap="lg">
             <SSCheckbox

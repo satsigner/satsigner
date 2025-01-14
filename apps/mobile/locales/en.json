@@ -73,8 +73,8 @@
     "settings": {
       "title": "Config",
       "bitcoinNetwork": {
-        "title": "Bitcoin Network",
-        "description": "Connect to your own, or someone elses node to communicated with the bitcoin network",
+        "title": "Network",
+        "description": "Connect to a node to communicate with the bitcoin main network, testnet or signet",
         "backend": "Backend",
         "network": "Network",
         "url": "Url",

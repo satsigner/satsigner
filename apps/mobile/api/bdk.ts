@@ -24,12 +24,12 @@ import { Backend } from '@/types/settings/blockchain'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
-  return mnemonic.asString().split(' ')
+  return mnemonic.asString()
 }
 
 async function validateMnemonic(seedWords: NonNullable<Account['seedWords']>) {
   try {
-    await new Mnemonic().fromString(seedWords.join(' '))
+    await new Mnemonic().fromString(seedWords)
   } catch (_) {
     return false
   }
@@ -43,7 +43,7 @@ async function getDescriptor(
   passphrase: Account['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
+  const mnemonic = await new Mnemonic().fromString(seedWords)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
     mnemonic,
@@ -76,7 +76,7 @@ async function getFingerprint(
   passphrase: Account['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
+  const mnemonic = await new Mnemonic().fromString(seedWords)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
     mnemonic,
