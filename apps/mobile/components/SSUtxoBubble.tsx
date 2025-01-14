@@ -54,7 +54,7 @@ function SSUtxoBubble({
       animationDelay,
       withSequence(
         withTiming(0, { duration: 0 }),
-        withTiming(1, { duration: 500 })
+        withTiming(1, { duration: 250 })
       )
     )
   }, [animationDelay, opacity])

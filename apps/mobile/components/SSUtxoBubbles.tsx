@@ -159,7 +159,7 @@ export default function SSUtxoBubbles({
                 isZoomedIn={isZoomedIn}
                 customFontManager={customFontManager}
                 scale={scale}
-                animationDelay={index * 100}
+                animationDelay={index * 50}
               />
             )
           })}
