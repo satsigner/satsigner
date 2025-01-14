@@ -296,11 +296,21 @@ async function getWalletData(
   }
 }
 
+async function getLastUnusedWalletAddress(
+  wallet: Wallet,
+  addressIndex: number
+) {
+  const newAddress = await wallet.getAddress(addressIndex)
+
+  return newAddress
+}
+
 export {
   generateMnemonic,
   getBlockchain,
   getDescriptor,
   getFingerprint,
+  getLastUnusedWalletAddress,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,
