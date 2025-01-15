@@ -37,7 +37,9 @@
       "label": "Label",
       "block": "Block",
       "outputIndex": "Output index",
-      "value": "value"
+      "value": "Value",
+      "addTag": "Add tag",
+      "createTag": "Create tag"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"

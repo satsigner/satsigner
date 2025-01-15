@@ -237,18 +237,12 @@ function SpendableOutputs({
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           {view === 'list' && (
-            <SSIconButton
-              style={{ paddingVertical: 6, paddingHorizontal: 15 }}
-              onPress={() => setView('bubbles')}
-            >
+            <SSIconButton onPress={() => setView('bubbles')}>
               <SSIconBubbles height={16} width={16} />
             </SSIconButton>
           )}
           {view === 'bubbles' && (
-            <SSIconButton
-              style={{ paddingVertical: 6, paddingHorizontal: 15 }}
-              onPress={() => setView('list')}
-            >
+            <SSIconButton onPress={() => setView('list')}>
               <SSIconList height={16} width={16} />
             </SSIconButton>
           )}

@@ -26,8 +26,7 @@ export const useAnimatedShake = () => {
         mass: 0.75
       })
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const shakeStyle = useAnimatedStyle(() => {
     return {

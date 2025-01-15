@@ -33,6 +33,8 @@ export default function SSTxLabel() {
   const [label, setLabel] = useState('')
   const [originalLabel, setOriginalLabel] = useState('')
 
+  // TODO: Refactor to use function keyword instead of arrow function
+  // TODO: Refactor to don't repeat code - same in utxo/[vout]/index.tsx
   const updateInfo = () => {
     if (!tx) return
     const rawLabel = tx.label || ''

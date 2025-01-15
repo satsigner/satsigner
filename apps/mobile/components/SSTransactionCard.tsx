@@ -6,8 +6,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors } from '@/styles'
-import { Currency } from '@/types/models/Blockchain'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Currency } from '@/types/models/Blockchain'
+import type { Transaction } from '@/types/models/Transaction'
 import {
   formatAddress,
   formatConfirmations,
@@ -52,7 +52,7 @@ export default function SSTransactionCard({
   const amount = type === 'receive' ? received : sent
 
   useEffect(() => {
-    const itemsToDisplay = []
+    const itemsToDisplay: string[] = []
 
     const oldPrice = prices ? prices[fiatCurrency] : null
 

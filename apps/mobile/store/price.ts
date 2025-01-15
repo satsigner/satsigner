@@ -18,19 +18,31 @@ type PriceAction = {
 const SATS_IN_BITCOIN = 100_000_000
 
 const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
-  prices: {},
+  prices: {
+    AUD: 0,
+    BRL: 0,
+    CAD: 0,
+    CHN: 0,
+    EUR: 0,
+    GBP: 0,
+    JPY: 0,
+    USD: 0
+  },
   fiatCurrency: 'USD',
   btcPrice: 0,
   satsToFiat: (sats, btcPrice = 0) => {
     const bitcoinPrice = btcPrice || get().btcPrice
+
     return (sats / SATS_IN_BITCOIN) * bitcoinPrice
   },
   fetchPrices: async () => {
     // const { url } = useBlockchainStore.getState()
     const oracle = new MempoolOracle()
     const prices = await oracle.getPrices()
+
     const { fiatCurrency } = get()
     const btcPrice = prices[fiatCurrency]
+
     set({ prices, btcPrice })
   }
 }))

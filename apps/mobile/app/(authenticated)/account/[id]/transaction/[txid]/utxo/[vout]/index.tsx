@@ -34,7 +34,7 @@ export default function UtxoDetails() {
 
   const placeholder = '-'
   const [tags, setLocalTags] = useState(getTags())
-  const [selectedTags, setSelectedTags] = useState([] as string[])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [amount, setAmount] = useState(placeholder)
@@ -67,8 +67,7 @@ export default function UtxoDetails() {
     } catch {
       router.back()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tx, utxo])
+  }, [tx, utxo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveLabel = () => {
     let newLabel = label.trim()

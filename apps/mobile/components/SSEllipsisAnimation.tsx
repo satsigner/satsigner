@@ -38,8 +38,7 @@ export default function SSEllipsisAnimation({
       withDelay(1500, withTiming(1, { duration: 750 })),
       -1
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const containerStyle = useMemo(() => {
     return StyleSheet.compose(styles.containerBase, {

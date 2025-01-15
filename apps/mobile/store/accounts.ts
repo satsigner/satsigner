@@ -102,10 +102,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           transactions[index].label = labelsDictionary[txRef]
         }
 
-        const txTimestamp = (tx: Transaction) => formatTimestamp(tx.timestamp)
-        const timestamps = transactions.map(txTimestamp)
+        const timestamps = transactions
+          .filter((transaction) => transaction.timestamp)
+          .map((transaction) => formatTimestamp(transaction.timestamp!))
+
         const oracle = new MempoolOracle()
         const prices = await oracle.getPricesAt('USD', timestamps)
+
         transactions.forEach((_, index) => {
           transactions[index].prices = { USD: prices[index] }
         })
@@ -139,11 +142,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set({ tags })
       },
       setTxLabel: (accountName, txid, label) => {
-        const account = get().getCurrentAccount(accountName) as Account
-        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+        const account = get().getCurrentAccount(accountName)
+        if (!account) return
 
-        if (!txIndex)
-          throw new Error(`The transaction ${txid} does not exist in store`)
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+        if (txIndex === -1) return
 
         set(
           produce((state) => {
@@ -155,13 +158,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
       },
       setUtxoLabel: (accountName, txid, vout, label) => {
-        const account = get().getCurrentAccount(accountName) as Account
+        const account = get().getCurrentAccount(accountName)
+        if (!account) return
+
         const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
         })
-
-        if (utxoIndex === -1)
-          throw new Error(`Utxo ${txid}:${vout} does not exist`)
+        if (utxoIndex === -1) return
 
         set(
           produce((state) => {

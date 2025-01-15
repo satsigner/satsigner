@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { TextInput } from 'react-native-gesture-handler'
 
 import SSHStack from '@/layouts/SSHStack'
+import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 
 import { SSIconCircleX } from './icons'
@@ -30,13 +31,7 @@ export default function SSTagInput({
   const [inputFocused, setInputFocused] = useState(false)
   const inputRef = useRef<TextInput>()
 
-  const enterTag = () => {
-    if (addTag(text)) {
-      setText('')
-    }
-  }
-
-  const addTag = (tag: string) => {
+  function addTag(tag: string) {
     if (tag.length < 2 || selectedTags.includes(tag)) return false
 
     if (onAdd) onAdd(tag)
@@ -45,13 +40,18 @@ export default function SSTagInput({
     return true
   }
 
-  const removeTag = (tag: string) => {
+  function enterTag() {
+    if (addTag(text)) setText('')
+  }
+
+  function removeTag(tag: string) {
     if (onRemove) onRemove(tag)
     else if (onSelect) onSelect(selectedTags.filter((t) => t !== tag))
   }
 
-  const search = (a: string, b: string) =>
-    a.toLowerCase().includes(b.toLowerCase())
+  function search(a: string, b: string) {
+    return a.toLowerCase().includes(b.toLowerCase())
+  }
 
   return (
     <>
@@ -64,7 +64,7 @@ export default function SSTagInput({
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             blurOnSubmit={false}
-            placeholder="Type a tag"
+            placeholder={i18n.t('common.addTag')}
             align="left"
             size="small"
             ref={(ref: TextInput) => (inputRef.current = ref)}
@@ -87,7 +87,7 @@ export default function SSTagInput({
               ))}
             {text.length > 1 && !tags.includes(text) && (
               <SSButton
-                label={`Create tag "${text}"`}
+                label={`${i18n.t('common.createTag')} "${text}"`}
                 style={styles['button']}
                 onPress={() => addTag(text)}
                 uppercase={false}

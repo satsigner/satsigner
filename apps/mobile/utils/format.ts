@@ -53,11 +53,14 @@ function formatLabel(rawLabel: string) {
 
 function formatPageUrl(path: string, params: PageParams) {
   let url = '/' + (path || '')
+
   for (const key in params) {
     const value = '' + params[key]
     url = url.replace(new RegExp('\\[' + key + '\\]'), value)
   }
+
   url = url.replace(/index$/, '')
+
   return url
 }
 
@@ -81,17 +84,11 @@ function formatConfirmations(confirmations: number) {
   const manyBlocks = i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()
 
   if (confirmations < 6) return `${confirmations} ${manyBlocks}`
-
   if (confirmations < 10) return `6+ ${manyBlocks}`
-
   if (confirmations < 100) return `10+ ${manyBlocks}`
-
   if (confirmations < 1_000) return `100+ ${manyBlocks}`
-
   if (confirmations < 10_000) return `1k+ ${manyBlocks}`
-
   if (confirmations < 100_000) return `10k+ ${manyBlocks}`
-
   return `100k+ ${manyBlocks}`
 }
 

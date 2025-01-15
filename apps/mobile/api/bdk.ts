@@ -182,9 +182,7 @@ async function parseTransactionDetailsToTransaction(
 
   let address = ''
   const utxo = transactionUtxos?.[0]
-  if (utxo) {
-    address = await getAddress(utxo, network)
-  }
+  if (utxo) address = await getAddress(utxo, network)
 
   const { confirmationTime, fee, received, sent, transaction, txid } =
     transactionDetails

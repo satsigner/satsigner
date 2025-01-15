@@ -34,6 +34,8 @@ import {
   formatNumber
 } from '@/utils/format'
 
+// TODO: Refactor page
+
 const t = (translate: string) => i18n.t(`txDetails.${translate}`)
 
 export default function TxDetails() {
@@ -100,8 +102,7 @@ export default function TxDetails() {
     } catch {
       router.back()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tx])
+  }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ScrollView>
@@ -264,8 +265,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
   useEffect(() => {
     updateInfo()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tx])
+  }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>
@@ -447,7 +447,6 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
 
 const styles = StyleSheet.create({
   button: {
-    //
     backgroundColor: Colors.gray[700],
     borderStyle: 'solid',
     paddingHorizontal: 8,
@@ -455,7 +454,6 @@ const styles = StyleSheet.create({
     width: 'auto'
   },
   container: {
-    //
     flexGrow: 1,
     flexDirection: 'column',
     justifyContent: 'space-between',
