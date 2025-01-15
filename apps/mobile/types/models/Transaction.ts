@@ -1,3 +1,5 @@
+import type { Currency } from './Blockchain'
+
 export type Transaction = {
   id: string
   type: 'send' | 'receive'
@@ -5,12 +7,30 @@ export type Transaction = {
   received: number
   timestamp?: Date
   blockHeight?: number
-  memo?: string
   address?: string
   label?: string
-  size: number
+  fee?: number
+  size?: number
+  vsize?: number
+  weight?: number
+  version?: number
+  lockTime?: number
+  lockTimeEnabled: boolean
+  raw?: number[]
+  vin?: {
+    previousOutput: {
+      txid: string
+      vout: number
+    }
+    sequence: number
+    scriptSig: number[]
+    witness: number[][]
+  }[]
   vout: {
     value: number
     address: string
   }[]
+  prices: Partial<{
+    [key in Currency]: number
+  }>
 }

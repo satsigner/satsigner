@@ -19,6 +19,7 @@ type SSButtonProps = {
   variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'gradient'
   loading?: boolean
   withSelect?: boolean
+  uppercase?: boolean
   textStyle?: StyleProp<TextStyle>
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
@@ -30,6 +31,7 @@ export default function SSButton({
   withSelect,
   style,
   textStyle,
+  uppercase = true,
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
@@ -75,7 +77,7 @@ export default function SSButton({
         <SSBackgroundGradient style={styles.buttonGradient} />
       )}
       {!loading ? (
-        <SSText uppercase style={textStyles}>
+        <SSText uppercase={uppercase} style={textStyles}>
           {label}
         </SSText>
       ) : (

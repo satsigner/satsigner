@@ -1,3 +1,4 @@
+import { i18n } from '@/locales'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
@@ -38,6 +39,10 @@ function formatDate(date: Date | string | number) {
   }).format(dateObj)
 }
 
+function formatTimestamp(date: Date) {
+  return Math.floor(date.getTime() / 1000)
+}
+
 function formatLabel(rawLabel: string) {
   if (!rawLabel.match(/tags:.*$/)) return { label: rawLabel, tags: [] }
 
@@ -48,19 +53,54 @@ function formatLabel(rawLabel: string) {
 
 function formatPageUrl(path: string, params: PageParams) {
   let url = '/' + (path || '')
+
   for (const key in params) {
     const value = '' + params[key]
     url = url.replace(new RegExp('\\[' + key + '\\]'), value)
   }
+
   url = url.replace(/index$/, '')
+
   return url
+}
+
+function formatPercentualChange(value: number, base: number) {
+  if (value > base)
+    return '+' + formatNumber(((value - base) * 100) / base, 1) + '%'
+  else return '-' + formatNumber(((base - value) * 100) / base, 1) + '%'
+}
+
+function formatFiatPrice(sats: number, btcPrice: number) {
+  const SATS_PER_BITCOIN = 100_000_000
+  return formatNumber((sats * btcPrice) / SATS_PER_BITCOIN, 2)
+}
+
+function formatConfirmations(confirmations: number) {
+  if (confirmations <= 0) return i18n.t('bitcoin.confirmations.unconfirmed')
+
+  if (confirmations === 1)
+    return `1 ${i18n.t('bitcoin.confirmations.oneBlock').toLowerCase()}`
+
+  const manyBlocks = i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()
+
+  if (confirmations < 6) return `${confirmations} ${manyBlocks}`
+  if (confirmations < 10) return `6+ ${manyBlocks}`
+  if (confirmations < 100) return `10+ ${manyBlocks}`
+  if (confirmations < 1_000) return `100+ ${manyBlocks}`
+  if (confirmations < 10_000) return `1k+ ${manyBlocks}`
+  if (confirmations < 100_000) return `10k+ ${manyBlocks}`
+  return `100k+ ${manyBlocks}`
 }
 
 export {
   formatAddress,
+  formatConfirmations,
   formatDate,
+  formatFiatPrice,
   formatLabel,
   formatNumber,
   formatPageUrl,
-  formatTime
+  formatPercentualChange,
+  formatTime,
+  formatTimestamp
 }

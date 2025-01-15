@@ -44,7 +44,7 @@ function SelectUtxoBubbles() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
 
-  const account = getCurrentAccount(id)! // Make use of non-null assertion operator for now
+  const account = getCurrentAccount(id!)! // Make use of non-null assertion operator for now
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
