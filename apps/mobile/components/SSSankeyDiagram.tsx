@@ -232,6 +232,12 @@ function SSSankeyDiagram({
 
             const blockRect = () => {
               if (dataNode.type === 'block') {
+                // Extract size from textInfo[2] which is in format "X B"
+                const sizeStr = dataNode.textInfo[2]
+                const size = parseInt(sizeStr.split(' ')[0], 10)
+                // Scale the height based on size, max height is 100
+                const height = Math.min(100, Math.max(40, (size / 2000) * 100))
+
                 return (
                   <Group>
                     <Rect
@@ -239,10 +245,8 @@ function SSSankeyDiagram({
                         (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
                       }
                       y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
-                      // y={node.y0 ?? 0}
                       width={BLOCK_WIDTH}
-                      //TODO: to be calculated
-                      height={100}
+                      height={height}
                       color="#FFFFFF"
                     />
                   </Group>

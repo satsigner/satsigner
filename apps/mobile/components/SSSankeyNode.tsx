@@ -33,6 +33,16 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
 
   const isBlock = textInfo[0] === '' && textInfo[1] === ''
 
+  // Calculate dynamic height for block nodes
+  const getBlockHeight = () => {
+    if (isBlock && textInfo[2]) {
+      const sizeStr = textInfo[2]
+      const size = parseInt(sizeStr.split(' ')[0])
+      return Math.min(100, Math.max(40, (size / 2000) * 100))
+    }
+    return 0
+  }
+
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
 
@@ -133,7 +143,7 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
     <Paragraph
       width={isBlock ? width * 0.6 : width}
       x={isBlock ? x + width * 0.2 : x + PADDING_LEFT}
-      y={isBlock ? y + 110 : y}
+      y={isBlock ? y + getBlockHeight() + 10 : y}
       paragraph={mainParagraph}
     />
   )

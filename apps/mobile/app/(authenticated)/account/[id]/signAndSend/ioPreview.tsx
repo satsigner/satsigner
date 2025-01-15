@@ -28,6 +28,21 @@ import { formatAddress, formatNumber } from '@/utils/format'
 
 const MINING_FEE_VALUE = 1635
 
+function estimateTransactionSize(inputCount: number, outputCount: number) {
+  // Base transaction size (version + locktime)
+  const baseSize = 10
+  // Each input is roughly 148 bytes (outpoint[36] + script[~108] + sequence[4])
+  const inputSize = inputCount * 148
+  // Each output is roughly 34 bytes (value[8] + script[~26])
+  const outputSize = outputCount * 34
+
+  const totalSize = baseSize + inputSize + outputSize
+  // Virtual size is (weight units / 4). Weight units = (baseWeight * 3) + witnessWeight
+  const vsize = Math.ceil(totalSize * 0.75)
+
+  return { size: totalSize, vsize }
+}
+
 export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -93,13 +108,18 @@ export default function IOPreview() {
         })
       )
 
+      const { size, vsize } = estimateTransactionSize(
+        inputs.size,
+        outputs.length + 2
+      ) // +2 for change and fee outputs
+
       const blockNode = [
         {
           id: String(inputs.size + 1),
           indexC: inputs.size + 1,
           type: 'block',
           depthH: 2,
-          textInfo: ['', '', '1533 B', '1509 vB']
+          textInfo: ['', '', `${size} B`, `${vsize} vB`]
         }
       ]
 
@@ -131,7 +151,7 @@ export default function IOPreview() {
     } else {
       return []
     }
-  }, [inputs, utxosSelectedValue])
+  }, [inputs, outputs.length, utxosSelectedValue])
 
   const sankeyLinks = useMemo(() => {
     if (inputs.size === 0) return []
