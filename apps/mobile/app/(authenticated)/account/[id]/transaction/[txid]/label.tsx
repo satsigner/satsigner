@@ -53,7 +53,7 @@ export default function SSTxLabel() {
     if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
 
     if (newLabel !== originalLabel) {
-      setTxLabel(accountId, txid!, newLabel)
+      setTxLabel(accountId!, txid!, newLabel)
     }
 
     router.back()

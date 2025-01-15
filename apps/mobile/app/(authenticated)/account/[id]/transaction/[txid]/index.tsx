@@ -104,7 +104,7 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!txid || !tx) return <Redirect href="/" />
+  if (!accountId || !txid || !tx) return <Redirect href="/" />
 
   return (
     <ScrollView>
