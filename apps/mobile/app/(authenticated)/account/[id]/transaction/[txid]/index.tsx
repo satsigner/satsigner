@@ -418,6 +418,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
       {tx &&
         (tx?.vout || []).map((vout, index) => (
           <TouchableOpacity
+            key={index}
             onPress={() =>
               router.navigate(
                 `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
