@@ -1,3 +1,4 @@
+import { BarCodeScanningResult } from 'expo-camera'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
@@ -11,10 +12,12 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { Colors, Layout } from '@/styles'
+import { bip21decode } from '@/utils/bitcoin'
 import { clearClipboard, getClipboard } from '@/utils/clipboard'
 
 export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
+  const [shouldFreezeCamera, setShouldFreezeCamera] = useState(false)
 
   const appState = useRef(AppState.currentState)
   const [hasToPaste, setHasToPaste] = useState(false)
@@ -52,6 +55,16 @@ export default function Camera() {
     setHasToPaste(false)
   }
 
+  const handleScanCode = (event: BarCodeScanningResult): void => {
+    if (shouldFreezeCamera) {
+      return
+    }
+
+    setShouldFreezeCamera(true)
+    const { data } = event
+    const _decodedData = bip21decode(data)
+  }
+
   return (
     <View style={StyleSheet.absoluteFillObject}>
       <Stack.Screen
@@ -73,9 +86,7 @@ export default function Camera() {
         }}
       />
       <CameraView
-        onBarcodeScanned={() => {
-          //
-        }}
+        onBarcodeScanned={handleScanCode}
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         style={StyleSheet.absoluteFillObject}
       />
