@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
   DimensionValue,
@@ -103,6 +103,8 @@ export default function TxDetails() {
       router.back()
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!txid || !tx) return <Redirect href="/" />
 
   return (
     <ScrollView>
