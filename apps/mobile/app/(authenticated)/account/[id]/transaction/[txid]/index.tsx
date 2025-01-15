@@ -249,7 +249,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
     if (tx.prices) {
     }
-    setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency]))
+    setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
 
     if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
 

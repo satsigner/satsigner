@@ -92,7 +92,7 @@ function TotalTransactions({
             ? transaction?.received ?? 0
             : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
         return {
-          memo: transaction.memo ?? '',
+          memo: transaction.label ?? '',
           date: new Date(transaction?.timestamp ?? new Date()),
           type: transaction.type ?? 'receive',
           balance: sum,
