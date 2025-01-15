@@ -1,4 +1,4 @@
-import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
@@ -13,61 +13,61 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatLabel } from '@/utils/format'
+import { formatDate, formatLabel, formatNumber } from '@/utils/format'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [account, getTags, setTags, getTx, getUtxo, setUtxoLabel] =
-    useAccountsStore((state) => [
-      state.accounts.find((account) => account.name === accountId),
+  const [getTags, setTags, tx, utxo, setUtxoLabel] = useAccountsStore(
+    (state) => [
       state.getTags,
       state.setTags,
-      state.getTx,
-      state.getUtxo,
+      state.accounts
+        .find((account) => account.name === accountId)
+        ?.transactions.find((tx) => tx.id === txid),
+      state.accounts
+        .find((account) => account.name === accountId)
+        ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)),
       state.setUtxoLabel
-    ])
+    ]
+  )
 
   const placeholder = '-'
   const [tags, setLocalTags] = useState(getTags())
-  const [selectedTags, setSelectedTags] = useState([] as string[])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
-  const [txSize, setTxSize] = useState(placeholder)
+  const [amount, setAmount] = useState(placeholder)
   const [utxoAddress, setUtxoAddress] = useState(placeholder)
   const [label, setLabel] = useState('')
   const [originalLabel, setOriginalLabel] = useState('')
 
-  useEffect(() => {
-    const fetchUtxoInfo = async () => {
-      const tx = await getTx(accountId!, txid!)
-      const utxo = await getUtxo(accountId!, txid!, Number(vout))
-
-      if (!tx) return
-      if (!utxo) return
-
-      const { blockHeight, size, timestamp } = tx
-      const { addressTo } = utxo
-
+  const updateInfo = () => {
+    if (tx) {
+      const { blockHeight, timestamp } = tx
       if (blockHeight) setBlockHeight(blockHeight.toString())
-      if (size) setTxSize(size.toString())
       if (timestamp) setBlockTime(formatDate(timestamp))
-      if (addressTo) setUtxoAddress(addressTo)
+    }
 
+    if (utxo) {
+      const { addressTo, value } = utxo
       const rawLabel = utxo.label || ''
       const { label, tags } = formatLabel(rawLabel)
+      if (value) setAmount(formatNumber(value))
+      if (addressTo) setUtxoAddress(addressTo)
       setOriginalLabel(rawLabel)
       setLabel(label)
       setSelectedTags(tags)
     }
+  }
 
+  useEffect(() => {
     try {
-      fetchUtxoInfo()
+      updateInfo()
     } catch {
-      // TODO: show error notification via snack bar
+      router.back()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txid])
+  }, [tx, utxo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveLabel = () => {
     let newLabel = label.trim()
@@ -96,13 +96,11 @@ export default function UtxoDetails() {
     setSelectedTags(selected)
   }
 
-  if (!account) return <Redirect href="/" />
-
   return (
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
+          headerTitle: () => <SSText uppercase>{accountId}</SSText>
         }}
       />
       <SSVStack
@@ -166,10 +164,10 @@ export default function UtxoDetails() {
               <SSText weight="bold" uppercase>
                 {i18n.t('common.amount')}
               </SSText>
-              <SSClipboardCopy text={txSize}>
+              <SSClipboardCopy text={amount}>
                 <SSText color="muted" uppercase>
-                  {txSize}{' '}
-                  {txSize !== placeholder ? i18n.t('common.bytes') : ''}
+                  {amount}{' '}
+                  {amount !== placeholder ? i18n.t('bitcoin.sats') : ''}
                 </SSText>
               </SSClipboardCopy>
             </SSVStack>

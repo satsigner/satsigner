@@ -36,7 +36,10 @@
       "tags": "Tags",
       "label": "Label",
       "block": "Block",
-      "outputIndex": "Output index"
+      "outputIndex": "Output index",
+      "value": "Value",
+      "addTag": "Add tag",
+      "createTag": "Create tag"
     },
     "time": {
       "lessThanAMinute": "Less than a minute"
@@ -109,7 +112,8 @@
       "newInvoice": "New Invoice",
       "parentAccountActivity": "Parent Account Activity",
       "noMemo": "No memo",
-      "noLabel": "No label"
+      "noLabel": "No label",
+      "noTags": "No tags"
     },
     "signAndSend": {
       "selectSpendableOutputs": "Select spendable outputs",
@@ -248,6 +252,28 @@
     },
     "utxoDetails": {
       "title": "UTXO Details"
+    },
+    "txDetails": {
+      "title": "TX Details",
+      "block": "In block",
+      "hash": "Transaction hash",
+      "size": "Raw size",
+      "weight": "Weight",
+      "vsize": "Virtual Size",
+      "fee": "Fee",
+      "feeBytes": "Fee sat/b",
+      "feeVBytes": "Fee sat/vb",
+      "raw": "Transaction raw",
+      "decoded": "Transaction decoded",
+      "version": "Version",
+      "inputsCount": "Number of inputs",
+      "outputsCount": "Number of outputs",
+      "input": "Input",
+      "output": "Output",
+      "inputPrevTx": "Previous TX Output hash",
+      "inputPrevOut": "Output index in transaction",
+      "inputSequence": "Sequence",
+      "labels": "TRANSACTION LABEL"
     }
   }
 }
