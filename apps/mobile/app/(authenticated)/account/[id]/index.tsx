@@ -17,6 +17,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconKeys,
   SSIconList,
   SSIconMenu,
   SSIconRefresh
@@ -578,6 +579,13 @@ export default function AccountView() {
               start={{ x: 0.86, y: 1.0 }}
               end={{ x: 0.14, y: 1 }}
             />
+          ),
+          headerRight: () => (
+            <SSIconButton
+              onPress={() => router.navigate(`/account/${id}/settings`)}
+            >
+              <SSIconKeys height={18} width={18} />
+            </SSIconButton>
           )
         }}
       />
