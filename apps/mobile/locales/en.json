@@ -246,6 +246,9 @@
         "importSeed": "Import Seed"
       }
     },
+    "explore": {
+      "title": "Explore"
+    },
     "utxoDetails": {
       "title": "UTXO Details"
     }
