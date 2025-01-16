@@ -58,10 +58,11 @@ export default function SSTransactionCard({
 
     if (btcPrice) itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
 
-    if (prices[fiatCurrency])
+    if (prices && prices[fiatCurrency]) {
       itemsToDisplay.push(
         '(' + formatFiatPrice(amount, prices[fiatCurrency] || 0) + ')'
       )
+    }
 
     if (btcPrice || oldPrice) itemsToDisplay.push(fiatCurrency)
 
