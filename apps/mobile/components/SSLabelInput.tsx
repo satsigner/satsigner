@@ -26,7 +26,7 @@ export default function SSLabelInput({
   const [tags, setLocalTags] = useState(getTags())
   const [label, setLabel] = useState('')
 
-  const saveLabel = () => {
+  function saveLabel() {
     let newLabel = label.trim()
 
     if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
@@ -42,7 +42,7 @@ export default function SSLabelInput({
     setSelectedTags(tags)
   }, [originalLabel])
 
-  const onAddTag = (tag: string) => {
+  function onAddTag(tag: string) {
     if (!tags.includes(tag)) {
       const allTags = [...tags, tag]
       setTags(allTags)
@@ -52,9 +52,39 @@ export default function SSLabelInput({
     setSelectedTags(selected)
   }
 
-  const onDelTag = (tag: string) => {
+  function onDelTag (tag: string) {
     const selected = selectedTags.filter((t: string) => t !== tag)
     setSelectedTags(selected)
+  }
+
+  function handleInputEnded() {
+    const matches = label.match(/#\w[\w\d\s]+/g)
+
+    if (!matches) {
+      return
+    }
+
+    const newTags = [] as string[]
+    const newSelectedTags = [] as string[]
+
+    matches
+      .map((match) => match.replace('#', '').trim())
+      .forEach((tag: string) => {
+        if (!tags.includes(tag)) newTags.push(tag)
+        if (!selectedTags.includes(tag)) newSelectedTags.push(tag)
+      })
+
+    if (newTags.length > 0) {
+      const allTags = [...tags, ...newTags]
+      setTags(allTags)
+      setLocalTags(allTags)
+    }
+
+    if (newSelectedTags.length > 0) {
+      setSelectedTags([...selectedTags, ...newSelectedTags])
+    }
+
+    setLabel(label.replace(/#.*/, '').trim())
   }
 
   return (
@@ -66,6 +96,7 @@ export default function SSLabelInput({
         align="left"
         multiline
         numberOfLines={3}
+        blurOnSubmit={true}
         style={{
           height: 'auto',
           textAlignVertical: 'top',
@@ -73,6 +104,7 @@ export default function SSLabelInput({
         }}
         value={label}
         onChangeText={setLabel}
+        onSubmitEditing={handleInputEnded}
       />
       <SSText weight="bold" uppercase>
         {i18n.t('common.tags')}
