@@ -14,27 +14,26 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 import SSFormLayout from '@/layouts/SSFormLayout'
 
 export default function AccountSettings() {
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.name === id)
-    ])
+  const [updateAccountName] = useAccountsStore(
+    (state) => [
+      state.updateAccountName
+    ]
   )
 
-  if (!account) return <Redirect href="/" />
-
-  const [localScriptVersion, setLocalScriptVersion] =
+  const [scriptVersion, setScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
-  const [localNetwork, setLocalNetwork] =
+  const [network, setNetwork] =
     useState<NonNullable<string>>('signet')
+  const [accountName, setAccountName] =
+    useState<NonNullable<Account['name']>>(currentAccount);
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
@@ -42,28 +41,33 @@ export default function AccountSettings() {
     useState(false)
 
   function getScriptVersionButtonLabel() {
-    if (localScriptVersion === 'P2PKH')
+    if (scriptVersion === 'P2PKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
-    else if (localScriptVersion === 'P2SH-P2WPKH')
+    else if (scriptVersion === 'P2SH-P2WPKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
-    else if (localScriptVersion === 'P2WPKH')
+    else if (scriptVersion === 'P2WPKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
-    else if (localScriptVersion === 'P2TR')
+    else if (scriptVersion === 'P2TR')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
 
     return ''
   }
 
   function handleOnSelectScriptVersion() {
-    setLocalScriptVersion(localScriptVersion)
+    setScriptVersion(scriptVersion)
     setScriptVersionModalVisible(false)
+  }
+
+  async function saveChanges() {
+    updateAccountName(currentAccount, accountName)
+    router.replace(`/account/${accountName}/`)
   }
 
   return (
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>
+          headerTitle: () => <SSText uppercase>{currentAccount}</SSText>
         }}
       />
       <SSVStack gap="lg" style={{ padding: 20 }}>
@@ -114,14 +118,17 @@ export default function AccountSettings() {
             <SSFormLayout.Label
               label="Account Name"
             />
-            <SSTextInput />
+            <SSTextInput
+              value={accountName}
+              onChangeText={setAccountName}
+            />
           </SSFormLayout.Item>
         <SSFormLayout.Item>
             <SSFormLayout.Label
               label="Network"
             />
             <SSButton
-              label={localNetwork}
+              label={network}
               withSelect
               onPress={() => setNetworkModalVisible(true)}
             />
@@ -161,32 +168,33 @@ export default function AccountSettings() {
           <SSButton
             label="SAVE"
             variant="secondary"
+            onPress={saveChanges}
           />
         </SSVStack>
       </SSVStack>
       <SSSelectModal
         visible={scriptVersionModalVisible}
         title={i18n.t('addMasterKey.accountOptions.scriptVersion')}
-        selectedText={`${localScriptVersion} - ${i18n.t(
-          `addMasterKey.accountOptions.scriptVersions.names.${localScriptVersion?.toLowerCase()}`
+        selectedText={`${scriptVersion} - ${i18n.t(
+          `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
         )}`}
         selectedDescription={
           <SSCollapsible>
             <SSText color="muted" size="md">
               {i18n.t(
-                `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.0`
+                `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
               )}
               <SSLink
                 size="md"
                 text={i18n.t(
-                  `addMasterKey.accountOptions.scriptVersions.links.name.${localScriptVersion?.toLowerCase()}`
+                  `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
                 )}
                 url={i18n.t(
-                  `addMasterKey.accountOptions.scriptVersions.links.url.${localScriptVersion?.toLowerCase()}`
+                  `addMasterKey.accountOptions.scriptVersions.links.url.${scriptVersion?.toLowerCase()}`
                 )}
               />
               {i18n.t(
-                `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.1`
+                `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.1`
               )}
             </SSText>
             <SSIconScriptsP2pkh height={80} width="100%" />
@@ -199,61 +207,61 @@ export default function AccountSettings() {
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
           )} (P2PKH)`}
-          selected={localScriptVersion === 'P2PKH'}
+          selected={scriptVersion === 'P2PKH'}
           onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2PKH')
+            setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')
           }
         />
         <SSRadioButton
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
           )} (P2SH-P2WPKH)`}
-          selected={localScriptVersion === 'P2SH-P2WPKH'}
+          selected={scriptVersion === 'P2SH-P2WPKH'}
           onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2SH-P2WPKH')
+            setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
           }
         />
         <SSRadioButton
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
           )} (P2WPKH)`}
-          selected={localScriptVersion === 'P2WPKH'}
+          selected={scriptVersion === 'P2WPKH'}
           onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2WPKH')
+            setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
           }
         />
         <SSRadioButton
           label={`${i18n.t(
             'addMasterKey.accountOptions.scriptVersions.names.p2tr'
           )} (P2TR)`}
-          selected={localScriptVersion === 'P2TR'}
+          selected={scriptVersion === 'P2TR'}
           onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2TR')
+            setStateWithLayoutAnimation(setScriptVersion, 'P2TR')
           }
         />
       </SSSelectModal>
       <SSSelectModal
         visible={networkModalVisible}
         title="Network"
-        selectedText={localNetwork.toUpperCase()}
-        selectedDescription={`Use the ${localNetwork} network.`}
+        selectedText={network.toUpperCase()}
+        selectedDescription={`Use the ${network} network.`}
         onSelect={() => setNetworkModalVisible(false)}
         onCancel={() => setNetworkModalVisible(false)}
       >
         <SSRadioButton
           label="MainNet"
-          selected={localNetwork === 'bitcoin'}
-          onPress={() => setLocalNetwork('bitcoin')}
+          selected={network === 'bitcoin'}
+          onPress={() => setNetwork('bitcoin')}
         />
         <SSRadioButton
           label="SigNet"
-          selected={localNetwork === 'signet'}
-          onPress={() => setLocalNetwork('signet')}
+          selected={network === 'signet'}
+          onPress={() => setNetwork('signet')}
         />
         <SSRadioButton
           label="Testnet"
-          selected={localNetwork === 'testnet'}
-          onPress={() => setLocalNetwork('testnet')}
+          selected={network === 'testnet'}
+          onPress={() => setNetwork('testnet')}
         />
       </SSSelectModal>
     </ScrollView>

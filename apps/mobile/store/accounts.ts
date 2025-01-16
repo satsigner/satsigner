@@ -29,6 +29,7 @@ type AccountsAction = {
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
+  updateAccountName: (name: string, newName: string) => void
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
@@ -128,6 +129,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (_account) => _account.name === account.name
             )
             if (index !== -1) state.accounts[index] = account
+          })
+        )
+      },
+      updateAccountName: (name, newName) => {
+       set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.name === name
+            )
+            if (index !== -1) state.accounts[index].name = newName
           })
         )
       },
