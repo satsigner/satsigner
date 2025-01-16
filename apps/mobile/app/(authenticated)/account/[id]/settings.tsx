@@ -22,23 +22,19 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [updateAccountName] = useAccountsStore(
-    (state) => [
-      state.updateAccountName
-    ]
-  )
+  const [updateAccountName] = useAccountsStore((state) => [
+    state.updateAccountName
+  ])
 
   const [scriptVersion, setScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
-  const [network, setNetwork] =
-    useState<NonNullable<string>>('signet')
+  const [network, setNetwork] = useState<NonNullable<string>>('signet')
   const [accountName, setAccountName] =
-    useState<NonNullable<Account['name']>>(currentAccount);
+    useState<NonNullable<Account['name']>>(currentAccount)
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
-  const [networkModalVisible, setNetworkModalVisible] =
-    useState(false)
+  const [networkModalVisible, setNetworkModalVisible] = useState(false)
 
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
@@ -67,7 +63,8 @@ export default function AccountSettings() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{currentAccount}</SSText>
+          headerTitle: () => <SSText uppercase>{currentAccount}</SSText>,
+          headerRight: () => null
         }}
       />
       <SSVStack gap="lg" style={{ padding: 20 }}>
@@ -115,25 +112,18 @@ export default function AccountSettings() {
         </SSVStack>
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label="Account Name"
-            />
-            <SSTextInput
-              value={accountName}
-              onChangeText={setAccountName}
-            />
+            <SSFormLayout.Label label="Account Name" />
+            <SSTextInput value={accountName} onChangeText={setAccountName} />
           </SSFormLayout.Item>
-        <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label="Network"
-            />
+          <SSFormLayout.Item>
+            <SSFormLayout.Label label="Network" />
             <SSButton
               label={network}
               withSelect
               onPress={() => setNetworkModalVisible(true)}
             />
           </SSFormLayout.Item>
-        <SSFormLayout.Item>
+          <SSFormLayout.Item>
             <SSFormLayout.Label
               label={i18n.t('addMasterKey.accountOptions.policyType')}
             />
@@ -156,20 +146,14 @@ export default function AccountSettings() {
           </SSFormLayout.Item>
         </SSFormLayout>
         <SSVStack style={{ marginTop: 60 }}>
-          <SSButton
-            label="DUPLICATE MASTER KEY"
-          />
+          <SSButton label="DUPLICATE MASTER KEY" />
           <SSButton
             label="DELETE MASTER KEY"
             style={{
               backgroundColor: Colors.error
             }}
           />
-          <SSButton
-            label="SAVE"
-            variant="secondary"
-            onPress={saveChanges}
-          />
+          <SSButton label="SAVE" variant="secondary" onPress={saveChanges} />
         </SSVStack>
       </SSVStack>
       <SSSelectModal
@@ -208,9 +192,7 @@ export default function AccountSettings() {
             'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
           )} (P2PKH)`}
           selected={scriptVersion === 'P2PKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')
-          }
+          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')}
         />
         <SSRadioButton
           label={`${i18n.t(
@@ -235,9 +217,7 @@ export default function AccountSettings() {
             'addMasterKey.accountOptions.scriptVersions.names.p2tr'
           )} (P2TR)`}
           selected={scriptVersion === 'P2TR'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2TR')
-          }
+          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2TR')}
         />
       </SSSelectModal>
       <SSSelectModal

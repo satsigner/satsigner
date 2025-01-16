@@ -133,7 +133,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
       },
       updateAccountName: (name, newName) => {
-       set(
+        set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
               (account) => account.name === name
