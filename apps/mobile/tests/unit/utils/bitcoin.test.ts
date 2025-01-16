@@ -1,4 +1,4 @@
-import { isBitcoinAddress } from '@/utils/bitcoin'
+import { bip21decode, isBitcoinAddress } from '@/utils/bitcoin'
 
 describe('bitcoin utils', () => {
   describe('isBitcoinAddress', () => {
@@ -18,6 +18,28 @@ describe('bitcoin utils', () => {
       expect(
         isBitcoinAddress('tb1qlj64u6fqutr0xue85kl55fx0gt4m4urun25p7q')
       ).toBeTruthy() // Testnet Bech32 address
+    })
+  })
+
+  describe('bip21decode', () => {
+    it('should decode a valid bitcoin address', () => {
+      const result = bip21decode('bc1qs5g58y64vzls986hnrz3atj6p2tcdqqgvu5g5c')
+      expect(result).toEqual('bc1qs5g58y64vzls986hnrz3atj6p2tcdqqgvu5g5c')
+    })
+
+    it('should decode a valid BIP21 URI', () => {
+      const uri =
+        'bitcoin:bc1qrc9ty0xfv908ja5r6xmzpnnr2ug6sfu0tl8j26?amount=0.02587175'
+      const decodedData = {
+        address: 'bc1qrc9ty0xfv908ja5r6xmzpnnr2ug6sfu0tl8j26',
+        options: { amount: 0.02587175 }
+      }
+      const result = bip21decode(uri)
+      expect(result).toEqual(decodedData)
+    })
+
+    it('should return undefined for invalid address', () => {
+      expect(bip21decode('bc1qinvalidaddress1234567890')).toBeUndefined()
     })
   })
 })
