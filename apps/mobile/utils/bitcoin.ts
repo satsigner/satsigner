@@ -7,22 +7,13 @@ function isBitcoinAddress(address: string): boolean {
   )
 }
 
-function bip21decode(uri?: string) {
+function bip21decode(uri: string) {
   try {
-    if (!uri) {
-      throw new Error('No URI provided')
-    }
-
+    if (!uri) throw new Error('No URI provided')
     const lowercaseData = uri.toLowerCase()
-
-    if (lowercaseData.startsWith('bitcoin:')) {
-      return decode(lowercaseData)
-    }
-
+    if (lowercaseData.startsWith('bitcoin:')) return decode(lowercaseData)
     const isAddressValid = isBitcoinAddress(lowercaseData)
-    if (isAddressValid) {
-      return lowercaseData
-    }
+    if (isAddressValid) return lowercaseData
   } catch (_error) {}
 }
 

@@ -37,5 +37,9 @@ describe('bitcoin utils', () => {
       const result = bip21decode(uri)
       expect(result).toEqual(decodedData)
     })
+
+    it('should return undefined for invalid address', () => {
+      expect(bip21decode('bc1qinvalidaddress1234567890')).toBeUndefined()
+    })
   })
 })
