@@ -31,7 +31,7 @@ export default function GenerateSeed() {
     useShallow((state) => [
       state.name,
       state.seedWordCount,
-      state.seedWords,
+      state.seedWords.split(' '),
       state.fingerprint,
       state.setPassphrase,
       state.updateFingerprint
@@ -43,7 +43,7 @@ export default function GenerateSeed() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const checksumValid = await validateMnemonic(seedWords)
+    const checksumValid = await validateMnemonic(seedWords.join(' '))
     setChecksumValid(checksumValid)
 
     if (checksumValid) await updateFingerprint()
@@ -71,6 +71,7 @@ export default function GenerateSeed() {
                       position={index + 1}
                       value={seedWords ? seedWords[index] : ''}
                       editable={false}
+                      index={index}
                     />
                   ))}
                 </SSSeedLayout>

@@ -3,14 +3,14 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
-  DEFAULT_PIN_MAX_TRIES
+  DEFAULT_PIN_MAX_TRIES,
+  PIN_KEY
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { PageRoute } from '@/types/navigation/page'
+import { doubleShaEncrypt } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
-
-const PIN_KEY = 'satsigner_pin'
 
 type AuthState = {
   firstTime: boolean
@@ -57,11 +57,13 @@ const useAuthStore = create<AuthState & AuthAction>()(
         set({ lockTriggered })
       },
       setPin: async (pin) => {
-        await setItem(PIN_KEY, pin)
+        const hashedPin = await doubleShaEncrypt(pin)
+        await setItem(PIN_KEY, hashedPin)
       },
       validatePin: async (pin) => {
+        const hashedPin = await doubleShaEncrypt(pin)
         const savedPin = await getItem(PIN_KEY)
-        return pin === savedPin
+        return hashedPin === savedPin
       },
       incrementPinTries: () => {
         set({ pinTries: get().pinTries + 1 })

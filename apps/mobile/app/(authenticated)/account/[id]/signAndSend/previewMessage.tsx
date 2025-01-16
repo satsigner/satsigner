@@ -24,7 +24,7 @@ export default function PreviewMessage() {
     useShallow((state) => [state.inputs, state.outputs])
   )
 
-  const account = getCurrentAccount(id)!
+  const account = getCurrentAccount(id!)!
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(true)
 

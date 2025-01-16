@@ -2,7 +2,7 @@ import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useState } from 'react'
+import { type Dispatch, useEffect, useMemo, useState } from 'react'
 import {
   RefreshControl,
   ScrollView,
@@ -10,17 +10,22 @@ import {
   View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { SceneRendererProps, TabView } from 'react-native-tab-view'
+import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconBubbles,
   SSIconCamera,
+  SSIconChart,
   SSIconList,
+  SSIconMenu,
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
+import SSBalanceChart, {
+  type BalanceChartData
+} from '@/components/SSBalanceChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -44,6 +49,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
   account: Account
@@ -62,6 +68,74 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
+    useShallow((state) => [
+      state.btcPrice,
+      state.fiatCurrency,
+      state.fetchPrices
+    ])
+  )
+
+  fetchPrices()
+
+  const [showChart, setShowChart] = useState<boolean>(false)
+
+  const chartData: BalanceChartData[] = useMemo(() => {
+    let sum = 0
+    const result = [...account.transactions]
+      .sort((transaction1, transaction2) =>
+        compareTimestamp(transaction1.timestamp, transaction2.timestamp)
+      )
+      .map((transaction) => {
+        sum +=
+          transaction.type === 'receive'
+            ? transaction?.received ?? 0
+            : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
+        return {
+          memo: transaction.label ?? '',
+          date: new Date(transaction?.timestamp ?? new Date()),
+          type: transaction.type ?? 'receive',
+          balance: sum,
+          amount:
+            transaction.type === 'receive'
+              ? transaction?.received ?? 0
+              : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
+        }
+      })
+
+    function getPreviousDay(date: Date | string) {
+      const previousDay = new Date(date)
+      previousDay.setDate(previousDay.getDate() - 2)
+      return previousDay
+    }
+
+    function getNextDay(date: Date | string) {
+      const nextDay = new Date(date)
+      nextDay.setDate(nextDay.getDate() + 2)
+      return nextDay
+    }
+
+    result.unshift({
+      balance: 0,
+      amount: 0,
+      date: getPreviousDay(result[0].date),
+      memo: '',
+      type: 'receive'
+    })
+    result.push({
+      balance: result[result.length - 1].balance,
+      amount: 0,
+      date: getNextDay(result[result.length - 1].date),
+      memo: '',
+      type: 'receive'
+    })
+    return result
+  }, [account.transactions])
+
+  const handleToggleChart = () => {
+    setShowChart((prev) => !prev)
+  }
+
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
@@ -69,32 +143,54 @@ function TotalTransactions({
           <SSIconRefresh height={18} width={22} />
         </SSIconButton>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
-        <SSSortDirectionToggle
-          onDirectionChanged={(direction) => setSortDirection(direction)}
-        />
-      </SSHStack>
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleOnRefresh}
-            colors={[Colors.gray[900]]}
-            progressBackgroundColor={Colors.white}
+        <SSHStack>
+          <SSIconButton
+            onPress={() => {
+              handleToggleChart()
+            }}
+          >
+            {showChart ? (
+              <SSIconMenu width={18} height={18} />
+            ) : (
+              <SSIconChart width={18} height={18} />
+            )}
+          </SSIconButton>
+          <SSSortDirectionToggle
+            onDirectionChanged={(direction) => setSortDirection(direction)}
           />
-        }
-      >
-        <SSVStack style={{ marginBottom: 16 }}>
-          {sortTransactions([...account.transactions]).map((transaction) => (
-            <SSVStack gap="xs" key={transaction.id}>
-              <SSSeparator color="grayDark" />
-              <SSTransactionCard
-                transaction={transaction}
-                blockHeight={blockchainHeight}
-              />
-            </SSVStack>
-          ))}
-        </SSVStack>
-      </ScrollView>
+        </SSHStack>
+      </SSHStack>
+      {showChart ? (
+        <View style={{ flex: 1 }}>
+          <SSBalanceChart data={chartData} />
+        </View>
+      ) : (
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleOnRefresh}
+              colors={[Colors.gray[900]]}
+              progressBackgroundColor={Colors.white}
+            />
+          }
+        >
+          <SSVStack style={{ marginBottom: 16 }}>
+            {sortTransactions([...account.transactions]).map((transaction) => (
+              <SSVStack gap="xs" key={transaction.id}>
+                <SSSeparator color="grayDark" />
+                <SSTransactionCard
+                  btcPrice={btcPrice}
+                  fiatCurrency={fiatCurrency}
+                  transaction={transaction}
+                  blockHeight={blockchainHeight}
+                  link={`/account/${account.name}/transaction/${transaction.id}`}
+                />
+              </SSVStack>
+            ))}
+          </SSVStack>
+        </ScrollView>
+      )}
     </SSMainLayout>
   )
 }
@@ -168,7 +264,7 @@ function SpendableOutputs({
         >
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
-              <SSVStack gap="xs" key={utxo.txid}>
+              <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                 <SSSeparator color="grayDark" />
                 <SSUtxoCard utxo={utxo} />
               </SSVStack>

@@ -7,7 +7,10 @@ import {
   getFingerprint,
   getWalletFromMnemonic
 } from '@/api/bdk'
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
 import { type Account } from '@/types/models/Account'
+import { aesEncrypt } from '@/utils/crypto'
 
 import { useBlockchainStore } from './blockchain'
 
@@ -43,6 +46,7 @@ type AccountBuilderAction = {
   setPassphrase: (passphrase: Account['passphrase']) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
+  lockSeed: () => Promise<void>
 }
 
 const useAccountBuilderStore = create<
@@ -52,14 +56,14 @@ const useAccountBuilderStore = create<
   type: null,
   scriptVersion: 'P2WPKH',
   seedWordCount: 24,
-  seedWords: [],
+  seedWords: '',
   clearAccount: () => {
     set({
       name: '',
       type: null,
       scriptVersion: 'P2PKH',
       seedWordCount: 24,
-      seedWords: [],
+      seedWords: '',
       passphrase: undefined,
       fingerprint: undefined,
       derivationPath: undefined,
@@ -158,6 +162,16 @@ const useAccountBuilderStore = create<
       wallet
     }))
     return wallet
+  },
+  lockSeed: async () => {
+    const savedPin = await getItem(PIN_KEY)
+    if (!savedPin) return
+
+    const encryptedSeedWords = await aesEncrypt(
+      get().seedWords.replace(/\s+/g, ','),
+      savedPin
+    )
+    set({ seedWords: encryptedSeedWords })
   }
 }))
 

@@ -54,8 +54,7 @@ function SSTextInput(
     if (value !== localValue) {
       setLocalValue(value || '')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+  }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
     if (!text.match(/^[0-9]*$/)) {

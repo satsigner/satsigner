@@ -24,12 +24,12 @@ import { Backend } from '@/types/settings/blockchain'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
-  return mnemonic.asString().split(' ')
+  return mnemonic.asString()
 }
 
 async function validateMnemonic(seedWords: NonNullable<Account['seedWords']>) {
   try {
-    await new Mnemonic().fromString(seedWords.join(' '))
+    await new Mnemonic().fromString(seedWords)
   } catch (_) {
     return false
   }
@@ -43,7 +43,7 @@ async function getDescriptor(
   passphrase: Account['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
+  const mnemonic = await new Mnemonic().fromString(seedWords)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
     mnemonic,
@@ -76,7 +76,7 @@ async function getFingerprint(
   passphrase: Account['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords.join(' '))
+  const mnemonic = await new Mnemonic().fromString(seedWords)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
     mnemonic,
@@ -179,20 +179,43 @@ async function parseTransactionDetailsToTransaction(
   const transactionUtxos = utxos.filter(
     (utxo) => utxo?.outpoint?.txid === transactionDetails.txid
   )
+
   let address = ''
   const utxo = transactionUtxos?.[0]
-  if (utxo) {
-    address = await getAddress(utxo, network)
-  }
+  if (utxo) address = await getAddress(utxo, network)
 
-  const { transaction } = transactionDetails
+  const { confirmationTime, fee, received, sent, transaction, txid } =
+    transactionDetails
 
+  let lockTimeEnabled = false
+  let lockTime = 0
   let size = 0
+  let version = 0
+  let vsize = 0
+  let weight = 0
+  let raw: number[] = []
+  const vin: Transaction['vin'] = []
   const vout: Transaction['vout'] = []
 
   if (transaction) {
     size = await transaction.size()
+    vsize = await transaction.vsize()
+    weight = await transaction.weight()
+    version = await transaction.version()
+    lockTime = await transaction.lockTime()
+    lockTimeEnabled = await transaction.isLockTimeEnabled()
+    raw = await transaction.serialize()
+
+    const inputs = await transaction.input()
     const outputs = await transaction.output()
+
+    for (const index in inputs) {
+      const input = inputs[index]
+      const script = await input.scriptSig.toBytes()
+      input.scriptSig = script
+      vin.push(input)
+    }
+
     for (const index in outputs) {
       const { value, script } = outputs[index]
       const addressObj = await new Address().fromScript(script, network)
@@ -202,18 +225,27 @@ async function parseTransactionDetailsToTransaction(
   }
 
   return {
-    id: transactionDetails.txid,
-    type: transactionDetails.sent ? 'send' : 'receive',
-    sent: transactionDetails.sent,
-    received: transactionDetails.received,
-    timestamp: transactionDetails.confirmationTime?.timestamp
-      ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
+    id: txid,
+    type: sent ? 'send' : 'receive',
+    sent,
+    received,
+    label: '',
+    fee,
+    prices: {},
+    timestamp: confirmationTime?.timestamp
+      ? new Date(confirmationTime.timestamp * 1000)
       : undefined,
-    blockHeight: transactionDetails.confirmationTime?.height,
-    memo: undefined,
+    blockHeight: confirmationTime?.height,
     address,
     size,
-    vout
+    vsize,
+    vout,
+    version,
+    weight,
+    lockTime,
+    lockTimeEnabled,
+    raw,
+    vin
   }
 }
 
@@ -296,11 +328,21 @@ async function getWalletData(
   }
 }
 
+async function getLastUnusedWalletAddress(
+  wallet: Wallet,
+  addressIndex: number
+) {
+  const newAddress = await wallet.getAddress(addressIndex)
+
+  return newAddress
+}
+
 export {
   generateMnemonic,
   getBlockchain,
   getDescriptor,
   getFingerprint,
+  getLastUnusedWalletAddress,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,

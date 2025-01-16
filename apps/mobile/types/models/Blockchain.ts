@@ -14,6 +14,7 @@ export interface BlockchainOracle {
   getMemPoolBlocks: () => Promise<MemPoolBlock[]>
   getMemPoolFees: () => Promise<MemPoolFees>
   getPrice: (currency: Currency) => Promise<number>
+  getPrices: () => Promise<Prices>
   getPriceAt: (currency: Currency, timestamp: number) => Promise<number>
   getPricesAddress: (
     currency: Currency,
@@ -21,7 +22,6 @@ export interface BlockchainOracle {
   ) => Promise<PriceValue[]>
   getPricesTxOuputs: (currency: Currency, txid: string) => Promise<PriceValue[]>
   getPricesTxInputs: (currency: Currency, txid: string) => Promise<PriceValue[]>
-  // getPriceTxOutspend: (currency: Currency, txid: string) => Promise<PriceValue>
   getTransaction: (txid: string) => Promise<Tx>
   getTransactionHex: (txid: string) => Promise<string>
   getTransactionOutspends: (txid: string) => Promise<TxOutspend[]>
@@ -46,6 +46,10 @@ export type Currency =
   | 'CHN'
   | 'AUD'
   | 'JPY'
+
+export type Prices = {
+  [key in Currency]: number
+}
 
 export type BlockStatus = {
   height: number

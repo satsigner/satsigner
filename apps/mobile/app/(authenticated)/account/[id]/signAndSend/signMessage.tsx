@@ -16,7 +16,7 @@ export default function SignMessage() {
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
 
-  const account = getCurrentAccount(id)!
+  const account = getCurrentAccount(id!)!
 
   // const [signed, setSigned] = useState(true)
   const signed = useState(true)[0]
