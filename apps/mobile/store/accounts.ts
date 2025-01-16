@@ -9,9 +9,7 @@ import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
-import { TxOut } from '@/types/models/Blockchain'
-import { Transaction } from '@/types/models/Transaction'
-import { Utxo } from '@/types/models/Utxo'
+import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
@@ -34,14 +32,13 @@ type AccountsAction = {
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  getTx: (accountName: string, txid: string) => Promise<Transaction>
-  getUtxo: (accountName: string, txid: string, vout: number) => Promise<Utxo>
+  setTxLabel: (account: string, txid: string, label: string) => void
   setUtxoLabel: (
-    accountName: string,
+    account: string,
     txid: string,
     vout: number,
     label: string
-  ) => Promise<void>
+  ) => void
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -79,11 +76,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           getBlockchainConfig(backend, url, opts)
         )
 
-        const oldUtxos = account.utxos
-        const utxoLabelsDictionary: { [key: string]: string } = {}
-        oldUtxos.forEach((utxo) => {
+        // TODO: move label backup elsewhere
+        const labelsDictionary: { [key: string]: string } = {}
+        account.transactions.forEach((tx) => {
+          const txRef = tx.id
+          labelsDictionary[txRef] = tx.label || ''
+        })
+        account.utxos.forEach((utxo) => {
           const utxoRef = getUtxoOutpoint(utxo)
-          utxoLabelsDictionary[utxoRef] = utxo.label
+          labelsDictionary[utxoRef] = utxo.label
         })
 
         const { transactions, utxos, summary } = await getWalletData(
@@ -93,8 +94,23 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         for (const index in utxos) {
           const utxoRef = getUtxoOutpoint(utxos[index])
-          utxos[index].label = utxoLabelsDictionary[utxoRef]
+          utxos[index].label = labelsDictionary[utxoRef]
         }
+        for (const index in transactions) {
+          const txRef = transactions[index].id
+          transactions[index].label = labelsDictionary[txRef]
+        }
+
+        const timestamps = transactions
+          .filter((transaction) => transaction.timestamp)
+          .map((transaction) => formatTimestamp(transaction.timestamp!))
+
+        const oracle = new MempoolOracle()
+        const prices = await oracle.getPricesAt('USD', timestamps)
+
+        transactions.forEach((_, index) => {
+          transactions[index].prices = { USD: prices[index] }
+        })
 
         return { ...account, transactions, utxos, summary }
       },
@@ -124,76 +140,30 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       setTags: (tags: string[]) => {
         set({ tags })
       },
-      getTx: async (accountName: string, txid: string) => {
-        const account = get().getCurrentAccount(accountName) as Account
+      setTxLabel: (accountName, txid, label) => {
+        const account = get().getCurrentAccount(accountName)
+        if (!account) return
 
-        const transaction = account.transactions.find((tx) => tx.id === txid)
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+        if (txIndex === -1) return
 
-        if (transaction) return transaction
-
-        // TODO: replace MempoolOracle with BDK for enhanced privacy
-        const { url } = useBlockchainStore.getState()
-        const oracle = new MempoolOracle(url)
-        const data = await oracle.getTransaction(txid)
-
-        const newTransaction: Transaction = {
-          id: data.txid,
-          type: 'receive', // TODO: how to figure it out?
-          label: '',
-          sent: 0,
-          received: 0,
-          timestamp: new Date(data.status.block_time),
-          size: data.size,
-          vout: data.vout.map((out: TxOut) => ({
-            value: out.value,
-            address: out.scriptpubkey_address as string
-          }))
-        }
-
-        account.transactions.push(newTransaction)
-        get().updateAccount(account)
-
-        return newTransaction
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.name === accountName
+            )
+            state.accounts[index].transactions[txIndex].label = label
+          })
+        )
       },
-      getUtxo: async (accountName: string, txid: string, vout: number) => {
-        const account = get().getCurrentAccount(accountName) as Account
+      setUtxoLabel: (accountName, txid, vout, label) => {
+        const account = get().getCurrentAccount(accountName)
+        if (!account) return
 
-        const utxo = account.utxos.find((u) => {
+        const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
         })
-
-        if (utxo) {
-          return utxo
-        }
-
-        const tx = await get().getTx(accountName, txid)
-
-        const newUtxo: Utxo = {
-          txid,
-          vout,
-          label: '',
-          value: tx.vout[vout].value,
-          timestamp: tx.timestamp,
-          addressTo: tx.vout[vout].address,
-          keychain: 'external' // TODO: is it right?
-        }
-
-        account.utxos.push(newUtxo)
-        get().updateAccount(account)
-
-        return newUtxo
-      },
-      setUtxoLabel: async (accountName, txid, vout, label) => {
-        const account = get().getCurrentAccount(accountName) as Account
-
-        let utxoIndex = account.utxos.findIndex((u) => {
-          return u.txid === txid && u.vout === vout
-        })
-
-        if (utxoIndex === -1) {
-          await get().getUtxo(accountName, txid, vout)
-          utxoIndex = account.utxos.length
-        }
+        if (utxoIndex === -1) return
 
         set(
           produce((state) => {

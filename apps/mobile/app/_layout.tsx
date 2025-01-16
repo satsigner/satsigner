@@ -49,8 +49,7 @@ export default function RootLayout() {
     return () => {
       subscription.remove()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {
     if (nextAppState === 'background' && requiresAuth) {

@@ -49,6 +49,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
   account: Account
@@ -67,6 +68,16 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
+    useShallow((state) => [
+      state.btcPrice,
+      state.fiatCurrency,
+      state.fetchPrices
+    ])
+  )
+
+  fetchPrices()
+
   const [showChart, setShowChart] = useState<boolean>(false)
 
   const chartData: BalanceChartData[] = useMemo(() => {
@@ -81,7 +92,7 @@ function TotalTransactions({
             ? transaction?.received ?? 0
             : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
         return {
-          memo: transaction.memo ?? '',
+          memo: transaction.label ?? '',
           date: new Date(transaction?.timestamp ?? new Date()),
           type: transaction.type ?? 'receive',
           balance: sum,
@@ -169,8 +180,11 @@ function TotalTransactions({
               <SSVStack gap="xs" key={transaction.id}>
                 <SSSeparator color="grayDark" />
                 <SSTransactionCard
+                  btcPrice={btcPrice}
+                  fiatCurrency={fiatCurrency}
                   transaction={transaction}
                   blockHeight={blockchainHeight}
+                  link={`/account/${account.name}/transaction/${transaction.id}`}
                 />
               </SSVStack>
             ))}
@@ -250,7 +264,7 @@ function SpendableOutputs({
         >
           <SSVStack style={{ marginBottom: 16 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
-              <SSVStack gap="xs" key={utxo.txid}>
+              <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                 <SSSeparator color="grayDark" />
                 <SSUtxoCard utxo={utxo} />
               </SSVStack>

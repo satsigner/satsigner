@@ -23,6 +23,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SortField = 'date' | 'amount'
 
@@ -217,7 +218,7 @@ export default function SelectUtxoList() {
           <View style={{ marginTop: 2 }}>
             {sortUtxos([...account.utxos]).map((utxo) => (
               <SSUtxoItem
-                key={`${utxo.txid}:${utxo.vout}`}
+                key={getUtxoOutpoint(utxo)}
                 utxo={utxo}
                 selected={hasInput(utxo)}
                 onToggleSelected={handleOnToggleSelected}

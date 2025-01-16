@@ -11,6 +11,7 @@ import SSIconCircleX from './SSIconCircleX'
 import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
+import SSIconEditPencil from './SSIconEditPencil'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
@@ -41,6 +42,7 @@ export {
   SSIconCircleXThin,
   SSIconDev,
   SSIconEdit,
+  SSIconEditPencil,
   SSIconHideWarning,
   SSIconIncoming,
   SSIconInfo,
