@@ -33,8 +33,12 @@ export default function AccountSettings() {
 
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
+  const [localNetwork, setLocalNetwork] =
+    useState<NonNullable<string>>('signet')
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
+    useState(false)
+  const [networkModalVisible, setNetworkModalVisible] =
     useState(false)
 
   function getScriptVersionButtonLabel() {
@@ -117,8 +121,9 @@ export default function AccountSettings() {
               label="Network"
             />
             <SSButton
-              label="Signet"
+              label={localNetwork}
               withSelect
+              onPress={() => setNetworkModalVisible(true)}
             />
           </SSFormLayout.Item>
         <SSFormLayout.Item>
@@ -225,6 +230,30 @@ export default function AccountSettings() {
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, 'P2TR')
           }
+        />
+      </SSSelectModal>
+      <SSSelectModal
+        visible={networkModalVisible}
+        title="Network"
+        selectedText={localNetwork.toUpperCase()}
+        selectedDescription={`Use the ${localNetwork} network.`}
+        onSelect={() => setNetworkModalVisible(false)}
+        onCancel={() => setNetworkModalVisible(false)}
+      >
+        <SSRadioButton
+          label="MainNet"
+          selected={localNetwork === 'bitcoin'}
+          onPress={() => setLocalNetwork('bitcoin')}
+        />
+        <SSRadioButton
+          label="SigNet"
+          selected={localNetwork === 'signet'}
+          onPress={() => setLocalNetwork('signet')}
+        />
+        <SSRadioButton
+          label="Testnet"
+          selected={localNetwork === 'testnet'}
+          onPress={() => setLocalNetwork('testnet')}
         />
       </SSSelectModal>
     </ScrollView>
