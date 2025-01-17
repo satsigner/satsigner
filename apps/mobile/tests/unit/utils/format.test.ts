@@ -58,7 +58,7 @@ describe('format utils', () => {
     })
 
     it('should return label with tags', () => {
-      const result = formatLabel('Test label tags:kyc,satsigner')
+      const result = formatLabel('Test label #kyc #satsigner')
       expect(result.label).toBe('Test label')
       expect(result.tags).toEqual(['kyc', 'satsigner'])
     })

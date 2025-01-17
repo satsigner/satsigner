@@ -23,16 +23,23 @@ import { formatDate } from '@/utils/format'
 import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 import { pickFile } from '@/utils/filesystem'
+import { useShallow } from 'zustand/react/shallow'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account, updateAccountName, deleteAccount] = useAccountsStore(
-    (state) => [
+  const [
+    account,
+    updateAccountName,
+    deleteAccount,
+    importLabelsToAccount
+  ] = useAccountsStore(
+    useShallow((state) => [
       state.accounts.find((_account) => _account.name === currentAccount),
       state.updateAccountName,
-      state.deleteAccount
-    ]
+      state.deleteAccount,
+      state.importLabels
+    ])
   )
 
   const [scriptVersion, setScriptVersion] =
@@ -93,7 +100,7 @@ export default function AccountSettings() {
   async function importLabels() {
     const fileContent = await pickFile({ type: 'application/json' })
     const labels = JSON.parse(fileContent)
-    // TODO: add labels to transactions and utxos
+    importLabelsToAccount(currentAccount, labels)
   }
 
   return (

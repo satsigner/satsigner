@@ -13,6 +13,9 @@ import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { Label } from '@/utils/bip329'
+import { Transaction } from '@/types/models/Transaction'
+import { Utxo } from '@/types/models/Utxo'
 
 type AccountsState = {
   accounts: Account[]
@@ -41,6 +44,7 @@ type AccountsAction = {
     vout: number,
     label: string
   ) => void
+  importLabels: (account: string, labels: Label[]) => void
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -197,6 +201,43 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
+      },
+      importLabels: (accountName: string, labels: Label[]) => {
+        const account = get().getCurrentAccount(accountName)
+
+        if (!account) throw new Error('undefined account')
+
+        const transactionMap = {} as {[key: string]: number }
+        const utxoMap = {} as {[key: string]: number }
+
+        account.transactions.forEach((tx, index) => {
+          transactionMap[tx.id] = index
+        })
+        account.utxos.forEach((utxo, index) => {
+          utxoMap[getUtxoOutpoint(utxo)] = index
+        })
+
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.name === accountName
+            )
+            labels.forEach((labelObj) => {
+              const label = labelObj.label
+
+              if (labelObj.type === 'tx') {
+                if (! transactionMap[labelObj.ref]) return
+                const txIndex = transactionMap[labelObj.ref]
+                state.accounts[index].transactions[txIndex].label = label
+              }
+              if (labelObj.type === 'output') {
+                if (! utxoMap[labelObj.ref]) return
+                const utxoIndex = utxoMap[labelObj.ref]
+                state.accounts[index].utxos[utxoIndex].label = label
+              }
+            })
+          })
+        )
       }
     }),
     {
@@ -204,6 +245,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       storage: createJSONStorage(() => mmkvStorage)
     }
   )
+
 )
 
 export { useAccountsStore }

@@ -4,7 +4,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import SSTextInput from './SSTextInput'
 import { useEffect, useState } from 'react'
-import { formatLabel } from '@/utils/format'
+import { formatLabel, formatLabelTags } from '@/utils/format'
 import SSTagInput from './SSTagInput'
 import SSButton from './SSButton'
 
@@ -27,10 +27,7 @@ export default function SSLabelInput({
   const [label, setLabel] = useState('')
 
   function saveLabel() {
-    let newLabel = label.trim()
-
-    if (selectedTags.length > 0) newLabel += ' tags:' + selectedTags.join(',')
-
+    const newLabel = formatLabelTags(label, selectedTags)
     if (newLabel !== originalLabel) {
       onUpdateLabel(newLabel)
     }
@@ -58,7 +55,7 @@ export default function SSLabelInput({
   }
 
   function handleInputEnded() {
-    const matches = label.match(/#\w[\w\d\s]+/g)
+    const matches = label.match(/#\w[\w\d]+/g)
 
     if (!matches) {
       return
@@ -68,7 +65,7 @@ export default function SSLabelInput({
     const newSelectedTags = [] as string[]
 
     matches
-      .map((match) => match.replace('#', '').trim())
+      .map((match) => match.replace('#', ''))
       .forEach((tag: string) => {
         if (!tags.includes(tag)) newTags.push(tag)
         if (!selectedTags.includes(tag)) newSelectedTags.push(tag)
