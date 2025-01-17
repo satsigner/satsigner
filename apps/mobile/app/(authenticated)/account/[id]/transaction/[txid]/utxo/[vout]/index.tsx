@@ -2,12 +2,9 @@ import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
-import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSSeparator from '@/components/SSSeparator'
-import SSTagInput from '@/components/SSTagInput'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -15,21 +12,20 @@ import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatLabel, formatNumber } from '@/utils/format'
 import SSLabelInput from '@/components/SSLabelInput'
+import { SSLabelDetails } from '@/components/SSLabelDetails'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [tx, utxo, setUtxoLabel] = useAccountsStore(
-    (state) => [
-      state.accounts
-        .find((account) => account.name === accountId)
-        ?.transactions.find((tx) => tx.id === txid),
-      state.accounts
-        .find((account) => account.name === accountId)
-        ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)),
-      state.setUtxoLabel
-    ]
-  )
+  const [tx, utxo, setUtxoLabel] = useAccountsStore((state) => [
+    state.accounts
+      .find((account) => account.name === accountId)
+      ?.transactions.find((tx) => tx.id === txid),
+    state.accounts
+      .find((account) => account.name === accountId)
+      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)),
+    state.setUtxoLabel
+  ])
 
   const placeholder = '-'
   const [blockTime, setBlockTime] = useState(placeholder)
@@ -68,11 +64,11 @@ export default function UtxoDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{accountId}</SSText>
+          headerTitle: () => <SSText>{i18n.t('utxoDetails.labelEdit')}</SSText>
         }}
       />
       <SSVStack
-        gap="xl"
+        gap="lg"
         style={{
           flexGrow: 1,
           flexDirection: 'column',
@@ -82,12 +78,14 @@ export default function UtxoDetails() {
       >
         <SSVStack>
           <SSText center size="lg">
-          {i18n.t('utxoDetails.title')}
-        </SSText>
-        <SSLabelInput
-          label={utxo?.label || ''}
-          onUpdateLabel={saveLabel}
-        />
+            {i18n.t('utxoDetails.title')}
+          </SSText>
+          <SSSeparator color="gradient" />
+          <SSLabelDetails
+            label={utxo?.label || ''}
+            link={`/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
+            header={i18n.t('utxoDetails.label')}
+          />
         </SSVStack>
         <SSVStack>
           <SSSeparator color="gradient" />

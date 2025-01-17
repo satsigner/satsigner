@@ -52,7 +52,7 @@ export default function SSLabelInput({
     setSelectedTags(selected)
   }
 
-  function onDelTag (tag: string) {
+  function onDelTag(tag: string) {
     const selected = selectedTags.filter((t: string) => t !== tag)
     setSelectedTags(selected)
   }
@@ -104,6 +104,7 @@ export default function SSLabelInput({
         }}
         value={label}
         onChangeText={setLabel}
+        onBlur={handleInputEnded}
         onSubmitEditing={handleInputEnded}
       />
       <SSText weight="bold" uppercase>
@@ -116,10 +117,10 @@ export default function SSLabelInput({
         onRemove={onDelTag}
       />
       <SSButton
-          onPress={saveLabel}
-          label={i18n.t('common.save')}
-          variant="secondary"
-        />
+        onPress={saveLabel}
+        label={i18n.t('common.save')}
+        variant="secondary"
+      />
     </SSVStack>
   )
 }

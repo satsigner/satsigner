@@ -1,8 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
 import { ScrollView } from 'react-native'
 
-import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
@@ -12,6 +10,7 @@ import { TxSearchParams } from '@/types/navigation/searchParams'
 
 import { SSTxDetailsHeader } from '.'
 import SSLabelInput from '@/components/SSLabelInput'
+import { i18n } from '@/locales'
 
 export default function SSTxLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -34,15 +33,12 @@ export default function SSTxLabel() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>Edit Label</SSText>
+          headerTitle: () => <SSText>{i18n.t('txDetails.labelEdit')}</SSText>
         }}
       />
       <SSVStack style={{ padding: 20 }}>
         <SSTxDetailsHeader tx={tx} />
-        <SSLabelInput
-          label={tx.label || ''}
-          onUpdateLabel={updateLabel}
-        />
+        <SSLabelInput label={tx.label || ''} onUpdateLabel={updateLabel} />
       </SSVStack>
     </ScrollView>
   )
