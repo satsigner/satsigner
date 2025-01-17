@@ -15,7 +15,9 @@
     "experiments": {
       "typedRoutes": true
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.satsigner.satsigner"
@@ -50,8 +52,11 @@
       "expo-secure-store",
       [
         "expo-camera",
-        { "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera" }
-      ]
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ],
+      "expo-localization"
     ],
     "extra": {
       "router": {

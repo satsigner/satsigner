@@ -20,6 +20,8 @@ import { ScrollView } from 'react-native'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSModal from '@/components/SSModal'
 import { formatDate } from '@/utils/format'
+import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
+import { shareFile } from '@/utils/filesystem'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
@@ -71,6 +73,22 @@ export default function AccountSettings() {
     router.replace('/')
   }
 
+  async function saveJsonFile() {
+    if (!account) return
+    const labels = [
+      ...formatTransactionLabels(account.transactions),
+      ...formatUtxoLabels(account.utxos),
+    ]
+    const date = (new Date()).toISOString().slice(0, -5)
+    const filename = `labels_${accountName}_${date}.json`
+    shareFile({
+      filename: filename,
+      fileContent: JSON.stringify(labels),
+      dialogTitle: "Save Labels file",
+      mimeType: "application/json",
+    })
+  }
+
   return (
     <ScrollView>
       <Stack.Screen
@@ -104,6 +122,7 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT LABELS"
               variant="gradient"
+              onPress={() => saveJsonFile()}
             />
             <SSButton
               style={{ flex: 1 }}
