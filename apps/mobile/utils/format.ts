@@ -55,8 +55,8 @@ function formatLabel(rawLabel: string) {
 function formatLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
   if (tags.length === 0) return trimmedLabel
-  const labelTagSeparator = (label.length === 0) ? '' : ' '
-  return trimmedLabel + labelTagSeparator + tags.map(t => '#' + t).join(' ')
+  const labelTagSeparator = label.length === 0 ? '' : ' '
+  return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
 
 function formatPageUrl(path: string, params: PageParams) {

@@ -207,8 +207,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         if (!account) throw new Error('undefined account')
 
-        const transactionMap = {} as {[key: string]: number }
-        const utxoMap = {} as {[key: string]: number }
+        const transactionMap = {} as { [key: string]: number }
+        const utxoMap = {} as { [key: string]: number }
 
         account.transactions.forEach((tx, index) => {
           transactionMap[tx.id] = index
@@ -226,12 +226,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               const label = labelObj.label
 
               if (labelObj.type === 'tx') {
-                if (! transactionMap[labelObj.ref]) return
+                if (!transactionMap[labelObj.ref]) return
                 const txIndex = transactionMap[labelObj.ref]
                 state.accounts[index].transactions[txIndex].label = label
               }
               if (labelObj.type === 'output') {
-                if (! utxoMap[labelObj.ref]) return
+                if (!utxoMap[labelObj.ref]) return
                 const utxoIndex = utxoMap[labelObj.ref]
                 state.accounts[index].utxos[utxoIndex].label = label
               }
@@ -245,7 +245,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       storage: createJSONStorage(() => mmkvStorage)
     }
   )
-
 )
 
 export { useAccountsStore }

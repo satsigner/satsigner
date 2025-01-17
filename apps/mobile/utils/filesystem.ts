@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 import DocumentPicker from 'react-native-document-picker'
-import RNFS from 'react-native-fs';
+import RNFS from 'react-native-fs'
 
 type shareFileProps = {
   filename: string
@@ -23,7 +23,7 @@ export async function shareFile({
 }
 
 type pickFileProps = {
-  type:  "application/json" | "text/csv" | "text/plain" | "*/*"
+  type: 'application/json' | 'text/csv' | 'text/plain' | '*/*'
   encodingOrOptions?: any
 }
 

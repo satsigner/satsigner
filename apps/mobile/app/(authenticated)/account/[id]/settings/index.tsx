@@ -28,19 +28,15 @@ import { useShallow } from 'zustand/react/shallow'
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [
-    account,
-    updateAccountName,
-    deleteAccount,
-    importLabelsToAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.name === currentAccount),
-      state.updateAccountName,
-      state.deleteAccount,
-      state.importLabels
-    ])
-  )
+  const [account, updateAccountName, deleteAccount, importLabelsToAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((_account) => _account.name === currentAccount),
+        state.updateAccountName,
+        state.deleteAccount,
+        state.importLabels
+      ])
+    )
 
   const [scriptVersion, setScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
@@ -85,15 +81,15 @@ export default function AccountSettings() {
     if (!account) return
     const labels = [
       ...formatTransactionLabels(account.transactions),
-      ...formatUtxoLabels(account.utxos),
+      ...formatUtxoLabels(account.utxos)
     ]
-    const date = (new Date()).toISOString().slice(0, -5)
+    const date = new Date().toISOString().slice(0, -5)
     const filename = `labels_${accountName}_${date}.json`
     shareFile({
       filename: filename,
       fileContent: JSON.stringify(labels),
-      dialogTitle: "Save Labels file",
-      mimeType: "application/json",
+      dialogTitle: 'Save Labels file',
+      mimeType: 'application/json'
     })
   }
 
