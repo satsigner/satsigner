@@ -38,13 +38,13 @@ export default function SSTxLabel() {
       />
       <SSVStack style={{ padding: 20 }}>
         <SSVStack gap="none">
-          <SSHStack style={{ alignItems: 'flex-start'}}>
-          <SSText>TXID</SSText>
-          <SSText color='muted'>{txid}</SSText>
+          <SSHStack style={{ alignItems: 'flex-start' }}>
+            <SSText>TXID</SSText>
+            <SSText color="muted">{txid}</SSText>
           </SSHStack>
           <SSHStack>
-          <SSText>OUT</SSText>
-          <SSText color='muted'>{vout}</SSText>
+            <SSText>OUT</SSText>
+            <SSText color="muted">{vout}</SSText>
           </SSHStack>
         </SSVStack>
         <SSLabelInput label={utxo.label || ''} onUpdateLabel={updateLabel} />

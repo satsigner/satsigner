@@ -30,6 +30,7 @@ type AccountsAction = {
   addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
+  deleteAccount: (name: string) => void
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
@@ -139,6 +140,18 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.name === name
             )
             if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      deleteAccount: (name: string) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.name === name
+            )
+            if (index !== -1) {
+              state.accounts.splice(index, 1)
+            }
           })
         )
       },

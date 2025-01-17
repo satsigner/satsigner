@@ -14,16 +14,18 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router'
+import { Stack, router, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import SSFormLayout from '@/layouts/SSFormLayout'
+import SSModal from '@/components/SSModal'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [updateAccountName] = useAccountsStore((state) => [
-    state.updateAccountName
+  const [updateAccountName, deleteAccount] = useAccountsStore((state) => [
+    state.updateAccountName,
+    state.deleteAccount
   ])
 
   const [scriptVersion, setScriptVersion] =
@@ -35,6 +37,7 @@ export default function AccountSettings() {
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
 
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
@@ -57,6 +60,11 @@ export default function AccountSettings() {
   async function saveChanges() {
     updateAccountName(currentAccount, accountName)
     router.replace(`/account/${accountName}/`)
+  }
+
+  function deleteThisAccount() {
+    deleteAccount(accountName)
+    router.replace("/")
   }
 
   return (
@@ -152,6 +160,7 @@ export default function AccountSettings() {
             style={{
               backgroundColor: Colors.error
             }}
+            onPress={() => setDeleteModalVisible(true)}
           />
           <SSButton label="SAVE" variant="secondary" onPress={saveChanges} />
         </SSVStack>
@@ -244,6 +253,41 @@ export default function AccountSettings() {
           onPress={() => setNetwork('testnet')}
         />
       </SSSelectModal>
+      <SSModal
+        visible={deleteModalVisible}
+        onClose={() => setDeleteModalVisible(false)}
+      >
+        <SSVStack
+          style={{
+            padding: 0,
+            width: '100%',
+            height: '100%',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <SSText size="xl" weight="bold">
+            Are you sure?
+          </SSText>
+          <SSHStack style={{ flexWrap: 'wrap'}}>
+            <SSButton
+              label="YES"
+              style={{
+                backgroundColor: Colors.error,
+              }}
+              onPress={() => {
+                deleteThisAccount()
+              }}
+            />
+            <SSButton
+              label="NO"
+              onPress={() => {
+                setDeleteModalVisible(false)
+              }}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
     </ScrollView>
   )
 }
