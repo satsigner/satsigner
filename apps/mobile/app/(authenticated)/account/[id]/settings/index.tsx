@@ -22,6 +22,7 @@ import SSModal from '@/components/SSModal'
 import { formatDate } from '@/utils/format'
 import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
+import { pickFile } from '@/utils/filesystem'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
@@ -73,7 +74,7 @@ export default function AccountSettings() {
     router.replace('/')
   }
 
-  async function saveJsonFile() {
+  async function exportLabels() {
     if (!account) return
     const labels = [
       ...formatTransactionLabels(account.transactions),
@@ -87,6 +88,12 @@ export default function AccountSettings() {
       dialogTitle: "Save Labels file",
       mimeType: "application/json",
     })
+  }
+
+  async function importLabels() {
+    const fileContent = await pickFile({ type: 'application/json' })
+    const labels = JSON.parse(fileContent)
+    // TODO: add labels to transactions and utxos
   }
 
   return (
@@ -122,12 +129,13 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT LABELS"
               variant="gradient"
-              onPress={() => saveJsonFile()}
+              onPress={exportLabels}
             />
             <SSButton
               style={{ flex: 1 }}
               label="IMPORT LABELS"
               variant="gradient"
+              onPress={importLabels}
             />
           </SSHStack>
           <SSHStack>
