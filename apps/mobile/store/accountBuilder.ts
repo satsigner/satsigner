@@ -105,7 +105,8 @@ const useAccountBuilderStore = create<
         numberOfTransactions: 0,
         numberOfUtxos: 0,
         satsInMempool: 0
-      }
+      },
+      createdAt: new Date()
     }
   },
   setName: (name) => {

@@ -19,14 +19,18 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSModal from '@/components/SSModal'
+import { formatDate } from '@/utils/format'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [updateAccountName, deleteAccount] = useAccountsStore((state) => [
-    state.updateAccountName,
-    state.deleteAccount
-  ])
+  const [account, updateAccountName, deleteAccount] = useAccountsStore(
+    (state) => [
+      state.accounts.find((_account) => _account.name === currentAccount),
+      state.updateAccountName,
+      state.deleteAccount
+    ]
+  )
 
   const [scriptVersion, setScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
@@ -64,7 +68,7 @@ export default function AccountSettings() {
 
   function deleteThisAccount() {
     deleteAccount(accountName)
-    router.replace("/")
+    router.replace('/')
   }
 
   return (
@@ -82,11 +86,13 @@ export default function AccountSettings() {
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">Fingerprint</SSText>
-            <SSText style={{ color: Colors.success }}>23af61ff</SSText>
+            <SSText style={{ color: Colors.success }}>
+              {account?.fingerprint}
+            </SSText>
           </SSHStack>
           <SSHStack gap="sm">
             <SSText color="muted">Created on</SSText>
-            <SSText>Jan 3, 20257 03:09:00 UTC</SSText>
+            <SSText>{account && formatDate(account.createdAt)}</SSText>
           </SSHStack>
         </SSVStack>
         <SSVStack>
@@ -269,11 +275,11 @@ export default function AccountSettings() {
           <SSText size="xl" weight="bold">
             Are you sure?
           </SSText>
-          <SSHStack style={{ flexWrap: 'wrap'}}>
+          <SSHStack style={{ flexWrap: 'wrap' }}>
             <SSButton
               label="YES"
               style={{
-                backgroundColor: Colors.error,
+                backgroundColor: Colors.error
               }}
               onPress={() => {
                 deleteThisAccount()
