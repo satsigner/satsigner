@@ -16,7 +16,8 @@ export default function SSTextClipboard({
   children
 }: SSTextClipboardProps) {
   const [showPopup, setShowPopup] = useState(false)
-  const handleClick = async () => {
+
+  async function handleClick() {
     const textToCopy = typeof text === 'string' ? text : text.toString()
     await Clipboard.setStringAsync(textToCopy)
     setShowPopup(true)
