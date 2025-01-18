@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -79,7 +80,9 @@ export default function NewInvoice() {
             <SSText color="muted" uppercase>
               {i18n.t('newInvoice.address')}
             </SSText>
-            <SSText size="sm">{address}</SSText>
+            <SSClipboardCopy text={address} withPopup={false}>
+              <SSText size="sm">{address}</SSText>
+            </SSClipboardCopy>
           </SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
