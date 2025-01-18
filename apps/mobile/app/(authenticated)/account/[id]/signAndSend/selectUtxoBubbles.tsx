@@ -51,7 +51,8 @@ function SelectUtxoBubbles() {
   const GRAPH_HEIGHT = height - topHeaderHeight + 20
   const GRAPH_WIDTH = width
 
-  const [customAmountModalVisible, setCustomAmountModalVisible] = useState(true)
+  const [customAmountModalVisible, setCustomAmountModalVisible] =
+    useState(false)
 
   const hasSelectedUtxos = inputs.size > 0
   const selectedAllUtxos = inputs.size === account.utxos.length
