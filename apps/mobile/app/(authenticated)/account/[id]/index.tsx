@@ -103,6 +103,10 @@ function TotalTransactions({
         }
       })
 
+    if (result.length === 0) {
+      return []
+    }
+
     function getPreviousDay(date: Date | string) {
       const previousDay = new Date(date)
       previousDay.setDate(previousDay.getDate() - 2)

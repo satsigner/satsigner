@@ -27,7 +27,6 @@ interface Link extends SankeyLinkMinimal<object, object> {
 }
 
 interface Node extends SankeyNodeMinimal<object, object> {
-  indexC: number
   id: string
   depthH: number
   type?: string

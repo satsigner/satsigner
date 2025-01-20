@@ -1,11 +1,13 @@
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
+import { MempoolOracle } from '@/api/blockchain'
+import type { EsploraTx } from '@/api/esplora'
 import { SSIconBubbles } from '@/components/icons'
 import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
@@ -26,6 +28,57 @@ import type { Utxo } from '@/types/models/Utxo'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 
+function useInputTransactions(inputs: Map<string, Utxo>) {
+  const [transactions, setTransactions] = useState<Map<string, EsploraTx>>(
+    new Map()
+  )
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  const fetchInputTransactions = useCallback(async () => {
+    if (inputs.size === 0) return
+
+    setLoading(true)
+    setError(null)
+    const oracle = new MempoolOracle('https://mutinynet.com/api')
+    const newTransactions = new Map<string, EsploraTx>()
+
+    try {
+      const inputsArray = Array.from(inputs.entries())
+      await Promise.all(
+        inputsArray.map(async ([, input]) => {
+          try {
+            const tx = (await oracle.getTransaction(input.txid)) as EsploraTx
+            newTransactions.set(input.txid, tx)
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('Error fetching transaction:', input.txid, err)
+          }
+        })
+      )
+      setTransactions(newTransactions)
+      // Log transactions with vin or vout length > 0
+      newTransactions.forEach((tx, txid) => {
+        if ((tx.vin && tx.vin.length > 0) || (tx.vout && tx.vout.length > 0)) {
+          console.log('Transaction with inputs/outputs:', txid, tx)
+        }
+      })
+    } catch (err) {
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch transactions')
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [inputs])
+
+  useEffect(() => {
+    fetchInputTransactions()
+  }, [fetchInputTransactions])
+
+  return { transactions, loading, error }
+}
+
 const MINING_FEE_VALUE = 1635
 
 function estimateTransactionSize(inputCount: number, outputCount: number) {
@@ -37,8 +90,8 @@ function estimateTransactionSize(inputCount: number, outputCount: number) {
   const outputSize = outputCount * 34
 
   const totalSize = baseSize + inputSize + outputSize
-  // Virtual size is (weight units / 4). Weight units = (baseWeight * 3) + witnessWeight
-  const vsize = Math.ceil(totalSize * 0.75)
+  // Virtual size is weight/4
+  const vsize = Math.ceil(totalSize * 0.25)
 
   return { size: totalSize, vsize }
 }
@@ -57,6 +110,9 @@ export default function IOPreview() {
       state.addOutput
     ])
   )
+
+  const { transactions, loading, error } = useInputTransactions(inputs)
+
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -96,7 +152,7 @@ export default function IOPreview() {
       const inputNodes = Array.from(inputs.entries()).map(
         ([, input], index) => ({
           id: String(index + 1),
-          indexC: index + 1,
+          // indexC: index + 1,
           type: 'text',
           depthH: 1,
           textInfo: [
@@ -111,15 +167,15 @@ export default function IOPreview() {
       const { size, vsize } = estimateTransactionSize(
         inputs.size,
         outputs.length + 2
-      ) // +2 for change and fee outputs
+      )
 
       const blockNode = [
         {
           id: String(inputs.size + 1),
-          indexC: inputs.size + 1,
+          // indexC: inputs.size + 1,
           type: 'block',
           depthH: 2,
-          textInfo: ['', '', `${size} B`, `${vsize} vB`]
+          textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
         }
       ]
 
@@ -128,7 +184,7 @@ export default function IOPreview() {
       const outputNodes = [
         {
           id: String(inputs.size + 2),
-          indexC: inputs.size + 2,
+          // indexC: inputs.size + 2,
           type: 'text',
           depthH: 3,
           textInfo: [
@@ -140,7 +196,7 @@ export default function IOPreview() {
         },
         {
           id: String(inputs.size + 3),
-          indexC: inputs.size + 3,
+          // indexC: inputs.size + 3,
           type: 'text',
           depthH: 3,
           textInfo: [priority, miningFee, 'mining fee'],
@@ -152,6 +208,76 @@ export default function IOPreview() {
       return []
     }
   }, [inputs, outputs.length, utxosSelectedValue])
+
+  const confirmedSankeyNodes = useMemo(() => {
+    if (transactions.size > 0) {
+      return Array.from(transactions.entries()).flatMap(([txid, tx]) => {
+        const inputNodes =
+          tx.vin?.map((input, idx) => ({
+            id: `vin-${txid}-${idx}`,
+            type: 'text',
+            depthH: 1,
+            textInfo: [
+              `${input.prevout.value}`,
+              `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+              ''
+            ],
+            value: input.prevout.value
+          })) ?? []
+
+        const vsize = Math.ceil(tx.weight * 0.25)
+
+        const blockNode = [
+          {
+            id: `block-${txid}`,
+            type: 'block',
+            depthH: 2,
+            textInfo: ['', '', `${tx.size} B`, `${vsize} vB`]
+          }
+        ]
+
+        const outputNodes =
+          tx.vout?.map((output, idx) => ({
+            id: `vout-${txid}-${idx}`,
+            type: 'text',
+            depthH: 3,
+            textInfo: [
+              `${output.value}`,
+              `${formatAddress(output.scriptpubkey_address, 6)}`,
+              ''
+            ],
+            value: output.value
+          })) ?? []
+
+        return [...inputNodes, ...blockNode, ...outputNodes]
+      })
+    }
+    return []
+  }, [transactions])
+
+  const confirmedSankeyLinks = useMemo(() => {
+    if (transactions.size === 0) return []
+
+    const txLinks = Array.from(transactions.entries()).flatMap(([txid, tx]) => {
+      const inputToBlockLinks =
+        tx.vin?.map((input, idx) => ({
+          source: `vin-${txid}-${idx}`,
+          target: `block-${txid}`,
+          value: input.prevout.value
+        })) ?? []
+
+      const blockToOutputLinks =
+        tx.vout?.map((output, idx) => ({
+          source: `block-${tx.txid}`,
+          target: `vout-${tx.txid}-${idx}`,
+          value: output.value
+        })) ?? []
+
+      return [...inputToBlockLinks, ...blockToOutputLinks]
+    })
+
+    return txLinks
+  }, [transactions])
 
   const sankeyLinks = useMemo(() => {
     if (inputs.size === 0) return []
@@ -179,6 +305,32 @@ export default function IOPreview() {
 
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputs, utxosSelectedValue])
+
+  // Show loading state
+  if (loading && inputs.size > 0) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText>Loading transaction details...</SSText>
+      </SSVStack>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText color="muted">
+          Error loading transaction details: {error.message}
+        </SSText>
+      </SSVStack>
+    )
+  }
+  console.log('testing', {
+    sankeyLinks,
+    sankeyNodes,
+    confirmedSankeyLinks,
+    confirmedSankeyNodes
+  })
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -264,20 +416,15 @@ export default function IOPreview() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 80 }}>
-        {/* <GestureDetector gesture={gestures}>
-          <Animated.View
-            style={[
-              { width: sankeyWidth, height: sankeyHeight },
-              animatedStyle
-            ]}
-          > */}
         <SSSankeyDiagram
-          sankeyNodes={sankeyNodes}
-          sankeyLinks={sankeyLinks}
+          sankeyNodes={
+            transactions.size > 0 ? confirmedSankeyNodes : sankeyNodes
+          }
+          sankeyLinks={
+            transactions.size > 0 ? confirmedSankeyLinks : sankeyLinks
+          }
           inputCount={inputs.size ?? 0}
         />
-        {/* </Animated.View>
-        </GestureDetector> */}
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
