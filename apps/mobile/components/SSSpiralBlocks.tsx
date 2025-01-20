@@ -218,7 +218,7 @@ export default function SSSpiralBlocks() {
       </Canvas>
 
       {/* Navigation Buttons */}
-      <View>
+      <View style={styles.buttonContainer}>
         <SSIconButton
           onPress={() =>
             setCurrentFileIndex((prevIndex) => Math.max(prevIndex - 1, 0))
@@ -249,5 +249,12 @@ const styles = StyleSheet.create({
     width: canvasSize, // Canvas width
     height: canvasSize, // Canvas height
     backgroundColor: '#000000' // Black canvas background
+  },
+
+  buttonContainer: {
+    flexDirection: 'row', // Align buttons horizontally
+    justifyContent: 'center', // Center buttons horizontally
+    alignItems: 'center', // Center buttons vertically
+    marginTop: 16 // Optional margin between the canvas and the buttons
   }
 })
