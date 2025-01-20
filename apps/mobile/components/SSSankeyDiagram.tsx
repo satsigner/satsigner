@@ -31,6 +31,7 @@ interface Node extends SankeyNodeMinimal<object, object> {
   depthH: number
   type?: string
   textInfo: string[]
+  value?: number
 }
 
 interface LinkPoints {
@@ -120,7 +121,7 @@ function SSSankeyDiagram({
     .nodePadding(100)
     .extent([
       [0, 160],
-      [1000 * 0.4, 1000 * (Math.max(2.4, inputCount) / 10)]
+      [1000 * 0.7, 1000 * (Math.max(2.4, inputCount) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -128,6 +129,7 @@ function SSSankeyDiagram({
     const { depthH } = node as Node
     return depthH - 1
   })
+  console.log('hey sankey diagram', Math.max(2.4, inputCount) / 10)
 
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
@@ -137,28 +139,55 @@ function SSSankeyDiagram({
       value: item.value
     }))
   })
+  console.log('sankey diagram', {
+    sankeyNodes,
+    sankeyLinks
+  })
 
   const getLinkWidth = useCallback(
     (node: Node, maxWidth: number) => {
-      // Find all nodes at the same depth as the target node
-      const nodesAtSameDepth = nodes.filter((n) => n.depth === node.depth)
+      // For block nodes, return a fixed small width
+      if (node.type === 'block') {
+        return Math.min(2, maxWidth)
+      }
 
-      // Calculate total sats at this depth
-      const totalSats = nodesAtSameDepth.reduce((sum, n) => {
-        const sats = n?.value ?? 0
-        return sum + sats
-      }, 0)
+      // Find links where this node is the target (incoming) or source (outgoing)
+      const incomingLinks = links.filter((link) => {
+        const targetNode = link.target as Node
+        return targetNode.id === node.id
+      })
+
+      const outgoingLinks = links.filter((link) => {
+        const sourceNode = link.source as Node
+        return sourceNode.id === node.id
+      })
+
+      // Calculate total sats for incoming and outgoing links separately
+      const totalIncomingSats = incomingLinks.reduce(
+        (sum, link) => sum + (link.value ?? 0),
+        0
+      )
+      const totalOutgoingSats = outgoingLinks.reduce(
+        (sum, link) => sum + (link.value ?? 0),
+        0
+      )
 
       // Get current node's sats
       const nodeSats = node?.value ?? 0
 
+      // Calculate width based on whether this node is source or target in the current context
+      const isSource = outgoingLinks.some(
+        (link) => (link.source as Node).id === node.id
+      )
+      const totalSats = isSource ? totalOutgoingSats : totalIncomingSats
+
       // Calculate width (max width proportional to sats percentage)
       return (nodeSats / totalSats) * maxWidth
     },
-    [nodes]
+    [links]
   )
 
-  if (!nodes || !links) {
+  if (!nodes?.length || !links?.length) {
     return null
   }
 
@@ -225,7 +254,6 @@ function SSSankeyDiagram({
             )
           })}
 
-          {/* Draw nodes */}
           {nodes.map((node, index) => {
             const dataNode = node as Node
 

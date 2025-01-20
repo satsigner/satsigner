@@ -57,12 +57,6 @@ function useInputTransactions(inputs: Map<string, Utxo>) {
         })
       )
       setTransactions(newTransactions)
-      // Log transactions with vin or vout length > 0
-      newTransactions.forEach((tx, txid) => {
-        if ((tx.vin && tx.vin.length > 0) || (tx.vout && tx.vout.length > 0)) {
-          console.log('Transaction with inputs/outputs:', txid, tx)
-        }
-      })
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error('Failed to fetch transactions')
@@ -147,23 +141,23 @@ export default function IOPreview() {
     setAddOutputModalVisible(false)
   }
 
+  const pendingInputNodes = useMemo(() => {
+    if (inputs.size === 0) return []
+    return Array.from(inputs.entries()).map(([, input], index) => ({
+      id: String(index + 1),
+      type: 'text',
+      depthH: 1,
+      textInfo: [
+        `${input.value}`,
+        `${formatAddress(input.txid, 3)}`,
+        input.label ?? ''
+      ],
+      value: input.value
+    }))
+  }, [inputs])
+
   const sankeyNodes = useMemo(() => {
     if (inputs.size > 0) {
-      const inputNodes = Array.from(inputs.entries()).map(
-        ([, input], index) => ({
-          id: String(index + 1),
-          // indexC: index + 1,
-          type: 'text',
-          depthH: 1,
-          textInfo: [
-            `${input.value}`,
-            `${formatAddress(input.txid, 3)}`,
-            input.label ?? ''
-          ],
-          value: input.value
-        })
-      )
-
       const { size, vsize } = estimateTransactionSize(
         inputs.size,
         outputs.length + 2
@@ -172,9 +166,8 @@ export default function IOPreview() {
       const blockNode = [
         {
           id: String(inputs.size + 1),
-          // indexC: inputs.size + 1,
           type: 'block',
-          depthH: 2,
+          depthH: 4,
           textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
         }
       ]
@@ -184,9 +177,8 @@ export default function IOPreview() {
       const outputNodes = [
         {
           id: String(inputs.size + 2),
-          // indexC: inputs.size + 2,
           type: 'text',
-          depthH: 3,
+          depthH: 5,
           textInfo: [
             'Unspent',
             `${utxosSelectedValue - MINING_FEE_VALUE}`,
@@ -196,98 +188,106 @@ export default function IOPreview() {
         },
         {
           id: String(inputs.size + 3),
-          // indexC: inputs.size + 3,
           type: 'text',
-          depthH: 3,
+          depthH: 6,
           textInfo: [priority, miningFee, 'mining fee'],
           value: MINING_FEE_VALUE
         }
       ]
-      return [...inputNodes, ...blockNode, ...outputNodes]
+      return [...blockNode, ...outputNodes]
     } else {
       return []
     }
-  }, [inputs, outputs.length, utxosSelectedValue])
+  }, [inputs.size, outputs.length, utxosSelectedValue])
 
   const confirmedSankeyNodes = useMemo(() => {
-    if (transactions.size > 0) {
-      return Array.from(transactions.entries()).flatMap(([txid, tx]) => {
-        const inputNodes =
-          tx.vin?.map((input, idx) => ({
-            id: `vin-${txid}-${idx}`,
-            type: 'text',
-            depthH: 1,
-            textInfo: [
-              `${input.prevout.value}`,
-              `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-              ''
-            ],
-            value: input.prevout.value
-          })) ?? []
+    if (transactions.size > 0 && inputs.size > 0) {
+      return Array.from(transactions.entries()).flatMap(([, tx], index) => {
+        if (!tx.vin || !tx.vout) return []
+
+        const inputNodes = tx.vin.map((input, idx) => ({
+          id: `vin-${index}-${idx}`,
+          type: 'text',
+          depthH: 1,
+          textInfo: [
+            `${input.prevout.value}`,
+            `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+            ''
+          ],
+          value: input.prevout.value
+        }))
 
         const vsize = Math.ceil(tx.weight * 0.25)
 
         const blockNode = [
           {
-            id: `block-${txid}`,
+            id: `block-${index}`,
             type: 'block',
             depthH: 2,
             textInfo: ['', '', `${tx.size} B`, `${vsize} vB`]
           }
         ]
 
-        const outputNodes =
-          tx.vout?.map((output, idx) => ({
-            id: `vout-${txid}-${idx}`,
-            type: 'text',
-            depthH: 3,
-            textInfo: [
-              `${output.value}`,
-              `${formatAddress(output.scriptpubkey_address, 6)}`,
-              ''
-            ],
-            value: output.value
-          })) ?? []
+        const outputNodes = tx.vout.map((output, idx) => ({
+          id: `vout-${index}-${idx}`,
+          type: 'text',
+          depthH: 3,
+          textInfo: [
+            `${output.value}`,
+            `${formatAddress(output.scriptpubkey_address, 6)}`,
+            ''
+          ],
+          value: output.value
+        }))
 
         return [...inputNodes, ...blockNode, ...outputNodes]
       })
     }
     return []
-  }, [transactions])
+  }, [inputs.size, transactions])
 
   const confirmedSankeyLinks = useMemo(() => {
     if (transactions.size === 0) return []
 
-    const txLinks = Array.from(transactions.entries()).flatMap(([txid, tx]) => {
-      const inputToBlockLinks =
-        tx.vin?.map((input, idx) => ({
-          source: `vin-${txid}-${idx}`,
-          target: `block-${txid}`,
+    const txLinks = Array.from(transactions.entries()).flatMap(
+      ([, tx], index) => {
+        if (!tx.vin || !tx.vout) return []
+
+        const inputToBlockLinks = tx.vin.map((input, idx) => ({
+          source: `vin-${index}-${idx}`,
+          target: `block-${index}`,
           value: input.prevout.value
-        })) ?? []
+        }))
 
-      const blockToOutputLinks =
-        tx.vout?.map((output, idx) => ({
-          source: `block-${tx.txid}`,
-          target: `vout-${tx.txid}-${idx}`,
+        const blockToOutputLinks = tx.vout.map((output, idx) => ({
+          source: `block-${index}`,
+          target: `vout-${index}-${idx}`,
           value: output.value
-        })) ?? []
+        }))
 
-      return [...inputToBlockLinks, ...blockToOutputLinks]
-    })
+        const sameIndex = tx.vout.findIndex(
+          (o) =>
+            o.value ===
+            pendingInputNodes.find((node) => node.value === o.value)?.value
+        )
 
-    return txLinks
-  }, [transactions])
+        const confirmedToPendingLinks =
+          sameIndex !== -1
+            ? [
+                {
+                  source: `vout-${index}-${sameIndex}`,
+                  target: `${inputs.size + 1}`,
+                  value: tx.vout[sameIndex].value
+                }
+              ]
+            : []
 
-  const sankeyLinks = useMemo(() => {
-    if (inputs.size === 0) return []
-
-    const inputToBlockLinks = Array.from(inputs.entries()).map(
-      ([, input], index) => ({
-        source: String(index + 1),
-        target: String(inputs.size + 1),
-        value: input.value
-      })
+        return [
+          ...inputToBlockLinks,
+          ...blockToOutputLinks,
+          ...confirmedToPendingLinks
+        ]
+      }
     )
 
     const blockToOutputLinks = [
@@ -303,8 +303,8 @@ export default function IOPreview() {
       }
     ]
 
-    return [...inputToBlockLinks, ...blockToOutputLinks]
-  }, [inputs, utxosSelectedValue])
+    return [...txLinks, ...blockToOutputLinks]
+  }, [transactions, inputs.size, utxosSelectedValue, pendingInputNodes])
 
   // Show loading state
   if (loading && inputs.size > 0) {
@@ -325,12 +325,9 @@ export default function IOPreview() {
       </SSVStack>
     )
   }
-  console.log('testing', {
-    sankeyLinks,
-    sankeyNodes,
-    confirmedSankeyLinks,
-    confirmedSankeyNodes
-  })
+
+  const allNodes = [...sankeyNodes, ...confirmedSankeyNodes]
+  const allLinks = confirmedSankeyLinks
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -416,15 +413,16 @@ export default function IOPreview() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 80 }}>
-        <SSSankeyDiagram
-          sankeyNodes={
-            transactions.size > 0 ? confirmedSankeyNodes : sankeyNodes
-          }
-          sankeyLinks={
-            transactions.size > 0 ? confirmedSankeyLinks : sankeyLinks
-          }
-          inputCount={inputs.size ?? 0}
-        />
+        {transactions.size > 0 &&
+        inputs.size > 0 &&
+        allNodes.length > 0 &&
+        allLinks.length > 0 ? (
+          <SSSankeyDiagram
+            sankeyNodes={allNodes}
+            sankeyLinks={allLinks}
+            inputCount={inputs.size}
+          />
+        ) : null}
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
