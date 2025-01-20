@@ -359,6 +359,7 @@ async function buildTransaction(
   await transactionBuilder.addUtxos(
     utxos.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
   )
+  await transactionBuilder.manuallySelectedOnly()
   await transactionBuilder.addRecipient(script, amount)
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
