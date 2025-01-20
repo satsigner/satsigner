@@ -10,6 +10,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
@@ -18,6 +19,7 @@ export default function FeeSelection() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const setFeeRate = useTransactionBuilderStore((state) => state.setFeeRate)
 
   const account = getCurrentAccount(id!)!
 
@@ -26,6 +28,7 @@ export default function FeeSelection() {
     useState(false)
 
   function handleOnPressPreviewTxMessage() {
+    setFeeRate(feeSelected)
     if (feeSelected > 5000)
       setInsufficientSatsModalVisible(true) // to remove
     else router.navigate(`/account/${id}/signAndSend/previewMessage`)

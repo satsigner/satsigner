@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getBlockchain } from '@/api/bdk'
-import { ESPLORA_MUTINYNET_URL, getBlockchainConfig } from '@/config/servers'
+import { getBlockchainConfig, MEMPOOL_SIGNET_URL } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Backend, type Network } from '@/types/settings/blockchain'
 
@@ -30,9 +30,9 @@ type BlockchainAction = {
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
     (set, get) => ({
-      backend: 'esplora',
+      backend: 'electrum',
       network: 'signet',
-      url: ESPLORA_MUTINYNET_URL,
+      url: MEMPOOL_SIGNET_URL,
       timeout: 6,
       retries: 7,
       stopGap: 20,

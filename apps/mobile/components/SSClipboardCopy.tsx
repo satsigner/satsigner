@@ -6,15 +6,18 @@ import SSPopupText from './SSPopupText'
 
 type SSTextClipboardProps = {
   text: string | number
+  withPopup?: boolean
   children: React.ReactNode
 }
 
 export default function SSTextClipboard({
   text,
+  withPopup = true,
   children
 }: SSTextClipboardProps) {
   const [showPopup, setShowPopup] = useState(false)
-  const handleClick = async () => {
+
+  async function handleClick() {
     const textToCopy = typeof text === 'string' ? text : text.toString()
     await Clipboard.setStringAsync(textToCopy)
     setShowPopup(true)
@@ -24,11 +27,13 @@ export default function SSTextClipboard({
     <TouchableWithoutFeedback onPress={handleClick}>
       <View>
         {children}
-        <SSPopupText
-          isVisible={showPopup}
-          onTimeout={() => setShowPopup(false)}
-          message="Copied to clipboard"
-        />
+        {withPopup && (
+          <SSPopupText
+            isVisible={showPopup}
+            onTimeout={() => setShowPopup(false)}
+            message="Copied to clipboard"
+          />
+        )}
       </View>
     </TouchableWithoutFeedback>
   )
