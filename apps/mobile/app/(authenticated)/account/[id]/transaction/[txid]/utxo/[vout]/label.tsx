@@ -1,17 +1,14 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
 
+import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
 import { Account } from '@/types/models/Account'
-import { UtxoSearchParams } from '@/types/navigation/searchParams'
-
-import SSLabelInput from '@/components/SSLabelInput'
 import { Utxo } from '@/types/models/Utxo'
-import { getUtxoOutpoint } from '@/utils/utxo'
-import SSHStack from '@/layouts/SSHStack'
-
+import { UtxoSearchParams } from '@/types/navigation/searchParams'
 export default function SSTxLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 

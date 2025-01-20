@@ -1,27 +1,29 @@
-import { i18n } from '@/locales'
-import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { useState } from 'react'
+import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
+
+import { SSIconScriptsP2pkh } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
-import { SSIconScriptsP2pkh } from '@/components/icons'
+import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
-import SSButton from '@/components/SSButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { Stack, router, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
-import SSFormLayout from '@/layouts/SSFormLayout'
-import SSModal from '@/components/SSModal'
+import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
+import { pickFile, shareFile } from '@/utils/filesystem'
 import { formatDate } from '@/utils/format'
-import { pickFile } from '@/utils/filesystem'
-import { useShallow } from 'zustand/react/shallow'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
@@ -75,6 +77,22 @@ export default function AccountSettings() {
     router.replace('/')
   }
 
+  async function exportLabels() {
+    if (!account) return
+    const labels = [
+      ...formatTransactionLabels(account.transactions),
+      ...formatUtxoLabels(account.utxos)
+    ]
+    const date = new Date().toISOString().slice(0, -5)
+    const filename = `labels_${currentAccount}_${date}.json`
+    shareFile({
+      filename,
+      fileContent: JSON.stringify(labels),
+      dialogTitle: 'Save Labels file',
+      mimeType: 'application/json'
+    })
+  }
+
   async function importLabels() {
     const fileContent = await pickFile({ type: 'application/json' })
     const labels = JSON.parse(fileContent)
@@ -116,11 +134,7 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT LABELS"
               variant="gradient"
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccount}/settings/labelExport`
-                )
-              }
+              onPress={exportLabels}
             />
             <SSButton
               style={{ flex: 1 }}

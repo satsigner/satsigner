@@ -9,6 +9,7 @@ import {
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import { SSLabelDetails } from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -26,7 +27,6 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
-import { SSLabelDetails } from '@/components/SSLabelDetails'
 
 // TODO: Refactor page
 

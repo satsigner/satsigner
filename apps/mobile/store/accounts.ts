@@ -9,13 +9,11 @@ import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+import { Label } from '@/utils/bip329'
 import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
-import { Label } from '@/utils/bip329'
-import { Transaction } from '@/types/models/Transaction'
-import { Utxo } from '@/types/models/Utxo'
 
 type AccountsState = {
   accounts: Account[]

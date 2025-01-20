@@ -1,14 +1,16 @@
+import { router } from 'expo-router'
+import { useEffect, useState } from 'react'
+
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import SSText from './SSText'
-import { useEffect, useState } from 'react'
+import { i18n } from '@/locales'
+import { Colors } from '@/styles'
+import { formatLabel } from '@/utils/format'
+
+import { SSIconEditPencil } from './icons'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
-import { router } from 'expo-router'
-import { SSIconEditPencil } from './icons'
-import { i18n } from '@/locales'
-import { formatLabel } from '@/utils/format'
-import { Colors } from '@/styles'
+import SSText from './SSText'
 
 type SSLabelDetailsProps = {
   label: string

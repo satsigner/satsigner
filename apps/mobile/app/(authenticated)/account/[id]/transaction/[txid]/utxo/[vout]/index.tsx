@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import { SSLabelDetails } from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -10,21 +11,18 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatLabel, formatNumber } from '@/utils/format'
-import SSLabelInput from '@/components/SSLabelInput'
-import { SSLabelDetails } from '@/components/SSLabelDetails'
+import { formatDate, formatNumber } from '@/utils/format'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const [tx, utxo, setUtxoLabel] = useAccountsStore((state) => [
+  const [tx, utxo] = useAccountsStore((state) => [
     state.accounts
       .find((account) => account.name === accountId)
       ?.transactions.find((tx) => tx.id === txid),
     state.accounts
       .find((account) => account.name === accountId)
-      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout)),
-    state.setUtxoLabel
+      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout))
   ])
 
   const placeholder = '-'
@@ -54,11 +52,6 @@ export default function UtxoDetails() {
       router.back()
     }
   }, [tx, utxo]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const saveLabel = (newLabel: string) => {
-    setUtxoLabel(accountId!, txid!, Number(vout), newLabel)
-    router.back()
-  }
 
   return (
     <ScrollView>

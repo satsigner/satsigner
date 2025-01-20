@@ -1,12 +1,14 @@
+import { useEffect, useState } from 'react'
+
 import SSVStack from '@/layouts/SSVStack'
-import SSText from './SSText'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import SSTextInput from './SSTextInput'
-import { useEffect, useState } from 'react'
 import { formatLabel, formatLabelTags } from '@/utils/format'
-import SSTagInput from './SSTagInput'
+
 import SSButton from './SSButton'
+import SSTagInput from './SSTagInput'
+import SSText from './SSText'
+import SSTextInput from './SSTextInput'
 
 type SSLabelInputProps = {
   label: string
@@ -93,7 +95,7 @@ export default function SSLabelInput({
         align="left"
         multiline
         numberOfLines={3}
-        blurOnSubmit={true}
+        blurOnSubmit
         style={{
           height: 'auto',
           textAlignVertical: 'top',
