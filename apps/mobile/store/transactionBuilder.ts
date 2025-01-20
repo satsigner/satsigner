@@ -21,6 +21,7 @@ type TransactionBuilderAction = {
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
   addOutput: (output: Omit<Output, 'localId'>) => void
+  setFeeRate: (feeRate: number) => void
 }
 
 const useTransactionBuilderStore = create<
@@ -61,6 +62,9 @@ const useTransactionBuilderStore = create<
         state.outputs.push({ localId: generateId(), ...output })
       })
     )
+  },
+  setFeeRate: (feeRate) => {
+    set({ feeRate })
   }
 }))
 

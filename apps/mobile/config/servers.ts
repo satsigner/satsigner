@@ -6,7 +6,7 @@ import {
 import { Backend } from '@/types/settings/blockchain'
 
 const ELECTRUM_BLOCKSTREAM_URL = 'ssl://electrum.blockstream.info:60002'
-const ESPLORA_MUTINYNET_URL = 'https://mutinynet.com/api'
+const MEMPOOL_SIGNET_URL = 'ssl://mempool.space:60602'
 
 type customBlockchainConfig = {
   retries?: number
@@ -40,4 +40,4 @@ function getBlockchainConfig(
   }
 }
 
-export { ELECTRUM_BLOCKSTREAM_URL, ESPLORA_MUTINYNET_URL, getBlockchainConfig }
+export { ELECTRUM_BLOCKSTREAM_URL, getBlockchainConfig, MEMPOOL_SIGNET_URL }
