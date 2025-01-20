@@ -115,20 +115,23 @@ function TotalTransactions({
       return nextDay
     }
 
-    result.unshift({
-      balance: 0,
-      amount: 0,
-      date: getPreviousDay(result[0].date),
-      memo: '',
-      type: 'receive'
-    })
-    result.push({
-      balance: result[result.length - 1].balance,
-      amount: 0,
-      date: getNextDay(result[result.length - 1].date),
-      memo: '',
-      type: 'receive'
-    })
+    if (result.length >= 2) {
+      result.unshift({
+        balance: 0,
+        amount: 0,
+        date: getPreviousDay(result[0].date),
+        memo: '',
+        type: 'receive'
+      })
+      result.push({
+        balance: result[result.length - 1].balance,
+        amount: 0,
+        date: getNextDay(result[result.length - 1].date),
+        memo: '',
+        type: 'receive'
+      })
+    }
+
     return result
   }, [account.transactions])
 
