@@ -1,17 +1,30 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Canvas, Rect, Circle, Skia, Path } from '@shopify/react-native-skia'
 import { StyleSheet, View } from 'react-native'
+import { useRouter } from 'expo-router'
+import SSIconButton from '@/components/SSIconButton'
+import {
+  SSIconChevronUp,
+  SSIconChevronDown,
+  SSIconChevronLeft,
+  SSIconChevronRight
+} from '@/components/icons'
 
 // Constants
-const maxBlocksPerSpiral: number = 1000
-const factorBlockDistance: number = 0.02
-const radiusSpiralStart: number = 10
+const maxBlocksPerSpiral: number = 2016
+const factorBlockDistance: number = 0.04
+const radiusSpiralStart: number = 1
 const factorSpiralGrowth: number = 0.8
-const canvasSize = 400 // Canvas dimensions
+const canvasSize = 500 // Canvas dimensions
 const blockSize = 3 // Block size in pixels
+const maxLoggingBlock = 10
+
+// color
+const min_brightness: number = 20
+const maxBrightnessSize: number = 5000
 
 const dataLink = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
-const dataFile = 'rcp_bitcoin_block_data_0004032.json'
+const dataFile = 'rcp_bitcoin_block_data_0006048.json'
 
 /**
  * Newton-Raphson method to find roots of a function
@@ -54,14 +67,21 @@ function newtonRaphson(
   throw new Error('Convergence Failed!') // If max iterations are reached
 }
 
-export default function SpiralBlocks() {
+// Logic for files
+const getFileName = (index: number) => {
+  return `rcp_bitcoin_block_data_${(index * maxBlocksPerSpiral).toString().padStart(7, '0')}.json`
+}
+
+export default function SSSpiralBlocks() {
   const [spiralDataRaw, setspiralDataRaw] = useState<any[]>([]) // State to store fetched data
   const [isDataLoaded, setIsDataLoaded] = useState(false) // State to track data loading status
+  const [currentFileIndex, setCurrentFileIndex] = useState(0) // State for current file index
+  const router = useRouter()
 
-  // Function to fetch data from the provided URL
   const fetchData = async () => {
     try {
-      const response = await fetch(dataLink + dataFile)
+      const fileName = getFileName(currentFileIndex)
+      const response = await fetch(dataLink + fileName)
       const data = await response.json()
       setspiralDataRaw(data)
       setIsDataLoaded(true)
@@ -70,10 +90,9 @@ export default function SpiralBlocks() {
     }
   }
 
-  // Fetch data on component mount
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [currentFileIndex]) // Fetch new data when current file index changes
 
   const spiralBlocks = useMemo(() => {
     if (!isDataLoaded) return [] // Don't compute if data isn't loaded
@@ -98,6 +117,7 @@ export default function SpiralBlocks() {
       // Extract time_difference from spiralData
       const currentBlock = spiralData[i]
       const timeDifference = currentBlock?.[8]?.time_difference ?? 0 // Safely access and fallback to 0 if undefined
+      const size = currentBlock?.[5]?.size ?? 0 // Safely access and fallback to 0 if undefined
 
       const block_distance =
         i === 0 || i === maxBlocksPerSpiral - 1
@@ -112,21 +132,25 @@ export default function SpiralBlocks() {
       // Calculate x and y positions
       const x = radius_spiral * Math.cos(phi_spiral)
       const y = radius_spiral * Math.sin(phi_spiral)
+      const logMin = Math.log(1) // Avoid log(0), so we take log(1) as the minimum
+      const logMax = Math.log(maxBrightnessSize) // Logarithmic max value
 
-      if (i < 5)
+      // Calculate brightness using logarithmic scaling
+      //let brightness = min_brightness + ((Math.log(size + 1) - logMin) / (logMax - logMin)) *(256 - min_brightness)
+      let brightness = min_brightness + (size / maxBrightnessSize) * 256
+
+      if (i < maxLoggingBlock)
         console.log(
-          `Block: ${i} x: ${x} y: ${y} phi ${phi_spiral}  td: ${timeDifference} `
+          `Block: ${i} x: ${x} y: ${y} phi ${phi_spiral}  td: ${timeDifference} size: ${size} brght: ${brightness} `
         )
-      if (i == 5) console.log('(...)')
+      if (i == maxLoggingBlock) console.log('(...)')
 
       // Add the block to the array
       blocks.push({
         x,
         y,
         rotation: phi_spiral, // Rotation for debugging
-        color: `rgb(${Math.round((255 * i) / (maxBlocksPerSpiral - 1))}, ${Math.round(
-          (255 * i) / (maxBlocksPerSpiral - 1)
-        )}, ${Math.round((255 * i) / (maxBlocksPerSpiral - 1))})`, // Grayscale tint based on index
+        color: `rgb(${brightness},${brightness},${brightness})`, // Grayscale tint based on index
         timeDifference // Store time_difference for debugging or further use
       })
     }
@@ -192,6 +216,23 @@ export default function SpiralBlocks() {
           return <Path key={index} path={path} color={block.color} />
         })}
       </Canvas>
+
+      {/* Navigation Buttons */}
+      <View>
+        <SSIconButton
+          onPress={() =>
+            setCurrentFileIndex((prevIndex) => Math.max(prevIndex - 1, 0))
+          }
+        >
+          <SSIconChevronLeft height={22} width={24} />
+        </SSIconButton>
+
+        <SSIconButton
+          onPress={() => setCurrentFileIndex((prevIndex) => prevIndex + 1)}
+        >
+          <SSIconChevronRight height={22} width={24} />
+        </SSIconButton>
+      </View>
     </View>
   )
 }
@@ -205,8 +246,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000' // Black background
   },
   canvas: {
-    width: 400, // Canvas width
-    height: 400, // Canvas height
+    width: canvasSize, // Canvas width
+    height: canvasSize, // Canvas height
     backgroundColor: '#000000' // Black canvas background
   }
 })
