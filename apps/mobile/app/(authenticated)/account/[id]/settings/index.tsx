@@ -20,8 +20,6 @@ import { ScrollView } from 'react-native'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSModal from '@/components/SSModal'
 import { formatDate } from '@/utils/format'
-import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
-import { shareFile } from '@/utils/filesystem'
 import { pickFile } from '@/utils/filesystem'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -77,22 +75,6 @@ export default function AccountSettings() {
     router.replace('/')
   }
 
-  async function exportLabels() {
-    if (!account) return
-    const labels = [
-      ...formatTransactionLabels(account.transactions),
-      ...formatUtxoLabels(account.utxos)
-    ]
-    const date = new Date().toISOString().slice(0, -5)
-    const filename = `labels_${accountName}_${date}.json`
-    shareFile({
-      filename: filename,
-      fileContent: JSON.stringify(labels),
-      dialogTitle: 'Save Labels file',
-      mimeType: 'application/json'
-    })
-  }
-
   async function importLabels() {
     const fileContent = await pickFile({ type: 'application/json' })
     const labels = JSON.parse(fileContent)
@@ -120,7 +102,9 @@ export default function AccountSettings() {
           </SSHStack>
           <SSHStack gap="sm">
             <SSText color="muted">Created on</SSText>
-            <SSText>{account && formatDate(account.createdAt)}</SSText>
+            {account && account.createdAt && (
+              <SSText>{formatDate(account.createdAt)}</SSText>
+            )}
           </SSHStack>
         </SSVStack>
         <SSVStack>
@@ -132,7 +116,11 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT LABELS"
               variant="gradient"
-              onPress={exportLabels}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccount}/settings/labelExport`
+                )
+              }
             />
             <SSButton
               style={{ flex: 1 }}
