@@ -19,10 +19,10 @@ export default function SSTxLabel() {
     state.setUtxoLabel
   ])
 
-  if (!utxo) return <Redirect href="/" />
+  if (!utxo || !txid || !accountId || !vout) return <Redirect href="/" />
 
   function updateLabel(label: string) {
-    setUtxoLabel(accountId, txid, Number(vout), label)
+    setUtxoLabel(accountId!, txid!, Number(vout!), label)
     router.back()
   }
 

@@ -22,10 +22,10 @@ export default function SSTxLabel() {
     state.setTxLabel
   ])
 
-  if (!tx) return <Redirect href="/" />
+  if (!tx || !accountId) return <Redirect href="/" />
 
   function updateLabel(label: string) {
-    setTxLabel(accountId, txid, label)
+    setTxLabel(accountId!, txid!, label)
     router.back()
   }
 

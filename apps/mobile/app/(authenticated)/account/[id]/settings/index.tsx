@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -39,10 +39,11 @@ export default function AccountSettings() {
     )
 
   const [scriptVersion, setScriptVersion] =
-    useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
+    useState<Account['scriptVersion']>('P2WPKH')
   const [network, setNetwork] = useState<NonNullable<string>>('signet')
-  const [accountName, setAccountName] =
-    useState<NonNullable<Account['name']>>(currentAccount)
+  const [accountName, setAccountName] = useState<Account['name']>(
+    currentAccount!
+  )
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
@@ -68,7 +69,7 @@ export default function AccountSettings() {
   }
 
   async function saveChanges() {
-    updateAccountName(currentAccount, accountName)
+    updateAccountName(currentAccount!, accountName)
     router.replace(`/account/${accountName}/`)
   }
 
@@ -96,8 +97,10 @@ export default function AccountSettings() {
   async function importLabels() {
     const fileContent = await pickFile({ type: 'application/json' })
     const labels = JSON.parse(fileContent)
-    importLabelsToAccount(currentAccount, labels)
+    importLabelsToAccount(currentAccount!, labels)
   }
+
+  if (!currentAccount || !account) return <Redirect href="/" />
 
   return (
     <ScrollView>
