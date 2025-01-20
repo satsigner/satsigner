@@ -54,13 +54,18 @@ export default function SignMessage() {
     const blockchainConfig = getBlockchainConfig(backend, url, opts)
     const blockchain = await getBlockchain(backend, blockchainConfig)
 
-    const broadcasted = await broadcastTransaction(psbt, blockchain)
+    try {
+      const broadcasted = await broadcastTransaction(psbt, blockchain)
 
-    setBroadcasting(broadcasted)
+      setBroadcasting(broadcasted)
 
-    if (broadcasted)
-      router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
-    // TODO: Handle not broadcasted
+      if (broadcasted)
+        router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
+    } catch (_err) {
+      // TODO: Handle not broadcasted
+    } finally {
+      setBroadcasting(false)
+    }
   }
 
   useEffect(() => {
