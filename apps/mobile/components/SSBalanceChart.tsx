@@ -1,6 +1,13 @@
 import * as d3 from 'd3'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import {
   Gesture,
@@ -39,8 +46,8 @@ type Rectangle = {
   right: number
   top: number
   bottom: number
-  width: number
-  height: number
+  width?: number
+  height?: number
 }
 
 export type SSBalanceChartProps = {
@@ -54,74 +61,10 @@ const isOverlapping = (rect1: Rectangle, rect2: Rectangle) => {
   return true
 }
 
-const adjustLabelPositions = (labels) => {
-  const adjustedLabels = [...labels]
-  for (let i = 0; i < adjustedLabels.length; i++) {
-    for (let j = i + 1; j < adjustedLabels.length; j++) {
-      if (isOverlapping(adjustedLabels[i].bbox, adjustedLabels[j].bbox)) {
-        adjustedLabels[j].y -= 20
-        adjustedLabels[j].bbox.top -= 20
-        adjustedLabels[j].bbox.bottom -= 20
-      }
-    }
-  }
-  return adjustedLabels
-}
-
-function SSBalanceChartLabels({ data, transformedXScale, transformedYScale }) {
-  const [labels, setLabels] = useState([])
-
-  useEffect(() => {
-    const initialLabels = []
-    for (const d of data) {
-      const x = transformedXScale(d.date) + (d.type === 'receive' ? -5 : 5)
-      const y = transformedYScale(d.balance) - 10
-      const textSize = { width: 50, height: 30 }
-      const bbox = {
-        left: d.type === 'send' ? x : x - textSize.width,
-        right: d.type === 'send' ? x + textSize.width : x,
-        top: y,
-        bottom: y + textSize.height
-      }
-      initialLabels.push({
-        x,
-        y,
-        bbox,
-        memo: d.memo,
-        amount: d.amount,
-        type: d.type
-      })
-    }
-    const adjustedLabels = adjustLabelPositions(initialLabels)
-    setLabels(adjustedLabels)
-    //setLabels(initialLabels)
-  }, [data, transformedXScale, transformedYScale])
-  return (
-    <>
-      {labels.map((label, index) => {
-        if (label.type === 'end') {
-          return null
-        }
-        return (
-          <SvgText
-            key={index}
-            x={label.x}
-            y={label.y}
-            textAnchor={label.type === 'send' ? 'start' : 'end'}
-            fontSize={10}
-            fill={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
-          >
-            {label.memo || label.amount}
-          </SvgText>
-        )
-      })}
-    </>
-  )
-}
-
 function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const currentDate = useRef<Date>(new Date())
 
   const [walletAddresses] = useMemo(() => {
     const addresses = new Set<string>()
@@ -207,7 +150,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       sum += amount
       return {
         memo: transaction.label ?? '',
-        date: new Date(transaction?.timestamp ?? new Date()),
+        date: new Date(transaction?.timestamp ?? currentDate.current),
         type: transaction.type ?? 'receive',
         balance: sum,
         amount
@@ -216,7 +159,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     return result
   }, [transactions])
   const timeOffset =
-    new Date().setDate(new Date().getDate() + 10) - chartData[0].date.getTime()
+    new Date(currentDate.current).setDate(currentDate.current.getDate() + 10) -
+    chartData[0].date.getTime()
   const margin = { top: 30, right: 0, bottom: 80, left: 40 }
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
@@ -224,9 +168,13 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date>(
-    new Date(new Date().setDate(new Date().getDate() + 5))
+    new Date(
+      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+    )
   )
-  const [prevEndDate, setPrevEndDate] = useState<Date>(new Date())
+  const [prevEndDate, setPrevEndDate] = useState<Date>(
+    new Date(currentDate.current)
+  )
 
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
@@ -250,7 +198,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       memo: '',
       type: 'end'
     })
-    if (endDate.getTime() <= Date.now()) {
+    if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
         date: endDate,
         amount: 0,
@@ -282,7 +230,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
         const x2 = xScale(
           index === transactions.length - 1
-            ? new Date()
+            ? currentDate.current
             : new Date(transactions.at(index + 1)?.timestamp!)
         )
         if (x2 < 0 && x1 >= chartWidth) {
@@ -328,7 +276,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
         const x2 = xScale(
           index === transactions.length - 1
-            ? new Date()
+            ? currentDate.current
             : new Date(transactions.at(index + 1)?.timestamp!)
         )
         if (x2 < 0 && x1 >= chartWidth) {
@@ -376,7 +324,9 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
             Math.min(
               prevEndDate.getTime() -
                 ((timeOffset / scale) * event.translationX) / chartWidth,
-              new Date().setDate(new Date().getDate() + 5)
+              new Date(currentDate.current).setDate(
+                new Date(currentDate.current).getDate() + 5
+              )
             ),
             new Date(transactions[0].timestamp!).getTime()
           )
@@ -523,7 +473,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         }
       }
       setTxXBoundVisible(visible)
-    }, 300)
+    }, 50)
 
     return () => clearTimeout(timerId)
   }, [txXBoundbox, xScaleTransactions])
@@ -553,6 +503,134 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       }
     })
   }, [txXBoundVisible, walletAddresses, xScale, xScaleTransactions])
+
+  const [txInfoLabels, setTxInfoLabels] = useState<
+    {
+      x: number
+      y: number
+      memo: string
+      amount: number
+      type: string
+      boundBox?: Rectangle
+    }[]
+  >([])
+
+  const [txInfoBoundBox, setTxInfoBoundBox] = useState<{
+    [key: string]: Rectangle
+  }>({})
+
+  const handleTxInfoLayout = useCallback(
+    (
+      event: LayoutChangeEvent,
+      index: number,
+      x: number,
+      y: number,
+      type: string
+    ) => {
+      const rect: Rectangle = {
+        left: Math.min(
+          Math.round(x),
+          Math.round(
+            x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
+          )
+        ),
+        right: Math.max(
+          Math.round(x),
+          Math.round(
+            x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
+          )
+        ),
+        top: Math.min(
+          Math.round(y),
+          Math.round(y - event.nativeEvent.layout.height)
+        ),
+        bottom: Math.max(
+          Math.round(y),
+          Math.round(y - event.nativeEvent.layout.height)
+        ),
+        width: event.nativeEvent.layout.width,
+        height: event.nativeEvent.layout.height
+      }
+      if (
+        txInfoBoundBox[index] !== undefined &&
+        txInfoBoundBox[index].width === rect.width &&
+        txInfoBoundBox[index].height === rect.height
+      ) {
+        return
+      }
+      setTxInfoBoundBox((prev) => ({
+        ...prev,
+        [index]: rect
+      }))
+    },
+    [txInfoBoundBox]
+  )
+
+  useEffect(() => {
+    const initialLabels: {
+      x: number
+      y: number
+      memo: string
+      amount: number
+      type: string
+      boundBox?: Rectangle
+    }[] = []
+    validChartData.forEach((d, index) => {
+      const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
+      const y = yScale(d.balance) - 5
+      if (txInfoBoundBox[index] === undefined) {
+        initialLabels.push({
+          x,
+          y,
+          memo: d.memo,
+          amount: d.amount,
+          type: d.type
+        })
+        return
+      }
+      const width = txInfoBoundBox[index].width!
+      const height = txInfoBoundBox[index].height!
+      const left = d.type === 'receive' ? x - width : x
+      const right = d.type === 'receive' ? x : x + width
+      const bottom = y
+      const top = y - height
+      initialLabels.push({
+        x,
+        y,
+        memo: d.memo,
+        amount: d.amount,
+        type: d.type,
+        boundBox: {
+          left,
+          right,
+          top,
+          bottom,
+          width,
+          height
+        }
+      })
+    })
+    for (let i = 0; i < initialLabels.length - 1; i++) {
+      for (let j = i + 1; j < initialLabels.length; j++) {
+        if (
+          initialLabels[i].boundBox !== undefined &&
+          initialLabels[j].boundBox !== undefined
+        ) {
+          if (
+            isOverlapping(
+              initialLabels[i].boundBox!,
+              initialLabels[j].boundBox!
+            )
+          ) {
+            initialLabels[j].y -= 15
+            initialLabels[j].boundBox!.top -= 15
+            initialLabels[j].boundBox!.bottom -= 15
+          }
+        }
+      }
+    }
+    setTxInfoLabels(initialLabels)
+  }, [txInfoBoundBox, validChartData, xScale, yScale])
 
   if (!containerSize.width || !containerSize.height) {
     return <View onLayout={handleLayout} style={styles.container} />
@@ -751,11 +829,47 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                     return null
                   }
                 })}
-                {/* <SSBalanceChartLabels
-                  data={validChartData}
-                  transformedXScale={xScale}
-                  transformedYScale={yScale}
-                /> */}
+                {txInfoLabels.map((label, index) => {
+                  if (label.type === 'end') {
+                    return null
+                  }
+                  return (
+                    <Fragment key={index}>
+                      <SvgText
+                        key={index}
+                        x={
+                          label.boundBox === undefined
+                            ? label.x
+                            : label.boundBox.left
+                        }
+                        y={
+                          label.boundBox === undefined
+                            ? label.y
+                            : label.boundBox.bottom
+                        }
+                        textAnchor={
+                          label.type === 'receive' &&
+                          label.boundBox === undefined
+                            ? 'end'
+                            : 'start'
+                        }
+                        fontSize={10}
+                        fill={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
+                        onLayout={(e) =>
+                          handleTxInfoLayout(
+                            e,
+                            index,
+                            label.x,
+                            label.y,
+                            label.type
+                          )
+                        }
+                      >
+                        {label.memo || label.amount}
+                      </SvgText>
+                    </Fragment>
+                  )
+                })}
                 {cursorX !== undefined && (
                   <G>
                     <Line
