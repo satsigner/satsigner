@@ -23,9 +23,7 @@ import {
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
-import SSBalanceChart, {
-  type BalanceChartData
-} from '@/components/SSBalanceChart'
+import SSBalanceChart from '@/components/SSBalanceChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -78,62 +76,13 @@ function TotalTransactions({
 
   fetchPrices()
 
-  const [showChart, setShowChart] = useState<boolean>(false)
-
-  const chartData: BalanceChartData[] = useMemo(() => {
-    let sum = 0
-    const result = [...account.transactions]
-      .sort((transaction1, transaction2) =>
-        compareTimestamp(transaction1.timestamp, transaction2.timestamp)
-      )
-      .map((transaction) => {
-        sum +=
-          transaction.type === 'receive'
-            ? transaction?.received ?? 0
-            : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
-        return {
-          memo: transaction.label ?? '',
-          date: new Date(transaction?.timestamp ?? new Date()),
-          type: transaction.type ?? 'receive',
-          balance: sum,
-          amount:
-            transaction.type === 'receive'
-              ? transaction?.received ?? 0
-              : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
-        }
-      })
-
-    function getPreviousDay(date: Date | string) {
-      const previousDay = new Date(date)
-      previousDay.setDate(previousDay.getDate() - 2)
-      return previousDay
-    }
-
-    function getNextDay(date: Date | string) {
-      const nextDay = new Date(date)
-      nextDay.setDate(nextDay.getDate() + 2)
-      return nextDay
-    }
-
-    if (result.length >= 2) {
-      result.unshift({
-        balance: 0,
-        amount: 0,
-        date: getPreviousDay(result[0].date),
-        memo: '',
-        type: 'receive'
-      })
-      result.push({
-        balance: result[result.length - 1].balance,
-        amount: 0,
-        date: getNextDay(result[result.length - 1].date),
-        memo: '',
-        type: 'receive'
-      })
-    }
-
-    return result
+  const sortedTransactions = useMemo(() => {
+    return [...account.transactions].sort((transaction1, transaction2) =>
+      compareTimestamp(transaction1.timestamp, transaction2.timestamp)
+    )
   }, [account.transactions])
+
+  const [showChart, setShowChart] = useState<boolean>(false)
 
   const handleToggleChart = () => {
     setShowChart((prev) => !prev)
@@ -165,7 +114,10 @@ function TotalTransactions({
       </SSHStack>
       {showChart ? (
         <View style={{ flex: 1 }}>
-          <SSBalanceChart data={chartData} />
+          <SSBalanceChart
+            transactions={sortedTransactions}
+            utxos={account.utxos}
+          />
         </View>
       ) : (
         <ScrollView
