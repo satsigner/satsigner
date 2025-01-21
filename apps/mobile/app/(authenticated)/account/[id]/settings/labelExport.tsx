@@ -63,8 +63,13 @@ export default function SSLabelExport() {
           }}
         >
           {labels.map((label, index) => (
-            <SSText color="white" size="xs" weight="bold" key={index}>
-              {index}. {JSON.stringify(label)}
+            <SSText
+              color="white"
+              size="md"
+              key={index}
+              weight='mono'
+            >
+              {JSON.stringify(label)}
             </SSText>
           ))}
         </View>

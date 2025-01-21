@@ -21,8 +21,7 @@ import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
-import { pickFile, shareFile } from '@/utils/filesystem'
+import { pickFile } from '@/utils/filesystem'
 import { formatDate } from '@/utils/format'
 
 export default function AccountSettings() {
@@ -78,22 +77,6 @@ export default function AccountSettings() {
     router.replace('/')
   }
 
-  async function exportLabels() {
-    if (!account) return
-    const labels = [
-      ...formatTransactionLabels(account.transactions),
-      ...formatUtxoLabels(account.utxos)
-    ]
-    const date = new Date().toISOString().slice(0, -5)
-    const filename = `labels_${currentAccount}_${date}.json`
-    shareFile({
-      filename,
-      fileContent: JSON.stringify(labels),
-      dialogTitle: 'Save Labels file',
-      mimeType: 'application/json'
-    })
-  }
-
   async function importLabels() {
     const fileContent = await pickFile({ type: 'application/json' })
     const labels = JSON.parse(fileContent)
@@ -137,7 +120,9 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT LABELS"
               variant="gradient"
-              onPress={exportLabels}
+              onPress={() => router.navigate(
+                `/account/${currentAccount}/settings/labelExport`
+              )}
             />
             <SSButton
               style={{ flex: 1 }}

@@ -3,11 +3,13 @@ import { StyleSheet, Text } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 import { type TextFontSize } from '@/styles/sizes'
+import { useFonts } from 'expo-font'
+import { TerminessNerdFontMonoRegular } from '@/styles/typography'
 
 type SSTextProps = {
   color?: 'white' | 'black' | 'muted'
   size?: TextFontSize
-  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold'
+  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold' | 'mono'
   uppercase?: boolean
   center?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
@@ -26,6 +28,10 @@ export default function SSText({
   style,
   children
 }: SSTextProps) {
+  useFonts({
+    TerminessNerdFontMonoRegular
+  })
+
   const textStyle = useMemo(() => {
     let colorStyle = styles.textColorWhite
     if (color === 'black') colorStyle = styles.textColorBlack
@@ -36,6 +42,7 @@ export default function SSText({
     if (weight === 'light') weightStyle = styles.textLight
     if (weight === 'medium') weightStyle = styles.textMedium
     if (weight === 'bold') weightStyle = styles.textBold
+    if (weight === 'mono') weightStyle = styles.textMono
 
     return StyleSheet.compose(
       {
@@ -91,5 +98,9 @@ const styles = StyleSheet.create({
   textBold: {
     fontFamily: Typography.sfProTextBold,
     fontWeight: '700'
+  },
+  textMono: {
+    fontFamily: 'TerminessNerdFontMonoRegular',
+    fontWeight: '500'
   }
 })
