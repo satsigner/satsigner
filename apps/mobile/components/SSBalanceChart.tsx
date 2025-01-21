@@ -287,24 +287,26 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
             : new Date(transactions.at(index + 1)?.timestamp!)
         )
         if (x2 < 0 && x1 >= chartWidth) {
-          return [undefined]
+          return []
         }
         let totalBalance = 0
-        return Array.from(balances.entries()).map(([, utxo]) => {
-          const y1 = yScale(totalBalance)
-          const y2 = yScale(totalBalance + utxo.value)
-          totalBalance += utxo.value
-          if (utxo.txid === transactions.at(index)?.id) {
-            return {
-              x1,
-              x2,
-              y1,
-              y2,
-              utxo
+        return Array.from(balances.entries())
+          .map(([, utxo]) => {
+            const y1 = yScale(totalBalance)
+            const y2 = yScale(totalBalance + utxo.value)
+            totalBalance += utxo.value
+            if (utxo.txid === transactions.at(index)?.id) {
+              return {
+                x1,
+                x2,
+                y1,
+                y2,
+                utxo
+              }
             }
-          }
-          return undefined
-        })
+            return undefined
+          })
+          .filter((v) => v !== undefined)
       })
       .filter((v) => v !== undefined)
   }, [balanceHistory, chartWidth, transactions, xScale, yScale])
