@@ -241,7 +241,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
             : new Date(transactions.at(index + 1)?.timestamp!)
         )
         if (x2 < 0 && x1 >= chartWidth) {
-          return [undefined]
+          return []
         }
         let totalBalance = 0
         return Array.from(balances.entries()).map(([, utxo]) => {
