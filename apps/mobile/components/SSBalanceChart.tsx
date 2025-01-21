@@ -224,7 +224,14 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       .range([chartHeight, 0])
   }, [chartHeight, maxBalance])
 
-  const utxoRectangleData = useMemo(() => {
+  const utxoRectangleData: {
+    x1: number
+    x2: number
+    y1: number
+    y2: number
+    utxo: Utxo
+    gradientType: number
+  }[] = useMemo(() => {
     return Array.from(balanceHistory.entries())
       .flatMap(([index, balances]) => {
         const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
