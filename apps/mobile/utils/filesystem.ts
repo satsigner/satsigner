@@ -23,7 +23,7 @@ export async function shareFile({
 }
 
 type pickFileProps = {
-  type: 'application/json' | 'text/csv' | 'text/plain' | '*/*'
+  type: 'application/json' | 'text/csv' |'text/plain' | '*/*'
   encodingOrOptions?: any
 }
 
@@ -31,6 +31,7 @@ export async function pickFile({
   type,
   encodingOrOptions = null
 }: pickFileProps) {
+  DocumentPicker.types.csv
   const file = await DocumentPicker.pickSingle({ type })
   return RNFS.readFile(file.uri, encodingOrOptions)
 }

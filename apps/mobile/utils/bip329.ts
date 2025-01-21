@@ -46,3 +46,18 @@ export function formatUtxoLabels(utxos: Utxo[]) {
 
   return labels
 }
+
+export function labelsToCSV(labels: Label[]) {
+  const CsvHeaderItems = ['type', 'ref', 'spendable', 'label']
+  const CsvHeader = CsvHeaderItems.join(',')
+  const CsvRows = [] as string[]
+  for (const label of labels) {
+    const row = []
+    for (const column of CsvHeaderItems) {
+      row.push(label[column as keyof Label])
+    }
+    CsvRows.push(row.join(','))
+  }
+  const Csv = [CsvHeader, ...CsvRows].join('\n')
+  return Csv
+}

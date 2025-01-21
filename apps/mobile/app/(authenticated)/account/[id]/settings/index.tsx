@@ -21,21 +21,18 @@ import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { pickFile } from '@/utils/filesystem'
 import { formatDate } from '@/utils/format'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account, updateAccountName, deleteAccount, importLabelsToAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((_account) => _account.name === currentAccount),
-        state.updateAccountName,
-        state.deleteAccount,
-        state.importLabels
-      ])
-    )
+  const [account, updateAccountName, deleteAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.name === currentAccount),
+      state.updateAccountName,
+      state.deleteAccount
+    ])
+  )
 
   const [scriptVersion, setScriptVersion] =
     useState<Account['scriptVersion']>('P2WPKH')
@@ -75,12 +72,6 @@ export default function AccountSettings() {
   function deleteThisAccount() {
     deleteAccount(accountName)
     router.replace('/')
-  }
-
-  async function importLabels() {
-    const fileContent = await pickFile({ type: 'application/json' })
-    const labels = JSON.parse(fileContent)
-    importLabelsToAccount(currentAccount!, labels)
   }
 
   if (!currentAccount || !account) return <Redirect href="/" />
@@ -130,7 +121,11 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="IMPORT LABELS"
               variant="gradient"
-              onPress={importLabels}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccount}/settings/labelImport`
+                )
+              }
             />
           </SSHStack>
           <SSHStack>

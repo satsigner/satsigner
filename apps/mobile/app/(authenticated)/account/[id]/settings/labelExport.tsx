@@ -13,6 +13,10 @@ import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 import { setClipboard } from '@/utils/clipboard'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSCheckbox from '@/components/SSCheckbox'
+import { useEffect, useState } from 'react'
+import SSHStack from '@/layouts/SSHStack'
+import { labelsToCSV } from '@/utils/bip329'
 
 export default function SSLabelExport() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -23,6 +27,9 @@ export default function SSLabelExport() {
     ])
   )
 
+  const [exportType, setExportType] = useState('JSON')
+  const [exportContent, setExportContent] = useState('')
+
   if (!account) return <Redirect href="/" />
 
   const labels = [
@@ -30,15 +37,21 @@ export default function SSLabelExport() {
     ...formatUtxoLabels(account.utxos)
   ]
 
+  useEffect(() => {
+    if (exportType === 'JSON') setExportContent(JSON.stringify(labels))
+    if (exportType === 'CSV') setExportContent(labelsToCSV(labels))
+  }, [exportType])
+
   async function exportLabels() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
-    const filename = `labels_${accountId}_${date}.json`
+    const ext = exportType.toLowerCase()
+    const filename = `labels_${accountId}_${date}.${ext}`
     shareFile({
       filename,
-      fileContent: JSON.stringify(labels),
+      fileContent: exportContent,
       dialogTitle: 'Save Labels file',
-      mimeType: 'application/json'
+      mimeType: `application/${ext}`
     })
   }
 
@@ -67,9 +80,21 @@ export default function SSLabelExport() {
         )}
         {labels.length > 0 && (
           <>
-            <SSText center uppercase weight="bold" size="md" color="muted">
+            <SSText center uppercase weight="bold" size="lg" color="muted">
               EXPORT BIP329 LABELS
             </SSText>
+            <SSHStack>
+              <SSCheckbox
+                label="JSON"
+                selected={exportType === 'JSON'}
+                onPress={() => setExportType('JSON')}
+              />
+              <SSCheckbox
+                label="CSV"
+                selected={exportType === 'CSV'}
+                onPress={() => setExportType('CSV')}
+              />
+            </SSHStack>
             <View
               style={{
                 padding: 10,
@@ -77,24 +102,18 @@ export default function SSLabelExport() {
                 borderRadius: 5
               }}
             >
-              {labels.map((label, index) => (
-                <SSText color="white" size="md" key={index} weight="mono">
-                  {JSON.stringify(label)}
-                </SSText>
-              ))}
+              <SSText color="white" size="md" weight="mono">
+                {exportContent}
+              </SSText>
             </View>
-            <SSClipboardCopy text={JSON.stringify(labels)} >
-              <SSButton
-                label="COPY TO CLIPBOARD"
-                onPress={() => true}
-              />
+            <SSClipboardCopy text={JSON.stringify(labels)}>
+              <SSButton label="COPY TO CLIPBOARD" onPress={() => true} />
             </SSClipboardCopy>
             <SSButton
-              label="DOWNLOAD JSON"
+              label={`DOWNLOAD ${exportType}`}
               variant="secondary"
               onPress={exportLabels}
             />
-            <SSButton label="DOWNLOAD CSV" variant="secondary" />
             <SSButton
               label="CANCEL"
               variant="ghost"

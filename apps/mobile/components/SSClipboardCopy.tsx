@@ -24,13 +24,9 @@ export default function SSTextClipboard({
   }
 
   return (
-    <TouchableWithoutFeedback
-      onPress={handleClick}
-    >
+    <TouchableWithoutFeedback onPress={handleClick}>
       <View>
-        <View style={{pointerEvents: 'none'}}>
-        {children}
-        </View>
+        <View style={{ pointerEvents: 'none' }}>{children}</View>
         {withPopup && (
           <SSPopupText
             isVisible={showPopup}
