@@ -265,13 +265,15 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       memo: '',
       type: 'receive'
     })
-    validData.push({
-      date: endDate,
-      amount: 0,
-      balance: validData[validData.length - 1]?.balance ?? 0,
-      memo: '',
-      type: 'receive'
-    })
+    if (endDate.getTime() <= Date.now()) {
+      validData.push({
+        date: endDate,
+        amount: 0,
+        balance: validData[validData.length - 1]?.balance ?? 0,
+        memo: '',
+        type: 'receive'
+      })
+    }
     return [minBalance, maxBalance, validData]
   }, [startDate, endDate, data])
 
@@ -285,7 +287,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const yScale = useMemo(() => {
     return d3
       .scaleLinear()
-      .domain([0, maxBalance * 1.1])
+      .domain([0, maxBalance * 1.2])
       .range([chartHeight, 0])
   }, [chartHeight, maxBalance])
 
@@ -301,16 +303,62 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       return Array.from(balances.entries()).map(([, utxo]) => {
         const y1 = yScale(totalBalance)
         const y2 = yScale(totalBalance + utxo.balance)
+        let gradientType = 0
         totalBalance += utxo.balance
+        if (
+          transactions.at(index + 1) !== undefined &&
+          transactions.at(index + 1)?.type === 'send'
+        ) {
+          const result = transactions
+            .at(index + 1)
+            ?.vin!.find(
+              (input) =>
+                input.previousOutput.txid === utxo.prevTxId &&
+                input.previousOutput.vout === utxo.outputIndex
+            )
+          if (result !== undefined) {
+            gradientType = 1
+          }
+        }
         return {
           x1,
           x2,
           y1,
           y2,
-          utxo
+          utxo,
+          gradientType
         }
       })
     })
+  }, [balanceHistory, transactions, xScale, yScale])
+
+  const utxoLabels = useMemo(() => {
+    return Array.from(balanceHistory.entries())
+      .flatMap(([index, balances]) => {
+        const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+        const x2 = xScale(
+          index === transactions.length - 1
+            ? new Date()
+            : new Date(transactions.at(index + 1)?.timestamp!)
+        )
+        let totalBalance = 0
+        return Array.from(balances.entries()).map(([, utxo]) => {
+          const y1 = yScale(totalBalance)
+          const y2 = yScale(totalBalance + utxo.balance)
+          totalBalance += utxo.balance
+          if (utxo.prevTxId === transactions.at(index)?.id) {
+            return {
+              x1,
+              x2,
+              y1,
+              y2,
+              utxo
+            }
+          }
+          return undefined
+        })
+      })
+      .filter((v) => v !== undefined)
   }, [balanceHistory, transactions, xScale, yScale])
 
   const xScaleTransactions = useMemo(() => {
@@ -334,7 +382,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
           Math.min(
             prevEndDate.getTime() -
               ((timeOffset / scale) * event.translationX) / chartWidth,
-            Date.now()
+            new Date().setDate(new Date().getDate() + 10)
           )
         )
       )
@@ -487,7 +535,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         }
       }
       setTxXBoundVisible(visible)
-    }, 500)
+    }, 300)
 
     return () => clearTimeout(timerId)
   }, [txXBoundbox, xScaleTransactions])
@@ -621,7 +669,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   </Fragment>
                 )
               })}
-              {xScale.ticks(4).map((tick) => {
+              {xScale.ticks(3).map((tick) => {
                 const currentDate = d3.timeFormat('%b %d')(tick)
                 const displayTime = previousDate === currentDate
                 previousDate = currentDate
@@ -658,6 +706,10 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   <Stop offset="0%" stopColor="white" stopOpacity="0.3" />
                   <Stop offset="100%" stopColor="white" stopOpacity="0.15" />
                 </LinearGradient>
+                <LinearGradient id="gradientX" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0%" stopColor="white" stopOpacity="0.3" />
+                  <Stop offset="100%" stopColor="white" stopOpacity="0.05" />
+                </LinearGradient>
                 <ClipPath id="clip">
                   <Rect x="0" y="0" width={chartWidth} height={chartHeight} />
                 </ClipPath>
@@ -683,12 +735,33 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                       y={data.y1}
                       width={data.x2 - data.x1}
                       height={data.y2 - data.y1}
-                      fill="url(#gradient)"
+                      fill={`url(#${data.gradientType === 0 ? 'gradient' : 'gradientX'})`}
                       stroke="gray"
                       strokeOpacity={0.8}
                       strokeWidth={0.5}
                     />
                   )
+                })}
+                {utxoLabels.map((data, index) => {
+                  if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
+                    return (
+                      <SvgText
+                        key={data.utxo.outputString + index}
+                        x={data.x1 + 2}
+                        y={data.y2 + 10}
+                        fontSize={10}
+                        fill="white"
+                      >
+                        {data.utxo.prevTxId.slice(0, 3) +
+                          '...' +
+                          data.utxo.prevTxId.slice(-3) +
+                          ':' +
+                          data.utxo.outputIndex}
+                      </SvgText>
+                    )
+                  } else {
+                    return null
+                  }
                 })}
                 {cursorX !== undefined && (
                   <G>
