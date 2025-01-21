@@ -11,6 +11,8 @@ import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
+import { setClipboard } from '@/utils/clipboard'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 
 export default function SSLabelExport() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -81,7 +83,12 @@ export default function SSLabelExport() {
                 </SSText>
               ))}
             </View>
-            <SSButton label="COPY TO CLIPBOARD" />
+            <SSClipboardCopy text={JSON.stringify(labels)} >
+              <SSButton
+                label="COPY TO CLIPBOARD"
+                onPress={() => true}
+              />
+            </SSClipboardCopy>
             <SSButton
               label="DOWNLOAD JSON"
               variant="secondary"
