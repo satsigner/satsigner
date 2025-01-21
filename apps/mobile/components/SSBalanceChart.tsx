@@ -13,6 +13,7 @@ import Svg, {
   G,
   Line,
   LinearGradient,
+  Mask,
   Path,
   Rect,
   Stop,
@@ -23,13 +24,14 @@ import Svg, {
 import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 type BalanceChartData = {
   memo: string
   date: Date
   balance: number
   amount: number
-  type: 'send' | 'receive'
+  type: 'send' | 'receive' | 'end'
 }
 
 type Rectangle = {
@@ -46,7 +48,6 @@ export type SSBalanceChartProps = {
   utxos: Utxo[]
 }
 
-// Function to check if two rectangles overlap
 const isOverlapping = (rect1: Rectangle, rect2: Rectangle) => {
   if (rect1.right < rect2.left || rect2.right < rect1.left) return false
   if (rect1.bottom < rect2.top || rect2.bottom < rect1.top) return false
@@ -97,18 +98,23 @@ function SSBalanceChartLabels({ data, transformedXScale, transformedYScale }) {
   }, [data, transformedXScale, transformedYScale])
   return (
     <>
-      {labels.map((label, index) => (
-        <SvgText
-          key={index}
-          x={label.x}
-          y={label.y}
-          textAnchor={label.type === 'send' ? 'start' : 'end'}
-          fontSize={10}
-          fill={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
-        >
-          {label.memo || label.amount}
-        </SvgText>
-      ))}
+      {labels.map((label, index) => {
+        if (label.type === 'end') {
+          return null
+        }
+        return (
+          <SvgText
+            key={index}
+            x={label.x}
+            y={label.y}
+            textAnchor={label.type === 'send' ? 'start' : 'end'}
+            fontSize={10}
+            fill={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
+          >
+            {label.memo || label.amount}
+          </SvgText>
+        )
+      })}
     </>
   )
 }
@@ -116,11 +122,12 @@ function SSBalanceChartLabels({ data, transformedXScale, transformedYScale }) {
 function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+
   const [walletAddresses] = useMemo(() => {
     const addresses = new Set<string>()
     const transactinsMap = new Map<string, Transaction>()
     utxos.forEach((val) => {
-      addresses.add(val?.addressTo ?? '')
+      addresses.add(val.addressTo ?? '')
     })
     transactions.forEach((t) => {
       transactinsMap.set(t.id, t)
@@ -137,28 +144,13 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         })
       })
     addresses.delete('')
-    const sortedAddressList = new Set<string>()
-    transactions.forEach((t) => {
-      t.vout?.forEach((out) => {
-        if (addresses.has(out?.address)) {
-          sortedAddressList.add(out?.address)
-        }
-      })
-    })
-    return [addresses, [...sortedAddressList]]
+    return [addresses]
   }, [transactions, utxos])
 
   const balanceHistory = useMemo(() => {
-    type UTXOItem = {
-      prevTxId: string
-      outputIndex: number
-      outputString: string
-      address: string
-      balance: number
-    }
-    const history = new Map<number, Map<string, UTXOItem>>()
+    const history = new Map<number, Map<string, Utxo>>()
     transactions.forEach((t, index) => {
-      const currentBalances = new Map<string, UTXOItem>()
+      const currentBalances = new Map<string, Utxo>()
       if (index > 0) {
         history
           .get(index - 1)!
@@ -169,11 +161,12 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
           if (walletAddresses.has(out.address)) {
             const outName = t.id + '::' + index
             currentBalances.set(outName, {
-              address: out.address,
-              balance: out.value,
-              outputIndex: index,
-              outputString: outName,
-              prevTxId: t.id
+              addressTo: out.address,
+              value: out.value,
+              vout: index,
+              label: '',
+              keychain: 'internal',
+              txid: t.id
             })
           }
         })
@@ -189,11 +182,12 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
           if (walletAddresses.has(out.address)) {
             const outName = t.id + '::' + index
             currentBalances.set(outName, {
-              address: out.address,
-              balance: out.value,
-              outputIndex: index,
-              outputString: outName,
-              prevTxId: t.id
+              addressTo: out.address,
+              value: out.value,
+              vout: index,
+              txid: t.id,
+              keychain: 'internal',
+              label: ''
             })
           }
         })
@@ -203,7 +197,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     return history
   }, [transactions, walletAddresses])
 
-  const data: BalanceChartData[] = useMemo(() => {
+  const chartData: BalanceChartData[] = useMemo(() => {
     let sum = 0
     const result = transactions.map((transaction) => {
       const amount =
@@ -219,51 +213,42 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         amount
       }
     })
-    result.push({
-      amount: 0,
-      balance: result.at(result.length - 1)?.balance ?? 0,
-      date: new Date(),
-      memo: '',
-      type: 'receive'
-    })
     return result
   }, [transactions])
-  const timeOffset = Date.now() - data[0].date.getTime()
+  const timeOffset =
+    new Date().setDate(new Date().getDate() + 10) - chartData[0].date.getTime()
   const margin = { top: 30, right: 0, bottom: 80, left: 40 }
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
-  const [scale, setScale] = useState<number>(1) // Zoom scale
+  const [scale, setScale] = useState<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
-  const [endDate, setEndDate] = useState<Date>(new Date())
+  const [endDate, setEndDate] = useState<Date>(
+    new Date(new Date().setDate(new Date().getDate() + 5))
+  )
   const [prevEndDate, setPrevEndDate] = useState<Date>(new Date())
 
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
   }, [endDate, scale, timeOffset])
 
-  const [, /*minBalance,*/ maxBalance, validData] = useMemo(() => {
-    let minBalance = Number.MAX_VALUE
-    let maxBalance = Number.MIN_VALUE
-    const startBalance = data.findLast((d) => d.date < startDate)?.balance ?? 0
-    const validData = data.filter(
+  const [maxBalance, validChartData] = useMemo(() => {
+    const startBalance =
+      chartData.findLast((d) => d.date < startDate)?.balance ?? 0
+    const validData = chartData.filter(
       (d) => d.date >= startDate && d.date <= endDate
     )
-    validData.forEach((d) => {
-      minBalance = Math.min(d.balance, minBalance)
-      maxBalance = Math.max(d.balance, maxBalance)
-    })
-    minBalance = Math.min(startBalance, minBalance)
-    maxBalance = Math.max(startBalance, maxBalance)
-    if (maxBalance === Number.MIN_VALUE) {
-      maxBalance = 1
-    }
+    const maxBalance = Math.max(
+      ...validData.map((d) => d.balance),
+      startBalance,
+      1
+    )
     validData.unshift({
       date: startDate,
       amount: 0,
       balance: startBalance,
       memo: '',
-      type: 'receive'
+      type: 'end'
     })
     if (endDate.getTime() <= Date.now()) {
       validData.push({
@@ -271,11 +256,11 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
         memo: '',
-        type: 'receive'
+        type: 'end'
       })
     }
-    return [minBalance, maxBalance, validData]
-  }, [startDate, endDate, data])
+    return [maxBalance, validData]
+  }, [startDate, endDate, chartData])
 
   const chartWidth = containerSize.width - margin.left - margin.right
   const chartHeight = containerSize.height - margin.top - margin.bottom
@@ -292,45 +277,50 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   }, [chartHeight, maxBalance])
 
   const utxoRectangleData = useMemo(() => {
-    return Array.from(balanceHistory.entries()).flatMap(([index, balances]) => {
-      const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
-      const x2 = xScale(
-        index === transactions.length - 1
-          ? new Date()
-          : new Date(transactions.at(index + 1)?.timestamp!)
-      )
-      let totalBalance = 0
-      return Array.from(balances.entries()).map(([, utxo]) => {
-        const y1 = yScale(totalBalance)
-        const y2 = yScale(totalBalance + utxo.balance)
-        let gradientType = 0
-        totalBalance += utxo.balance
-        if (
-          transactions.at(index + 1) !== undefined &&
-          transactions.at(index + 1)?.type === 'send'
-        ) {
-          const result = transactions
-            .at(index + 1)
-            ?.vin!.find(
-              (input) =>
-                input.previousOutput.txid === utxo.prevTxId &&
-                input.previousOutput.vout === utxo.outputIndex
-            )
-          if (result !== undefined) {
-            gradientType = 1
+    return Array.from(balanceHistory.entries())
+      .flatMap(([index, balances]) => {
+        const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+        const x2 = xScale(
+          index === transactions.length - 1
+            ? new Date()
+            : new Date(transactions.at(index + 1)?.timestamp!)
+        )
+        if (x2 < 0 && x1 >= chartWidth) {
+          return [undefined]
+        }
+        let totalBalance = 0
+        return Array.from(balances.entries()).map(([, utxo]) => {
+          const y1 = yScale(totalBalance)
+          const y2 = yScale(totalBalance + utxo.value)
+          let gradientType = 0
+          totalBalance += utxo.value
+          if (
+            transactions.at(index + 1) !== undefined &&
+            transactions.at(index + 1)?.type === 'send'
+          ) {
+            const result = transactions
+              .at(index + 1)
+              ?.vin!.find(
+                (input) =>
+                  input.previousOutput.txid === utxo.txid &&
+                  input.previousOutput.vout === utxo.vout
+              )
+            if (result !== undefined) {
+              gradientType = 1
+            }
           }
-        }
-        return {
-          x1,
-          x2,
-          y1,
-          y2,
-          utxo,
-          gradientType
-        }
+          return {
+            x1,
+            x2,
+            y1,
+            y2,
+            utxo,
+            gradientType
+          }
+        })
       })
-    })
-  }, [balanceHistory, transactions, xScale, yScale])
+      .filter((v) => v !== undefined)
+  }, [balanceHistory, chartWidth, transactions, xScale, yScale])
 
   const utxoLabels = useMemo(() => {
     return Array.from(balanceHistory.entries())
@@ -341,12 +331,15 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
             ? new Date()
             : new Date(transactions.at(index + 1)?.timestamp!)
         )
+        if (x2 < 0 && x1 >= chartWidth) {
+          return [undefined]
+        }
         let totalBalance = 0
         return Array.from(balances.entries()).map(([, utxo]) => {
           const y1 = yScale(totalBalance)
-          const y2 = yScale(totalBalance + utxo.balance)
-          totalBalance += utxo.balance
-          if (utxo.prevTxId === transactions.at(index)?.id) {
+          const y2 = yScale(totalBalance + utxo.value)
+          totalBalance += utxo.value
+          if (utxo.txid === transactions.at(index)?.id) {
             return {
               x1,
               x2,
@@ -359,7 +352,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         })
       })
       .filter((v) => v !== undefined)
-  }, [balanceHistory, transactions, xScale, yScale])
+  }, [balanceHistory, chartWidth, transactions, xScale, yScale])
 
   const xScaleTransactions = useMemo(() => {
     return transactions
@@ -379,10 +372,13 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     .onUpdate((event) => {
       setEndDate(
         new Date(
-          Math.min(
-            prevEndDate.getTime() -
-              ((timeOffset / scale) * event.translationX) / chartWidth,
-            new Date().setDate(new Date().getDate() + 10)
+          Math.max(
+            Math.min(
+              prevEndDate.getTime() -
+                ((timeOffset / scale) * event.translationX) / chartWidth,
+              new Date().setDate(new Date().getDate() + 5)
+            ),
+            new Date(transactions[0].timestamp!).getTime()
           )
         )
       )
@@ -407,9 +403,11 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         if (x >= 0 && x <= chartWidth) {
           const selectedDate = xScale.invert(x)
           setCursorX(selectedDate)
-          const index = validData.findLastIndex((d) => d.date <= selectedDate)
+          const index = validChartData.findLastIndex(
+            (d) => d.date <= selectedDate
+          )
           if (index >= 0) {
-            setCursorY(validData[index].balance)
+            setCursorY(validChartData[index].balance)
           }
         }
       }
@@ -431,7 +429,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
           )
           if (tappedRect !== undefined) {
             router.navigate(
-              `/account/${id}/transaction/${tappedRect.utxo.prevTxId}/utxo/${tappedRect.utxo.outputIndex}`
+              `/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
             )
           }
         }
@@ -454,17 +452,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       .curve(d3.curveStepAfter)
   }, [xScale, yScale])
 
-  // const areaGenerator = useMemo(() => {
-  //   return d3
-  //     .area<BalanceChartData>()
-  //     .x((d) => xScale(d.date))
-  //     .y0(chartHeight)
-  //     .y1((d) => yScale(d.balance))
-  //     .curve(d3.curveStepAfter)
-  // }, [chartHeight, xScale, yScale])
-
-  const linePath = lineGenerator(validData)
-  //const areaPath = areaGenerator(validData)
+  const linePath = lineGenerator(validChartData)
 
   const yAxisFormatter = d3.format('.3s')
   const cursorFormatter = d3.format(',d')
@@ -479,7 +467,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   )
 
   const handleXAxisLayout = useCallback(
-    (event: LayoutChangeEvent, t, x) => {
+    (event: LayoutChangeEvent, index: number, x: number) => {
       const rect: Rectangle = {
         left: Math.round(x),
         right: Math.round(x + event.nativeEvent.layout.width),
@@ -489,17 +477,17 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         height: Math.round(event.nativeEvent.layout.height)
       }
       if (
-        txXBoundbox[t.index] !== undefined &&
-        txXBoundbox[t.index].left === rect.left &&
-        txXBoundbox[t.index].bottom === rect.bottom &&
-        txXBoundbox[t.index].top === rect.top &&
-        txXBoundbox[t.index].right === rect.right
+        txXBoundbox[index] !== undefined &&
+        txXBoundbox[index].left === rect.left &&
+        txXBoundbox[index].bottom === rect.bottom &&
+        txXBoundbox[index].top === rect.top &&
+        txXBoundbox[index].right === rect.right
       ) {
         return
       }
       setTxXBoundBox((prev) => ({
         ...prev,
-        [t.index]: rect
+        [index]: rect
       }))
     },
     [chartHeight, txXBoundbox]
@@ -540,12 +528,37 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     return () => clearTimeout(timerId)
   }, [txXBoundbox, xScaleTransactions])
 
+  const txXAxisLabels = useMemo(() => {
+    return xScaleTransactions.map((t) => {
+      const amount = t.type === 'receive' ? t.received : t.received - t.sent
+      let numberOfOutput: number = 0
+      let numberOfInput: number = 0
+      if (t.type === 'receive') {
+        numberOfOutput =
+          t.vout.filter((out) => walletAddresses.has(out.address)).length ?? 0
+      } else if (t.type === 'send') {
+        numberOfInput = t.vin?.length ?? 0
+      }
+      const textColor =
+        txXBoundVisible[t.index] === true ? 'white' : 'transparent'
+
+      return {
+        x: xScale(new Date(t.timestamp ?? new Date())),
+        index: t.index,
+        textColor,
+        amountString: `${amount >= 0 ? '+' : ''}${amount}`,
+        type: t.type,
+        numberOfOutput,
+        numberOfInput
+      }
+    })
+  }, [txXBoundVisible, walletAddresses, xScale, xScaleTransactions])
+
   if (!containerSize.width || !containerSize.height) {
     return <View onLayout={handleLayout} style={styles.container} />
   }
 
   let previousDate: string = ''
-  //console.log('Rendering!!!', new Date())
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -580,52 +593,12 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                     </G>
                   )
               )}
-              {xScaleTransactions.map((t, index) => {
-                const amount =
-                  t.type === 'receive' ? t.received : t.received - t.sent
-                let numberOfOutput: number = 0
-                let numberOfInput: number = 0
-                if (t.type === 'receive') {
-                  numberOfOutput =
-                    t.vout.filter((out) => walletAddresses.has(out.address))
-                      .length ?? 0
-                } else if (t.type === 'send') {
-                  numberOfInput = t.vin?.length ?? 0
-                }
-                const textColor =
-                  txXBoundVisible[t.index] === true ? 'white' : 'transparent'
+              {txXAxisLabels.map((t, index) => {
                 return (
-                  <Fragment
-                    key={
-                      new Date(t.timestamp ?? new Date()).getTime().toString() +
-                      index.toString()
-                    }
-                  >
-                    {/* {txXBoundbox[t.index] !== undefined && (
-                      <Rect
-                        x={txXBoundbox[t.index].left}
-                        y={txXBoundbox[t.index].top}
-                        width={txXBoundbox[t.index].width}
-                        height={txXBoundbox[t.index].height}
-                        fill="transparent"
-                        stroke="red"
-                        strokeWidth={1}
-                      />
-                    )} */}
+                  <Fragment key={t.x + index.toString()}>
                     <G
-                      key={
-                        new Date(t.timestamp ?? new Date())
-                          .getTime()
-                          .toString() + index.toString()
-                      }
-                      transform={`translate(${xScale(new Date(t.timestamp ?? new Date()))}, 0)`}
-                      onLayout={(e) =>
-                        handleXAxisLayout(
-                          e,
-                          t,
-                          xScale(new Date(t.timestamp ?? new Date()))
-                        )
-                      }
+                      transform={`translate(${t.x}, 0)`}
+                      onLayout={(e) => handleXAxisLayout(e, t.index, t.x)}
                     >
                       <Line
                         x1={0}
@@ -640,24 +613,23 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                         y={chartHeight + 10}
                         textAnchor="start"
                         fontSize={10}
-                        fill={textColor}
+                        fill={t.textColor}
                       >
                         <TSpan x={0} dy={0}>
                           TX&nbsp;{t.index}
                         </TSpan>
                         <TSpan x={0} dy={10}>
-                          {amount >= 0 ? '+' : ''}
-                          {amount}
+                          {t.amountString}
                         </TSpan>
                         {t.type === 'receive' && (
                           <TSpan x={0} dy={10}>
-                            {numberOfOutput} Output
+                            {t.numberOfOutput} Output
                           </TSpan>
                         )}
                         {t.type === 'send' && (
                           <>
                             <TSpan x={0} dy={10}>
-                              {numberOfInput} Input
+                              {t.numberOfInput} Input
                             </TSpan>
                             <TSpan x={0} dy={10}>
                               + change
@@ -678,14 +650,6 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                     key={tick.getTime().toString()}
                     transform={`translate(${xScale(tick)}, 0)`}
                   >
-                    {/* <Line
-                      x1={0}
-                      x2={0}
-                      y1={0}
-                      y2={chartHeight}
-                      stroke="#FFFFFF29"
-                      strokeDasharray="2 2"
-                    /> */}
                     <SvgText
                       x={0}
                       y={chartHeight + 50}
@@ -703,12 +667,18 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
               })}
               <Defs>
                 <LinearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="white" stopOpacity="0.3" />
-                  <Stop offset="100%" stopColor="white" stopOpacity="0.15" />
+                  <Stop offset="0%" stopColor="white" stopOpacity="0.5" />
+                  <Stop offset="100%" stopColor="white" stopOpacity="0.3" />
                 </LinearGradient>
                 <LinearGradient id="gradientX" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0%" stopColor="white" stopOpacity="0.3" />
-                  <Stop offset="100%" stopColor="white" stopOpacity="0.05" />
+                  <Stop offset="0%" stopColor="transparent" stopOpacity="0.0" />
+                  <Stop
+                    offset="70%"
+                    stopColor="transparent"
+                    stopOpacity="0.0"
+                  />
+                  <Stop offset="71%" stopColor="white" stopOpacity="0.0" />
+                  <Stop offset="100%" stopColor="black" stopOpacity="0.6" />
                 </LinearGradient>
                 <ClipPath id="clip">
                   <Rect x="0" y="0" width={chartWidth} height={chartHeight} />
@@ -721,48 +691,71 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   stroke="white"
                   strokeWidth={2}
                 />
-                {/* <Path d={areaPath ?? ''} fill="url(#gradient)" /> */}
-                <SSBalanceChartLabels
-                  data={validData}
-                  transformedXScale={xScale}
-                  transformedYScale={yScale}
-                />
                 {utxoRectangleData.map((data, index) => {
                   return (
-                    <Rect
-                      key={data.utxo.outputString + index}
-                      x={data.x1}
-                      y={data.y1}
-                      width={data.x2 - data.x1}
-                      height={data.y2 - data.y1}
-                      fill={`url(#${data.gradientType === 0 ? 'gradient' : 'gradientX'})`}
-                      stroke="gray"
-                      strokeOpacity={0.8}
-                      strokeWidth={0.5}
-                    />
+                    <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+                      <Rect
+                        x={data.x1}
+                        y={data.y1}
+                        width={data.x2 - data.x1}
+                        height={data.y2 - data.y1}
+                        fill="url(#gradient)"
+                        stroke="gray"
+                        strokeOpacity={0.8}
+                        strokeWidth={0.5}
+                      />
+                      {data.gradientType === 1 && (
+                        <>
+                          <Defs>
+                            <Mask id={getUtxoOutpoint(data.utxo) + index}>
+                              <Rect
+                                x={data.x1}
+                                y={data.y1}
+                                width={data.x2 - data.x1}
+                                height={data.y2 - data.y1}
+                                fill="url(#gradientX)"
+                              />
+                            </Mask>
+                          </Defs>
+                          <Rect
+                            key={getUtxoOutpoint(data.utxo) + index + '-mask'}
+                            x={data.x1}
+                            y={data.y1}
+                            width={data.x2 - data.x1}
+                            height={data.y2 - data.y1}
+                            fill="url(#gradientX)"
+                          />
+                        </>
+                      )}
+                    </Fragment>
                   )
                 })}
                 {utxoLabels.map((data, index) => {
                   if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
                     return (
                       <SvgText
-                        key={data.utxo.outputString + index}
+                        key={getUtxoOutpoint(data.utxo) + index}
                         x={data.x1 + 2}
                         y={data.y2 + 10}
                         fontSize={10}
                         fill="white"
                       >
-                        {data.utxo.prevTxId.slice(0, 3) +
+                        {data.utxo.txid.slice(0, 3) +
                           '...' +
-                          data.utxo.prevTxId.slice(-3) +
+                          data.utxo.txid.slice(-3) +
                           ':' +
-                          data.utxo.outputIndex}
+                          data.utxo.vout}
                       </SvgText>
                     )
                   } else {
                     return null
                   }
                 })}
+                {/* <SSBalanceChartLabels
+                  data={validChartData}
+                  transformedXScale={xScale}
+                  transformedYScale={yScale}
+                /> */}
                 {cursorX !== undefined && (
                   <G>
                     <Line
