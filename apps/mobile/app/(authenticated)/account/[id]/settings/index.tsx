@@ -120,9 +120,11 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT LABELS"
               variant="gradient"
-              onPress={() => router.navigate(
-                `/account/${currentAccount}/settings/labelExport`
-              )}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccount}/settings/labelExport`
+                )
+              }
             />
             <SSButton
               style={{ flex: 1 }}

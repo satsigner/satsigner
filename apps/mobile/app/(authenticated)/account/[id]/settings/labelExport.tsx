@@ -52,39 +52,49 @@ export default function SSLabelExport() {
         }}
       />
       <SSVStack style={{ padding: 20 }}>
-        <SSText center uppercase weight="bold" size="md" color="muted">
-          EXPORT BIP329 LABELS
-        </SSText>
-        <View
-          style={{
-            padding: 10,
-            backgroundColor: Colors.gray[900],
-            borderRadius: 5
-          }}
-        >
-          {labels.map((label, index) => (
-            <SSText
-              color="white"
-              size="md"
-              key={index}
-              weight='mono'
-            >
-              {JSON.stringify(label)}
+        {labels.length === 0 && (
+          <>
+            <SSText center size="md" weight="bold">
+              No labels!
             </SSText>
-          ))}
-        </View>
-        <SSButton label="COPY TO CLIPBOARD" />
-        <SSButton
-          label="DOWNLOAD JSON"
-          variant="secondary"
-          onPress={exportLabels}
-        />
-        <SSButton label="DOWNLOAD CSV" variant="secondary" />
-        <SSButton
-          label="CANCEL"
-          variant="ghost"
-          onPress={() => router.back()}
-        />
+            <SSText size="md">
+              Once you add labels to your transactions, utxos, and addresses,
+              you will be able to export them.
+            </SSText>
+          </>
+        )}
+        {labels.length > 0 && (
+          <>
+            <SSText center uppercase weight="bold" size="md" color="muted">
+              EXPORT BIP329 LABELS
+            </SSText>
+            <View
+              style={{
+                padding: 10,
+                backgroundColor: Colors.gray[900],
+                borderRadius: 5
+              }}
+            >
+              {labels.map((label, index) => (
+                <SSText color="white" size="md" key={index} weight="mono">
+                  {JSON.stringify(label)}
+                </SSText>
+              ))}
+            </View>
+            <SSButton label="COPY TO CLIPBOARD" />
+            <SSButton
+              label="DOWNLOAD JSON"
+              variant="secondary"
+              onPress={exportLabels}
+            />
+            <SSButton label="DOWNLOAD CSV" variant="secondary" />
+            <SSButton
+              label="CANCEL"
+              variant="ghost"
+              onPress={() => router.back()}
+            />
+          </>
+        )}
       </SSVStack>
     </ScrollView>
   )

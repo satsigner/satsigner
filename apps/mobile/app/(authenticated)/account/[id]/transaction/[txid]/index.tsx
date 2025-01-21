@@ -113,7 +113,7 @@ export default function TxDetails() {
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={txid}>
-          <SSTxDetailsBox header={t('hash')} text={txid}/>
+          <SSTxDetailsBox header={t('hash')} text={txid} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSHStack>
@@ -136,7 +136,7 @@ export default function TxDetails() {
           />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSTxDetailsBox header={t('raw')} text={raw} variant='mono' />
+        <SSTxDetailsBox header={t('raw')} text={raw} variant="mono" />
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">
@@ -168,7 +168,7 @@ function SSTxDetailsBox({
   variant = 'regular',
   uppercase = true
 }: SSTxDetailsBoxProps) {
-  const gap = (variant === 'mono') ? "sm" : "none"
+  const gap = variant === 'mono' ? 'sm' : 'none'
   return (
     <SSVStack gap={gap} style={{ width }}>
       <SSText uppercase={uppercase} weight="bold" size="md">
