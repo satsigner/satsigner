@@ -14,6 +14,7 @@ import { pickFile } from '@/utils/filesystem'
 import SSCheckbox from '@/components/SSCheckbox'
 import { useState } from 'react'
 import SSHStack from '@/layouts/SSHStack'
+import { CSVtoLabels } from '@/utils/bip329'
 
 export default function SSLabelExport() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -30,11 +31,19 @@ export default function SSLabelExport() {
 
   if (!account) return <Redirect href="/" />
 
+  function importLabelsFromClipboard() {
+    const labels = importType === 'JSON' ? JSON.parse(importContent) : CSVtoLabels(importContent)
+    console.log(labels)
+    importLabelsToAccount(accountId, labels)
+    router.back()
+  }
+
   async function importLabels() {
     const type = importType === 'JSON' ? 'application/json' : 'text/csv'
     const fileContent = await pickFile({ type })
-    const labels = JSON.parse(fileContent)
+    const labels = importType === 'JSON' ? JSON.parse(fileContent) : CSVtoLabels(fileContent)
     importLabelsToAccount(accountId, labels)
+    router.back()
   }
 
   //
@@ -65,17 +74,23 @@ export default function SSLabelExport() {
           />
         </SSHStack>
         {importContent && (
-          <View
+          <SSVStack>
+            <View
             style={{
               padding: 10,
               backgroundColor: Colors.gray[900],
               borderRadius: 5
-            }}
-          >
-            <SSText color="white" size="md" weight="mono">
+              }}
+            >
+              <SSText color="white" size="md" weight="mono">
               {importContent}
-            </SSText>
-          </View>
+              </SSText>
+              </View>
+              <SSButton
+                label="IMPORT FROM CLIPBOARD"
+                onPress={importLabelsFromClipboard}
+              />
+              </SSVStack>
         )}
         <SSButton
           label="PASTE FROM CLIPBOARD"

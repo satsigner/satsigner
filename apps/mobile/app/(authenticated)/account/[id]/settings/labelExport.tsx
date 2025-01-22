@@ -11,7 +11,6 @@ import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
-import { setClipboard } from '@/utils/clipboard'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSCheckbox from '@/components/SSCheckbox'
 import { useEffect, useState } from 'react'
@@ -106,7 +105,7 @@ export default function SSLabelExport() {
                 {exportContent}
               </SSText>
             </View>
-            <SSClipboardCopy text={JSON.stringify(labels)}>
+            <SSClipboardCopy text={exportContent}>
               <SSButton label="COPY TO CLIPBOARD" onPress={() => true} />
             </SSClipboardCopy>
             <SSButton
