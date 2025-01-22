@@ -790,12 +790,6 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                 </ClipPath>
               </Defs>
               <G clipPath="url(#clip)">
-                <Path
-                  d={linePath ?? ''}
-                  fill="none"
-                  stroke="white"
-                  strokeWidth={2}
-                />
                 {utxoRectangleData.map((data, index) => {
                   return (
                     <Fragment key={getUtxoOutpoint(data.utxo) + index}>
@@ -897,6 +891,12 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                     </Fragment>
                   )
                 })}
+                <Path
+                  d={linePath ?? ''}
+                  fill="none"
+                  stroke="white"
+                  strokeWidth={2}
+                />
                 {cursorX !== undefined && (
                   <G>
                     <Line
