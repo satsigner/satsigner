@@ -188,6 +188,9 @@
     "warning": "Warning",
     "yes": "Yes"
   },
+  "explore": {
+    "title": "Explore"
+  },
   "export": {
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",
