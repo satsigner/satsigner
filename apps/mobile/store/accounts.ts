@@ -9,7 +9,7 @@ import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
-import { Label } from '@/utils/bip329'
+import { type Label } from '@/utils/bip329'
 import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -81,7 +81,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         // TODO: move label backup elsewhere
-        const labelsDictionary: { [key: string]: string } = {}
+        const labelsDictionary: Record<string, string> = {}
         account.transactions.forEach((tx) => {
           const txRef = tx.id
           labelsDictionary[txRef] = tx.label || ''
@@ -203,10 +203,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       importLabels: (accountName: string, labels: Label[]) => {
         const account = get().getCurrentAccount(accountName)
 
-        if (!account) throw new Error('undefined account')
+        if (!account) return
 
-        const transactionMap = {} as { [key: string]: number }
-        const utxoMap = {} as { [key: string]: number }
+        const transactionMap: Record<string, number> = {}
+        const utxoMap: Record<string, number> = {}
 
         account.transactions.forEach((tx, index) => {
           transactionMap[tx.id] = index

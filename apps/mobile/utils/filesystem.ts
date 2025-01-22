@@ -3,7 +3,7 @@ import * as Sharing from 'expo-sharing'
 import DocumentPicker from 'react-native-document-picker'
 import RNFS from 'react-native-fs'
 
-type shareFileProps = {
+type ShareFileProps = {
   filename: string
   fileContent: string
   dialogTitle: string
@@ -15,23 +15,22 @@ export async function shareFile({
   fileContent,
   dialogTitle,
   mimeType
-}: shareFileProps) {
+}: ShareFileProps) {
   const fileUri = FileSystem.documentDirectory + filename
 
   await FileSystem.writeAsStringAsync(fileUri, fileContent)
   await Sharing.shareAsync(fileUri, { mimeType, dialogTitle })
 }
 
-type pickFileProps = {
-  type: 'application/json' | 'text/csv' |'text/plain' | '*/*'
+type PickFileProps = {
+  type: 'application/json' | 'text/csv' | 'text/plain' | '*/*'
   encodingOrOptions?: any
 }
 
 export async function pickFile({
   type,
   encodingOrOptions = null
-}: pickFileProps) {
-  DocumentPicker.types.csv
+}: PickFileProps) {
   const file = await DocumentPicker.pickSingle({ type })
   return RNFS.readFile(file.uri, encodingOrOptions)
 }

@@ -1,20 +1,20 @@
+import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
-import * as Clipboard from 'expo-clipboard'
 
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { pickFile } from '@/utils/filesystem'
-import SSCheckbox from '@/components/SSCheckbox'
-import { useState } from 'react'
-import SSHStack from '@/layouts/SSHStack'
 import { CSVtoLabels } from '@/utils/bip329'
+import { pickFile } from '@/utils/filesystem'
 
 export default function SSLabelExport() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -29,20 +29,23 @@ export default function SSLabelExport() {
   const [importType, setImportType] = useState('JSON')
   const [importContent, setImportContent] = useState('')
 
-  if (!account) return <Redirect href="/" />
+  if (!account || !accountId) return <Redirect href="/" />
 
   function importLabelsFromClipboard() {
-    const labels = importType === 'JSON' ? JSON.parse(importContent) : CSVtoLabels(importContent)
-    console.log(labels)
-    importLabelsToAccount(accountId, labels)
+    const labels =
+      importType === 'JSON'
+        ? JSON.parse(importContent)
+        : CSVtoLabels(importContent)
+    importLabelsToAccount(accountId!, labels)
     router.back()
   }
 
   async function importLabels() {
     const type = importType === 'JSON' ? 'application/json' : 'text/csv'
     const fileContent = await pickFile({ type })
-    const labels = importType === 'JSON' ? JSON.parse(fileContent) : CSVtoLabels(fileContent)
-    importLabelsToAccount(accountId, labels)
+    const labels =
+      importType === 'JSON' ? JSON.parse(fileContent) : CSVtoLabels(fileContent)
+    importLabelsToAccount(accountId!, labels)
     router.back()
   }
 
@@ -76,21 +79,21 @@ export default function SSLabelExport() {
         {importContent && (
           <SSVStack>
             <View
-            style={{
-              padding: 10,
-              backgroundColor: Colors.gray[900],
-              borderRadius: 5
+              style={{
+                padding: 10,
+                backgroundColor: Colors.gray[900],
+                borderRadius: 5
               }}
             >
               <SSText color="white" size="md" weight="mono">
-              {importContent}
+                {importContent}
               </SSText>
-              </View>
-              <SSButton
-                label="IMPORT FROM CLIPBOARD"
-                onPress={importLabelsFromClipboard}
-              />
-              </SSVStack>
+            </View>
+            <SSButton
+              label="IMPORT FROM CLIPBOARD"
+              onPress={importLabelsFromClipboard}
+            />
+          </SSVStack>
         )}
         <SSButton
           label="PASTE FROM CLIPBOARD"

@@ -1,9 +1,9 @@
+import { useFonts } from 'expo-font'
 import { useMemo } from 'react'
 import { StyleSheet, Text } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 import { type TextFontSize } from '@/styles/sizes'
-import { useFonts } from 'expo-font'
 import { TerminessNerdFontMonoRegular } from '@/styles/typography'
 
 type SSTextProps = {

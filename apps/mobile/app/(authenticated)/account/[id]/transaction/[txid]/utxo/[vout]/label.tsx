@@ -6,9 +6,9 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
-import { Account } from '@/types/models/Account'
-import { Utxo } from '@/types/models/Utxo'
-import { UtxoSearchParams } from '@/types/navigation/searchParams'
+import { type Account } from '@/types/models/Account'
+import { type Utxo } from '@/types/models/Utxo'
+import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 export default function SSTxLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 

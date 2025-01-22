@@ -63,12 +63,11 @@ export function labelsToCSV(labels: Label[]) {
 }
 
 export function CSVtoLabels(CsvText: string) {
-  const lines = CsvText.split("\n")
-  if (lines.length < 0)
-    throw new Error('Empty CSV text')
+  const lines = CsvText.split('\n')
+  if (lines.length < 0) throw new Error('Empty CSV text')
   const header = lines[0]
   const rows = lines.slice(1)
-  const labels : Label[] = []
+  const labels: Label[] = []
   const columns = header.split(',')
   for (const row of rows) {
     const rowItems = row.split(',')

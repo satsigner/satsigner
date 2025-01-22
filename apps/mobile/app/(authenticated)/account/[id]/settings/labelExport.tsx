@@ -1,21 +1,24 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatTransactionLabels, formatUtxoLabels } from '@/utils/bip329'
+import {
+  formatTransactionLabels,
+  formatUtxoLabels,
+  labelsToCSV
+} from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSCheckbox from '@/components/SSCheckbox'
-import { useEffect, useState } from 'react'
-import SSHStack from '@/layouts/SSHStack'
-import { labelsToCSV } from '@/utils/bip329'
 
 export default function SSLabelExport() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -29,17 +32,17 @@ export default function SSLabelExport() {
   const [exportType, setExportType] = useState('JSON')
   const [exportContent, setExportContent] = useState('')
 
+  useEffect(() => {
+    if (exportType === 'JSON') setExportContent(JSON.stringify(labels))
+    if (exportType === 'CSV') setExportContent(labelsToCSV(labels))
+  }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!account) return <Redirect href="/" />
 
   const labels = [
     ...formatTransactionLabels(account.transactions),
     ...formatUtxoLabels(account.utxos)
   ]
-
-  useEffect(() => {
-    if (exportType === 'JSON') setExportContent(JSON.stringify(labels))
-    if (exportType === 'CSV') setExportContent(labelsToCSV(labels))
-  }, [exportType])
 
   async function exportLabels() {
     if (!account) return
