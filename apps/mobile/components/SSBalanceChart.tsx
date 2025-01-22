@@ -431,8 +431,15 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
 
   const linePath = lineGenerator(validChartData)
 
-  const yAxisFormatter = d3.format('.3s')
-  const cursorFormatter = d3.format(',d')
+  const yAxisFormatter = useMemo(() => {
+    return d3.format('.3s')
+  }, [])
+  const cursorFormatter = useMemo(() => {
+    return d3.format(',d')
+  }, [])
+  const numberCommaFormatter = useMemo(() => {
+    return d3.format(',')
+  }, [])
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout
@@ -523,13 +530,19 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         x: xScale(new Date(t.timestamp ?? new Date())),
         index: t.index,
         textColor,
-        amountString: `${amount >= 0 ? '+' : ''}${amount}`,
+        amountString: `${amount >= 0 ? '+' : ''}${numberCommaFormatter(amount)}`,
         type: t.type,
         numberOfOutput,
         numberOfInput
       }
     })
-  }, [txXBoundVisible, walletAddresses, xScale, xScaleTransactions])
+  }, [
+    numberCommaFormatter,
+    txXBoundVisible,
+    walletAddresses,
+    xScale,
+    xScaleTransactions
+  ])
 
   const [txInfoLabels, setTxInfoLabels] = useState<
     {
@@ -886,7 +899,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                           )
                         }
                       >
-                        {label.memo || label.amount}
+                        {label.memo || numberCommaFormatter(label.amount)}
                       </SvgText>
                     </Fragment>
                   )
