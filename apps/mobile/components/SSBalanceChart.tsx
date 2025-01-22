@@ -284,37 +284,40 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     y2: number
     utxo: Utxo
   }[] = useMemo(() => {
-    return Array.from(balanceHistory.entries())
-      .flatMap(([index, balances]) => {
-        const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
-        const x2 = xScale(
-          index === transactions.length - 1
-            ? currentDate.current
-            : new Date(transactions.at(index + 1)?.timestamp!)
-        )
-        if (x2 < 0 && x1 >= chartWidth) {
-          return []
-        }
-        let totalBalance = 0
-        return Array.from(balances.entries())
-          .map(([, utxo]) => {
-            const y1 = yScale(totalBalance)
-            const y2 = yScale(totalBalance + utxo.value)
-            totalBalance += utxo.value
-            if (utxo.txid === transactions.at(index)?.id) {
-              return {
-                x1,
-                x2,
-                y1,
-                y2,
-                utxo
-              }
-            }
-            return undefined
+    const result: {
+      x1: number
+      x2: number
+      y1: number
+      y2: number
+      utxo: Utxo
+    }[] = []
+    Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
+      const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+      const x2 = xScale(
+        index === transactions.length - 1
+          ? currentDate.current
+          : new Date(transactions.at(index + 1)?.timestamp!)
+      )
+      if (x2 < 0 && x1 >= chartWidth) {
+        return
+      }
+      let totalBalance = 0
+      Array.from(balances.entries()).forEach(([, utxo]) => {
+        const y1 = yScale(totalBalance)
+        const y2 = yScale(totalBalance + utxo.value)
+        totalBalance += utxo.value
+        if (utxo.txid === transactions.at(index)?.id) {
+          result.push({
+            x1,
+            x2,
+            y1,
+            y2,
+            utxo
           })
-          .filter((v) => v !== undefined)
+        }
       })
-      .filter((v) => v !== undefined)
+    })
+    return result
   }, [balanceHistory, chartWidth, transactions, xScale, yScale])
 
   const xScaleTransactions = useMemo(() => {
