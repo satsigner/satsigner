@@ -332,6 +332,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
 
   const panGesture = Gesture.Pan()
     .minDistance(1)
+    .maxPointers(1)
     .onStart(() => {
       setPrevEndDate(endDate)
     })
