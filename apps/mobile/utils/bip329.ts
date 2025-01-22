@@ -14,37 +14,29 @@ export type Label = {
 }
 
 export function formatTransactionLabels(transactions: Transaction[]): Label[] {
-  const labels: Label[] = []
-
-  for (const tx of transactions) {
-    if (!tx.label) continue
-
-    labels.push({
-      label: tx.label,
-      type: 'tx',
-      ref: tx.id,
-      spendable: true
+  return transactions
+    .filter((tx) => tx.label)
+    .map((tx) => {
+      return {
+        label: tx.label,
+        type: 'tx',
+        ref: tx.id,
+        spendable: true
+      } as Label
     })
-  }
-
-  return labels
 }
 
-export function formatUtxoLabels(utxos: Utxo[]) {
-  const labels: Label[] = []
-
-  for (const utxo of utxos) {
-    if (!utxo.label) continue
-
-    labels.push({
-      label: utxo.label,
-      type: 'output',
-      ref: getUtxoOutpoint(utxo),
-      spendable: true // TODO: allow the user to mark utxo as not spendable
+export function formatUtxoLabels(utxos: Utxo[]): Label[] {
+  return utxos
+    .filter((utxo) => utxo.label)
+    .map((utxo) => {
+      return {
+        label: utxo.label,
+        type: 'output',
+        ref: getUtxoOutpoint(utxo),
+        spendable: true // TODO allow the user to mark utxo as not spendable
+      }
     })
-  }
-
-  return labels
 }
 
 export function labelsToCSV(labels: Label[]) {
@@ -62,7 +54,7 @@ export function labelsToCSV(labels: Label[]) {
   return Csv
 }
 
-export function CSVtoLabels(CsvText: string) {
+export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
   if (lines.length < 0) throw new Error('Empty CSV text')
   const header = lines[0]

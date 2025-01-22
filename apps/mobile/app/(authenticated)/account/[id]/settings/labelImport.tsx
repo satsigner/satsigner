@@ -43,6 +43,7 @@ export default function SSLabelExport() {
   async function importLabels() {
     const type = importType === 'JSON' ? 'application/json' : 'text/csv'
     const fileContent = await pickFile({ type })
+    if (!fileContent) return
     const labels =
       importType === 'JSON' ? JSON.parse(fileContent) : CSVtoLabels(fileContent)
     importLabelsToAccount(accountId!, labels)

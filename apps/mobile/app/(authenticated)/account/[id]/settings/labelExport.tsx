@@ -16,6 +16,7 @@ import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   formatTransactionLabels,
   formatUtxoLabels,
+  Label,
   labelsToCSV
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
@@ -42,7 +43,7 @@ export default function SSLabelExport() {
   const labels = [
     ...formatTransactionLabels(account.transactions),
     ...formatUtxoLabels(account.utxos)
-  ]
+  ] as Label[]
 
   async function exportLabels() {
     if (!account) return
