@@ -206,6 +206,14 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         memo: '',
         type: 'end'
       })
+    } else {
+      validData.push({
+        date: currentDate.current,
+        amount: 0,
+        balance: validData[validData.length - 1]?.balance ?? 0,
+        memo: '',
+        type: 'end'
+      })
     }
     return [maxBalance, validData]
   }, [startDate, endDate, chartData])
