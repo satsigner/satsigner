@@ -447,5 +447,8 @@
     "noLabel": "No label",
     "outputIndex": "Output Index",
     "unlockingScript": "Unlocking script"
+  } ,
+    "explore": {
+      "title": "Explore"
   }
 }
