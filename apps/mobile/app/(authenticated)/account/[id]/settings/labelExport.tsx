@@ -105,7 +105,7 @@ export default function SSLabelExport() {
                 borderRadius: 5
               }}
             >
-              <SSText color="white" size="md" weight="mono">
+              <SSText color="white" size="md" type="mono">
                 {exportContent}
               </SSText>
             </View>

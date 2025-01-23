@@ -156,7 +156,7 @@ export default function TxDetails() {
 type SSTxDetailsBoxProps = {
   header: string
   text?: string | number | undefined
-  variant?: 'bold' | 'regular' | 'mono' | 'light'
+  variant?: 'mono' | 'sans-serif'
   width?: DimensionValue
   uppercase?: boolean
 }
@@ -165,7 +165,7 @@ function SSTxDetailsBox({
   header,
   text = '-',
   width = '100%',
-  variant = 'regular',
+  variant = 'sans-serif',
   uppercase = true
 }: SSTxDetailsBoxProps) {
   const gap = variant === 'mono' ? 'sm' : 'none'
@@ -174,7 +174,7 @@ function SSTxDetailsBox({
       <SSText uppercase={uppercase} weight="bold" size="md">
         {header}
       </SSText>
-      <SSText color="muted" weight={variant}>
+      <SSText color="muted" type={variant}>
         {text}
       </SSText>
     </SSVStack>

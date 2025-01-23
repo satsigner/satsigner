@@ -1,21 +1,19 @@
-import { useFonts } from 'expo-font'
 import { useMemo } from 'react'
 import { StyleSheet, Text } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 import { type TextFontSize } from '@/styles/sizes'
-import { TerminessNerdFontMonoRegular } from '@/styles/typography'
 
 type SSTextProps = {
   color?: 'white' | 'black' | 'muted'
   size?: TextFontSize
-  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold' | 'mono'
+  type?: 'sans-serif' | 'mono'
+  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold'
   uppercase?: boolean
   center?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
 
 type WeightStyle = {
-  fontFamily: string
   fontWeight: '200' | '300' | '400' | '500' | '700'
 }
 
@@ -23,39 +21,48 @@ export default function SSText({
   color = 'white',
   size = 'sm',
   weight = 'regular',
+  type = 'sans-serif',
   uppercase,
   center,
   style,
   children
 }: SSTextProps) {
-  useFonts({
-    TerminessNerdFontMonoRegular
-  })
-
   const textStyle = useMemo(() => {
     let colorStyle = styles.textColorWhite
     if (color === 'black') colorStyle = styles.textColorBlack
     if (color === 'muted') colorStyle = styles.textColorMuted
 
-    let weightStyle: WeightStyle = styles.textRegular
-    if (weight === 'ultralight') weightStyle = styles.textUltralight
-    if (weight === 'light') weightStyle = styles.textLight
-    if (weight === 'medium') weightStyle = styles.textMedium
-    if (weight === 'bold') weightStyle = styles.textBold
-    if (weight === 'mono') weightStyle = styles.textMono
+    const styleMap = {
+      mono: {
+        ultralight: styles.textMonoUltralight,
+        light: styles.textMonoLight,
+        medium: styles.textMonoMedium,
+        regular: styles.textMonoRegular,
+        bold: styles.textMonoBold
+      },
+      'sans-serif': {
+        ultralight: styles.textSansSerifUltralight,
+        light: styles.textSansSerifLight,
+        medium: styles.textSansSerifMedium,
+        regular: styles.textSansSerifRegular,
+        bold: styles.textSansSerifBold
+      }
+    }
+
+    const textWeightStyle = styleMap[type][weight] as WeightStyle
 
     return StyleSheet.compose(
       {
         ...styles.textBase,
         ...colorStyle,
         ...{ fontSize: Sizes.text.fontSize[size] },
-        ...weightStyle,
+        ...textWeightStyle,
         ...(uppercase ? styles.uppercase : {}),
         ...(center ? styles.center : {})
       },
       style
     )
-  }, [color, size, weight, uppercase, center, style])
+  }, [color, size, weight, uppercase, center, style, type])
 
   return <Text style={textStyle}>{children}</Text>
 }
@@ -79,28 +86,44 @@ const styles = StyleSheet.create({
   center: {
     textAlign: 'center'
   },
-  textUltralight: {
+  textSansSerifUltralight: {
     fontFamily: Typography.sfProTextUltralight,
     fontWeight: '200'
   },
-  textLight: {
+  textSansSerifLight: {
     fontFamily: Typography.sfProTextLight,
     fontWeight: '300'
   },
-  textRegular: {
+  textSansSerifRegular: {
     fontFamily: Typography.sfProTextRegular,
     fontWeight: '400'
   },
-  textMedium: {
+  textSansSerifMedium: {
     fontFamily: Typography.sfProTextMedium,
     fontWeight: '500'
   },
-  textBold: {
+  textSansSerifBold: {
     fontFamily: Typography.sfProTextBold,
     fontWeight: '700'
   },
-  textMono: {
-    fontFamily: 'TerminessNerdFontMonoRegular',
+  textMonoUltralight: {
+    fontFamily: Typography.terminessNerdFontMonoRegular,
+    fontWeight: '200'
+  },
+  textMonoLight: {
+    fontFamily: Typography.terminessNerdFontMonoRegular,
+    fontWeight: '300'
+  },
+  textMonoRegular: {
+    fontFamily: Typography.terminessNerdFontMonoRegular,
+    fontWeight: '400'
+  },
+  textMonoMedium: {
+    fontFamily: Typography.terminessNerdFontMonoRegular,
     fontWeight: '500'
+  },
+  textMonoBold: {
+    fontFamily: Typography.terminessNerdFontMonoBold,
+    fontWeight: '700'
   }
 })
