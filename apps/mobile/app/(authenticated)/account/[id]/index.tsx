@@ -17,6 +17,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconChartSetting,
   SSIconList,
   SSIconMenu,
   SSIconRefresh
@@ -66,6 +67,8 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const router = useRouter()
+
   const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.btcPrice,
@@ -91,9 +94,18 @@ function TotalTransactions({
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-        <SSIconButton onPress={() => handleOnRefresh()}>
-          <SSIconRefresh height={18} width={22} />
-        </SSIconButton>
+        <SSHStack>
+          <SSIconButton onPress={() => handleOnRefresh()}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton
+            onPress={() =>
+              router.navigate(`/settings/config/features/chartSetting`)
+            }
+          >
+            <SSIconChartSetting width={22} height={18} />
+          </SSIconButton>
+        </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           <SSIconButton
