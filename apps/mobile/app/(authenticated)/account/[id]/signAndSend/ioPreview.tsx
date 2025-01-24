@@ -44,7 +44,28 @@ function useInputTransactions(inputs: Map<string, Utxo>) {
     const newTransactions = new Map<string, EsploraTx>()
 
     try {
-      const inputsArray = Array.from(inputs.entries())
+      const rawInputsArray = Array.from(inputs.entries())
+      const maxValue = Math.max(
+        ...rawInputsArray.map(([, input]) => input.value)
+      )
+
+      const inputsArray = rawInputsArray.sort((a, b) => {
+        const valueA = a[1].value
+        const valueB = b[1].value
+
+        // If either value is the max value
+        if (valueA === maxValue || valueB === maxValue) {
+          // Ensure max value goes to the end
+          return valueA === maxValue ? 1 : -1
+        }
+
+        // For non-max values, sort in ascending order
+        return valueA - valueB
+      })
+      console.log(
+        'inputs',
+        inputsArray.map(([, input]) => input)
+      )
       await Promise.all(
         inputsArray.map(async ([, input]) => {
           try {
@@ -424,7 +445,7 @@ export default function IOPreview() {
           />
         ) : null}
       </View>
-      <LinearGradient
+      {/* <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
           position: 'absolute',
@@ -472,7 +493,7 @@ export default function IOPreview() {
             }
           />
         </SSVStack>
-      </LinearGradient>
+      </LinearGradient> */}
       <SSModal
         visible={addOutputModalVisible}
         fullOpacity
