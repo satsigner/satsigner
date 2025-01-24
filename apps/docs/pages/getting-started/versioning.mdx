@@ -1,0 +1,29 @@
+# Satsigner Versioning
+
+## App Version & Build Number
+
+Satsigner uses [react-native-device-info](https://github.com/react-native-device-info/react-native-device-info) library to get information about the app version and build number.
+
+The app version follows semantic versioning.
+
+In android, it can be found in `android/app/build.gradle` file on `android.defaultConfig.versionName`:
+
+```gradle
+android {
+  defaultConfig {
+    versionName "0.1.0"
+  }
+}
+```
+
+In iOS, in `ios/satsigner.xcodeproj/project.pbxproj`:
+
+```
+MARKETING_VERSION = 1.0;
+```
+
+The build number can be found in the same files. For android, search for `versionCode` and for iOS search for `CURRENT_PROJECT_VERSION`.
+
+## Versioning and EAS
+
+## Managing Manually
