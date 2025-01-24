@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import SSButton from '@/components/SSButton'
+import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
@@ -41,9 +42,9 @@ export default function FeeSelection() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      <SSMainLayout>
+      <SSMainLayout style={{ paddingHorizontal: 4 }}>
         <SSVStack justifyBetween>
-          <SSHStack gap="lg" style={{ justifyContent: 'center' }}>
+          <SSHStack gap="lg" style={{ justifyContent: 'space-evenly' }}>
             <SSVStack gap="none">
               <SSText>1 sat/vB</SSText>
               <SSText color="muted" size="xs" center>
@@ -63,7 +64,7 @@ export default function FeeSelection() {
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSText color="muted">-- Fee Rate Chart -- </SSText>
+          <SSFeeRateChart />
           <SSVStack>
             <SSVStack itemsCenter>
               <SSHStack
