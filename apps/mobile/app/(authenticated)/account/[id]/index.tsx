@@ -125,7 +125,7 @@ function TotalTransactions({
         </SSHStack>
       </SSHStack>
       {showChart ? (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, zIndex: -1 }}>
           <SSBalanceChart
             transactions={sortedTransactions}
             utxos={account.utxos}

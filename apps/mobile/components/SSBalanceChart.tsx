@@ -27,7 +27,9 @@ import Svg, {
   Text as SvgText,
   TSpan
 } from 'react-native-svg'
+import { useShallow } from 'zustand/react/shallow'
 
+import { useChartSettingStore } from '@/store/chartSetting'
 import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
@@ -63,6 +65,23 @@ const isOverlapping = (rect1: Rectangle, rect2: Rectangle) => {
 
 function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const router = useRouter()
+
+  const [
+    showLabel,
+    showAmount,
+    showTransactionInfo,
+    showOutputField,
+    lockZoomToXAxis
+  ] = useChartSettingStore(
+    useShallow((state) => [
+      state.showLabel,
+      state.showAmount,
+      state.showTransactionInfo,
+      state.showOutputField,
+      state.lockZoomToXAxis
+    ])
+  )
+
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
 
@@ -175,6 +194,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const [prevEndDate, setPrevEndDate] = useState<Date>(
     new Date(currentDate.current)
   )
+  const [startY, setStartY] = useState<number>(0)
+  const [prevStartY, setPrevStartY] = useState<number>(0)
 
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
@@ -187,7 +208,9 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       (d) => d.date >= startDate && d.date <= endDate
     )
     const maxBalance = Math.max(
-      ...validData.map((d) => d.balance),
+      ...(lockZoomToXAxis
+        ? validData.map((d) => d.balance)
+        : chartData.map((d) => d.balance)),
       startBalance,
       1
     )
@@ -216,7 +239,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       })
     }
     return [maxBalance, validData]
-  }, [startDate, endDate, chartData])
+  }, [chartData, lockZoomToXAxis, startDate, endDate])
 
   const chartWidth = containerSize.width - margin.left - margin.right
   const chartHeight = containerSize.height - margin.top - margin.bottom
@@ -228,9 +251,12 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const yScale = useMemo(() => {
     return d3
       .scaleLinear()
-      .domain([0, maxBalance * 1.2])
+      .domain([
+        lockZoomToXAxis ? 0 : startY,
+        lockZoomToXAxis ? maxBalance * 1.2 : startY + (maxBalance * 1.2) / scale
+      ])
       .range([chartHeight, 0])
-  }, [chartHeight, maxBalance])
+  }, [chartHeight, lockZoomToXAxis, maxBalance, scale, startY])
 
   const utxoRectangleData: {
     x1: number
@@ -343,6 +369,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     .maxPointers(1)
     .onStart(() => {
       setPrevEndDate(endDate)
+      setPrevStartY(startY)
     })
     .onUpdate((event) => {
       setEndDate(
@@ -359,9 +386,23 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
           )
         )
       )
+      if (!lockZoomToXAxis) {
+        setStartY(
+          Math.max(
+            Math.min(
+              prevStartY +
+                (((maxBalance * 1.2) / scale) * event.translationY) /
+                  chartHeight,
+              maxBalance * 1.2 - (maxBalance * 1.2) / scale
+            ),
+            0
+          )
+        )
+      }
     })
     .onEnd(() => {
       setPrevEndDate(endDate)
+      setPrevStartY(startY)
     })
     .runOnJS(true)
 
@@ -682,7 +723,11 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <GestureDetector gesture={combinedGesture}>
         <View style={styles.container} onLayout={handleLayout}>
-          <Svg width={containerSize.width} height={containerSize.height}>
+          <Svg
+            width={containerSize.width}
+            height={containerSize.height}
+            pointerEvents="box-none"
+          >
             <G x={margin.left} y={margin.top}>
               {yScale.ticks(4).map(
                 (tick) =>
@@ -711,54 +756,55 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                     </G>
                   )
               )}
-              {txXAxisLabels.map((t, index) => {
-                return (
-                  <Fragment key={t.x + index.toString()}>
-                    <G
-                      transform={`translate(${t.x}, 0)`}
-                      onLayout={(e) => handleXAxisLayout(e, t.index, t.x)}
-                    >
-                      <Line
-                        x1={0}
-                        x2={0}
-                        y1={0}
-                        y2={chartHeight}
-                        stroke="#FFFFFF29"
-                        strokeDasharray="2 2"
-                      />
-                      <SvgText
-                        x={0}
-                        y={chartHeight + 10}
-                        textAnchor="start"
-                        fontSize={10}
-                        fill={t.textColor}
+              {showTransactionInfo &&
+                txXAxisLabels.map((t, index) => {
+                  return (
+                    <Fragment key={t.x + index.toString()}>
+                      <G
+                        transform={`translate(${t.x}, 0)`}
+                        onLayout={(e) => handleXAxisLayout(e, t.index, t.x)}
                       >
-                        <TSpan x={0} dy={0}>
-                          TX&nbsp;{t.index}
-                        </TSpan>
-                        <TSpan x={0} dy={10}>
-                          {t.amountString}
-                        </TSpan>
-                        {t.type === 'receive' && (
-                          <TSpan x={0} dy={10}>
-                            {t.numberOfOutput} Output
+                        <Line
+                          x1={0}
+                          x2={0}
+                          y1={0}
+                          y2={chartHeight}
+                          stroke="#FFFFFF29"
+                          strokeDasharray="2 2"
+                        />
+                        <SvgText
+                          x={0}
+                          y={chartHeight + 10}
+                          textAnchor="start"
+                          fontSize={10}
+                          fill={t.textColor}
+                        >
+                          <TSpan x={0} dy={0}>
+                            TX&nbsp;{t.index}
                           </TSpan>
-                        )}
-                        {t.type === 'send' && (
-                          <>
+                          <TSpan x={0} dy={10}>
+                            {t.amountString}
+                          </TSpan>
+                          {t.type === 'receive' && (
                             <TSpan x={0} dy={10}>
-                              {t.numberOfInput} Input
+                              {t.numberOfOutput} Output
                             </TSpan>
-                            <TSpan x={0} dy={10}>
-                              + change
-                            </TSpan>
-                          </>
-                        )}
-                      </SvgText>
-                    </G>
-                  </Fragment>
-                )
-              })}
+                          )}
+                          {t.type === 'send' && (
+                            <>
+                              <TSpan x={0} dy={10}>
+                                {t.numberOfInput} Input
+                              </TSpan>
+                              <TSpan x={0} dy={10}>
+                                + change
+                              </TSpan>
+                            </>
+                          )}
+                        </SvgText>
+                      </G>
+                    </Fragment>
+                  )
+                })}
               {xScale.ticks(3).map((tick) => {
                 const currentDate = d3.timeFormat('%b %d')(tick)
                 const displayTime = previousDate === currentDate
@@ -770,7 +816,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   >
                     <SvgText
                       x={0}
-                      y={chartHeight + 50}
+                      y={chartHeight + (showTransactionInfo ? 50 : 20)}
                       dy=".71em"
                       fontSize={10}
                       fill="#777777"
@@ -802,7 +848,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   <Rect x="0" y="0" width={chartWidth} height={chartHeight} />
                 </ClipPath>
               </Defs>
-              <G clipPath="url(#clip)">
+              <G clipPath="url(#clip)" pointerEvents="box-none">
                 {utxoRectangleData.map((data, index) => {
                   return (
                     <Fragment key={getUtxoOutpoint(data.utxo) + index}>
@@ -815,6 +861,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                         stroke="gray"
                         strokeOpacity={0.8}
                         strokeWidth={0.5}
+                        pointerEvents="none"
                       />
                       {data.gradientType === 1 && (
                         <>
@@ -836,33 +883,35 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                             width={data.x2 - data.x1}
                             height={data.y2 - data.y1}
                             fill="url(#gradientX)"
+                            pointerEvents="none"
                           />
                         </>
                       )}
                     </Fragment>
                   )
                 })}
-                {utxoLabels.map((data, index) => {
-                  if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
-                    return (
-                      <SvgText
-                        key={getUtxoOutpoint(data.utxo) + index}
-                        x={data.x1 + 2}
-                        y={data.y2 + 10}
-                        fontSize={10}
-                        fill="white"
-                      >
-                        {data.utxo.txid.slice(0, 3) +
-                          '...' +
-                          data.utxo.txid.slice(-3) +
-                          ':' +
-                          data.utxo.vout}
-                      </SvgText>
-                    )
-                  } else {
-                    return null
-                  }
-                })}
+                {showOutputField &&
+                  utxoLabels.map((data, index) => {
+                    if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
+                      return (
+                        <SvgText
+                          key={getUtxoOutpoint(data.utxo) + index}
+                          x={data.x1 + 2}
+                          y={data.y2 + 10}
+                          fontSize={10}
+                          fill="white"
+                        >
+                          {data.utxo.txid.slice(0, 3) +
+                            '...' +
+                            data.utxo.txid.slice(-3) +
+                            ':' +
+                            data.utxo.vout}
+                        </SvgText>
+                      )
+                    } else {
+                      return null
+                    }
+                  })}
                 {txInfoLabels.map((label, index) => {
                   if (label.type === 'end') {
                     return null
@@ -899,7 +948,9 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                           )
                         }
                       >
-                        {label.memo || numberCommaFormatter(label.amount)}
+                        {(showLabel && label.memo) ||
+                          (showAmount && numberCommaFormatter(label.amount)) ||
+                          ''}
                       </SvgText>
                     </Fragment>
                   )
@@ -909,6 +960,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   fill="none"
                   stroke="white"
                   strokeWidth={2}
+                  pointerEvents="none"
                 />
                 {cursorX !== undefined && (
                   <G>
