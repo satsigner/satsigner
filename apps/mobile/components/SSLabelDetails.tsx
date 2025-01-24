@@ -18,7 +18,7 @@ type SSLabelDetailsProps = {
   header: string
 }
 
-export function SSLabelDetails({
+export default function SSLabelDetails({
   label: originalLabel,
   link,
   header

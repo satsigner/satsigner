@@ -9,6 +9,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
+
 export default function SSTxLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
@@ -19,12 +20,12 @@ export default function SSTxLabel() {
     state.setUtxoLabel
   ])
 
-  if (!utxo || !txid || !accountId || !vout) return <Redirect href="/" />
-
   function updateLabel(label: string) {
     setUtxoLabel(accountId!, txid!, Number(vout!), label)
     router.back()
   }
+
+  if (!utxo || !txid || !accountId || !vout) return <Redirect href="/" />
 
   return (
     <ScrollView>

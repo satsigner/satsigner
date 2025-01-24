@@ -45,6 +45,7 @@ export default function AccountSettings() {
     useState(false)
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [seedModalVisible, setSeedModalVisible] = useState(false)
 
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
@@ -104,7 +105,11 @@ export default function AccountSettings() {
         </SSVStack>
         <SSVStack>
           <SSHStack>
-            <SSButton style={{ flex: 1 }} label="VIEW SEED" />
+            <SSButton
+              style={{ flex: 1 }}
+              label="VIEW SEED"
+              onPress={() => setSeedModalVisible(true)}
+            />
           </SSHStack>
           <SSHStack>
             <SSButton
@@ -310,6 +315,15 @@ export default function AccountSettings() {
             />
           </SSHStack>
         </SSVStack>
+      </SSModal>
+      <SSModal
+        visible={seedModalVisible}
+        onClose={() => setSeedModalVisible(false)}
+      >
+        {account.seedWords &&
+          account.seedWords.split(' ').map((word) => {
+            return <SSText key={word}>{word}</SSText>
+          })}
       </SSModal>
     </ScrollView>
   )
