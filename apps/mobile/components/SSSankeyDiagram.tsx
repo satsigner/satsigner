@@ -117,7 +117,7 @@ function SSSankeyDiagram({
   })
 
   const sankeyGenerator = sankey()
-    .nodeWidth(78)
+    .nodeWidth(98)
     .nodePadding(100)
     .extent([
       [0, 160],
