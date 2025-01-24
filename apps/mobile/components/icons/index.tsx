@@ -15,6 +15,7 @@ import SSIconEditPencil from './SSIconEditPencil'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
+import SSIconKeys from './SSIconKeys'
 import SSIconList from './SSIconList'
 import SSIconLock from './SSIconLock'
 import SSIconMenu from './SSIconMenu'
@@ -46,6 +47,7 @@ export {
   SSIconHideWarning,
   SSIconIncoming,
   SSIconInfo,
+  SSIconKeys,
   SSIconList,
   SSIconLock,
   SSIconMenu,

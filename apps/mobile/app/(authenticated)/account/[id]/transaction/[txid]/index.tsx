@@ -7,14 +7,9 @@ import {
   TouchableOpacity
 } from 'react-native'
 
-import {
-  SSIconEditPencil,
-  SSIconIncoming,
-  SSIconOutgoing
-} from '@/components/icons'
-import SSButton from '@/components/SSButton'
+import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSIconButton from '@/components/SSIconButton'
+import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -30,7 +25,6 @@ import {
   formatConfirmations,
   formatDate,
   formatFiatPrice,
-  formatLabel,
   formatNumber
 } from '@/utils/format'
 
@@ -47,15 +41,12 @@ export default function TxDetails() {
       ?.transactions.find((tx) => tx.id === txid)
   )
 
-  const [selectedTags, setSelectedTags] = useState([] as string[])
-
   const placeholder = '-'
 
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
   const [height, setHeight] = useState(placeholder)
-  const [label, setLabel] = useState(placeholder)
   const [raw, setRaw] = useState(placeholder)
   const [size, setSize] = useState(placeholder)
   const [inputsCount, setInputsCount] = useState(placeholder)
@@ -89,11 +80,6 @@ export default function TxDetails() {
     if (tx.vin) setInputsCount(tx.vin.length.toString())
 
     if (tx.vout) setOutputsCount(tx.vout.length.toString())
-
-    const rawLabel = tx.label || ''
-    const { label, tags } = formatLabel(rawLabel)
-    setLabel(label)
-    setSelectedTags(tags)
   }
 
   useEffect(() => {
@@ -116,39 +102,11 @@ export default function TxDetails() {
       <SSVStack style={styles.container}>
         <SSTxDetailsHeader tx={tx} />
         <SSSeparator color="gradient" />
-        <SSHStack justifyBetween style={{ alignItems: 'flex-start' }}>
-          <SSVStack gap="sm">
-            <SSText uppercase size="md" weight="bold">
-              {t('labels')}
-            </SSText>
-            {label && <SSText>{label}</SSText>}
-            {selectedTags.length > 0 && (
-              <SSHStack gap="sm">
-                {selectedTags.map((tag) => (
-                  <SSButton
-                    key={tag}
-                    label={tag}
-                    uppercase={false}
-                    style={styles.button}
-                  />
-                ))}
-              </SSHStack>
-            )}
-            {!label && (
-              <SSText color="muted">{i18n.t('account.noLabel')}</SSText>
-            )}
-            {selectedTags.length === 0 && (
-              <SSText color="muted">{i18n.t('account.noTags')}</SSText>
-            )}
-          </SSVStack>
-          <SSIconButton
-            onPress={() =>
-              router.navigate(`/account/${accountId}/transaction/${txid}/label`)
-            }
-          >
-            <SSIconEditPencil height={20} width={20} />
-          </SSIconButton>
-        </SSHStack>
+        <SSLabelDetails
+          label={tx.label || ''}
+          link={`/account/${accountId}/transaction/${txid}/label`}
+          header={t('label')}
+        />
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('block')} text={height} />
@@ -178,7 +136,7 @@ export default function TxDetails() {
           />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSTxDetailsBox header={t('raw')} text={raw} />
+        <SSTxDetailsBox header={t('raw')} text={raw} variant="mono" />
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">
@@ -198,6 +156,7 @@ export default function TxDetails() {
 type SSTxDetailsBoxProps = {
   header: string
   text?: string | number | undefined
+  variant?: 'mono' | 'sans-serif'
   width?: DimensionValue
   uppercase?: boolean
 }
@@ -206,14 +165,18 @@ function SSTxDetailsBox({
   header,
   text = '-',
   width = '100%',
+  variant = 'sans-serif',
   uppercase = true
 }: SSTxDetailsBoxProps) {
+  const gap = variant === 'mono' ? 'sm' : 'none'
   return (
-    <SSVStack gap="none" style={{ width }}>
+    <SSVStack gap={gap} style={{ width }}>
       <SSText uppercase={uppercase} weight="bold" size="md">
         {header}
       </SSText>
-      <SSText color="muted">{text}</SSText>
+      <SSText color="muted" type={variant}>
+        {text}
+      </SSText>
     </SSVStack>
   )
 }
@@ -448,13 +411,6 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
 }
 
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: Colors.gray[700],
-    borderStyle: 'solid',
-    paddingHorizontal: 8,
-    height: 'auto',
-    width: 'auto'
-  },
   container: {
     flexGrow: 1,
     flexDirection: 'column',
