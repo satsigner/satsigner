@@ -28,7 +28,7 @@ import type { Utxo } from '@/types/models/Utxo'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 
-function useInputTransactions(inputs: Map<string, Utxo>) {
+function useInputTransactions(inputs: Map<string, Utxo>, depth: number = 2) {
   const [transactions, setTransactions] = useState<Map<string, EsploraTx>>(
     new Map()
   )
@@ -44,40 +44,46 @@ function useInputTransactions(inputs: Map<string, Utxo>) {
     const newTransactions = new Map<string, EsploraTx>()
 
     try {
-      const rawInputsArray = Array.from(inputs.entries())
-      const maxValue = Math.max(
-        ...rawInputsArray.map(([, input]) => input.value)
-      )
+      const queue = Array.from(inputs.values()).map((input) => input.txid)
+      const processed = new Set<string>()
+      let currentDepth = 0
 
-      const inputsArray = rawInputsArray.sort((a, b) => {
-        const valueA = a[1].value
-        const valueB = b[1].value
+      while (currentDepth < depth && queue.length > 0) {
+        const currentLevelTxids = [...queue]
+        queue.length = 0 // Clear the queue for the next level
 
-        // If either value is the max value
-        if (valueA === maxValue || valueB === maxValue) {
-          // Ensure max value goes to the end
-          return valueA === maxValue ? 1 : -1
-        }
+        await Promise.all(
+          currentLevelTxids.map(async (txid) => {
+            if (processed.has(txid)) return
+            processed.add(txid)
 
-        // For non-max values, sort in ascending order
-        return valueA - valueB
-      })
-      console.log(
-        'inputs',
-        inputsArray.map(([, input]) => input)
-      )
-      await Promise.all(
-        inputsArray.map(async ([, input]) => {
-          try {
-            const tx = (await oracle.getTransaction(input.txid)) as EsploraTx
-            newTransactions.set(input.txid, tx)
-          } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error('Error fetching transaction:', input.txid, err)
-          }
-        })
-      )
-      setTransactions(newTransactions)
+            try {
+              const tx = (await oracle.getTransaction(txid)) as EsploraTx
+              newTransactions.set(txid, tx)
+
+              // Collect parent txids for next level
+              if (tx.vin) {
+                tx.vin.forEach((vin) => {
+                  const parentTxid = vin.txid
+                  if (
+                    parentTxid &&
+                    !processed.has(parentTxid) &&
+                    !queue.includes(parentTxid)
+                  ) {
+                    queue.push(parentTxid)
+                  }
+                })
+              }
+            } catch (err) {
+              console.error('Error fetching transaction:', txid, err)
+            }
+          })
+        )
+
+        currentDepth++
+      }
+
+      setTransactions(new Map([...newTransactions.entries()].reverse()))
     } catch (err) {
       setError(
         err instanceof Error ? err : new Error('Failed to fetch transactions')
@@ -85,7 +91,7 @@ function useInputTransactions(inputs: Map<string, Utxo>) {
     } finally {
       setLoading(false)
     }
-  }, [inputs])
+  }, [inputs, depth])
 
   useEffect(() => {
     fetchInputTransactions()
@@ -125,8 +131,8 @@ export default function IOPreview() {
       state.addOutput
     ])
   )
-
-  const { transactions, loading, error } = useInputTransactions(inputs)
+  const txlevel = 2
+  const { transactions, loading, error } = useInputTransactions(inputs, txlevel)
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -165,14 +171,6 @@ export default function IOPreview() {
   const pendingInputNodes = useMemo(() => {
     if (inputs.size === 0) return []
     return Array.from(inputs.entries()).map(([, input], index) => ({
-      id: String(index + 1),
-      type: 'text',
-      depthH: 1,
-      textInfo: [
-        `${input.value}`,
-        `${formatAddress(input.txid, 3)}`,
-        input.label ?? ''
-      ],
       value: input.value
     }))
   }, [inputs])
@@ -188,7 +186,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 1),
           type: 'block',
-          depthH: 4,
+          depthH: txlevel * 2 + 2,
           textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
         }
       ]
@@ -199,7 +197,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 2),
           type: 'text',
-          depthH: 5,
+          depthH: txlevel * 2 + 3,
           textInfo: [
             'Unspent',
             `${utxosSelectedValue - MINING_FEE_VALUE}`,
@@ -221,22 +219,33 @@ export default function IOPreview() {
     }
   }, [inputs.size, outputs.length, utxosSelectedValue])
 
+  // Get all output values at once using flatMap
+  const outputValues = Array.from(transactions.values()).flatMap(
+    (tx) => tx.vout?.map((output) => output.value) ?? []
+  )
+
   const confirmedSankeyNodes = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
       return Array.from(transactions.entries()).flatMap(([, tx], index) => {
         if (!tx.vin || !tx.vout) return []
 
-        const inputNodes = tx.vin.map((input, idx) => ({
-          id: `vin-${index}-${idx}`,
-          type: 'text',
-          depthH: 1,
-          textInfo: [
-            `${input.prevout.value}`,
-            `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-            ''
-          ],
-          value: input.prevout.value
-        }))
+        // Filter input nodes to exclude those with matching values
+        const inputNodes = tx.vin
+          .filter((input) => !outputValues.includes(input.prevout.value))
+          .map((input, idx) => ({
+            id: `vin-${index}-${idx}`,
+            type: 'text',
+            depthH: 1 + index,
+            textInfo: [
+              `${input.prevout.value}`,
+              `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+              ''
+            ],
+            value: input.prevout.value
+          }))
+        console.log('inputNodes', { inputNodes, vout: tx.vout, vin: tx.vin })
+        console.log('outputValues', { outputValues })
+        console.log('end________', index)
 
         const vsize = Math.ceil(tx.weight * 0.25)
 
@@ -244,7 +253,7 @@ export default function IOPreview() {
           {
             id: `block-${index}`,
             type: 'block',
-            depthH: 2,
+            depthH: 2 + index + index,
             textInfo: ['', '', `${tx.size} B`, `${vsize} vB`]
           }
         ]
@@ -252,7 +261,7 @@ export default function IOPreview() {
         const outputNodes = tx.vout.map((output, idx) => ({
           id: `vout-${index}-${idx}`,
           type: 'text',
-          depthH: 3,
+          depthH: 3 + index + index,
           textInfo: [
             `${output.value}`,
             `${formatAddress(output.scriptpubkey_address, 6)}`,
@@ -265,7 +274,7 @@ export default function IOPreview() {
       })
     }
     return []
-  }, [inputs.size, transactions])
+  }, [inputs.size, outputValues, transactions])
 
   const confirmedSankeyLinks = useMemo(() => {
     if (transactions.size === 0) return []
@@ -274,17 +283,64 @@ export default function IOPreview() {
       ([, tx], index) => {
         if (!tx.vin || !tx.vout) return []
 
-        const inputToBlockLinks = tx.vin.map((input, idx) => ({
-          source: `vin-${index}-${idx}`,
-          target: `block-${index}`,
-          value: input.prevout.value
-        }))
+        // Get all output values at once using flatMap
+
+        const inputToBlockLinks = tx.vin
+          .filter((input) => !outputValues.includes(input.prevout.value))
+          .map((input, idx) => ({
+            source: `vin-${index}-${idx}`,
+            target: `block-${index}`,
+            value: input.prevout.value
+          }))
+        console.log('inputToBlockLinks', inputToBlockLinks)
 
         const blockToOutputLinks = tx.vout.map((output, idx) => ({
           source: `block-${index}`,
           target: `vout-${index}-${idx}`,
           value: output.value
         }))
+
+        const sameIndexForConfirmed = tx.vout.findIndex((output) => {
+          // console.log(
+          //   'array of value',
+          //   Array.from(transactions.values()).find((tx) =>
+          //     tx.vin.some((vin) => vin.prevout.value === output.value)
+          //   )
+          // )
+          const found =
+            output.value ===
+            Array.from(transactions.values())
+              .find((tx) =>
+                tx.vin.some((vin) => vin.prevout.value === output.value)
+              )
+              ?.vin.find((vin) => vin.prevout.value === output.value)?.prevout
+              .value
+          console.log('found with same index', found, output.value)
+          return found
+        })
+
+        // const blockToOutputLinksConfirmed = tx.vout.map((output, idx) => ({
+        //   source: `block-${index}`,
+        //   target: `vout-${index}-${sameIndexForConfirmed}`,
+        //   value: output.value
+        // }))
+
+        const outputToBlockLinks =
+          sameIndexForConfirmed !== -1
+            ? [
+                {
+                  source: `vout-${index}-${sameIndexForConfirmed}`,
+                  target: `block-${index + 1}`,
+                  value: tx.vout[sameIndexForConfirmed].value
+                }
+              ]
+            : []
+
+        console.log('sameIndexForConfirmed', {
+          sameIndexForConfirmed,
+          index,
+          outputToBlockLinks
+        })
 
         const sameIndex = tx.vout.findIndex(
           (o) =>
@@ -306,7 +362,9 @@ export default function IOPreview() {
         return [
           ...inputToBlockLinks,
           ...blockToOutputLinks,
-          ...confirmedToPendingLinks
+          ...confirmedToPendingLinks,
+          ...outputToBlockLinks
+          // ...completedInputToCompletedLink
         ]
       }
     )
@@ -325,8 +383,14 @@ export default function IOPreview() {
     ]
 
     return [...txLinks, ...blockToOutputLinks]
-  }, [transactions, inputs.size, utxosSelectedValue, pendingInputNodes])
-
+  }, [
+    transactions,
+    inputs.size,
+    utxosSelectedValue,
+    outputValues,
+    pendingInputNodes
+  ])
+  console.log('TX', Array.from(transactions.values()))
   // Show loading state
   if (loading && inputs.size > 0) {
     return (
@@ -349,6 +413,9 @@ export default function IOPreview() {
 
   const allNodes = [...sankeyNodes, ...confirmedSankeyNodes]
   const allLinks = confirmedSankeyLinks
+
+  console.log('nodes', allNodes)
+  console.log('links', confirmedSankeyLinks)
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
