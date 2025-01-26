@@ -9,9 +9,11 @@ import SSIconChevronRight from './SSIconChevronRight'
 import SSIconChevronUp from './SSIconChevronUp'
 import SSIconCircleX from './SSIconCircleX'
 import SSIconCircleXThin from './SSIconCircleXThin'
+import SSIconCollapse from './SSIconCollapse'
 import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
+import SSIconExpand from './SSIconExpand'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
@@ -40,9 +42,11 @@ export {
   SSIconChevronUp,
   SSIconCircleX,
   SSIconCircleXThin,
+  SSIconCollapse,
   SSIconDev,
   SSIconEdit,
   SSIconEditPencil,
+  SSIconExpand,
   SSIconHideWarning,
   SSIconIncoming,
   SSIconInfo,

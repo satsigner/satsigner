@@ -2,14 +2,14 @@ import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useMemo, useState, useRef } from 'react'
+import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Animated,
+  Easing,
   RefreshControl,
   ScrollView,
   useWindowDimensions,
-  View,
-  Animated,
-  Easing
+  View
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
@@ -19,6 +19,8 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconCollapse,
+  SSIconExpand,
   SSIconList,
   SSIconMenu,
   SSIconRefresh
@@ -50,8 +52,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import SSIconExpand from '@/components/icons/SSIconExpand'
-import SSIconCollapse from '@/components/icons/SSIconCollapse'
 
 type TotalTransactionsProps = {
   account: Account
@@ -92,10 +92,6 @@ function TotalTransactions({
 
   const [showChart, setShowChart] = useState<boolean>(false)
 
-  const handleToggleChart = () => {
-    setShowChart((prev) => !prev)
-  }
-
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
@@ -113,11 +109,7 @@ function TotalTransactions({
         </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
-          <SSIconButton
-            onPress={() => {
-              handleToggleChart()
-            }}
-          >
+          <SSIconButton onPress={() => setShowChart((prev) => !prev)}>
             {showChart ? (
               <SSIconMenu width={18} height={18} />
             ) : (
