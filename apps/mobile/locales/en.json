@@ -276,7 +276,9 @@
       }
     },
     "utxoDetails": {
-      "title": "UTXO Details"
+      "title": "UTXO Details",
+      "label": "UTXO Label",
+      "labelEdit": "Edit UTXO label"
     },
     "txDetails": {
       "title": "TX Details",
@@ -298,7 +300,8 @@
       "inputPrevTx": "Previous TX Output hash",
       "inputPrevOut": "Output index in transaction",
       "inputSequence": "Sequence",
-      "labels": "TRANSACTION LABEL"
+      "label": "TRANSACTION LABEL",
+      "labelEdit": "Edit TX label"
     }
   }
 }
