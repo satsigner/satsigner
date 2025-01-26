@@ -16,14 +16,17 @@ android {
 }
 ```
 
-In iOS, in `ios/satsigner.xcodeproj/project.pbxproj`:
+In iOS, in `ios/satsigner/Info.plist`:
 
 ```
-MARKETING_VERSION = 1.0;
+<key>CFBundleShortVersionString</key>
+<string>0.1.0</string>
 ```
 
-The build number can be found in the same files. For android, search for `versionCode` and for iOS search for `CURRENT_PROJECT_VERSION`.
+The build number can be found in the same files. For android, search for `versionCode` and for iOS search for `CFBundleVersion` key.
 
 ## Versioning and EAS
+
+More about Automatic App Version Management [here](https://docs.expo.dev/build-reference/app-versions/).
 
 ## Managing Manually
