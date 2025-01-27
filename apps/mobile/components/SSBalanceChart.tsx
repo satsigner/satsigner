@@ -298,6 +298,13 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
               gradientType = 1
             }
           }
+          if (utxo.txid === transactions.at(index)?.id) {
+            if (gradientType === 1) {
+              gradientType = 2
+            } else {
+              gradientType = -1
+            }
+          }
           return {
             x1,
             x2,
@@ -844,14 +851,44 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   <Stop offset="0%" stopColor="white" stopOpacity="0.5" />
                   <Stop offset="100%" stopColor="white" stopOpacity="0.3" />
                 </LinearGradient>
-                <LinearGradient id="gradientX" x1="0" y1="0" x2="1" y2="0">
+                <LinearGradient id="gradientBlack" x1="0" y1="0" x2="1" y2="0">
                   <Stop offset="0%" stopColor="transparent" stopOpacity="0.0" />
                   <Stop
                     offset="70%"
                     stopColor="transparent"
                     stopOpacity="0.0"
                   />
-                  <Stop offset="71%" stopColor="white" stopOpacity="0.0" />
+                  <Stop offset="70%" stopColor="white" stopOpacity="0.0" />
+                  <Stop offset="100%" stopColor="black" stopOpacity="0.6" />
+                </LinearGradient>
+                <LinearGradient id="gradientWhite" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0%" stopColor="white" stopOpacity="0.6" />
+                  <Stop offset="30%" stopColor="white" stopOpacity="0.0" />
+                  <Stop
+                    offset="30%"
+                    stopColor="transparent"
+                    stopOpacity="0.0"
+                  />
+                  <Stop
+                    offset="100%"
+                    stopColor="transparent"
+                    stopOpacity="0.0"
+                  />
+                </LinearGradient>
+                <LinearGradient id="gradientBoth" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0%" stopColor="white" stopOpacity="0.6" />
+                  <Stop offset="30%" stopColor="white" stopOpacity="0.0" />
+                  <Stop
+                    offset="30%"
+                    stopColor="transparent"
+                    stopOpacity="0.0"
+                  />
+                  <Stop
+                    offset="70%"
+                    stopColor="transparent"
+                    stopOpacity="0.0"
+                  />
+                  <Stop offset="70%" stopColor="white" stopOpacity="0.0" />
                   <Stop offset="100%" stopColor="black" stopOpacity="0.6" />
                 </LinearGradient>
                 <ClipPath id="clip">
@@ -874,7 +911,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                           strokeWidth={0.5}
                           pointerEvents="none"
                         />
-                        {data.gradientType === 1 && (
+                        {data.gradientType !== 0 && (
                           <>
                             <Defs>
                               <Mask id={getUtxoOutpoint(data.utxo) + index}>
@@ -883,7 +920,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                                   y={data.y1}
                                   width={data.x2 - data.x1}
                                   height={data.y2 - data.y1}
-                                  fill="url(#gradientX)"
+                                  fill={`url(#${data.gradientType === 1 ? 'gradientBlack' : data.gradientType === 2 ? 'gradientBoth' : 'gradientWhite'})`}
                                 />
                               </Mask>
                             </Defs>
@@ -893,7 +930,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                               y={data.y1}
                               width={data.x2 - data.x1}
                               height={data.y2 - data.y1}
-                              fill="url(#gradientX)"
+                              fill={`url(#${data.gradientType === 1 ? 'gradientBlack' : data.gradientType === 2 ? 'gradientBoth' : 'gradientWhite'})`}
                               pointerEvents="none"
                             />
                           </>
