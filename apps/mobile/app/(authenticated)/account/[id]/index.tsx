@@ -110,13 +110,15 @@ function TotalTransactions({
               <SSIconExpand height={15} width={16} />
             )}
           </SSIconButton>
-          <SSIconButton
-            onPress={() =>
-              router.navigate(`/settings/config/features/chartSetting`)
-            }
-          >
-            <SSIconChartSetting width={22} height={18} />
-          </SSIconButton>
+          {showChart && (
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/settings/config/features/chartSetting`)
+              }
+            >
+              <SSIconChartSetting width={22} height={18} />
+            </SSIconButton>
+          )}
         </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>

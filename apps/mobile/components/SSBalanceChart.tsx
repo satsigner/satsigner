@@ -470,7 +470,17 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       .curve(d3.curveStepAfter)
   }, [xScale, yScale])
 
+  const areaGenerator = useMemo(() => {
+    return d3
+      .area<BalanceChartData>()
+      .x((d) => xScale(d.date))
+      .y0(chartHeight * scale)
+      .y1((d) => yScale(d.balance))
+      .curve(d3.curveStepAfter)
+  }, [chartHeight, scale, xScale, yScale])
+
   const linePath = lineGenerator(validChartData)
+  const areaPath = areaGenerator(validChartData)
 
   const yAxisFormatter = useMemo(() => {
     return d3.format('.3s')
@@ -849,47 +859,48 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                 </ClipPath>
               </Defs>
               <G clipPath="url(#clip)" pointerEvents="box-none">
-                {utxoRectangleData.map((data, index) => {
-                  return (
-                    <Fragment key={getUtxoOutpoint(data.utxo) + index}>
-                      <Rect
-                        x={data.x1}
-                        y={data.y1}
-                        width={data.x2 - data.x1}
-                        height={data.y2 - data.y1}
-                        fill="url(#gradient)"
-                        stroke="gray"
-                        strokeOpacity={0.8}
-                        strokeWidth={0.5}
-                        pointerEvents="none"
-                      />
-                      {data.gradientType === 1 && (
-                        <>
-                          <Defs>
-                            <Mask id={getUtxoOutpoint(data.utxo) + index}>
-                              <Rect
-                                x={data.x1}
-                                y={data.y1}
-                                width={data.x2 - data.x1}
-                                height={data.y2 - data.y1}
-                                fill="url(#gradientX)"
-                              />
-                            </Mask>
-                          </Defs>
-                          <Rect
-                            key={getUtxoOutpoint(data.utxo) + index + '-mask'}
-                            x={data.x1}
-                            y={data.y1}
-                            width={data.x2 - data.x1}
-                            height={data.y2 - data.y1}
-                            fill="url(#gradientX)"
-                            pointerEvents="none"
-                          />
-                        </>
-                      )}
-                    </Fragment>
-                  )
-                })}
+                {showOutputField &&
+                  utxoRectangleData.map((data, index) => {
+                    return (
+                      <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+                        <Rect
+                          x={data.x1}
+                          y={data.y1}
+                          width={data.x2 - data.x1}
+                          height={data.y2 - data.y1}
+                          fill="url(#gradient)"
+                          stroke="gray"
+                          strokeOpacity={0.8}
+                          strokeWidth={0.5}
+                          pointerEvents="none"
+                        />
+                        {data.gradientType === 1 && (
+                          <>
+                            <Defs>
+                              <Mask id={getUtxoOutpoint(data.utxo) + index}>
+                                <Rect
+                                  x={data.x1}
+                                  y={data.y1}
+                                  width={data.x2 - data.x1}
+                                  height={data.y2 - data.y1}
+                                  fill="url(#gradientX)"
+                                />
+                              </Mask>
+                            </Defs>
+                            <Rect
+                              key={getUtxoOutpoint(data.utxo) + index + '-mask'}
+                              x={data.x1}
+                              y={data.y1}
+                              width={data.x2 - data.x1}
+                              height={data.y2 - data.y1}
+                              fill="url(#gradientX)"
+                              pointerEvents="none"
+                            />
+                          </>
+                        )}
+                      </Fragment>
+                    )
+                  })}
                 {showOutputField &&
                   utxoLabels.map((data, index) => {
                     if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
@@ -962,6 +973,9 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   strokeWidth={2}
                   pointerEvents="none"
                 />
+                {!showOutputField && (
+                  <Path d={areaPath ?? ''} fill="url(#gradient)" />
+                )}
                 {cursorX !== undefined && (
                   <G>
                     <Line
