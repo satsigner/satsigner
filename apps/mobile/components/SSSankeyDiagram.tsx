@@ -121,7 +121,7 @@ function SSSankeyDiagram({
     .nodePadding(100)
     .extent([
       [0, 160],
-      [1000 * 0.7, 1000 * ((inputCount * 2) / 10)]
+      [2000 * 0.5, 1000 * ((inputCount * 2) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 

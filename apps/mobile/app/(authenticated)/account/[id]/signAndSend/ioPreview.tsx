@@ -208,7 +208,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 3),
           type: 'text',
-          depthH: 6,
+          depthH: txlevel * 2 + 3,
           textInfo: [priority, miningFee, 'mining fee'],
           value: MINING_FEE_VALUE
         }
