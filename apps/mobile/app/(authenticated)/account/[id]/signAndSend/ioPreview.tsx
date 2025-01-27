@@ -186,7 +186,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 1),
           type: 'block',
-          depthH: txlevel * 2 + 2,
+          depth: txlevel * 2 + 1,
           textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
         }
       ]
@@ -197,7 +197,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 2),
           type: 'text',
-          depthH: txlevel * 2 + 3,
+          depth: txlevel * 2 + 2,
           textInfo: [
             'Unspent',
             `${utxosSelectedValue - MINING_FEE_VALUE}`,
@@ -208,7 +208,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 3),
           type: 'text',
-          depthH: txlevel * 2 + 3,
+          depth: txlevel * 2 + 2,
           textInfo: [priority, miningFee, 'mining fee'],
           value: MINING_FEE_VALUE
         }
@@ -235,7 +235,7 @@ export default function IOPreview() {
           .map((input, idx) => ({
             id: `vin-${index}-${idx}`,
             type: 'text',
-            depthH: 1 + index,
+            depth: 0 + index,
             textInfo: [
               `${input.prevout.value}`,
               `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
@@ -253,7 +253,7 @@ export default function IOPreview() {
           {
             id: `block-${index}`,
             type: 'block',
-            depthH: 2 + index + index,
+            depth: 1 + index + index,
             textInfo: ['', '', `${tx.size} B`, `${vsize} vB`]
           }
         ]
@@ -261,7 +261,7 @@ export default function IOPreview() {
         const outputNodes = tx.vout.map((output, idx) => ({
           id: `vout-${index}-${idx}`,
           type: 'text',
-          depthH: 3 + index + index,
+          depth: 2 + index + index,
           textInfo: [
             `${output.value}`,
             `${formatAddress(output.scriptpubkey_address, 6)}`,

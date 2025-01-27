@@ -126,9 +126,10 @@ function SSSankeyDiagram({
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-    const { depthH } = node as Node
-    return depthH - 1
+    const { depth } = node as Node
+    return depth
   })
+
   console.log('hey sankey diagram', Math.max(2.4, inputCount) / 10)
 
   const { nodes, links } = sankeyGenerator({
