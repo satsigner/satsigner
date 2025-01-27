@@ -276,7 +276,8 @@
       "inputPrevOut": "Output index in transaction",
       "inputSequence": "Sequence",
       "label": "TRANSACTION LABEL",
-      "labelEdit": "Edit TX label"
+      "labelEdit": "Edit TX label",
+      "txDecoded": "Raw Transaction Decoded"
     }
   }
 }

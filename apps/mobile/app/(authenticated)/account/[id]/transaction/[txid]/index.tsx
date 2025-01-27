@@ -7,7 +7,7 @@ import {
   TouchableOpacity
 } from 'react-native'
 
-import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import { SSIconIncoming, SSIconOutgoing, SSIconSearchCode } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
@@ -136,7 +136,23 @@ export default function TxDetails() {
           />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSTxDetailsBox header={t('raw')} text={raw} variant="mono" />
+        <TouchableOpacity
+          onPress={() => router.navigate(
+            `/account/${accountId}/transaction/${txid}/colored/`
+          )}
+        >
+          <SSVStack gap="sm">
+            <SSHStack style={{ alignItems: 'center' }}>
+              <SSText uppercase weight="bold" size="md">
+              {t('raw')}
+              </SSText>
+            <SSIconSearchCode height={22} width={22} />
+            </SSHStack>
+            <SSText color="muted" type="mono">
+            {raw}
+            </SSText>
+          </SSVStack>
+        </TouchableOpacity>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">

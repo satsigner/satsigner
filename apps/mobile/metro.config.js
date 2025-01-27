@@ -16,4 +16,8 @@ config.resolver.nodeModulesPaths = [
   path.resolve(monorepoRoot, 'node_modules')
 ]
 
+// config.resolver.extraNodeModules = {
+//   buffer: path.resolve(__dirname, './node_modules/@craftzdog/react-native-buffer'),
+// }
+
 module.exports = config

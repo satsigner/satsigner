@@ -26,6 +26,7 @@ import SSIconPlus from './SSIconPlus'
 import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
+import SSIconSearchCode from './SSIconSearchCode'
 import SSIconSettings from './SSIconSettings'
 import SSIconX from './SSIconX'
 
@@ -58,6 +59,7 @@ export {
   SSIconRefresh,
   SSIconRemove,
   SSIconScriptsP2pkh,
+  SSIconSearchCode,
   SSIconSettings,
   SSIconX
 }
