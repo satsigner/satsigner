@@ -19,10 +19,10 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconChartSetting,
   SSIconCollapse,
   SSIconExpand,
   SSIconKeys,
-  SSIconChartSetting,
   SSIconList,
   SSIconMenu,
   SSIconRefresh
