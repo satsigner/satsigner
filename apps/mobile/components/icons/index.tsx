@@ -29,6 +29,7 @@ import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSettings from './SSIconSettings'
+import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
 
 export {
@@ -63,5 +64,6 @@ export {
   SSIconRemove,
   SSIconScriptsP2pkh,
   SSIconSettings,
+  SSIconWarning,
   SSIconX
 }

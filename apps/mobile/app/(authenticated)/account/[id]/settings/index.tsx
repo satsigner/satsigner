@@ -1,9 +1,9 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { useEffect, useState } from 'react'
+import { DimensionValue, ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconScriptsP2pkh } from '@/components/icons'
+import { SSIconScriptsP2pkh, SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
@@ -22,15 +22,17 @@ import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { formatDate } from '@/utils/format'
+import SSTextClipboard from '@/components/SSClipboardCopy'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account, updateAccountName, deleteAccount] = useAccountsStore(
+  const [account, updateAccountName, deleteAccount, decryptSeed] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((_account) => _account.name === currentAccount),
       state.updateAccountName,
-      state.deleteAccount
+      state.deleteAccount,
+      state.decryptSeed,
     ])
   )
 
@@ -46,6 +48,7 @@ export default function AccountSettings() {
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [seedModalVisible, setSeedModalVisible] = useState(false)
+  const [seed, setSeed] = useState('')
 
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
@@ -74,6 +77,14 @@ export default function AccountSettings() {
     deleteAccount(accountName)
     router.replace('/')
   }
+
+  useEffect(() => {
+    const updateSeed = async () => {
+      const seed = await decryptSeed(currentAccount)
+      if (seed) setSeed(seed)
+    }
+    updateSeed()
+  }, [currentAccount])
 
   if (!currentAccount || !account) return <Redirect href="/" />
 
@@ -320,10 +331,48 @@ export default function AccountSettings() {
         visible={seedModalVisible}
         onClose={() => setSeedModalVisible(false)}
       >
-        {account.seedWords &&
-          account.seedWords.split(' ').map((word) => {
-            return <SSText key={word}>{word}</SSText>
-          })}
+        {seed && (
+          <SSVStack gap="lg">
+            <SSText center size='xl' weight='bold' uppercase>
+              {account.seedWordCount} words
+            </SSText>
+            <SSHStack style={{ justifyContent: 'center' }}>
+              <SSIconWarning
+                width={32}
+                height={32}
+                fill='black'
+                stroke='yellow'
+              />
+              <SSText uppercase weight='bold' size='lg'>
+                Keep it secret
+              </SSText>
+              <SSIconWarning
+                width={32}
+                height={32}
+                fill='black'
+                stroke='yellow'
+              />
+            </SSHStack>
+            <SSHStack style={{ flexWrap: 'wrap' }}>
+              {seed.split(',').map((word, index) => (
+                <SSText
+                  key={word}
+                  style={{ width: '30%' }}
+                  type='mono'
+                  size='lg'
+                >
+                  {(index+1).toString().padStart(2, '0')}. {word}
+                </SSText>
+              ))}
+            </SSHStack>
+            <SSTextClipboard text={seed.replaceAll(',', ' ')}>
+              <SSButton label="Copy" />
+            </SSTextClipboard>
+          </SSVStack>
+        )}
+        {!seed && (
+          <SSText>Unable to decrypt seed</SSText>
+        )}
       </SSModal>
     </ScrollView>
   )

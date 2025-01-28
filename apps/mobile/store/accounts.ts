@@ -14,6 +14,9 @@ import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { getItem } from '@/storage/encrypted'
+import { PIN_KEY } from '@/config/auth'
+import { aesDecrypt } from '@/utils/crypto'
 
 type AccountsState = {
   accounts: Account[]
@@ -42,7 +45,8 @@ type AccountsAction = {
     vout: number,
     label: string
   ) => void
-  importLabels: (account: string, labels: Label[]) => void
+  importLabels: (account: string, labels: Label[]) => void,
+  decryptSeed: (account: string) => Promise<string>
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -236,7 +240,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             })
           })
         )
-      }
+      },
+      async decryptSeed(accountName) {
+        const account = get().accounts.find((_account) => _account.name === accountName)
+        if (!account || !account.seedWords) return ''
+        const savedPin = await getItem(PIN_KEY)
+        if (!savedPin) return ''
+        return aesDecrypt(account.seedWords, savedPin)
+      },
     }),
     {
       name: 'satsigner-accounts',
