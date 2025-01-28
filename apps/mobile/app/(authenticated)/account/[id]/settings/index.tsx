@@ -1,10 +1,11 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { DimensionValue, ScrollView } from 'react-native'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconScriptsP2pkh, SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
@@ -22,19 +23,19 @@ import { Account } from '@/types/models/Account'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { formatDate } from '@/utils/format'
-import SSTextClipboard from '@/components/SSClipboardCopy'
 
 export default function AccountSettings() {
   const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account, updateAccountName, deleteAccount, decryptSeed] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.name === currentAccount),
-      state.updateAccountName,
-      state.deleteAccount,
-      state.decryptSeed,
-    ])
-  )
+  const [account, updateAccountName, deleteAccount, decryptSeed] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((_account) => _account.name === currentAccount),
+        state.updateAccountName,
+        state.deleteAccount,
+        state.decryptSeed
+      ])
+    )
 
   const [scriptVersion, setScriptVersion] =
     useState<Account['scriptVersion']>('P2WPKH')
@@ -80,11 +81,11 @@ export default function AccountSettings() {
 
   useEffect(() => {
     const updateSeed = async () => {
-      const seed = await decryptSeed(currentAccount)
+      const seed = await decryptSeed(currentAccount!)
       if (seed) setSeed(seed)
     }
     updateSeed()
-  }, [currentAccount])
+  }, [currentAccount, decryptSeed])
 
   if (!currentAccount || !account) return <Redirect href="/" />
 
@@ -333,24 +334,24 @@ export default function AccountSettings() {
       >
         {seed && (
           <SSVStack gap="lg">
-            <SSText center size='xl' weight='bold' uppercase>
+            <SSText center size="xl" weight="bold" uppercase>
               {account.seedWordCount} words
             </SSText>
             <SSHStack style={{ justifyContent: 'center' }}>
               <SSIconWarning
                 width={32}
                 height={32}
-                fill='black'
-                stroke='yellow'
+                fill="black"
+                stroke="yellow"
               />
-              <SSText uppercase weight='bold' size='lg'>
+              <SSText uppercase weight="bold" size="lg">
                 Keep it secret
               </SSText>
               <SSIconWarning
                 width={32}
                 height={32}
-                fill='black'
-                stroke='yellow'
+                fill="black"
+                stroke="yellow"
               />
             </SSHStack>
             <SSHStack style={{ flexWrap: 'wrap' }}>
@@ -358,10 +359,10 @@ export default function AccountSettings() {
                 <SSText
                   key={word}
                   style={{ width: '30%' }}
-                  type='mono'
-                  size='lg'
+                  type="mono"
+                  size="lg"
                 >
-                  {(index+1).toString().padStart(2, '0')}. {word}
+                  {(index + 1).toString().padStart(2, '0')}. {word}
                 </SSText>
               ))}
             </SSHStack>
@@ -370,9 +371,7 @@ export default function AccountSettings() {
             </SSTextClipboard>
           </SSVStack>
         )}
-        {!seed && (
-          <SSText>Unable to decrypt seed</SSText>
-        )}
+        {!seed && <SSText>Unable to decrypt seed</SSText>}
       </SSModal>
     </ScrollView>
   )

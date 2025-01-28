@@ -6,7 +6,7 @@ export default function SSIconAbout({
   width,
   height,
   fill = 'yellow',
-  stroke = 'black',
+  stroke = 'black'
 }: IconProps) {
   return (
     <Svg
