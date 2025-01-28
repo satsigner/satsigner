@@ -10,24 +10,6 @@ import type { MempoolStatistics } from '@/types/models/Blockchain'
 import { time } from '@/utils/time'
 
 export default function SSFeeRateChart() {
-  return (
-    <View style={styles.container}>
-      <Chart />
-    </View>
-  )
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    borderRightWidth: 2,
-    borderRightColor: '#fff',
-    borderStyle: 'dashed',
-    height: 300
-  }
-})
-
-export function Chart() {
   const isFocused = useIsFocused()
   const [, setW] = React.useState(0)
   const [, setH] = React.useState(0)
@@ -77,76 +59,88 @@ export function Chart() {
     )
 
   return (
-    <CartesianChart
-      data={processData}
-      xKey="x"
-      yKeys={['high', 'medium', 'low', 'veryLow']}
-      padding={0}
-      domain={{ y: [1, 50] }}
-      xAxis={{
-        font: null,
-        labelOffset: 4,
-        lineWidth: 0,
-        labelColor: '#fff'
-      }}
-      yAxis={[
-        {
-          labelOffset: 8,
+    <View style={styles.container}>
+      <CartesianChart
+        data={processData}
+        xKey="x"
+        yKeys={['high', 'medium', 'low', 'veryLow']}
+        padding={0}
+        domain={{ y: [1, 50] }}
+        xAxis={{
           font: null,
-          linePathEffect: <DashPathEffect intervals={[4, 4]} />,
+          labelOffset: 4,
+          lineWidth: 0,
           labelColor: '#fff'
-        }
-      ]}
-      onChartBoundsChange={({ left, right, top, bottom }) => {
-        setW(right - left)
-        setH(bottom - top)
-      }}
-    >
-      {({ points, chartBounds }) => (
-        <StackedArea
-          points={[points.high, points.medium, points.low, points.veryLow]}
-          y0={chartBounds.bottom}
-          curveType="natural"
-          animate={{ type: 'spring' }}
-          areaOptions={({ rowIndex, lowestY, highestY }) => {
-            const gradients = [
-              {
-                colors: ['#515151'],
-                start: highestY - 5,
-                end: 20
-              },
-              {
-                colors: ['#444343', '#f7ce6420'],
-                start: highestY - 25,
-                end: lowestY
-              },
-              {
-                colors: ['#8a8a8a', '#2e2e2e0'],
-                start: highestY - 100,
-                end: lowestY
-              },
-              {
-                colors: ['#c7c8c8', '#9d9e9e11'],
-                start: highestY - 100,
-                end: lowestY
+        }}
+        yAxis={[
+          {
+            labelOffset: 8,
+            font: null,
+            linePathEffect: <DashPathEffect intervals={[4, 4]} />,
+            labelColor: '#fff'
+          }
+        ]}
+        onChartBoundsChange={({ left, right, top, bottom }) => {
+          setW(right - left)
+          setH(bottom - top)
+        }}
+      >
+        {({ points, chartBounds }) => (
+          <StackedArea
+            points={[points.high, points.medium, points.low, points.veryLow]}
+            y0={chartBounds.bottom}
+            curveType="natural"
+            animate={{ type: 'spring' }}
+            areaOptions={({ rowIndex, lowestY, highestY }) => {
+              const gradients = [
+                {
+                  colors: ['#515151'],
+                  start: highestY - 5,
+                  end: 20
+                },
+                {
+                  colors: ['#444343', '#f7ce6420'],
+                  start: highestY - 25,
+                  end: lowestY
+                },
+                {
+                  colors: ['#8a8a8a', '#2e2e2e0'],
+                  start: highestY - 100,
+                  end: lowestY
+                },
+                {
+                  colors: ['#c7c8c8', '#9d9e9e11'],
+                  start: highestY - 100,
+                  end: lowestY
+                }
+              ]
+
+              const gradient = gradients[rowIndex]
+              if (!gradient) return {}
+
+              return {
+                children: (
+                  <LinearGradient
+                    start={vec(0, gradient.start)}
+                    end={vec(0, gradient.end)}
+                    colors={gradient.colors}
+                  />
+                )
               }
-            ]
-
-            const gradient = gradients[rowIndex]
-            if (!gradient) return {}
-
-            return {
-              children: (
-                <LinearGradient
-                  start={vec(0, gradient.start)}
-                  end={vec(0, gradient.end)}
-                  colors={gradient.colors}
-                />
-              )
-            }
-          }}
-        />
-      )}
-    </CartesianChart>
+            }}
+          />
+        )}
+      </CartesianChart>
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    borderRightWidth: 2,
+    borderRightColor: '#fff',
+    borderStyle: 'dashed',
+    height: 300
+  }
+})
