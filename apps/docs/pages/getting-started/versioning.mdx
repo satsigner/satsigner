@@ -25,8 +25,26 @@ In iOS, in `ios/satsigner/Info.plist`:
 
 The build number can be found in the same files. For android, search for `versionCode` and for iOS search for `CFBundleVersion` key.
 
+You can define these properties in `app.json` file:
+
+```json
+{
+  "expo": {
+    "version": "0.1.0",
+    "android": {
+      "versionCode": "1"
+    },
+    "ios": {
+      "buildNumber": "1"
+    }
+  }
+}
+```
+
+Read more about App versions [here](https://docs.expo.dev/build-reference/app-versions/#app-versions)
+
 ## Versioning and EAS
 
-More about Automatic App Version Management [here](https://docs.expo.dev/build-reference/app-versions/).
+More about Automatic App Version Management [here](https://www.youtube.com/watch?v=Gk7RHDWsLsQ).
 
 ## Managing Manually
