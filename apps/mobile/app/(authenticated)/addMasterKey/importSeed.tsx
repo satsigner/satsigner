@@ -138,6 +138,25 @@ export default function ImportSeed() {
 
   useEffect(() => {
     readSeedFromClipboard()
+
+    const subscription = AppState.addEventListener(
+      'change',
+      async (nextAppState) => {
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === 'active'
+        ) {
+          setTimeout(async () => {
+            await readSeedFromClipboard()
+          }, 1) // Refactor: without timeout, getStringAsync returns false
+        }
+        appState.current = nextAppState
+      }
+    )
+
+    return () => {
+      subscription.remove()
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleOnChangeTextWord(word: string, index: number) {
