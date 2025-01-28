@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, TextInput } from 'react-native'
+import { AppState, ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'
@@ -91,55 +91,75 @@ export default function ImportSeed() {
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
   const inputRefs = useRef<TextInput[]>([])
   const passphraseRef = useRef<TextInput>()
+  const appState = useRef(AppState.currentState)
 
-  useEffect(() => {
-    const checkTextHasSeed = async (text: string): Promise<string[]> => {
-      if (text === null || text === '') {
-        return []
-      }
-      const delimiters = [' ', '\n']
-      for (const delimiter of delimiters) {
-        const seedCandidate = text.split(delimiter)
-        if (seedCandidate.length !== seedWordCount) {
-          continue
-        }
-        const validWords = seedCandidate.every((x) => wordList.includes(x))
-        if (!validWords) {
-          continue
-        }
-        const checksum = await validateMnemonic(seedCandidate.join(' '))
-        if (!checksum) {
-          continue
-        }
-        return seedCandidate
-      }
+  async function checkTextHasSeed(text: string): Promise<string[]> {
+    if (text === null || text === '') {
       return []
     }
-    const readSeedFromClipboard = async () => {
-      const text = (await Clipboard.getStringAsync()).trim()
-      const seed = await checkTextHasSeed(text)
-      if (seed.length > 0) {
-        setSeedWords(seed.join(' '))
-        setSeedWordsInfo(
-          seed.map((value, index) => {
-            return { value, index, dirty: false, valid: true }
-          })
-        )
-        setChecksumValid(true)
-        if (passphraseRef.current) passphraseRef.current.focus()
-        await updateFingerprint()
+    const delimiters = [' ', '\n']
+    for (const delimiter of delimiters) {
+      const seedCandidate = text.split(delimiter)
+      if (seedCandidate.length !== seedWordCount) {
+        continue
       }
+      const validWords = seedCandidate.every((x) => wordList.includes(x))
+      if (!validWords) {
+        continue
+      }
+      const checksum = await validateMnemonic(seedCandidate.join(' '))
+      if (!checksum) {
+        continue
+      }
+      return seedCandidate
     }
+    return []
+  }
+
+  async function fillOutSeedWords(seed: string[]) {
+    setSeedWords(seed.join(' '))
+    setSeedWordsInfo(
+      seed.map((value, index) => {
+        return { value, index, dirty: false, valid: true }
+      })
+    )
+    setChecksumValid(true)
+    if (passphraseRef.current) passphraseRef.current.focus()
+    await updateFingerprint()
+  }
+
+  async function readSeedFromClipboard() {
+    const text = (await Clipboard.getStringAsync()).trim()
+    const seed = await checkTextHasSeed(text)
+    if (seed.length > 0) {
+      fillOutSeedWords(seed)
+    }
+  }
+
+  useEffect(() => {
     readSeedFromClipboard()
-  }, [seedWordCount, setSeedWords, updateFingerprint])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleOnChangeTextWord(word: string, index: number) {
     const seedWords = [...seedWordsInfo]
     const seedWord = seedWords[index]
 
+    // We do not allow special chars in text field input
     if (!word.match(/^[a-z]*$/)) {
       seedWord.valid = false
       seedWord.dirty = true
+
+      // We will only open an exception in the edge case the user attempts to
+      // paste all seed words at once in the first text field input.
+      // This happens if the user switches to another app, copy the seed,
+      // switches back to satssigner, then attempts to paste the seed.
+      if (index === 0) {
+        const seed = await checkTextHasSeed(word)
+        if (seed.length > 0) {
+          await fillOutSeedWords(seed)
+        }
+      }
+
       return
     }
 
