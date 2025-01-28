@@ -1,8 +1,11 @@
+import { useIsFocused } from '@react-navigation/native'
+import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
 import { Polygon, Svg } from 'react-native-svg'
 
+import { MempoolOracle } from '@/api/blockchain'
 import SSButton from '@/components/SSButton'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
 import SSGradientModal from '@/components/SSGradientModal'
@@ -14,8 +17,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { MempoolStatistics } from '@/types/models/Blockchain'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { time } from '@/utils/time'
 
 export default function FeeSelection() {
   const router = useRouter()
@@ -29,6 +34,14 @@ export default function FeeSelection() {
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
     useState(false)
+  const isFocused = useIsFocused()
+
+  const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
+    queryKey: ['statistics'],
+    queryFn: () => new MempoolOracle().getMempoolStatistics('24h'),
+    enabled: isFocused,
+    staleTime: time.minutes(5)
+  })
 
   function handleOnPressPreviewTxMessage() {
     setFeeRate(feeSelected)
@@ -80,7 +93,7 @@ export default function FeeSelection() {
             </SSVStack>
           </SSHStack>
           <View style={styles.outerContainer}>
-            <SSFeeRateChart />
+            <SSFeeRateChart mempoolStatistics={mempoolStatistics} />
             <View style={arrowStyles.container}>
               <Animated.View
                 style={[

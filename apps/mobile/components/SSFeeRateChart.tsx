@@ -1,25 +1,19 @@
-import { useIsFocused } from '@react-navigation/native'
 import { DashPathEffect, LinearGradient, vec } from '@shopify/react-native-skia'
-import { useQuery } from '@tanstack/react-query'
 import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
 
-import { MempoolOracle } from '@/api/blockchain'
 import type { MempoolStatistics } from '@/types/models/Blockchain'
-import { time } from '@/utils/time'
 
-export default function SSFeeRateChart() {
-  const isFocused = useIsFocused()
+interface SSFeeRateChartProps {
+  mempoolStatistics: MempoolStatistics[] | undefined
+}
+
+export default function SSFeeRateChart({
+  mempoolStatistics
+}: SSFeeRateChartProps) {
   const [, setW] = React.useState(0)
   const [, setH] = React.useState(0)
-
-  const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
-    queryKey: ['statistics'],
-    queryFn: () => new MempoolOracle().getMempoolStatistics('24h'),
-    enabled: isFocused,
-    staleTime: time.minutes(5)
-  })
 
   const processData = useMemo(() => {
     if (!mempoolStatistics) return []
