@@ -26,7 +26,7 @@ interface Link extends SankeyLinkMinimal<object, object> {
   value: number
 }
 
-interface Node extends SankeyNodeMinimal<object, object> {
+export interface Node extends SankeyNodeMinimal<object, object> {
   id: string
   depthH: number
   type?: string

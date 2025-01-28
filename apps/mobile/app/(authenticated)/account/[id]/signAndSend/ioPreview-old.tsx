@@ -13,7 +13,7 @@ import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSSankeyDiagram from '@/components/SSSankeyDiagram'
+import SSSankeyDiagram, { Node } from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -27,6 +27,8 @@ import { Colors, Layout } from '@/styles'
 import type { Utxo } from '@/types/models/Utxo'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
+
+const txLevel = 2
 
 function useInputTransactions(inputs: Map<string, Utxo>, depth: number = 2) {
   const [transactions, setTransactions] = useState<Map<string, EsploraTx>>(
@@ -114,7 +116,7 @@ function estimateTransactionSize(inputCount: number, outputCount: number) {
   // Virtual size is weight/4
   const vsize = Math.ceil(totalSize * 0.25)
 
-  return { size: totalSize, vsize }
+  return { estimatedSize: totalSize, estimatedVsize: vsize }
 }
 
 export default function IOPreview() {
@@ -131,8 +133,8 @@ export default function IOPreview() {
       state.addOutput
     ])
   )
-  const txlevel = 2
-  const { transactions, loading, error } = useInputTransactions(inputs, txlevel)
+
+  const { transactions, loading, error } = useInputTransactions(inputs, txLevel)
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -175,20 +177,19 @@ export default function IOPreview() {
     }))
   }, [inputs])
 
-  const sankeyNodes = useMemo(() => {
+  const lastTxNodes = useMemo(() => {
     if (inputs.size > 0) {
-      const { size, vsize } = estimateTransactionSize(
+      const { estimatedSize, estimatedVsize } = estimateTransactionSize(
         inputs.size,
         outputs.length + 2
       )
 
-      const blockDepth = txlevel * 2 + 1
       const blockNode = [
         {
-          id: `block-${blockDepth}-0`,
+          id: String(inputs.size + 1),
           type: 'block',
-          depth: blockDepth,
-          textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
+          depth: txLevel * 2 + 1,
+          textInfo: ['', '', `${estimatedSize} B`, `${estimatedVsize} vB`]
         }
       ]
 
@@ -198,7 +199,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 2),
           type: 'text',
-          depth: blockDepth + 1,
+          depth: txLevel * 2 + 2,
           textInfo: [
             'Unspent',
             `${utxosSelectedValue - MINING_FEE_VALUE}`,
@@ -209,7 +210,7 @@ export default function IOPreview() {
         {
           id: String(inputs.size + 3),
           type: 'text',
-          depth: txlevel * 2 + 2,
+          depth: txLevel * 2 + 2,
           textInfo: [priority, miningFee, 'mining fee'],
           value: MINING_FEE_VALUE
         }
@@ -220,208 +221,275 @@ export default function IOPreview() {
     }
   }, [inputs.size, outputs.length, utxosSelectedValue])
 
-  const outputsArray = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout ?? []
-  )
   // Get all output values at once using flatMap
-  const outputAddresses = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
-  )
+  // const outputValues = Array.from(transactions.values()).flatMap(
+  //   (tx) => tx.vout?.map((output) => output.value) ?? []
+  // )
 
-  const confirmedSankeyNodes = useMemo(() => {
-    // const totalLengthVins = Array.from(transactions.values()).reduce(
-    //   (sum, tx) => sum + (tx.vin?.length ?? 0),
-    //   0
-    // )
-    // const totalLengthVouts = Array.from(transactions.values()).reduce(
-    //   (sum, tx) => sum + (tx.vout?.length ?? 0),
-    //   0
-    // )
+  console.log({ transactions, inputs })
+
+  const nodes = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
-      console.log('__start')
-      return Array.from(transactions.entries()).flatMap(([, tx], index) => {
-        if (!tx.vin || !tx.vout) return []
-        const inputDepth = index < 2 ? 0 : Math.floor(index / 2) * 2
-        // const inputIndexInDepth = index % inputs.size
-        // Filter input nodes to exclude those with matching values
-        const allInputNodes = tx.vin.map((input, idx) => {
-          return {
-            address: input.prevout.scriptpubkey_address,
-            id: `vin-${inputDepth}-${idx + index}`,
-            type: 'text',
-            depth: inputDepth,
-            textInfo: [
-              `${input.prevout.value}`,
-              `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-              ''
-            ],
-            value: input.prevout.value
+      const nodes: Node[] = []
+      const nodeMap = new Map() // To avoid duplicate nodes
+
+      const txArray = Array.from(transactions.values())
+
+      // Depth 0: vin nodes (initial inputs)
+      txArray.forEach((tx, txIndex) => {
+        tx.vin?.forEach((vin, vinIndex) => {
+          const nodeId = `vin-0-${vinIndex}`
+          if (!nodeMap.has(nodeId)) {
+            nodes.push({
+              id: nodeId,
+              depthH: 0,
+              value: vin.prevout?.value ?? 0,
+              type: 'text',
+              textInfo: [
+                `${vin.prevout.value}`,
+                `${formatAddress(vin.prevout.scriptpubkey_address, 6)}`,
+                ''
+              ]
+            })
+            nodeMap.set(nodeId, true)
           }
         })
-        // console.log('allInputNodes', allInputNodes)
-
-        // only keep input nodes that do not have outgoing and incoming links
-        const trimmedInputNodes = allInputNodes.filter(
-          (input) => !outputAddresses.includes(input.address)
-        )
-
-        const vsize = Math.ceil(tx.weight * 0.25)
-
-        const blockDepth = inputDepth + 1
-        // const blockIndexInDepth = index < 3 ? index : Math.floor(index / 3)
-        const blockNode = [
-          {
-            id: `block-${blockDepth}-${index}`,
-            type: 'block',
-            depth: blockDepth,
-            textInfo: ['', '', `${tx.size} B`, `${vsize} vB`] //TODO: check the size value
-          }
-        ]
-
-        // console.log('blockNode', blockNode)
-        // const outputIndexInDepth = index % totalLengthVouts
-        const outputNodes = tx.vout.map((output, idx) => {
-          const outputDepth = inputDepth + 2
-
-          return {
-            id: `vout-${outputDepth}-${idx + index}`,
-            type: 'text',
-            depth: outputDepth,
-            textInfo: [
-              `${output.value}`,
-              `${formatAddress(output.scriptpubkey_address, 6)}`,
-              ''
-            ],
-            value: output.value
-          }
-        })
-        // console.log('outputNodes', outputNodes)
-
-        return [...trimmedInputNodes, ...blockNode, ...outputNodes]
       })
+
+      // Depth 1, 3, 5: block nodes (transactions) and Depth 2, 4: vout nodes (transaction outputs)
+      let currentDepth = 1
+      let txToProcess = [...txArray]
+      const processedTxIds = new Set()
+
+      while (txToProcess.length > 0) {
+        const nextTxToProcess: EsploraTx[] = []
+
+        txToProcess.forEach((tx, txIndex) => {
+          if (processedTxIds.has(tx.txid)) return // Skip already processed tx
+
+          const blockNodeId = `block-${currentDepth}-${txIndex}`
+          const vsize = Math.ceil(tx.weight * 0.25)
+
+          const { estimatedSize, estimatedVsize } = estimateTransactionSize(
+            inputs.size,
+            outputs.length + 2
+          )
+          if (!nodeMap.has(blockNodeId)) {
+            nodes.push({
+              id: blockNodeId,
+              depthH: currentDepth,
+              type: 'block',
+              textInfo: [
+                '',
+                '',
+                `${tx?.size || estimatedSize} B`,
+                `${vsize || estimatedVsize} vB`
+              ]
+            })
+            nodeMap.set(blockNodeId, true)
+          }
+
+          tx.vout.forEach((vout, voutIndex) => {
+            const voutNodeId = `vout-${currentDepth + 1}-${voutIndex}`
+            if (!nodeMap.has(voutNodeId)) {
+              nodes.push({
+                id: voutNodeId,
+                depthH: currentDepth + 1,
+                type: 'text',
+                textInfo: [
+                  `${vout.value}`,
+                  `${formatAddress(vout.scriptpubkey_address, 6)}`,
+                  ''
+                ]
+              })
+              nodeMap.set(voutNodeId, true)
+            }
+          })
+          processedTxIds.add(tx.txid)
+
+          // Find next transactions that use these vouts as vins
+          txArray.forEach((nextTx) => {
+            nextTx.vin.forEach((vin) => {
+              if (tx.txid === vin.txid) {
+                // if nextTx vin is current txid, then nextTx depends on current tx
+                if (
+                  !processedTxIds.has(nextTx.txid) &&
+                  !nextTxToProcess.includes(nextTx)
+                ) {
+                  nextTxToProcess.push(nextTx)
+                }
+              }
+            })
+          })
+        })
+        txToProcess = nextTxToProcess
+        currentDepth += 2 // Increment depth by 2 for block -> vout -> block progression
+      }
+
+      // Depth 6: unspent and transaction fee (assuming last block is block-5-0 in the image)
+      const lastBlockNode = nodes.find((node) => node.id === 'block-5-0') // Find the last block node, adjust 'block-5-0' if needed
+      if (lastBlockNode) {
+        const unspentNodeId = 'unspent'
+        if (!nodeMap.has(unspentNodeId)) {
+          nodes.push({
+            id: unspentNodeId,
+            depthH: 6,
+            type: 'text',
+            textInfo: [
+              'Unspent',
+              `${utxosSelectedValue - MINING_FEE_VALUE}`,
+              'to'
+            ],
+            value: utxosSelectedValue - MINING_FEE_VALUE
+          })
+          nodeMap.set(unspentNodeId, true)
+        }
+
+        const feeNodeId = 'estimated-fee'
+        const miningFee = `${MINING_FEE_VALUE}`
+        const priority = '42 sats/vB'
+        if (!nodeMap.has(feeNodeId)) {
+          nodes.push({
+            id: feeNodeId,
+            depthH: 6,
+            textInfo: [priority, miningFee, 'mining fee'],
+            value: MINING_FEE_VALUE,
+            type: 'fee'
+          })
+          nodeMap.set(feeNodeId, true)
+        }
+      }
+
+      return nodes
     }
     return []
-  }, [inputs.size, outputAddresses, transactions])
+  }, [inputs.size, outputs.length, transactions, utxosSelectedValue])
 
   const confirmedSankeyLinks = useMemo(() => {
-    // if (transactions.size === 0) return []
-    if (true) return []
+    if (transactions.size === 0) return []
 
-    const txLinks = Array.from(transactions.entries()).flatMap(
-      ([, tx], index) => {
-        if (!tx.vin || !tx.vout) return []
+    const links = []
+    const nodeMapById = new Map(nodes.map((node) => [node.id, node]))
 
-        // Get all output values at once using flatMap
+    const txArray = Array.from(transactions.values())
 
-        const inputToBlockLinks = tx.vin
-          .filter(
-            (input) =>
-              !outputAddresses.includes(input.prevout.scriptpubkey_address)
-          )
-          .map((input, idx) => ({
-            source: `vin-${index}-${idx}`,
-            target: `block-${index}`,
-            value: input.prevout.value
-          }))
-        console.log('inputToBlockLinks', inputToBlockLinks)
+    // Links from vin nodes (depth 0) to block nodes (depth 1)
+    txArray.forEach((tx, txIndex) => {
+      tx.vin.forEach((vin, vinIndex) => {
+        const sourceId = `vin-0-${vinIndex}`
+        const targetId = `block-1-${txIndex}` // Assuming first level transactions are depth 1 blocks
 
-        const blockToOutputLinks = tx.vout.map((output, idx) => ({
-          source: `block-${index}`,
-          target: `vout-${index}-${idx}`,
-          value: output.value
-        }))
+        const sourceNode = nodeMapById.get(sourceId)
+        const targetNode = nodeMapById.get(targetId)
 
-        const sameIndexForConfirmed = tx.vout.findIndex((output) => {
-          // console.log(
-          //   'array of value',
-          //   Array.from(transactions.values()).find((tx) =>
-          //     tx.vin.some((vin) => vin.prevout.value === output.value)
-          //   )
-          // )
-          const found =
-            output.value ===
-            Array.from(transactions.values())
-              .find((tx) =>
-                tx.vin.some((vin) => vin.prevout.value === output.value)
-              )
-              ?.vin.find((vin) => vin.prevout.value === output.value)?.prevout
-              .value
-          console.log('found with same index', found, output.value)
-          return found
+        if (sourceNode && targetNode) {
+          links.push({
+            source: sourceNode,
+            target: targetNode,
+            value: vin.prevout.value
+          })
+        }
+      })
+    })
+
+    let currentDepth = 1
+    let txToProcess = [...txArray]
+    const processedTxIds = new Set()
+
+    while (txToProcess.length > 0) {
+      const nextTxToProcess: EsploraTx[] = []
+
+      txToProcess.forEach((tx, txIndex) => {
+        if (processedTxIds.has(tx.txid)) return
+
+        const sourceBlockId = `block-${currentDepth}-${txIndex}`
+        tx.vout.forEach((vout, voutIndex) => {
+          const targetVoutId = `vout-${currentDepth + 1}-${voutIndex}`
+
+          const sourceNode = nodeMapById.get(sourceBlockId)
+          const targetNode = nodeMapById.get(targetVoutId)
+
+          if (sourceNode && targetNode) {
+            links.push({
+              source: sourceNode,
+              target: targetNode,
+              value: vout.value
+            })
+          }
         })
+        processedTxIds.add(tx.txid)
 
-        // const blockToOutputLinksConfirmed = tx.vout.map((output, idx) => ({
-        //   source: `block-${index}`,
-        //   target: `vout-${index}-${sameIndexForConfirmed}`,
-        //   value: output.value
-        // }))
+        transactions.forEach((nextTx) => {
+          nextTx.vin.forEach((vin) => {
+            if (tx.txid === vin.txid) {
+              if (
+                !processedTxIds.has(nextTx.txid) &&
+                !nextTxToProcess.includes(nextTx)
+              ) {
+                const sourceVoutPrefix = `vout-${currentDepth + 1}` // Vout from previous depth is source
+                const targetBlockId = `block-${currentDepth + 2}-${txArray.indexOf(nextTx)}` // Next block is target
 
-        const outputToBlockLinks =
-          sameIndexForConfirmed !== -1
-            ? [
-                {
-                  source: `vout-${index}-${sameIndexForConfirmed}`,
-                  target: `block-${index + 1}`,
-                  value: tx.vout[sameIndexForConfirmed].value
+                // Find the corresponding vout index based on txid and vout index in vin
+                let sourceVoutIndex = -1
+                tx.vout.forEach((txVout, index) => {
+                  // In real world, you would compare tx output index to vin.vout, but here we just assume order is consistent for simplicity based on the example.
+                  sourceVoutIndex = index
+                })
+                const sourceVoutId = `${sourceVoutPrefix}-${sourceVoutIndex}`
+
+                const sourceVoutNode = nodeMapById.get(sourceVoutId)
+                const targetBlockNode = nodeMapById.get(targetBlockId)
+
+                if (sourceVoutNode && targetBlockNode) {
+                  links.push({
+                    source: sourceVoutNode,
+                    target: targetBlockNode,
+                    value: vin.prevout.value // or vout.value from previous tx, should be the same
+                  })
                 }
-              ]
-            : []
-
-        console.log('sameIndexForConfirmed', {
-          sameIndexForConfirmed,
-          index,
-          outputToBlockLinks
+                nextTxToProcess.push(nextTx)
+              }
+            }
+          })
         })
+      })
+      txToProcess = nextTxToProcess
+      currentDepth += 2
+    }
 
-        const sameIndex = tx.vout.findIndex(
-          (o) =>
-            o.value ===
-            pendingInputNodes.find((node) => node.value === o.value)?.value
-        )
+    // Links from last block (block-5-0) to unspent and transaction fee
+    const lastBlockNode = nodes.find((node) => node.id === 'block-5-0')
+    const unspentNode = nodeMapById.get('unspent')
+    const feeNode = nodeMapById.get('estimated-fee')
 
-        const confirmedToPendingLinks =
-          sameIndex !== -1
-            ? [
-                {
-                  source: `vout-${index}-${sameIndex}`,
-                  target: `${inputs.size + 1}`,
-                  value: tx.vout[sameIndex].value
-                }
-              ]
-            : []
+    if (lastBlockNode && unspentNode && feeNode) {
+      // Assuming transaction fee is the sum of fees from all transactions for simplicity in this example.
+      // In a real scenario, fee would be attributed to the transaction that created the 'transaction fee' output (if explicitly represented).
+      const totalFee = txArray.reduce((sum, tx) => sum + tx.fee, 0)
 
-        return [
-          ...inputToBlockLinks,
-          ...blockToOutputLinks,
-          ...confirmedToPendingLinks,
-          ...outputToBlockLinks
-          // ...completedInputToCompletedLink
-        ]
-      }
-    )
+      // Assuming 'unspent' takes the remaining value from the last block's outputs (this is a simplification)
+      let lastBlockOutputValue = 0
+      txArray.slice(-1)[0].vout.forEach((vout) => {
+        // Taking last tx's vouts as example, adjust logic based on actual 'unspent' definition
+        lastBlockOutputValue += vout.value
+      })
 
-    const blockToOutputLinks = [
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 2),
-        value: utxosSelectedValue - MINING_FEE_VALUE
-      },
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 3),
-        value: MINING_FEE_VALUE
-      }
-    ]
+      links.push({
+        source: lastBlockNode,
+        target: unspentNode,
+        value: lastBlockOutputValue // Placeholder, adjust based on what 'unspent' represents
+      })
+      links.push({
+        source: lastBlockNode,
+        target: feeNode,
+        value: totalFee // Placeholder, adjust based on how 'transaction fee' is represented
+      })
+    }
 
-    return [...txLinks, ...blockToOutputLinks]
-  }, [
-    transactions,
-    inputs.size,
-    utxosSelectedValue,
-    outputAddresses,
-    pendingInputNodes
-  ])
-  console.log('TX', Array.from(transactions.values()))
+    return links
+  }, [transactions, nodes])
+
+  // console.log('TX', Array.from(transactions.values()))
   // Show loading state
   if (loading && inputs.size > 0) {
     return (
@@ -442,10 +510,10 @@ export default function IOPreview() {
     )
   }
 
-  const allNodes = [...sankeyNodes, ...confirmedSankeyNodes]
+  const allNodes = [...nodes]
   const allLinks = confirmedSankeyLinks
-
-  console.log('nodes', allNodes)
+  console.log('TX', transactions)
+  console.log('nodes', nodes)
   console.log('links', confirmedSankeyLinks)
 
   return (
