@@ -606,8 +606,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     {
       x: number
       y: number
-      memo: string
-      amount: number
+      memo?: string
+      amount?: number
       type: string
       boundBox?: Rectangle
     }[]
@@ -668,8 +668,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     const initialLabels: {
       x: number
       y: number
-      memo: string
-      amount: number
+      memo?: string
+      amount?: number
       type: string
       boundBox?: Rectangle
     }[] = []
@@ -677,13 +677,22 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
       const y = yScale(d.balance) - 5
       if (txInfoBoundBox[index] === undefined) {
-        initialLabels.push({
-          x,
-          y,
-          memo: d.memo,
-          amount: d.amount,
-          type: d.type
-        })
+        if (showLabel && d.memo) {
+          initialLabels.push({
+            x,
+            y: y + (showAmount ? -15 : 0),
+            memo: d.memo,
+            type: d.type
+          })
+        }
+        if (showAmount) {
+          initialLabels.push({
+            x,
+            y,
+            amount: d.amount,
+            type: d.type
+          })
+        }
         return
       }
       const width = txInfoBoundBox[index].width!
@@ -692,21 +701,38 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       const right = d.type === 'receive' ? x : x + width
       const bottom = y
       const top = y - height
-      initialLabels.push({
-        x,
-        y,
-        memo: d.memo,
-        amount: d.amount,
-        type: d.type,
-        boundBox: {
-          left,
-          right,
-          top,
-          bottom,
-          width,
-          height
-        }
-      })
+      if (showLabel && d.memo) {
+        initialLabels.push({
+          x,
+          y: y + (showAmount ? -15 : 0),
+          memo: d.memo,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top: top + (showAmount ? -15 : 0),
+            bottom: bottom + (showAmount ? -15 : 0),
+            width,
+            height
+          }
+        })
+      }
+      if (showAmount) {
+        initialLabels.push({
+          x,
+          y,
+          amount: d.amount,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top,
+            bottom,
+            width,
+            height
+          }
+        })
+      }
     })
     for (let i = 0; i < initialLabels.length - 1; i++) {
       for (let j = i + 1; j < initialLabels.length; j++) {
@@ -728,7 +754,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       }
     }
     setTxInfoLabels(initialLabels)
-  }, [txInfoBoundBox, validChartData, xScale, yScale])
+  }, [showAmount, showLabel, txInfoBoundBox, validChartData, xScale, yScale])
 
   if (!containerSize.width || !containerSize.height) {
     return <View onLayout={handleLayout} style={styles.container} />
@@ -996,8 +1022,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                           )
                         }
                       >
-                        {(showLabel && label.memo) ||
-                          (showAmount && numberCommaFormatter(label.amount)) ||
+                        {(showLabel && label.memo!) ||
+                          (showAmount && numberCommaFormatter(label.amount!)) ||
                           ''}
                       </SvgText>
                     </Fragment>
