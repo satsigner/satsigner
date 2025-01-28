@@ -508,55 +508,56 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     {}
   )
 
-  const handleXAxisLayout = useCallback(
-    (event: LayoutChangeEvent, index: number, x: number) => {
-      const rect: Rectangle = {
-        left: Math.round(x),
-        right: Math.round(x + event.nativeEvent.layout.width),
-        top: Math.round(chartHeight),
-        bottom: Math.round(chartHeight + event.nativeEvent.layout.height),
-        width: Math.round(event.nativeEvent.layout.width),
-        height: Math.round(event.nativeEvent.layout.height)
-      }
-      if (
-        txXBoundbox[index] !== undefined &&
-        txXBoundbox[index].left === rect.left &&
-        txXBoundbox[index].bottom === rect.bottom &&
-        txXBoundbox[index].top === rect.top &&
-        txXBoundbox[index].right === rect.right
-      ) {
-        return
-      }
-      setTxXBoundBox((prev) => ({
-        ...prev,
-        [index]: rect
-      }))
-    },
-    [chartHeight, txXBoundbox]
-  )
+  const handleXAxisLayout = (
+    event: LayoutChangeEvent,
+    index: number,
+    x: number
+  ) => {
+    const rect: Rectangle = {
+      left: Math.round(x),
+      right: Math.round(x + event.nativeEvent.layout.width),
+      top: Math.round(chartHeight),
+      bottom: Math.round(chartHeight + event.nativeEvent.layout.height),
+      width: Math.round(event.nativeEvent.layout.width),
+      height: Math.round(event.nativeEvent.layout.height)
+    }
+    if (
+      txXBoundbox[index] !== undefined &&
+      txXBoundbox[index].left === rect.left &&
+      txXBoundbox[index].bottom === rect.bottom &&
+      txXBoundbox[index].top === rect.top &&
+      txXBoundbox[index].right === rect.right
+    ) {
+      return
+    }
+    setTxXBoundBox((prev) => ({
+      ...prev,
+      [index]: rect
+    }))
+  }
 
   const [txXBoundVisible, setTxXBoundVisible] = useState<{
     [key: string]: boolean
   }>({})
 
   useEffect(() => {
+    const length = xScaleTransactions.length
+    for (let i = 0; i < length; i++) {
+      if (txXBoundbox[xScaleTransactions[i].index] === undefined) {
+        return
+      }
+    }
     const timerId = setTimeout(() => {
       const visible: { [key: string]: boolean } = {}
-      const length = xScaleTransactions.length
       let i = 0
       for (i = 0; i < length - 1; i++) {
         if (
-          txXBoundbox[xScaleTransactions[i].index] !== undefined &&
-          txXBoundbox[xScaleTransactions[i + 1].index] !== undefined
+          isOverlapping(
+            txXBoundbox[xScaleTransactions[i].index],
+            txXBoundbox[xScaleTransactions[i + 1].index]
+          )
         ) {
-          if (
-            isOverlapping(
-              txXBoundbox[xScaleTransactions[i].index],
-              txXBoundbox[xScaleTransactions[i + 1].index]
-            )
-          ) {
-            visible[xScaleTransactions[i].index] = false
-          }
+          visible[xScaleTransactions[i].index] = false
         }
       }
       for (i = 0; i < length; i++) {
@@ -617,52 +618,49 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     [key: string]: Rectangle
   }>({})
 
-  const handleTxInfoLayout = useCallback(
-    (
-      event: LayoutChangeEvent,
-      index: number,
-      x: number,
-      y: number,
-      type: string
-    ) => {
-      const rect: Rectangle = {
-        left: Math.min(
-          Math.round(x),
-          Math.round(
-            x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
-          )
-        ),
-        right: Math.max(
-          Math.round(x),
-          Math.round(
-            x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
-          )
-        ),
-        top: Math.min(
-          Math.round(y),
-          Math.round(y - event.nativeEvent.layout.height)
-        ),
-        bottom: Math.max(
-          Math.round(y),
-          Math.round(y - event.nativeEvent.layout.height)
-        ),
-        width: event.nativeEvent.layout.width,
-        height: event.nativeEvent.layout.height
-      }
-      if (
-        txInfoBoundBox[index] !== undefined &&
-        txInfoBoundBox[index].width === rect.width &&
-        txInfoBoundBox[index].height === rect.height
-      ) {
-        return
-      }
-      setTxInfoBoundBox((prev) => ({
-        ...prev,
-        [index]: rect
-      }))
-    },
-    [txInfoBoundBox]
-  )
+  const handleTxInfoLayout = (
+    event: LayoutChangeEvent,
+    index: number,
+    x: number,
+    y: number,
+    type: string
+  ) => {
+    const rect: Rectangle = {
+      left: Math.min(
+        Math.round(x),
+        Math.round(
+          x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
+        )
+      ),
+      right: Math.max(
+        Math.round(x),
+        Math.round(
+          x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
+        )
+      ),
+      top: Math.min(
+        Math.round(y),
+        Math.round(y - event.nativeEvent.layout.height)
+      ),
+      bottom: Math.max(
+        Math.round(y),
+        Math.round(y - event.nativeEvent.layout.height)
+      ),
+      width: Math.round(event.nativeEvent.layout.width),
+      height: Math.round(event.nativeEvent.layout.height)
+    }
+    if (
+      txInfoBoundBox[index] !== undefined &&
+      txInfoBoundBox[index].width === rect.width &&
+      txInfoBoundBox[index].height === rect.height
+    ) {
+      return
+    }
+    setTxInfoBoundBox((prev) => ({
+      ...prev,
+      [index]: rect
+    }))
+  }
 
   useEffect(() => {
     const initialLabels: {
@@ -673,10 +671,15 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       type: string
       boundBox?: Rectangle
     }[] = []
-    validChartData.forEach((d, index) => {
-      const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
-      const y = yScale(d.balance) - 5
-      if (txInfoBoundBox[index] === undefined) {
+    if (
+      validChartData.findIndex(
+        (d, index) => d.type !== 'end' && txInfoBoundBox[index] === undefined
+      ) !== -1
+    ) {
+      validChartData.forEach((d) => {
+        if (d.type === 'end') return
+        const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
+        const y = yScale(d.balance) - 5
         if (showLabel && d.memo) {
           initialLabels.push({
             x,
@@ -693,62 +696,61 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
             type: d.type
           })
         }
-        return
-      }
-      const width = txInfoBoundBox[index].width!
-      const height = txInfoBoundBox[index].height!
-      const left = d.type === 'receive' ? x - width : x
-      const right = d.type === 'receive' ? x : x + width
-      const bottom = y
-      const top = y - height
-      if (showLabel && d.memo) {
-        initialLabels.push({
-          x,
-          y: y + (showAmount ? -15 : 0),
-          memo: d.memo,
-          type: d.type,
-          boundBox: {
-            left,
-            right,
-            top: top + (showAmount ? -15 : 0),
-            bottom: bottom + (showAmount ? -15 : 0),
-            width,
-            height
-          }
-        })
-      }
-      if (showAmount) {
-        initialLabels.push({
-          x,
-          y,
-          amount: d.amount,
-          type: d.type,
-          boundBox: {
-            left,
-            right,
-            top,
-            bottom,
-            width,
-            height
-          }
-        })
-      }
-    })
+      })
+    } else {
+      validChartData.forEach((d, index) => {
+        if (d.type === 'end') return
+        const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
+        const y = Math.round(yScale(d.balance) - 5)
+        const width = Math.round(txInfoBoundBox[index].width!)
+        const height = Math.round(txInfoBoundBox[index].height!)
+        const left = Math.round(d.type === 'receive' ? x - width : x)
+        const right = Math.round(d.type === 'receive' ? x : x + width)
+        const bottom = y
+        const top = y - height
+        if (showLabel && d.memo) {
+          initialLabels.push({
+            x,
+            y: y + (showAmount ? -15 : 0),
+            memo: d.memo,
+            type: d.type,
+            boundBox: {
+              left,
+              right,
+              top: top + (showAmount ? -15 : 0),
+              bottom: bottom + (showAmount ? -15 : 0),
+              width,
+              height
+            }
+          })
+        }
+        if (showAmount) {
+          initialLabels.push({
+            x,
+            y,
+            amount: d.amount,
+            type: d.type,
+            boundBox: {
+              left,
+              right,
+              top,
+              bottom,
+              width,
+              height
+            }
+          })
+        }
+      })
+    }
     for (let i = 0; i < initialLabels.length - 1; i++) {
+      const boundBoxA = initialLabels[i].boundBox
       for (let j = i + 1; j < initialLabels.length; j++) {
-        if (
-          initialLabels[i].boundBox !== undefined &&
-          initialLabels[j].boundBox !== undefined
-        ) {
-          if (
-            isOverlapping(
-              initialLabels[i].boundBox!,
-              initialLabels[j].boundBox!
-            )
-          ) {
-            initialLabels[j].y -= 15
-            initialLabels[j].boundBox!.top -= 15
-            initialLabels[j].boundBox!.bottom -= 15
+        const boundBoxB = initialLabels[j].boundBox
+        if (boundBoxA !== undefined && boundBoxB !== undefined) {
+          if (isOverlapping(boundBoxA!, boundBoxB!)) {
+            initialLabels[j].y -= 20
+            initialLabels[j].boundBox!.top -= 20
+            initialLabels[j].boundBox!.bottom -= 20
           }
         }
       }
