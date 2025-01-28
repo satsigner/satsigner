@@ -38,12 +38,3 @@ export const time: TimeUtils = {
   infinity: Infinity,
   zero: 0
 }
-
-// export const queryClient = new QueryClient({
-//   defaultOptions: {
-//     queries: {
-//       cacheTime: time.minutes(5),
-//       staleTime: time.minutes(2)
-//     }
-//   }
-// })

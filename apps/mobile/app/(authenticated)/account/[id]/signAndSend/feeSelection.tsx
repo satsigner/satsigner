@@ -1,5 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { Animated, StyleSheet, View } from 'react-native'
+import { Polygon, Svg } from 'react-native-svg'
 
 import SSButton from '@/components/SSButton'
 import SSFeeRateChart from '@/components/SSFeeRateChart'
@@ -34,6 +36,19 @@ export default function FeeSelection() {
       setInsufficientSatsModalVisible(true) // to remove
     else router.navigate(`/account/${id}/signAndSend/previewMessage`)
   }
+  const boxPosition = new Animated.Value(feeSelected)
+
+  function handleSliderChange(value: number) {
+    setFeeSelected(value)
+    const newPosition = (value / 100) * 200
+    Animated.timing(boxPosition, {
+      toValue: newPosition,
+      duration: 100,
+      useNativeDriver: true
+    }).start()
+  }
+
+  const vByteLabels = ['20', '15', '12', '11', '9', '8', '5', '3', '2', '1']
 
   return (
     <>
@@ -46,26 +61,74 @@ export default function FeeSelection() {
         <SSVStack justifyBetween>
           <SSHStack gap="lg" style={{ justifyContent: 'space-evenly' }}>
             <SSVStack gap="none">
-              <SSText>1 sat/vB</SSText>
+              <SSText size="md">1 sat/vB</SSText>
               <SSText color="muted" size="xs" center>
                 Minimum {'\n'}Fee
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
-              <SSText>19/300 MB</SSText>
+              <SSText size="md">19/300 MB</SSText>
               <SSText color="muted" size="xs" center>
                 Mempool {'\n'}Size
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
-              <SSText>1 sat/vB</SSText>
+              <SSText size="md">1 sat/vB</SSText>
               <SSText color="muted" size="xs" center>
                 TXs in {'\n'}Mempool
               </SSText>
             </SSVStack>
           </SSHStack>
-          <SSFeeRateChart />
-          <SSVStack>
+          <View style={styles.outerContainer}>
+            <SSFeeRateChart />
+            <View style={arrowStyles.container}>
+              <Animated.View
+                style={[
+                  arrowStyles.arrow,
+                  {
+                    transform: [
+                      {
+                        translateY: boxPosition.interpolate({
+                          inputRange: [1, 100],
+                          outputRange: [0, -210],
+                          extrapolate: 'clamp'
+                        })
+                      }
+                    ]
+                  }
+                ]}
+              >
+                <Svg
+                  height="40"
+                  width="40"
+                  viewBox="0 0 100 100"
+                  style={arrowStyles.arrow}
+                >
+                  <Polygon points="0,50 50,25 50,75" fill="white" />
+                </Svg>
+              </Animated.View>
+              <View>
+                {vByteLabels.map((label, index) => (
+                  <SSText
+                    size="xs"
+                    key={index}
+                    style={[
+                      arrowStyles.label,
+                      label === '8 sat v/B' ? arrowStyles.highlightLabel : null
+                    ]}
+                  >
+                    {label} {Number(label) > 1 ? 'sats' : 'sat'}/vB
+                  </SSText>
+                ))}
+              </View>
+            </View>
+          </View>
+          <SSVStack
+            style={{
+              paddingHorizontal: 16,
+              paddingBottom: 16
+            }}
+          >
             <SSVStack itemsCenter>
               <SSHStack
                 style={{
@@ -75,23 +138,26 @@ export default function FeeSelection() {
                 }}
               >
                 <SSVStack gap="none">
-                  <SSText size="md" weight="medium">
-                    {formatNumber(feeSelected)} sats
+                  <SSText size="lg" weight="medium">
+                    {formatNumber(feeSelected)}{' '}
+                    {feeSelected > 1 ? 'sats' : 'sat'}
                   </SSText>
                   <SSText size="xs" color="muted">
                     0.44 USD
                   </SSText>
                 </SSVStack>
-                <SSText size="md">~ 4 blocks</SSText>
-                <SSText size="md">7.00 sats/vB</SSText>
+                <SSText size="lg">~ 4 blocks</SSText>
+                <SSText size="lg">1,000 sats/vB</SSText>
               </SSHStack>
               <SSSlider
-                min={100}
-                max={10000}
+                min={1}
+                max={100}
                 value={feeSelected}
-                step={100}
-                onValueChange={(value) => setFeeSelected(value)}
-                style={{ width: '100%' }}
+                step={1}
+                onValueChange={handleSliderChange}
+                style={{
+                  width: '100%'
+                }}
               />
             </SSVStack>
             <SSButton
@@ -125,3 +191,42 @@ export default function FeeSelection() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    marginTop: -20,
+    paddingRight: 8
+  }
+})
+
+const arrowStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingLeft: 10,
+    height: 250,
+    alignSelf: 'flex-end'
+  },
+  arrowContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: -8,
+    marginLeft: -8
+  },
+  arrow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: -8,
+    marginLeft: -10
+  },
+  label: {
+    color: '#6d6d68',
+    marginTop: 6
+  },
+  highlightLabel: {
+    color: 'white',
+    fontWeight: 'bold'
+  }
+})
