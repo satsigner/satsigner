@@ -115,6 +115,7 @@ export default function ImportSeed() {
       }
       return []
     }
+
     const readSeedFromClipboard = async () => {
       const text = (await Clipboard.getStringAsync()).trim()
       const seed = await checkTextHasSeed(text)
@@ -130,6 +131,7 @@ export default function ImportSeed() {
         await updateFingerprint()
       }
     }
+
     readSeedFromClipboard()
   }, [seedWordCount, setSeedWords, updateFingerprint])
 
