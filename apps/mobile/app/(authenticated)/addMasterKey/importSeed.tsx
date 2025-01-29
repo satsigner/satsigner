@@ -94,23 +94,15 @@ export default function ImportSeed() {
   const appState = useRef(AppState.currentState)
 
   async function checkTextHasSeed(text: string): Promise<string[]> {
-    if (text === null || text === '') {
-      return []
-    }
+    if (text === null || text === '') return []
     const delimiters = [' ', '\n']
     for (const delimiter of delimiters) {
       const seedCandidate = text.split(delimiter)
-      if (seedCandidate.length !== seedWordCount) {
-        continue
-      }
+      if (seedCandidate.length !== seedWordCount) continue
       const validWords = seedCandidate.every((x) => wordList.includes(x))
-      if (!validWords) {
-        continue
-      }
+      if (!validWords) continue
       const checksum = await validateMnemonic(seedCandidate.join(' '))
-      if (!checksum) {
-        continue
-      }
+      if (!checksum) continue
       return seedCandidate
     }
     return []
@@ -171,7 +163,7 @@ export default function ImportSeed() {
       // We will only open an exception in the edge case the user attempts to
       // paste all seed words at once in the first text field input.
       // This happens if the user switches to another app, copy the seed,
-      // switches back to satssigner, then attempts to paste the seed.
+      // switches back to SatSigner, then attempts to paste the seed.
       if (index === 0) {
         const seed = await checkTextHasSeed(word)
         if (seed.length > 0) {
