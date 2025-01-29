@@ -165,6 +165,7 @@
       "masterKeyName": "Master Key Name",
       "hasAccountWithName": "Account with that name already exists",
       "walletSyncFailed": "Failed to sync wallet. Make sure you have internet connection.",
+      "loadSampleSignetWallet": "Load sample Signet Wallet",
       "generateNewSeed": {
         "title": "Generate New Secret Seed",
         "action": "Confirm Seed"
