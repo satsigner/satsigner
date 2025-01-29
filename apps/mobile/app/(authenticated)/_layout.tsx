@@ -16,14 +16,28 @@ import type { PageRoute } from '@/types/navigation/page'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
-  const [firstTime, requiresAuth, lockTriggered, skipPin, markPageVisited] =
+  const [
+    firstTime,
+    requiresAuth,
+    lockTriggered,
+    skipPin,
+    setRequiresAuth,
+    setLockTriggered,
+    markPageVisited,
+    getPagesHistory,
+    clearPageHistory
+  ] =
     useAuthStore(
       useShallow((state) => [
         state.firstTime,
         state.requiresAuth,
         state.lockTriggered,
         state.skipPin,
-        state.markPageVisited
+        state.setRequiresAuth,
+        state.setLockTriggered,
+        state.markPageVisited,
+        state.getPagesHistory,
+        state.clearPageHistory
       ])
     )
 
@@ -31,8 +45,20 @@ export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
 
   if (firstTime) return <Redirect href="/setPin" />
+
   if (requiresAuth && lockTriggered && !skipPin)
     return <Redirect href="/unlock" />
+
+  if (lockTriggered && skipPin) {
+    const pages = getPagesHistory()
+    setLockTriggered(false)
+    setTimeout(() => {
+      clearPageHistory()
+      for (const page of pages) {
+        router.push(page as any)
+      }
+    }, 100)
+  }
 
   // Do not push index route
   if (routeName !== '' && routeName !== 'index') {
