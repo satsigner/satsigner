@@ -5,6 +5,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useGlobalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -13,7 +14,6 @@ import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import type { PageRoute } from '@/types/navigation/page'
-import { useEffect } from 'react'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
@@ -42,11 +42,6 @@ export default function AuthenticatedLayout() {
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
   const routeParams = useGlobalSearchParams()
 
-  if (firstTime) return <Redirect href="/setPin" />
-
-  if (requiresAuth && lockTriggered && !skipPin)
-    return <Redirect href="/unlock" />
-
   useEffect(() => {
     if (lockTriggered && skipPin) {
       setLockTriggered(false)
@@ -59,6 +54,11 @@ export default function AuthenticatedLayout() {
       })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (firstTime) return <Redirect href="/setPin" />
+
+  if (requiresAuth && lockTriggered && !skipPin)
+    return <Redirect href="/unlock" />
 
   // Do not push index route
   if (routeName !== '' && routeName !== 'index') {
