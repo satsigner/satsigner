@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -14,11 +15,9 @@ import { useAuthStore } from '@/store/auth'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
-  const [setFirstTime, skipPin, setSkipPin] = useAuthStore((state) => [
-    state.setFirstTime,
-    state.skipPin,
-    state.setSkipPin
-  ])
+  const [setFirstTime, skipPin, setSkipPin] = useAuthStore(
+    useShallow((state) => [state.setFirstTime, state.skipPin, state.setSkipPin])
+  )
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
 
