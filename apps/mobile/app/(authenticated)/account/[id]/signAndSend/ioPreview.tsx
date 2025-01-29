@@ -13,7 +13,7 @@ import ScanIcon from '@/components/icons/ScanIcon'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSSankeyDiagram from '@/components/SSSankeyDiagram'
+import SSSankeyDiagram, { Node } from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -115,6 +115,11 @@ function estimateTransactionSize(inputCount: number, outputCount: number) {
   const vsize = Math.ceil(totalSize * 0.25)
 
   return { size: totalSize, vsize }
+}
+
+function getBlockDepth(size: number, currentIndex: number) {
+  const group = Math.floor(currentIndex / size)
+  return 1 + 2 * group
 }
 
 export default function IOPreview() {
@@ -228,7 +233,7 @@ export default function IOPreview() {
     (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
   )
 
-  const confirmedSankeyNodes = useMemo(() => {
+  const confirmedSankeyNodes: Node[] = useMemo(() => {
     // const totalLengthVins = Array.from(transactions.values()).reduce(
     //   (sum, tx) => sum + (tx.vin?.length ?? 0),
     //   0
@@ -241,37 +246,46 @@ export default function IOPreview() {
       console.log('__start')
       return Array.from(transactions.entries()).flatMap(([, tx], index) => {
         if (!tx.vin || !tx.vout) return []
-        const inputDepth = index < 2 ? 0 : Math.floor(index / 2) * 2
+        const inputDepth =
+          index < inputs.size
+            ? 0
+            : Math.floor(index / inputs.size) * inputs.size
         // const inputIndexInDepth = index % inputs.size
         // Filter input nodes to exclude those with matching values
-        const allInputNodes = tx.vin.map((input, idx) => {
-          return {
-            address: input.prevout.scriptpubkey_address,
-            id: `vin-${inputDepth}-${idx + index}`,
-            type: 'text',
-            depth: inputDepth,
-            textInfo: [
-              `${input.prevout.value}`,
-              `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-              ''
-            ],
-            value: input.prevout.value
-          }
-        })
+        const allInputNodes = tx.vin
+          .filter((input) => {
+            return !outputAddresses.includes(input.prevout.scriptpubkey_address)
+          })
+          .map((input, idx) => {
+            const depth = 0
+            return {
+              id: `vin-${depth}-${index + idx}`,
+              type: 'text',
+              depth,
+              textInfo: [
+                `${input.prevout.value}`,
+                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+                ''
+              ],
+              value: input.prevout.value
+            }
+          })
         // console.log('allInputNodes', allInputNodes)
 
         // only keep input nodes that do not have outgoing and incoming links
-        const trimmedInputNodes = allInputNodes.filter(
-          (input) => !outputAddresses.includes(input.address)
-        )
+        // const trimmedInputNodes = allInputNodes.filter(
+        //   (input) => !outputAddresses.includes(input.address)
+        // )
 
         const vsize = Math.ceil(tx.weight * 0.25)
 
-        const blockDepth = inputDepth + 1
-        // const blockIndexInDepth = index < 3 ? index : Math.floor(index / 3)
+        // const totalVins = allInputNodes.length
+
+        const blockDepth = getBlockDepth(inputs.size, index)
+        // const blockIndex =
         const blockNode = [
           {
-            id: `block-${blockDepth}-${index}`,
+            id: `block-${blockDepth}`,
             type: 'block',
             depth: blockDepth,
             textInfo: ['', '', `${tx.size} B`, `${vsize} vB`] //TODO: check the size value
@@ -281,10 +295,10 @@ export default function IOPreview() {
         // console.log('blockNode', blockNode)
         // const outputIndexInDepth = index % totalLengthVouts
         const outputNodes = tx.vout.map((output, idx) => {
-          const outputDepth = inputDepth + 2
+          const outputDepth = getBlockDepth(inputs.size, index) + 1
 
           return {
-            id: `vout-${outputDepth}-${idx + index}`,
+            id: `vout-${outputDepth}`,
             type: 'text',
             depth: outputDepth,
             textInfo: [
@@ -295,13 +309,106 @@ export default function IOPreview() {
             value: output.value
           }
         })
+
         // console.log('outputNodes', outputNodes)
 
-        return [...trimmedInputNodes, ...blockNode, ...outputNodes]
+        return [...allInputNodes, ...blockNode, ...outputNodes].sort(
+          (a, b) => a.depth - b.depth
+        )
       })
     }
     return []
   }, [inputs.size, outputAddresses, transactions])
+  console.log('confirmedSankeyNodes->>', confirmedSankeyNodes)
+
+  const realNodes: Node[] = useMemo(() => {
+    if (confirmedSankeyNodes.length === 0) return []
+    const depthIndices: { [key: number]: number } = {} // Keeps track of current index for each depth
+    return confirmedSankeyNodes.map(({ id, depth, ...rest }) => {
+      // Initialize index if this depth hasn't been seen yet
+      if (!(depth in depthIndices)) {
+        depthIndices[depth] = 0
+      }
+
+      return {
+        id:
+          id.startsWith('vout') || id.startsWith('block')
+            ? `${id}-${depthIndices[depth]++}`
+            : `${id}`,
+        depth,
+        ...rest
+      }
+    })
+  }, [confirmedSankeyNodes])
+
+  const allNodes = [...sankeyNodes, ...realNodes].sort(
+    (a, b) => a.depth - b.depth
+  )
+
+  // const getCircularReplacer = () => {
+  //   const seen = new WeakSet()
+  //   return (key, value) => {
+  //     if (typeof value === 'object' && value !== null) {
+  //       if (seen.has(value)) return '[Circular]'
+  //       seen.add(value)
+  //     }
+  //     return value
+  //   }
+  // }
+
+  // console.log(JSON.stringify(allNodes, getCircularReplacer(), 2)) // Pretty-printed
+
+  const links = useMemo(() => {
+    return []
+    const nodes = allNodes
+
+    const links = []
+    const depthGroups = {}
+
+    // Group nodes by their depth and sort them by ID
+    nodes.forEach((node) => {
+      if (!depthGroups[node.depth]) depthGroups[node.depth] = []
+      depthGroups[node.depth].push(node)
+    })
+
+    // Sort each depth group by node ID
+    Object.values(depthGroups).forEach((group) => {
+      group.sort((a, b) => a.id.localeCompare(b.id))
+    })
+
+    // Create connections between depths
+    for (let depth = 0; depth <= 5; depth++) {
+      const currentNodes = depthGroups[depth] || []
+      const nextDepthNodes = depthGroups[depth + 1] || []
+
+      if (depth % 2 === 0) {
+        // Even depth (text nodes)
+        currentNodes.forEach((node, i) => {
+          if (nextDepthNodes[i]) {
+            links.push({
+              source: node.id,
+              target: nextDepthNodes[i].id,
+              value: node.value
+            })
+          }
+        })
+      } else {
+        // Odd depth (block nodes)
+        currentNodes.forEach((node, i) => {
+          const targets = nextDepthNodes.slice(i * 2, i * 2 + 2)
+          targets.forEach((target) => {
+            links.push({
+              source: node.id,
+              target: target.id,
+              value: node.value
+            })
+          })
+        })
+      }
+    }
+
+    return links
+  }, [allNodes])
 
   const confirmedSankeyLinks = useMemo(() => {
     // if (transactions.size === 0) return []
@@ -442,11 +549,8 @@ export default function IOPreview() {
     )
   }
 
-  const allNodes = [...sankeyNodes, ...confirmedSankeyNodes]
-  const allLinks = confirmedSankeyLinks
-
   console.log('nodes', allNodes)
-  console.log('links', confirmedSankeyLinks)
+  console.log('links', links)
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -535,10 +639,10 @@ export default function IOPreview() {
         {transactions.size > 0 &&
         inputs.size > 0 &&
         allNodes.length > 0 &&
-        allLinks.length > 0 ? (
+        links.length > 0 ? (
           <SSSankeyDiagram
             sankeyNodes={allNodes}
-            sankeyLinks={allLinks}
+            sankeyLinks={[]}
             inputCount={inputs.size}
           />
         ) : null}
