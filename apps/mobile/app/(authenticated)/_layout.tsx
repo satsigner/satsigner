@@ -21,25 +21,22 @@ export default function AuthenticatedLayout() {
     requiresAuth,
     lockTriggered,
     skipPin,
-    setRequiresAuth,
     setLockTriggered,
     markPageVisited,
     getPagesHistory,
     clearPageHistory
-  ] =
-    useAuthStore(
-      useShallow((state) => [
-        state.firstTime,
-        state.requiresAuth,
-        state.lockTriggered,
-        state.skipPin,
-        state.setRequiresAuth,
-        state.setLockTriggered,
-        state.markPageVisited,
-        state.getPagesHistory,
-        state.clearPageHistory
-      ])
-    )
+  ] = useAuthStore(
+    useShallow((state) => [
+      state.firstTime,
+      state.requiresAuth,
+      state.lockTriggered,
+      state.skipPin,
+      state.setLockTriggered,
+      state.markPageVisited,
+      state.getPagesHistory,
+      state.clearPageHistory
+    ])
+  )
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
   const routeParams = useGlobalSearchParams()
