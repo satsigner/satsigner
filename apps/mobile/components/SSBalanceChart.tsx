@@ -29,7 +29,7 @@ import Svg, {
 } from 'react-native-svg'
 import { useShallow } from 'zustand/react/shallow'
 
-import { useChartSettingStore } from '@/store/chartSetting'
+import { useChartSettingStore } from '@/store/chartSettings'
 import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'

@@ -9,7 +9,7 @@ import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useChartSettingStore } from '@/store/chartSetting'
+import { useChartSettingStore } from '@/store/chartSettings'
 
 export default function ChartSettings() {
   const router = useRouter()

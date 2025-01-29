@@ -113,7 +113,7 @@ function TotalTransactions({
           {showChart && (
             <SSIconButton
               onPress={() =>
-                router.navigate(`/settings/config/features/chartSetting`)
+                router.navigate(`/settings/config/features/chartSettings`)
               }
             >
               <SSIconChartSetting width={22} height={18} />

@@ -37,7 +37,7 @@ export default function Features() {
                 )}
                 icon={<SSIconChartWhite width={24} height={24} />}
                 onPress={() => {
-                  router.navigate('/settings/config/features/chartSetting')
+                  router.navigate('/settings/config/features/chartSettings')
                 }}
               />
               <SSSettingsCards
