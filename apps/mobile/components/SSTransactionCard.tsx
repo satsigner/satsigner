@@ -49,7 +49,7 @@ export default function SSTransactionCard({
   const [priceDisplay, setPriceDisplay] = useState('')
 
   const { type, received, sent, prices } = transaction
-  const amount = type === 'receive' ? received : sent
+  const amount = type === 'receive' ? received : sent - received
 
   useEffect(() => {
     const itemsToDisplay: string[] = []
