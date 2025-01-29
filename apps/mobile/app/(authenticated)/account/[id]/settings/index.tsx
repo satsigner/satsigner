@@ -80,7 +80,7 @@ export default function AccountSettings() {
   }
 
   useEffect(() => {
-    const updateSeed = async () => {
+    async function updateSeed() {
       const seed = await decryptSeed(currentAccount!)
       if (seed) setSeed(seed)
     }
