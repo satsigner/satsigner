@@ -28,7 +28,8 @@ interface Link extends SankeyLinkMinimal<object, object> {
 
 export interface Node extends SankeyNodeMinimal<object, object> {
   id: string
-  depthH: number
+  depth: number
+  address?: string
   type?: string
   textInfo: string[]
   value?: number
@@ -127,7 +128,7 @@ function SSSankeyDiagram({
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
     const { depth } = node as Node
-    return depth
+    return depth ?? 0
   })
 
   console.log('hey sankey diagram', Math.max(2.4, inputCount) / 10)
@@ -188,72 +189,76 @@ function SSSankeyDiagram({
     [links]
   )
 
-  if (!nodes?.length || !links?.length) {
+  if (!nodes?.length) {
     return null
   }
 
+  // if (!nodes?.length || !links?.length) {
+  //   return null
+  // }
   return (
     <View style={{ flex: 1 }}>
       <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>
         <Group transform={transform} origin={{ x: w / 2, y: h / 2 }}>
-          {links.map((link, index) => {
-            const sourceNode = link.source as Node
-            const targetNode = link.target as Node
-            const isUnspent = targetNode.textInfo[0] === 'Unspent'
+          {links.length > 0 &&
+            links.map((link, index) => {
+              const sourceNode = link.source as Node
+              const targetNode = link.target as Node
+              const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
-            const points: LinkPoints = {
-              souceWidth:
-                sourceNode.type === 'block'
-                  ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-                  : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
-              targetWidth:
-                targetNode.type === 'block'
-                  ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-                  : getLinkWidth(targetNode, LINK_MAX_WIDTH),
-              x1:
-                sourceNode.type === 'block'
-                  ? (sourceNode.x1 ?? 0) -
-                    (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-                  : sourceNode.x1 ?? 0,
-              y1: (link.source as Node).y1 ?? 0,
-              x2:
-                targetNode.type === 'block'
-                  ? (targetNode.x0 ?? 0) +
-                    (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-                  : targetNode.x0 ?? 0,
-              y2: (link.target as Node).y0 ?? 0
-            }
-            const path1 = generateCustomLink(points)
+              const points: LinkPoints = {
+                souceWidth:
+                  sourceNode.type === 'block'
+                    ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                    : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
+                targetWidth:
+                  targetNode.type === 'block'
+                    ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
+                    : getLinkWidth(targetNode, LINK_MAX_WIDTH),
+                x1:
+                  sourceNode.type === 'block'
+                    ? (sourceNode.x1 ?? 0) -
+                      (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
+                    : sourceNode.x1 ?? 0,
+                y1: (link.source as Node).y1 ?? 0,
+                x2:
+                  targetNode.type === 'block'
+                    ? (targetNode.x0 ?? 0) +
+                      (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
+                    : targetNode.x0 ?? 0,
+                y2: (link.target as Node).y0 ?? 0
+              }
+              const path1 = generateCustomLink(points)
 
-            return (
-              <Group key={index}>
-                <Path
-                  key={index}
-                  path={path1}
-                  style="fill"
-                  color={gray[700]}
-                  // Create a paint object for the gradient
-                  paint={
-                    isUnspent
-                      ? (() => {
-                          const paint = Skia.Paint()
-                          paint.setShader(
-                            Skia.Shader.MakeLinearGradient(
-                              vec(points.x1, points.y1),
-                              vec(points.x2, points.y2),
-                              [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
-                              [0, 0.9],
-                              TileMode.Clamp
+              return (
+                <Group key={index}>
+                  <Path
+                    key={index}
+                    path={path1}
+                    style="fill"
+                    color={gray[700]}
+                    // Create a paint object for the gradient
+                    paint={
+                      isUnspent
+                        ? (() => {
+                            const paint = Skia.Paint()
+                            paint.setShader(
+                              Skia.Shader.MakeLinearGradient(
+                                vec(points.x1, points.y1),
+                                vec(points.x2, points.y2),
+                                [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
+                                [0, 0.9],
+                                TileMode.Clamp
+                              )
                             )
-                          )
-                          return paint
-                        })()
-                      : undefined
-                  }
-                />
-              </Group>
-            )
-          })}
+                            return paint
+                          })()
+                        : undefined
+                    }
+                  />
+                </Group>
+              )
+            })}
 
           {nodes.map((node, index) => {
             const dataNode = node as Node
