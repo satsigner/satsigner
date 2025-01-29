@@ -20,6 +20,7 @@ type AuthState = {
   pinTries: number
   pinMaxTries: number
   pageHistory: string[]
+  skipPin: boolean
 }
 
 type AuthAction = {
@@ -27,6 +28,7 @@ type AuthAction = {
   setRequiresAuth: (requiresAuth: boolean) => void
   setLockTriggered: (lockTriggered: boolean) => void
   setPin: (pin: string) => Promise<void>
+  setSkipPin: (skipPin: boolean) => void
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
   resetPinTries: () => void
@@ -47,6 +49,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       pinTries: 0,
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
       pageHistory: [],
+      skipPin: false,
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
       },
@@ -59,6 +62,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
       setPin: async (pin) => {
         const hashedPin = await doubleShaEncrypt(pin)
         await setItem(PIN_KEY, hashedPin)
+      },
+      setSkipPin(skipPin) {
+        set({ skipPin })
       },
       validatePin: async (pin) => {
         const hashedPin = await doubleShaEncrypt(pin)
