@@ -13,6 +13,7 @@ import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 import type { PageRoute } from '@/types/navigation/page'
+import { useEffect } from 'react'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
@@ -46,16 +47,18 @@ export default function AuthenticatedLayout() {
   if (requiresAuth && lockTriggered && !skipPin)
     return <Redirect href="/unlock" />
 
-  if (lockTriggered && skipPin) {
-    const pages = getPagesHistory()
-    setLockTriggered(false)
-    setTimeout(() => {
+  useEffect(() => {
+    if (lockTriggered && skipPin) {
+      setLockTriggered(false)
+      const pages = getPagesHistory()
       clearPageHistory()
-      for (const page of pages) {
-        router.push(page as any)
-      }
-    }, 100)
-  }
+      setImmediate(() => {
+        for (const page of pages) {
+          router.push(page as any)
+        }
+      })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Do not push index route
   if (routeName !== '' && routeName !== 'index') {
