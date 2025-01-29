@@ -19,6 +19,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconChartSetting,
   SSIconCollapse,
   SSIconExpand,
   SSIconKeys,
@@ -75,6 +76,8 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const router = useRouter()
+
   const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.btcPrice,
@@ -107,6 +110,15 @@ function TotalTransactions({
               <SSIconExpand height={15} width={16} />
             )}
           </SSIconButton>
+          {showChart && (
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/settings/config/features/chartSettings`)
+              }
+            >
+              <SSIconChartSetting width={22} height={18} />
+            </SSIconButton>
+          )}
         </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
@@ -123,7 +135,7 @@ function TotalTransactions({
         </SSHStack>
       </SSHStack>
       {showChart ? (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, zIndex: -1 }}>
           <SSBalanceChart
             transactions={sortedTransactions}
             utxos={account.utxos}
