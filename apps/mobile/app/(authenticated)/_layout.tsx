@@ -16,12 +16,13 @@ import type { PageRoute } from '@/types/navigation/page'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()
-  const [firstTime, requiresAuth, lockTriggered, markPageVisited] =
+  const [firstTime, requiresAuth, lockTriggered, skipPin, markPageVisited] =
     useAuthStore(
       useShallow((state) => [
         state.firstTime,
         state.requiresAuth,
         state.lockTriggered,
+        state.skipPin,
         state.markPageVisited
       ])
     )
@@ -30,7 +31,8 @@ export default function AuthenticatedLayout() {
   const routeParams = useGlobalSearchParams()
 
   if (firstTime) return <Redirect href="/setPin" />
-  if (requiresAuth && lockTriggered) return <Redirect href="/unlock" />
+  if (requiresAuth && lockTriggered && !skipPin)
+    return <Redirect href="/unlock" />
 
   // Do not push index route
   if (routeName !== '' && routeName !== 'index') {

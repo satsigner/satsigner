@@ -14,10 +14,13 @@ import SSSeparator from '@/components/SSSeparator'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
-  const setFirstTime = useAuthStore((state) => state.setFirstTime)
+  const [setFirstTime, skipPin, setSkipPin] = useAuthStore((state) => [
+    state.setFirstTime,
+    state.skipPin,
+    state.setSkipPin,
+  ])
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
-  const [skipPinLocal, setSkipPinLocal] = useState(false)
 
   async function handleDeleteAccount() {
     setDeletingAccounts(true)
@@ -54,12 +57,12 @@ export default function Developer() {
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSSwitch
-            value={skipPinLocal}
+            value={skipPin}
             textOn="Skip Pin (ON)"
             textOff="Skip Pin (OFF)"
             size="lg"
             position="right"
-            onToggle={() => setSkipPinLocal(!skipPinLocal)}
+            onToggle={() => setSkipPin(!skipPin)}
           />
         </SSVStack>
         </SSVStack>
