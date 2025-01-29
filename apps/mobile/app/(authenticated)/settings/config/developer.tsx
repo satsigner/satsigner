@@ -9,12 +9,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import SSSwitch from '@/components/SSSwitch'
+import SSSeparator from '@/components/SSSeparator'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const setFirstTime = useAuthStore((state) => state.setFirstTime)
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
+  const [skipPinLocal, setSkipPinLocal] = useState(false)
 
   async function handleDeleteAccount() {
     setDeletingAccounts(true)
@@ -36,6 +39,7 @@ export default function Developer() {
         }}
       />
       <SSMainLayout>
+        <SSVStack gap="lg">
         <SSVStack>
           <SSButton
             label="Delete Accounts"
@@ -46,6 +50,18 @@ export default function Developer() {
             label="Set PIN First Time"
             onPress={() => setFirstTime(true)}
           />
+        </SSVStack>
+        <SSSeparator color="gradient" />
+        <SSVStack gap="none">
+          <SSSwitch
+            value={skipPinLocal}
+            textOn="Skip Pin (ON)"
+            textOff="Skip Pin (OFF)"
+            size="lg"
+            position="right"
+            onToggle={() => setSkipPinLocal(!skipPinLocal)}
+          />
+        </SSVStack>
         </SSVStack>
       </SSMainLayout>
     </>
