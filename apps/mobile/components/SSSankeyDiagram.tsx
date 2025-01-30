@@ -29,6 +29,7 @@ interface Link extends SankeyLinkMinimal<object, object> {
 export interface Node extends SankeyNodeMinimal<object, object> {
   id: string
   depth: number
+  depthH: number
   address?: string
   type?: string
   textInfo: string[]
@@ -127,8 +128,8 @@ function SSSankeyDiagram({
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
-    const { depth } = node as Node
-    return depth ?? 0
+    const { depthH } = node as Node
+    return depthH ?? 0
   })
 
   console.log('hey sankey diagram', Math.max(2.4, inputCount) / 10)
@@ -189,13 +190,9 @@ function SSSankeyDiagram({
     [links]
   )
 
-  if (!nodes?.length) {
+  if (!nodes?.length || !links?.length) {
     return null
   }
-
-  // if (!nodes?.length || !links?.length) {
-  //   return null
-  // }
   return (
     <View style={{ flex: 1 }}>
       <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>

@@ -121,6 +121,7 @@ function getBlockDepth(size: number, currentIndex: number) {
   const group = Math.floor(currentIndex / size)
   return 1 + 2 * group
 }
+const txLevel = 2
 
 export default function IOPreview() {
   const router = useRouter()
@@ -136,8 +137,8 @@ export default function IOPreview() {
       state.addOutput
     ])
   )
-  const txlevel = 2
-  const { transactions, loading, error } = useInputTransactions(inputs, txlevel)
+
+  const { transactions, loading, error } = useInputTransactions(inputs, txLevel)
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -173,13 +174,6 @@ export default function IOPreview() {
     setAddOutputModalVisible(false)
   }
 
-  const pendingInputNodes = useMemo(() => {
-    if (inputs.size === 0) return []
-    return Array.from(inputs.entries()).map(([, input], index) => ({
-      value: input.value
-    }))
-  }, [inputs])
-
   const sankeyNodes = useMemo(() => {
     if (inputs.size > 0) {
       const { size, vsize } = estimateTransactionSize(
@@ -187,12 +181,13 @@ export default function IOPreview() {
         outputs.length + 2
       )
 
-      const blockDepth = txlevel * 2 + 1
+      const blockDepth = txLevel * 2 + 1
       const blockNode = [
         {
           id: `block-${blockDepth}-0`,
           type: 'block',
-          depth: blockDepth,
+          depthH: blockDepth,
+
           textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
         }
       ]
@@ -201,9 +196,9 @@ export default function IOPreview() {
       const priority = '42 sats/vB'
       const outputNodes = [
         {
-          id: String(inputs.size + 2),
+          id: `vout-${txLevel * 2 + 2}-0`,
           type: 'text',
-          depth: blockDepth + 1,
+          depthH: txLevel * 2 + 2,
           textInfo: [
             'Unspent',
             `${utxosSelectedValue - MINING_FEE_VALUE}`,
@@ -212,9 +207,9 @@ export default function IOPreview() {
           value: utxosSelectedValue - MINING_FEE_VALUE
         },
         {
-          id: String(inputs.size + 3),
+          id: `vout-${txLevel * 2 + 2}-1`,
           type: 'text',
-          depth: txlevel * 2 + 2,
+          depthH: txLevel * 2 + 2,
           textInfo: [priority, miningFee, 'mining fee'],
           value: MINING_FEE_VALUE
         }
@@ -225,32 +220,29 @@ export default function IOPreview() {
     }
   }, [inputs.size, outputs.length, utxosSelectedValue])
 
-  const outputsArray = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout ?? []
-  )
   // Get all output values at once using flatMap
   const outputAddresses = Array.from(transactions.values()).flatMap(
     (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
   )
 
+  const incomingAndOutgoingVinTxId = Array.from(transactions.values()).flatMap(
+    (tx) =>
+      tx.vin
+        .filter((input) => {
+          return outputAddresses.includes(input.prevout.scriptpubkey_address)
+        })
+        // .map((input) => `${input.txid}:${input.vout}`)
+        .map((input) => ({
+          txid: `${tx.txid}`,
+          prevValue: input.prevout.value
+        }))
+  )
+
   const confirmedSankeyNodes: Node[] = useMemo(() => {
-    // const totalLengthVins = Array.from(transactions.values()).reduce(
-    //   (sum, tx) => sum + (tx.vin?.length ?? 0),
-    //   0
-    // )
-    // const totalLengthVouts = Array.from(transactions.values()).reduce(
-    //   (sum, tx) => sum + (tx.vout?.length ?? 0),
-    //   0
-    // )
     if (transactions.size > 0 && inputs.size > 0) {
-      console.log('__start')
       return Array.from(transactions.entries()).flatMap(([, tx], index) => {
         if (!tx.vin || !tx.vout) return []
-        const inputDepth =
-          index < inputs.size
-            ? 0
-            : Math.floor(index / inputs.size) * inputs.size
-        // const inputIndexInDepth = index % inputs.size
+
         // Filter input nodes to exclude those with matching values
         const allInputNodes = tx.vin
           .filter((input) => {
@@ -261,25 +253,18 @@ export default function IOPreview() {
             return {
               id: `vin-${depth}-${index + idx}`,
               type: 'text',
-              depth,
+              depthH: depth,
               textInfo: [
                 `${input.prevout.value}`,
                 `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
                 ''
               ],
-              value: input.prevout.value
+              value: input.prevout.value,
+              txId: tx.txid
             }
           })
-        // console.log('allInputNodes', allInputNodes)
-
-        // only keep input nodes that do not have outgoing and incoming links
-        // const trimmedInputNodes = allInputNodes.filter(
-        //   (input) => !outputAddresses.includes(input.address)
-        // )
 
         const vsize = Math.ceil(tx.weight * 0.25)
-
-        // const totalVins = allInputNodes.length
 
         const blockDepth = getBlockDepth(inputs.size, index)
         // const blockIndex =
@@ -287,30 +272,32 @@ export default function IOPreview() {
           {
             id: `block-${blockDepth}`,
             type: 'block',
-            depth: blockDepth,
-            textInfo: ['', '', `${tx.size} B`, `${vsize} vB`] //TODO: check the size value
+            depthH: blockDepth,
+            textInfo: ['', '', `${tx.size} B`, `${vsize} vB`], //TODO: check the size value
+            txId: tx.txid
           }
         ]
 
-        // console.log('blockNode', blockNode)
-        // const outputIndexInDepth = index % totalLengthVouts
-        const outputNodes = tx.vout.map((output, idx) => {
+        const outputNodes = tx.vout.map((output) => {
           const outputDepth = getBlockDepth(inputs.size, index) + 1
 
           return {
             id: `vout-${outputDepth}`,
             type: 'text',
-            depth: outputDepth,
+            depthH: outputDepth,
             textInfo: [
               `${output.value}`,
               `${formatAddress(output.scriptpubkey_address, 6)}`,
               ''
             ],
-            value: output.value
+            value: output.value,
+            txId: tx.txid,
+            nextTx:
+              incomingAndOutgoingVinTxId.find(
+                ({ prevValue }) => prevValue === output.value
+              )?.txid ?? ''
           }
         })
-
-        // console.log('outputNodes', outputNodes)
 
         return [...allInputNodes, ...blockNode, ...outputNodes].sort(
           (a, b) => a.depth - b.depth
@@ -318,217 +305,114 @@ export default function IOPreview() {
       })
     }
     return []
-  }, [inputs.size, outputAddresses, transactions])
-  console.log('confirmedSankeyNodes->>', confirmedSankeyNodes)
+  }, [incomingAndOutgoingVinTxId, inputs.size, outputAddresses, transactions])
 
   const realNodes: Node[] = useMemo(() => {
     if (confirmedSankeyNodes.length === 0) return []
     const depthIndices: { [key: number]: number } = {} // Keeps track of current index for each depth
-    return confirmedSankeyNodes.map(({ id, depth, ...rest }) => {
+    return confirmedSankeyNodes.map(({ id, depthH, ...rest }) => {
       // Initialize index if this depth hasn't been seen yet
-      if (!(depth in depthIndices)) {
-        depthIndices[depth] = 0
+      if (!(depthH in depthIndices)) {
+        depthIndices[depthH] = 0
       }
 
       return {
         id:
           id.startsWith('vout') || id.startsWith('block')
-            ? `${id}-${depthIndices[depth]++}`
+            ? `${id}-${depthIndices[depthH]++}`
             : `${id}`,
-        depth,
+        depthH,
         ...rest
       }
     })
   }, [confirmedSankeyNodes])
 
-  const allNodes = [...sankeyNodes, ...realNodes].sort(
-    (a, b) => a.depth - b.depth
+  console.log('LLL', { realNodes, sankeyNodes })
+
+  const allNodes = [...realNodes, ...sankeyNodes].sort(
+    (a, b) => a.depthH - b.depthH
   )
 
-  // const getCircularReplacer = () => {
-  //   const seen = new WeakSet()
-  //   return (key, value) => {
-  //     if (typeof value === 'object' && value !== null) {
-  //       if (seen.has(value)) return '[Circular]'
-  //       seen.add(value)
-  //     }
-  //     return value
-  //   }
-  // }
-
-  // console.log(JSON.stringify(allNodes, getCircularReplacer(), 2)) // Pretty-printed
-
   const links = useMemo(() => {
-    return []
-    const nodes = allNodes
+    function generateSankeyLinks(nodes) {
+      const links = []
+      const depthMap = new Map()
 
-    const links = []
-    const depthGroups = {}
+      // Group nodes by their depth for efficient lookup
+      nodes.forEach((node) => {
+        const depth = node.depthH
+        if (!depthMap.has(depth)) {
+          depthMap.set(depth, [])
+        }
+        depthMap.get(depth).push(node)
+      })
 
-    // Group nodes by their depth and sort them by ID
-    nodes.forEach((node) => {
-      if (!depthGroups[node.depth]) depthGroups[node.depth] = []
-      depthGroups[node.depth].push(node)
-    })
-
-    // Sort each depth group by node ID
-    Object.values(depthGroups).forEach((group) => {
-      group.sort((a, b) => a.id.localeCompare(b.id))
-    })
-
-    // Create connections between depths
-    for (let depth = 0; depth <= 5; depth++) {
-      const currentNodes = depthGroups[depth] || []
-      const nextDepthNodes = depthGroups[depth + 1] || []
-
-      if (depth % 2 === 0) {
-        // Even depth (text nodes)
-        currentNodes.forEach((node, i) => {
-          if (nextDepthNodes[i]) {
+      // Process each node to generate links
+      nodes.forEach((node) => {
+        if (node.type === 'text' && node.depthH === 0) {
+          // Handle vin nodes (depth 0) linking to block in next depth
+          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+          const targetBlock = nextDepthNodes.find(
+            (n) => n.type === 'block' && n.txId === node.txId
+          )
+          if (targetBlock) {
             links.push({
               source: node.id,
-              target: nextDepthNodes[i].id,
+              target: targetBlock.id,
               value: node.value
             })
           }
-        })
-      } else {
-        // Odd depth (block nodes)
-        currentNodes.forEach((node, i) => {
-          const targets = nextDepthNodes.slice(i * 2, i * 2 + 2)
-          targets.forEach((target) => {
+        } else if (node.type === 'block') {
+          // Handle block nodes linking to vouts in next depth with same txId
+          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+          const vouts = nextDepthNodes.filter(
+            (n) => n.type === 'text' && n.txId === node.txId
+          )
+          vouts.forEach((vout) => {
+            links.push({ source: node.id, target: vout.id, value: vout.value })
+          })
+        } else if (node.type === 'text' && node.depthH > 0 && node.nextTx) {
+          // Handle vout nodes with nextTx linking to block in next depth
+          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+          const targetBlock = nextDepthNodes.find(
+            (n) => n.type === 'block' && n.txId === node.nextTx
+          )
+          if (targetBlock) {
             links.push({
               source: node.id,
-              target: target.id,
+              target: targetBlock.id,
               value: node.value
             })
-          })
-        })
-      }
+          }
+        } else if (node.type === 'text' && node.depthH === txLevel * 2) {
+          const targetBlock = sankeyNodes[0].id
+          if (targetBlock) {
+            links.push({
+              source: node.id,
+              target: targetBlock,
+              value: node.value
+            })
+          }
+        }
+      })
+      links.push({
+        source: sankeyNodes[0].id,
+        target: sankeyNodes[1].id,
+        value: sankeyNodes[1]?.value ?? 0
+      })
+
+      links.push({
+        source: sankeyNodes[0].id,
+        target: sankeyNodes[2].id,
+        value: sankeyNodes[2]?.value ?? 0
+      })
+      return links
     }
+    if (allNodes?.length === 0) return []
 
-    return links
-  }, [allNodes])
+    return generateSankeyLinks(realNodes)
+  }, [realNodes])
 
-  const confirmedSankeyLinks = useMemo(() => {
-    // if (transactions.size === 0) return []
-    if (true) return []
-
-    const txLinks = Array.from(transactions.entries()).flatMap(
-      ([, tx], index) => {
-        if (!tx.vin || !tx.vout) return []
-
-        // Get all output values at once using flatMap
-
-        const inputToBlockLinks = tx.vin
-          .filter(
-            (input) =>
-              !outputAddresses.includes(input.prevout.scriptpubkey_address)
-          )
-          .map((input, idx) => ({
-            source: `vin-${index}-${idx}`,
-            target: `block-${index}`,
-            value: input.prevout.value
-          }))
-        console.log('inputToBlockLinks', inputToBlockLinks)
-
-        const blockToOutputLinks = tx.vout.map((output, idx) => ({
-          source: `block-${index}`,
-          target: `vout-${index}-${idx}`,
-          value: output.value
-        }))
-
-        const sameIndexForConfirmed = tx.vout.findIndex((output) => {
-          // console.log(
-          //   'array of value',
-          //   Array.from(transactions.values()).find((tx) =>
-          //     tx.vin.some((vin) => vin.prevout.value === output.value)
-          //   )
-          // )
-          const found =
-            output.value ===
-            Array.from(transactions.values())
-              .find((tx) =>
-                tx.vin.some((vin) => vin.prevout.value === output.value)
-              )
-              ?.vin.find((vin) => vin.prevout.value === output.value)?.prevout
-              .value
-          console.log('found with same index', found, output.value)
-          return found
-        })
-
-        // const blockToOutputLinksConfirmed = tx.vout.map((output, idx) => ({
-        //   source: `block-${index}`,
-        //   target: `vout-${index}-${sameIndexForConfirmed}`,
-        //   value: output.value
-        // }))
-
-        const outputToBlockLinks =
-          sameIndexForConfirmed !== -1
-            ? [
-                {
-                  source: `vout-${index}-${sameIndexForConfirmed}`,
-                  target: `block-${index + 1}`,
-                  value: tx.vout[sameIndexForConfirmed].value
-                }
-              ]
-            : []
-
-        console.log('sameIndexForConfirmed', {
-          sameIndexForConfirmed,
-          index,
-          outputToBlockLinks
-        })
-
-        const sameIndex = tx.vout.findIndex(
-          (o) =>
-            o.value ===
-            pendingInputNodes.find((node) => node.value === o.value)?.value
-        )
-
-        const confirmedToPendingLinks =
-          sameIndex !== -1
-            ? [
-                {
-                  source: `vout-${index}-${sameIndex}`,
-                  target: `${inputs.size + 1}`,
-                  value: tx.vout[sameIndex].value
-                }
-              ]
-            : []
-
-        return [
-          ...inputToBlockLinks,
-          ...blockToOutputLinks,
-          ...confirmedToPendingLinks,
-          ...outputToBlockLinks
-          // ...completedInputToCompletedLink
-        ]
-      }
-    )
-
-    const blockToOutputLinks = [
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 2),
-        value: utxosSelectedValue - MINING_FEE_VALUE
-      },
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 3),
-        value: MINING_FEE_VALUE
-      }
-    ]
-
-    return [...txLinks, ...blockToOutputLinks]
-  }, [
-    transactions,
-    inputs.size,
-    utxosSelectedValue,
-    outputAddresses,
-    pendingInputNodes
-  ])
-  console.log('TX', Array.from(transactions.values()))
   // Show loading state
   if (loading && inputs.size > 0) {
     return (
@@ -548,7 +432,7 @@ export default function IOPreview() {
       </SSVStack>
     )
   }
-
+  console.log('TX', Array.from(transactions.values()))
   console.log('nodes', allNodes)
   console.log('links', links)
 
@@ -638,11 +522,11 @@ export default function IOPreview() {
       <View style={{ position: 'absolute', top: 80 }}>
         {transactions.size > 0 &&
         inputs.size > 0 &&
-        allNodes.length > 0 &&
-        links.length > 0 ? (
+        allNodes?.length > 0 &&
+        links?.length > 0 ? (
           <SSSankeyDiagram
             sankeyNodes={allNodes}
-            sankeyLinks={[]}
+            sankeyLinks={links}
             inputCount={inputs.size}
           />
         ) : null}
