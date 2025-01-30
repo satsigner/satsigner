@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Canvas, Rect, Circle, Skia, Path } from '@shopify/react-native-skia'
-import { StyleSheet, View } from 'react-native'
+import {
+  Canvas,
+  Rect,
+  Circle,
+  Skia,
+  Path,
+  Paint,
+  DashPathEffect,
+  useFonts,
+  TextAlign,
+  Paragraph
+} from '@shopify/react-native-skia'
+import { StyleSheet, View, Text, Platform } from 'react-native'
 import { useRouter } from 'expo-router'
 import SSIconButton from '@/components/SSIconButton'
 import {
@@ -9,22 +20,27 @@ import {
   SSIconChevronLeft,
   SSIconChevronRight
 } from '@/components/icons'
+import { color, rgb } from 'd3'
+import { Colors } from '@/styles'
 
 // Constants
 const maxBlocksPerSpiral: number = 2016
 const factorBlockDistance: number = 0.04
 const radiusSpiralStart: number = 1
 const factorSpiralGrowth: number = 0.8
-const canvasSize = 500 // Canvas dimensions
+const canvasWidth = 500 // Canvas dimensions
+const canvasHeight = 650
 const blockSize = 3 // Block size in pixels
 const maxLoggingBlock = 10
+const debugLog = false
+const radiusWeeks = [110, 160, 220, 270]
 
 // color
 const min_brightness: number = 20
 const maxBrightnessSize: number = 5000
 
 const dataLink = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
-const dataFile = 'rcp_bitcoin_block_data_0006048.json'
+//const dataFile = 'rcp_bitcoin_block_data_0006048.json'
 
 /**
  * Newton-Raphson method to find roots of a function
@@ -78,6 +94,46 @@ export default function SSSpiralBlocks() {
   const [currentFileIndex, setCurrentFileIndex] = useState(0) // State for current file index
   const router = useRouter()
 
+  const customFontManager = useFonts({
+    'SF Pro Text': [
+      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+    ]
+  })
+
+  const fontSize = 12
+  const dateText = '1 WEEK'
+
+  const TextStyleWeeks = {
+    color: Skia.Color(Colors.gray[100]),
+    fontFamilies: ['SF Pro Text'],
+    fontSize: fontSize,
+    fontStyle: {
+      weight: 400
+    }
+  }
+
+  const createParagraph = (text: string) => {
+    if (!customFontManager) return null
+
+    const para = Skia.ParagraphBuilder.Make({
+      maxLines: 1,
+      textAlign: TextAlign.Center
+    })
+      .pushStyle(TextStyleWeeks)
+      .addText(text)
+      .pop()
+      .build()
+
+    para.layout(100)
+    return para
+  }
+  const pWeek1 = useMemo(() => createParagraph('1 WEEK'), [customFontManager])
+  const pWeek2 = useMemo(() => createParagraph('2 WEEKS'), [customFontManager])
+  const pWeek3 = useMemo(() => createParagraph('3 WEEKS'), [customFontManager])
+  const pWeek4 = useMemo(() => createParagraph('4 WEEKS'), [customFontManager])
+
   const fetchData = async () => {
     try {
       const fileName = getFileName(currentFileIndex)
@@ -99,7 +155,7 @@ export default function SSSpiralBlocks() {
 
     var spiralData = spiralDataRaw[0]
 
-    console.log('Loaded Data:', spiralData) // Log the data before calculations
+    if (debugLog) console.log('Loaded Data:', spiralData) // Log the data before calculations
 
     const blocks = []
 
@@ -139,12 +195,13 @@ export default function SSSpiralBlocks() {
       //let brightness = min_brightness + ((Math.log(size + 1) - logMin) / (logMax - logMin)) *(256 - min_brightness)
       let brightness = min_brightness + (size / maxBrightnessSize) * 256
 
-      if (i < maxLoggingBlock)
-        console.log(
-          `Block: ${i} x: ${x} y: ${y} phi ${phi_spiral}  td: ${timeDifference} size: ${size} brght: ${brightness} `
-        )
-      if (i == maxLoggingBlock) console.log('(...)')
-
+      if (debugLog) {
+        if (i < maxLoggingBlock)
+          console.log(
+            `Block: ${i} x: ${x} y: ${y} phi ${phi_spiral}  td: ${timeDifference} size: ${size} brght: ${brightness} `
+          )
+        if (i == maxLoggingBlock) console.log('(...)')
+      }
       // Add the block to the array
       blocks.push({
         x,
@@ -155,7 +212,7 @@ export default function SSSpiralBlocks() {
       })
     }
 
-    console.log('Spiral Blocks:', blocks) // Debugging output
+    if (debugLog) console.log('Spiral Blocks:', blocks) // Debugging output
 
     return blocks
   }, [isDataLoaded, spiralDataRaw]) // Recompute when data or loading status changes
@@ -165,7 +222,12 @@ export default function SSSpiralBlocks() {
       <View style={styles.container}>
         <Canvas style={styles.canvas}>
           {/* Loading indication */}
-          <Circle cx={canvasSize / 2} cy={canvasSize / 2} r={50} color="grey" />
+          <Circle
+            cx={canvasWidth / 2}
+            cy={canvasHeight / 2}
+            r={50}
+            color="red"
+          />
         </Canvas>
       </View>
     )
@@ -173,6 +235,50 @@ export default function SSSpiralBlocks() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.topContainer}>
+        {/* First row */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text
+            style={{ color: 'white', fontSize: 28, fontFamily: 'SF Pro Text' }}
+          >
+            ~0.0 mins
+          </Text>
+          <Text
+            style={{ color: 'white', fontSize: 28, fontFamily: 'SF Pro Text' }}
+          >
+            ~0 days
+          </Text>
+        </View>
+
+        {/* Second row */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginTop: 5
+          }}
+        >
+          <Text
+            style={{
+              color: '#aaa',
+              fontSize: 14,
+              fontFamily: 'SF Pro Text'
+            }}
+          >
+            Avg Block
+          </Text>
+          <Text
+            style={{
+              color: '#aaa',
+              fontSize: 14,
+              fontFamily: 'SF Pro Text'
+            }}
+          >
+            Adjustment Time
+          </Text>
+        </View>
+      </View>
+
       <Canvas style={styles.canvas}>
         {spiralBlocks.map((block, index) => {
           const path = Skia.Path.Make()
@@ -196,25 +302,47 @@ export default function SSSpiralBlocks() {
 
           // Create the path for the rotated rectangle
           path.moveTo(
-            points[0][0] + canvasSize / 2,
-            points[0][1] + canvasSize / 2
+            points[0][0] + canvasWidth / 2,
+            points[0][1] + canvasHeight / 2
           )
           path.lineTo(
-            points[1][0] + canvasSize / 2,
-            points[1][1] + canvasSize / 2
+            points[1][0] + canvasWidth / 2,
+            points[1][1] + canvasHeight / 2
           )
           path.lineTo(
-            points[2][0] + canvasSize / 2,
-            points[2][1] + canvasSize / 2
+            points[2][0] + canvasWidth / 2,
+            points[2][1] + canvasHeight / 2
           )
           path.lineTo(
-            points[3][0] + canvasSize / 2,
-            points[3][1] + canvasSize / 2
+            points[3][0] + canvasWidth / 2,
+            points[3][1] + canvasHeight / 2
           )
           path.close()
 
           return <Path key={index} path={path} color={block.color} />
         })}
+        {radiusWeeks.map((r, index) => {
+          const myColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
+
+          return (
+            <Circle
+              cx={canvasWidth / 2}
+              cy={canvasHeight / 2}
+              r={r}
+              color="transparent"
+            >
+              <Paint color={myColor} style="stroke" strokeWidth={1}>
+                <DashPathEffect intervals={[5, 5]} phase={0} />
+              </Paint>
+            </Circle>
+          )
+        })}
+
+        {/*<Text x={0} y={fontSize} text="Hello World" font={font} />*/}
+        <Paragraph paragraph={pWeek1} x={0} y={220} width={canvasWidth} />
+        <Paragraph paragraph={pWeek3} x={0} y={170} width={canvasWidth} />
+        <Paragraph paragraph={pWeek3} x={0} y={110} width={canvasWidth} />
+        <Paragraph paragraph={pWeek4} x={0} y={60} width={canvasWidth} />
       </Canvas>
 
       {/* Navigation Buttons */}
@@ -223,12 +351,37 @@ export default function SSSpiralBlocks() {
           onPress={() =>
             setCurrentFileIndex((prevIndex) => Math.max(prevIndex - 1, 0))
           }
+          style={styles.chevronButton}
         >
           <SSIconChevronLeft height={22} width={24} />
         </SSIconButton>
 
+        <View style={{ alignItems: 'center', marginHorizontal: 16 }}>
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 20,
+              fontWeight: 'bold',
+              fontFamily: 'SF Pro Text'
+            }}
+          >
+            000
+          </Text>
+          <Text
+            style={{ color: 'white', fontSize: 14, fontFamily: 'SF Pro Text' }}
+          >
+            000000-000000
+          </Text>
+          <Text
+            style={{ color: '#888', fontSize: 12, fontFamily: 'SF Pro Text' }}
+          >
+            01-10 January, 2020
+          </Text>
+        </View>
+
         <SSIconButton
           onPress={() => setCurrentFileIndex((prevIndex) => prevIndex + 1)}
+          style={styles.chevronButton}
         >
           <SSIconChevronRight height={22} width={24} />
         </SSIconButton>
@@ -239,6 +392,21 @@ export default function SSSpiralBlocks() {
 
 // Styles
 const styles = StyleSheet.create({
+  topContainer: {
+    width: '100%',
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    position: 'absolute',
+    top: 80
+  },
+
+  floatingContainer: {
+    position: 'absolute', // Allows overlapping
+    bottom: 20, // Adjusts how far from the bottom it is
+    left: 0,
+    right: 0,
+    alignItems: 'center' // Centers content horizontally
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -246,15 +414,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000' // Black background
   },
   canvas: {
-    width: canvasSize, // Canvas width
-    height: canvasSize, // Canvas height
-    backgroundColor: '#000000' // Black canvas background
+    width: canvasWidth, // Canvas width
+    height: canvasHeight, // Canvas height
+    backgroundColor: '#000', // Black canvas background
+    position: 'absolute', // Allows overlapping
+    bottom: 20 // Adjusts how far from the bottom it is
   },
 
   buttonContainer: {
     flexDirection: 'row', // Align buttons horizontally
     justifyContent: 'center', // Center buttons horizontally
     alignItems: 'center', // Center buttons vertically
-    marginTop: 16 // Optional margin between the canvas and the buttons
+    marginTop: 16, // Optional margin between the canvas and the buttons
+    position: 'absolute', // Allows overlapping
+    bottom: 20, // Adjusts how far from the bottom it is
+    left: 0,
+    right: 0
+  },
+  chevronButton: {
+    height: 80,
+    width: 80,
+    borderWidth: 0.5, // Border thickness
+    borderColor: '#888', // Border color (greyish)
+    borderRadius: 10, // Rounded corners
+    justifyContent: 'center', // Center vertically
+    alignItems: 'center', // Center horizontally
+    marginHorizontal: 10 // Space between buttons
   }
 })
