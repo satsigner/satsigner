@@ -183,7 +183,7 @@ export default function IOPreview() {
           id: `block-${blockDepth}-0`,
           type: 'block',
           depthH: blockDepth,
-
+          value: 0,
           textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
         }
       ]
@@ -328,12 +328,12 @@ export default function IOPreview() {
   )
 
   const links = useMemo(() => {
-    function generateSankeyLinks(nodes) {
+    function generateSankeyLinks(nodes: Node[]) {
       const links = []
       const depthMap = new Map()
 
       // Group nodes by their depth for efficient lookup
-      nodes.forEach((node) => {
+      nodes.forEach((node: Node) => {
         const depth = node.depthH
         if (!depthMap.has(depth)) {
           depthMap.set(depth, [])
@@ -342,12 +342,12 @@ export default function IOPreview() {
       })
 
       // Process each node to generate links
-      nodes.forEach((node) => {
+      nodes.forEach((node: Node) => {
         if (node.type === 'text' && node.depthH === 0) {
           // Handle vin nodes (depth 0) linking to block in next depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
-            (n) => n.type === 'block' && n.txId === node.txId
+            (n: Node) => n.type === 'block' && n.txId === node.txId
           )
           if (targetBlock) {
             links.push({
@@ -360,16 +360,16 @@ export default function IOPreview() {
           // Handle block nodes linking to vouts in next depth with same txId
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const vouts = nextDepthNodes.filter(
-            (n) => n.type === 'text' && n.txId === node.txId
+            (n: Node) => n.type === 'text' && n.txId === node.txId
           )
-          vouts.forEach((vout) => {
+          vouts.forEach((vout: Node) => {
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
         } else if (node.type === 'text' && node.depthH > 0 && node.nextTx) {
           // Handle vout nodes with nextTx linking to block in next depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
-            (n) => n.type === 'block' && n.txId === node.nextTx
+            (n: Node) => n.type === 'block' && n.txId === node.nextTx
           )
           if (targetBlock) {
             links.push({

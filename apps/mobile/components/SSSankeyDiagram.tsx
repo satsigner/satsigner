@@ -34,6 +34,8 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   type?: string
   textInfo: string[]
   value?: number
+  txId?: string
+  nextTx?: string
 }
 
 interface LinkPoints {
