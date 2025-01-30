@@ -57,25 +57,21 @@ function useInputTransactions(inputs: Map<string, Utxo>, depth: number = 2) {
             if (processed.has(txid)) return
             processed.add(txid)
 
-            try {
-              const tx = (await oracle.getTransaction(txid)) as EsploraTx
-              newTransactions.set(txid, tx)
+            const tx = (await oracle.getTransaction(txid)) as EsploraTx
+            newTransactions.set(txid, tx)
 
-              // Collect parent txids for next level
-              if (tx.vin) {
-                tx.vin.forEach((vin) => {
-                  const parentTxid = vin.txid
-                  if (
-                    parentTxid &&
-                    !processed.has(parentTxid) &&
-                    !queue.includes(parentTxid)
-                  ) {
-                    queue.push(parentTxid)
-                  }
-                })
-              }
-            } catch (err) {
-              console.error('Error fetching transaction:', txid, err)
+            // Collect parent txids for next level
+            if (tx.vin) {
+              tx.vin.forEach((vin) => {
+                const parentTxid = vin.txid
+                if (
+                  parentTxid &&
+                  !processed.has(parentTxid) &&
+                  !queue.includes(parentTxid)
+                ) {
+                  queue.push(parentTxid)
+                }
+              })
             }
           })
         )
@@ -121,7 +117,7 @@ function getBlockDepth(size: number, currentIndex: number) {
   const group = Math.floor(currentIndex / size)
   return 1 + 2 * group
 }
-const txLevel = 2
+const txLevel = 3
 
 export default function IOPreview() {
   const router = useRouter()
@@ -300,7 +296,7 @@ export default function IOPreview() {
         })
 
         return [...allInputNodes, ...blockNode, ...outputNodes].sort(
-          (a, b) => a.depth - b.depth
+          (a, b) => a.depthH - b.depthH
         )
       })
     }
@@ -326,8 +322,6 @@ export default function IOPreview() {
       }
     })
   }, [confirmedSankeyNodes])
-
-  console.log('LLL', { realNodes, sankeyNodes })
 
   const allNodes = [...realNodes, ...sankeyNodes].sort(
     (a, b) => a.depthH - b.depthH
@@ -411,7 +405,7 @@ export default function IOPreview() {
     if (allNodes?.length === 0) return []
 
     return generateSankeyLinks(realNodes)
-  }, [realNodes])
+  }, [allNodes?.length, realNodes, sankeyNodes])
 
   // Show loading state
   if (loading && inputs.size > 0) {
@@ -432,9 +426,6 @@ export default function IOPreview() {
       </SSVStack>
     )
   }
-  console.log('TX', Array.from(transactions.values()))
-  console.log('nodes', allNodes)
-  console.log('links', links)
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -531,7 +522,7 @@ export default function IOPreview() {
           />
         ) : null}
       </View>
-      {/* <LinearGradient
+      <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
           position: 'absolute',
@@ -579,7 +570,7 @@ export default function IOPreview() {
             }
           />
         </SSVStack>
-      </LinearGradient> */}
+      </LinearGradient>
       <SSModal
         visible={addOutputModalVisible}
         fullOpacity

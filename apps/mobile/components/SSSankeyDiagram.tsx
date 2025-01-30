@@ -28,7 +28,7 @@ interface Link extends SankeyLinkMinimal<object, object> {
 
 export interface Node extends SankeyNodeMinimal<object, object> {
   id: string
-  depth: number
+  depth?: number
   depthH: number
   address?: string
   type?: string
@@ -132,8 +132,6 @@ function SSSankeyDiagram({
     return depthH ?? 0
   })
 
-  console.log('hey sankey diagram', Math.max(2.4, inputCount) / 10)
-
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
     links: sankeyLinks.map((item) => ({
@@ -141,10 +139,6 @@ function SSSankeyDiagram({
       target: item.target,
       value: item.value
     }))
-  })
-  console.log('sankey diagram', {
-    sankeyNodes,
-    sankeyLinks
   })
 
   const getLinkWidth = useCallback(
