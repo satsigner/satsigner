@@ -170,7 +170,7 @@ export default function IOPreview() {
     setAddOutputModalVisible(false)
   }
 
-  const sankeyNodes = useMemo(() => {
+  const ingoingNodes = useMemo(() => {
     if (inputs.size > 0) {
       const { size, vsize } = estimateTransactionSize(
         inputs.size,
@@ -227,103 +227,103 @@ export default function IOPreview() {
         .filter((input) => {
           return outputAddresses.includes(input.prevout.scriptpubkey_address)
         })
-        // .map((input) => `${input.txid}:${input.vout}`)
         .map((input) => ({
           txid: `${tx.txid}`,
           prevValue: input.prevout.value
         }))
   )
 
-  const confirmedSankeyNodes: Node[] = useMemo(() => {
+  const confirmedNodes: Node[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
-      return Array.from(transactions.entries()).flatMap(([, tx], index) => {
-        if (!tx.vin || !tx.vout) return []
+      const previousNodes = Array.from(transactions.entries()).flatMap(
+        ([, tx], index) => {
+          if (!tx.vin || !tx.vout) return []
 
-        // Filter input nodes to exclude those with matching values
-        const allInputNodes = tx.vin
-          .filter((input) => {
-            return !outputAddresses.includes(input.prevout.scriptpubkey_address)
-          })
-          .map((input, idx) => {
-            const depth = 0
+          // Filter input nodes to exclude those with matching values
+          const allInputNodes = tx.vin
+            .filter((input) => {
+              return !outputAddresses.includes(
+                input.prevout.scriptpubkey_address
+              )
+            })
+            .map((input, idx) => {
+              const depth = 0
+              return {
+                id: `vin-${depth}-${index + idx}`,
+                type: 'text',
+                depthH: depth,
+                textInfo: [
+                  `${input.prevout.value}`,
+                  `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+                  ''
+                ],
+                value: input.prevout.value,
+                txId: tx.txid
+              }
+            })
+
+          const vsize = Math.ceil(tx.weight * 0.25)
+
+          const blockDepth = getBlockDepth(inputs.size, index)
+
+          const blockNode = [
+            {
+              id: `block-${blockDepth}`,
+              type: 'block',
+              depthH: blockDepth,
+              textInfo: ['', '', `${tx.size} B`, `${vsize} vB`], //TODO: check the size value
+              txId: tx.txid
+            }
+          ]
+
+          const outputNodes = tx.vout.map((output) => {
+            const outputDepth = getBlockDepth(inputs.size, index) + 1
+
             return {
-              id: `vin-${depth}-${index + idx}`,
+              id: `vout-${outputDepth}`,
               type: 'text',
-              depthH: depth,
+              depthH: outputDepth,
               textInfo: [
-                `${input.prevout.value}`,
-                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+                `${output.value}`,
+                `${formatAddress(output.scriptpubkey_address, 6)}`,
                 ''
               ],
-              value: input.prevout.value,
-              txId: tx.txid
+              value: output.value,
+              txId: tx.txid,
+              nextTx:
+                incomingAndOutgoingVinTxId.find(
+                  ({ prevValue }) => prevValue === output.value
+                )?.txid ?? ''
             }
           })
 
-        const vsize = Math.ceil(tx.weight * 0.25)
+          return [...allInputNodes, ...blockNode, ...outputNodes].sort(
+            (a, b) => a.depthH - b.depthH
+          )
+        }
+      )
 
-        const blockDepth = getBlockDepth(inputs.size, index)
-        // const blockIndex =
-        const blockNode = [
-          {
-            id: `block-${blockDepth}`,
-            type: 'block',
-            depthH: blockDepth,
-            textInfo: ['', '', `${tx.size} B`, `${vsize} vB`], //TODO: check the size value
-            txId: tx.txid
-          }
-        ]
+      const depthIndices: { [key: number]: number } = {} // Keeps track of current index for each depth
+      return previousNodes.map(({ id, depthH, ...rest }) => {
+        // Initialize index if this depth hasn't been seen yet
+        if (!(depthH in depthIndices)) {
+          depthIndices[depthH] = 0
+        }
 
-        const outputNodes = tx.vout.map((output) => {
-          const outputDepth = getBlockDepth(inputs.size, index) + 1
-
-          return {
-            id: `vout-${outputDepth}`,
-            type: 'text',
-            depthH: outputDepth,
-            textInfo: [
-              `${output.value}`,
-              `${formatAddress(output.scriptpubkey_address, 6)}`,
-              ''
-            ],
-            value: output.value,
-            txId: tx.txid,
-            nextTx:
-              incomingAndOutgoingVinTxId.find(
-                ({ prevValue }) => prevValue === output.value
-              )?.txid ?? ''
-          }
-        })
-
-        return [...allInputNodes, ...blockNode, ...outputNodes].sort(
-          (a, b) => a.depthH - b.depthH
-        )
+        return {
+          id:
+            id.startsWith('vout') || id.startsWith('block')
+              ? `${id}-${depthIndices[depthH]++}`
+              : `${id}`,
+          depthH,
+          ...rest
+        }
       })
     }
     return []
   }, [incomingAndOutgoingVinTxId, inputs.size, outputAddresses, transactions])
 
-  const realNodes: Node[] = useMemo(() => {
-    if (confirmedSankeyNodes.length === 0) return []
-    const depthIndices: { [key: number]: number } = {} // Keeps track of current index for each depth
-    return confirmedSankeyNodes.map(({ id, depthH, ...rest }) => {
-      // Initialize index if this depth hasn't been seen yet
-      if (!(depthH in depthIndices)) {
-        depthIndices[depthH] = 0
-      }
-
-      return {
-        id:
-          id.startsWith('vout') || id.startsWith('block')
-            ? `${id}-${depthIndices[depthH]++}`
-            : `${id}`,
-        depthH,
-        ...rest
-      }
-    })
-  }, [confirmedSankeyNodes])
-
-  const allNodes = [...realNodes, ...sankeyNodes].sort(
+  const allNodes = [...confirmedNodes, ...ingoingNodes].sort(
     (a, b) => a.depthH - b.depthH
   )
 
@@ -379,7 +379,7 @@ export default function IOPreview() {
             })
           }
         } else if (node.type === 'text' && node.depthH === txLevel * 2) {
-          const targetBlock = sankeyNodes[0].id
+          const targetBlock = ingoingNodes[0].id
           if (targetBlock) {
             links.push({
               source: node.id,
@@ -390,22 +390,22 @@ export default function IOPreview() {
         }
       })
       links.push({
-        source: sankeyNodes[0].id,
-        target: sankeyNodes[1].id,
-        value: sankeyNodes[1]?.value ?? 0
+        source: ingoingNodes[0].id,
+        target: ingoingNodes[1].id,
+        value: ingoingNodes[1]?.value ?? 0
       })
 
       links.push({
-        source: sankeyNodes[0].id,
-        target: sankeyNodes[2].id,
-        value: sankeyNodes[2]?.value ?? 0
+        source: ingoingNodes[0].id,
+        target: ingoingNodes[2].id,
+        value: ingoingNodes[2]?.value ?? 0
       })
       return links
     }
     if (allNodes?.length === 0) return []
 
-    return generateSankeyLinks(realNodes)
-  }, [allNodes?.length, realNodes, sankeyNodes])
+    return generateSankeyLinks(confirmedNodes)
+  }, [allNodes?.length, confirmedNodes, ingoingNodes])
 
   // Show loading state
   if (loading && inputs.size > 0) {
