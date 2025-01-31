@@ -40,7 +40,6 @@ export default function TxDetails() {
       .find((account) => account.name === accountId)
       ?.transactions.find((tx) => tx.id === txid)
   )
-
   const placeholder = '-'
 
   const [fee, setFee] = useState(placeholder)
@@ -202,13 +201,14 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const [timestamp, setTimestamp] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
+  const padding = useAccountsStore((state) => state.padding)
 
   const updateInfo = async () => {
     if (!tx) return
 
     const amount = tx.type === 'receive' ? tx.received : tx.sent
 
-    setAmount(formatNumber(amount))
+    setAmount(formatNumber(amount, 0, padding))
     setType(tx.type)
 
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))

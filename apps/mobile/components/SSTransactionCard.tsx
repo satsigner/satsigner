@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
@@ -9,7 +9,6 @@ import { Colors } from '@/styles'
 import type { Currency } from '@/types/models/Blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import {
-  formatAddress,
   formatConfirmations,
   formatFiatPrice,
   formatLabel,
@@ -20,6 +19,9 @@ import {
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+import { useAccountsStore } from '@/store/accounts'
+import { AccountSearchParams } from '@/types/navigation/searchParams'
+import SSStyledSatText from './SSStyledSatText'
 
 type SSTransactionCardProps = {
   transaction: Transaction
@@ -47,9 +49,15 @@ export default function SSTransactionCard({
   }
 
   const [priceDisplay, setPriceDisplay] = useState('')
+  const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const { type, received, sent, prices } = transaction
   const amount = type === 'receive' ? received : sent
+
+  const [account, padding] = useAccountsStore((state) => [
+    state.accounts.find((account) => account.name === id),
+    state.padding
+  ])
 
   useEffect(() => {
     const itemsToDisplay: string[] = []
@@ -80,10 +88,12 @@ export default function SSTransactionCard({
         justifyBetween
         style={{
           flex: 1,
-          alignItems: 'stretch'
+          alignItems: 'stretch',
+          paddingHorizontal: 16,
+          paddingTop: 8
         }}
       >
-        <SSVStack gap="xs">
+        <SSVStack gap="none">
           <SSText color="muted">
             {transaction.timestamp && (
               <SSTimeAgoText date={new Date(transaction.timestamp)} />
@@ -97,42 +107,85 @@ export default function SSTransactionCard({
               <SSIconOutgoing height={19} width={19} />
             )}
             <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-              <SSText size="3xl">{formatNumber(amount)}</SSText>
+              <SSStyledSatText
+                amount={amount}
+                decimals={0}
+                padding={padding}
+                type={transaction.type}
+                noColor={false}
+              />
               <SSText color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
               </SSText>
             </SSHStack>
           </SSHStack>
           <SSText style={{ color: Colors.gray[400] }}>{priceDisplay}</SSText>
+          <SSText
+            size="md"
+            style={[
+              { textAlign: 'left' },
+              !transaction.label && { color: Colors.gray[100] }
+            ]}
+            numberOfLines={1}
+          >
+            {formatLabel(transaction.label || i18n.t('account.noMemo')).label}
+          </SSText>
         </SSVStack>
         <SSVStack justifyBetween>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
             {formatConfirmations(confirmations)}
           </SSText>
+
+          <SSText color="muted" style={[{ textAlign: 'right' }]}>
+            <SSStyledSatText
+              amount={account?.summary.balance || 0}
+              decimals={0}
+              padding={padding}
+              type={transaction.type}
+              textSize="sm"
+            />
+          </SSText>
           <SSVStack gap="xs">
-            <SSText
-              size="md"
-              style={[
-                { textAlign: 'right' },
-                !transaction.label && { color: Colors.gray[100] }
-              ]}
-              numberOfLines={1}
-            >
-              {
-                formatLabel(transaction.label || i18n.t('account.noLabel'))
-                  .label
-              }
-            </SSText>
             <SSHStack gap="xs" style={{ alignSelf: 'flex-end' }}>
-              <SSText color="muted">
-                {transaction.address && transaction.type === 'receive'
-                  ? i18n.t('common.from').toLowerCase()
-                  : i18n.t('common.to').toLowerCase()}
-              </SSText>
-              <SSText>
-                {transaction.address &&
-                  formatAddress(transaction.address || '')}
-              </SSText>
+              {transaction.label ? (
+                formatLabel(transaction.label).tags.map((tag, index) => (
+                  <SSText
+                    key={index}
+                    size="xs"
+                    style={[
+                      { textAlign: 'right' },
+                      {
+                        backgroundColor: Colors.gray[700],
+                        paddingVertical: 2,
+                        paddingHorizontal: 4,
+                        borderRadius: 4,
+                        marginHorizontal: 2
+                      }
+                    ]}
+                    uppercase
+                    numberOfLines={1}
+                  >
+                    {tag}
+                  </SSText>
+                ))
+              ) : (
+                <SSText
+                  size="xs"
+                  style={[
+                    { textAlign: 'right', color: Colors.gray[100] },
+                    {
+                      backgroundColor: Colors.gray[700],
+                      paddingVertical: 2,
+                      paddingHorizontal: 4,
+                      borderRadius: 4
+                    }
+                  ]}
+                  uppercase
+                  numberOfLines={1}
+                >
+                  {i18n.t('account.noTags')}
+                </SSText>
+              )}
             </SSHStack>
           </SSVStack>
         </SSVStack>
@@ -143,7 +196,7 @@ export default function SSTransactionCard({
 
 const styles = StyleSheet.create({
   unconfirmed: {
-    color: Colors.white
+    color: Colors.error
   },
   confirmedFew: {
     color: Colors.warning

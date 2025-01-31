@@ -53,6 +53,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import SSStyledSatText from '@/components/SSStyledSatText'
 
 type TotalTransactionsProps = {
   account: Account
@@ -93,9 +94,99 @@ function TotalTransactions({
 
   const [showChart, setShowChart] = useState<boolean>(false)
 
+  const transactionData: Transaction[] = [
+    {
+      id: 'tx123456',
+      type: 'receive',
+      sent: 0,
+      received: 500000,
+      timestamp: new Date(Date.now() - 1000000),
+      blockHeight: 233300,
+      address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+      label: 'My label #kyc #blue',
+      fee: 500,
+      size: 225,
+      vsize: 150,
+      weight: 600,
+      version: 2,
+      lockTime: 0,
+      lockTimeEnabled: false,
+      raw: [0x02, 0x01, 0x00],
+      vin: [
+        {
+          previousOutput: {
+            txid: 'abcd1234efgh5678ijkl9012mnopqrstuvwx3456yzab7890cdef1234ghij5678',
+            vout: 0
+          },
+          sequence: 4294967295,
+          scriptSig: [0x01, 0x02, 0x03],
+          witness: [
+            [0x01, 0x02],
+            [0x03, 0x04]
+          ]
+        }
+      ],
+      vout: [
+        {
+          value: 50000,
+          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        }
+      ],
+      prices: {
+        USD: 40000,
+        EUR: 37000
+      }
+    },
+    {
+      id: 'tx123459',
+      type: 'send',
+      sent: 3000,
+      received: 0,
+      timestamp: new Date(Date.now() - 1000000),
+      blockHeight: 78000,
+      address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+      label: '',
+      fee: 500,
+      size: 225,
+      vsize: 150,
+      weight: 600,
+      version: 2,
+      lockTime: 0,
+      lockTimeEnabled: false,
+      raw: [0x02, 0x01, 0x00],
+      vin: [
+        {
+          previousOutput: {
+            txid: 'abcd1234efgh5678ijkl9012mnopqrstuvwx3456yzab7890cdef1234ghij5678',
+            vout: 0
+          },
+          sequence: 4294967295,
+          scriptSig: [0x01, 0x02, 0x03],
+          witness: [
+            [0x01, 0x02],
+            [0x03, 0x04]
+          ]
+        }
+      ],
+      vout: [
+        {
+          value: 50000,
+          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        }
+      ],
+      prices: {
+        USD: 40000,
+        EUR: 37000
+      }
+    }
+  ]
+
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
+    <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
+      <SSHStack
+        justifyBetween
+        style={{ paddingVertical: 16, paddingHorizontal: 16 }}
+      >
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
             <SSIconRefresh height={18} width={22} />
@@ -140,10 +231,19 @@ function TotalTransactions({
             />
           }
         >
+          {/* account.transactions */}
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...account.transactions]).map((transaction) => (
+            {sortTransactions([...transactionData]).map((transaction) => (
               <SSVStack gap="xs" key={transaction.id}>
-                <SSSeparator color="grayDark" />
+                <SSSeparator
+                  color="custom"
+                  colors={
+                    transaction.type == 'receive'
+                      ? [Colors.softBarGreen, Colors.BarGreen, Colors.barGray]
+                      : [Colors.softBarRed, Colors.BarRed, Colors.barGray]
+                  }
+                  percentages={[0.05, 0.2, 1]}
+                />
                 <SSTransactionCard
                   btcPrice={btcPrice}
                   fiatCurrency={fiatCurrency}
@@ -281,15 +381,21 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((account) => account.name === id),
-        state.loadWalletFromDescriptor,
-        state.syncWallet,
-        state.updateAccount
-      ])
-    )
+  const [
+    account,
+    padding,
+    loadWalletFromDescriptor,
+    syncWallet,
+    updateAccount
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.name === id),
+      state.padding,
+      state.loadWalletFromDescriptor,
+      state.syncWallet,
+      state.updateAccount
+    ])
+  )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -598,7 +704,12 @@ export default function AccountView() {
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="7xl" color="white" weight="ultralight">
-                  {formatNumber(account.summary.balance || 0)}
+                  <SSStyledSatText
+                    amount={account?.summary.balance || 0}
+                    decimals={0}
+                    padding={padding}
+                    textSize="7xl"
+                  />
                 </SSText>
                 <SSText size="xl" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}

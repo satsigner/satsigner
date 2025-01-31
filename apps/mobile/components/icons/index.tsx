@@ -10,10 +10,12 @@ import SSIconChevronUp from './SSIconChevronUp'
 import SSIconCircleX from './SSIconCircleX'
 import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconCollapse from './SSIconCollapse'
+import SSIconCurrencyFormatting from './SSIconCurrencyFormatting'
 import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconExpand from './SSIconExpand'
+import SSIconFeatures from './SSIconFeatures'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
@@ -44,10 +46,12 @@ export {
   SSIconCircleX,
   SSIconCircleXThin,
   SSIconCollapse,
+  SSIconCurrencyFormatting,
   SSIconDev,
   SSIconEdit,
   SSIconEditPencil,
   SSIconExpand,
+  SSIconFeatures,
   SSIconHideWarning,
   SSIconIncoming,
   SSIconInfo,

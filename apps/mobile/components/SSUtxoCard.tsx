@@ -14,6 +14,7 @@ import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 import { SSIconInfo } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
+import { useAccountsStore } from '@/store/accounts'
 
 type SSUtxoCardProps = {
   utxo: Utxo
@@ -23,6 +24,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+  const padding = useAccountsStore((state) => state.padding)
 
   const router = useRouter()
 
@@ -42,7 +44,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" style={{ lineHeight: 30 }}>
-              {formatNumber(utxo.value)}
+              {formatNumber(utxo.value, 0, padding)}
             </SSText>
             <SSText color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}

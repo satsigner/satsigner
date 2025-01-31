@@ -17,6 +17,7 @@ import {
 import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
+import { useAccountsStore } from '@/store/accounts'
 
 type SSUtxoItemProps = {
   utxo: Utxo
@@ -32,6 +33,7 @@ export default function SSUtxoItem({
   onToggleSelected
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
+  const padding = useAccountsStore((state) => state.padding)
 
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
@@ -64,7 +66,7 @@ export default function SSUtxoItem({
             <SSVStack gap="xs">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="white">
-                  {formatNumber(utxo.value)}
+                  {formatNumber(utxo.value, 0, padding)}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}

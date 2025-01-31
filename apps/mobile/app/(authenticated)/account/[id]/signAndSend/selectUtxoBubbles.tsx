@@ -29,7 +29,10 @@ function SelectUtxoBubbles() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const [padding, getCurrentAccount] = useAccountsStore((state) => [
+    state.padding,
+    state.getCurrentAccount
+  ])
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -127,7 +130,7 @@ function SelectUtxoBubbles() {
                   {i18n.t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(utxosTotalValue)}
+                  {formatNumber(utxosTotalValue, 0, padding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {i18n.t('bitcoin.sats').toLowerCase()}
@@ -148,7 +151,7 @@ function SelectUtxoBubbles() {
                   weight="ultralight"
                   style={{ lineHeight: 62 }}
                 >
-                  {formatNumber(utxosSelectedValue)}
+                  {formatNumber(utxosSelectedValue, 0, padding)}
                 </SSText>
                 <SSText size="xl" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}

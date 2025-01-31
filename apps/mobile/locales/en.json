@@ -85,6 +85,20 @@
         "timeout": "Timeout",
         "stopGap": "Stop Gap"
       },
+      "features": {
+        "title": "Features",
+        "description": "Reveal more or less information about the app and the bitcoin protocol.",
+        "transactionChart": {
+          "title": "Transaction Chart",
+          "description": "Control the visible layers and navigation of the transaction history chart"
+        },
+        "currencyFormatting": {
+          "title": "Currency Formatting",
+          "description": "Currency display and formatting",
+          "formatting": "Formatting",
+          "view": "View"
+        }
+      },
       "appSecurity": {
         "title": "App Security",
         "description": "Change app wide security settings to protect access in case of a compromised device",

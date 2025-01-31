@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import {
   SSIconAbout,
   SSIconDev,
+  SSIconFeatures,
   SSIconLock,
   SSIconNetwork
 } from '@/components/icons'
@@ -32,6 +33,12 @@ export default function Settings() {
             description={i18n.t('settings.bitcoinNetwork.description')}
             icon={<SSIconNetwork height={24} width={24} />}
             onPress={() => router.navigate('/settings/config/bitcoinNetwork')}
+          />
+          <SSSettingsCards
+            title={i18n.t('settings.features.title')}
+            description={i18n.t('settings.features.description')}
+            icon={<SSIconFeatures height={24} width={24} />}
+            onPress={() => router.navigate('/settings/config/features')}
           />
           <SSSettingsCards
             title={i18n.t('settings.appSecurity.title')}

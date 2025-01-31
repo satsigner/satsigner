@@ -10,6 +10,8 @@ import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight } from './icons'
 import SSText from './SSText'
+import { useAccountsStore } from '@/store/accounts'
+import SSStyledSatText from './SSStyledSatText'
 
 type SSAccountCardProps = {
   account: Account
@@ -21,6 +23,7 @@ export default function SSAccountCard({
   onPress
 }: SSAccountCardProps) {
   const priceStore = usePriceStore()
+  const padding = useAccountsStore((state) => state.padding)
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
@@ -34,7 +37,12 @@ export default function SSAccountCard({
           </SSText>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>
-              {formatNumber(account.summary.balance)}
+              <SSStyledSatText
+                amount={account?.summary.balance || 0}
+                decimals={0}
+                padding={padding}
+                textSize="3xl"
+              />
             </SSText>
             <SSText size="xl" color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}

@@ -18,6 +18,7 @@ import { useBlockchainStore } from './blockchain'
 type AccountsState = {
   accounts: Account[]
   tags: string[]
+  padding: boolean
 }
 
 type AccountsAction = {
@@ -29,6 +30,7 @@ type AccountsAction = {
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
+  setPadding: (state: boolean) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
@@ -50,11 +52,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     (set, get) => ({
       accounts: [],
       tags: [],
+      padding: false,
       getCurrentAccount: (name) => {
         return get().accounts.find((account) => account.name === name)
       },
       hasAccountWithName: (name) => {
         return !!get().accounts.find((account) => account.name === name)
+      },
+      setPadding: (data) => {
+        set(
+          produce((state: AccountsState) => {
+            state.padding = data
+          })
+        )
       },
       loadWalletFromDescriptor: async (
         externalDescriptor,

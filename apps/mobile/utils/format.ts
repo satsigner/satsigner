@@ -9,13 +9,15 @@ function formatAddress(address: string, character: number = 8) {
   return `${beginning}...${end}`
 }
 
-function formatNumber(n: number, decimals = 0) {
-  return decimals > 0
-    ? n.toLocaleString(undefined, {
+function formatNumber(n: number, decimals = 0, padding = false) {
+  let formatted = padding
+    ? (n / 10 ** 8).toFixed(8)
+    : n.toLocaleString(undefined, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals
       })
-    : n.toLocaleString()
+
+  return formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
 }
 
 function formatTime(date: Date) {
