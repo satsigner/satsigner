@@ -1,10 +1,14 @@
-import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
+import {
+  broadcastTransaction,
+  getBlockchain,
+  getWalletFromMnemonic,
+  signTransaction
+} from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { getBlockchainConfig } from '@/config/servers'
@@ -24,11 +28,8 @@ export default function SignMessage() {
   const [txBuilderResult, psbt, setPsbt] = useTransactionBuilderStore(
     useShallow((state) => [state.txBuilderResult, state.psbt, state.setPsbt])
   )
-  const [getCurrentAccount, loadWalletFromDescriptor] = useAccountsStore(
-    useShallow((state) => [
-      state.getCurrentAccount,
-      state.loadWalletFromDescriptor
-    ])
+  const [getCurrentAccount, decryptSeed] = useAccountsStore(
+    useShallow((state) => [state.getCurrentAccount, state.decryptSeed])
   )
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
@@ -57,8 +58,6 @@ export default function SignMessage() {
     try {
       const broadcasted = await broadcastTransaction(psbt, blockchain)
 
-      setBroadcasting(broadcasted)
-
       if (broadcasted)
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
     } catch (_err) {
@@ -70,26 +69,20 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
-      if (
-        !account.externalDescriptor ||
-        !account.internalDescriptor ||
-        !txBuilderResult
-      )
-        return
+      const seed = await decryptSeed(id)
 
-      const [externalDescriptor, internalDescriptor] = await Promise.all([
-        new Descriptor().create(account.externalDescriptor, network as Network),
-        new Descriptor().create(account.internalDescriptor, network as Network)
-      ])
+      if (!seed || !account.scriptVersion || !txBuilderResult) return
 
-      const wallet = await loadWalletFromDescriptor(
-        externalDescriptor,
-        internalDescriptor
+      const result = await getWalletFromMnemonic(
+        seed.replace(/,/g, ' '),
+        account.scriptVersion,
+        account.passphrase,
+        network as Network
       )
 
       const partiallySignedTransaction = await signTransaction(
         txBuilderResult,
-        wallet
+        result.wallet
       )
 
       setSigned(true)
