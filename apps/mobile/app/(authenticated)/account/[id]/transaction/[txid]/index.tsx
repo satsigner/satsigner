@@ -27,6 +27,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import SSTxColorCode from '@/components/SSTxColorCode'
 
 // TODO: Refactor page
 
@@ -47,7 +48,7 @@ export default function TxDetails() {
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
   const [height, setHeight] = useState(placeholder)
-  const [raw, setRaw] = useState(placeholder)
+  const [raw, setRaw] = useState('')
   const [size, setSize] = useState(placeholder)
   const [inputsCount, setInputsCount] = useState(placeholder)
   const [outputsCount, setOutputsCount] = useState(placeholder)
@@ -75,7 +76,7 @@ export default function TxDetails() {
     if (tx.version) setVersion(tx.version.toString())
 
     if (tx.raw)
-      setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(' '))
+      setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(''))
 
     if (tx.vin) setInputsCount(tx.vin.length.toString())
 
@@ -136,7 +137,13 @@ export default function TxDetails() {
           />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSTxDetailsBox header={t('raw')} text={raw} variant="mono" />
+        <SSVStack gap="sm">
+          <SSText uppercase weight="bold" size="md">
+            {t('raw')}
+          </SSText>
+          {raw && <SSTxColorCode rawTxHex={raw} />}
+          {!raw && <SSText>{placeholder}</SSText>}
+        </SSVStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">

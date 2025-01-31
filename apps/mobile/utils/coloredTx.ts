@@ -23,7 +23,9 @@ function toUInt32LE(value: number) {
 
 function toBigUInt64LE(value: number) {
   const buffer = Buffer.alloc(8)
-  buffer.writeBigUInt64LE(BigInt(value))
+  // WARNING:: 64 bits not working ...
+  // buffer.writeBigUInt64LE(BigInt(value))
+  buffer.writeUInt32LE((value))
   return buffer.toString('hex')
 }
 
@@ -42,202 +44,216 @@ function Endian(hexStr: string) {
   return result
 }
 
-export class TransactionDecoded extends bitcoinjs.Transaction {
+export type TxDecodedField = {
+  hex: string
+  label: string
+  value: string | number
+  other?: string
+}
+
+export class TxDecoded extends bitcoinjs.Transaction {
   constructor() {
     super()
   }
 
-  static fromHex(hex: string): TransactionDecoded {
+  static fromHex(hex: string): TxDecoded {
     const tx = super.fromHex(hex)
-    Object.setPrototypeOf(tx, TransactionDecoded.prototype)
-    return tx as TransactionDecoded
+    Object.setPrototypeOf(tx, TxDecoded.prototype)
+    return tx as TxDecoded
   }
 
   toAnnotatedData() {
     // witness transactions have a marker and flag
     if (this.hasWitnesses()) {
-      return [
-        ...this.getVersion(),
-        ...this.getMarker(),
-        ...this.getFlag(),
-        ...this.getInputs(),
-        ...this.getOutputs(),
-        ...this.getWitnesses(),
-        ...this.getLocktime()
-      ]
+      return {
+        version: this.getVersion(),
+        marker: this.getMarker(),
+        flag: this.getFlag(),
+        inputs: this.getInputs(),
+        outputs: this.getOutputs(),
+        witnesseses: this.getWitnesses(),
+        lockTime: this.getLocktime()
+      }
     }
     // legacy transactions do not have a marker or flag
-    return [
-      ...this.getVersion(),
-      ...this.getInputs(),
-      ...this.getOutputs(),
-      ...this.getLocktime()
-    ]
+    return {
+      version: this.getVersion(),
+      inputs: this.getInputs(),
+      outputs: this.getOutputs(),
+      lockTime: this.getLocktime()
+    }
   }
 
-  getVersion() {
+  getVersion(): TxDecodedField {
     const value = this.version
     const hex = toUInt32LE(value)
-    return [hex, 'version', value,]
+    const label = 'version'
+    return { hex, label, value }
   }
 
-  getMarker() {
-    const value = TransactionDecoded.ADVANCED_TRANSACTION_MARKER
+  getMarker(): TxDecodedField {
+    const value = TxDecoded.ADVANCED_TRANSACTION_MARKER
     const hex = toUInt8(value)
-    return [hex, 'marker', value,]
+    const label = 'marker'
+    return { hex, label, value }
   }
 
-  getFlag() {
-    const value = TransactionDecoded.ADVANCED_TRANSACTION_FLAG
+  getFlag(): TxDecodedField {
+    const value = TxDecoded.ADVANCED_TRANSACTION_FLAG
     const hex = toUInt8(value)
-    return [hex, 'flag', value,]
+    const label = 'flag'
+    return { hex, label, value }
   }
 
   getInputs() {
     const inputTuples = this.ins.map((_, i) => [
-      ...this.getInputHash(i),
-      ...this.getInputIndex(i),
-      ...this.getInputScriptVarInt(i),
-      ...this.getInputScript(i),
-      ...this.getInputSequence(i)
+      this.getInputHash(i),
+      this.getInputIndex(i),
+      this.getInputScriptVarInt(i),
+      this.getInputScript(i),
+      this.getInputSequence(i)
     ])
-
-    return [...this.getInputCount(), ...inputTuples.flat()]
+    return {
+      count: this.getInputCount(),
+      items: inputTuples.flat(),
+    }
   }
 
-  getInputCount() {
+  getInputCount(): TxDecodedField {
     const value = this.ins.length
     const hex = toVarInt(value)
-    return [hex, 'txInVarInt', value,]
+    const label = 'txInVarInt'
+    return { hex, label, value }
   }
 
-  getInputHash(index: number) {
+  getInputHash(index: number): TxDecodedField {
     const bigEndianHash = this.ins[index].hash
     const hex = bigEndianHash.toString('hex')
-    const converted = Endian(bigEndianHash.toString('hex'))
+    const value = Endian(bigEndianHash.toString('hex'))
     const label = `txIn[${index}]hash`
-    return [hex, label, converted,]
+    return { hex, label, value }
   }
 
-  getInputIndex(index: number) {
+  getInputIndex(index: number): TxDecodedField {
     const value = this.ins[index].index
     const hex = toUInt32LE(value)
     const label = `txIn[${index}]index`
-    return [[hex, label, value,]]
+    return { hex, label, value }
   }
 
-  getInputScriptVarInt(index: number) {
+  getInputScriptVarInt(index: number): TxDecodedField {
     const value = this.ins[index].script.length
     const hex = toVarInt(value)
     const label = `txIn[${index}]scriptVarInt`
-    return [hex, label, value,]
+    return { hex, label, value }
   }
 
-  getInputScript(index: number) {
-    const value = this.ins[index].script
-    const hex = value.toString('hex')
-    let decoded
+  getInputScript(index: number): TxDecodedField {
+    const script = this.ins[index].script
+    const hex = script.toString('hex')
+    let value
     if (hex === '') {
-      decoded = 'Empty script'
+      value = ''
     } else {
-      decoded = bitcoinjs.script.toASM(value)
+      value = bitcoinjs.script.toASM(script)
     }
     const label = `txIn[${index}]script`
-    return [hex, label, decoded,]
+    return { hex, label, value }
   }
 
-  getInputSequence(index: number) {
+  getInputSequence(index: number): TxDecodedField {
     const value = this.ins[index].sequence
     const hex = toUInt32LE(value)
     const label = `txIn[${index}]sequence`
-    return [hex, label, value,]
+    return { hex, label, value }
   }
 
   getOutputs() {
     const outputTuples = this.outs.map((_, i) => [
-      ...this.getOutputValue(i),
-      ...this.getOutputScriptVarInt(i),
-      ...this.getOutputScript(i)
+      this.getOutputValue(i),
+      this.getOutputScriptVarInt(i),
+      this.getOutputScript(i)
     ])
-
-    return [...this.getOutputCount(), ...outputTuples.flat()]
+    return {
+      count: this.getOutputCount(),
+      items: outputTuples.flat(),
+    }
   }
 
-  getOutputCount() {
+  getOutputCount(): TxDecodedField {
     const value = this.outs.length
     const hex = toVarInt(value)
-    return [hex, 'txOutVarInt', value,]
+    const label = 'txOutVarInt';
+    return { hex, label, value }
   }
 
-  getOutputValue(index: number) {
+  getOutputValue(index: number): TxDecodedField {
     const value = this.outs[index].value
     const hex = toBigUInt64LE(value)
-    const satsValue = `${value} sats`
     const label = `txOut[${index}]value`
-    return [hex, label, satsValue,]
+    return { hex, label, value }
   }
 
-  getOutputScriptVarInt(index: number) {
+  getOutputScriptVarInt(index: number): TxDecodedField {
     const value = this.outs[index].script.length
     const hex = toVarInt(value)
     const label = `txOut[${index}]scriptVarInt`
-    return [hex, label, value,]
+    return { hex, label, value }
   }
 
-  getOutputScript(index: number) {
-    const value = this.outs[index].script
-    const hex = value.toString('hex')
-    const decoded = bitcoinjs.script.toASM(value)
+  getOutputScript(index: number): TxDecodedField {
+    const script = this.outs[index].script
+    const hex = script.toString('hex')
+    const value = bitcoinjs.script.toASM(script)
     const address = this.generateOutputScriptAddress(index)
     const label = `txOut[${index}]script`
-    return [hex, label, decoded, address]
+    return { hex, label, value, other: address}
   }
 
   getWitnesses() {
     const witnessTuples = this.ins.map((_, i) => [
-      ...this.getWitnessVarInt(i),
-      ...this.getWitnessStackElements(i)
+      this.getWitnessVarInt(i),
+      this.getWitnessStackElements(i)
     ])
-
     return witnessTuples.flat()
   }
 
   getWitnessStackElements(index: number) {
     const witness = this.ins[index].witness
     const witnessTuples = witness.map((_, i) => [
-      ...this.getWitnessItemsVarInt(index, i),
-      ...this.getWitnessItem(index, i)
+      this.getWitnessItemsVarInt(index, i),
+      this.getWitnessItem(index, i)
     ])
-
     return witnessTuples.flat()
   }
 
-  getWitnessVarInt(index: number) {
+  getWitnessVarInt(index: number): TxDecodedField {
     const value = this.ins[index].witness.length
     const hex = toVarInt(value)
     const label = `witness[${index}]VarInt`
-    return [hex, label, value,]
+    return { hex, label, value }
   }
 
-  getWitnessItemsVarInt(index: number, witnessIndex: number) {
+  getWitnessItemsVarInt(index: number, witnessIndex: number): TxDecodedField {
     const value = this.ins[index].witness[witnessIndex].length
     const hex = toVarInt(value)
     const label = `witness[${index}][${witnessIndex}]scriptVarInt`
-    return [hex, label, value,]
+    return { hex, label, value }
   }
 
-  getWitnessItem(index: number, witnessIndex: number) {
+  getWitnessItem(index: number, witnessIndex: number): TxDecodedField {
     const witnessItem = this.ins[index].witness[witnessIndex]
     const hex = witnessItem.toString('hex')
     const w = this.identifyWitnessItem(witnessItem)
     const label = `witness[${index}][${witnessIndex}]script`
-    return [hex, label, w.decoded, w.type]
+    return { hex, label, value: w.decoded, other: w.type}
   }
 
-  getLocktime() {
+  getLocktime(): TxDecodedField {
     const value = this.locktime
     const hex = toUInt32LE(value)
-    return [hex, 'locktime', value,]
+    const label = 'locktime';
+    return { hex, label, value }
   }
 
   generateOutputScriptAddress(index: number) {
