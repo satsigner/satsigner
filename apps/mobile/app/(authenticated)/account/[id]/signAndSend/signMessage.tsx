@@ -69,7 +69,7 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
-      const seed = await decryptSeed(id)
+      const seed = await decryptSeed(id!)
 
       if (!seed || !account.scriptVersion || !txBuilderResult) return
 
