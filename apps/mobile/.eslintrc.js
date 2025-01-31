@@ -5,7 +5,7 @@ module.exports = {
   },
   extends: ['universe/native'],
   plugins: ['simple-import-sort'],
-  ignorePatterns: ['expo-env.d.ts'],
+  ignorePatterns: ['expo-env.d.ts', 'shim.js'],
   rules: {
     'no-console': 'error',
     'react-hooks/exhaustive-deps': 'error',

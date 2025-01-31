@@ -98,6 +98,31 @@
       "developer": {
         "title": "Developer",
         "description": "Available in dev mode only. Useful tools for developers for faster development"
+      },
+      "features": {
+        "title": "Features",
+        "description": "Reveal more or less information about the app and the bitcoin protocol.",
+        "featurePage": {
+          "title": "Features",
+          "transactionChart": {
+            "title": "Transaction Chart",
+            "description": "Control the visible layers and navigation of the transaction history chart"
+          },
+          "currencyFormatting": {
+            "title": "Currency Formatting",
+            "description": "Currency display and formatting"
+          },
+          "chartSettingsPage": {
+            "title": "Chart Settings",
+            "layersTitle": "Layers",
+            "layersShowLabels": "Show Labels",
+            "layersShowAmounts": "Show Amounts",
+            "layersShowTransactionInfo": "Show Transaction Info",
+            "layersShowOutputFields": "Show Output Fields",
+            "navigationTitle": "Navigation",
+            "navigationLockZoomXAxis": "Lock Zoom To X-Axis"
+          }
+        }
       }
     },
     "accountList": {
@@ -251,7 +276,9 @@
       }
     },
     "utxoDetails": {
-      "title": "UTXO Details"
+      "title": "UTXO Details",
+      "label": "UTXO Label",
+      "labelEdit": "Edit UTXO label"
     },
     "txDetails": {
       "title": "TX Details",
@@ -273,7 +300,8 @@
       "inputPrevTx": "Previous TX Output hash",
       "inputPrevOut": "Output index in transaction",
       "inputSequence": "Sequence",
-      "labels": "TRANSACTION LABEL"
+      "label": "TRANSACTION LABEL",
+      "labelEdit": "Edit TX label"
     }
   }
 }

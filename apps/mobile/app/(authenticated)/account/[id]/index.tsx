@@ -2,8 +2,10 @@ import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useMemo, useState } from 'react'
+import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Animated,
+  Easing,
   RefreshControl,
   ScrollView,
   useWindowDimensions,
@@ -17,15 +19,17 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconChartSetting,
+  SSIconCollapse,
+  SSIconExpand,
+  SSIconKeys,
   SSIconList,
   SSIconMenu,
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
-import SSBalanceChart, {
-  type BalanceChartData
-} from '@/components/SSBalanceChart'
+import SSBalanceChart from '@/components/SSBalanceChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -54,6 +58,8 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnExpand: (state: boolean) => Promise<void>
+  expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
   sortTransactions: (transactions: Transaction[]) => Transaction[]
@@ -63,11 +69,15 @@ type TotalTransactionsProps = {
 function TotalTransactions({
   account,
   handleOnRefresh,
+  handleOnExpand,
+  expand,
   setSortDirection,
   refreshing,
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const router = useRouter()
+
   const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.btcPrice,
@@ -78,80 +88,41 @@ function TotalTransactions({
 
   fetchPrices()
 
-  const [showChart, setShowChart] = useState<boolean>(false)
-
-  const chartData: BalanceChartData[] = useMemo(() => {
-    let sum = 0
-    const result = [...account.transactions]
-      .sort((transaction1, transaction2) =>
-        compareTimestamp(transaction1.timestamp, transaction2.timestamp)
-      )
-      .map((transaction) => {
-        sum +=
-          transaction.type === 'receive'
-            ? transaction?.received ?? 0
-            : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
-        return {
-          memo: transaction.label ?? '',
-          date: new Date(transaction?.timestamp ?? new Date()),
-          type: transaction.type ?? 'receive',
-          balance: sum,
-          amount:
-            transaction.type === 'receive'
-              ? transaction?.received ?? 0
-              : (transaction?.received ?? 0) - (transaction?.sent ?? 0)
-        }
-      })
-
-    function getPreviousDay(date: Date | string) {
-      const previousDay = new Date(date)
-      previousDay.setDate(previousDay.getDate() - 2)
-      return previousDay
-    }
-
-    function getNextDay(date: Date | string) {
-      const nextDay = new Date(date)
-      nextDay.setDate(nextDay.getDate() + 2)
-      return nextDay
-    }
-
-    if (result.length >= 2) {
-      result.unshift({
-        balance: 0,
-        amount: 0,
-        date: getPreviousDay(result[0].date),
-        memo: '',
-        type: 'receive'
-      })
-      result.push({
-        balance: result[result.length - 1].balance,
-        amount: 0,
-        date: getNextDay(result[result.length - 1].date),
-        memo: '',
-        type: 'receive'
-      })
-    }
-
-    return result
+  const sortedTransactions = useMemo(() => {
+    return [...account.transactions].sort((transaction1, transaction2) =>
+      compareTimestamp(transaction1.timestamp, transaction2.timestamp)
+    )
   }, [account.transactions])
 
-  const handleToggleChart = () => {
-    setShowChart((prev) => !prev)
-  }
+  const [showChart, setShowChart] = useState<boolean>(false)
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-        <SSIconButton onPress={() => handleOnRefresh()}>
-          <SSIconRefresh height={18} width={22} />
-        </SSIconButton>
+        <SSHStack>
+          <SSIconButton onPress={() => handleOnRefresh()}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={16} />
+            )}
+          </SSIconButton>
+          {showChart && (
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/settings/config/features/chartSettings`)
+              }
+            >
+              <SSIconChartSetting width={22} height={18} />
+            </SSIconButton>
+          )}
+        </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
-          <SSIconButton
-            onPress={() => {
-              handleToggleChart()
-            }}
-          >
+          <SSIconButton onPress={() => setShowChart((prev) => !prev)}>
             {showChart ? (
               <SSIconMenu width={18} height={18} />
             ) : (
@@ -164,8 +135,11 @@ function TotalTransactions({
         </SSHStack>
       </SSHStack>
       {showChart ? (
-        <View style={{ flex: 1 }}>
-          <SSBalanceChart data={chartData} />
+        <View style={{ flex: 1, zIndex: -1 }}>
+          <SSBalanceChart
+            transactions={sortedTransactions}
+            utxos={account.utxos}
+          />
         </View>
       ) : (
         <ScrollView
@@ -209,6 +183,8 @@ function ChildAccounts() {
 type SpendableOutputsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnExpand: (state: boolean) => Promise<void>
+  expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
   sortUtxos: (utxos: Utxo[]) => Utxo[]
@@ -218,6 +194,8 @@ function SpendableOutputs({
   account,
   handleOnRefresh,
   setSortDirection,
+  handleOnExpand,
+  expand,
   refreshing,
   sortUtxos
 }: SpendableOutputsProps) {
@@ -234,9 +212,18 @@ function SpendableOutputs({
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-        <SSIconButton onPress={() => {}}>
-          <SSIconRefresh height={22} width={18} />
-        </SSIconButton>
+        <SSHStack>
+          <SSIconButton onPress={() => {}}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={16} />
+            )}
+          </SSIconButton>
+        </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           {view === 'list' && (
@@ -326,6 +313,7 @@ export default function AccountView() {
   )
 
   const [refreshing, setRefreshing] = useState(false)
+  const [expand, setExpand] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
@@ -339,6 +327,11 @@ export default function AccountView() {
     { key: 'satsInMempool' }
   ]
   const [tabIndex, setTabIndex] = useState(0)
+  const animationValue = useRef(new Animated.Value(0)).current
+  const gradientHeight = animationValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [190, 0]
+  })
 
   useEffect(() => {
     ;(async () => {
@@ -363,6 +356,8 @@ export default function AccountView() {
           <TotalTransactions
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnExpand={handleOnExpand}
+            expand={expand}
             setSortDirection={setSortDirectionTransactions}
             refreshing={refreshing}
             sortTransactions={sortTransactions}
@@ -376,6 +371,8 @@ export default function AccountView() {
           <SpendableOutputs
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnExpand={handleOnExpand}
+            expand={expand}
             setSortDirection={setSortDirectionUtxos}
             refreshing={refreshing}
             sortUtxos={sortUtxos}
@@ -386,6 +383,15 @@ export default function AccountView() {
       default:
         return null
     }
+  }
+
+  function animateTransition(expandState: boolean) {
+    Animated.timing(animationValue, {
+      toValue: expandState ? 1 : 0,
+      duration: 300,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: false
+    }).start()
   }
 
   function sortTransactions(transactions: Transaction[]) {
@@ -438,6 +444,11 @@ export default function AccountView() {
     setRefreshing(false)
   }
 
+  async function handleOnExpand(state: boolean) {
+    setExpand(state)
+    animateTransition(state)
+  }
+
   function navigateToSignAndSend() {
     clearTransaction()
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
@@ -448,119 +459,121 @@ export default function AccountView() {
 
     return (
       <SSBackgroundGradient orientation="horizontal">
-        <SSHStack
-          gap="none"
-          style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
-        >
-          <SSActionButton
-            style={{ width: '25%' }}
-            onPress={() => setTabIndex(0)}
+        {!expand && (
+          <SSHStack
+            gap="none"
+            style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
           >
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.numberOfTransactions}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.totalTransactions.0')}
-                {'\n'}
-                {i18n.t('accountList.totalTransactions.1')}
-              </SSText>
-              {tabIndex === 0 && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 2,
-                    bottom: -12,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-          <SSActionButton
-            style={{ width: '25%' }}
-            onPress={() => setTabIndex(1)}
-          >
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.numberOfAddresses}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.childAccounts.0')}
-                {'\n'}
-                {i18n.t('accountList.childAccounts.1')}
-              </SSText>
-              {tabIndex === 1 && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 2,
-                    bottom: -12,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-          <SSActionButton
-            style={{ width: '25%' }}
-            onPress={() => setTabIndex(2)}
-          >
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.numberOfUtxos}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.spendableOutputs.0')}
-                {'\n'}
-                {i18n.t('accountList.spendableOutputs.1')}
-              </SSText>
-              {tabIndex === 2 && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 2,
-                    bottom: -12,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-          <SSActionButton
-            style={{ width: '25%' }}
-            onPress={() => setTabIndex(3)}
-          >
-            <SSVStack gap="none">
-              <SSText center size="lg">
-                {account.summary.satsInMempool}
-              </SSText>
-              <SSText center color="muted" style={{ lineHeight: 12 }}>
-                {i18n.t('accountList.satsInMempool.0')}
-                {'\n'}
-                {i18n.t('accountList.satsInMempool.1')}
-              </SSText>
-              {tabIndex === 3 && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 2,
-                    bottom: -12,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-        </SSHStack>
+            <SSActionButton
+              style={{ width: '25%' }}
+              onPress={() => setTabIndex(0)}
+            >
+              <SSVStack gap="none">
+                <SSText center size="lg">
+                  {account.summary.numberOfTransactions}
+                </SSText>
+                <SSText center color="muted" style={{ lineHeight: 12 }}>
+                  {i18n.t('accountList.totalTransactions.0')}
+                  {'\n'}
+                  {i18n.t('accountList.totalTransactions.1')}
+                </SSText>
+                {tabIndex === 0 && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: 2,
+                      bottom: -12,
+                      alignSelf: 'center',
+                      backgroundColor: Colors.white
+                    }}
+                  />
+                )}
+              </SSVStack>
+            </SSActionButton>
+            <SSActionButton
+              style={{ width: '25%' }}
+              onPress={() => setTabIndex(1)}
+            >
+              <SSVStack gap="none">
+                <SSText center size="lg">
+                  {account.summary.numberOfAddresses}
+                </SSText>
+                <SSText center color="muted" style={{ lineHeight: 12 }}>
+                  {i18n.t('accountList.childAccounts.0')}
+                  {'\n'}
+                  {i18n.t('accountList.childAccounts.1')}
+                </SSText>
+                {tabIndex === 1 && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: 2,
+                      bottom: -12,
+                      alignSelf: 'center',
+                      backgroundColor: Colors.white
+                    }}
+                  />
+                )}
+              </SSVStack>
+            </SSActionButton>
+            <SSActionButton
+              style={{ width: '25%' }}
+              onPress={() => setTabIndex(2)}
+            >
+              <SSVStack gap="none">
+                <SSText center size="lg">
+                  {account.summary.numberOfUtxos}
+                </SSText>
+                <SSText center color="muted" style={{ lineHeight: 12 }}>
+                  {i18n.t('accountList.spendableOutputs.0')}
+                  {'\n'}
+                  {i18n.t('accountList.spendableOutputs.1')}
+                </SSText>
+                {tabIndex === 2 && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: 2,
+                      bottom: -12,
+                      alignSelf: 'center',
+                      backgroundColor: Colors.white
+                    }}
+                  />
+                )}
+              </SSVStack>
+            </SSActionButton>
+            <SSActionButton
+              style={{ width: '25%' }}
+              onPress={() => setTabIndex(3)}
+            >
+              <SSVStack gap="none">
+                <SSText center size="lg">
+                  {account.summary.satsInMempool}
+                </SSText>
+                <SSText center color="muted" style={{ lineHeight: 12 }}>
+                  {i18n.t('accountList.satsInMempool.0')}
+                  {'\n'}
+                  {i18n.t('accountList.satsInMempool.1')}
+                </SSText>
+                {tabIndex === 3 && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: 2,
+                      bottom: -12,
+                      alignSelf: 'center',
+                      backgroundColor: Colors.white
+                    }}
+                  />
+                )}
+              </SSVStack>
+            </SSActionButton>
+          </SSHStack>
+        )}
       </SSBackgroundGradient>
     )
   }
@@ -581,73 +594,82 @@ export default function AccountView() {
               start={{ x: 0.86, y: 1.0 }}
               end={{ x: 0.14, y: 1 }}
             />
+          ),
+          headerRight: () => (
+            <SSIconButton
+              onPress={() => router.navigate(`/account/${id}/settings`)}
+            >
+              <SSIconKeys height={18} width={18} />
+            </SSIconButton>
           )
         }}
       />
-      <SSBackgroundGradient orientation="horizontal">
-        <SSVStack itemsCenter gap="none">
-          <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText size="7xl" color="white" weight="ultralight">
-                {formatNumber(account.summary.balance || 0)}
-              </SSText>
-              <SSText size="xl" color="muted">
-                {i18n.t('bitcoin.sats').toLowerCase()}
-              </SSText>
-            </SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText color="muted">
-                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
-              </SSText>
-              <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {fiatCurrency}
-              </SSText>
-            </SSHStack>
+      <Animated.View style={{ height: gradientHeight }}>
+        <SSBackgroundGradient orientation="horizontal">
+          <SSVStack itemsCenter gap="none">
+            <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSText size="7xl" color="white" weight="ultralight">
+                  {formatNumber(account.summary.balance || 0)}
+                </SSText>
+                <SSText size="xl" color="muted">
+                  {i18n.t('bitcoin.sats').toLowerCase()}
+                </SSText>
+              </SSHStack>
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSText color="muted">
+                  {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+                </SSText>
+                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSSeparator
+                color="gradient"
+                colors={[Colors.gray[600], Colors.gray[850]]}
+              />
+              <SSHStack
+                justifyEvenly
+                gap="none"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+              >
+                <SSActionButton
+                  onPress={() => navigateToSignAndSend()}
+                  style={{
+                    width: '40%',
+                    borderRightWidth: 1,
+                    borderRightColor: Colors.gray[600]
+                  }}
+                >
+                  <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
+                </SSActionButton>
+                <SSActionButton
+                  onPress={() => router.navigate(`/account/${id}/camera`)}
+                  style={{ width: '20%' }}
+                >
+                  <SSIconCamera height={13} width={18} />
+                </SSActionButton>
+                <SSActionButton
+                  onPress={() => router.navigate(`/account/${id}/newInvoice`)}
+                  style={{
+                    width: '40%',
+                    borderLeftWidth: 1,
+                    borderLeftColor: Colors.gray[600]
+                  }}
+                >
+                  <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
+                </SSActionButton>
+              </SSHStack>
+              <SSSeparator
+                color="gradient"
+                colors={[Colors.gray[600], Colors.gray[850]]}
+              />
+            </SSVStack>
           </SSVStack>
-          <SSVStack gap="none">
-            <SSSeparator
-              color="gradient"
-              colors={[Colors.gray[600], Colors.gray[850]]}
-            />
-            <SSHStack
-              justifyEvenly
-              gap="none"
-              style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-            >
-              <SSActionButton
-                onPress={() => navigateToSignAndSend()}
-                style={{
-                  width: '40%',
-                  borderRightWidth: 1,
-                  borderRightColor: Colors.gray[600]
-                }}
-              >
-                <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
-              </SSActionButton>
-              <SSActionButton
-                onPress={() => router.navigate(`/account/${id}/camera`)}
-                style={{ width: '20%' }}
-              >
-                <SSIconCamera height={13} width={18} />
-              </SSActionButton>
-              <SSActionButton
-                onPress={() => router.navigate(`/account/${id}/newInvoice`)}
-                style={{
-                  width: '40%',
-                  borderLeftWidth: 1,
-                  borderLeftColor: Colors.gray[600]
-                }}
-              >
-                <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
-              </SSActionButton>
-            </SSHStack>
-            <SSSeparator
-              color="gradient"
-              colors={[Colors.gray[600], Colors.gray[850]]}
-            />
-          </SSVStack>
-        </SSVStack>
-      </SSBackgroundGradient>
+        </SSBackgroundGradient>
+      </Animated.View>
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}

@@ -44,11 +44,19 @@ function formatTimestamp(date: Date) {
 }
 
 function formatLabel(rawLabel: string) {
-  if (!rawLabel.match(/tags:.*$/)) return { label: rawLabel, tags: [] }
+  const matches = rawLabel.match(/#\w[\w\d]+/g)
+  if (!matches) return { label: rawLabel, tags: [] }
 
-  const tags = rawLabel.replace(/^.*tags:/, '').split(',')
-  const label = rawLabel.replace(/ tags:.*$/, '')
+  const tags = matches.map((match) => match.replace('#', ''))
+  const label = rawLabel.replace(/#.*/, '').trim()
   return { label, tags }
+}
+
+function formatLabelTags(label: string, tags: string[]) {
+  const trimmedLabel = label.trim()
+  if (tags.length === 0) return trimmedLabel
+  const labelTagSeparator = label.length === 0 ? '' : ' '
+  return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
 
 function formatPageUrl(path: string, params: PageParams) {
@@ -98,6 +106,7 @@ export {
   formatDate,
   formatFiatPrice,
   formatLabel,
+  formatLabelTags,
   formatNumber,
   formatPageUrl,
   formatPercentualChange,

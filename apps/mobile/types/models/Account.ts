@@ -3,6 +3,7 @@ import { Utxo } from './Utxo'
 
 export type Account = {
   name: string
+  createdAt: Date
   accountCreationType:
     | 'generate'
     | 'import'

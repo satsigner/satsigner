@@ -29,7 +29,9 @@ export default function SSPopupText({
 
   return isVisible ? (
     <View style={styles.container}>
-      <SSText style={styles.messageText}>{message}</SSText>
+      <SSText size="md" style={styles.messageText}>
+        {message}
+      </SSText>
     </View>
   ) : null
 }
