@@ -378,7 +378,13 @@ export default function IOPreview() {
               value: node.value
             })
           }
-        } else if (node.type === 'text' && node.depthH === txLevel * 2) {
+        } else if (
+          node.type === 'text' &&
+          node.depthH === txLevel * 2 &&
+          Array.from(inputs.values())
+            .map((input) => input.value)
+            .includes(node?.value ?? 0)
+        ) {
           const targetBlock = ingoingNodes[0].id
           if (targetBlock) {
             links.push({
