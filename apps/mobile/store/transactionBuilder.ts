@@ -1,3 +1,5 @@
+import { PartiallySignedTransaction } from 'bdk-rn'
+import { TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { enableMapSet, produce } from 'immer'
 import { create } from 'zustand'
 
@@ -12,6 +14,8 @@ type TransactionBuilderState = {
   inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
   outputs: Output[]
   feeRate: number
+  txBuilderResult?: TxBuilderResult
+  psbt?: PartiallySignedTransaction
 }
 
 type TransactionBuilderAction = {
@@ -22,6 +26,8 @@ type TransactionBuilderAction = {
   removeInput: (utxo: Utxo) => void
   addOutput: (output: Omit<Output, 'localId'>) => void
   setFeeRate: (feeRate: number) => void
+  setTxBuilderResult: (txBuilderResult: TxBuilderResult) => void
+  setPsbt: (pbst: PartiallySignedTransaction) => void
 }
 
 const useTransactionBuilderStore = create<
@@ -33,7 +39,10 @@ const useTransactionBuilderStore = create<
   clearTransaction: () => {
     set({
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
-      outputs: []
+      outputs: [],
+      feeRate: 0,
+      txBuilderResult: undefined,
+      psbt: undefined
     })
   },
   getInputs: () => {
@@ -65,6 +74,12 @@ const useTransactionBuilderStore = create<
   },
   setFeeRate: (feeRate) => {
     set({ feeRate })
+  },
+  setTxBuilderResult: (txBuilderResult) => {
+    set({ txBuilderResult })
+  },
+  setPsbt: (psbt) => {
+    set({ psbt })
   }
 }))
 
