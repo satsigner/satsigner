@@ -411,7 +411,7 @@ export default function IOPreview() {
     if (allNodes?.length === 0) return []
 
     return generateSankeyLinks(confirmedNodes)
-  }, [allNodes?.length, confirmedNodes, ingoingNodes])
+  }, [allNodes?.length, confirmedNodes, ingoingNodes, inputs])
 
   // Show loading state
   if (loading && inputs.size > 0) {
