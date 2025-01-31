@@ -24,7 +24,7 @@ export default function CurrencyFormatting() {
         options={{
           headerTitle: () => (
             <SSText uppercase>
-              {i18n.t('settings.features.currencyFormatting.title')}
+              {i18n.t('settings.features.featurePage.currencyFormatting.title')}
             </SSText>
           ),
           headerBackVisible: true,
@@ -34,9 +34,6 @@ export default function CurrencyFormatting() {
       />
       <SSMainLayout>
         <SSVStack>
-          <SSText size="lg">
-            {i18n.t('settings.features.currencyFormatting.formatting')}
-          </SSText>
           <SSCheckbox
             label="SHOW '0.00..' PADDING"
             selected={padding}

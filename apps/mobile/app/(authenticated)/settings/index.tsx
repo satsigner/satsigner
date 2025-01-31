@@ -4,7 +4,7 @@ import { ScrollView } from 'react-native'
 import {
   SSIconAbout,
   SSIconDev,
-  SSIconFeatures,
+  SSIconFeature,
   SSIconLock,
   SSIconNetwork
 } from '@/components/icons'
@@ -37,7 +37,7 @@ export default function Settings() {
           <SSSettingsCards
             title={i18n.t('settings.features.title')}
             description={i18n.t('settings.features.description')}
-            icon={<SSIconFeatures height={24} width={24} />}
+            icon={<SSIconFeature height={24} width={24} />}
             onPress={() => router.navigate('/settings/config/features')}
           />
           <SSSettingsCards

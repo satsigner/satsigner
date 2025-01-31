@@ -52,7 +52,7 @@ export default function SSTransactionCard({
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const { type, received, sent, prices } = transaction
-  const amount = type === 'receive' ? received : sent
+  const amount = type === 'receive' ? received : sent - received
 
   const [account, padding] = useAccountsStore((state) => [
     state.accounts.find((account) => account.name === id),

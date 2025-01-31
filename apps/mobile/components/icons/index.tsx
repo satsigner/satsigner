@@ -2,6 +2,8 @@ import SSIconAbout from './SSIconAbout'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
 import SSIconChart from './SSIconChart'
+import SSIconChartSetting from './SSIconChartSetting'
+import SSIconChartWhite from './SSIconChartWhite'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
@@ -10,12 +12,11 @@ import SSIconChevronUp from './SSIconChevronUp'
 import SSIconCircleX from './SSIconCircleX'
 import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconCollapse from './SSIconCollapse'
-import SSIconCurrencyFormatting from './SSIconCurrencyFormatting'
 import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconExpand from './SSIconExpand'
-import SSIconFeatures from './SSIconFeatures'
+import SSIconFeature from './SSIconFeature'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
@@ -31,13 +32,17 @@ import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSettings from './SSIconSettings'
+import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
+import SSIconZero from './SSIconZero'
 
 export {
   SSIconAbout,
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconChartSetting,
+  SSIconChartWhite,
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,
@@ -46,12 +51,11 @@ export {
   SSIconCircleX,
   SSIconCircleXThin,
   SSIconCollapse,
-  SSIconCurrencyFormatting,
   SSIconDev,
   SSIconEdit,
   SSIconEditPencil,
   SSIconExpand,
-  SSIconFeatures,
+  SSIconFeature,
   SSIconHideWarning,
   SSIconIncoming,
   SSIconInfo,
@@ -67,5 +71,7 @@ export {
   SSIconRemove,
   SSIconScriptsP2pkh,
   SSIconSettings,
-  SSIconX
+  SSIconWarning,
+  SSIconX,
+  SSIconZero
 }

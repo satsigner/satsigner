@@ -19,6 +19,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
+  SSIconChartSetting,
   SSIconCollapse,
   SSIconExpand,
   SSIconKeys,
@@ -76,6 +77,8 @@ function TotalTransactions({
   sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
+  const router = useRouter()
+
   const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.btcPrice,
@@ -94,93 +97,6 @@ function TotalTransactions({
 
   const [showChart, setShowChart] = useState<boolean>(false)
 
-  const transactionData: Transaction[] = [
-    {
-      id: 'tx123456',
-      type: 'receive',
-      sent: 0,
-      received: 500000,
-      timestamp: new Date(Date.now() - 1000000),
-      blockHeight: 233300,
-      address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-      label: 'My label #kyc #blue',
-      fee: 500,
-      size: 225,
-      vsize: 150,
-      weight: 600,
-      version: 2,
-      lockTime: 0,
-      lockTimeEnabled: false,
-      raw: [0x02, 0x01, 0x00],
-      vin: [
-        {
-          previousOutput: {
-            txid: 'abcd1234efgh5678ijkl9012mnopqrstuvwx3456yzab7890cdef1234ghij5678',
-            vout: 0
-          },
-          sequence: 4294967295,
-          scriptSig: [0x01, 0x02, 0x03],
-          witness: [
-            [0x01, 0x02],
-            [0x03, 0x04]
-          ]
-        }
-      ],
-      vout: [
-        {
-          value: 50000,
-          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-        }
-      ],
-      prices: {
-        USD: 40000,
-        EUR: 37000
-      }
-    },
-    {
-      id: 'tx123459',
-      type: 'send',
-      sent: 3000,
-      received: 0,
-      timestamp: new Date(Date.now() - 1000000),
-      blockHeight: 78000,
-      address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-      label: '',
-      fee: 500,
-      size: 225,
-      vsize: 150,
-      weight: 600,
-      version: 2,
-      lockTime: 0,
-      lockTimeEnabled: false,
-      raw: [0x02, 0x01, 0x00],
-      vin: [
-        {
-          previousOutput: {
-            txid: 'abcd1234efgh5678ijkl9012mnopqrstuvwx3456yzab7890cdef1234ghij5678',
-            vout: 0
-          },
-          sequence: 4294967295,
-          scriptSig: [0x01, 0x02, 0x03],
-          witness: [
-            [0x01, 0x02],
-            [0x03, 0x04]
-          ]
-        }
-      ],
-      vout: [
-        {
-          value: 50000,
-          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-        }
-      ],
-      prices: {
-        USD: 40000,
-        EUR: 37000
-      }
-    }
-  ]
-
   return (
     <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
       <SSHStack
@@ -198,6 +114,15 @@ function TotalTransactions({
               <SSIconExpand height={15} width={16} />
             )}
           </SSIconButton>
+          {showChart && (
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/settings/config/features/chartSettings`)
+              }
+            >
+              <SSIconChartSetting width={22} height={18} />
+            </SSIconButton>
+          )}
         </SSHStack>
         <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
         <SSHStack>
@@ -214,7 +139,7 @@ function TotalTransactions({
         </SSHStack>
       </SSHStack>
       {showChart ? (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, zIndex: -1 }}>
           <SSBalanceChart
             transactions={sortedTransactions}
             utxos={account.utxos}
@@ -233,7 +158,7 @@ function TotalTransactions({
         >
           {/* account.transactions */}
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...transactionData]).map((transaction) => (
+            {sortTransactions([...account.transactions]).map((transaction) => (
               <SSVStack gap="xs" key={transaction.id}>
                 <SSSeparator
                   color="custom"

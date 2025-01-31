@@ -2,7 +2,7 @@ import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconFeatures({ width, height }: IconProps) {
+export default function SSIconFeature({ width, height }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 24 24">
       <G id="hide-warning" opacity="0.5">
