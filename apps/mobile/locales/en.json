@@ -301,8 +301,10 @@
       "inputPrevOut": "Output index in transaction",
       "inputSequence": "Sequence",
       "label": "Transaction label",
-      "labelEdit": "Edit TX label",
-      "decodeTransaction": {
+      "labelEdit": "Edit TX label"
+    },
+    "txDecoded": {
+      "description": {
         "version": "This is a 4-byte little-endian integer, representing the transaction version",
         "marker": "This is an 1-byte marker (required to be '00') that serves as an indicator that the given transaction incorporates Segregated Witness (segwit) data.",
         "flag": "This is an 1-byte flag that follows the marker in transactions with witness data. It must be non-zero. It can be interpreted as a bitvector, with the unused bits available for future extensibility for other types of witness data.",
@@ -324,8 +326,33 @@
         "witnessItemSignature": "This witness item is a signature.",
         "witnessItemScript": "This witness item is a script.",
         "locktime": "This is a 4-byte little-endian number that specifies the absolute locktime of the transaction.",
-        "scriptDescriptionStandard": "This scriptPubkey is a standard type and can be encoded as the following address:",
-        "scriptDescriptionNonStandard": "This scriptPubKey is non-standard and therefore cannot be encoded as an address."
+        "txOutScriptStandard": "This scriptPubkey is a standard type and can be encoded as the following address: %s",
+        "txOutScriptNonStandard": "This scriptPubKey is non-standard and therefore cannot be encoded as an address."
+      },
+      "label": {
+        "version": "version",
+        "marker": "marker",
+        "flag": "flag",
+        "txInVarInt": "Input count",
+        "txInHash": "Input previous tx hash (input %d)",
+        "txInIndex": "Input previous output index (input %d)",
+        "txInScriptVarInt": "Input script length (input %d)",
+        "txInScript": "Input signature script (input %d)",
+        "txInSequence": "Input sequence (input %d)",
+        "txOutVarInt": "Output count",
+        "txOutValue": "Output value (output %d)",
+        "txOutScriptVarInt": "Output script length (output %d)",
+        "txOutScript": "Output unlocking script (output %d)",
+        "witnessVarInt": "Witness count",
+        "witnessItemsVarInt": "Witness item length (input %d witness %d)",
+        "witnessItem": "Witness item (input %d witness %d)",
+        "witnessItemEmpty": "Witness item (input %d witness %d)",
+        "witnessItemPubkey": "Witness item (input %d witness %d)",
+        "witnessItemSignature": "Witness item (input %d witness %d)",
+        "witnessItemScript": "Witness item (input %d witness %d)",
+        "locktime": "LockTime",
+        "txOutScriptStandard": "Output unlocking script (output %d)",
+        "txOutScriptNonStandard": "Output unlocking script (output %d)"
       }
     }
   }
