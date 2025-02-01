@@ -196,7 +196,9 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = script.toString('hex')
     const value = bitcoinjs.script.toASM(script)
     const address = this.generateOutputScriptAddress(index)
-    const field = TxField.TxOutScript
+    const field = address
+      ? TxField.TxOutScriptStandard
+      : TxField.TxOutScriptNonStandard
     const placeholders = { label: [index], description: [address] }
     return { hex, value, field, placeholders }
   }
@@ -229,8 +231,9 @@ export class TxDecoded extends bitcoinjs.Transaction {
   getWitnessItemsVarInt(index: number, witnessIndex: number): TxDecodedField {
     const value = this.ins[index].witness[witnessIndex].length
     const hex = toVarInt(value)
-    const field = TxField.WitnessVarInt
-    return { hex, field, value }
+    const field = TxField.WitnessItemsVarInt
+    const placeholders = { label: [index, witnessIndex] }
+    return { hex, field, value, placeholders }
   }
 
   getWitnessItem(index: number, witnessIndex: number): TxDecodedField {
