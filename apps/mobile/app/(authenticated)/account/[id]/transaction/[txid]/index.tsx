@@ -12,6 +12,7 @@ import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSTxColorCode from '@/components/SSTxColorCode'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -27,7 +28,6 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
-import SSTxColorCode from '@/components/SSTxColorCode'
 
 // TODO: Refactor page
 
@@ -139,7 +139,7 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSVStack gap="sm">
           <SSText uppercase weight="bold" size="md">
-            {t('raw')}
+            {t('decoded')}
           </SSText>
           {raw && <SSTxColorCode rawTxHex={raw} />}
           {!raw && <SSText>{placeholder}</SSText>}
@@ -147,7 +147,7 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">
-            {t('decoded')}
+            {t('details')}
           </SSText>
         </SSVStack>
         <SSTxDetailsBox header={t('version')} text={version} />

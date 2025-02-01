@@ -290,7 +290,7 @@
       "fee": "Fee",
       "feeBytes": "Fee sat/b",
       "feeVBytes": "Fee sat/vb",
-      "raw": "Transaction raw",
+      "details": "Transaction details",
       "decoded": "Transaction decoded",
       "version": "Version",
       "inputsCount": "Number of inputs",

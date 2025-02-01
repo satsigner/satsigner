@@ -1,33 +1,33 @@
-import varuint from 'varuint-bitcoin'
-import * as bitcoinjs from 'bitcoinjs-lib'
 import ecc from '@bitcoinerlab/secp256k1'
+import * as bitcoinjs from 'bitcoinjs-lib'
+import varuint from 'varuint-bitcoin'
 
 bitcoinjs.initEccLib(ecc)
 
 export enum TxField {
-  Version                = "version",
-  Marker                 = "marker",
-  Flag                   = "flag",
-  TxInVarInt             = "txInVarInt",
-  TxInHash               = "txInHash",
-  TxInIndex              = "txInIndex",
-  TxInScriptVarInt       = "txInScriptVarInt",
-  TxInScript             = "txInScript",
-  TxInSequence           = "txInSequence",
-  TxOutVarInt            = "txOutVarInt",
-  TxOutValue             = "txOutValue",
-  TxOutScriptVarInt      = "txOutScriptVarInt",
-  TxOutScript            = "txOutScript",
-  WitnessVarInt          = "witnessVarInt",
-  WitnessItemsVarInt     = "witnessItemsVarInt",
-  WitnessItem            = "witnessItem",
-  WitnessItemEmpty       = "witnessItemEmpty",
-  WitnessItemPubkey      = "witnessItemPubkey",
-  WitnessItemSignature   = "witnessItemSignature",
-  WitnessItemScript      = "witnessItemScript",
-  Locktime               = "locktime",
-  TxOutScriptStandard    = "txOutScriptStandard",
-  TxOutScriptNonStandard = "txOutScriptNonStandard"
+  Version = 'version',
+  Marker = 'marker',
+  Flag = 'flag',
+  TxInVarInt = 'txInVarInt',
+  TxInHash = 'txInHash',
+  TxInIndex = 'txInIndex',
+  TxInScriptVarInt = 'txInScriptVarInt',
+  TxInScript = 'txInScript',
+  TxInSequence = 'txInSequence',
+  TxOutVarInt = 'txOutVarInt',
+  TxOutValue = 'txOutValue',
+  TxOutScriptVarInt = 'txOutScriptVarInt',
+  TxOutScript = 'txOutScript',
+  WitnessVarInt = 'witnessVarInt',
+  WitnessItemsVarInt = 'witnessItemsVarInt',
+  WitnessItem = 'witnessItem',
+  WitnessItemEmpty = 'witnessItemEmpty',
+  WitnessItemPubkey = 'witnessItemPubkey',
+  WitnessItemSignature = 'witnessItemSignature',
+  WitnessItemScript = 'witnessItemScript',
+  Locktime = 'locktime',
+  TxOutScriptStandard = 'txOutScriptStandard',
+  TxOutScriptNonStandard = 'txOutScriptNonStandard'
 }
 
 export type TxDecodedField = {
@@ -35,20 +35,20 @@ export type TxDecodedField = {
   field: TxField
   value: string | number
   placeholders?: {
-    label?: (string|number)[]
-    description?: (string|number)[]
+    label?: (string | number)[]
+    description?: (string | number)[]
   }
 }
 
 export class TxDecoded extends bitcoinjs.Transaction {
-  constructor() {
-    super()
-  }
-
   static fromHex(hex: string): TxDecoded {
     const tx = super.fromHex(hex)
     Object.setPrototypeOf(tx, TxDecoded.prototype)
     return tx as TxDecoded
+  }
+
+  static decodeFromHex(hex: string): TxDecodedField[] {
+    return TxDecoded.fromHex(hex).decode()
   }
 
   decode(): TxDecodedField[] {
@@ -102,10 +102,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
       this.getInputScript(i),
       this.getInputSequence(i)
     ])
-    return [
-      this.getInputCount(),
-      ...inputTuples.flat(),
-    ]
+    return [this.getInputCount(), ...inputTuples.flat()]
   }
 
   getInputCount(): TxDecodedField {
@@ -168,16 +165,13 @@ export class TxDecoded extends bitcoinjs.Transaction {
       this.getOutputScriptVarInt(i),
       this.getOutputScript(i)
     ])
-    return [
-      this.getOutputCount(),
-      ...outputTuples.flat(),
-    ]
+    return [this.getOutputCount(), ...outputTuples.flat()]
   }
 
   getOutputCount(): TxDecodedField {
     const value = this.outs.length
     const hex = toVarInt(value)
-    const field = TxField.TxOutVarInt;
+    const field = TxField.TxOutVarInt
     return { hex, value, field }
   }
 
@@ -250,7 +244,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   getLocktime(): TxDecodedField {
     const value = this.locktime
     const hex = toUInt32LE(value)
-    const field = TxField.Locktime;
+    const field = TxField.Locktime
     return { hex, field, value }
   }
 
@@ -266,7 +260,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   // identifyWitnessItem takes a witness item and returns a description of the item and a decoded value
   identifyWitnessItem(witnessItem: any) {
-    let hex = witnessItem.toString('hex')
+    const hex = witnessItem.toString('hex')
     if (hex === '') {
       return { field: TxField.WitnessItemEmpty, value: '' }
     }
@@ -316,7 +310,7 @@ function toBigUInt64LE(value: number) {
   const buffer = Buffer.alloc(8)
   // WARNING:: 64 bits not working therefore we are using 32 bits
   // buffer.writeBigUInt64LE(BigInt(value))
-  buffer.writeUInt32LE((value))
+  buffer.writeUInt32LE(value)
   return buffer.toString('hex')
 }
 
