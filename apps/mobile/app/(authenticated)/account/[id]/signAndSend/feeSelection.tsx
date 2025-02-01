@@ -25,6 +25,7 @@ import { time } from '@/utils/time'
 export default function FeeSelection() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const isFocused = useIsFocused()
 
   const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
   const setFeeRate = useTransactionBuilderStore((state) => state.setFeeRate)
@@ -34,7 +35,6 @@ export default function FeeSelection() {
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
     useState(false)
-  const isFocused = useIsFocused()
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
     queryKey: ['statistics'],
@@ -49,6 +49,7 @@ export default function FeeSelection() {
       setInsufficientSatsModalVisible(true) // to remove
     else router.navigate(`/account/${id}/signAndSend/previewMessage`)
   }
+
   const boxPosition = new Animated.Value(feeSelected)
 
   function handleSliderChange(value: number) {
