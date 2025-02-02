@@ -48,7 +48,8 @@ export const useGestures = ({
   onPanStart,
   onPanEnd,
   onDoubleTap = () => {},
-  onSingleTap = () => {}
+  onSingleTap = () => {},
+  initialTranslation = { x: 0, y: 0 }
 }: ZoomUseGesturesProps) => {
   const isInteracting = useRef(false)
   const isPinching = useRef(false)
@@ -60,7 +61,10 @@ export const useGestures = ({
   const savedFocal = { x: useSharedValue(0), y: useSharedValue(0) }
   const focal = { x: useSharedValue(0), y: useSharedValue(0) }
   const savedTranslate = { x: useSharedValue(0), y: useSharedValue(0) }
-  const translate = { x: useSharedValue(0), y: useSharedValue(0) }
+  const translate = {
+    x: useSharedValue(initialTranslation.x),
+    y: useSharedValue(initialTranslation.y)
+  }
   const isZoomedIn = useSharedValue(false)
 
   const { getInteractionId, updateInteractionId } = useInteractionId()

@@ -78,6 +78,14 @@ export type ZoomProps = {
    */
   maxPanPointers?: number
   /**
+   * Initial offset for pointers.
+   * @default {x:0,y:0}
+   */
+  initialTranslation?: {
+    x: number
+    y: number
+  }
+  /**
    * Determines whether panning is enabled within the range of the minimum and maximum pan pointers.
    * @default true
    */
@@ -184,4 +192,5 @@ export type ZoomUseGesturesProps = Pick<
     | 'onSingleTap'
     | 'onDoubleTap'
     | 'shouldResetOnInteractionEnd'
+    | 'initialTranslation'
   >

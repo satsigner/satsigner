@@ -56,6 +56,7 @@ interface SankeyProps {
 const LINK_MAX_WIDTH = 60
 const VERTICAL_OFFSET_NODE = 22
 const BLOCK_WIDTH = 50
+const NODE_WIDTH = 98
 
 const generateCustomLink = (points: LinkPoints) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
@@ -117,18 +118,22 @@ function SSSankeyDiagram({
     minPanPointers: 1,
     maxScale: 10,
     minScale: 0.5,
-    shouldResetOnInteractionEnd: false
+    shouldResetOnInteractionEnd: false,
+    initialTranslation: {
+      x: -980,
+      y: 0
+    }
   })
 
   const sankeyGenerator = sankey()
-    .nodeWidth(98)
+    .nodeWidth(NODE_WIDTH)
     .nodePadding(100)
     .extent([
       [0, 160],
-      [2000 * 0.5, 1000 * ((inputCount * 2) / 10)]
+      [2000 * 0.7, 1000 * (Math.max(inputCount * 2, 2.6) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
-
+  console.log({ y: inputCount * 2, yconet: Math.max(inputCount * 2, 5) })
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
     const { depthH } = node as Node
     return depthH ?? 0
