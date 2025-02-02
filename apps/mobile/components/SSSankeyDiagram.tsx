@@ -133,7 +133,7 @@ function SSSankeyDiagram({
       [2000 * 0.7, 1000 * (Math.max(inputCount * 2, 2.6) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
-  console.log({ y: inputCount * 2, yconet: Math.max(inputCount * 2, 5) })
+
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
     const { depthH } = node as Node
     return depthH ?? 0
