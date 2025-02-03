@@ -183,6 +183,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
   const [scale, setScale] = useState<number>(1)
+  const prevScale = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date>(
@@ -416,7 +417,10 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
-      setScale((prev) => Math.max(prev * event.scale, 1))
+      setScale(Math.max(prevScale.current * event.scale, 1))
+    })
+    .onEnd(() => {
+      prevScale.current = scale
     })
     .runOnJS(true)
 
@@ -508,7 +512,21 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     setContainersize({ width, height })
   }, [])
 
-  const txXBoundbox = useRef<{ [key: string]: Rectangle }>({})
+  const [txXBoundbox, setTxXBoundbox] = useState<{ [key: string]: Rectangle }>(
+    {}
+  )
+
+  const [txXAxisLabels, setTxXAxisLabels] = useState<
+    {
+      textColor: string
+      x: number
+      index: number
+      amountString: string
+      type: 'send' | 'receive'
+      numberOfOutput: number
+      numberOfInput: number
+    }[]
+  >([])
 
   const handleXAxisLayout = (
     event: LayoutChangeEvent,
@@ -523,52 +541,25 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       width: Math.round(event.nativeEvent.layout.width),
       height: Math.round(event.nativeEvent.layout.height)
     }
+    if (rect.height === 0) {
+      return
+    }
     if (
-      txXBoundbox.current[index] !== undefined &&
-      txXBoundbox.current[index].left === rect.left &&
-      txXBoundbox.current[index].bottom === rect.bottom &&
-      txXBoundbox.current[index].top === rect.top &&
-      txXBoundbox.current[index].right === rect.right
+      txXBoundbox[index] !== undefined &&
+      txXBoundbox[index].width === rect.width &&
+      txXBoundbox[index].height === rect.height
     ) {
       return
     }
-    txXBoundbox.current = {
-      ...txXBoundbox.current,
-      [index]: rect
-    }
+    setTxXBoundbox((prev) => ({ ...prev, [index]: rect }))
   }
 
-  const txXAxisLabels = useMemo(() => {
+  useEffect(() => {
     if (!showTransactionInfo) {
-      return []
+      return
     }
     const length = xScaleTransactions.length
-    let visibleEmpty = false
-    for (let i = 0; i < length; i++) {
-      if (txXBoundbox.current[xScaleTransactions[i].index] === undefined) {
-        visibleEmpty = true
-        break
-      }
-    }
-    const visible: { [key: string]: boolean } = {}
-    if (!visibleEmpty) {
-      for (let i = 0; i < length - 1; i++) {
-        if (
-          isOverlapping(
-            txXBoundbox.current[xScaleTransactions[i].index],
-            txXBoundbox.current[xScaleTransactions[i + 1].index]
-          )
-        ) {
-          visible[xScaleTransactions[i].index] = false
-        }
-      }
-    }
-    for (let i = 0; i < length; i++) {
-      if (visible[xScaleTransactions[i].index] === undefined) {
-        visible[xScaleTransactions[i].index] = true
-      }
-    }
-    return xScaleTransactions.map((t) => {
+    const xAxisLabels = xScaleTransactions.map((t) => {
       const amount = t.type === 'receive' ? t.received : t.received - t.sent
       let numberOfOutput: number = 0
       let numberOfInput: number = 0
@@ -578,27 +569,71 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       } else if (t.type === 'send') {
         numberOfInput = t.vin?.length ?? 0
       }
-      const textColor = visible[t.index] ? 'white' : 'transparent'
-
       return {
         x: xScale(new Date(t.timestamp ?? new Date())),
         index: t.index,
-        textColor,
+        textColor: '',
         amountString: `${amount >= 0 ? '+' : ''}${numberCommaFormatter(amount)}`,
         type: t.type,
         numberOfOutput,
         numberOfInput
       }
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    numberCommaFormatter,
-    walletAddresses,
-    xScaleTransactions,
-    txXBoundbox.current
-  ])
+    const boundaryBoxes: { [key: string]: Rectangle } = {}
+    xAxisLabels.forEach((t) => {
+      if (txXBoundbox[t.index] === undefined) {
+        boundaryBoxes[t.index] = {
+          left: t.x,
+          right: t.x,
+          top: chartHeight,
+          bottom: chartHeight,
+          width: 0,
+          height: 0
+        }
+      } else {
+        boundaryBoxes[t.index] = {
+          left: t.x,
+          right: txXBoundbox[t.index].width! + t.x,
+          top: chartHeight,
+          bottom: chartHeight + txXBoundbox[t.index].height!,
+          width: txXBoundbox[t.index].width,
+          height: txXBoundbox[t.index].height
+        }
+      }
+    })
+    const visible: { [key: string]: boolean } = {}
+    for (let i = 0; i < length; i++) {
+      visible[xScaleTransactions[i].index] = true
+    }
+    for (let i = 0; i < length - 1; i++) {
+      if (
+        boundaryBoxes[xScaleTransactions[i].index] !== undefined &&
+        boundaryBoxes[xScaleTransactions[i + 1].index] !== undefined &&
+        isOverlapping(
+          boundaryBoxes[xScaleTransactions[i].index],
+          boundaryBoxes[xScaleTransactions[i + 1].index]
+        )
+      ) {
+        visible[xScaleTransactions[i].index] = false
+      }
+    }
+    // for (let i = 0; i < length; i++) {
+    //   if (boundaryBoxes[xScaleTransactions[i].index] === undefined) {
+    //     visible[xScaleTransactions[i].index] = true
+    //   }
+    // }
 
-  const txInfoLabels = useRef<
+    const result = xAxisLabels.map((x) => {
+      return {
+        ...x,
+        textColor: visible[x.index] === true ? 'white' : 'transparent'
+      }
+    })
+    setTxXAxisLabels(result)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddresses, xScaleTransactions, txXBoundbox, xScale])
+
+  const [txInfoLabels, setTxInfoLabels] = useState<
     {
       x: number
       y: number
@@ -750,7 +785,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         }
       }
     }
-    txInfoLabels.current = initialLabels
+    setTxInfoLabels(initialLabels)
   }, [showAmount, showLabel, txInfoBoundBox, validChartData, xScale, yScale])
 
   if (!containerSize.width || !containerSize.height) {
@@ -984,7 +1019,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                       return null
                     }
                   })}
-                {txInfoLabels.current.map((label, index) => {
+                {txInfoLabels.map((label, index) => {
                   if (label.type === 'end') {
                     return null
                   }
