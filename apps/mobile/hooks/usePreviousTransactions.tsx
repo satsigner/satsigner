@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { EsploraTx } from '@/api/esplora'
+import { usePreviousTransactionsStore } from '@/store/previousTransactions'
 import { Utxo } from '@/types/models/Utxo'
 
 export function usePreviousTransactions(
@@ -13,6 +14,7 @@ export function usePreviousTransactions(
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const { addTransactions, getTransaction } = usePreviousTransactionsStore()
 
   const fetchInputTransactions = useCallback(async () => {
     if (inputs.size === 0) return
@@ -36,6 +38,26 @@ export function usePreviousTransactions(
             if (processed.has(txid)) return
             processed.add(txid)
 
+            // Check cache first
+            const cachedTx = getTransaction(txid)
+            if (cachedTx) {
+              newTransactions.set(txid, cachedTx)
+              // Still need to check parents
+              if (cachedTx.vin) {
+                cachedTx.vin.forEach((vin) => {
+                  const parentTxid = vin.txid
+                  if (
+                    parentTxid &&
+                    !processed.has(parentTxid) &&
+                    !queue.includes(parentTxid)
+                  ) {
+                    queue.push(parentTxid)
+                  }
+                })
+              }
+              return
+            }
+
             const tx = (await oracle.getTransaction(txid)) as EsploraTx
             newTransactions.set(txid, tx)
 
@@ -54,19 +76,18 @@ export function usePreviousTransactions(
             }
           })
         )
-
         currentDepth++
       }
 
+      // Cache the new transactions
+      addTransactions(newTransactions)
       setTransactions(new Map([...newTransactions.entries()].reverse()))
-    } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error('Failed to fetch transactions')
-      )
+    } catch (e) {
+      setError(e as Error)
     } finally {
       setLoading(false)
     }
-  }, [inputs, depth])
+  }, [inputs, depth, addTransactions, getTransaction])
 
   useEffect(() => {
     fetchInputTransactions()
