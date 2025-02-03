@@ -9,7 +9,7 @@ import {
 } from '@shopify/react-native-skia'
 import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
 import { sankey } from 'd3-sankey'
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 import { Platform, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
