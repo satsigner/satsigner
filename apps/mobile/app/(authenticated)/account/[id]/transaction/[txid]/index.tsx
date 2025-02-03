@@ -10,6 +10,7 @@ import {
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
+import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTxColorCode from '@/components/SSTxColorCode'
@@ -28,6 +29,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { TxDecoded, TxDecodedField } from '@/utils/txDecoded'
 
 // TODO: Refactor page
 
@@ -44,6 +46,8 @@ export default function TxDetails() {
 
   const placeholder = '-'
 
+  const [decoded, setDecoded] = useState([] as TxDecodedField[])
+  const [decodedOutputs, setDecodedOutputs] = useState([] as TxDecodedField[])
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
@@ -75,12 +79,22 @@ export default function TxDetails() {
 
     if (tx.version) setVersion(tx.version.toString())
 
-    if (tx.raw)
-      setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(''))
-
     if (tx.vin) setInputsCount(tx.vin.length.toString())
 
     if (tx.vout) setOutputsCount(tx.vout.length.toString())
+
+    if (tx.raw) {
+      const txHex = tx.raw.map((v) => v.toString(16).padStart(2, '0')).join('')
+
+      // The transaction decoding can cause performance issues.
+      // We will only decode it if the hexadecimal has changed
+      if (raw === txHex) return
+
+      const txDecoded = TxDecoded.fromHex(txHex)
+      setRaw(txHex)
+      setDecoded(txDecoded.decode())
+      setDecodedOutputs(txDecoded.getOutputsScripts())
+    }
   }
 
   useEffect(() => {
@@ -141,8 +155,8 @@ export default function TxDetails() {
           <SSText uppercase weight="bold" size="md">
             {t('decoded')}
           </SSText>
-          {raw && <SSTxColorCode rawTxHex={raw} />}
-          {!raw && <SSText>{placeholder}</SSText>}
+          {decoded.length > 0 && <SSTxColorCode decoded={decoded} />}
+          {decoded.length === 0 && <SSText>{placeholder}</SSText>}
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
@@ -154,7 +168,11 @@ export default function TxDetails() {
         <SSTxDetailsBox header={t('inputsCount')} text={inputsCount} />
         <SSTxDetailsBox header={t('outputsCount')} text={outputsCount} />
         <SSTxDetailsInputs tx={tx} />
-        <SSTxDetailsOutputs tx={tx} accountId={accountId} />
+        <SSTxDetailsOutputs
+          tx={tx}
+          accountId={accountId}
+          decoded={decodedOutputs}
+        />
       </SSVStack>
     </ScrollView>
   )
@@ -313,66 +331,6 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
             <SSText color="muted">{vin.sequence}</SSText>
           </SSVStack>
           <SSText weight="bold">SigScript</SSText>
-          <SSVStack gap="sm">
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_DUP
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0x72
-              </SSText>
-              <SSText size="xxs" color="muted">
-                Duplicates the top stack item
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_HASH160
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0xa9
-              </SSText>
-              <SSText size="xxs" color="muted">
-                The input is hashed twice: first with SHA-256 and then with
-                RIPEMD-160.
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                76A9145E4FF47CEB3A51CDF7DDD80AFC4ACC5A692DAC2D88AC
-              </SSText>
-              <SSText size="xxs" color="muted">
-                Raw data
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_EQUALVERIFY
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0x88
-              </SSText>
-              <SSText size="xxs" color="muted">
-                Returns 1 if the inputs are exactly equal, 0 otherwise.
-                Afterward, OP_VERIFY is executed.
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_CHECK_SIG
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0xacc
-              </SSText>
-              <SSText size="xxs" color="muted">
-                The entire transaction's outputs, inputs, and script (from the
-                most recently-executed OP_CODESEPARATOR to the end) are hashed.
-                The signature used by OP_CHECKSIG must be a valid signature for
-                this hash and public key. If it is, 1 is returned, 0 otherwise.
-                Afterward, OP_VERIFY is executed.
-              </SSText>
-            </SSVStack>
-          </SSVStack>
         </SSVStack>
       ))}
     </SSVStack>
@@ -382,9 +340,14 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
 type SSTxDetailsOutputsProps = {
   tx: Transaction | undefined
   accountId: string
+  decoded: TxDecodedField[]
 }
 
-function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
+function SSTxDetailsOutputs({
+  tx,
+  accountId,
+  decoded
+}: SSTxDetailsOutputsProps) {
   return (
     <SSVStack>
       {tx &&
@@ -410,6 +373,12 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                 header={i18n.t('common.address')}
                 text={vout.address}
               />
+              {decoded[index] && (
+                <SSVStack>
+                  <SSText weight="bold">UNLOCKING SCRIPT</SSText>
+                  <SSScriptDecoded script={'' + decoded[index].value} />
+                </SSVStack>
+              )}
             </SSVStack>
           </TouchableOpacity>
         ))}

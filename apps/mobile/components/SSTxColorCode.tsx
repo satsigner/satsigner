@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { TxDecoded, TxDecodedField, TxField } from '@/utils/txDecoded'
+import { TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
 
 type SSTxColorCodeProps = {
-  rawTxHex: string
+  decoded: TxDecodedField[]
 }
 
 const colors: Record<TxField, string> = {
@@ -54,23 +54,15 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-export default function SSTxColorCode({ rawTxHex }: SSTxColorCodeProps) {
-  const [prevHex, setPrevHex] = useState(rawTxHex)
-  const [decoded, setDecoded] = useState(TxDecoded.decodeFromHex(rawTxHex))
+export default function SSTxColorCode({ decoded }: SSTxColorCodeProps) {
   const [selectedItem, setSelectedItem] = useState(0)
-
-  useEffect(() => {
-    if (rawTxHex === prevHex) return
-    setPrevHex(rawTxHex)
-    setDecoded(TxDecoded.fromHex(rawTxHex).decode())
-  }, [rawTxHex, prevHex])
 
   return (
     <SSVStack gap="md">
       <SSHStack style={{ flexWrap: 'wrap' }} gap="none">
         {decoded.map((item, i) => {
           return (
-            <>
+            <Fragment key={i}>
               {byteChunks(item.hex).map((byte, j) => {
                 const selected = selectedItem === i
                 return (
@@ -91,7 +83,7 @@ export default function SSTxColorCode({ rawTxHex }: SSTxColorCodeProps) {
                   </TouchableOpacity>
                 )
               })}
-            </>
+            </Fragment>
           )
         })}
       </SSHStack>
