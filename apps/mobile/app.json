@@ -43,15 +43,22 @@
             "./assets/fonts/SF-Pro-Text-Light.otf",
             "./assets/fonts/SF-Pro-Text-Regular.otf",
             "./assets/fonts/SF-Pro-Text-Medium.otf",
-            "./assets/fonts/SF-Pro-Text-Bold.otf"
+            "./assets/fonts/SF-Pro-Text-Bold.otf",
+            "./assets/fonts/TerminessNerdFontMono-Regular.ttf",
+            "./assets/fonts/TerminessNerdFontMono-Bold.ttf",
+            "./assets/fonts/TerminessNerdFontMono-BoldItalic.ttf",
+            "./assets/fonts/TerminessNerdFontMono-Italic.ttf"
           ]
         }
       ],
       "expo-secure-store",
       [
         "expo-camera",
-        { "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera" }
-      ]
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ],
+      "expo-localization"
     ],
     "extra": {
       "router": {

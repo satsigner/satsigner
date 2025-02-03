@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router'
 import { useState } from 'react'
 import { Alert } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSSeparator from '@/components/SSSeparator'
+import SSSwitch from '@/components/SSSwitch'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -12,7 +15,9 @@ import { useAuthStore } from '@/store/auth'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
-  const setFirstTime = useAuthStore((state) => state.setFirstTime)
+  const [setFirstTime, skipPin, setSkipPin] = useAuthStore(
+    useShallow((state) => [state.setFirstTime, state.skipPin, state.setSkipPin])
+  )
 
   const [deletingAccounts, setDeletingAccounts] = useState(false)
 
@@ -36,16 +41,29 @@ export default function Developer() {
         }}
       />
       <SSMainLayout>
-        <SSVStack>
-          <SSButton
-            label="Delete Accounts"
-            loading={deletingAccounts}
-            onPress={() => handleDeleteAccount()}
-          />
-          <SSButton
-            label="Set PIN First Time"
-            onPress={() => setFirstTime(true)}
-          />
+        <SSVStack gap="lg">
+          <SSVStack>
+            <SSButton
+              label="Delete Accounts"
+              loading={deletingAccounts}
+              onPress={() => handleDeleteAccount()}
+            />
+            <SSButton
+              label="Set PIN First Time"
+              onPress={() => setFirstTime(true)}
+            />
+          </SSVStack>
+          <SSSeparator color="gradient" />
+          <SSVStack gap="none">
+            <SSSwitch
+              value={skipPin}
+              textOn="Skip Pin (ON)"
+              textOff="Skip Pin (OFF)"
+              size="lg"
+              position="right"
+              onToggle={() => setSkipPin(!skipPin)}
+            />
+          </SSVStack>
         </SSVStack>
       </SSMainLayout>
     </>

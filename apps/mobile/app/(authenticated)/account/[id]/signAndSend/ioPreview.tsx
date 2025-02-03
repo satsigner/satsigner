@@ -58,7 +58,6 @@ export default function IOPreview() {
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
-  const [outputAddress, setOutputAddress] = useState('')
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
@@ -80,7 +79,7 @@ export default function IOPreview() {
   }
 
   function handleAddOutputAndClose() {
-    addOutput({ to: outputAddress, amount: outputAmount, label: outputLabel })
+    addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
     setAddOutputModalVisible(false)
   }
 
@@ -273,7 +272,7 @@ export default function IOPreview() {
               <ScanIcon />
             </SSIconButton>
           }
-          onChangeText={(text) => setOutputAddress(text)}
+          onChangeText={(text) => setOutputTo(text)}
         />
         <SSVStack style={{ width: '100%' }}>
           <SSHStack style={{ width: '100%' }}>

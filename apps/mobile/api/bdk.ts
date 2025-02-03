@@ -5,9 +5,15 @@ import {
   Descriptor,
   DescriptorSecretKey,
   Mnemonic,
+  PartiallySignedTransaction,
+  TxBuilder,
   Wallet
 } from 'bdk-rn'
-import { LocalUtxo, TransactionDetails } from 'bdk-rn/lib/classes/Bindings'
+import {
+  LocalUtxo,
+  TransactionDetails,
+  TxBuilderResult
+} from 'bdk-rn/lib/classes/Bindings'
 import {
   AddressIndex,
   BlockchainElectrumConfig,
@@ -337,7 +343,47 @@ async function getLastUnusedWalletAddress(
   return newAddress
 }
 
+async function buildTransaction(
+  wallet: Wallet,
+  utxos: Utxo[],
+  recipient: string,
+  amount: number,
+  fee: number
+) {
+  const address = await new Address().create(recipient)
+  const script = await address.scriptPubKey()
+
+  const transactionBuilder = await new TxBuilder().create()
+
+  await transactionBuilder.feeAbsolute(fee)
+  await transactionBuilder.addUtxos(
+    utxos.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
+  )
+  await transactionBuilder.manuallySelectedOnly()
+  await transactionBuilder.addRecipient(script, amount)
+
+  const transactionBuilderResult = await transactionBuilder.finish(wallet)
+  return transactionBuilderResult
+}
+
+async function signTransaction(transaction: TxBuilderResult, wallet: Wallet) {
+  const partiallySignedTransaction = await wallet.sign(transaction.psbt)
+  return partiallySignedTransaction
+}
+
+async function broadcastTransaction(
+  psbt: PartiallySignedTransaction,
+  blockchain: Blockchain
+) {
+  const transaction = await psbt.extractTx()
+
+  const result = await blockchain.broadcast(transaction)
+  return result
+}
+
 export {
+  broadcastTransaction,
+  buildTransaction,
   generateMnemonic,
   getBlockchain,
   getDescriptor,
@@ -347,6 +393,7 @@ export {
   getWalletFromDescriptor,
   getWalletFromMnemonic,
   parseDescriptor,
+  signTransaction,
   syncWallet,
   validateMnemonic
 }
