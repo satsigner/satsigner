@@ -1,12 +1,4 @@
-import {
-  Canvas,
-  Group,
-  Path,
-  Rect,
-  Skia,
-  TileMode,
-  vec
-} from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
 import { sankey } from 'd3-sankey'
 import { useCallback } from 'react'
@@ -16,11 +8,11 @@ import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
-import { gray } from '@/styles/colors'
 
-import { SSSankeyNode } from './SSSankeyNode'
+import { SSSankeyLinks } from './SSSankeyLinks'
+import { SSSankeyNodes } from './SSSankeyNodes'
 
-interface Link extends SankeyLinkMinimal<object, object> {
+export interface Link extends SankeyLinkMinimal<object, object> {
   source: string
   target: string
   value: number
@@ -31,7 +23,7 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   depth?: number
   depthH: number
   address?: string
-  type?: string
+  type: string
   textInfo: string[]
   value?: number
   txId?: string
@@ -54,7 +46,6 @@ interface SankeyProps {
 }
 
 const LINK_MAX_WIDTH = 60
-const VERTICAL_OFFSET_NODE = 22
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
@@ -141,12 +132,15 @@ function SSSankeyDiagram({
 
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
-    links: sankeyLinks.map((item) => ({
-      source: item.source,
-      target: item.target,
-      value: item.value
-    }))
+    links: sankeyLinks
   })
+
+  // Transform SankeyLinkMinimal to Link type
+  const transformedLinks = links.map((link) => ({
+    source: (link.source as Node).id,
+    target: (link.target as Node).id,
+    value: link.value
+  }))
 
   const getLinkWidth = useCallback(
     (node: Node, maxWidth: number) => {
@@ -156,14 +150,14 @@ function SSSankeyDiagram({
       }
 
       // Find links where this node is the target (incoming) or source (outgoing)
-      const incomingLinks = links.filter((link) => {
-        const targetNode = link.target as Node
-        return targetNode.id === node.id
+      const incomingLinks = transformedLinks.filter((link) => {
+        const targetNode = link.target
+        return targetNode === node.id
       })
 
-      const outgoingLinks = links.filter((link) => {
-        const sourceNode = link.source as Node
-        return sourceNode.id === node.id
+      const outgoingLinks = transformedLinks.filter((link) => {
+        const sourceNode = link.source
+        return sourceNode === node.id
       })
 
       // Calculate total sats for incoming and outgoing links separately
@@ -181,122 +175,33 @@ function SSSankeyDiagram({
 
       // Calculate width based on whether this node is source or target in the current context
       const isSource = outgoingLinks.some(
-        (link) => (link.source as Node).id === node.id
+        (link) => (link.source as string) === node.id
       )
       const totalSats = isSource ? totalOutgoingSats : totalIncomingSats
 
       // Calculate width (max width proportional to sats percentage)
       return (nodeSats / totalSats) * maxWidth
     },
-    [links]
+    [transformedLinks]
   )
 
-  if (!nodes?.length || !links?.length) {
+  if (!nodes?.length || !transformedLinks?.length) {
     return null
   }
   return (
     <View style={{ flex: 1 }}>
       <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>
         <Group transform={transform} origin={{ x: w / 2, y: h / 2 }}>
-          {links.length > 0 &&
-            links.map((link, index) => {
-              const sourceNode = link.source as Node
-              const targetNode = link.target as Node
-              const isUnspent = targetNode.textInfo[0] === 'Unspent'
-
-              const points: LinkPoints = {
-                souceWidth:
-                  sourceNode.type === 'block'
-                    ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-                    : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
-                targetWidth:
-                  targetNode.type === 'block'
-                    ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-                    : getLinkWidth(targetNode, LINK_MAX_WIDTH),
-                x1:
-                  sourceNode.type === 'block'
-                    ? (sourceNode.x1 ?? 0) -
-                      (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-                    : sourceNode.x1 ?? 0,
-                y1: (link.source as Node).y1 ?? 0,
-                x2:
-                  targetNode.type === 'block'
-                    ? (targetNode.x0 ?? 0) +
-                      (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
-                    : targetNode.x0 ?? 0,
-                y2: (link.target as Node).y0 ?? 0
-              }
-              const path1 = generateCustomLink(points)
-
-              return (
-                <Group key={index}>
-                  <Path
-                    key={index}
-                    path={path1}
-                    style="fill"
-                    color={gray[700]}
-                    // Create a paint object for the gradient
-                    paint={
-                      isUnspent
-                        ? (() => {
-                            const paint = Skia.Paint()
-                            paint.setShader(
-                              Skia.Shader.MakeLinearGradient(
-                                vec(points.x1, points.y1),
-                                vec(points.x2, points.y2),
-                                [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
-                                [0, 0.9],
-                                TileMode.Clamp
-                              )
-                            )
-                            return paint
-                          })()
-                        : undefined
-                    }
-                  />
-                </Group>
-              )
-            })}
-
-          {nodes.map((node, index) => {
-            const dataNode = node as Node
-
-            const blockRect = () => {
-              if (dataNode.type === 'block') {
-                // Extract size from textInfo[2] which is in format "X B"
-                const sizeStr = dataNode.textInfo[2]
-                const size = parseInt(sizeStr.split(' ')[0], 10)
-                // Scale the height based on size, max height is 100
-                const height = Math.min(100, Math.max(40, (size / 2000) * 100))
-
-                return (
-                  <Group>
-                    <Rect
-                      x={
-                        (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
-                      }
-                      y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
-                      width={BLOCK_WIDTH}
-                      height={height}
-                      color="#FFFFFF"
-                    />
-                  </Group>
-                )
-              }
-              return null
-            }
-            return (
-              <Group key={index}>
-                <SSSankeyNode
-                  width={sankeyGenerator.nodeWidth()}
-                  x={node.x0 ?? 0}
-                  y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
-                  textInfo={dataNode.textInfo}
-                />
-                {blockRect()}
-              </Group>
-            )
-          })}
+          <SSSankeyLinks
+            links={transformedLinks}
+            nodes={nodes as Node[]}
+            sankeyGenerator={sankeyGenerator}
+            getLinkWidth={getLinkWidth}
+            generateCustomLink={generateCustomLink}
+            LINK_MAX_WIDTH={LINK_MAX_WIDTH}
+            BLOCK_WIDTH={BLOCK_WIDTH}
+          />
+          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
         </Group>
       </Canvas>
       <GestureDetector gesture={gestures}>

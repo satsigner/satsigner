@@ -1,5 +1,7 @@
 import {
+  Group,
   Paragraph,
+  Rect,
   Skia,
   TextAlign,
   useFonts
@@ -10,19 +12,85 @@ import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
 
-interface ISSankeyNode {
-  width: number
-  x: number
-  y: number
-  textInfo: string[]
+interface ISSankeyNodes {
+  nodes: any[]
+  sankeyGenerator: any
 }
 
 const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
+const BLOCK_WIDTH = 50
+const VERTICAL_OFFSET_NODE = 22
 
-export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
+export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
+  const customFontManager = useFonts({
+    'SF Pro Text': [
+      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+    ]
+  })
+
+  const renderNode = (node: any, index: number) => {
+    const dataNode = node as {
+      type: string
+      textInfo: string[]
+      x0?: number
+      y0?: number
+    }
+
+    const blockRect = () => {
+      if (dataNode.type === 'block') {
+        const sizeStr = dataNode.textInfo[2]
+        const size = parseInt(sizeStr.split(' ')[0], 10)
+        const height = Math.min(100, Math.max(40, (size / 2000) * 100))
+
+        return (
+          <Group>
+            <Rect
+              x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
+              y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
+              width={BLOCK_WIDTH}
+              height={height}
+              color="#FFFFFF"
+            />
+          </Group>
+        )
+      }
+      return null
+    }
+
+    return (
+      <Group key={index}>
+        <NodeText
+          width={sankeyGenerator.nodeWidth()}
+          x={node.x0 ?? 0}
+          y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
+          textInfo={dataNode.textInfo}
+        />
+        {blockRect()}
+      </Group>
+    )
+  }
+
+  if (!customFontManager) return null
+
+  return <>{nodes.map(renderNode)}</>
+}
+
+function NodeText({
+  width,
+  x,
+  y,
+  textInfo
+}: {
+  width: number
+  x: number
+  y: number
+  textInfo: string[]
+}) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
@@ -37,7 +105,7 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
   const getBlockHeight = () => {
     if (isBlock && textInfo[2]) {
       const sizeStr = textInfo[2]
-      const size = parseInt(sizeStr.split(' ')[0])
+      const size = parseInt(sizeStr.split(' ')[0], 10)
       return Math.min(100, Math.max(40, (size / 2000) * 100))
     }
     return 0
