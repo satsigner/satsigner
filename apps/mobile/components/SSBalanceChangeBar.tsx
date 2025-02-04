@@ -38,8 +38,8 @@ export default function SSBalanceChangeBar({
 
   const colors =
     transaction.type === 'receive'
-      ? [Colors.softBarGreen, Colors.BarGreen, Colors.barGray]
-      : [Colors.softBarRed, Colors.BarRed, Colors.barGray]
+      ? [Colors.softBarGreen, Colors.barGreen, Colors.barGray]
+      : [Colors.softBarRed, Colors.barRed, Colors.barGray]
 
   return (
     <View style={[styles.containerBase, style]}>

@@ -46,6 +46,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -325,20 +326,18 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [
-    account,
-    padding,
-    loadWalletFromDescriptor,
-    syncWallet,
-    updateAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.name === id),
-      state.padding,
-      state.loadWalletFromDescriptor,
-      state.syncWallet,
-      state.updateAccount
-    ])
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
+
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
   )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -651,7 +650,7 @@ export default function AccountView() {
                   <SSStyledSatText
                     amount={account?.summary.balance || 0}
                     decimals={0}
-                    padding={padding}
+                    useZeroPadding={useZeroPadding}
                     textSize="7xl"
                     weight="ultralight"
                     letterSpacing={-3}

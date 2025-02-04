@@ -20,6 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import type { Utxo } from '@/types/models/Utxo'
@@ -33,10 +34,12 @@ export default function IOPreview() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const [permission, requestPermission] = useCameraPermissions()
 
-  const [padding, getCurrentAccount] = useAccountsStore((state) => [
-    state.padding,
-    state.getCurrentAccount
-  ])
+  const getCurrentAccount = useAccountsStore(
+    useShallow((state) => state.getCurrentAccount)
+  )
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
   const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -206,7 +209,7 @@ export default function IOPreview() {
                   {i18n.t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(utxosTotalValue, 0, padding)}
+                  {formatNumber(utxosTotalValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {i18n.t('bitcoin.sats').toLowerCase()}
@@ -227,7 +230,7 @@ export default function IOPreview() {
                   weight="ultralight"
                   style={{ lineHeight: 62 }}
                 >
-                  {formatNumber(utxosSelectedValue, 0, padding)}
+                  {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xl" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}

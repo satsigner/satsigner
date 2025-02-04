@@ -1,11 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { Currency } from '@/types/models/Blockchain'
 import type { Transaction } from '@/types/models/Transaction'
@@ -55,7 +56,9 @@ export default function SSTransactionCard({
   const { type, received, sent, prices } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const [padding] = useAccountsStore((state) => [state.padding])
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
 
   useEffect(() => {
     const itemsToDisplay: string[] = []
@@ -108,7 +111,7 @@ export default function SSTransactionCard({
               <SSStyledSatText
                 amount={amount}
                 decimals={0}
-                padding={padding}
+                useZeroPadding={useZeroPadding}
                 type={transaction.type}
                 noColor={false}
                 weight="light"
@@ -140,7 +143,7 @@ export default function SSTransactionCard({
             <SSStyledSatText
               amount={walletBalance}
               decimals={0}
-              padding={padding}
+              useZeroPadding={useZeroPadding}
               type={transaction.type}
               textSize="sm"
             />

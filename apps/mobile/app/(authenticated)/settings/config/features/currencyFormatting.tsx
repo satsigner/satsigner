@@ -7,16 +7,16 @@ import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
+import { useSettingsStore } from '@/store/settings'
 
 export default function CurrencyFormatting() {
-  const [setPadding, padding] = useAccountsStore(
-    useShallow((state) => [state.setPadding, state.padding])
+  const [setUseZeroPadding, useZeroPadding] = useSettingsStore(
+    useShallow((state) => [state.setUseZeroPadding, state.useZeroPadding])
   )
 
   const togglePadding = useCallback(
-    () => setPadding(!padding),
-    [setPadding, padding]
+    () => setUseZeroPadding(!useZeroPadding),
+    [setUseZeroPadding, useZeroPadding]
   )
   return (
     <>
@@ -36,7 +36,7 @@ export default function CurrencyFormatting() {
         <SSVStack>
           <SSCheckbox
             label="SHOW '0.00..' PADDING"
-            selected={padding}
+            selected={useZeroPadding}
             onPress={togglePadding}
           />
         </SSVStack>

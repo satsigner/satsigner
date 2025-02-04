@@ -1,4 +1,5 @@
 import { Colors } from '@/styles'
+import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
@@ -6,37 +7,25 @@ import SSText from './SSText'
 type SSStyledSatTextProps = {
   amount: number
   decimals?: number
-  padding?: boolean
+  useZeroPadding?: boolean
   type?: 'send' | 'receive'
   noColor?: boolean
   letterSpacing?: number
-  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold'
-  textSize?:
-    | '3xl'
-    | 'xxs'
-    | 'xs'
-    | 'sm'
-    | 'md'
-    | 'lg'
-    | 'xl'
-    | '2xl'
-    | '4xl'
-    | '5xl'
-    | '6xl'
-    | '7xl'
+  weight?: TextFontWeight
+  textSize?: TextFontSize
 }
 
 export default function SSStyledSatText({
   amount,
   decimals = 0,
-  padding = false,
+  useZeroPadding = false,
   type = 'send',
   noColor = true,
   textSize = '3xl',
   weight = 'regular',
   letterSpacing = -0.5
 }: SSStyledSatTextProps) {
-  const formatted = formatNumber(amount, decimals, padding)
+  const formatted = formatNumber(amount, decimals, useZeroPadding)
   const spacedFormatted = formatted.replace(
     /(\d)(?=(\d{3})+(?!\d))/g,
     '$1\u2001'

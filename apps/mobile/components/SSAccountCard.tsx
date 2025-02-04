@@ -1,10 +1,11 @@
 import { TouchableOpacity } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
@@ -23,7 +24,9 @@ export default function SSAccountCard({
   onPress
 }: SSAccountCardProps) {
   const priceStore = usePriceStore()
-  const padding = useAccountsStore((state) => state.padding)
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
@@ -40,7 +43,7 @@ export default function SSAccountCard({
               <SSStyledSatText
                 amount={account?.summary.balance || 0}
                 decimals={0}
-                padding={padding}
+                useZeroPadding={useZeroPadding}
                 textSize="3xl"
                 weight="light"
                 letterSpacing={-2}
