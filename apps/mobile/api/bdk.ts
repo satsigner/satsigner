@@ -353,12 +353,14 @@ async function buildTransaction(
   const address = await new Address().create(recipient)
   const script = await address.scriptPubKey()
 
-  const transactionBuilder = new TxBuilder()
-  transactionBuilder.addUtxos(
+  const transactionBuilder = await new TxBuilder().create()
+
+  await transactionBuilder.feeAbsolute(fee)
+  await transactionBuilder.addUtxos(
     utxos.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
   )
-  transactionBuilder.feeAbsolute(fee)
-  transactionBuilder.addRecipient(script, amount) // TODO: crashing here
+  await transactionBuilder.manuallySelectedOnly()
+  await transactionBuilder.addRecipient(script, amount)
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult

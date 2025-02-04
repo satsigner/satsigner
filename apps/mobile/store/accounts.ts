@@ -6,9 +6,13 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
+import { PIN_KEY } from '@/config/auth'
 import { getBlockchainConfig } from '@/config/servers'
+import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+import { type Label } from '@/utils/bip329'
+import { aesDecrypt } from '@/utils/crypto'
 import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -29,6 +33,8 @@ type AccountsAction = {
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
+  updateAccountName: (name: string, newName: string) => void
+  deleteAccount: (name: string) => void
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
@@ -39,6 +45,8 @@ type AccountsAction = {
     vout: number,
     label: string
   ) => void
+  importLabels: (account: string, labels: Label[]) => void
+  decryptSeed: (account: string) => Promise<string>
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -77,7 +85,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         // TODO: move label backup elsewhere
-        const labelsDictionary: { [key: string]: string } = {}
+        const labelsDictionary: Record<string, string> = {}
         account.transactions.forEach((tx) => {
           const txRef = tx.id
           labelsDictionary[txRef] = tx.label || ''
@@ -131,6 +139,28 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
+      updateAccountName: (name, newName) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.name === name
+            )
+            if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      deleteAccount: (name: string) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.name === name
+            )
+            if (index !== -1) {
+              state.accounts.splice(index, 1)
+            }
+          })
+        )
+      },
       deleteAccounts: () => {
         set(() => ({ accounts: [] }))
       },
@@ -173,6 +203,52 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
+      },
+      importLabels: (accountName: string, labels: Label[]) => {
+        const account = get().getCurrentAccount(accountName)
+
+        if (!account) return
+
+        const transactionMap: Record<string, number> = {}
+        const utxoMap: Record<string, number> = {}
+
+        account.transactions.forEach((tx, index) => {
+          transactionMap[tx.id] = index
+        })
+        account.utxos.forEach((utxo, index) => {
+          utxoMap[getUtxoOutpoint(utxo)] = index
+        })
+
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.name === accountName
+            )
+            labels.forEach((labelObj) => {
+              const label = labelObj.label
+
+              if (labelObj.type === 'tx') {
+                if (!transactionMap[labelObj.ref]) return
+                const txIndex = transactionMap[labelObj.ref]
+                state.accounts[index].transactions[txIndex].label = label
+              }
+              if (labelObj.type === 'output') {
+                if (!utxoMap[labelObj.ref]) return
+                const utxoIndex = utxoMap[labelObj.ref]
+                state.accounts[index].utxos[utxoIndex].label = label
+              }
+            })
+          })
+        )
+      },
+      async decryptSeed(accountName) {
+        const account = get().accounts.find(
+          (_account) => _account.name === accountName
+        )
+        if (!account || !account.seedWords) return ''
+        const savedPin = await getItem(PIN_KEY)
+        if (!savedPin) return ''
+        return aesDecrypt(account.seedWords, savedPin)
       }
     }),
     {
