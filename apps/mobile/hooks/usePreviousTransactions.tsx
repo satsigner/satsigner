@@ -58,8 +58,17 @@ export function usePreviousTransactions(
               return
             }
 
-            const tx = (await oracle.getTransaction(txid)) as EsploraTx
-            newTransactions.set(txid, tx)
+            const tx = await oracle.getTransaction(txid).catch((err) => {
+              throw new Error(
+                `Failed to fetch transaction ${txid}: ${err.message}`
+              )
+            })
+
+            if (!tx) {
+              throw new Error(`No transaction data received for ${txid}`)
+            }
+
+            newTransactions.set(txid, tx as EsploraTx)
 
             // Collect parent txids for next level
             if (tx.vin) {
@@ -80,10 +89,13 @@ export function usePreviousTransactions(
       }
 
       // Cache the new transactions
-      addTransactions(newTransactions)
-      setTransactions(new Map([...newTransactions.entries()].reverse()))
+      if (newTransactions.size > 0) {
+        addTransactions(newTransactions)
+        setTransactions(new Map([...newTransactions.entries()].reverse()))
+      }
     } catch (e) {
-      setError(e as Error)
+      const error = e as Error
+      setError(error)
     } finally {
       setLoading(false)
     }
