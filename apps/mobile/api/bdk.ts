@@ -223,10 +223,11 @@ async function parseTransactionDetailsToTransaction(
     }
 
     for (const index in outputs) {
-      const { value, script } = outputs[index]
-      const addressObj = await new Address().fromScript(script, network)
+      const { value, script: scriptObj } = outputs[index]
+      const script = await scriptObj.toBytes()
+      const addressObj = await new Address().fromScript(scriptObj, network)
       const address = await addressObj.asString()
-      vout.push({ value, address })
+      vout.push({ value, address, script })
     }
   }
 

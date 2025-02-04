@@ -356,7 +356,7 @@
       }
     },
     "opcode": {
-      "DATA": "Data which can be a hash / pubkey / address / signature / etc.",
+      "DATA": "Data which can be hash, pubkey, address, signature, etc.",
       "OP_FALSE": "An empty array of bytes is pushed onto the stack. (This is not a no-op: an item is added to the stack.)",
       "OP_PUSH": "The next <em>opcode</em> bytes is data to be pushed onto the stack",
       "OP_PUSHDATA1": "The next byte contains the number of bytes to be pushed onto the stack.",

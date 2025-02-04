@@ -1,15 +1,15 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { TxDecodedField, TxField } from '@/utils/txDecoded'
+import { TxDecoded, TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
 
 type SSTxColorCodeProps = {
-  decoded: TxDecodedField[]
+  txHex: string
 }
 
 const colors: Record<TxField, string> = {
@@ -54,7 +54,8 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-export default function SSTxColorCode({ decoded }: SSTxColorCodeProps) {
+export default function SSTxColorCode({ txHex }: SSTxColorCodeProps) {
+  const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [selectedItem, setSelectedItem] = useState(0)
 
   return (

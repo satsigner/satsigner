@@ -29,7 +29,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
-import { TxDecoded, TxDecodedField } from '@/utils/txDecoded'
+import { bytesToHex } from '@/utils/scripts'
 
 // TODO: Refactor page
 
@@ -46,8 +46,6 @@ export default function TxDetails() {
 
   const placeholder = '-'
 
-  const [decoded, setDecoded] = useState([] as TxDecodedField[])
-  const [decodedOutputs, setDecodedOutputs] = useState([] as TxDecodedField[])
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
@@ -83,18 +81,7 @@ export default function TxDetails() {
 
     if (tx.vout) setOutputsCount(tx.vout.length.toString())
 
-    if (tx.raw) {
-      const txHex = tx.raw.map((v) => v.toString(16).padStart(2, '0')).join('')
-
-      // The transaction decoding can cause performance issues.
-      // We will only decode it if the hexadecimal has changed
-      if (raw === txHex) return
-
-      const txDecoded = TxDecoded.fromHex(txHex)
-      setRaw(txHex)
-      setDecoded(txDecoded.decode())
-      setDecodedOutputs(txDecoded.getOutputsScripts())
-    }
+    if (tx.raw) setRaw(bytesToHex(tx.raw))
   }
 
   useEffect(() => {
@@ -155,8 +142,8 @@ export default function TxDetails() {
           <SSText uppercase weight="bold" size="md">
             {t('decoded')}
           </SSText>
-          {decoded.length > 0 && <SSTxColorCode decoded={decoded} />}
-          {decoded.length === 0 && <SSText>{placeholder}</SSText>}
+          {raw && <SSTxColorCode txHex={raw} />}
+          {!raw && <SSText>{placeholder}</SSText>}
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
@@ -171,7 +158,6 @@ export default function TxDetails() {
         <SSTxDetailsOutputs
           tx={tx}
           accountId={accountId}
-          decoded={decodedOutputs}
         />
       </SSVStack>
     </ScrollView>
@@ -330,7 +316,10 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
             <SSText weight="bold">{t('inputSequence')}</SSText>
             <SSText color="muted">{vin.sequence}</SSText>
           </SSVStack>
-          <SSText weight="bold">SigScript</SSText>
+          <SSVStack>
+            <SSText weight="bold">SigScript</SSText>
+            <SSScriptDecoded script={vin.scriptSig}/>
+          </SSVStack>
         </SSVStack>
       ))}
     </SSVStack>
@@ -340,13 +329,11 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
 type SSTxDetailsOutputsProps = {
   tx: Transaction | undefined
   accountId: string
-  decoded: TxDecodedField[]
 }
 
 function SSTxDetailsOutputs({
   tx,
-  accountId,
-  decoded
+  accountId
 }: SSTxDetailsOutputsProps) {
   return (
     <SSVStack>
@@ -373,12 +360,10 @@ function SSTxDetailsOutputs({
                 header={i18n.t('common.address')}
                 text={vout.address}
               />
-              {decoded[index] && (
-                <SSVStack>
-                  <SSText weight="bold">UNLOCKING SCRIPT</SSText>
-                  <SSScriptDecoded script={'' + decoded[index].value} />
-                </SSVStack>
-              )}
+              <SSVStack>
+                <SSText weight="bold">UNLOCKING SCRIPT</SSText>
+                <SSScriptDecoded script={vout.script} />
+              </SSVStack>
             </SSVStack>
           </TouchableOpacity>
         ))}
