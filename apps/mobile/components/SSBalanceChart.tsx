@@ -617,12 +617,6 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         visible[xScaleTransactions[i].index] = false
       }
     }
-    // for (let i = 0; i < length; i++) {
-    //   if (boundaryBoxes[xScaleTransactions[i].index] === undefined) {
-    //     visible[xScaleTransactions[i].index] = true
-    //   }
-    // }
-
     const result = xAxisLabels.map((x) => {
       return {
         ...x,
