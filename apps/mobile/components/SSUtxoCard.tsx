@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
@@ -14,7 +15,6 @@ import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 import { SSIconInfo } from './icons'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
-import { useAccountsStore } from '@/store/accounts'
 
 type SSUtxoCardProps = {
   utxo: Utxo

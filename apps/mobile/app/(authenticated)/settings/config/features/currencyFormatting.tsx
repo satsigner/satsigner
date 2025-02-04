@@ -1,13 +1,13 @@
 import { Stack } from 'expo-router'
+import { useCallback } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
+import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import SSCheckbox from '@/components/SSCheckbox'
 import { useAccountsStore } from '@/store/accounts'
-import { useShallow } from 'zustand/react/shallow'
-import { useCallback } from 'react'
 
 export default function CurrencyFormatting() {
   const [setPadding, padding] = useAccountsStore(

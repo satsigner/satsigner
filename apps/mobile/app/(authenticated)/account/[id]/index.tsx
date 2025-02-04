@@ -29,10 +29,12 @@ import {
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
+import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBalanceChart from '@/components/SSBalanceChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoBubbles from '@/components/SSUtxoBubbles'
@@ -54,8 +56,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import SSStyledSatText from '@/components/SSStyledSatText'
-import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 
 type TotalTransactionsProps = {
   account: Account

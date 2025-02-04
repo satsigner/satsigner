@@ -3,15 +3,15 @@ import { TouchableOpacity } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight } from './icons'
-import SSText from './SSText'
-import { useAccountsStore } from '@/store/accounts'
 import SSStyledSatText from './SSStyledSatText'
+import SSText from './SSText'
 
 type SSAccountCardProps = {
   account: Account

@@ -5,9 +5,11 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { Currency } from '@/types/models/Blockchain'
 import type { Transaction } from '@/types/models/Transaction'
+import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -16,11 +18,9 @@ import {
 } from '@/utils/format'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
+import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
-import { useAccountsStore } from '@/store/accounts'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
-import SSStyledSatText from './SSStyledSatText'
 
 type SSTransactionCardProps = {
   transaction: Transaction
@@ -55,10 +55,7 @@ export default function SSTransactionCard({
   const { type, received, sent, prices } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const [account, padding] = useAccountsStore((state) => [
-    state.accounts.find((account) => account.name === id),
-    state.padding
-  ])
+  const [padding] = useAccountsStore((state) => [state.padding])
 
   useEffect(() => {
     const itemsToDisplay: string[] = []
@@ -84,7 +81,7 @@ export default function SSTransactionCard({
   const router = useRouter()
 
   return (
-    <TouchableOpacity onPress={() => router.navigate(link)}>
+    <TouchableOpacity onPress={() => router.navigate(link)} key={id}>
       <SSHStack
         justifyBetween
         style={{

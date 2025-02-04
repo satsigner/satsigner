@@ -10,7 +10,7 @@ function formatAddress(address: string, character: number = 8) {
 }
 
 function formatNumber(n: number, decimals = 0, padding = false) {
-  let formatted = padding
+  const formatted = padding
     ? (n / 10 ** 8).toFixed(8)
     : n.toLocaleString(undefined, {
         minimumFractionDigits: decimals,

@@ -4,6 +4,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
+import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
@@ -17,7 +18,6 @@ import {
 import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
 import SSUtxoSizeMeter from './SSUtxoSizeMeter'
-import { useAccountsStore } from '@/store/accounts'
 
 type SSUtxoItemProps = {
   utxo: Utxo
