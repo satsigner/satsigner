@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router'
-import { getBuildNumber, getVersion } from 'react-native-device-info'
 
 import SSText from '@/components/SSText'
+import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -24,7 +24,7 @@ export default function About() {
         <SSVStack>
           <SSHStack justifyBetween>
             <SSText uppercase>{i18n.t('common.version')}</SSText>
-            <SSText>{`${getVersion()} (${getBuildNumber()})`}</SSText>
+            <SSText>{`${APP_VERSION} (${BUILD_NUMBER})`}</SSText>
           </SSHStack>
         </SSVStack>
       </SSMainLayout>
