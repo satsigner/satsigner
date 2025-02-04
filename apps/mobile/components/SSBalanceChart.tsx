@@ -59,8 +59,7 @@ export type SSBalanceChartProps = {
 
 const isOverlapping = (rect1: Rectangle, rect2: Rectangle) => {
   if (rect1.right < rect2.left || rect2.right < rect1.left) return false
-  if (rect1.bottom < rect2.top || rect2.bottom < rect1.top) return false
-  return true
+  return !(rect1.bottom < rect2.top || rect2.bottom < rect1.top)
 }
 
 function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
@@ -157,11 +156,12 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       history.set(index, currentBalances)
     })
     return history
-  }, [transactions, walletAddresses])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddresses])
 
   const chartData: BalanceChartData[] = useMemo(() => {
     let sum = 0
-    const result = transactions.map((transaction) => {
+    return transactions.map((transaction) => {
       const amount =
         transaction.type === 'receive'
           ? transaction?.received ?? 0
@@ -175,7 +175,6 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         amount
       }
     })
-    return result
   }, [transactions])
   const timeOffset =
     new Date(currentDate.current).setDate(currentDate.current.getDate() + 10) -
@@ -184,6 +183,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
   const [scale, setScale] = useState<number>(1)
+  const prevScale = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date>(
@@ -316,7 +316,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         })
       })
       .filter((v) => v !== undefined)
-  }, [balanceHistory, chartWidth, transactions, xScale, yScale])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balanceHistory, xScale, yScale])
 
   const utxoLabels: {
     x1: number
@@ -359,7 +360,8 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       })
     })
     return result
-  }, [balanceHistory, chartWidth, transactions, xScale, yScale])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [balanceHistory, xScale, yScale])
 
   const xScaleTransactions = useMemo(() => {
     return transactions
@@ -415,7 +417,10 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
-      setScale((prev) => Math.max(prev * event.scale, 1))
+      setScale(Math.max(prevScale.current * event.scale, 1))
+    })
+    .onEnd(() => {
+      prevScale.current = scale
     })
     .runOnJS(true)
 
@@ -443,6 +448,9 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     .maxDuration(50)
     .onEnd((e, success) => {
       if (success) {
+        if (!showOutputField) {
+          return
+        }
         const locationX = e.x
         const locationY = e.y
         const x = locationX - margin.left
@@ -504,9 +512,21 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     setContainersize({ width, height })
   }, [])
 
-  const [txXBoundbox, setTxXBoundBox] = useState<{ [key: string]: Rectangle }>(
+  const [txXBoundbox, setTxXBoundbox] = useState<{ [key: string]: Rectangle }>(
     {}
   )
+
+  const [txXAxisLabels, setTxXAxisLabels] = useState<
+    {
+      textColor: string
+      x: number
+      index: number
+      amountString: string
+      type: 'send' | 'receive'
+      numberOfOutput: number
+      numberOfInput: number
+    }[]
+  >([])
 
   const handleXAxisLayout = (
     event: LayoutChangeEvent,
@@ -521,58 +541,25 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       width: Math.round(event.nativeEvent.layout.width),
       height: Math.round(event.nativeEvent.layout.height)
     }
+    if (rect.height === 0) {
+      return
+    }
     if (
       txXBoundbox[index] !== undefined &&
-      txXBoundbox[index].left === rect.left &&
-      txXBoundbox[index].bottom === rect.bottom &&
-      txXBoundbox[index].top === rect.top &&
-      txXBoundbox[index].right === rect.right
+      txXBoundbox[index].width === rect.width &&
+      txXBoundbox[index].height === rect.height
     ) {
       return
     }
-    setTxXBoundBox((prev) => ({
-      ...prev,
-      [index]: rect
-    }))
+    setTxXBoundbox((prev) => ({ ...prev, [index]: rect }))
   }
 
-  const [txXBoundVisible, setTxXBoundVisible] = useState<{
-    [key: string]: boolean
-  }>({})
-
   useEffect(() => {
-    const length = xScaleTransactions.length
-    for (let i = 0; i < length; i++) {
-      if (txXBoundbox[xScaleTransactions[i].index] === undefined) {
-        return
-      }
+    if (!showTransactionInfo) {
+      return
     }
-    const timerId = setTimeout(() => {
-      const visible: { [key: string]: boolean } = {}
-      let i = 0
-      for (i = 0; i < length - 1; i++) {
-        if (
-          isOverlapping(
-            txXBoundbox[xScaleTransactions[i].index],
-            txXBoundbox[xScaleTransactions[i + 1].index]
-          )
-        ) {
-          visible[xScaleTransactions[i].index] = false
-        }
-      }
-      for (i = 0; i < length; i++) {
-        if (visible[xScaleTransactions[i].index] === undefined) {
-          visible[xScaleTransactions[i].index] = true
-        }
-      }
-      setTxXBoundVisible(visible)
-    }, 50)
-
-    return () => clearTimeout(timerId)
-  }, [txXBoundbox, xScaleTransactions])
-
-  const txXAxisLabels = useMemo(() => {
-    return xScaleTransactions.map((t) => {
+    const length = xScaleTransactions.length
+    const xAxisLabels = xScaleTransactions.map((t) => {
       const amount = t.type === 'receive' ? t.received : t.received - t.sent
       let numberOfOutput: number = 0
       let numberOfInput: number = 0
@@ -582,26 +569,63 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       } else if (t.type === 'send') {
         numberOfInput = t.vin?.length ?? 0
       }
-      const textColor =
-        txXBoundVisible[t.index] === true ? 'white' : 'transparent'
-
       return {
         x: xScale(new Date(t.timestamp ?? new Date())),
         index: t.index,
-        textColor,
+        textColor: '',
         amountString: `${amount >= 0 ? '+' : ''}${numberCommaFormatter(amount)}`,
         type: t.type,
         numberOfOutput,
         numberOfInput
       }
     })
-  }, [
-    numberCommaFormatter,
-    txXBoundVisible,
-    walletAddresses,
-    xScale,
-    xScaleTransactions
-  ])
+    const boundaryBoxes: { [key: string]: Rectangle } = {}
+    xAxisLabels.forEach((t) => {
+      if (txXBoundbox[t.index] === undefined) {
+        boundaryBoxes[t.index] = {
+          left: t.x,
+          right: t.x,
+          top: chartHeight,
+          bottom: chartHeight,
+          width: 0,
+          height: 0
+        }
+      } else {
+        boundaryBoxes[t.index] = {
+          left: t.x,
+          right: txXBoundbox[t.index].width! + t.x,
+          top: chartHeight,
+          bottom: chartHeight + txXBoundbox[t.index].height!,
+          width: txXBoundbox[t.index].width,
+          height: txXBoundbox[t.index].height
+        }
+      }
+    })
+    const visible: { [key: string]: boolean } = {}
+    for (let i = 0; i < length; i++) {
+      visible[xScaleTransactions[i].index] = true
+    }
+    for (let i = 0; i < length - 1; i++) {
+      if (
+        boundaryBoxes[xScaleTransactions[i].index] !== undefined &&
+        boundaryBoxes[xScaleTransactions[i + 1].index] !== undefined &&
+        isOverlapping(
+          boundaryBoxes[xScaleTransactions[i].index],
+          boundaryBoxes[xScaleTransactions[i + 1].index]
+        )
+      ) {
+        visible[xScaleTransactions[i].index] = false
+      }
+    }
+    const result = xAxisLabels.map((x) => {
+      return {
+        ...x,
+        textColor: visible[x.index] === true ? 'white' : 'transparent'
+      }
+    })
+    setTxXAxisLabels(result)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [walletAddresses, xScaleTransactions, txXBoundbox, xScale])
 
   const [txInfoLabels, setTxInfoLabels] = useState<
     {
@@ -802,6 +826,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                   )
               )}
               {showTransactionInfo &&
+                !!txXAxisLabels?.length &&
                 txXAxisLabels.map((t, index) => {
                   return (
                     <Fragment key={t.x + index.toString()}>
