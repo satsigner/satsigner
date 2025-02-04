@@ -42,6 +42,8 @@ export default function SSAccountCard({
                 decimals={0}
                 padding={padding}
                 textSize="3xl"
+                weight="light"
+                letterSpacing={-2}
               />
             </SSText>
             <SSText size="xl" color="muted">

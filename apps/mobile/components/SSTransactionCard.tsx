@@ -12,7 +12,6 @@ import {
   formatConfirmations,
   formatFiatPrice,
   formatLabel,
-  formatNumber,
   formatPercentualChange
 } from '@/utils/format'
 
@@ -28,6 +27,7 @@ type SSTransactionCardProps = {
   blockHeight: number
   fiatCurrency: Currency
   btcPrice: number
+  walletBalance: number
   link: string
 }
 
@@ -36,6 +36,7 @@ export default function SSTransactionCard({
   blockHeight,
   fiatCurrency,
   btcPrice,
+  walletBalance,
   link
 }: SSTransactionCardProps) {
   const confirmations = transaction.blockHeight
@@ -99,7 +100,7 @@ export default function SSTransactionCard({
               <SSTimeAgoText date={new Date(transaction.timestamp)} />
             )}
           </SSText>
-          <SSHStack>
+          <SSHStack gap="sm">
             {transaction.type === 'receive' && (
               <SSIconIncoming height={19} width={19} />
             )}
@@ -113,6 +114,8 @@ export default function SSTransactionCard({
                 padding={padding}
                 type={transaction.type}
                 noColor={false}
+                weight="light"
+                letterSpacing={-2}
               />
               <SSText color="muted">
                 {i18n.t('bitcoin.sats').toLowerCase()}
@@ -138,7 +141,7 @@ export default function SSTransactionCard({
 
           <SSText color="muted" style={[{ textAlign: 'right' }]}>
             <SSStyledSatText
-              amount={account?.summary.balance || 0}
+              amount={walletBalance}
               decimals={0}
               padding={padding}
               type={transaction.type}

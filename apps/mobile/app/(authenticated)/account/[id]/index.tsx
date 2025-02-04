@@ -55,6 +55,7 @@ import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import SSStyledSatText from '@/components/SSStyledSatText'
+import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 
 type TotalTransactionsProps = {
   account: Account
@@ -74,7 +75,6 @@ function TotalTransactions({
   expand,
   setSortDirection,
   refreshing,
-  sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
   const router = useRouter()
@@ -94,6 +94,23 @@ function TotalTransactions({
       compareTimestamp(transaction1.timestamp, transaction2.timestamp)
     )
   }, [account.transactions])
+
+  const transactionBalances = useMemo(() => {
+    let balance = 0
+    const balances = sortedTransactions.map((tx) => {
+      const received = tx.received || 0
+      const sent = tx.sent || 0
+      balance = balance + received - sent
+      return balance
+    })
+
+    return balances.reverse()
+  }, [sortedTransactions])
+
+  const maxBalance = useMemo(() => {
+    if (transactionBalances.length === 0) return 0
+    return Math.max(...transactionBalances)
+  }, [transactionBalances])
 
   const [showChart, setShowChart] = useState<boolean>(false)
 
@@ -158,26 +175,28 @@ function TotalTransactions({
         >
           {/* account.transactions */}
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...account.transactions]).map((transaction) => (
-              <SSVStack gap="xs" key={transaction.id}>
-                <SSSeparator
-                  color="custom"
-                  colors={
-                    transaction.type == 'receive'
-                      ? [Colors.softBarGreen, Colors.BarGreen, Colors.barGray]
-                      : [Colors.softBarRed, Colors.BarRed, Colors.barGray]
-                  }
-                  percentages={[0.05, 0.2, 1]}
-                />
-                <SSTransactionCard
-                  btcPrice={btcPrice}
-                  fiatCurrency={fiatCurrency}
-                  transaction={transaction}
-                  blockHeight={blockchainHeight}
-                  link={`/account/${account.name}/transaction/${transaction.id}`}
-                />
-              </SSVStack>
-            ))}
+            {sortedTransactions
+              .slice()
+              .reverse()
+              .map((transaction, index) => {
+                return (
+                  <SSVStack gap="xs" key={transaction.id}>
+                    <SSBalanceChangeBar
+                      transaction={transaction}
+                      balance={transactionBalances[index]}
+                      maxBalance={maxBalance}
+                    />
+                    <SSTransactionCard
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      transaction={transaction}
+                      walletBalance={transactionBalances[index]}
+                      blockHeight={blockchainHeight}
+                      link={`/account/${account.name}/transaction/${transaction.id}`}
+                    />
+                  </SSVStack>
+                )
+              })}
           </SSVStack>
         </ScrollView>
       )}
@@ -628,12 +647,14 @@ export default function AccountView() {
           <SSVStack itemsCenter gap="none">
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="7xl" color="white" weight="ultralight">
+                <SSText size="7xl" color="white">
                   <SSStyledSatText
                     amount={account?.summary.balance || 0}
                     decimals={0}
                     padding={padding}
                     textSize="7xl"
+                    weight="ultralight"
+                    letterSpacing={-3}
                   />
                 </SSText>
                 <SSText size="xl" color="muted">

@@ -156,17 +156,14 @@ export default function SelectUtxoList() {
             </SSVStack>
             <SSVStack itemsCenter gap="none">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText
-                  size="7xl"
-                  color="white"
-                  weight="ultralight"
-                  style={{ lineHeight: 62 }}
-                >
+                <SSText size="7xl" color="white" style={{ lineHeight: 62 }}>
                   <SSStyledSatText
                     amount={utxosSelectedValue || 0}
                     decimals={0}
                     padding={padding}
                     textSize="7xl"
+                    weight="ultralight"
+                    letterSpacing={-3}
                   />
                 </SSText>
                 <SSText size="xl" color="muted">

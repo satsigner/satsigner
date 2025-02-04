@@ -9,6 +9,8 @@ const SSStyledSatText: React.FC<{
   padding?: boolean
   type?: 'send' | 'receive'
   noColor?: boolean
+  letterSpacing?: number
+  weight?: 'ultralight' | 'light' | 'regular' | 'medium' | 'bold'
   textSize?:
     | '3xl'
     | 'xxs'
@@ -28,10 +30,15 @@ const SSStyledSatText: React.FC<{
   padding = false,
   type = 'send',
   noColor = true,
-  textSize = '3xl'
+  textSize = '3xl',
+  weight = 'regular',
+  letterSpacing = -0.5
 }) => {
   const formatted = formatNumber(amount, decimals, padding)
-  const spacedFormatted = formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+  const spacedFormatted = formatted.replace(
+    /(\d)(?=(\d{3})+(?!\d))/g,
+    '$1\u2001'
+  )
 
   let firstNonZeroIndex = spacedFormatted.search(/[1-9]/)
   if (firstNonZeroIndex === -1) firstNonZeroIndex = spacedFormatted.length
@@ -49,7 +56,9 @@ const SSStyledSatText: React.FC<{
           <SSText
             key={index}
             size={textSize}
+            weight={weight}
             style={{
+              letterSpacing: letterSpacing,
               color: noColor
                 ? isBeforeFirstNonZero
                   ? Colors.softWhite
