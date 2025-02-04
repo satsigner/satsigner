@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,7 +10,6 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { Currency } from '@/types/models/Blockchain'
 import type { Transaction } from '@/types/models/Transaction'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   formatConfirmations,
   formatFiatPrice,
@@ -51,7 +50,6 @@ export default function SSTransactionCard({
   }
 
   const [priceDisplay, setPriceDisplay] = useState('')
-  const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const { type, received, sent, prices } = transaction
   const amount = type === 'receive' ? received : sent - received
@@ -84,7 +82,7 @@ export default function SSTransactionCard({
   const router = useRouter()
 
   return (
-    <TouchableOpacity onPress={() => router.navigate(link)} key={id}>
+    <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSHStack
         justifyBetween
         style={{
