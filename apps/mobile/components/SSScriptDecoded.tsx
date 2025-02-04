@@ -23,18 +23,20 @@ export default function SSScriptDecoded({ script }: SSScriptDecodedProps) {
           <SSVStack key={index} gap="none">
             {opcodeDetails.word !== OP_CODE_WORD.DATA && (
               <SSText type="mono">
-                {opcodeDetails.word}
+                {opcodeDetails.word}{' '}
                 (code={opcodeDetails.code} hex={opcodeDetails.hex})
               </SSText>
             )}
             {opcodeDetails.word === OP_CODE_WORD.DATA && (
               <SSText type="mono" uppercase>{item}</SSText>
             )}
-            <SSText size="xs">
+            <SSText>
               <SSText size="xs" weight="bold">
                 Description:{' '}
               </SSText>
+              <SSText size="xs" color="muted">
               {i18n.t(`opcode.${opcodeWord}`)}
+              </SSText>
             </SSText>
           </SSVStack>
         )

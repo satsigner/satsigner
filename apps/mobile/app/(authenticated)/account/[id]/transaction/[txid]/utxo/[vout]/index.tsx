@@ -12,6 +12,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatNumber } from '@/utils/format'
+import SSScriptDecoded from '@/components/SSScriptDecoded'
 
 export default function UtxoDetails() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -138,6 +139,13 @@ export default function UtxoDetails() {
               <SSText color="muted">{vout}</SSText>
             </SSVStack>
           </SSClipboardCopy>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSText uppercase weight="bold">
+              Unlocking script
+            </SSText>
+            <SSScriptDecoded script={utxo?.script || []} />
+          </SSVStack>
         </SSVStack>
       </SSVStack>
     </ScrollView>

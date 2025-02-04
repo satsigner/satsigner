@@ -266,6 +266,7 @@ async function parseLocalUtxoToUtxo(
   const transactionDetails = transactionsDetails.find(
     (transactionDetails) => transactionDetails.txid === transactionId
   )
+  const script = await localUtxo.txout.script.toBytes()
 
   return {
     txid: transactionId,
@@ -276,6 +277,7 @@ async function parseLocalUtxoToUtxo(
       : undefined,
     label: '',
     addressTo,
+    script,
     keychain: 'external'
   }
 }
