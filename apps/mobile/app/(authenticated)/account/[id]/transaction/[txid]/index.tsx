@@ -13,7 +13,7 @@ import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
-import SSTxColorCode from '@/components/SSTxColorCode'
+import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
@@ -142,7 +142,7 @@ export default function TxDetails() {
           <SSText uppercase weight="bold" size="md">
             {t('decoded')}
           </SSText>
-          {raw && <SSTxColorCode txHex={raw} />}
+          {raw && <SSTransactionDecoded txHex={raw} />}
           {!raw && <SSText>{placeholder}</SSText>}
         </SSVStack>
         <SSSeparator color="gradient" />

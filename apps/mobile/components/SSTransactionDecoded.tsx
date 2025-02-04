@@ -8,7 +8,7 @@ import { TxDecoded, TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
 
-type SSTxColorCodeProps = {
+type SSTranssctionDecodedProps = {
   txHex: string
 }
 
@@ -54,7 +54,7 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-export default function SSTxColorCode({ txHex }: SSTxColorCodeProps) {
+export default function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [selectedItem, setSelectedItem] = useState(0)
 
