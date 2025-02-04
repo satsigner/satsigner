@@ -1,12 +1,14 @@
 import type {
   Block,
   BlockchainOracle,
+  BlockFeeRates,
   BlockStatus,
   Currency,
   DifficultyAdjustment,
   MemPool,
   MemPoolBlock,
   MemPoolFees,
+  MempoolStatistics,
   Prices,
   PriceValue,
   Tx,
@@ -79,6 +81,16 @@ export class MempoolOracle implements BlockchainOracle {
   async getCurrentFeeRate(priority: TxPriority): Promise<number> {
     const feeRates: MemPoolFees = await this.getMemPoolFees()
     return feeRates[priority]
+  }
+
+  async getBlockFeeRates(period: string): Promise<BlockFeeRates[]> {
+    const data: any = await this.get(`/v1/mining/blocks/fee-rates/${period}`)
+    return data
+  }
+
+  async getMempoolStatistics(period: string): Promise<MempoolStatistics[]> {
+    const data: any = await this.get(`/v1/statistics/${period}`)
+    return data
   }
 
   async getCurrentDifficulty(): Promise<number> {
