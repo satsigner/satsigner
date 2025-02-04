@@ -315,9 +315,7 @@ function toUInt32LE(value: number) {
 
 function toBigUInt64LE(value: number) {
   const buffer = Buffer.alloc(8)
-  // WARNING:: 64 bits not working therefore we are using 32 bits
-  // buffer.writeBigUInt64LE(BigInt(value))
-  buffer.writeUInt32LE(value)
+  buffer.writeBigUInt64LE(BigInt(value))
   return buffer.toString('hex')
 }
 
