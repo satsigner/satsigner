@@ -155,10 +155,7 @@ export default function TxDetails() {
         <SSTxDetailsBox header={t('inputsCount')} text={inputsCount} />
         <SSTxDetailsBox header={t('outputsCount')} text={outputsCount} />
         <SSTxDetailsInputs tx={tx} />
-        <SSTxDetailsOutputs
-          tx={tx}
-          accountId={accountId}
-        />
+        <SSTxDetailsOutputs tx={tx} accountId={accountId} />
       </SSVStack>
     </ScrollView>
   )
@@ -318,7 +315,7 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
           </SSVStack>
           <SSVStack>
             <SSText weight="bold">SigScript</SSText>
-            <SSScriptDecoded script={vin.scriptSig}/>
+            <SSScriptDecoded script={vin.scriptSig} />
           </SSVStack>
         </SSVStack>
       ))}
@@ -331,10 +328,7 @@ type SSTxDetailsOutputsProps = {
   accountId: string
 }
 
-function SSTxDetailsOutputs({
-  tx,
-  accountId
-}: SSTxDetailsOutputsProps) {
+function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
   return (
     <SSVStack>
       {tx &&

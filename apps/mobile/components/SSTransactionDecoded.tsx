@@ -54,7 +54,9 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-export default function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
+export default function SSTransactionDecoded({
+  txHex
+}: SSTranssctionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [selectedItem, setSelectedItem] = useState(0)
 
