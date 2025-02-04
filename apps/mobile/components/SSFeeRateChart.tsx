@@ -47,7 +47,7 @@ export default function SSFeeRateChart({
 
   if (!mempoolStatistics)
     return (
-      <View>
+      <View style={{ flex: 1 }}>
         <Text style={{ color: '#fff' }}>Loading...</Text>
       </View>
     )

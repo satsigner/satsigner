@@ -165,7 +165,7 @@ export default function FeeSelection() {
               </SSHStack>
               <SSSlider
                 min={1}
-                max={100}
+                max={1000}
                 value={feeSelected}
                 step={1}
                 onValueChange={handleSliderChange}
