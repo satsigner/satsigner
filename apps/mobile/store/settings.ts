@@ -1,4 +1,3 @@
-import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -9,20 +8,15 @@ type SettingsState = {
 }
 
 type SettingsAction = {
-  setUseZeroPadding: (state: boolean) => void
+  setUseZeroPadding: (useZeroPadding: boolean) => void
 }
 
 const useSettingsStore = create<SettingsState & SettingsAction>()(
   persist(
     (set) => ({
       useZeroPadding: false,
-
-      setUseZeroPadding: (data) => {
-        set(
-          produce((state: SettingsState) => {
-            state.useZeroPadding = data
-          })
-        )
+      setUseZeroPadding: (useZeroPadding) => {
+        set({ useZeroPadding })
       }
     }),
     { name: 'settings-store', storage: createJSONStorage(() => mmkvStorage) }
