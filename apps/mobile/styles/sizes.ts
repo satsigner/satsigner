@@ -12,10 +12,18 @@ export const text = {
     '5xl': 36,
     '6xl': 42,
     '7xl': 50
-  }
+  },
+  fontWeight: {
+    ultralight: '200',
+    light: '300',
+    regular: '400',
+    medium: '500',
+    bold: '700'
+  } as const
 }
 
 export type TextFontSize = keyof (typeof text)['fontSize']
+export type TextFontWeight = keyof (typeof text)['fontWeight']
 
 export const button = {
   borderRadius: 3,

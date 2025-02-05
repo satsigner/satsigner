@@ -6,6 +6,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
@@ -22,6 +23,9 @@ type SSUtxoCardProps = {
 export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
   )
 
   const router = useRouter()
@@ -42,7 +46,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" style={{ lineHeight: 30 }}>
-              {formatNumber(utxo.value)}
+              {formatNumber(utxo.value, 0, useZeroPadding)}
             </SSText>
             <SSText color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}

@@ -8,6 +8,7 @@ import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSUtxoItem from '@/components/SSUtxoItem'
 import SSHStack from '@/layouts/SSHStack'
@@ -16,6 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -31,7 +33,12 @@ export default function SelectUtxoList() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const getCurrentAccount = useAccountsStore(
+    useShallow((state) => state.getCurrentAccount)
+  )
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [
@@ -137,7 +144,7 @@ export default function SelectUtxoList() {
                   {i18n.t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(utxosTotalValue)}
+                  {formatNumber(utxosTotalValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
                   {i18n.t('bitcoin.sats').toLowerCase()}
@@ -152,13 +159,15 @@ export default function SelectUtxoList() {
             </SSVStack>
             <SSVStack itemsCenter gap="none">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText
-                  size="7xl"
-                  color="white"
-                  weight="ultralight"
-                  style={{ lineHeight: 62 }}
-                >
-                  {formatNumber(utxosSelectedValue)}
+                <SSText size="7xl" color="white" style={{ lineHeight: 62 }}>
+                  <SSStyledSatText
+                    amount={utxosSelectedValue || 0}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    textSize="7xl"
+                    weight="ultralight"
+                    letterSpacing={-3}
+                  />
                 </SSText>
                 <SSText size="xl" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}
@@ -180,7 +189,7 @@ export default function SelectUtxoList() {
       <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
         <SSButton
           variant="ghost"
-          label={`${selectedAllUtxos ? i18n.t('common.deselectAll').toUpperCase() : i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
+          label={`${selectedAllUtxos ? i18n.t('common.deselectAll').toUpperCase() : i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],

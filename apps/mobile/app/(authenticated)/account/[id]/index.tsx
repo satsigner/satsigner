@@ -29,10 +29,12 @@ import {
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
+import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBalanceChart from '@/components/SSBalanceChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoBubbles from '@/components/SSUtxoBubbles'
@@ -44,6 +46,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -73,7 +76,6 @@ function TotalTransactions({
   expand,
   setSortDirection,
   refreshing,
-  sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
   const router = useRouter()
@@ -94,11 +96,31 @@ function TotalTransactions({
     )
   }, [account.transactions])
 
+  const transactionBalances = useMemo(() => {
+    let balance = 0
+    const balances = sortedTransactions.map((tx) => {
+      const received = tx.received || 0
+      const sent = tx.sent || 0
+      balance = balance + received - sent
+      return balance
+    })
+
+    return balances.reverse()
+  }, [sortedTransactions])
+
+  const maxBalance = useMemo(() => {
+    if (transactionBalances.length === 0) return 0
+    return Math.max(...transactionBalances)
+  }, [transactionBalances])
+
   const [showChart, setShowChart] = useState<boolean>(false)
 
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
+    <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
+      <SSHStack
+        justifyBetween
+        style={{ paddingVertical: 16, paddingHorizontal: 16 }}
+      >
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
             <SSIconRefresh height={18} width={22} />
@@ -152,19 +174,30 @@ function TotalTransactions({
             />
           }
         >
+          {/* account.transactions */}
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...account.transactions]).map((transaction) => (
-              <SSVStack gap="xs" key={transaction.id}>
-                <SSSeparator color="grayDark" />
-                <SSTransactionCard
-                  btcPrice={btcPrice}
-                  fiatCurrency={fiatCurrency}
-                  transaction={transaction}
-                  blockHeight={blockchainHeight}
-                  link={`/account/${account.name}/transaction/${transaction.id}`}
-                />
-              </SSVStack>
-            ))}
+            {sortedTransactions
+              .slice()
+              .reverse()
+              .map((transaction, index) => {
+                return (
+                  <SSVStack gap="xs" key={transaction.id}>
+                    <SSBalanceChangeBar
+                      transaction={transaction}
+                      balance={transactionBalances[index]}
+                      maxBalance={maxBalance}
+                    />
+                    <SSTransactionCard
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      transaction={transaction}
+                      walletBalance={transactionBalances[index]}
+                      blockHeight={blockchainHeight}
+                      link={`/account/${account.name}/transaction/${transaction.id}`}
+                    />
+                  </SSVStack>
+                )
+              })}
           </SSVStack>
         </ScrollView>
       )}
@@ -302,6 +335,10 @@ export default function AccountView() {
         state.updateAccount
       ])
     )
+
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -609,8 +646,15 @@ export default function AccountView() {
           <SSVStack itemsCenter gap="none">
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="7xl" color="white" weight="ultralight">
-                  {formatNumber(account.summary.balance || 0)}
+                <SSText size="7xl" color="white">
+                  <SSStyledSatText
+                    amount={account?.summary.balance || 0}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    textSize="7xl"
+                    weight="ultralight"
+                    letterSpacing={-3}
+                  />
                 </SSText>
                 <SSText size="xl" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}

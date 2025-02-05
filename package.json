@@ -21,8 +21,14 @@
     "turbo": "^2.0.1"
   },
   "packageManager": "yarn@1.22.21",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "nohoist": [
+      "**/rn-nodeify/**",
+      "**/rn-nodeify"
+    ]
+  }
 }

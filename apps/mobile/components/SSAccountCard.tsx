@@ -1,14 +1,17 @@
 import { TouchableOpacity } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight } from './icons'
+import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
 type SSAccountCardProps = {
@@ -21,6 +24,9 @@ export default function SSAccountCard({
   onPress
 }: SSAccountCardProps) {
   const priceStore = usePriceStore()
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
@@ -34,7 +40,14 @@ export default function SSAccountCard({
           </SSText>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>
-              {formatNumber(account.summary.balance)}
+              <SSStyledSatText
+                amount={account?.summary.balance || 0}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                textSize="3xl"
+                weight="light"
+                letterSpacing={-2}
+              />
             </SSText>
             <SSText size="xl" color="muted">
               {i18n.t('bitcoin.sats').toLowerCase()}

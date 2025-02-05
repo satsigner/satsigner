@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "types": "expo customize tsconfig.json",
     "test": "yarn test:unit && yarn test:int",
-    "test:unit": "jest ./tests/unit --transformIgnorePatterns 'node_modules/(?!bip21)/'",
+    "test:unit": "jest ./tests/unit --transformIgnorePatterns \"node_modules/(?!bip21)/\"",
     "test:int": "jest ./tests/int",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

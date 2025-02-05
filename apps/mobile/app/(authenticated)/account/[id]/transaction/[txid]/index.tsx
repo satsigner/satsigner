@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -18,6 +19,7 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { Transaction } from '@/types/models/Transaction'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
@@ -40,7 +42,6 @@ export default function TxDetails() {
       .find((account) => account.name === accountId)
       ?.transactions.find((tx) => tx.id === txid)
   )
-
   const placeholder = '-'
 
   const [fee, setFee] = useState(placeholder)
@@ -202,13 +203,15 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const [timestamp, setTimestamp] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
-
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
   const updateInfo = async () => {
     if (!tx) return
 
     const amount = tx.type === 'receive' ? tx.received : tx.sent
 
-    setAmount(formatNumber(amount))
+    setAmount(formatNumber(amount, 0, useZeroPadding))
     setType(tx.type)
 
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
