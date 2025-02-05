@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
+import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -138,6 +139,13 @@ export default function UtxoDetails() {
               <SSText color="muted">{vout}</SSText>
             </SSVStack>
           </SSClipboardCopy>
+          <SSSeparator color="gradient" />
+          <SSVStack>
+            <SSText uppercase weight="bold">
+              Unlocking script
+            </SSText>
+            <SSScriptDecoded script={utxo?.script || []} />
+          </SSVStack>
         </SSVStack>
       </SSVStack>
     </ScrollView>
