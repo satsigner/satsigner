@@ -1,14 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { EsploraTx } from '@/api/esplora'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePreviousTransactionsStore } from '@/store/previousTransactions'
 import { Utxo } from '@/types/models/Utxo'
 
+const SIGNET_URL = 'https://mempool.space/signet/api'
+const TESTNET_URL = 'https://mempool.space/testnet/api'
+const BITCOIN_URL = 'https://mempool.space/api'
+
 export function usePreviousTransactions(
   inputs: Map<string, Utxo>,
-  depth: number = 2
+  depth: number = 2,
+  skipCache: boolean = true
 ) {
+  const [, network] = useBlockchainStore(
+    useShallow((state) => [
+      state.backend,
+      state.network,
+      state.retries,
+      state.stopGap,
+      state.timeout,
+      state.url
+    ])
+  )
+
   const [transactions, setTransactions] = useState<Map<string, EsploraTx>>(
     new Map()
   )
@@ -21,7 +39,20 @@ export function usePreviousTransactions(
 
     setLoading(true)
     setError(null)
-    const oracle = new MempoolOracle('https://mutinynet.com/api')
+
+    const oracle = new MempoolOracle(
+      (() => {
+        switch (network) {
+          case 'signet':
+            return SIGNET_URL
+          case 'testnet':
+            return TESTNET_URL
+          default:
+            return BITCOIN_URL
+        }
+      })()
+    )
+
     const newTransactions = new Map<string, EsploraTx>()
 
     try {
@@ -38,24 +69,26 @@ export function usePreviousTransactions(
             if (processed.has(txid)) return
             processed.add(txid)
 
-            // Check cache first
-            const cachedTx = getTransaction(txid)
-            if (cachedTx) {
-              newTransactions.set(txid, cachedTx)
-              // Still need to check parents
-              if (cachedTx.vin) {
-                cachedTx.vin.forEach((vin) => {
-                  const parentTxid = vin.txid
-                  if (
-                    parentTxid &&
-                    !processed.has(parentTxid) &&
-                    !queue.includes(parentTxid)
-                  ) {
-                    queue.push(parentTxid)
-                  }
-                })
+            // Check cache first if skipCache is false
+            if (!skipCache) {
+              const cachedTx = getTransaction(txid)
+              if (cachedTx) {
+                newTransactions.set(txid, cachedTx)
+                // Still need to check parents
+                if (cachedTx.vin) {
+                  cachedTx.vin.forEach((vin) => {
+                    const parentTxid = vin.txid
+                    if (
+                      parentTxid &&
+                      !processed.has(parentTxid) &&
+                      !queue.includes(parentTxid)
+                    ) {
+                      queue.push(parentTxid)
+                    }
+                  })
+                }
+                return
               }
-              return
             }
 
             const tx = await oracle.getTransaction(txid).catch((err) => {
@@ -99,7 +132,7 @@ export function usePreviousTransactions(
     } finally {
       setLoading(false)
     }
-  }, [inputs, depth, addTransactions, getTransaction])
+  }, [inputs, network, depth, skipCache, getTransaction, addTransactions])
 
   useEffect(() => {
     fetchInputTransactions()
