@@ -48,7 +48,11 @@ export default function Features() {
                   'settings.features.featurePage.currencyFormatting.description'
                 )}
                 icon={<SSIconZero width={24} height={24} />}
-                onPress={() => {}}
+                onPress={() => {
+                  router.navigate(
+                    '/settings/config/features/currencyFormatting'
+                  )
+                }}
               />
             </SSVStack>
           </SSVStack>

@@ -6,18 +6,22 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
+import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { Transaction } from '@/types/models/Transaction'
 import type { TxSearchParams } from '@/types/navigation/searchParams'
@@ -27,6 +31,7 @@ import {
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
+import { bytesToHex } from '@/utils/scripts'
 
 // TODO: Refactor page
 
@@ -40,14 +45,13 @@ export default function TxDetails() {
       .find((account) => account.name === accountId)
       ?.transactions.find((tx) => tx.id === txid)
   )
-
   const placeholder = '-'
 
   const [fee, setFee] = useState(placeholder)
   const [feePerByte, setFeePerByte] = useState(placeholder)
   const [feePerVByte, setFeePerVByte] = useState(placeholder)
   const [height, setHeight] = useState(placeholder)
-  const [raw, setRaw] = useState(placeholder)
+  const [raw, setRaw] = useState('')
   const [size, setSize] = useState(placeholder)
   const [inputsCount, setInputsCount] = useState(placeholder)
   const [outputsCount, setOutputsCount] = useState(placeholder)
@@ -74,12 +78,11 @@ export default function TxDetails() {
 
     if (tx.version) setVersion(tx.version.toString())
 
-    if (tx.raw)
-      setRaw(tx.raw.map((v) => v.toString(16).padStart(2, '0')).join(' '))
-
     if (tx.vin) setInputsCount(tx.vin.length.toString())
 
     if (tx.vout) setOutputsCount(tx.vout.length.toString())
+
+    if (tx.raw) setRaw(bytesToHex(tx.raw))
   }
 
   useEffect(() => {
@@ -136,11 +139,17 @@ export default function TxDetails() {
           />
         </SSHStack>
         <SSSeparator color="gradient" />
-        <SSTxDetailsBox header={t('raw')} text={raw} variant="mono" />
+        <SSVStack gap="sm">
+          <SSText uppercase weight="bold" size="md">
+            {t('decoded')}
+          </SSText>
+          {raw && <SSTransactionDecoded txHex={raw} />}
+          {!raw && <SSText>{placeholder}</SSText>}
+        </SSVStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">
-            {t('decoded')}
+            {t('details')}
           </SSText>
         </SSVStack>
         <SSTxDetailsBox header={t('version')} text={version} />
@@ -202,13 +211,15 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const [timestamp, setTimestamp] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
-
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
   const updateInfo = async () => {
     if (!tx) return
 
     const amount = tx.type === 'receive' ? tx.received : tx.sent
 
-    setAmount(formatNumber(amount))
+    setAmount(formatNumber(amount, 0, useZeroPadding))
     setType(tx.type)
 
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
@@ -305,66 +316,9 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
             <SSText weight="bold">{t('inputSequence')}</SSText>
             <SSText color="muted">{vin.sequence}</SSText>
           </SSVStack>
-          <SSText weight="bold">SigScript</SSText>
-          <SSVStack gap="sm">
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_DUP
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0x72
-              </SSText>
-              <SSText size="xxs" color="muted">
-                Duplicates the top stack item
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_HASH160
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0xa9
-              </SSText>
-              <SSText size="xxs" color="muted">
-                The input is hashed twice: first with SHA-256 and then with
-                RIPEMD-160.
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                76A9145E4FF47CEB3A51CDF7DDD80AFC4ACC5A692DAC2D88AC
-              </SSText>
-              <SSText size="xxs" color="muted">
-                Raw data
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_EQUALVERIFY
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0x88
-              </SSText>
-              <SSText size="xxs" color="muted">
-                Returns 1 if the inputs are exactly equal, 0 otherwise.
-                Afterward, OP_VERIFY is executed.
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="xxs" weight="bold">
-                OP_CHECK_SIG
-              </SSText>
-              <SSText size="xxs" color="muted">
-                0xacc
-              </SSText>
-              <SSText size="xxs" color="muted">
-                The entire transaction's outputs, inputs, and script (from the
-                most recently-executed OP_CODESEPARATOR to the end) are hashed.
-                The signature used by OP_CHECKSIG must be a valid signature for
-                this hash and public key. If it is, 1 is returned, 0 otherwise.
-                Afterward, OP_VERIFY is executed.
-              </SSText>
-            </SSVStack>
+          <SSVStack>
+            <SSText weight="bold">SigScript</SSText>
+            <SSScriptDecoded script={vin.scriptSig} />
           </SSVStack>
         </SSVStack>
       ))}
@@ -403,6 +357,10 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                 header={i18n.t('common.address')}
                 text={vout.address}
               />
+              <SSVStack>
+                <SSText weight="bold">UNLOCKING SCRIPT</SSText>
+                <SSScriptDecoded script={vout.script} />
+              </SSVStack>
             </SSVStack>
           </TouchableOpacity>
         ))}

@@ -29,6 +29,7 @@ export type Transaction = {
   vout: {
     value: number
     address: string
+    script: number[]
   }[]
   prices: Partial<{
     [key in Currency]: number

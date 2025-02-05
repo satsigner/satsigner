@@ -6,4 +6,5 @@ export type Utxo = {
   label: string
   addressTo?: string
   keychain: 'internal' | 'external'
+  script?: number[]
 }
