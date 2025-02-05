@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { Utxo } from '@/types/models/Utxo'
 import {
@@ -32,7 +34,9 @@ export default function SSUtxoItem({
   onToggleSelected
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
-
+  const useZeroPadding = useSettingsStore(
+    useShallow((state) => state.useZeroPadding)
+  )
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected
@@ -64,7 +68,7 @@ export default function SSUtxoItem({
             <SSVStack gap="xs">
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
                 <SSText size="md" color="white">
-                  {formatNumber(utxo.value)}
+                  {formatNumber(utxo.value, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {i18n.t('bitcoin.sats').toLowerCase()}
