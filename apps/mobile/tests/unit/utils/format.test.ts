@@ -29,6 +29,11 @@ describe('format utils', () => {
     it('should return the correct localized number with decimals', () => {
       expect(formatNumber(0.795, 2)).toBe('0.80')
     })
+
+    it('should return the correct number with padding', () => {
+      expect(formatNumber(210000, 0, true)).toBe('0.00 210 000')
+      expect(formatNumber(123456789, 0, true)).toBe('1.23 456 789')
+    })
   })
 
   describe('formatTime', () => {
