@@ -217,7 +217,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const updateInfo = async () => {
     if (!tx) return
 
-    const amount = tx.type === 'receive' ? tx.received : tx.sent
+    const amount = tx.received - tx.sent
 
     setAmount(formatNumber(amount, 0, useZeroPadding))
     setType(tx.type)
@@ -256,7 +256,13 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       )}
       <SSHStack>
         <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
-          <SSText size="xl" style={{ lineHeight: 30 }}>
+          <SSText
+            size="xl"
+            style={{
+              lineHeight: 30,
+              color: tx ? ((tx.received < tx.sent) ? 'red' : 'green') : 'white'
+            }}
+          >
             {amount}
           </SSText>
           <SSText color="muted">{i18n.t('bitcoin.sats').toLowerCase()}</SSText>
