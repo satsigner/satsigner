@@ -260,7 +260,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
             size="xl"
             style={{
               lineHeight: 30,
-              color: tx ? ((tx.received < tx.sent) ? 'red' : 'green') : 'white'
+              color: tx ? (tx.received < tx.sent ? 'red' : 'green') : 'white'
             }}
           >
             {amount}
