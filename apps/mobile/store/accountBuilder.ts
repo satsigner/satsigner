@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import {
   generateMnemonic,
   getFingerprint,
+  getMultiSigWalletFromMnemonic,
   getWalletFromMnemonic
 } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
@@ -26,6 +27,11 @@ type AccountBuilderState = {
   externalDescriptor?: Account['externalDescriptor']
   internalDescriptor?: Account['internalDescriptor']
   wallet?: Wallet
+  policyType?: Account['policyType']
+  participants?: Account['participants']
+  participantsCount?: Account['participantsCount']
+  requiredParticipantsCount?: Account['requiredParticipantsCount']
+  currentParticipantIndex?: number
 }
 
 type AccountBuilderAction = {
@@ -40,10 +46,20 @@ type AccountBuilderAction = {
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => void
   setSeedWords: (seedWords: NonNullable<Account['seedWords']>) => void
+  setParticipant: (participants: string) => void
+  setParticipantWithSeedWord: () => void
+  setParticipantsCount: (
+    participantsCount: Account['participantsCount']
+  ) => void
+  setRequiredParticipantsCount: (
+    requiredParticipantsCount: Account['requiredParticipantsCount']
+  ) => void
   generateMnemonic: (
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => Promise<void>
   setPassphrase: (passphrase: Account['passphrase']) => void
+  setPolicyType: (policyType: Account['policyType']) => void
+  setCurrentParticipantIndex: (index: number) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
   lockSeed: () => Promise<void>
@@ -56,7 +72,12 @@ const useAccountBuilderStore = create<
   type: null,
   scriptVersion: 'P2WPKH',
   seedWordCount: 24,
+  policyType: 'single',
   seedWords: '',
+  participants: [],
+  participantsCount: 0,
+  requiredParticipantsCount: 0,
+  currentParticipantIndex: -1,
   clearAccount: () => {
     set({
       name: '',
@@ -83,7 +104,11 @@ const useAccountBuilderStore = create<
       fingerprint,
       derivationPath,
       externalDescriptor,
-      internalDescriptor
+      internalDescriptor,
+      policyType,
+      participants,
+      participantsCount,
+      requiredParticipantsCount
     } = get()
 
     return {
@@ -106,7 +131,11 @@ const useAccountBuilderStore = create<
         numberOfUtxos: 0,
         satsInMempool: 0
       },
-      createdAt: new Date()
+      createdAt: new Date(),
+      policyType,
+      participants,
+      participantsCount,
+      requiredParticipantsCount
     }
   },
   setName: (name) => {
@@ -124,6 +153,9 @@ const useAccountBuilderStore = create<
   setSeedWords: (seedWords) => {
     set({ seedWords })
   },
+  setCurrentParticipantIndex: (index) => {
+    set({ currentParticipantIndex: index })
+  },
   generateMnemonic: async (seedWordCount) => {
     const mnemonic = await generateMnemonic(seedWordCount)
     set({ seedWords: mnemonic })
@@ -131,6 +163,32 @@ const useAccountBuilderStore = create<
   },
   setPassphrase: (passphrase) => {
     set({ passphrase })
+  },
+  setPolicyType: (policyType) => {
+    set({ policyType })
+  },
+  setParticipant: (participants) => {
+    const p = get().participants!
+    const index = get().currentParticipantIndex!
+    if (index >= 0 && index < get().participantsCount!) {
+      p[index] = participants
+      set({ participants: [...p] })
+    }
+  },
+  setParticipantWithSeedWord: () => {
+    const seedWord = get().seedWords!
+    const p = get().participants!
+    const index = get().currentParticipantIndex!
+    if (index >= 0 && index < get().participantsCount!) {
+      p[index] = seedWord
+      set({ participants: [...p] })
+    }
+  },
+  setParticipantsCount: (participantsCount) => {
+    set({ participantsCount })
+  },
+  setRequiredParticipantsCount: (requiredParticipantsCount) => {
+    set({ requiredParticipantsCount })
   },
   updateFingerprint: async () => {
     const { network } = useBlockchainStore.getState()
@@ -143,26 +201,42 @@ const useAccountBuilderStore = create<
   },
   loadWallet: async () => {
     const { network } = useBlockchainStore.getState()
-    const {
-      fingerprint,
-      derivationPath,
-      externalDescriptor,
-      internalDescriptor,
-      wallet
-    } = await getWalletFromMnemonic(
-      get().seedWords,
-      get().scriptVersion,
-      get().passphrase,
-      network as Network
-    )
-    set(() => ({
-      fingerprint,
-      derivationPath,
-      externalDescriptor,
-      internalDescriptor,
-      wallet
-    }))
-    return wallet
+    const policyType = get().policyType
+    if (policyType === 'single') {
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptor,
+        internalDescriptor,
+        wallet
+      } = await getWalletFromMnemonic(
+        get().seedWords,
+        get().scriptVersion,
+        get().passphrase,
+        network as Network
+      )
+      set(() => ({
+        fingerprint,
+        derivationPath,
+        externalDescriptor,
+        internalDescriptor,
+        wallet
+      }))
+      return wallet
+    } else {
+      const result = await getMultiSigWalletFromMnemonic(
+        get().participants!,
+        get().scriptVersion,
+        get().passphrase,
+        network as Network,
+        get().participantsCount!,
+        get().requiredParticipantsCount!
+      )
+      set(() => ({
+        wallet: result?.wallet!
+      }))
+      return result?.wallet!
+    }
   },
   lockSeed: async () => {
     const savedPin = await getItem(PIN_KEY)

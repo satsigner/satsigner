@@ -25,6 +25,7 @@ export default function GenerateSeed() {
     seedWordCount,
     seedWords,
     fingerprint,
+    policyType,
     setPassphrase,
     updateFingerprint
   ] = useAccountBuilderStore(
@@ -33,6 +34,7 @@ export default function GenerateSeed() {
       state.seedWordCount,
       state.seedWords.split(' '),
       state.fingerprint,
+      state.policyType,
       state.setPassphrase,
       state.updateFingerprint
     ])
@@ -47,6 +49,14 @@ export default function GenerateSeed() {
     setChecksumValid(checksumValid)
 
     if (checksumValid) await updateFingerprint()
+  }
+
+  function handleOnPressCancel() {
+    if (policyType === 'multi') {
+      router.back()
+    } else if (policyType === 'single') {
+      router.replace('/')
+    }
   }
 
   return (
@@ -77,14 +87,16 @@ export default function GenerateSeed() {
                 </SSSeedLayout>
               )}
             </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
-              />
-              <SSTextInput
-                onChangeText={(text) => handleUpdatePassphrase(text)}
-              />
-            </SSFormLayout.Item>
+            {policyType === 'single' && (
+              <SSFormLayout.Item>
+                <SSFormLayout.Label
+                  label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+                />
+                <SSTextInput
+                  onChangeText={(text) => handleUpdatePassphrase(text)}
+                />
+              </SSFormLayout.Item>
+            )}
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />
@@ -102,7 +114,7 @@ export default function GenerateSeed() {
             <SSButton
               label={i18n.t('common.cancel')}
               variant="ghost"
-              onPress={() => router.replace('/')}
+              onPress={handleOnPressCancel}
             />
           </SSVStack>
         </SSVStack>

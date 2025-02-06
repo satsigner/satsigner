@@ -64,6 +64,16 @@ export default function AccountSettings() {
     return ''
   }
 
+  function getPolicyTypeButtonLabel() {
+    if (account?.policyType === 'single') {
+      return 'Signle Signature'
+    } else if (account?.policyType === 'multi') {
+      return 'Multi Signature'
+    } else {
+      return ''
+    }
+  }
+
   function handleOnSelectScriptVersion() {
     setScriptVersion(scriptVersion)
     setScriptVersionModalVisible(false)
@@ -175,12 +185,7 @@ export default function AccountSettings() {
             <SSFormLayout.Label
               label={i18n.t('addMasterKey.accountOptions.policyType')}
             />
-            <SSButton
-              label={i18n.t(
-                'addMasterKey.accountOptions.policyTypes.singleSignature'
-              )}
-              withSelect
-            />
+            <SSButton label={getPolicyTypeButtonLabel()} withSelect />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label

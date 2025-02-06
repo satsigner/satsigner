@@ -47,6 +47,8 @@ export default function ImportSeed() {
     seedWordCount,
     fingerprint,
     derivationPath,
+    policyType,
+    setParticipant,
     clearAccount,
     getAccount,
     setSeedWords,
@@ -61,6 +63,8 @@ export default function ImportSeed() {
       state.seedWordCount,
       state.fingerprint,
       state.derivationPath,
+      state.policyType,
+      state.setParticipant,
       state.clearAccount,
       state.getAccount,
       state.setSeedWords,
@@ -282,24 +286,29 @@ export default function ImportSeed() {
     const seedWords = seedWordsInfo.map((seedWord) => seedWord.value).join(' ')
     setSeedWords(seedWords)
 
-    setLoadingAccount(true)
+    if (policyType === 'single') {
+      setLoadingAccount(true)
 
-    const wallet = await loadWallet()
-    await lockSeed()
+      const wallet = await loadWallet()
+      await lockSeed()
 
-    setAccountAddedModalVisible(true)
+      setAccountAddedModalVisible(true)
 
-    const account = getAccount()
-    await addAccount(account)
+      const account = getAccount()
+      await addAccount(account)
 
-    try {
-      const syncedAccount = await syncWallet(wallet, account)
-      setSyncedAccount(syncedAccount)
-      await updateAccount(syncedAccount)
-    } catch {
-      setWalletSyncFailed(true)
-    } finally {
-      setLoadingAccount(false)
+      try {
+        const syncedAccount = await syncWallet(wallet, account)
+        setSyncedAccount(syncedAccount)
+        await updateAccount(syncedAccount)
+      } catch {
+        setWalletSyncFailed(true)
+      } finally {
+        setLoadingAccount(false)
+      }
+    } else if (policyType === 'multi') {
+      setParticipant(seedWords)
+      router.back()
     }
   }
 
@@ -307,6 +316,14 @@ export default function ImportSeed() {
     setAccountAddedModalVisible(false)
     clearAccount()
     router.navigate('/')
+  }
+
+  function handleOnPressCancel() {
+    if (policyType === 'multi') {
+      router.back()
+    } else if (policyType === 'single') {
+      router.replace('/')
+    }
   }
 
   return (
@@ -357,15 +374,17 @@ export default function ImportSeed() {
                 </SSSeedLayout>
               )}
             </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
-              />
-              <SSTextInput
-                ref={(input: TextInput) => (passphraseRef.current = input)}
-                onChangeText={(text) => handleUpdatePassphrase(text)}
-              />
-            </SSFormLayout.Item>
+            {policyType === 'single' && (
+              <SSFormLayout.Item>
+                <SSFormLayout.Label
+                  label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+                />
+                <SSTextInput
+                  ref={(input: TextInput) => (passphraseRef.current = input)}
+                  onChangeText={(text) => handleUpdatePassphrase(text)}
+                />
+              </SSFormLayout.Item>
+            )}
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />
@@ -386,7 +405,7 @@ export default function ImportSeed() {
             <SSButton
               label={i18n.t('common.cancel')}
               variant="ghost"
-              onPress={() => router.replace('/')}
+              onPress={handleOnPressCancel}
             />
           </SSVStack>
         </SSVStack>

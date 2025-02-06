@@ -29,4 +29,12 @@ export type Account = {
     numberOfUtxos: number
     satsInMempool: number
   }
+  policyType?: 'single' | 'multi'
+  participants?: string[]
+  participantsCount?: number
+  requiredParticipantsCount?: number
+  externalDescriptors?: string[]
+  internalDescriptors?: string[]
+  fingerprints?: string[]
+  derivationPaths?: string[]
 }

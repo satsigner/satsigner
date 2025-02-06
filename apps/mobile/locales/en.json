@@ -220,9 +220,6 @@
       },
       "accountOptions": {
         "policyType": "Policy Type",
-        "policyTypes": {
-          "singleSignature": "Single Signature"
-        },
         "scriptVersion": "Script Version",
         "scriptVersions": {
           "names": {
@@ -273,7 +270,13 @@
           "12": "12 words generated from 128 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts."
         },
         "generateNewSeed": "Generate New Seed",
-        "importSeed": "Import Seed"
+        "importSeed": "Import Seed",
+        "policyTypes": {
+          "singleSignature": "Single Signature",
+          "singleSignatureDescription": "To solve this script, the owner of the hashed public key above needs to provide the original public key, along with a valid signature for it.",
+          "multiSignature": "Multi Signature",
+          "multiSignatureDescription": "Lorem ipsum"
+        }
       }
     },
     "utxoDetails": {

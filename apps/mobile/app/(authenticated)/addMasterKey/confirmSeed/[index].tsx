@@ -39,19 +39,23 @@ export default function ConfirmSeed() {
     name,
     seedWordCount,
     seedWords,
+    policyType,
     clearAccount,
     getAccount,
     loadWallet,
-    lockSeed
+    lockSeed,
+    setParticipantWithSeedWord
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
       state.seedWordCount,
       state.seedWords.split(' '),
+      state.policyType,
       state.clearAccount,
       state.getAccount,
       state.loadWallet,
-      state.lockSeed
+      state.lockSeed,
+      state.setParticipantWithSeedWord
     ])
   )
 
@@ -80,22 +84,27 @@ export default function ConfirmSeed() {
   }
 
   async function handleFinishWordsConfirmation() {
-    setLoadingAccount(true)
+    if (policyType === 'single') {
+      setLoadingAccount(true)
 
-    const wallet = await loadWallet()
-    await lockSeed()
+      const wallet = await loadWallet()
+      await lockSeed()
 
-    const account = getAccount()
-    await addAccount(account)
+      const account = getAccount()
+      await addAccount(account)
 
-    try {
-      const syncedAccount = await syncWallet(wallet, account)
-      await updateAccount(syncedAccount)
-    } catch {
-      setWalletSyncFailed(true)
-    } finally {
-      setLoadingAccount(false)
-      setWarningModalVisible(true)
+      try {
+        const syncedAccount = await syncWallet(wallet, account)
+        await updateAccount(syncedAccount)
+      } catch {
+        setWalletSyncFailed(true)
+      } finally {
+        setLoadingAccount(false)
+        setWarningModalVisible(true)
+      }
+    } else if (policyType === 'multi') {
+      setParticipantWithSeedWord()
+      router.dismiss(Number.parseInt(index, 10) + 2)
     }
   }
 
@@ -103,6 +112,14 @@ export default function ConfirmSeed() {
     setWarningModalVisible(false)
     clearAccount()
     router.navigate('/')
+  }
+
+  function handleOnPressCancel() {
+    if (policyType === 'multi') {
+      router.dismiss(Number.parseInt(index, 10) + 1)
+    } else if (policyType === 'single') {
+      router.replace('/')
+    }
   }
 
   return (
@@ -146,7 +163,7 @@ export default function ConfirmSeed() {
           <SSButton
             label={i18n.t('common.cancel')}
             variant="ghost"
-            onPress={() => router.replace('/')}
+            onPress={handleOnPressCancel}
           />
         </SSVStack>
       </SSVStack>

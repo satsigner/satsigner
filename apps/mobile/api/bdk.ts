@@ -55,7 +55,6 @@ async function getDescriptor(
     mnemonic,
     passphrase
   )
-
   switch (scriptVersion) {
     case 'P2PKH':
       return new Descriptor().newBip44(descriptorSecretKey, kind, network)
@@ -71,10 +70,15 @@ async function getDescriptor(
 async function parseDescriptor(descriptor: Descriptor) {
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/\[([0-9a-f]+)([0-9'/]+)\]/)
-
   return match
     ? { fingerprint: match[1], derivationPath: `m${match[2]}` }
     : { fingerprint: '', derivationPath: '' }
+}
+
+async function extractPubKeyFromDescriptor(descriptor: Descriptor) {
+  const descriptorString = await descriptor.asString()
+  const match = descriptorString.match(/tpub[A-Za-z0-9]+/)
+  return match ? match[0] : ''
 }
 
 async function getFingerprint(
@@ -132,6 +136,77 @@ async function getWalletFromMnemonic(
     externalDescriptor: await externalDescriptor.asString(),
     internalDescriptor: await internalDescriptor.asString(),
     wallet
+  }
+}
+
+async function getMultiSigWalletFromMnemonic(
+  participants: NonNullable<Account['participants']>,
+  scriptVersion: NonNullable<Account['scriptVersion']>,
+  passphrase: Account['passphrase'],
+  network: Network,
+  totalParticipants: number,
+  requiredParticipants: number
+) {
+  try {
+    const externalDescriptors: Descriptor[] = []
+    const internalDescriptors: Descriptor[] = []
+    const externalDescriptorsString: string[] = []
+    const internalDescriptorsString: string[] = []
+    const derivedPaths = []
+    const fingerprints = []
+    const keys = []
+    for (let i = 0; i < totalParticipants; i++) {
+      const seedWords = participants[i]
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        getDescriptor(
+          seedWords,
+          scriptVersion,
+          KeychainKind.External,
+          passphrase,
+          network
+        ),
+        getDescriptor(
+          seedWords,
+          scriptVersion,
+          KeychainKind.Internal,
+          passphrase,
+          network
+        )
+      ])
+      const { fingerprint, derivationPath } =
+        await parseDescriptor(externalDescriptor)
+      const externalDescriptorString = await externalDescriptor.asString()
+      const internalDescriptorString = await internalDescriptor.asString()
+      externalDescriptorsString.push(externalDescriptorString)
+      internalDescriptorsString.push(internalDescriptorString)
+      externalDescriptors.push(externalDescriptor)
+      internalDescriptors.push(internalDescriptor)
+      fingerprints.push(fingerprint)
+      derivedPaths.push(derivationPath)
+      const key = await extractPubKeyFromDescriptor(externalDescriptor)
+      keys.push(key)
+    }
+    const multisigDescriptorString = `wsh(multi(${requiredParticipants},${keys.join(',')}))`
+    const multisigDescriptor = await new Descriptor().create(
+      multisigDescriptorString,
+      network
+    )
+    const dbConfig = await new DatabaseConfig().memory()
+    const wallet = await new Wallet().create(
+      multisigDescriptor,
+      null,
+      network,
+      dbConfig
+    )
+    return {
+      fingerprints,
+      derivedPaths,
+      expternalDescriptorsString: externalDescriptorsString,
+      internalDescriptorsString,
+      wallet
+    }
+  } catch {
+    return null
   }
 }
 
@@ -392,6 +467,7 @@ export {
   getDescriptor,
   getFingerprint,
   getLastUnusedWalletAddress,
+  getMultiSigWalletFromMnemonic,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,
