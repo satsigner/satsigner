@@ -324,7 +324,7 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
           </SSVStack>
           <SSVStack>
             <SSText weight="bold">SigScript</SSText>
-            <SSScriptDecoded script={vin.scriptSig} />
+            <SSScriptDecoded script={vin.scriptSig || []} />
           </SSVStack>
         </SSVStack>
       ))}
@@ -365,7 +365,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
               />
               <SSVStack>
                 <SSText weight="bold">UNLOCKING SCRIPT</SSText>
-                <SSScriptDecoded script={vout.script} />
+                <SSScriptDecoded script={vout.script || []} />
               </SSVStack>
             </SSVStack>
           </TouchableOpacity>

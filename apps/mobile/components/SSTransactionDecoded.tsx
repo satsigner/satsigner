@@ -7,35 +7,10 @@ import { i18n } from '@/locales'
 import { TxDecoded, TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
+import { Colors } from '@/styles'
 
 type SSTranssctionDecodedProps = {
   txHex: string
-}
-
-const colors: Record<TxField, string> = {
-  [TxField.Version]: '#6f7',
-  [TxField.Marker]: '#d21',
-  [TxField.Flag]: '#0ad',
-  [TxField.TxInVarInt]: '#0ed',
-  [TxField.TxInHash]: '#e88',
-  [TxField.TxInIndex]: '#8e8',
-  [TxField.TxInScriptVarInt]: '#88e',
-  [TxField.TxInScript]: '#ee8',
-  [TxField.TxInSequence]: '#8ee',
-  [TxField.TxOutVarInt]: '#e8e',
-  [TxField.TxOutValue]: '#dd5',
-  [TxField.TxOutScriptVarInt]: '#5dd',
-  [TxField.TxOutScript]: '#d5d',
-  [TxField.WitnessVarInt]: '#55e',
-  [TxField.WitnessItemsVarInt]: '#d55',
-  [TxField.WitnessItem]: '#5d5',
-  [TxField.WitnessItemEmpty]: '#5e1',
-  [TxField.WitnessItemPubkey]: '#db1',
-  [TxField.WitnessItemSignature]: '#8e1',
-  [TxField.WitnessItemScript]: '#836',
-  [TxField.Locktime]: '#d23',
-  [TxField.TxOutScriptStandard]: '#3ad',
-  [TxField.TxOutScriptNonStandard]: '#536'
 }
 
 function replacePlaceholders(text: string, placeholders: (string | number)[]) {
@@ -72,31 +47,38 @@ export default function SSTransactionDecoded({
                   <TouchableOpacity
                     key={`${i}_${j}`}
                     onPress={() => setSelectedItem(i)}
-                    style={{ padding: 2 }}
                   >
                     <SSText
                       type="mono"
-                      style={{
-                        color: colors[item.field as TxField],
-                        ...(selected ? styles.selected : styles.faded)
-                      }}
+                      size="md"
+                      style={
+                        selected
+                          ? styles.highlighted
+                          : i % 2
+                            ? styles.fadedDarker
+                            : styles.fadedNormal
+                      }
                     >
                       {byte}
                     </SSText>
                   </TouchableOpacity>
                 )
               })}
+              {byteChunks.length && (
+                <SSText type="mono" size="md" style={styles.fadedBrighter}>
+                  {'||'}
+                </SSText>
+              )}
             </Fragment>
           )
         })}
       </SSHStack>
-
       <SSTxDecodedField {...decoded[selectedItem]} />
     </SSVStack>
   )
 }
 
-function SSTxDecodedField({ hex, field, value, placeholders }: TxDecodedField) {
+function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
   let label = i18n.t(`txDecoded.label.${field}`)
   let description = i18n.t(`txDecoded.description.${field}`)
 
@@ -107,39 +89,32 @@ function SSTxDecodedField({ hex, field, value, placeholders }: TxDecodedField) {
   )
 
   return (
-    <SSVStack gap="none">
-      <SSText weight="bold">
-        Hex:{' '}
-        <SSText
-          uppercase
-          type="mono"
-          style={{ color: colors[field as TxField] }}
-        >
-          {hex}
-        </SSText>
+    <SSVStack gap="xs">
+      <SSText color="muted" type="mono">
+        {label}
       </SSText>
-      <SSText weight="bold">
-        Label: <SSText type="mono">{label}</SSText>
-      </SSText>
-      <SSText weight="bold">
-        Value:{' '}
-        <SSText type="mono" uppercase>
-          {value}
-        </SSText>
-      </SSText>
-      <SSText weight="bold">
-        Description: <SSText size="xs">{description}</SSText>
-      </SSText>
+      <SSText type="mono">{value}</SSText>
+      <SSText color="muted">{description}</SSText>
     </SSVStack>
   )
 }
 
 const styles = StyleSheet.create({
-  selected: {
-    textDecorationLine: 'underline',
-    textTransform: 'uppercase'
+  highlighted: {
+    backgroundColor: 'white',
+    color: 'black',
+    padding: 2
   },
-  faded: {
-    opacity: 0.5
+  fadedDarker: {
+    color: Colors.gray[600],
+    padding: 2
+  },
+  fadedNormal: {
+    color: Colors.gray[400],
+    padding: 2
+  },
+  fadedBrighter: {
+    color: Colors.gray[100],
+    padding: 2
   }
 })
