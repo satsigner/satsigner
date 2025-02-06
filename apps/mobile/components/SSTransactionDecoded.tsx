@@ -4,10 +4,10 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { i18n } from '@/locales'
-import { TxDecoded, TxDecodedField, TxField } from '@/utils/txDecoded'
+import { Colors } from '@/styles'
+import { TxDecoded, TxDecodedField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
-import { Colors } from '@/styles'
 
 type SSTranssctionDecodedProps = {
   txHex: string
@@ -66,7 +66,7 @@ export default function SSTransactionDecoded({
               })}
               {byteChunks.length && (
                 <SSText type="mono" size="md" style={styles.fadedBrighter}>
-                  {'||'}
+                  ||
                 </SSText>
               )}
             </Fragment>
