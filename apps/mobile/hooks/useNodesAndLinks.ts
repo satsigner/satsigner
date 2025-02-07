@@ -97,7 +97,7 @@ export const useNodesAndLinks = ({
     } else {
       return []
     }
-  }, [inputs.size, outputs.length, transactions, utxosSelectedValue])
+  }, [inputs.size, maxExistingDepth, outputs.length, utxosSelectedValue])
 
   const outputAddresses = Array.from(transactions.values()).flatMap(
     (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
