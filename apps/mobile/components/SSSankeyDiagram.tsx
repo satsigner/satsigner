@@ -53,7 +53,7 @@ function SSSankeyDiagram({
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     minPanPointers: 1,
     maxScale: 10,
-    minScale: 0.5,
+    minScale: 0.2,
     shouldResetOnInteractionEnd: false,
     initialTranslation: {
       x: -980,
@@ -66,7 +66,7 @@ function SSSankeyDiagram({
     .nodePadding(120)
     .extent([
       [0, 160],
-      [2000 * 0.7, 1000 * (Math.max(inputCount * 2, 2.6) / 10)]
+      [2000 * 0.7, 1000 * (Math.max(inputCount * 2, 12) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 

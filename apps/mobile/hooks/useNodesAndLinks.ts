@@ -322,13 +322,7 @@ export const useNodesAndLinks = ({
     if (allNodes?.length === 0) return []
 
     return generateSankeyLinks(confirmedNodes)
-  }, [
-    allNodes?.length,
-    confirmedNodes,
-    ingoingNodes,
-    inputs,
-    transactions.size
-  ])
+  }, [allNodes?.length, confirmedNodes, ingoingNodes, inputs, maxExistingDepth])
 
   console.log({ node: allNodes, link: links })
 
