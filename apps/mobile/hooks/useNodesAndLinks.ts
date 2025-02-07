@@ -13,6 +13,8 @@ interface Node {
   value?: number
   txId?: string
   nextTx?: string
+  indexH?: number
+  prevout?: any
 }
 
 interface Transaction {
@@ -24,10 +26,12 @@ interface Transaction {
       scriptpubkey_address: string
       value: number
     }
+    indexH?: number
   }[]
   vout?: {
     scriptpubkey_address: string
     value: number
+    indexH?: number
   }[]
   depthH: number
 }
@@ -37,33 +41,26 @@ interface UseNodesAndLinksProps {
   inputs: Map<string, { value: number }>
   outputs: any[]
   utxosSelectedValue: number
-  deepLevel: number
 }
 
 export const useNodesAndLinks = ({
   transactions,
   inputs,
   outputs,
-  utxosSelectedValue,
-  deepLevel
+  utxosSelectedValue
 }: UseNodesAndLinksProps) => {
+  const maxExistingDepth =
+    transactions.size > 0
+      ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
+      : 0
   const ingoingNodes = useMemo(() => {
     if (inputs.size > 0) {
+      const blockDepth = maxExistingDepth + 2
+
       const { size, vsize } = estimateTransactionSize(
         inputs.size,
         outputs.length + 2
       )
-
-      const blockDepth = transactions.size * 2 + 1
-      const blockNode = [
-        {
-          id: `block-${blockDepth}-0`,
-          type: 'block',
-          depthH: blockDepth,
-          value: 0,
-          textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
-        }
-      ]
 
       const miningFee = `${MINING_FEE_VALUE}`
       const priority = '42 sats/vB'
@@ -87,11 +84,20 @@ export const useNodesAndLinks = ({
           value: MINING_FEE_VALUE
         }
       ]
-      return [...blockNode, ...outputNodes]
+      return [
+        {
+          id: `block-${blockDepth}-0`,
+          type: 'block',
+          depthH: blockDepth,
+          value: 0,
+          textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`]
+        },
+        ...outputNodes
+      ]
     } else {
       return []
     }
-  }, [inputs.size, outputs.length, transactions.size, utxosSelectedValue])
+  }, [inputs.size, outputs.length, transactions, utxosSelectedValue])
 
   const outputAddresses = Array.from(transactions.values()).flatMap(
     (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
@@ -115,48 +121,56 @@ export const useNodesAndLinks = ({
 
   const confirmedNodes: Node[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
+      const depthIndices = new Map<number, number>()
+      const blockDepthIndices = new Map<number, number>()
       const previousNodes = Array.from(transactions.entries()).flatMap(
         ([, tx], index) => {
           if (!tx.vin || !tx.vout) return []
           console.log('tx index->', index)
-          let inputCounter = 0
-          let outputCounter = 0
-          const allInputNodes = tx.vin
-            .map((input, idx) => {
-              const depthH = tx.depthH - 1
-              console.log('inputCounter->', inputCounter)
-              const node = {
-                // id: `vin-${depth}-${inputCounter}`,
-                id: `vin-${depthH}-${index + idx}`,
-                type: 'text',
-                depthH,
-                textInfo: [
-                  `${input.prevout.value}`,
-                  `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-                  ''
-                ],
-                value: input.prevout.value,
-                txId: tx.txid,
-                prevout: input.prevout
-              }
-              inputCounter++
-              return node
-            })
-            .filter((input) => {
-              return !(
-                outputAddresses.includes(input.prevout.scriptpubkey_address) &&
-                outputValues.includes(input.prevout.value)
-              )
-            })
+
+          const allInputNodes = tx.vin.reduce((nodes, input) => {
+            // Only process inputs that pass the filter condition
+            if (
+              outputAddresses.includes(input.prevout.scriptpubkey_address) &&
+              outputValues.includes(input.prevout.value)
+            ) {
+              return nodes
+            }
+
+            const depthH = tx.depthH - 1
+            // Get current index for this depth and increment it
+            const currentIndex = depthIndices.get(depthH) || 0
+            depthIndices.set(depthH, currentIndex + 1)
+
+            const node = {
+              id: `vin-${depthH}-${currentIndex}`,
+              type: 'text',
+              depthH,
+              textInfo: [
+                `${input.prevout.value}`,
+                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+                ''
+              ],
+              value: input.prevout.value,
+              txId: tx.txid,
+              prevout: input.prevout,
+              indexH: input.indexH
+            }
+
+            nodes.push(node)
+            return nodes
+          }, [] as any[])
 
           console.log(`allinputNodes${index}`, allInputNodes)
 
           const vsize = Math.ceil(tx.weight * 0.25)
           const blockDepth = tx.depthH
+          const blockIndex = blockDepthIndices.get(blockDepth) || 0
+          blockDepthIndices.set(blockDepth, blockIndex + 1)
 
           const blockNode = [
             {
-              id: `block-${blockDepth}`,
+              id: `block-${blockDepth}-${blockIndex}`,
               type: 'block',
               depthH: blockDepth,
               textInfo: ['', '', `${tx.size} B`, `${vsize} vB`],
@@ -168,7 +182,7 @@ export const useNodesAndLinks = ({
             const outputDepth = tx.depthH + 1
 
             const node = {
-              id: `vout-${outputDepth}-${outputCounter}`,
+              id: `vout-${outputDepth}-${output.indexH}`,
               type: 'text',
               depthH: outputDepth,
               textInfo: [
@@ -181,9 +195,9 @@ export const useNodesAndLinks = ({
               nextTx:
                 incomingAndOutgoingVinTxId.find(
                   ({ prevValue }) => prevValue === output.value
-                )?.txid ?? ''
+                )?.txid ?? '',
+              indexH: output.indexH
             }
-            outputCounter++
             return node
           })
 
@@ -193,20 +207,7 @@ export const useNodesAndLinks = ({
         }
       )
 
-      const depthIndices: { [key: number]: number } = {}
-      return previousNodes.map(({ id, depthH, ...rest }) => {
-        if (!(depthH in depthIndices)) {
-          depthIndices[depthH] = 0
-        }
-
-        return {
-          id: id.startsWith('block')
-            ? `${id}-${depthIndices[depthH]++}`
-            : `${id}`,
-          depthH,
-          ...rest
-        }
-      })
+      return previousNodes
     }
     return []
   }, [
@@ -235,7 +236,9 @@ export const useNodesAndLinks = ({
       })
 
       nodes.forEach((node: Node) => {
+        const maxDepthForVout = maxExistingDepth + 1
         if (node.type === 'text' && node.depthH === 0) {
+          // vin node in the first depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
             (n: Node) => n.type === 'block' && n.txId === node.txId
@@ -248,6 +251,7 @@ export const useNodesAndLinks = ({
             })
           }
         } else if (node.type === 'block') {
+          // block node
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const vouts = nextDepthNodes.filter(
             (n: Node) => n.type === 'text' && n.txId === node.txId
@@ -256,6 +260,7 @@ export const useNodesAndLinks = ({
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
         } else if (node.type === 'text' && node.depthH > 0 && node.nextTx) {
+          // vout node that has connection to block
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
             (n: Node) => n.type === 'block' && n.txId === node.nextTx
@@ -269,11 +274,12 @@ export const useNodesAndLinks = ({
           }
         } else if (
           node.type === 'text' &&
-          node.depthH === transactions.size * 2 &&
+          node.depthH === maxDepthForVout &&
           Array.from(inputs.values())
             .map((input) => input.value)
             .includes(node?.value ?? 0)
         ) {
+          // vout node that has input selected by users
           const targetBlock = ingoingNodes[0].id
           if (targetBlock) {
             links.push({
@@ -282,6 +288,22 @@ export const useNodesAndLinks = ({
               value: node.value
             })
           }
+        } else if (
+          node.type === 'text' &&
+          node.depthH !== 0 &&
+          node.id.includes('vin')
+        ) {
+          console.log('ViN', node)
+
+          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
+          const targetBlock = nextDepthNodes.find(
+            (n: Node) => n.type === 'block' && n.txId === node.txId
+          )
+          links.push({
+            source: node.id,
+            target: targetBlock,
+            value: node.value
+          })
         }
       })
       links.push({
@@ -300,7 +322,13 @@ export const useNodesAndLinks = ({
     if (allNodes?.length === 0) return []
 
     return generateSankeyLinks(confirmedNodes)
-  }, [allNodes?.length, confirmedNodes, deepLevel, ingoingNodes, inputs])
+  }, [
+    allNodes?.length,
+    confirmedNodes,
+    ingoingNodes,
+    inputs,
+    transactions.size
+  ])
 
   console.log({ node: allNodes, link: links })
 

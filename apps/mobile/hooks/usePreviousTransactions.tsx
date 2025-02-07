@@ -11,6 +11,12 @@ const SIGNET_URL = 'https://mempool.space/signet/api'
 const TESTNET_URL = 'https://mempool.space/testnet/api'
 const BITCOIN_URL = 'https://mempool.space/api'
 
+type ExtendedEsploraTx = EsploraTx & {
+  depthH: number
+  vin?: (EsploraTx['vin'][0] & { indexH?: number })[]
+  vout?: (EsploraTx['vout'][0] & { indexH?: number })[]
+}
+
 export function usePreviousTransactions(
   inputs: Map<string, Utxo>,
   levelDeep: number = 2,
@@ -28,7 +34,7 @@ export function usePreviousTransactions(
   )
 
   const [transactions, setTransactions] = useState<
-    Map<string, EsploraTx & { depthH: number }>
+    Map<string, ExtendedEsploraTx>
   >(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -39,6 +45,54 @@ export function usePreviousTransactions(
     // For two transactions, use depths of 3 and 1
     // For three or more, spread them out with max depth of 5
     return Math.min((txCount - 1) * 2 + 1, 5)
+  }
+
+  const assignIndexH = (transactions: Map<string, ExtendedEsploraTx>) => {
+    // Group vins and vouts by depthH
+    const vinsByDepth = new Map<number, { txid: string; index: number }[]>()
+    const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
+
+    // First pass: group by depthH
+    for (const [txid, tx] of transactions.entries()) {
+      tx.vin?.forEach((_, index) => {
+        if (!vinsByDepth.has(tx.depthH)) {
+          vinsByDepth.set(tx.depthH, [])
+        }
+        vinsByDepth.get(tx.depthH)?.push({ txid, index })
+      })
+
+      tx.vout?.forEach((_, index) => {
+        if (!voutsByDepth.has(tx.depthH)) {
+          voutsByDepth.set(tx.depthH, [])
+        }
+        voutsByDepth.get(tx.depthH)?.push({ txid, index })
+      })
+    }
+
+    // Second pass: assign indexH
+    for (const [depthH, vins] of vinsByDepth.entries()) {
+      let currentIndex = 0
+      vins.forEach(({ txid, index }) => {
+        const tx = transactions.get(txid)
+        if (tx?.vin?.[index]) {
+          tx.vin[index] = { ...tx.vin[index], indexH: currentIndex }
+          currentIndex++
+        }
+      })
+    }
+
+    for (const [depthH, vouts] of voutsByDepth.entries()) {
+      let currentIndex = 0
+      vouts.forEach(({ txid, index }) => {
+        const tx = transactions.get(txid)
+        if (tx?.vout?.[index]) {
+          tx.vout[index] = { ...tx.vout[index], indexH: currentIndex }
+          currentIndex++
+        }
+      })
+    }
+
+    return transactions
   }
 
   const fetchInputTransactions = useCallback(async () => {
@@ -60,7 +114,7 @@ export function usePreviousTransactions(
       })()
     )
 
-    const newTransactions = new Map<string, EsploraTx & { depthH: number }>()
+    const newTransactions = new Map<string, ExtendedEsploraTx>()
 
     try {
       const queue = Array.from(inputs.values()).map((input) => ({
@@ -178,10 +232,7 @@ export function usePreviousTransactions(
       }
 
       // Filter transactions based on input/output address matching
-      const filteredTransactions = new Map<
-        string,
-        EsploraTx & { depthH: number }
-      >()
+      const filteredTransactions = new Map<string, ExtendedEsploraTx>()
 
       // First, collect all valid transactions
       for (const [txid, tx] of newTransactions.entries()) {
@@ -213,10 +264,15 @@ export function usePreviousTransactions(
         }
       }
 
+      // Assign indexH to vins and vouts
+      const transactionsWithIndexH = assignIndexH(filteredTransactions)
+
       // Cache the filtered transactions
-      if (filteredTransactions.size > 0) {
-        addTransactions(filteredTransactions)
-        setTransactions(new Map([...filteredTransactions.entries()].reverse()))
+      if (transactionsWithIndexH.size > 0) {
+        addTransactions(transactionsWithIndexH)
+        setTransactions(
+          new Map([...transactionsWithIndexH.entries()].reverse())
+        )
       }
     } catch (e) {
       const error = e as Error
