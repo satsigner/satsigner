@@ -27,7 +27,7 @@ const labels: Record<WatchOnlyOption, string> = {
 const title: Record<WatchOnlyOption, string> = {
   xpub: 'Extended Public Key',
   descriptor: 'Descriptor',
-  address: 'Address',
+  address: 'Address'
 }
 
 const text: Record<WatchOnlyOption, string> = {
@@ -56,73 +56,65 @@ export default function AccountOptions() {
         }}
       />
       <ScrollView>
-      <SSSelectModal
-        visible={modalOptionsVisible}
-        title="WATCH-ONLY WALLET"
-        selectedText={title[selectedOption]}
-        selectedDescription={
-          <SSCollapsible>
-            <SSText color="muted" size="md">
-              {text[selectedOption]}
-            </SSText>
-          </SSCollapsible>
-        }
-        onSelect={() => setModalOptionsVisible(false)}
-        onCancel={() => router.back()}
-      >
-        {watchOnlyOptions.map((type) => (
-          <SSRadioButton
-            key={type}
-            label={labels[type]}
-            selected={selectedOption === type}
-            onPress={() => setSelectedOption(type)}
-          />
-        ))}
-      </SSSelectModal>
-      {!modalOptionsVisible && (
-        <SSVStack
-          justifyBetween
-          gap="lg"
-          style={{ paddingBottom: 20 }}
+        <SSSelectModal
+          visible={modalOptionsVisible}
+          title="WATCH-ONLY WALLET"
+          selectedText={title[selectedOption]}
+          selectedDescription={
+            <SSCollapsible>
+              <SSText color="muted" size="md">
+                {text[selectedOption]}
+              </SSText>
+            </SSCollapsible>
+          }
+          onSelect={() => setModalOptionsVisible(false)}
+          onCancel={() => router.back()}
         >
-          <SSVStack gap="lg">
-            <SSVStack gap="xs">
-              <SSText center>{labels[selectedOption]}</SSText>
-              <SSTextInput
-                value={input}
-                placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                onChangeText={(text) => setInput(text)}
-              />
-            </SSVStack>
-            {selectedOption ==='xpub' && (
+          {watchOnlyOptions.map((type) => (
+            <SSRadioButton
+              key={type}
+              label={labels[type]}
+              selected={selectedOption === type}
+              onPress={() => setSelectedOption(type)}
+            />
+          ))}
+        </SSSelectModal>
+        {!modalOptionsVisible && (
+          <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
+            <SSVStack gap="lg">
               <SSVStack gap="xs">
-                <SSText center>
-                  MASTER FINGERPRINT (optional)
-                </SSText>
-                <SSTextInput />
-                <SSText center>
-                  DERIVATION PATH (optional)
-                </SSText>
-                <SSTextInput />
+                <SSText center>{labels[selectedOption]}</SSText>
+                <SSTextInput
+                  value={input}
+                  placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                  onChangeText={(text) => setInput(text)}
+                />
               </SSVStack>
-            )}
-            <SSVStack>
-              <SSButton
-                label="PASTE FROM CLIPBOARD"
-                onPress={pasteFromClipboard}
-              />
-              <SSButton label="SCAN QRCODE" disabled />
-              <SSButton label="TAP NFC" disabled />
-              <SSButton label="COMPUTER VISION TEXT" disabled />
+              {selectedOption === 'xpub' && (
+                <SSVStack gap="xs">
+                  <SSText center>MASTER FINGERPRINT (optional)</SSText>
+                  <SSTextInput />
+                  <SSText center>DERIVATION PATH (optional)</SSText>
+                  <SSTextInput />
+                </SSVStack>
+              )}
+              <SSVStack>
+                <SSButton
+                  label="PASTE FROM CLIPBOARD"
+                  onPress={pasteFromClipboard}
+                />
+                <SSButton label="SCAN QRCODE" disabled />
+                <SSButton label="TAP NFC" disabled />
+                <SSButton label="COMPUTER VISION TEXT" disabled />
+              </SSVStack>
             </SSVStack>
+            <SSButton
+              label="CANCEL"
+              variant="secondary"
+              onPress={() => setModalOptionsVisible(true)}
+            />
           </SSVStack>
-          <SSButton
-            label="CANCEL"
-            variant='secondary'
-            onPress={() => setModalOptionsVisible(true)}
-          />
-        </SSVStack>
-      )}
+        )}
       </ScrollView>
     </SSMainLayout>
   )
