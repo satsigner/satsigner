@@ -22,18 +22,20 @@ export default function SSTxLabel() {
     state.setTxLabel
   ])
 
-  if (!tx || !accountId) return <Redirect href="/" />
-
   function updateLabel(label: string) {
     setTxLabel(accountId!, txid!, label)
     router.back()
   }
 
+  if (!tx || !accountId) return <Redirect href="/" />
+
   return (
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>{t('txDetails.labelEdit')}</SSText>
+          headerTitle: () => (
+            <SSText>{t('transaction.edit.label.transaction')}</SSText>
+          )
         }}
       />
       <SSVStack style={{ padding: 20 }}>

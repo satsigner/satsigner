@@ -57,9 +57,9 @@ export default function SSLabelDetails({
             ))}
           </SSHStack>
         )}
-        {!label && <SSText color="muted">{t('account.noLabel')}</SSText>}
+        {!label && <SSText color="muted">{t('transaction.noLabel')}</SSText>}
         {tags.length === 0 && (
-          <SSText color="muted">{t('account.noTags')}</SSText>
+          <SSText color="muted">{t('transaction.noTags')}</SSText>
         )}
       </SSVStack>
       <SSIconButton onPress={() => router.navigate(link)}>

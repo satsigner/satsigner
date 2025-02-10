@@ -87,7 +87,7 @@ export default function SSTagInput({
               ))}
             {text.length > 1 && !tags.includes(text) && (
               <SSButton
-                label={`${t('common.createTag')} "${text}"`}
+                label={t('common.createTag', { tag: text })}
                 style={styles['button']}
                 onPress={() => addTag(text)}
                 uppercase={false}

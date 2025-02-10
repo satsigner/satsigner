@@ -97,7 +97,7 @@ export default function TxDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>{t('txDetails.title')}</SSText>
+          headerTitle: () => <SSText>{t('transaction.details.title')}</SSText>
         }}
       />
       <SSVStack style={styles.container}>
@@ -106,32 +106,48 @@ export default function TxDetails() {
         <SSLabelDetails
           label={tx.label || ''}
           link={`/account/${accountId}/transaction/${txid}/label`}
-          header={t('label')}
+          header={t('transaction.label')}
         />
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
-          <SSTxDetailsBox header={t('block')} text={height} />
+          <SSTxDetailsBox header={t('transaction.block')} text={height} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={txid}>
-          <SSTxDetailsBox header={t('hash')} text={txid} />
+          <SSTxDetailsBox header={t('transaction.hash')} text={txid} />
         </SSClipboardCopy>
         <SSSeparator color="gradient" />
         <SSHStack>
-          <SSTxDetailsBox header={t('size')} text={size} width="33%" />
-          <SSTxDetailsBox header={t('weight')} text={weight} width="33%" />
-          <SSTxDetailsBox header={t('vsize')} text={vsize} width="33%" />
+          <SSTxDetailsBox
+            header={t('transaction.size')}
+            text={size}
+            width="33%"
+          />
+          <SSTxDetailsBox
+            header={t('transaction.weight')}
+            text={weight}
+            width="33%"
+          />
+          <SSTxDetailsBox
+            header={t('transaction.vsize')}
+            text={vsize}
+            width="33%"
+          />
         </SSHStack>
         <SSSeparator color="gradient" />
         <SSHStack>
-          <SSTxDetailsBox header={t('fee')} text={fee} width="33%" />
           <SSTxDetailsBox
-            header={t('feeBytes')}
+            header={t('transaction.fee')}
+            text={fee}
+            width="33%"
+          />
+          <SSTxDetailsBox
+            header={t('transaction.feeBytes')}
             text={feePerByte}
             width="33%"
           />
           <SSTxDetailsBox
-            header={t('feeVBytes')}
+            header={t('transaction.feeVBytes')}
             text={feePerVByte}
             width="33%"
           />
@@ -139,7 +155,7 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSVStack gap="sm">
           <SSText uppercase weight="bold" size="md">
-            {t('decoded')}
+            {t('transaction.decoded.title')}
           </SSText>
           {raw && <SSTransactionDecoded txHex={raw} />}
           {!raw && <SSText>{placeholder}</SSText>}
@@ -147,12 +163,18 @@ export default function TxDetails() {
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
           <SSText uppercase weight="bold" size="lg">
-            {t('details')}
+            {t('transaction.details.title')}
           </SSText>
         </SSVStack>
-        <SSTxDetailsBox header={t('version')} text={version} />
-        <SSTxDetailsBox header={t('inputsCount')} text={inputsCount} />
-        <SSTxDetailsBox header={t('outputsCount')} text={outputsCount} />
+        <SSTxDetailsBox header={t('transaction.version')} text={version} />
+        <SSTxDetailsBox
+          header={t('transaction.input.count')}
+          text={inputsCount}
+        />
+        <SSTxDetailsBox
+          header={t('transaction.output.count')}
+          text={outputsCount}
+        />
         <SSTxDetailsInputs tx={tx} />
         <SSTxDetailsOutputs tx={tx} accountId={accountId} />
       </SSVStack>
@@ -286,7 +308,12 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
         </SSText>
         <SSHStack gap="xs">
           <SSText color="muted">{t('common.from').toLowerCase()}</SSText>
-          <SSText>{inputsCount || '?'} inputs</SSText>
+          <SSText>
+            {inputsCount || '?'}{' '}
+            {inputsCount === 1
+              ? t('transaction.input.singular').toLowerCase()
+              : t('transaction.input.plural').toLowerCase()}
+          </SSText>
         </SSHStack>
       </SSHStack>
     </SSVStack>
@@ -304,24 +331,28 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
         <SSVStack key={index}>
           <SSSeparator color="gradient" />
           <SSText weight="bold" center>
-            {t('input')} {index}
+            {t('transaction.input.title')} {index}
           </SSText>
           <SSVStack gap="none">
-            <SSText weight="bold">{t('inputPrevTx')}</SSText>
+            <SSText weight="bold">
+              {t('transaction.input.previousOutput.transaction')}
+            </SSText>
             <SSClipboardCopy text={vin.previousOutput.txid}>
               <SSText color="muted">{vin.previousOutput.txid}</SSText>
             </SSClipboardCopy>
           </SSVStack>
           <SSVStack gap="none">
-            <SSText weight="bold">{t('inputPrevOut')}</SSText>
+            <SSText weight="bold">
+              {t('transaction.input.previousOutput.vout')}
+            </SSText>
             <SSText color="muted">{vin.previousOutput.vout}</SSText>
           </SSVStack>
           <SSVStack gap="none">
-            <SSText weight="bold">{t('inputSequence')}</SSText>
+            <SSText weight="bold">{t('transaction.input.sequence')}</SSText>
             <SSText color="muted">{vin.sequence}</SSText>
           </SSVStack>
           <SSVStack>
-            <SSText weight="bold">SigScript</SSText>
+            <SSText weight="bold">{t('transaction.input.scriptSig')}</SSText>
             <SSScriptDecoded script={vin.scriptSig || []} />
           </SSVStack>
         </SSVStack>
@@ -351,15 +382,20 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
             <SSVStack key={`${tx.id}:${index}`}>
               <SSSeparator color="gradient" />
               <SSText weight="bold" center>
-                {t('output')} {index}
+                {t('transaction.output.title')} {index}
               </SSText>
-              <SSTxDetailsBox header={t('common.value')} text={vout.value} />
               <SSTxDetailsBox
-                header={t('common.address')}
+                header={t('transaction.value')}
+                text={vout.value}
+              />
+              <SSTxDetailsBox
+                header={t('transaction.address')}
                 text={vout.address}
               />
               <SSVStack>
-                <SSText weight="bold">UNLOCKING SCRIPT</SSText>
+                <SSText weight="bold">
+                  {t('transaction.unlockingScript')}
+                </SSText>
                 <SSScriptDecoded script={vout.script || []} />
               </SSVStack>
             </SSVStack>

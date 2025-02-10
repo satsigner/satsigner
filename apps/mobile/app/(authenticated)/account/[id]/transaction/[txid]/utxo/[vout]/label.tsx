@@ -5,6 +5,7 @@ import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
@@ -31,17 +32,17 @@ export default function SSTxLabel() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>Edit UTXO Label</SSText>
+          headerTitle: () => <SSText>{t('transaction.edit.label.utxo')}</SSText>
         }}
       />
       <SSVStack style={{ padding: 20 }}>
         <SSVStack gap="none">
           <SSHStack style={{ alignItems: 'flex-start' }}>
-            <SSText>TXID</SSText>
+            <SSText uppercase>{t('transaction.txid')}</SSText>
             <SSText color="muted">{txid}</SSText>
           </SSHStack>
           <SSHStack>
-            <SSText>OUT</SSText>
+            <SSText uppercase>{t('transaction.vout')}</SSText>
             <SSText color="muted">{vout}</SSText>
           </SSHStack>
         </SSVStack>

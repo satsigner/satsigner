@@ -13,14 +13,6 @@ type SSTranssctionDecodedProps = {
   txHex: string
 }
 
-function replacePlaceholders(text: string, placeholders: (string | number)[]) {
-  let result = text
-  for (const item of placeholders) {
-    result = result.replace(/(%d|%s)/, '' + item)
-  }
-  return result
-}
-
 function byteChunks(hex: string) {
   const chunk = []
   for (let i = 0; i < hex.length; i += 2) {
@@ -79,22 +71,15 @@ export default function SSTransactionDecoded({
 }
 
 function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
-  let label = t(`txDecoded.label.${field}`)
-  let description = t(`txDecoded.description.${field}`)
-
-  label = replacePlaceholders(label, placeholders?.label || [])
-  description = replacePlaceholders(
-    description,
-    placeholders?.description || []
-  )
-
   return (
     <SSVStack gap="xs">
       <SSText color="muted" type="mono">
-        {label}
+        {t(`transaction.decoded.label.${field}`)}
       </SSText>
       <SSText type="mono">{value}</SSText>
-      <SSText color="muted">{description}</SSText>
+      <SSText color="muted">
+        {t(`transaction.decoded.description.${field}`)}
+      </SSText>
     </SSVStack>
   )
 }
