@@ -1,6 +1,9 @@
 import {
+  Group,
   Paragraph,
+  Rect,
   Skia,
+  SkTypefaceFontProvider,
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
@@ -10,19 +13,21 @@ import { i18n } from '@/locales'
 import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
 
-interface ISSankeyNode {
-  width: number
-  x: number
-  y: number
-  textInfo: string[]
+import { Node } from './SSSankeyDiagram'
+
+interface ISSankeyNodes {
+  nodes: any[]
+  sankeyGenerator: any
 }
 
 const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
+const BLOCK_WIDTH = 50
+const VERTICAL_OFFSET_NODE = 22
 
-export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
+export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
@@ -31,7 +36,78 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
     ]
   })
 
+  const renderNode = (node: Node, index: number) => {
+    const dataNode = node as {
+      type: string
+      textInfo: string[]
+      x0?: number
+      y0?: number
+    }
+
+    const blockNode = () => {
+      if (dataNode.type === 'block') {
+        const sizeStr = dataNode.textInfo[2]
+        const size = parseInt(sizeStr.split(' ')[0], 10)
+        const height = Math.min(100, Math.max(40, (size / 2000) * 100))
+
+        return (
+          <Group>
+            <Rect
+              x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
+              y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
+              width={BLOCK_WIDTH}
+              height={height}
+              color="#FFFFFF"
+            />
+          </Group>
+        )
+      }
+      return null
+    }
+
+    return (
+      <Group key={index}>
+        <NodeText
+          width={sankeyGenerator.nodeWidth()}
+          x={node.x0 ?? 0}
+          y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
+          textInfo={dataNode.textInfo}
+          customFontManager={customFontManager}
+        />
+        {blockNode()}
+      </Group>
+    )
+  }
+
+  if (!customFontManager) return null
+
+  return <>{nodes.map(renderNode)}</>
+}
+
+function NodeText({
+  width,
+  x,
+  y,
+  textInfo,
+  customFontManager
+}: {
+  width: number
+  x: number
+  y: number
+  textInfo: string[]
+  customFontManager: SkTypefaceFontProvider | null
+}) {
   const isBlock = textInfo[0] === '' && textInfo[1] === ''
+
+  // Calculate dynamic height for block nodes
+  const getBlockHeight = () => {
+    if (isBlock && textInfo[2]) {
+      const sizeStr = textInfo[2]
+      const size = parseInt(sizeStr.split(' ')[0], 10)
+      return Math.min(100, Math.max(40, (size / 2000) * 100))
+    }
+    return 0
+  }
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
@@ -133,7 +209,7 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
     <Paragraph
       width={isBlock ? width * 0.6 : width}
       x={isBlock ? x + width * 0.2 : x + PADDING_LEFT}
-      y={isBlock ? y + 110 : y}
+      y={isBlock ? y + getBlockHeight() + 10 : y}
       paragraph={mainParagraph}
     />
   )
