@@ -699,7 +699,7 @@ export default function AccountView() {
                   <SSIconCamera height={13} width={18} />
                 </SSActionButton>
                 <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/newInvoice`)}
+                  onPress={() => router.navigate(`/account/${id}/receive`)}
                   style={{
                     width: '40%',
                     borderLeftWidth: 1,

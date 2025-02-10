@@ -1,4 +1,4 @@
-import { I18n } from 'i18n-js'
+import { I18n, type TranslateOptions } from 'i18n-js'
 
 import en from './en.json'
 
@@ -37,6 +37,6 @@ i18n.defaultSeparator = '.'
 
 i18n.store({ en: generateJson(en) })
 
-const t = (key: string) => i18n.t(key)
+const t = (key: string, options?: TranslateOptions) => i18n.t(key, options)
 
 export { i18n, t }

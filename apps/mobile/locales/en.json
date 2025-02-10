@@ -1,10 +1,28 @@
 {
   "account": {
     "add": "Add Master Key",
+    "createdOn": "Created on",
+    "delete.masterKey": "Delete master key",
+    "duplicate.masterKey": "Duplicate master key",
+    "export.config": "Export config",
+    "export.labels": "Export labels",
+    "fingerprint": "Fingerprint",
+    "import.labels": "Import labels",
     "load.sample.signet": "Load sample signet wallet",
+    "name": "Account Name",
+    "network.description": "Use the %{network} network",
+    "network.title": "Network",
     "parentAccountActivity": "Parent Account Activity",
+    "policy.singleSignature": "Single Signature",
+    "policy.title": "Policy Type",
     "receive": "Receive",
-    "signAndSend": "Sign & Send"
+    "replace.key": "Replace key",
+    "script": "Script Version",
+    "seed.keepItSecret": "Keep it secret",
+    "seed.unableToDecrypt": "Unable to decrypt seed",
+    "settings.title": "Master Key Settings and Tools",
+    "signAndSend": "Sign & Send",
+    "viewSeed": "View seed"
   },
   "accounts": {
     "childAccounts": ["Child", "Accounts"],
@@ -14,7 +32,8 @@
     "totalTransactions": ["Total", "Transactions"]
   },
   "app": {
-    "name": "Satsigner"
+    "name": "Satsigner",
+    "notImplemented": "Not yet implemented"
   },
   "auth": {
     "confirmPin": "Confirm pin number",
@@ -33,15 +52,26 @@
     "confirmations.oneBlock": "Block deep",
     "confirmations.unconfirmed": "Unconfirmed",
     "memo": "Memo",
-    "sats": "Sats"
+    "network.mainnet": "Mainnet",
+    "network.signet": "Signet",
+    "network.testnet": "Testnet",
+    "sats": "Sats",
+    "words": "Words"
   },
-  "camera": {},
+  "camera": {
+    "enableCameraAccess": "Enable Camera Access",
+    "permissions": "Enable camera access in your phone's settings to scan a QR code.",
+    "scanQRCode": "Scan QRCode",
+    "scanText": "Scan any Bitcoin or Lightning related QR code."
+  },
   "common": {
     "acknowledge": "Acknowledge",
+    "areYouSure": "Are you sure?",
     "cancel": "Cancel",
     "clear": "Clear",
     "close": "Close",
     "confirm": "Confirm",
+    "copy": "Copy",
     "date": "Date",
     "deselectAll": "Deselect All",
     "from": "From",
@@ -50,8 +80,10 @@
     "less": "Less",
     "more": "More",
     "next": "Next",
+    "no": "No",
     "of": "Of",
     "optional": "Optional",
+    "paste": "Paste",
     "save": "Save",
     "select": "Select",
     "selectAll": "Select All",
@@ -60,7 +92,8 @@
     "valid": "Valid",
     "value": "Value",
     "version": "Version",
-    "warning": "Warning"
+    "warning": "Warning",
+    "yes": "Yes"
   },
   "opcode": {
     "DATA": "Data which can be hash, pubkey, address, signature, etc.",
@@ -168,32 +201,32 @@
     "OP_XOR": "Boolean exclusive or between each bit in the inputs. <em>disabled</em>."
   },
   "preview": {},
+  "receive": {
+    "address": "Address",
+    "customAmount": "Custom amount",
+    "generateAnother": "Generate another address",
+    "memo": "Memo",
+    "neverUsed": "Never used",
+    "path": "Path"
+  },
   "script": {
-    "p2pkh.description": [
-      "Legacy",
-      "which locks bitcoin to the hash of a public key."
-    ],
+    "p2pkh.description.1": "Legacy",
+    "p2pkh.description.2": "which locks bitcoin to the hash of a public key.",
     "p2pkh.link.name": "ScriptPubKey",
     "p2pkh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
     "p2pkh.name": "Legacy",
-    "p2sh-p2wpkh.description": [
-      "Nested Segwit",
-      "which locks bitcoin to a SegWit witness program wrapped inside a P2SH address. This allows SegWit compatibility with wallets or services that do not fully support SegWit."
-    ],
+    "p2sh-p2wpkh.description.1": "Nested Segwit",
+    "p2sh-p2wpkh.description.2": "which locks bitcoin to a SegWit witness program wrapped inside a P2SH address. This allows SegWit compatibility with wallets or services that do not fully support SegWit.",
     "p2sh-p2wpkh.link.name": "ScriptPubKey",
     "p2sh-p2wpkh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
     "p2sh-p2wpkh.name": "Nested Segwit",
-    "p2tr.description": [
-      "Taproot",
-      "which locks bitcoin to a Schnorr public key or a Merkle root of multiple conditions. It enhances privacy and efficiency by combining spending conditions into a single structure."
-    ],
+    "p2tr.description.1": "Taproot",
+    "p2tr.description.2": "which locks bitcoin to a Schnorr public key or a Merkle root of multiple conditions. It enhances privacy and efficiency by combining spending conditions into a single structure.",
     "p2tr.link.name": "ScriptPubKey",
     "p2tr.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
     "p2tr.name": "Taproot",
-    "p2wpkh.description": [
-      "Native Segwit",
-      "which locks bitcoin to a SegWit witness program. It offers reduced transaction fees and improved malleability resistance."
-    ],
+    "p2wpkh.description.1": "Native Segwit",
+    "p2wpkh.description.2": "which locks bitcoin to a SegWit witness program. It offers reduced transaction fees and improved malleability resistance.",
     "p2wpkh.link.name": "ScriptPubKey",
     "p2wpkh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
     "p2wpkh.name": "Native Segwit"

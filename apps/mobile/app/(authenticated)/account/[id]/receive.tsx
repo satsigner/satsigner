@@ -16,7 +16,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
-export default function NewInvoice() {
+export default function Receive() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -62,23 +62,23 @@ export default function NewInvoice() {
         <SSVStack itemsCenter gap="xs">
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
-              {t('newInvoice.invoice')} #
+              {t('receive.address')} #
             </SSText>
             <SSText size="3xl">{addressNumber}</SSText>
           </SSVStack>
           <SSVStack gap="none" itemsCenter>
             <SSHStack gap="sm">
               <SSText color="muted" uppercase>
-                {t('newInvoice.path')}
+                {t('receive.path')}
               </SSText>
               <SSText>{addressPath}</SSText>
             </SSHStack>
-            <SSText>🟢 Never used</SSText>
+            <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
           {addressQR && <SSQRCode value={addressQR} />}
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
-              {t('newInvoice.address')}
+              {t('receive.address')}
             </SSText>
             <SSClipboardCopy text={address} withPopup={false}>
               <SSText size="sm">{address}</SSText>
@@ -86,20 +86,20 @@ export default function NewInvoice() {
           </SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('newInvoice.customAmount')} />
+              <SSFormLayout.Label label={t('receive.customAmount')} />
               <SSTextInput
                 keyboardType="numeric"
-                placeholder="not yet implemented"
+                placeholder={t('app.notImplemented')}
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('newInvoice.memo')} />
-              <SSTextInput placeholder="not yet implemented" />
+              <SSFormLayout.Label label={t('receive.memo')} />
+              <SSTextInput placeholder={t('app.notImplemented')} />
             </SSFormLayout.Item>
           </SSFormLayout>
           <SSVStack widthFull>
             <SSButton
-              label={t('newInvoice.generateAnotherInvoice')}
+              label={t('receive.generateAnother')}
               variant="secondary"
               disabled
             />

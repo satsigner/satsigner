@@ -97,17 +97,17 @@ export default function AccountSettings() {
       />
       <SSVStack gap="lg" style={{ padding: 20 }}>
         <SSText center uppercase color="muted">
-          Master Key Settings and Tools
+          {t('account.settings.title')}
         </SSText>
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
-            <SSText color="muted">Fingerprint</SSText>
+            <SSText color="muted">{t('account.fingerprint')}</SSText>
             <SSText style={{ color: Colors.success }}>
               {account?.fingerprint}
             </SSText>
           </SSHStack>
           <SSHStack gap="sm">
-            <SSText color="muted">Created on</SSText>
+            <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
               <SSText>{formatDate(account.createdAt)}</SSText>
             )}
@@ -117,14 +117,14 @@ export default function AccountSettings() {
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
-              label="VIEW SEED"
+              label={t('account.viewSeed')}
               onPress={() => setSeedModalVisible(true)}
             />
           </SSHStack>
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
-              label="EXPORT LABELS"
+              label={t('account.export.labels')}
               variant="gradient"
               onPress={() =>
                 router.navigate(
@@ -134,7 +134,7 @@ export default function AccountSettings() {
             />
             <SSButton
               style={{ flex: 1 }}
-              label="IMPORT LABELS"
+              label={t('account.import.labels')}
               variant="gradient"
               onPress={() =>
                 router.navigate(
@@ -146,12 +146,12 @@ export default function AccountSettings() {
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
-              label="REPLACE KEY"
+              label={t('account.replace.key')}
               variant="gradient"
             />
             <SSButton
               style={{ flex: 1 }}
-              label="EXPORT CONFIG"
+              label={t('account.export.config')}
               variant="gradient"
               onPress={() =>
                 router.navigate(
@@ -163,11 +163,11 @@ export default function AccountSettings() {
         </SSVStack>
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label label="Account Name" />
+            <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput value={accountName} onChangeText={setAccountName} />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
-            <SSFormLayout.Label label="Network" />
+            <SSFormLayout.Label label={t('account.network.title')} />
             <SSButton
               label={network}
               withSelect
@@ -175,20 +175,11 @@ export default function AccountSettings() {
             />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('addMasterKey.accountOptions.policyType')}
-            />
-            <SSButton
-              label={t(
-                'addMasterKey.accountOptions.policyTypes.singleSignature'
-              )}
-              withSelect
-            />
+            <SSFormLayout.Label label={t('account.policy.title')} />
+            <SSButton label={t('account.policy.singleSignature')} withSelect />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('addMasterKey.accountOptions.scriptVersion')}
-            />
+            <SSFormLayout.Label label={t('account.script')} />
             <SSButton
               label={getScriptVersionButtonLabel()}
               withSelect
@@ -197,41 +188,37 @@ export default function AccountSettings() {
           </SSFormLayout.Item>
         </SSFormLayout>
         <SSVStack style={{ marginTop: 60 }}>
-          <SSButton label="DUPLICATE MASTER KEY" />
+          <SSButton label={t('account.duplicate.masterKey')} />
           <SSButton
-            label="DELETE MASTER KEY"
+            label={t('account.delete.masterKey')}
             style={{
               backgroundColor: Colors.error
             }}
             onPress={() => setDeleteModalVisible(true)}
           />
-          <SSButton label="SAVE" variant="secondary" onPress={saveChanges} />
+          <SSButton
+            label={t('common.save')}
+            variant="secondary"
+            onPress={saveChanges}
+          />
         </SSVStack>
       </SSVStack>
       <SSSelectModal
         visible={scriptVersionModalVisible}
-        title={t('addMasterKey.accountOptions.scriptVersion')}
+        title={t('account.script')}
         selectedText={`${scriptVersion} - ${t(
-          `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
+          `script.${scriptVersion?.toLowerCase()}.name`
         )}`}
         selectedDescription={
           <SSCollapsible>
             <SSText color="muted" size="md">
-              {t(
-                `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
-              )}
+              {t(`script.${scriptVersion?.toLowerCase()}.description.1`)}
               <SSLink
                 size="md"
-                text={t(
-                  `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
-                )}
-                url={t(
-                  `addMasterKey.accountOptions.scriptVersions.links.url.${scriptVersion?.toLowerCase()}`
-                )}
+                text={t(`script.${scriptVersion?.toLowerCase()}.link.name`)}
+                url={t(`script.${scriptVersion?.toLowerCase()}.link.url`)}
               />
-              {t(
-                `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.1`
-              )}
+              {t(`script.${scriptVersion?.toLowerCase()}.description.2`)}
             </SSText>
             <SSIconScriptsP2pkh height={80} width="100%" />
           </SSCollapsible>
@@ -240,58 +227,50 @@ export default function AccountSettings() {
         onCancel={() => setScriptVersionModalVisible(false)}
       >
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
-          )} (P2PKH)`}
+          label={`${t('script.p2pkh.name')} (P2PKH)`}
           selected={scriptVersion === 'P2PKH'}
           onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')}
         />
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
-          )} (P2SH-P2WPKH)`}
+          label={`${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`}
           selected={scriptVersion === 'P2SH-P2WPKH'}
           onPress={() =>
             setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
           }
         />
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
-          )} (P2WPKH)`}
+          label={`${t('script.p2wpkh.name')} (P2WPKH)`}
           selected={scriptVersion === 'P2WPKH'}
           onPress={() =>
             setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
           }
         />
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2tr'
-          )} (P2TR)`}
+          label={`${t('script.p2tr.name')} (P2TR)`}
           selected={scriptVersion === 'P2TR'}
           onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2TR')}
         />
       </SSSelectModal>
       <SSSelectModal
         visible={networkModalVisible}
-        title="Network"
+        title={t('account.network.title')}
         selectedText={network.toUpperCase()}
-        selectedDescription={`Use the ${network} network.`}
+        selectedDescription={t('account.network.description', { network })}
         onSelect={() => setNetworkModalVisible(false)}
         onCancel={() => setNetworkModalVisible(false)}
       >
         <SSRadioButton
-          label="MainNet"
+          label={t('bitcoin.network.mainnet')}
           selected={network === 'bitcoin'}
           onPress={() => setNetwork('bitcoin')}
         />
         <SSRadioButton
-          label="SigNet"
+          label={t('bitcoin.network.signet')}
           selected={network === 'signet'}
           onPress={() => setNetwork('signet')}
         />
         <SSRadioButton
-          label="Testnet"
+          label={t('bitcoin.network.testnet')}
           selected={network === 'testnet'}
           onPress={() => setNetwork('testnet')}
         />
@@ -310,11 +289,11 @@ export default function AccountSettings() {
           }}
         >
           <SSText size="xl" weight="bold">
-            Are you sure?
+            {t('common.areYouSure')}
           </SSText>
           <SSHStack style={{ flexWrap: 'wrap' }}>
             <SSButton
-              label="YES"
+              label={t('common.yes')}
               style={{
                 backgroundColor: Colors.error
               }}
@@ -323,7 +302,7 @@ export default function AccountSettings() {
               }}
             />
             <SSButton
-              label="NO"
+              label={t('common.no')}
               onPress={() => {
                 setDeleteModalVisible(false)
               }}
@@ -338,7 +317,7 @@ export default function AccountSettings() {
         {seed && (
           <SSVStack gap="lg">
             <SSText center size="xl" weight="bold" uppercase>
-              {account.seedWordCount} words
+              {account.seedWordCount} {t('bitcoin.words')}
             </SSText>
             <SSHStack style={{ justifyContent: 'center' }}>
               <SSIconWarning
@@ -348,7 +327,7 @@ export default function AccountSettings() {
                 stroke="yellow"
               />
               <SSText uppercase weight="bold" size="lg">
-                Keep it secret
+                {t('account.seed.keepItSecret')}
               </SSText>
               <SSIconWarning
                 width={32}
@@ -370,11 +349,11 @@ export default function AccountSettings() {
               ))}
             </SSHStack>
             <SSTextClipboard text={seed.replaceAll(',', ' ')}>
-              <SSButton label="Copy" />
+              <SSButton label={t('common.copy')} />
             </SSTextClipboard>
           </SSVStack>
         )}
-        {!seed && <SSText>Unable to decrypt seed</SSText>}
+        {!seed && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
     </ScrollView>
   )

@@ -68,7 +68,9 @@ export default function Camera() {
     <View style={StyleSheet.absoluteFillObject}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>Scan QRCode</SSText>,
+          headerTitle: () => (
+            <SSText uppercase>{t('camera.scanQRCode')}</SSText>
+          ),
           headerBackground: () => (
             <LinearGradient
               style={{
@@ -113,7 +115,7 @@ export default function Camera() {
                   {t('camera.permissions')}
                 </SSText>
                 <SSButton
-                  label="Enable Camera Access"
+                  label={t('camera.enableCameraAccess')}
                   onPress={requestPermission}
                 />
               </>
@@ -121,7 +123,7 @@ export default function Camera() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label="Paste"
+            label={t('common.paste')}
             disabled={!hasToPaste}
             onPress={handlePaste}
           />
