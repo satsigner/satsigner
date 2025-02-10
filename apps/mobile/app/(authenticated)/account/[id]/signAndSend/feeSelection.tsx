@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
-import { Path, Svg } from 'react-native-svg'
 
 import { MempoolOracle } from '@/api/blockchain'
 import SSButton from '@/components/SSButton'
@@ -65,7 +64,6 @@ export default function FeeSelection() {
     }).start()
   }
 
-  const vByteLabels = ['18', '15', '12', '9', '6', '3', '0']
   const timePeriod = [
     { value: '2h', label: '2 HOURS' },
     { value: '24h', label: '24 HOURS' },
@@ -113,55 +111,8 @@ export default function FeeSelection() {
                     ? 'day'
                     : '2hours'
               }
+              boxPosition={boxPosition}
             />
-            <View style={arrowStyles.container}>
-              <Animated.View
-                style={[
-                  arrowStyles.arrow,
-                  {
-                    transform: [
-                      {
-                        translateY: boxPosition.interpolate({
-                          inputRange: [1, 100],
-                          outputRange: [0, -210],
-                          extrapolate: 'clamp'
-                        })
-                      }
-                    ]
-                  }
-                ]}
-              >
-                <Svg
-                  style={arrowStyles.arrow}
-                  width="20"
-                  height="20"
-                  viewBox="0 0 15 15"
-                  fill="none"
-                >
-                  <Path
-                    d="M-4.64163e-07 5.40065L5.9162 10.8013L11 11L11 9.53674e-07L5.9162 2.62584e-05L-4.64163e-07 5.40065Z"
-                    fill="white"
-                  />
-                </Svg>
-              </Animated.View>
-              <View>
-                {vByteLabels.map((label, index) => (
-                  <SSText
-                    style={{
-                      marginTop: 8
-                    }}
-                    size="xs"
-                    color="white"
-                    key={index}
-                  >
-                    {label}{' '}
-                    <SSText size="xs" color="muted">
-                      MvB
-                    </SSText>
-                  </SSText>
-                ))}
-              </View>
-            </View>
           </View>
           <SSVStack
             style={{
@@ -289,33 +240,5 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: '100%'
-  }
-})
-
-const arrowStyles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
-    paddingLeft: 18,
-    height: 250,
-    width: 55,
-    alignSelf: 'flex-end'
-  },
-  arrowContainer: {
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  arrow: {
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  label: {
-    color: '#6d6d68',
-    marginTop: 6
-  },
-  highlightLabel: {
-    color: 'white',
-    fontWeight: 'bold'
   }
 })

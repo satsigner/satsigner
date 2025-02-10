@@ -5,19 +5,24 @@ import {
   vec
 } from '@shopify/react-native-skia'
 import React, { useMemo } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Animated, StyleSheet, Text, View } from 'react-native'
+import { Path, Svg } from 'react-native-svg'
 import { CartesianChart, StackedArea } from 'victory-native'
 
 import type { MempoolStatistics } from '@/types/models/Blockchain'
+
+import SSText from './SSText'
 const inter = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 interface SSFeeRateChartProps {
   mempoolStatistics: MempoolStatistics[] | undefined
   timeRange: 'week' | 'day' | '2hours'
+  boxPosition?: Animated.Value
 }
-
+const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
 export default function SSFeeRateChart({
   mempoolStatistics,
-  timeRange
+  timeRange,
+  boxPosition = new Animated.Value(0)
 }: SSFeeRateChartProps) {
   const font = useFont(inter, 12)
   const [, setW] = React.useState(0)
@@ -154,6 +159,54 @@ export default function SSFeeRateChart({
           />
         )}
       </CartesianChart>
+      <View style={styles.arrowContainer}>
+        <Animated.View
+          style={[
+            styles.arrow,
+            {
+              transform: [
+                {
+                  translateY: boxPosition.interpolate({
+                    inputRange: [1, 100],
+                    outputRange: [0, -150],
+                    extrapolate: 'clamp'
+                  })
+                }
+              ]
+            }
+          ]}
+        >
+          <Svg
+            style={styles.arrow}
+            width="20"
+            height="20"
+            viewBox="0 0 15 15"
+            fill="none"
+          >
+            <Path
+              d="M-4.64163e-07 5.40065L5.9162 10.8013L11 11L11 9.53674e-07L5.9162 2.62584e-05L-4.64163e-07 5.40065Z"
+              fill="white"
+            />
+          </Svg>
+        </Animated.View>
+        <View>
+          {mVBLabels.map((label, index) => (
+            <SSText
+              style={{
+                marginTop: 8
+              }}
+              size="xs"
+              color="white"
+              key={index}
+            >
+              {label}{' '}
+              <SSText size="xs" color="muted">
+                MvB
+              </SSText>
+            </SSText>
+          ))}
+        </View>
+      </View>
     </View>
   )
 }
@@ -161,6 +214,19 @@ export default function SSFeeRateChart({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: 'row',
     height: 300
+  },
+  arrowContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    height: 250,
+    width: 55,
+    alignSelf: 'flex-end'
+  },
+  arrow: {
+    justifyContent: 'center',
+    alignItems: 'center'
   }
 })
