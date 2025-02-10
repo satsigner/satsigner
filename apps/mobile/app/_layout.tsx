@@ -1,5 +1,3 @@
-import '../../shim'
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
