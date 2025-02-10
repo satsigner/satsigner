@@ -65,7 +65,7 @@ export default function FeeSelection() {
     }).start()
   }
 
-  const vByteLabels = ['20', '15', '12', '11', '9', '8', '5', '3', '2', '1']
+  const vByteLabels = ['18', '15', '12', '9', '6', '3', '0']
   const timePeriod = [
     { value: '2h', label: '2 HOURS' },
     { value: '24h', label: '24 HOURS' },
@@ -104,7 +104,16 @@ export default function FeeSelection() {
             </SSHStack>
           </SSVStack>
           <View style={styles.outerContainer}>
-            <SSFeeRateChart mempoolStatistics={mempoolStatistics} />
+            <SSFeeRateChart
+              mempoolStatistics={mempoolStatistics}
+              timeRange={
+                selectedPeriod === '1w'
+                  ? 'week'
+                  : selectedPeriod === '24h'
+                    ? 'day'
+                    : '2hours'
+              }
+            />
             <View style={arrowStyles.container}>
               <Animated.View
                 style={[
@@ -215,7 +224,7 @@ export default function FeeSelection() {
             </SSVStack>
             <SSButton
               variant="secondary"
-              label={i18n.t('feeSelection.previewTxMessage')}
+              label="Set Fee"
               onPress={() => handleOnPressPreviewTxMessage()}
             />
           </SSVStack>

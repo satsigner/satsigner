@@ -1,49 +1,78 @@
-import { DashPathEffect, LinearGradient, vec } from '@shopify/react-native-skia'
+import {
+  DashPathEffect,
+  LinearGradient,
+  useFont,
+  vec
+} from '@shopify/react-native-skia'
 import React, { useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CartesianChart, StackedArea } from 'victory-native'
 
 import type { MempoolStatistics } from '@/types/models/Blockchain'
-
+const inter = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 interface SSFeeRateChartProps {
   mempoolStatistics: MempoolStatistics[] | undefined
+  timeRange: 'week' | 'day' | '2hours'
 }
 
 export default function SSFeeRateChart({
-  mempoolStatistics
+  mempoolStatistics,
+  timeRange
 }: SSFeeRateChartProps) {
+  const font = useFont(inter, 12)
   const [, setW] = React.useState(0)
   const [, setH] = React.useState(0)
 
   const processData = useMemo(() => {
     if (!mempoolStatistics) return []
 
-    return mempoolStatistics.map((entry) => {
-      const timestamp = new Date(entry.added * 1000).toLocaleTimeString()
-      const quarter = Math.floor(entry.vsizes.length / 4)
+    return mempoolStatistics
+      .map((entry) => {
+        const date = new Date(entry.added * 1000)
+        let timestamp
+        if (timeRange === 'week') {
+          timestamp = date.toLocaleDateString('en-US', {
+            day: 'numeric'
+          })
+        } else if (timeRange === 'day') {
+          timestamp = date.toLocaleTimeString([], {
+            hour: '2-digit',
+            hourCycle: 'h24',
+            hour12: true
+          })
+        } else {
+          timestamp = date.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h24',
+            hour12: false
+          })
+        }
+        const quarter = Math.floor(entry.vsizes.length / 4)
 
-      // Group vsizes into fee ranges
-      return {
-        x: timestamp,
-        high:
-          entry.vsizes
-            .slice(0, quarter)
-            .reduce((sum, current) => sum + current, 0) / 1000000,
-        medium:
-          entry.vsizes
-            .slice(quarter, 2 * quarter)
-            .reduce((sum, current) => sum + current, 0) / 1000000,
-        low:
-          entry.vsizes
-            .slice(2 * quarter, 3 * quarter)
-            .reduce((sum, current) => sum + current, 0) / 1000000,
-        veryLow:
-          entry.vsizes
-            .slice(3 * quarter)
-            .reduce((sum, current) => sum + current, 0) / 1000000
-      }
-    })
-  }, [mempoolStatistics])
+        // Group vsizes into fee ranges
+        return {
+          x: timestamp,
+          high:
+            entry.vsizes
+              .slice(0, quarter)
+              .reduce((sum, current) => sum + current, 0) / 1000000,
+          medium:
+            entry.vsizes
+              .slice(quarter, 2 * quarter)
+              .reduce((sum, current) => sum + current, 0) / 1000000,
+          low:
+            entry.vsizes
+              .slice(2 * quarter, 3 * quarter)
+              .reduce((sum, current) => sum + current, 0) / 1000000,
+          veryLow:
+            entry.vsizes
+              .slice(3 * quarter)
+              .reduce((sum, current) => sum + current, 0) / 1000000
+        }
+      })
+      .reverse()
+  }, [mempoolStatistics, timeRange])
 
   if (!mempoolStatistics)
     return (
@@ -57,14 +86,15 @@ export default function SSFeeRateChart({
       <CartesianChart
         data={processData}
         xKey="x"
-        yKeys={['high', 'medium', 'low', 'veryLow']}
-        padding={0}
-        domain={{ y: [1, 50] }}
+        yKeys={['veryLow', 'low', 'medium', 'high']}
+        padding={{ left: 10 }}
+        domain={{ y: [0, 25] }}
         xAxis={{
-          font: null,
+          font,
+          labelColor: '#787878',
+          tickCount: 4,
           labelOffset: 4,
-          lineWidth: 0,
-          labelColor: '#fff'
+          enableRescaling: true
         }}
         yAxis={[
           {
@@ -132,9 +162,6 @@ export default function SSFeeRateChart({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderRightWidth: 2,
-    borderRightColor: '#fff',
-    borderStyle: 'dashed',
     height: 300
   }
 })
