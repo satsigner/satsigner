@@ -356,7 +356,7 @@
     "input.previousOutput.transaction": "Previous transaction output hash",
     "input.previousOutput.vout": "Output index in transaction",
     "input.scriptSig": "ScriptSig",
-    "input.sequence": "",
+    "input.sequence": "Sequence",
     "input.singular": "Input",
     "input.title": "Input",
     "label": "Label",
