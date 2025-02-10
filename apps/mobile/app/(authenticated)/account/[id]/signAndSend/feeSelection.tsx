@@ -35,10 +35,13 @@ export default function FeeSelection() {
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
     useState(false)
+  const [selectedPeriod, setSelectedPeriod] = useState<'2h' | '24h' | '1w'>(
+    '24h'
+  )
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
-    queryKey: ['statistics'],
-    queryFn: () => new MempoolOracle().getMempoolStatistics('24h'),
+    queryKey: ['statistics', selectedPeriod],
+    queryFn: () => new MempoolOracle().getMempoolStatistics(selectedPeriod),
     enabled: isFocused,
     staleTime: time.minutes(5)
   })
@@ -63,6 +66,11 @@ export default function FeeSelection() {
   }
 
   const vByteLabels = ['20', '15', '12', '11', '9', '8', '5', '3', '2', '1']
+  const timePeriod = [
+    { value: '2h', label: '2 HOURS' },
+    { value: '24h', label: '24 HOURS' },
+    { value: '1w', label: '1 WEEK' }
+  ] as const
 
   return (
     <>
@@ -73,26 +81,28 @@ export default function FeeSelection() {
       />
       <SSMainLayout style={{ paddingHorizontal: 4 }}>
         <SSVStack justifyBetween>
-          <SSHStack gap="lg" style={{ justifyContent: 'space-evenly' }}>
-            <SSVStack gap="none">
-              <SSText size="md">1 sat/vB</SSText>
-              <SSText color="muted" size="xs" center>
-                Minimum {'\n'}Fee
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="md">19/300 MB</SSText>
-              <SSText color="muted" size="xs" center>
-                Mempool {'\n'}Size
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText size="md">1 sat/vB</SSText>
-              <SSText color="muted" size="xs" center>
-                TXs in {'\n'}Mempool
-              </SSText>
-            </SSVStack>
-          </SSHStack>
+          <SSVStack>
+            <SSText
+              size="sm"
+              weight="medium"
+              color="white"
+              style={styles.minerFeeLabel}
+            >
+              MINER FEE
+            </SSText>
+            <SSHStack gap="lg" style={styles.periodSelector}>
+              {timePeriod.map(({ value, label }) => (
+                <SSText
+                  key={value}
+                  size="xs"
+                  onPress={() => setSelectedPeriod(value)}
+                  color={selectedPeriod === value ? 'white' : 'muted'}
+                >
+                  {label}
+                </SSText>
+              ))}
+            </SSHStack>
+          </SSVStack>
           <View style={styles.outerContainer}>
             <SSFeeRateChart mempoolStatistics={mempoolStatistics} />
             <View style={arrowStyles.container}>
@@ -144,6 +154,17 @@ export default function FeeSelection() {
             }}
           >
             <SSVStack itemsCenter>
+              <SSText
+                size="4xl"
+                weight="medium"
+                style={{ marginRight: 4, marginBottom: -16 }}
+              >
+                {feeSelected}{' '}
+                <SSText size="4xl" color="muted">
+                  sats/vB
+                </SSText>
+              </SSText>
+
               <SSHStack
                 style={{
                   alignItems: 'baseline',
@@ -152,16 +173,34 @@ export default function FeeSelection() {
                 }}
               >
                 <SSVStack gap="none">
-                  <SSText size="lg" weight="medium">
+                  <SSText size="md" weight="medium">
                     {formatNumber(feeSelected)}{' '}
-                    {feeSelected > 1 ? 'sats' : 'sat'}
-                  </SSText>
-                  <SSText size="xs" color="muted">
-                    0.44 USD
+                    <SSText size="md" color="muted">
+                      {feeSelected > 1 ? 'sats' : 'sat'}
+                    </SSText>
                   </SSText>
                 </SSVStack>
-                <SSText size="lg">~ 4 blocks</SSText>
-                <SSText size="lg">1,000 sats/vB</SSText>
+
+                <SSText size="md">
+                  273{' '}
+                  <SSText size="md" color="muted">
+                    sats
+                  </SSText>
+                </SSText>
+
+                <SSText size="md">
+                  ~ 4{' '}
+                  <SSText size="md" color="muted">
+                    blocks
+                  </SSText>
+                </SSText>
+
+                <SSText size="md">
+                  92{' '}
+                  <SSText size="md" color="muted">
+                    sats
+                  </SSText>
+                </SSText>
               </SSHStack>
               <SSSlider
                 min={1}
@@ -212,6 +251,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: -20,
     paddingRight: 8
+  },
+  minerFeeLabel: {
+    textAlign: 'center',
+    width: '100%',
+    marginBottom: 12
+  },
+  periodSelector: {
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16
+  },
+  feeContainer: {
+    width: '100%',
+    paddingHorizontal: 16,
+    marginVertical: 24
+  },
+  feeStatsContainer: {
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 16
+  },
+  slider: {
+    width: '100%'
   }
 })
 
