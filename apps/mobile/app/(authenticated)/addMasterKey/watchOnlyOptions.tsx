@@ -1,18 +1,26 @@
+import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
+import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
-import * as Clipboard from 'expo-clipboard'
 
+import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
-import SSMainLayout from '@/layouts/SSMainLayout'
-import { useAccountBuilderStore } from '@/store/accountBuilder'
 import SSTextInput from '@/components/SSTextInput'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import SSButton from '@/components/SSButton'
-import { ScrollView } from 'react-native'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { Colors } from '@/styles'
+import {
+  validateAddress,
+  validateDerivationPath,
+  validateDescriptor,
+  validateExtendedKey,
+  validateFingerprint
+} from '@/utils/descriptors'
 
 const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
@@ -37,15 +45,68 @@ const text: Record<WatchOnlyOption, string> = {
   address: 'A single bitcoin address'
 }
 
-export default function AccountOptions() {
+export default function WatchOnlyOptions() {
   const name = useAccountBuilderStore(useShallow((state) => state.name))
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
-  const [input, setInput] = useState('')
+
+  const [masterFingerprint, setMasterFingerprint] = useState('')
+  const [derivationPath, setDerivationPath] = useState('')
+  const [xpub, setXpub] = useState('')
+  const [descriptor, setDescriptor] = useState('')
+  const [address, setAddress] = useState('')
+
+  const [validAddress, setValidAddress] = useState(true)
+  const [validDescriptor, setValidDescriptor] = useState(true)
+  const [validXpub, setValidXpub] = useState(true)
+  const [validDerivationPath, setValidDerivationPath] = useState(true)
+  const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
+
+  function updateAddress(address: string) {
+    setValidAddress(!address || validateAddress(address))
+    setAddress(address)
+  }
+
+  function updateMasterFingerprint(fingerprint: string) {
+    setValidMasterFingerprint(!fingerprint || validateFingerprint(fingerprint))
+    setMasterFingerprint(fingerprint)
+  }
+
+  function updateDerivationPath(path: string) {
+    setValidDerivationPath(!path || validateDerivationPath(path))
+    setDerivationPath(path)
+  }
+
+  function updateXpub(xpub: string) {
+    setValidXpub(!xpub || validateExtendedKey(xpub))
+    setXpub(xpub)
+    if (xpub.match(/^x(pub|priv)/) && derivationPath === '') {
+      setDerivationPath("M/44'/0/0")
+    }
+    if (xpub.match(/^y(pub|priv)/) && derivationPath === '') {
+      setDerivationPath("M/49'/0/0")
+    }
+    if (xpub.match(/^z(pub|priv)/) && derivationPath === '') {
+      setDerivationPath("M/84'/0/0")
+    }
+  }
+
+  function updateDescriptor(descriptor: string) {
+    setValidDescriptor(!descriptor || validateDescriptor(descriptor))
+    setDescriptor(descriptor)
+  }
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
-    if (text) setInput(text)
+    if (selectedOption === 'descriptor') {
+      updateDescriptor(text)
+    }
+    if (selectedOption === 'xpub') {
+      updateXpub(text)
+    }
+    if (selectedOption === 'address') {
+      updateAddress(text)
+    }
   }
 
   return (
@@ -84,18 +145,47 @@ export default function AccountOptions() {
             <SSVStack gap="lg">
               <SSVStack gap="xs">
                 <SSText center>{labels[selectedOption]}</SSText>
-                <SSTextInput
-                  value={input}
-                  placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                  onChangeText={(text) => setInput(text)}
-                />
+                {selectedOption === 'xpub' && (
+                  <SSTextInput
+                    value={xpub}
+                    style={validXpub ? styles.valid : styles.invalid}
+                    placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                    onChangeText={updateXpub}
+                  />
+                )}
+                {selectedOption === 'descriptor' && (
+                  <SSTextInput
+                    value={descriptor}
+                    style={validDescriptor ? styles.valid : styles.invalid}
+                    placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                    onChangeText={updateDescriptor}
+                  />
+                )}
+                {selectedOption === 'address' && (
+                  <SSTextInput
+                    value={address}
+                    style={validAddress ? styles.valid : styles.invalid}
+                    placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                    onChangeText={updateAddress}
+                  />
+                )}
               </SSVStack>
               {selectedOption === 'xpub' && (
                 <SSVStack gap="xs">
                   <SSText center>MASTER FINGERPRINT (optional)</SSText>
-                  <SSTextInput />
+                  <SSTextInput
+                    value={masterFingerprint}
+                    style={
+                      validMasterFingerprint ? styles.valid : styles.invalid
+                    }
+                    onChangeText={updateMasterFingerprint}
+                  />
                   <SSText center>DERIVATION PATH (optional)</SSText>
-                  <SSTextInput />
+                  <SSTextInput
+                    value={derivationPath}
+                    style={validDerivationPath ? styles.valid : styles.invalid}
+                    onChangeText={updateDerivationPath}
+                  />
                 </SSVStack>
               )}
               <SSVStack>
@@ -119,3 +209,13 @@ export default function AccountOptions() {
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  invalid: {
+    borderColor: Colors.error,
+    borderWidth: 1
+  },
+  valid: {
+    //
+  }
+})
