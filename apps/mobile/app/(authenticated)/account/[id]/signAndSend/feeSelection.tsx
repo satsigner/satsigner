@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
-import { Polygon, Svg } from 'react-native-svg'
+import { Path, Svg } from 'react-native-svg'
 
 import { MempoolOracle } from '@/api/blockchain'
 import SSButton from '@/components/SSButton'
@@ -132,25 +132,32 @@ export default function FeeSelection() {
                 ]}
               >
                 <Svg
-                  height="40"
-                  width="40"
-                  viewBox="0 0 100 100"
                   style={arrowStyles.arrow}
+                  width="20"
+                  height="20"
+                  viewBox="0 0 15 15"
+                  fill="none"
                 >
-                  <Polygon points="0,50 50,25 50,75" fill="white" />
+                  <Path
+                    d="M-4.64163e-07 5.40065L5.9162 10.8013L11 11L11 9.53674e-07L5.9162 2.62584e-05L-4.64163e-07 5.40065Z"
+                    fill="white"
+                  />
                 </Svg>
               </Animated.View>
               <View>
                 {vByteLabels.map((label, index) => (
                   <SSText
+                    style={{
+                      marginTop: 8
+                    }}
                     size="xs"
+                    color="white"
                     key={index}
-                    style={[
-                      arrowStyles.label,
-                      label === '8 sat v/B' ? arrowStyles.highlightLabel : null
-                    ]}
                   >
-                    {label} {Number(label) > 1 ? 'sats' : 'sat'}/vB
+                    {label}{' '}
+                    <SSText size="xs" color="muted">
+                      MvB
+                    </SSText>
                   </SSText>
                 ))}
               </View>
@@ -258,7 +265,6 @@ const styles = StyleSheet.create({
   outerContainer: {
     display: 'flex',
     flexDirection: 'row',
-    marginTop: -20,
     paddingRight: 8
   },
   minerFeeLabel: {
@@ -290,21 +296,19 @@ const arrowStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingLeft: 10,
+    justifyContent: 'flex-end',
+    paddingLeft: 18,
     height: 250,
+    width: 55,
     alignSelf: 'flex-end'
   },
   arrowContainer: {
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: -8,
-    marginLeft: -8
+    alignItems: 'center'
   },
   arrow: {
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: -8,
-    marginLeft: -10
+    alignItems: 'center'
   },
   label: {
     color: '#6d6d68',

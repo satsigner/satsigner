@@ -87,14 +87,13 @@ export default function SSFeeRateChart({
         data={processData}
         xKey="x"
         yKeys={['veryLow', 'low', 'medium', 'high']}
-        padding={{ left: 10 }}
+        padding={{ left: 8 }}
         domain={{ y: [0, 25] }}
         xAxis={{
           font,
           labelColor: '#787878',
           tickCount: 4,
-          labelOffset: 4,
-          enableRescaling: true
+          labelOffset: 4
         }}
         yAxis={[
           {
