@@ -42,8 +42,9 @@ export default function SSFeeRateChart({
         } else if (timeRange === 'day') {
           timestamp = date.toLocaleTimeString([], {
             hour: '2-digit',
+            minute: '2-digit',
             hourCycle: 'h24',
-            hour12: true
+            hour12: false
           })
         } else {
           timestamp = date.toLocaleTimeString([], {

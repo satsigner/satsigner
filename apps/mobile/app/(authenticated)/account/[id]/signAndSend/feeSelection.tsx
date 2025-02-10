@@ -82,7 +82,7 @@ export default function FeeSelection() {
           <SSVStack>
             <SSText
               size="sm"
-              weight="medium"
+              weight="bold"
               color="white"
               style={styles.minerFeeLabel}
             >
