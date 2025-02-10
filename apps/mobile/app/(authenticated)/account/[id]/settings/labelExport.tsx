@@ -42,11 +42,11 @@ export default function SSLabelExport() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
     const ext = exportType.toLowerCase()
-    const filename = `labels_${accountId}_${date}.${ext}`
+    const filename = `${t('export.file.name.labels')}_${accountId}_${date}.${ext}`
     shareFile({
       filename,
       fileContent: exportContent,
-      dialogTitle: 'Save Labels file',
+      dialogTitle: t('export.file.save'),
       mimeType: `application/${ext}`
     })
   }
@@ -70,27 +70,26 @@ export default function SSLabelExport() {
         {labels.length === 0 && (
           <>
             <SSText center size="md" weight="bold">
-              No labels!
+              {t('account.export.noLabels.title')}
             </SSText>
             <SSText size="md">
-              Once you add labels to your transactions, utxos, and addresses,
-              you will be able to export them.
+              {t('account.export.noLabels.description')}
             </SSText>
           </>
         )}
         {labels.length > 0 && (
           <>
             <SSText center uppercase weight="bold" size="lg" color="muted">
-              EXPORT BIP329 LABELS
+              {t('account.export.labels')}
             </SSText>
             <SSHStack>
               <SSCheckbox
-                label="JSON"
+                label={t('files.json')}
                 selected={exportType === 'JSON'}
                 onPress={() => setExportType('JSON')}
               />
               <SSCheckbox
-                label="CSV"
+                label={t('files.csv')}
                 selected={exportType === 'CSV'}
                 onPress={() => setExportType('CSV')}
               />
@@ -107,15 +106,18 @@ export default function SSLabelExport() {
               </SSText>
             </View>
             <SSClipboardCopy text={exportContent}>
-              <SSButton label="COPY TO CLIPBOARD" onPress={() => true} />
+              <SSButton
+                label={t('common.copyToClipboard')}
+                onPress={() => true}
+              />
             </SSClipboardCopy>
             <SSButton
-              label={`DOWNLOAD ${exportType}`}
+              label={`${t('common.download')} ${exportType}`}
               variant="secondary"
               onPress={exportLabels}
             />
             <SSButton
-              label="CANCEL"
+              label={t('common.cancel')}
               variant="ghost"
               onPress={() => router.back()}
             />

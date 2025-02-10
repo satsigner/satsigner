@@ -26,7 +26,7 @@ export default function SSLabelExport() {
     ])
   )
 
-  const [importType, setImportType] = useState('JSON')
+  const [importType, setImportType] = useState<'JSON' | 'CSV'>('JSON')
   const [importContent, setImportContent] = useState('')
 
   function importLabelsFromClipboard() {
@@ -60,16 +60,16 @@ export default function SSLabelExport() {
       />
       <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase weight="bold" size="lg" color="muted">
-          IMPORT BIP329 LABELS
+          {t('account.import.labels')}
         </SSText>
         <SSHStack>
           <SSCheckbox
-            label="JSON"
+            label={t('files.json')}
             selected={importType === 'JSON'}
             onPress={() => setImportType('JSON')}
           />
           <SSCheckbox
-            label="CSV"
+            label={t('files.csv')}
             selected={importType === 'CSV'}
             onPress={() => setImportType('CSV')}
           />
@@ -88,25 +88,25 @@ export default function SSLabelExport() {
               </SSText>
             </View>
             <SSButton
-              label="IMPORT FROM CLIPBOARD"
+              label={t('common.importFromClipboard')}
               onPress={importLabelsFromClipboard}
             />
           </SSVStack>
         )}
         <SSButton
-          label="PASTE FROM CLIPBOARD"
+          label={t('common.pasteFromClipboard')}
           onPress={async () => {
             const text = await Clipboard.getStringAsync()
             setImportContent(text || '')
           }}
         />
         <SSButton
-          label={`IMPORT FROM ${importType}`}
+          label={t('import.from', { name: importType })}
           variant="secondary"
           onPress={importLabels}
         />
         <SSButton
-          label="CANCEL"
+          label={t('common.cancel')}
           variant="ghost"
           onPress={() => router.back()}
         />

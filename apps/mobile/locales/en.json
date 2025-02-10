@@ -5,7 +5,10 @@
     "delete.masterKey": "Delete master key",
     "duplicate.masterKey": "Duplicate master key",
     "export.config": "Export config",
+    "export.descriptors": "Export descriptors",
     "export.labels": "Export labels",
+    "export.noLabels.description": "Once you add labels to your transactions, utxos, and addresses, you will be able to export them.",
+    "export.noLabels.title": "No labels!",
     "fingerprint": "Fingerprint",
     "import.labels": "Import labels",
     "load.sample.signet": "Load sample signet wallet",
@@ -72,10 +75,14 @@
     "close": "Close",
     "confirm": "Confirm",
     "copy": "Copy",
+    "copyToClipboard": "Copy to clipboard",
     "date": "Date",
     "deselectAll": "Deselect All",
+    "download": "Download",
+    "downloadFile": "Download file",
     "from": "From",
     "goBack": "Go back",
+    "importFromClipboard": "Import from clipboard",
     "invalid": "Invalid",
     "less": "Less",
     "more": "More",
@@ -84,6 +91,7 @@
     "of": "Of",
     "optional": "Optional",
     "paste": "Paste",
+    "pasteFromClipboard": "Paste from clipboard",
     "save": "Save",
     "select": "Select",
     "selectAll": "Select All",
@@ -94,6 +102,18 @@
     "version": "Version",
     "warning": "Warning",
     "yes": "Yes"
+  },
+  "export": {
+    "file.name.descriptors": "Descriptors",
+    "file.name.labels": "Labels",
+    "file.save": "Save file"
+  },
+  "files": {
+    "csv": "CSV",
+    "json": "JSON"
+  },
+  "import": {
+    "from": "Import from %{name}"
   },
   "opcode": {
     "DATA": "Data which can be hash, pubkey, address, signature, etc.",

@@ -38,16 +38,15 @@ export default function SSLabelExport() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
-    const filename = `descriptors_${accountId}_${date}.${ext}`
+    const filename = `${t('export.file.name.descriptors')}_${accountId}_${date}.${ext}`
     shareFile({
       filename,
       fileContent: exportContent,
-      dialogTitle: 'Save file',
+      dialogTitle: t('export.file.save'),
       mimeType: `text/plain`
     })
   }
 
-  //
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
@@ -58,7 +57,7 @@ export default function SSLabelExport() {
       />
       <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase weight="bold" size="lg" color="muted">
-          EXPORT DESCRIPTORS
+          {t('account.export.descriptors')}
         </SSText>
         <View
           style={{
@@ -72,15 +71,15 @@ export default function SSLabelExport() {
           </SSText>
         </View>
         <SSClipboardCopy text={exportContent}>
-          <SSButton label="COPY TO CLIPBOARD" onPress={() => true} />
+          <SSButton label={t('common.copyToClipboard')} onPress={() => true} />
         </SSClipboardCopy>
         <SSButton
-          label="DOWNLOAD FILE"
+          label={t('common.downloadFile')}
           variant="secondary"
           onPress={exportDescriptors}
         />
         <SSButton
-          label="CANCEL"
+          label={t('common.cancel')}
           variant="ghost"
           onPress={() => router.back()}
         />
