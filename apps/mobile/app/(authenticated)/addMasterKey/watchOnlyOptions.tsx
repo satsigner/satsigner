@@ -123,6 +123,40 @@ export default function WatchOnlyOptions() {
     return ''
   }
 
+  function confirmAccountCreation() {
+    let accountDescriptor = ''
+    let accountScriptVersion: Account['scriptVersion'] | null
+
+    if (selectedOption === 'descriptor' && descriptor) {
+      accountDescriptor = descriptor
+    }
+
+    if (selectedOption === 'address' && address) {
+      accountDescriptor = `addr(${address})`
+    }
+
+    if (selectedOption === 'xpub' && xpub) {
+      let prefix = ''
+      if (scriptVersion === 'P2TR') prefix = 'tr'
+      if (scriptVersion === 'P2PKH') prefix = 'pkh'
+      if (scriptVersion === 'P2WPKH') prefix = 'wpkh'
+      if (scriptVersion === 'P2SH-P2WPKH') prefix = 'wsh'
+      let derivationInfo = ''
+      if (masterFingerprint && derivationPath) {
+        const rawPath = derivationPath.replace(/^[mM]\//, "")
+        derivationInfo = `[${masterFingerprint}/${rawPath}]`
+      }
+      accountDescriptor = `${prefix}(${derivationInfo}${xpub})`
+    }
+
+    if (descriptor.startsWith('pkh')) accountScriptVersion = 'P2PKH'
+    if (descriptor.startsWith('wsh')) accountScriptVersion = 'P2SH-P2WPKH'
+    if (descriptor.startsWith('wpk')) accountScriptVersion = 'P2WPKH'
+    if (descriptor.startsWith('tr')) accountScriptVersion = 'P2TR'
+
+    // TODO: create account
+  }
+
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
     if (selectedOption === 'descriptor') {
@@ -317,11 +351,25 @@ export default function WatchOnlyOptions() {
                 <SSButton label="COMPUTER VISION TEXT" disabled />
               </SSVStack>
             </SSVStack>
+            <SSVStack gap="sm">
+            <SSButton
+              label="CONFIRM"
+              variant="secondary"
+              disabled={
+                (selectedOption === 'address' && (!address || !validAddress)) ||
+                (selectedOption === 'descriptor' && (!descriptor && !validDescriptor)) ||
+                (selectedOption === 'xpub' &&
+                 (!xpub || !validXpub || !validMasterFingerprint || !validDerivationPath)
+                )
+              }
+              onPress={() => confirmAccountCreation()}
+            />
             <SSButton
               label="CANCEL"
               variant="secondary"
               onPress={() => setModalOptionsVisible(true)}
             />
+            </SSVStack>
           </SSVStack>
         )}
       </ScrollView>
