@@ -185,7 +185,7 @@ export default function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {formatLabel(transaction.label || t('transaction.noMemo')).label}
+            {formatLabel(transaction.label || t('transaction.noLabel')).label}
           </SSText>
           <SSHStack
             gap="xs"

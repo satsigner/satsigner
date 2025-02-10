@@ -54,7 +54,6 @@
     "confirmations.manyBlocks": "Blocks deep",
     "confirmations.oneBlock": "Block deep",
     "confirmations.unconfirmed": "Unconfirmed",
-    "memo": "Memo",
     "network.mainnet": "Mainnet",
     "network.signet": "Signet",
     "network.testnet": "Testnet",
@@ -225,7 +224,7 @@
     "address": "Address",
     "customAmount": "Custom amount",
     "generateAnother": "Generate another address",
-    "memo": "Memo",
+    "label": "Label",
     "neverUsed": "Never used",
     "path": "Path"
   },
@@ -293,10 +292,10 @@
   "sign": {},
   "time": {},
   "transaction": {
-    "noMemo": "No memo",
+    "noLabel": "No label",
     "noTags": "No tags"
   },
   "utxo": {
-    "memo": "Memo"
+    "label": "Label"
   }
 }

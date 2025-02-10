@@ -80,7 +80,7 @@ export default function SSUtxoItem({
                 </SSText>
                 <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
-              <SSText>{label && `${t('utxo.memo')}: ${label}`}</SSText>
+              <SSText>{label && `${t('utxo.label')}: ${label}`}</SSText>
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>

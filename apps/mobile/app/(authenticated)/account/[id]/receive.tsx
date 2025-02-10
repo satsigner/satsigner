@@ -93,7 +93,7 @@ export default function Receive() {
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('receive.memo')} />
+              <SSFormLayout.Label label={t('receive.label')} />
               <SSTextInput placeholder={t('app.notImplemented')} />
             </SSFormLayout.Item>
           </SSFormLayout>
