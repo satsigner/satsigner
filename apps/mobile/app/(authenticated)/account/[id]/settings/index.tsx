@@ -165,6 +165,11 @@ export default function AccountSettings() {
               style={{ flex: 1 }}
               label="EXPORT CONFIG"
               variant="gradient"
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccount}/settings/descriptorsExport`
+                )
+              }
             />
           </SSHStack>
         </SSVStack>

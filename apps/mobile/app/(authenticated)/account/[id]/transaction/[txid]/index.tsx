@@ -217,7 +217,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const updateInfo = async () => {
     if (!tx) return
 
-    const amount = tx.type === 'receive' ? tx.received : tx.sent
+    const amount = tx.received - tx.sent
 
     setAmount(formatNumber(amount, 0, useZeroPadding))
     setType(tx.type)
@@ -256,7 +256,13 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
       )}
       <SSHStack>
         <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
-          <SSText size="xl" style={{ lineHeight: 30 }}>
+          <SSText
+            size="xl"
+            style={{
+              lineHeight: 30,
+              color: tx ? (tx.received < tx.sent ? 'red' : 'green') : 'white'
+            }}
+          >
             {amount}
           </SSText>
           <SSText color="muted">{i18n.t('bitcoin.sats').toLowerCase()}</SSText>
@@ -318,7 +324,7 @@ function SSTxDetailsInputs({ tx }: SSTxDetailsInputsProps) {
           </SSVStack>
           <SSVStack>
             <SSText weight="bold">SigScript</SSText>
-            <SSScriptDecoded script={vin.scriptSig} />
+            <SSScriptDecoded script={vin.scriptSig || []} />
           </SSVStack>
         </SSVStack>
       ))}
@@ -359,7 +365,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
               />
               <SSVStack>
                 <SSText weight="bold">UNLOCKING SCRIPT</SSText>
-                <SSScriptDecoded script={vout.script} />
+                <SSScriptDecoded script={vout.script || []} />
               </SSVStack>
             </SSVStack>
           </TouchableOpacity>
