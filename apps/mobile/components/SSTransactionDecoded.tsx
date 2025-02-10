@@ -74,11 +74,11 @@ function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
   return (
     <SSVStack gap="xs">
       <SSText color="muted" type="mono">
-        {t(`transaction.decoded.label.${field}`)}
+        {t(`transaction.decoded.label.${field}`, { ...placeholders })}
       </SSText>
       <SSText type="mono">{value}</SSText>
       <SSText color="muted">
-        {t(`transaction.decoded.description.${field}`)}
+        {t(`transaction.decoded.description.${field}`, { ...placeholders })}
       </SSText>
     </SSVStack>
   )
