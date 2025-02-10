@@ -20,7 +20,7 @@ import {
   validateDescriptor,
   validateExtendedKey,
   validateFingerprint
-} from '@/utils/descriptors'
+} from '@/utils/validation'
 
 const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
