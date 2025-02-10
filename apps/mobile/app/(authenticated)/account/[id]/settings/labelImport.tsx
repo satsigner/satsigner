@@ -29,8 +29,6 @@ export default function SSLabelExport() {
   const [importType, setImportType] = useState('JSON')
   const [importContent, setImportContent] = useState('')
 
-  if (!account || !accountId) return <Redirect href="/" />
-
   function importLabelsFromClipboard() {
     const labels =
       importType === 'JSON'
@@ -50,7 +48,8 @@ export default function SSLabelExport() {
     router.back()
   }
 
-  //
+  if (!account || !accountId) return <Redirect href="/" />
+
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen

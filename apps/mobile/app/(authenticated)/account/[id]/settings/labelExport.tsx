@@ -38,13 +38,6 @@ export default function SSLabelExport() {
     if (exportType === 'CSV') setExportContent(labelsToCSV(labels))
   }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!account) return <Redirect href="/" />
-
-  const labels = [
-    ...formatTransactionLabels(account.transactions),
-    ...formatUtxoLabels(account.utxos)
-  ] as Label[]
-
   async function exportLabels() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
@@ -58,7 +51,13 @@ export default function SSLabelExport() {
     })
   }
 
-  //
+  if (!account) return <Redirect href="/" />
+
+  const labels = [
+    ...formatTransactionLabels(account.transactions),
+    ...formatUtxoLabels(account.utxos)
+  ] as Label[]
+
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
