@@ -46,7 +46,7 @@ export default function SSAccountCard({
                 useZeroPadding={useZeroPadding}
                 textSize="3xl"
                 weight="light"
-                letterSpacing={-2}
+                letterSpacing={-1}
               />
             </SSText>
             <SSText size="xl" color="muted">

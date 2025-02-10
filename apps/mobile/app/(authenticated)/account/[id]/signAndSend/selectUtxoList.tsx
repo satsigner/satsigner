@@ -166,7 +166,7 @@ export default function SelectUtxoList() {
                     useZeroPadding={useZeroPadding}
                     textSize="7xl"
                     weight="ultralight"
-                    letterSpacing={-3}
+                    letterSpacing={-1}
                   />
                 </SSText>
                 <SSText size="xl" color="muted">

@@ -14,7 +14,7 @@ export default function SSTimeAgoText({ date }: SSTimeAgoTextProps) {
     if (unit === 'second') return `${i18n.t('time.lessThanAMinute')} ${suffix}`
     else if (unit === 'minute' || unit === 'hour')
       return `${value} ${unit}${value !== 1 ? 's' : ''} ${suffix}`
-    else return `${formatTime(date)} - ${formatDate(date)}`
+    else return `${formatDate(date)} - ${formatTime(date)}`
   }
 
   return (

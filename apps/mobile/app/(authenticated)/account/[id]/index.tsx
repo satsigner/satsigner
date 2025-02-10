@@ -175,13 +175,16 @@ function TotalTransactions({
           }
         >
           {/* account.transactions */}
-          <SSVStack style={{ marginBottom: 16 }}>
+          <SSVStack
+            style={{ marginBottom: expand ? 8 : 16 }}
+            gap={expand ? 'sm' : 'md'}
+          >
             {sortedTransactions
               .slice()
               .reverse()
               .map((transaction, index) => {
                 return (
-                  <SSVStack gap="xs" key={transaction.id}>
+                  <SSVStack gap="none" key={transaction.id}>
                     <SSBalanceChangeBar
                       transaction={transaction}
                       balance={transactionBalances[index]}
@@ -191,6 +194,7 @@ function TotalTransactions({
                       btcPrice={btcPrice}
                       fiatCurrency={fiatCurrency}
                       transaction={transaction}
+                      expand={expand}
                       walletBalance={transactionBalances[index]}
                       blockHeight={blockchainHeight}
                       link={`/account/${account.name}/transaction/${transaction.id}`}
@@ -653,7 +657,7 @@ export default function AccountView() {
                     useZeroPadding={useZeroPadding}
                     textSize="7xl"
                     weight="ultralight"
-                    letterSpacing={-3}
+                    letterSpacing={-1}
                   />
                 </SSText>
                 <SSText size="xl" color="muted">
