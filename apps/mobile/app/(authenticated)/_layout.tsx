@@ -1,5 +1,3 @@
-import '../../shim'
-
 import {
   getFocusedRouteNameFromRoute,
   useRoute
