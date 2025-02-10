@@ -35,14 +35,6 @@ import { Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-type BalanceChartData = {
-  memo: string
-  date: Date
-  balance: number
-  amount: number
-  type: 'send' | 'receive' | 'end'
-}
-
 type Rectangle = {
   left: number
   right: number
@@ -52,17 +44,25 @@ type Rectangle = {
   height?: number
 }
 
-export type SSBalanceChartProps = {
-  transactions: Transaction[]
-  utxos: Utxo[]
-}
-
 const isOverlapping = (rect1: Rectangle, rect2: Rectangle) => {
   if (rect1.right < rect2.left || rect2.right < rect1.left) return false
   return !(rect1.bottom < rect2.top || rect2.bottom < rect1.top)
 }
 
-function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
+type HistoryChartData = {
+  memo: string
+  date: Date
+  balance: number
+  amount: number
+  type: 'send' | 'receive' | 'end'
+}
+
+export type SSHistoryChartProps = {
+  transactions: Transaction[]
+  utxos: Utxo[]
+}
+
+function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   const router = useRouter()
 
   const [
@@ -159,7 +159,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddresses])
 
-  const chartData: BalanceChartData[] = useMemo(() => {
+  const chartData: HistoryChartData[] = useMemo(() => {
     let sum = 0
     return transactions.map((transaction) => {
       const amount =
@@ -479,7 +479,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
 
   const lineGenerator = useMemo(() => {
     return d3
-      .line<BalanceChartData>()
+      .line<HistoryChartData>()
       .x((d) => xScale(d.date))
       .y((d) => yScale(d.balance))
       .curve(d3.curveStepAfter)
@@ -487,7 +487,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
 
   const areaGenerator = useMemo(() => {
     return d3
-      .area<BalanceChartData>()
+      .area<HistoryChartData>()
       .x((d) => xScale(d.date))
       .y0(chartHeight * scale)
       .y1((d) => yScale(d.balance))
@@ -1103,4 +1103,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSBalanceChart
+export default SSHistoryChart

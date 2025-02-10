@@ -30,7 +30,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
-import SSBalanceChart from '@/components/SSBalanceChart'
+import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -158,7 +158,7 @@ function TotalTransactions({
       </SSHStack>
       {showChart ? (
         <View style={{ flex: 1, zIndex: -1 }}>
-          <SSBalanceChart
+          <SSHistoryChart
             transactions={sortedTransactions}
             utxos={account.utxos}
           />
