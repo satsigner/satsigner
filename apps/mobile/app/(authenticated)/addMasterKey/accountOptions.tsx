@@ -71,10 +71,8 @@ export default function AccountOptions() {
   }
 
   function getContinueButtonLabel() {
-    if (type === 'generate')
-      return t('addMasterKey.accountOptions.generateNewSeed')
-    else if (type === 'import')
-      return t('addMasterKey.accountOptions.importSeed')
+    if (type === 'generate') return t('account.generate.title')
+    else if (type === 'import') return t('account.import.title')
 
     return ''
   }
@@ -111,20 +109,11 @@ export default function AccountOptions() {
       <SSVStack justifyBetween>
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('addMasterKey.accountOptions.policyType')}
-            />
-            <SSButton
-              label={t(
-                'addMasterKey.accountOptions.policyTypes.singleSignature'
-              )}
-              withSelect
-            />
+            <SSFormLayout.Label label={t('account.policy.title')} />
+            <SSButton label={t('account.policy.singleSignature')} withSelect />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('addMasterKey.accountOptions.scriptVersion')}
-            />
+            <SSFormLayout.Label label={t('account.script')} />
             <SSButton
               label={getScriptVersionButtonLabel()}
               withSelect
@@ -132,9 +121,7 @@ export default function AccountOptions() {
             />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('addMasterKey.accountOptions.mnemonic')}
-            />
+            <SSFormLayout.Label label={t('account.mnemonic.title')} />
             <SSButton
               label={getSeedWordCountButtonLabel()}
               withSelect
@@ -158,28 +145,22 @@ export default function AccountOptions() {
       </SSVStack>
       <SSSelectModal
         visible={scriptVersionModalVisible}
-        title={t('addMasterKey.accountOptions.scriptVersion')}
+        title={t('account.script')}
         selectedText={`${localScriptVersion} - ${t(
-          `addMasterKey.accountOptions.scriptVersions.names.${localScriptVersion?.toLowerCase()}`
+          `script.${localScriptVersion?.toLowerCase()}.name`
         )}`}
         selectedDescription={
           <SSCollapsible>
             <SSText color="muted" size="md">
-              {t(
-                `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.0`
-              )}
+              {t(`script.${localScriptVersion?.toLowerCase()}.description.1`)}
               <SSLink
                 size="md"
                 text={t(
-                  `addMasterKey.accountOptions.scriptVersions.links.name.${localScriptVersion?.toLowerCase()}`
+                  `script.${localScriptVersion?.toLowerCase()}.link.name`
                 )}
-                url={t(
-                  `addMasterKey.accountOptions.scriptVersions.links.url.${localScriptVersion?.toLowerCase()}`
-                )}
+                url={t(`script.${localScriptVersion?.toLowerCase()}.link.url`)}
               />
-              {t(
-                `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.1`
-              )}
+              {t(`script.${localScriptVersion?.toLowerCase()}.description.2`)}
             </SSText>
             <SSIconScriptsP2pkh height={80} width="100%" />
           </SSCollapsible>
@@ -188,36 +169,28 @@ export default function AccountOptions() {
         onCancel={() => setScriptVersionModalVisible(false)}
       >
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
-          )} (P2PKH)`}
+          label={`${t('script.p2pkh.name')} (P2PKH)`}
           selected={localScriptVersion === 'P2PKH'}
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, 'P2PKH')
           }
         />
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
-          )} (P2SH-P2WPKH)`}
+          label={`${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`}
           selected={localScriptVersion === 'P2SH-P2WPKH'}
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, 'P2SH-P2WPKH')
           }
         />
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
-          )} (P2WPKH)`}
+          label={`${t('script.p2wpkh.name')} (P2WPKH)`}
           selected={localScriptVersion === 'P2WPKH'}
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, 'P2WPKH')
           }
         />
         <SSRadioButton
-          label={`${t(
-            'addMasterKey.accountOptions.scriptVersions.names.p2tr'
-          )} (P2TR)`}
+          label={`${t('script.p2tr.name')} (P2TR)`}
           selected={localScriptVersion === 'P2TR'}
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, 'P2TR')
@@ -226,11 +199,9 @@ export default function AccountOptions() {
       </SSSelectModal>
       <SSSelectModal
         visible={seedWordCountModalVisible}
-        title={t('addMasterKey.accountOptions.mnemonic')}
+        title={t('account.mnemonic.title')}
         selectedText={`${localSeedWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(
-          `addMasterKey.accountOptions.mnemonics.${localSeedWordCount}`
-        )}
+        selectedDescription={t(`account.mnemonic.${localSeedWordCount}`)}
         onSelect={() => handleOnSelectSeedWordCount()}
         onCancel={() => setSeedWordCountModalVisibile(false)}
       >

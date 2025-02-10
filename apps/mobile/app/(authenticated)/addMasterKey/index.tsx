@@ -30,7 +30,7 @@ export default function AddMasterKey() {
     creationType: Account['accountCreationType']
   ) {
     if (hasAccountWithName(accountName)) {
-      Alert.alert(t('addMasterKey.hasAccountWithName'))
+      Alert.alert(t('account.hasAccountWithName'))
       setAccountName('')
       return
     }
@@ -44,15 +44,13 @@ export default function AddMasterKey() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('addMasterKey.title')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{t('account.add')}</SSText>
         }}
       />
       <SSVStack gap="lg">
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('addMasterKey.masterKeyName')} />
+            <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
               value={accountName}
               onChangeText={(accountName) => setAccountName(accountName)}
@@ -61,12 +59,12 @@ export default function AddMasterKey() {
         </SSFormLayout>
         <SSVStack>
           <SSButton
-            label={t('addMasterKey.generateNewSeed.title')}
+            label={t('account.generate.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('generate')}
           />
           <SSButton
-            label={t('addMasterKey.importExistingSeed.title')}
+            label={t('account.import.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('import')}
           />

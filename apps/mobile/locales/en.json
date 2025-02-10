@@ -1,8 +1,13 @@
 {
   "account": {
     "add": "Add Master Key",
+    "added": "Parent account has been added",
+    "confirmSeed.title": "Confirm Seed",
+    "confirmSeed.tryAgain": "Selected word doesn't match the original seed",
+    "confirmSeed.warning": "Review and try again",
     "createdOn": "Created on",
     "delete.masterKey": "Delete master key",
+    "derivationPath": "Derivation path",
     "duplicate.masterKey": "Duplicate master key",
     "export.config": "Export config",
     "export.descriptors": "Export descriptors",
@@ -10,8 +15,18 @@
     "export.noLabels.description": "Once you add labels to your transactions, utxos, and addresses, you will be able to export them.",
     "export.noLabels.title": "No labels!",
     "fingerprint": "Fingerprint",
+    "generate.title": "Generate new secret seed",
+    "hasAccountWithName": "Account with that name already exists",
     "import.labels": "Import labels",
+    "import.title": "Import existing seed",
+    "import.title2": "Import seed",
     "load.sample.signet": "Load sample signet wallet",
+    "mnemonic.12": "12 words generated from 128 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
+    "mnemonic.15": "15 words generated from 160 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
+    "mnemonic.18": "18 words generated from 192 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+    "mnemonic.21": "21 words generated from 224 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
+    "mnemonic.24": "24 words generated from 256 bits of entropy.",
+    "mnemonic.title": "Mnemonic Seed Words (BIP39)",
     "name": "Account Name",
     "network.description": "Use the %{network} network",
     "network.title": "Network",
@@ -25,6 +40,8 @@
     "seed.unableToDecrypt": "Unable to decrypt seed",
     "settings.title": "Master Key Settings and Tools",
     "signAndSend": "Sign & Send",
+    "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
+    "utxos": "UTXOs",
     "viewSeed": "View seed"
   },
   "accounts": {
@@ -51,13 +68,19 @@
     "unlock": "Unlock Satsigner"
   },
   "bitcoin": {
+    "checksum": "Checksum",
     "confirmations.manyBlocks": "Blocks deep",
     "confirmations.oneBlock": "Block deep",
     "confirmations.unconfirmed": "Unconfirmed",
+    "fingerprint": "Fingerprint",
     "network.mainnet": "Mainnet",
     "network.signet": "Signet",
     "network.testnet": "Testnet",
+    "notYourCoins": "Not your coins",
+    "notYourKeys": "Not your keys",
+    "passphrase": "Passphrase",
     "sats": "Sats",
+    "word": "Word",
     "words": "Words"
   },
   "camera": {

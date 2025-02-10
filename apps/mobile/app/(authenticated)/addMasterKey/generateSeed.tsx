@@ -60,9 +60,7 @@ export default function GenerateSeed() {
         <SSVStack justifyBetween>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={t('addMasterKey.accountOptions.mnemonic')}
-              />
+              <SSFormLayout.Label label={t('account.mnemonic.title')} />
               {seedWordCount && (
                 <SSSeedLayout count={seedWordCount}>
                   {[...Array(seedWordCount)].map((_, index) => (
@@ -94,7 +92,7 @@ export default function GenerateSeed() {
           </SSFormLayout>
           <SSVStack>
             <SSButton
-              label={t('addMasterKey.generateNewSeed.action')}
+              label={t('account.confirmSeed.title')}
               variant="secondary"
               disabled={!checksumValid}
               onPress={() => router.navigate('/addMasterKey/confirmSeed/0')}

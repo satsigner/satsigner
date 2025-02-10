@@ -152,13 +152,13 @@ export default function ConfirmSeed() {
       </SSVStack>
       <SSGradientModal
         visible={incorrectWordModalVisible}
-        closeText={t('addMasterKey.confirmSeed.incorrectWordModal.action')}
+        closeText={t('account.confirmSeed.tryAgain')}
         onClose={() => setIncorrectWordModalVisible(false)}
       >
         <SSVStack itemsCenter style={{ marginVertical: 32 }}>
           <SSIconCircleX height={88} width={88} />
           <SSText size="3xl" center style={{ maxWidth: 200 }}>
-            {t('addMasterKey.confirmSeed.incorrectWordModal.warning')}
+            {t('account.confirmSeed.warning')}
           </SSText>
         </SSVStack>
       </SSGradientModal>
@@ -181,20 +181,20 @@ export default function ConfirmSeed() {
           <SSText size="6xl">{t('common.warning')}</SSText>
           <SSIconHideWarning height={132} width={210} />
           <SSText size="2xl" center style={{ maxWidth: 260 }}>
-            {t('addMasterKey.confirmSeed.warningModal.warning')}
+            {t('account.generate.warning')}
           </SSText>
           <SSText size="xl" color="muted" center>
-            {t('addMasterKey.confirmSeed.warningModal.disclaimer1')}
+            {t('account.generate.disclaimer.1')}
           </SSText>
           <SSText size="xl" color="muted" center>
-            {t('addMasterKey.confirmSeed.warningModal.disclaimer2')}
+            {t('account.generate.disclaimer.2')}
           </SSText>
           <SSText size="xl" color="muted" center>
-            {t('addMasterKey.confirmSeed.warningModal.disclaimer3')}
+            {t('account.generate.disclaimer.3')}
           </SSText>
           {walletSyncFailed && (
             <SSText size="3xl" color="muted" center>
-              {t('addMasterKey.walletSyncFailed')}
+              {t('account.syncFailed')}
             </SSText>
           )}
         </SSVStack>

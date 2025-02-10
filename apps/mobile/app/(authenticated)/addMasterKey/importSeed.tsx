@@ -326,9 +326,7 @@ export default function ImportSeed() {
         <SSVStack justifyBetween>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={t('addMasterKey.accountOptions.mnemonic')}
-              />
+              <SSFormLayout.Label label={t('account.mnemonic.title')} />
               {seedWordCount && (
                 <SSSeedLayout count={seedWordCount}>
                   {[...Array(seedWordsInfo.length)].map((_, index) => (
@@ -377,7 +375,7 @@ export default function ImportSeed() {
           </SSFormLayout>
           <SSVStack>
             <SSButton
-              label={t('addMasterKey.importExistingSeed.action')}
+              label={t('account.import.title2')}
               variant="secondary"
               loading={loadingAccount}
               disabled={!checksumValid}
@@ -401,26 +399,24 @@ export default function ImportSeed() {
               {name}
             </SSText>
             <SSText color="muted" size="lg">
-              {t('addMasterKey.importExistingSeed.accountAdded')}
+              {t('account.added')}
             </SSText>
           </SSVStack>
           <SSSeparator />
           <SSHStack justifyEvenly style={{ alignItems: 'flex-start' }}>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
-                {t('bitcoin.script')}
+                {t('account.script')}
               </SSText>
               <SSText size="md" color="muted" center>
-                {t(
-                  `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion.toLowerCase()}`
-                )}
+                {t(`script.${scriptVersion.toLowerCase()}.name`)}
                 {'\n'}
                 {`(${scriptVersion})`}
               </SSText>
             </SSVStack>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
-                {t('bitcoin.fingerprint')}
+                {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
                 {fingerprint}
@@ -431,9 +427,7 @@ export default function ImportSeed() {
           <SSVStack>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
-                {t(
-                  'addMasterKey.importExistingSeed.accountAddedModal.derivationPath'
-                )}
+                {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
                 {derivationPath}
@@ -442,7 +436,7 @@ export default function ImportSeed() {
             <SSHStack justifyEvenly>
               <SSVStack itemsCenter>
                 <SSText style={{ color: Colors.gray[500] }}>
-                  {t('addMasterKey.importExistingSeed.accountAddedModal.utxos')}
+                  {t('account.utxos')}
                 </SSText>
                 {loadingAccount || !syncedAccount ? (
                   <SSEllipsisAnimation />
@@ -454,7 +448,7 @@ export default function ImportSeed() {
               </SSVStack>
               <SSVStack itemsCenter>
                 <SSText style={{ color: Colors.gray[500] }}>
-                  {t('addMasterKey.importExistingSeed.accountAddedModal.sats')}
+                  {t('bitcoin.sats')}
                 </SSText>
                 {loadingAccount || !syncedAccount ? (
                   <SSEllipsisAnimation />
@@ -468,7 +462,7 @@ export default function ImportSeed() {
             <SSHStack>
               {walletSyncFailed && (
                 <SSText size="3xl" color="muted" center>
-                  {t('addMasterKey.walletSyncFailed')}
+                  {t('account.syncFailed')}
                 </SSText>
               )}
             </SSHStack>
