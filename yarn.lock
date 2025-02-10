@@ -10566,6 +10566,11 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
+prettier-plugin-sort-json@^4.1.1:
+  version "4.1.1"
+  resolved "https://registry.npmjs.org/prettier-plugin-sort-json/-/prettier-plugin-sort-json-4.1.1.tgz#2cf2e71c5a2174440330b3c72e3bc69112df3ffb"
+  integrity sha512-uJ49wCzwJ/foKKV4tIPxqi4jFFvwUzw4oACMRG2dcmDhBKrxBv0L2wSKkAqHCmxKCvj0xcCZS4jO2kSJO/tRJw==
+
 prettier@^3.2.5:
   version "3.2.5"
   resolved "https://registry.npmjs.org/prettier/-/prettier-3.2.5.tgz#e52bc3090586e824964a8813b09aba6233b28368"
