@@ -30,7 +30,7 @@ export default function SSLabelExport() {
     ])
   )
 
-  const [exportType, setExportType] = useState('JSON')
+  const [exportType, setExportType] = useState<'JSON' | 'CSV'>('JSON')
   const [exportContent, setExportContent] = useState('')
 
   useEffect(() => {
