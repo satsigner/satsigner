@@ -7,8 +7,10 @@ Here is an example on how to use these strings:
 
 ```tsx
 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-  {i18n.t('bitcoin.sats').toLowerCase()}
+  {t('bitcoin.sats').toLowerCase()}
 </SSText>
 ```
 
 Check any of the `json` files to see the json structure for these strings.
+
+Localization `json` files should only contain one level of nesting.

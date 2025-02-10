@@ -8,13 +8,13 @@ For example, if you want to display items in a flex column, use SSVStack:
 ```tsx
 <SSVStack>
   <SSButton
-    label={i18n.t('addMasterKey.generateNewSeed.action')}
+    label={t('account.add.generate.action')}
     variant="secondary"
     disabled={!checksumValid}
     onPress={() => router.navigate('/addMasterKey/confirmSeed/0')}
   />
   <SSButton
-    label={i18n.t('common.cancel')}
+    label={t('common.cancel')}
     variant="ghost"
     onPress={() => router.replace('/')}
   />
