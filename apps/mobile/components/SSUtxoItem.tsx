@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -71,7 +71,7 @@ export default function SSUtxoItem({
                   {formatNumber(utxo.value, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -80,7 +80,7 @@ export default function SSUtxoItem({
                 </SSText>
                 <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
-              <SSText>{label && `${i18n.t('bitcoin.memo')}: ${label}`}</SSText>
+              <SSText>{label && `${t('utxo.memo')}: ${label}`}</SSText>
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>

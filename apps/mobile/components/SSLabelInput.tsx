@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { formatLabel, formatLabelTags } from '@/utils/format'
 
@@ -89,7 +89,7 @@ export default function SSLabelInput({
   return (
     <SSVStack style={{ paddingVertical: 20 }}>
       <SSText weight="bold" uppercase>
-        {i18n.t('common.label')}
+        {t('common.label')}
       </SSText>
       <SSTextInput
         align="left"
@@ -107,7 +107,7 @@ export default function SSLabelInput({
         onSubmitEditing={handleInputEnded}
       />
       <SSText weight="bold" uppercase>
-        {i18n.t('common.tags')}
+        {t('common.tags')}
       </SSText>
       <SSTagInput
         tags={tags}
@@ -117,7 +117,7 @@ export default function SSLabelInput({
       />
       <SSButton
         onPress={saveLabel}
-        label={i18n.t('common.save')}
+        label={t('common.save')}
         variant="secondary"
       />
     </SSVStack>

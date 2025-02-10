@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { Modal, Platform, SafeAreaView, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSButton from './SSButton'
@@ -34,7 +34,7 @@ export default function SSWarningModal({
         <SSMainLayout black>
           <ScrollView>{children}</ScrollView>
           <SSButton
-            label={i18n.t('common.acknowledge')}
+            label={t('common.acknowledge')}
             variant="secondary"
             onPress={() => onClose()}
           />

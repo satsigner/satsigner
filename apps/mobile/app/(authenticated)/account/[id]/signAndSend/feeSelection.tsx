@@ -14,7 +14,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { MempoolStatistics } from '@/types/models/Blockchain'
@@ -176,14 +176,14 @@ export default function FeeSelection() {
             </SSVStack>
             <SSButton
               variant="secondary"
-              label={i18n.t('feeSelection.previewTxMessage')}
+              label={t('feeSelection.previewTxMessage')}
               onPress={() => handleOnPressPreviewTxMessage()}
             />
           </SSVStack>
         </SSVStack>
         <SSGradientModal
           visible={insufficientSatsModalVisible}
-          closeText={i18n.t('common.cancel')}
+          closeText={t('common.cancel')}
           onClose={() => setInsufficientSatsModalVisible(false)}
         >
           <SSVStack style={{ marginTop: 16 }}>

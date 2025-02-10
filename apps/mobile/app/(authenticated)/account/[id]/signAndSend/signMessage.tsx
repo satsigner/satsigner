@@ -14,7 +14,7 @@ import SSText from '@/components/SSText'
 import { getBlockchainConfig } from '@/config/servers'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -130,7 +130,7 @@ export default function SignMessage() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label={i18n.t('signMessage.broadcastTxMessage')}
+            label={t('signMessage.broadcastTxMessage')}
             disabled={!signed || !psbt}
             loading={broadcasting}
             onPress={() => handleBroadcastTransaction()}

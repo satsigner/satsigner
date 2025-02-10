@@ -17,7 +17,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -187,9 +187,7 @@ export default function IOPreview() {
         <SSVStack style={{ flex: 1 }}>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
-            <SSText size="md">
-              {i18n.t('signAndSend.selectSpendableOutputs')}
-            </SSText>
+            <SSText size="md">{t('signAndSend.selectSpendableOutputs')}</SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
@@ -201,18 +199,18 @@ export default function IOPreview() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
+                {inputs.size} {t('common.of').toLowerCase()}{' '}
+                {account.utxos.length} {t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {i18n.t('common.total')}
+                  {t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(utxosTotalValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -233,7 +231,7 @@ export default function IOPreview() {
                   {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -286,12 +284,12 @@ export default function IOPreview() {
             variant="outline"
             size="small"
             align="left"
-            placeholder={i18n.t('ioPreview.typeMemo')}
+            placeholder={t('ioPreview.typeMemo')}
           />
           <SSHStack>
             <SSButton
               variant="outline"
-              label={i18n.t('ioPreview.addInput')}
+              label={t('ioPreview.addInput')}
               style={{ flex: 1 }}
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
@@ -299,14 +297,14 @@ export default function IOPreview() {
             />
             <SSButton
               variant={outputs.length > 0 ? 'outline' : 'secondary'}
-              label={i18n.t('ioPreview.addOutput')}
+              label={t('ioPreview.addOutput')}
               style={{ flex: 1 }}
               onPress={() => setAddOutputModalVisible(true)}
             />
           </SSHStack>
           <SSButton
             variant="secondary"
-            label={i18n.t('ioPreview.setMessageFee')}
+            label={t('ioPreview.setMessageFee')}
             onPress={() =>
               router.navigate(`/account/${id}/signAndSend/feeSelection`)
             }

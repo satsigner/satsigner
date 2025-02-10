@@ -8,7 +8,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
 
 export default function ChartSettings() {
@@ -63,7 +63,7 @@ export default function ChartSettings() {
         options={{
           headerTitle: () => (
             <SSText uppercase>
-              {i18n.t('settings.features.featurePage.chartSettingsPage.title')}
+              {t('settings.features.charts.historyChart.title')}
             </SSText>
           ),
           headerBackVisible: true,
@@ -76,34 +76,32 @@ export default function ChartSettings() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSText>
-                {i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.layersTitle'
-                )}
+                {t('settings.features.charts.historyChart.layers.title')}
               </SSText>
               <SSCheckbox
-                label={i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.layersShowLabels'
+                label={t(
+                  'settings.features.charts.historyChart.layers.showLabels'
                 )}
                 selected={selectedShowLabel}
                 onPress={() => setSelectedShowLabel((prev) => !prev)}
               />
               <SSCheckbox
-                label={i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.layersShowAmounts'
+                label={t(
+                  'settings.features.charts.historyChart.layers.showAmounts'
                 )}
                 selected={selectedShowAmount}
                 onPress={() => setSelectedShowAmount((prev) => !prev)}
               />
               <SSCheckbox
-                label={i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.layersShowTransactionInfo'
+                label={t(
+                  'settings.features.charts.historyChart.layers.showTransactionInfo'
                 )}
                 selected={selectedShowTransactionInfo}
                 onPress={() => setSelectedShowTransactionInfo((prev) => !prev)}
               />
               <SSCheckbox
-                label={i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.layersShowOutputFields'
+                label={t(
+                  'settings.features.charts.historyChart.layers.showOutputFields'
                 )}
                 selected={selectedShowOutputField}
                 onPress={() => setSelectedShowOutputField((prev) => !prev)}
@@ -111,13 +109,11 @@ export default function ChartSettings() {
             </SSVStack>
             <SSVStack>
               <SSText>
-                {i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.navigationTitle'
-                )}
+                {t('settings.features.charts.historyChart.navigation.title')}
               </SSText>
               <SSCheckbox
-                label={i18n.t(
-                  'settings.features.featurePage.chartSettingsPage.navigationLockZoomXAxis'
+                label={t(
+                  'settings.features.charts.historyChart.navigation.lockZoomXAxis'
                 )}
                 selected={selectedLockZoomToXAxis}
                 onPress={() => setSelectedLockZoomToXAxis((prev) => !prev)}
@@ -127,12 +123,12 @@ export default function ChartSettings() {
         </ScrollView>
         <SSVStack>
           <SSButton
-            label={i18n.t('common.save')}
+            label={t('common.save')}
             variant="secondary"
             onPress={() => handleOnSave()}
           />
           <SSButton
-            label={i18n.t('common.cancel')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={() => router.back()}
           />

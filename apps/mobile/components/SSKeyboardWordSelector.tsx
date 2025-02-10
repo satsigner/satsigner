@@ -16,7 +16,7 @@ import {
 import { getWordList } from '@/api/bip39'
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
 
 type WordInfo = {
@@ -155,7 +155,7 @@ export default function SSKeyboardWordSelector({
       ) : (
         <View style={styles.noMatchingWordsContainerBase}>
           <Text style={styles.wordText}>
-            {i18n.t('addMasterKey.importExistingSeed.noMatchingWords')}
+            {t('addMasterKey.importExistingSeed.noMatchingWords')}
           </Text>
         </View>
       )}

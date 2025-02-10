@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { TextInput } from 'react-native-gesture-handler'
 
 import SSHStack from '@/layouts/SSHStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import { SSIconCircleX } from './icons'
@@ -64,7 +64,7 @@ export default function SSTagInput({
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             blurOnSubmit={false}
-            placeholder={i18n.t('common.addTag')}
+            placeholder={t('common.addTag')}
             align="left"
             size="small"
             ref={(ref: TextInput) => (inputRef.current = ref)}
@@ -87,7 +87,7 @@ export default function SSTagInput({
               ))}
             {text.length > 1 && !tags.includes(text) && (
               <SSButton
-                label={`${i18n.t('common.createTag')} "${text}"`}
+                label={`${t('common.createTag')} "${text}"`}
                 style={styles['button']}
                 onPress={() => addTag(text)}
                 uppercase={false}

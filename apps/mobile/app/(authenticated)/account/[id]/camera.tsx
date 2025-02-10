@@ -10,7 +10,7 @@ import SSCameraOverlay from '@/components/SSCameraOverlay'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 import { bip21decode } from '@/utils/bitcoin'
 import { clearClipboard, getClipboard } from '@/utils/clipboard'
@@ -105,12 +105,12 @@ export default function Camera() {
           <SSVStack itemsCenter>
             {permission?.granted ? (
               <SSText center style={{ maxWidth: 250 }}>
-                {i18n.t('camera.scanText')}
+                {t('camera.scanText')}
               </SSText>
             ) : (
               <>
                 <SSText center style={{ maxWidth: 250 }}>
-                  {i18n.t('camera.permissions')}
+                  {t('camera.permissions')}
                 </SSText>
                 <SSButton
                   label="Enable Camera Access"

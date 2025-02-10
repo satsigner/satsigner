@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { Currency } from '@/types/models/Blockchain'
@@ -139,7 +139,7 @@ export default function SSTransactionCard({
                   letterSpacing={expand ? 0 : -0.5}
                 />
                 <SSText color="muted" size={expand ? 'xs' : 'sm'}>
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
             </SSHStack>
@@ -185,7 +185,7 @@ export default function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {formatLabel(transaction.label || i18n.t('account.noMemo')).label}
+            {formatLabel(transaction.label || t('transaction.noMemo')).label}
           </SSText>
           <SSHStack
             gap="xs"
@@ -229,7 +229,7 @@ export default function SSTransactionCard({
                 uppercase
                 numberOfLines={1}
               >
-                {i18n.t('account.noTags')}
+                {t('transaction.noTags')}
               </SSText>
             )}
           </SSHStack>

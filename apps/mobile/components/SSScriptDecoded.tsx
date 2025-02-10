@@ -1,7 +1,7 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { OP_CODE_WORD } from '@/types/logic/opcode'
 import { getOpcodeDetails, getOpcodeWord } from '@/utils/scripts'
 
@@ -38,7 +38,7 @@ export default function SSScriptDecoded({ script }: SSScriptDecodedProps) {
                   Description:{' '}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {i18n.t(`opcode.${opcodeWord}`)}
+                  {t(`opcode.${opcodeWord}`)}
                 </SSText>
               </SSText>
             </SSVStack>

@@ -10,7 +10,7 @@ import SSText from '@/components/SSText'
 import { PIN_SIZE } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Layout } from '@/styles'
 
@@ -84,13 +84,13 @@ export default function SetPin() {
           <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
             <SSText uppercase size="lg" color="muted" center>
               {stage === 'set'
-                ? i18n.t('auth.setPin.0')
-                : i18n.t('auth.reenterPin.0')}
+                ? t('auth.setPinTitle.0')
+                : t('auth.reenterPinTitle.0')}
             </SSText>
             <SSText uppercase size="lg" color="muted" center>
               {stage === 'set'
-                ? i18n.t('auth.setPin.1')
-                : i18n.t('auth.reenterPin.1')}
+                ? t('auth.setPinTitle.1')
+                : t('auth.reenterPinTitle.1')}
             </SSText>
           </SSVStack>
           {stage === 'set' && (
@@ -106,7 +106,7 @@ export default function SetPin() {
             <SSVStack itemsCenter gap="sm">
               <SSIconCheckCircleThin height={40} width={40} />
               <SSText uppercase size="lg" color="muted" center>
-                {i18n.t('auth.pinsMatch')}
+                {t('auth.pinsMatch')}
               </SSText>
             </SSVStack>
           )}
@@ -114,7 +114,7 @@ export default function SetPin() {
             <SSVStack itemsCenter gap="sm">
               <SSIconCircleXThin height={40} width={40} />
               <SSText uppercase size="lg" color="muted" center>
-                {i18n.t('auth.pinsDontMatch')}
+                {t('auth.pinsDontMatch')}
               </SSText>
             </SSVStack>
           )}
@@ -122,14 +122,14 @@ export default function SetPin() {
         <SSVStack widthFull>
           {stage === 'set' && pinFilled && (
             <SSButton
-              label={i18n.t('auth.confirm')}
+              label={t('auth.confirmPin')}
               variant="secondary"
               onPress={() => handleConfirmPin()}
             />
           )}
           {stage === 're-enter' && confirmationPinFilled && pinsMatch && (
             <SSButton
-              label={i18n.t('auth.set')}
+              label={t('auth.setPin')}
               variant="secondary"
               loading={loading}
               onPress={() => handleSetPin()}
@@ -137,28 +137,28 @@ export default function SetPin() {
           )}
           {stage === 'set' && !pinFilled && (
             <SSButton
-              label={i18n.t('auth.setLater')}
+              label={t('auth.setPinLater')}
               variant="ghost"
               onPress={() => handleSetPinLater()}
             />
           )}
           {stage === 'set' && pinFilled && (
             <SSButton
-              label={i18n.t('common.clear')}
+              label={t('common.clear')}
               variant="ghost"
               onPress={() => clearPin()}
             />
           )}
           {stage === 're-enter' && !confirmationPinFilled && (
             <SSButton
-              label={i18n.t('common.goBack')}
+              label={t('common.goBack')}
               variant="ghost"
               onPress={() => handleGoBack()}
             />
           )}
           {stage === 're-enter' && confirmationPinFilled && (
             <SSButton
-              label={i18n.t('common.clear')}
+              label={t('common.clear')}
               variant="ghost"
               onPress={() => clearConfirmationPin()}
             />

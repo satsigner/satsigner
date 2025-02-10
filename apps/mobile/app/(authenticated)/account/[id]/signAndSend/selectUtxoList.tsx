@@ -14,7 +14,7 @@ import SSUtxoItem from '@/components/SSUtxoItem'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -122,9 +122,7 @@ export default function SelectUtxoList() {
         <SSVStack>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
-            <SSText size="md">
-              {i18n.t('signAndSend.selectSpendableOutputs')}
-            </SSText>
+            <SSText size="md">{t('signAndSend.selectSpendableOutputs')}</SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
@@ -136,18 +134,18 @@ export default function SelectUtxoList() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
+                {inputs.size} {t('common.of').toLowerCase()}{' '}
+                {account.utxos.length} {t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {i18n.t('common.total')}
+                  {t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(utxosTotalValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -170,7 +168,7 @@ export default function SelectUtxoList() {
                   />
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -189,7 +187,7 @@ export default function SelectUtxoList() {
       <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
         <SSButton
           variant="ghost"
-          label={`${selectedAllUtxos ? i18n.t('common.deselectAll').toUpperCase() : i18n.t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${i18n.t('bitcoin.sats').toLowerCase()}`}
+          label={`${selectedAllUtxos ? t('common.deselectAll').toUpperCase() : t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${t('bitcoin.sats').toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],
@@ -202,14 +200,14 @@ export default function SelectUtxoList() {
         />
         <SSHStack gap="sm">
           <SSSortDirectionToggle
-            label={i18n.t('common.date')}
+            label={t('common.date')}
             showArrow={sortField === 'date'}
             onDirectionChanged={(direction) =>
               handleOnDirectionChanged('date', direction)
             }
           />
           <SSSortDirectionToggle
-            label={i18n.t('common.amount')}
+            label={t('common.amount')}
             showArrow={sortField === 'amount'}
             onDirectionChanged={(direction) =>
               handleOnDirectionChanged('amount', direction)
@@ -239,7 +237,7 @@ export default function SelectUtxoList() {
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
         <SSButton
-          label={i18n.t('signAndSend.addAsInputToMessage')}
+          label={t('signAndSend.addAsInputToMessage')}
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[

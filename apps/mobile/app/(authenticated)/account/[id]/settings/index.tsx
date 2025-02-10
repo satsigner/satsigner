@@ -16,7 +16,7 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { Account } from '@/types/models/Account'
@@ -53,13 +53,13 @@ export default function AccountSettings() {
 
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
     else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
     else if (scriptVersion === 'P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
     else if (scriptVersion === 'P2TR')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
 
     return ''
   }
@@ -178,10 +178,10 @@ export default function AccountSettings() {
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label
-              label={i18n.t('addMasterKey.accountOptions.policyType')}
+              label={t('addMasterKey.accountOptions.policyType')}
             />
             <SSButton
-              label={i18n.t(
+              label={t(
                 'addMasterKey.accountOptions.policyTypes.singleSignature'
               )}
               withSelect
@@ -189,7 +189,7 @@ export default function AccountSettings() {
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label
-              label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
+              label={t('addMasterKey.accountOptions.scriptVersion')}
             />
             <SSButton
               label={getScriptVersionButtonLabel()}
@@ -212,26 +212,26 @@ export default function AccountSettings() {
       </SSVStack>
       <SSSelectModal
         visible={scriptVersionModalVisible}
-        title={i18n.t('addMasterKey.accountOptions.scriptVersion')}
-        selectedText={`${scriptVersion} - ${i18n.t(
+        title={t('addMasterKey.accountOptions.scriptVersion')}
+        selectedText={`${scriptVersion} - ${t(
           `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
         )}`}
         selectedDescription={
           <SSCollapsible>
             <SSText color="muted" size="md">
-              {i18n.t(
+              {t(
                 `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
               )}
               <SSLink
                 size="md"
-                text={i18n.t(
+                text={t(
                   `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
                 )}
-                url={i18n.t(
+                url={t(
                   `addMasterKey.accountOptions.scriptVersions.links.url.${scriptVersion?.toLowerCase()}`
                 )}
               />
-              {i18n.t(
+              {t(
                 `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.1`
               )}
             </SSText>
@@ -242,14 +242,14 @@ export default function AccountSettings() {
         onCancel={() => setScriptVersionModalVisible(false)}
       >
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
           )} (P2PKH)`}
           selected={scriptVersion === 'P2PKH'}
           onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')}
         />
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
           )} (P2SH-P2WPKH)`}
           selected={scriptVersion === 'P2SH-P2WPKH'}
@@ -258,7 +258,7 @@ export default function AccountSettings() {
           }
         />
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
           )} (P2WPKH)`}
           selected={scriptVersion === 'P2WPKH'}
@@ -267,7 +267,7 @@ export default function AccountSettings() {
           }
         />
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2tr'
           )} (P2TR)`}
           selected={scriptVersion === 'P2TR'}

@@ -9,7 +9,7 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
@@ -30,7 +30,7 @@ export default function AddMasterKey() {
     creationType: Account['accountCreationType']
   ) {
     if (hasAccountWithName(accountName)) {
-      Alert.alert(i18n.t('addMasterKey.hasAccountWithName'))
+      Alert.alert(t('addMasterKey.hasAccountWithName'))
       setAccountName('')
       return
     }
@@ -45,14 +45,14 @@ export default function AddMasterKey() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{i18n.t('addMasterKey.title')}</SSText>
+            <SSText uppercase>{t('addMasterKey.title')}</SSText>
           )
         }}
       />
       <SSVStack gap="lg">
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label label={i18n.t('addMasterKey.masterKeyName')} />
+            <SSFormLayout.Label label={t('addMasterKey.masterKeyName')} />
             <SSTextInput
               value={accountName}
               onChangeText={(accountName) => setAccountName(accountName)}
@@ -61,12 +61,12 @@ export default function AddMasterKey() {
         </SSFormLayout>
         <SSVStack>
           <SSButton
-            label={i18n.t('addMasterKey.generateNewSeed.title')}
+            label={t('addMasterKey.generateNewSeed.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('generate')}
           />
           <SSButton
-            label={i18n.t('addMasterKey.importExistingSeed.title')}
+            label={t('addMasterKey.importExistingSeed.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('import')}
           />

@@ -11,7 +11,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -154,7 +154,7 @@ export default function PreviewMessage() {
           <SSButton
             variant="secondary"
             disabled={!messageId}
-            label={i18n.t('previewMessage.signTxMessage')}
+            label={t('previewMessage.signTxMessage')}
             onPress={() =>
               router.navigate(`/account/${id}/signAndSend/signMessage`)
             }
@@ -162,7 +162,7 @@ export default function PreviewMessage() {
         </SSVStack>
         <SSGradientModal
           visible={noKeyModalVisible}
-          closeText={i18n.t('common.cancel')}
+          closeText={t('common.cancel')}
           onClose={() => setNoKeyModalVisible(false)}
         >
           <SSVStack style={{ marginTop: 16 }}>

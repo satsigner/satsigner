@@ -9,7 +9,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
@@ -55,9 +55,7 @@ export default function SSLabelExport() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText size="xl">{i18n.t('settings.title')}</SSText>
-          ),
+          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
           headerRight: undefined
         }}
       />

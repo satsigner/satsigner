@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatLabel } from '@/utils/format'
 
@@ -57,9 +57,9 @@ export default function SSLabelDetails({
             ))}
           </SSHStack>
         )}
-        {!label && <SSText color="muted">{i18n.t('account.noLabel')}</SSText>}
+        {!label && <SSText color="muted">{t('account.noLabel')}</SSText>}
         {tags.length === 0 && (
-          <SSText color="muted">{i18n.t('account.noTags')}</SSText>
+          <SSText color="muted">{t('account.noTags')}</SSText>
         )}
       </SSVStack>
       <SSIconButton onPress={() => router.navigate(link)}>

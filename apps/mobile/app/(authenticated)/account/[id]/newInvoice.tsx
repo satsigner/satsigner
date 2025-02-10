@@ -12,7 +12,7 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
@@ -62,14 +62,14 @@ export default function NewInvoice() {
         <SSVStack itemsCenter gap="xs">
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
-              {i18n.t('newInvoice.invoice')} #
+              {t('newInvoice.invoice')} #
             </SSText>
             <SSText size="3xl">{addressNumber}</SSText>
           </SSVStack>
           <SSVStack gap="none" itemsCenter>
             <SSHStack gap="sm">
               <SSText color="muted" uppercase>
-                {i18n.t('newInvoice.path')}
+                {t('newInvoice.path')}
               </SSText>
               <SSText>{addressPath}</SSText>
             </SSHStack>
@@ -78,7 +78,7 @@ export default function NewInvoice() {
           {addressQR && <SSQRCode value={addressQR} />}
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
-              {i18n.t('newInvoice.address')}
+              {t('newInvoice.address')}
             </SSText>
             <SSClipboardCopy text={address} withPopup={false}>
               <SSText size="sm">{address}</SSText>
@@ -86,25 +86,25 @@ export default function NewInvoice() {
           </SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={i18n.t('newInvoice.customAmount')} />
+              <SSFormLayout.Label label={t('newInvoice.customAmount')} />
               <SSTextInput
                 keyboardType="numeric"
                 placeholder="not yet implemented"
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={i18n.t('newInvoice.memo')} />
+              <SSFormLayout.Label label={t('newInvoice.memo')} />
               <SSTextInput placeholder="not yet implemented" />
             </SSFormLayout.Item>
           </SSFormLayout>
           <SSVStack widthFull>
             <SSButton
-              label={i18n.t('newInvoice.generateAnotherInvoice')}
+              label={t('newInvoice.generateAnotherInvoice')}
               variant="secondary"
               disabled
             />
             <SSButton
-              label={i18n.t('common.cancel')}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={() => router.back()}
             />

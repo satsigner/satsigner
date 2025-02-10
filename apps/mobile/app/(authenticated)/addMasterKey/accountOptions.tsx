@@ -12,7 +12,7 @@ import SSText from '@/components/SSText'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { type Account } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
@@ -44,37 +44,37 @@ export default function AccountOptions() {
 
   function getScriptVersionButtonLabel() {
     if (localScriptVersion === 'P2PKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
     else if (localScriptVersion === 'P2SH-P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
     else if (localScriptVersion === 'P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
     else if (localScriptVersion === 'P2TR')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
+      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
 
     return ''
   }
 
   function getSeedWordCountButtonLabel() {
     if (localSeedWordCount === 12)
-      return `12 ${i18n.t('bitcoin.words').toLowerCase()}`
+      return `12 ${t('bitcoin.words').toLowerCase()}`
     if (localSeedWordCount === 15)
-      return `15 ${i18n.t('bitcoin.words').toLowerCase()}`
+      return `15 ${t('bitcoin.words').toLowerCase()}`
     if (localSeedWordCount === 18)
-      return `18 ${i18n.t('bitcoin.words').toLowerCase()}`
+      return `18 ${t('bitcoin.words').toLowerCase()}`
     if (localSeedWordCount === 21)
-      return `21 ${i18n.t('bitcoin.words').toLowerCase()}`
+      return `21 ${t('bitcoin.words').toLowerCase()}`
     if (localSeedWordCount === 24)
-      return `24 ${i18n.t('bitcoin.words').toLowerCase()}`
+      return `24 ${t('bitcoin.words').toLowerCase()}`
 
     return ''
   }
 
   function getContinueButtonLabel() {
     if (type === 'generate')
-      return i18n.t('addMasterKey.accountOptions.generateNewSeed')
+      return t('addMasterKey.accountOptions.generateNewSeed')
     else if (type === 'import')
-      return i18n.t('addMasterKey.accountOptions.importSeed')
+      return t('addMasterKey.accountOptions.importSeed')
 
     return ''
   }
@@ -112,10 +112,10 @@ export default function AccountOptions() {
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label
-              label={i18n.t('addMasterKey.accountOptions.policyType')}
+              label={t('addMasterKey.accountOptions.policyType')}
             />
             <SSButton
-              label={i18n.t(
+              label={t(
                 'addMasterKey.accountOptions.policyTypes.singleSignature'
               )}
               withSelect
@@ -123,7 +123,7 @@ export default function AccountOptions() {
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label
-              label={i18n.t('addMasterKey.accountOptions.scriptVersion')}
+              label={t('addMasterKey.accountOptions.scriptVersion')}
             />
             <SSButton
               label={getScriptVersionButtonLabel()}
@@ -133,7 +133,7 @@ export default function AccountOptions() {
           </SSFormLayout.Item>
           <SSFormLayout.Item>
             <SSFormLayout.Label
-              label={i18n.t('addMasterKey.accountOptions.mnemonic')}
+              label={t('addMasterKey.accountOptions.mnemonic')}
             />
             <SSButton
               label={getSeedWordCountButtonLabel()}
@@ -150,7 +150,7 @@ export default function AccountOptions() {
             onPress={() => handleOnPressConfirmAccountOptions()}
           />
           <SSButton
-            label={i18n.t('common.cancel')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={() => router.navigate('/')}
           />
@@ -158,26 +158,26 @@ export default function AccountOptions() {
       </SSVStack>
       <SSSelectModal
         visible={scriptVersionModalVisible}
-        title={i18n.t('addMasterKey.accountOptions.scriptVersion')}
-        selectedText={`${localScriptVersion} - ${i18n.t(
+        title={t('addMasterKey.accountOptions.scriptVersion')}
+        selectedText={`${localScriptVersion} - ${t(
           `addMasterKey.accountOptions.scriptVersions.names.${localScriptVersion?.toLowerCase()}`
         )}`}
         selectedDescription={
           <SSCollapsible>
             <SSText color="muted" size="md">
-              {i18n.t(
+              {t(
                 `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.0`
               )}
               <SSLink
                 size="md"
-                text={i18n.t(
+                text={t(
                   `addMasterKey.accountOptions.scriptVersions.links.name.${localScriptVersion?.toLowerCase()}`
                 )}
-                url={i18n.t(
+                url={t(
                   `addMasterKey.accountOptions.scriptVersions.links.url.${localScriptVersion?.toLowerCase()}`
                 )}
               />
-              {i18n.t(
+              {t(
                 `addMasterKey.accountOptions.scriptVersions.descriptions.${localScriptVersion?.toLowerCase()}.1`
               )}
             </SSText>
@@ -188,7 +188,7 @@ export default function AccountOptions() {
         onCancel={() => setScriptVersionModalVisible(false)}
       >
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
           )} (P2PKH)`}
           selected={localScriptVersion === 'P2PKH'}
@@ -197,7 +197,7 @@ export default function AccountOptions() {
           }
         />
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
           )} (P2SH-P2WPKH)`}
           selected={localScriptVersion === 'P2SH-P2WPKH'}
@@ -206,7 +206,7 @@ export default function AccountOptions() {
           }
         />
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
           )} (P2WPKH)`}
           selected={localScriptVersion === 'P2WPKH'}
@@ -215,7 +215,7 @@ export default function AccountOptions() {
           }
         />
         <SSRadioButton
-          label={`${i18n.t(
+          label={`${t(
             'addMasterKey.accountOptions.scriptVersions.names.p2tr'
           )} (P2TR)`}
           selected={localScriptVersion === 'P2TR'}
@@ -226,36 +226,36 @@ export default function AccountOptions() {
       </SSSelectModal>
       <SSSelectModal
         visible={seedWordCountModalVisible}
-        title={i18n.t('addMasterKey.accountOptions.mnemonic')}
-        selectedText={`${localSeedWordCount} ${i18n.t('bitcoin.words')}`}
-        selectedDescription={i18n.t(
+        title={t('addMasterKey.accountOptions.mnemonic')}
+        selectedText={`${localSeedWordCount} ${t('bitcoin.words')}`}
+        selectedDescription={t(
           `addMasterKey.accountOptions.mnemonics.${localSeedWordCount}`
         )}
         onSelect={() => handleOnSelectSeedWordCount()}
         onCancel={() => setSeedWordCountModalVisibile(false)}
       >
         <SSRadioButton
-          label={`24 ${i18n.t('bitcoin.words').toLowerCase()}`}
+          label={`24 ${t('bitcoin.words').toLowerCase()}`}
           selected={localSeedWordCount === 24}
           onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 24)}
         />
         <SSRadioButton
-          label={`21 ${i18n.t('bitcoin.words').toLowerCase()}`}
+          label={`21 ${t('bitcoin.words').toLowerCase()}`}
           selected={localSeedWordCount === 21}
           onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 21)}
         />
         <SSRadioButton
-          label={`18 ${i18n.t('bitcoin.words').toLowerCase()}`}
+          label={`18 ${t('bitcoin.words').toLowerCase()}`}
           selected={localSeedWordCount === 18}
           onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 18)}
         />
         <SSRadioButton
-          label={`15 ${i18n.t('bitcoin.words').toLowerCase()}`}
+          label={`15 ${t('bitcoin.words').toLowerCase()}`}
           selected={localSeedWordCount === 15}
           onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 15)}
         />
         <SSRadioButton
-          label={`12 ${i18n.t('bitcoin.words').toLowerCase()}`}
+          label={`12 ${t('bitcoin.words').toLowerCase()}`}
           selected={localSeedWordCount === 12}
           onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 12)}
         />

@@ -17,7 +17,7 @@ import SSText from '@/components/SSText'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
@@ -34,8 +34,6 @@ import {
 import { bytesToHex } from '@/utils/scripts'
 
 // TODO: Refactor page
-
-const t = (translate: string) => i18n.t(`txDetails.${translate}`)
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
@@ -99,7 +97,7 @@ export default function TxDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>{i18n.t('txDetails.title')}</SSText>
+          headerTitle: () => <SSText>{t('txDetails.title')}</SSText>
         }}
       />
       <SSVStack style={styles.container}>
@@ -265,7 +263,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
           >
             {amount}
           </SSText>
-          <SSText color="muted">{i18n.t('bitcoin.sats').toLowerCase()}</SSText>
+          <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
         </SSHStack>
         <SSHStack gap="xs">
           {price && <SSText>{price}</SSText>}
@@ -287,7 +285,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
           {formatConfirmations(confirmations)}
         </SSText>
         <SSHStack gap="xs">
-          <SSText color="muted">{i18n.t('common.from').toLowerCase()}</SSText>
+          <SSText color="muted">{t('common.from').toLowerCase()}</SSText>
           <SSText>{inputsCount || '?'} inputs</SSText>
         </SSHStack>
       </SSHStack>
@@ -355,12 +353,9 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
               <SSText weight="bold" center>
                 {t('output')} {index}
               </SSText>
+              <SSTxDetailsBox header={t('common.value')} text={vout.value} />
               <SSTxDetailsBox
-                header={i18n.t('common.value')}
-                text={vout.value}
-              />
-              <SSTxDetailsBox
-                header={i18n.t('common.address')}
+                header={t('common.address')}
                 text={vout.address}
               />
               <SSVStack>

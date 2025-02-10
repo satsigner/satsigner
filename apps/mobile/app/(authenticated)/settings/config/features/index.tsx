@@ -5,7 +5,7 @@ import { SSIconChartWhite, SSIconZero } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 
 export default function Features() {
   const router = useRouter()
@@ -15,9 +15,7 @@ export default function Features() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>
-              {i18n.t('settings.features.featurePage.title')}
-            </SSText>
+            <SSText uppercase>{t('settings.features.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -29,11 +27,9 @@ export default function Features() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
-                title={i18n.t(
-                  'settings.features.featurePage.transactionChart.title'
-                )}
-                description={i18n.t(
-                  'settings.features.featurePage.transactionChart.description'
+                title={t('settings.features.charts.historyChart.title')}
+                description={t(
+                  'settings.features.charts.historyChart.description'
                 )}
                 icon={<SSIconChartWhite width={24} height={24} />}
                 onPress={() => {
@@ -41,11 +37,9 @@ export default function Features() {
                 }}
               />
               <SSSettingsCards
-                title={i18n.t(
-                  'settings.features.featurePage.currencyFormatting.title'
-                )}
-                description={i18n.t(
-                  'settings.features.featurePage.currencyFormatting.description'
+                title={t('settings.features.currencyFormatting.title')}
+                description={t(
+                  'settings.features.currencyFormatting.description'
                 )}
                 icon={<SSIconZero width={24} height={24} />}
                 onPress={() => {

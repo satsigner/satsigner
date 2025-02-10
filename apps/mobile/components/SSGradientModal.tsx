@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Modal, StyleSheet } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSButton from './SSButton'
@@ -31,7 +31,7 @@ export default function SSGradientModal({
         >
           {children}
           <SSButton
-            label={closeText || i18n.t('common.close')}
+            label={closeText || t('common.close')}
             style={{ borderTopRightRadius: 0, borderTopLeftRadius: 0 }}
             onPress={() => onClose()}
           />

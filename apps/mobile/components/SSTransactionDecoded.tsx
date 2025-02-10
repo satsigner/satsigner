@@ -3,7 +3,7 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { TxDecoded, TxDecodedField } from '@/utils/txDecoded'
 
@@ -79,8 +79,8 @@ export default function SSTransactionDecoded({
 }
 
 function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
-  let label = i18n.t(`txDecoded.label.${field}`)
-  let description = i18n.t(`txDecoded.description.${field}`)
+  let label = t(`txDecoded.label.${field}`)
+  let description = t(`txDecoded.description.${field}`)
 
   label = replacePlaceholders(label, placeholders?.label || [])
   description = replacePlaceholders(

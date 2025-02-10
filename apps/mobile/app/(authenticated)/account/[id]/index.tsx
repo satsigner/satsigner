@@ -42,7 +42,7 @@ import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
@@ -142,7 +142,7 @@ function TotalTransactions({
             </SSIconButton>
           )}
         </SSHStack>
-        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           <SSIconButton onPress={() => setShowChart((prev) => !prev)}>
             {showChart ? (
@@ -174,7 +174,6 @@ function TotalTransactions({
             />
           }
         >
-          {/* account.transactions */}
           <SSVStack
             style={{ marginBottom: expand ? 8 : 16 }}
             gap={expand ? 'sm' : 'md'}
@@ -261,7 +260,7 @@ function SpendableOutputs({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           {view === 'list' && (
             <SSIconButton onPress={() => setView('bubbles')}>
@@ -514,9 +513,9 @@ export default function AccountView() {
                   {account.summary.numberOfTransactions}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.totalTransactions.0')}
+                  {t('accounts.totalTransactions.0')}
                   {'\n'}
-                  {i18n.t('accountList.totalTransactions.1')}
+                  {t('accounts.totalTransactions.1')}
                 </SSText>
                 {tabIndex === 0 && (
                   <View
@@ -541,9 +540,9 @@ export default function AccountView() {
                   {account.summary.numberOfAddresses}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.childAccounts.0')}
+                  {t('accounts.childAccounts.0')}
                   {'\n'}
-                  {i18n.t('accountList.childAccounts.1')}
+                  {t('accounts.childAccounts.1')}
                 </SSText>
                 {tabIndex === 1 && (
                   <View
@@ -568,9 +567,9 @@ export default function AccountView() {
                   {account.summary.numberOfUtxos}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.spendableOutputs.0')}
+                  {t('accounts.spendableOutputs.0')}
                   {'\n'}
-                  {i18n.t('accountList.spendableOutputs.1')}
+                  {t('accounts.spendableOutputs.1')}
                 </SSText>
                 {tabIndex === 2 && (
                   <View
@@ -595,9 +594,9 @@ export default function AccountView() {
                   {account.summary.satsInMempool}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.satsInMempool.0')}
+                  {t('accounts.satsInMempool.0')}
                   {'\n'}
-                  {i18n.t('accountList.satsInMempool.1')}
+                  {t('accounts.satsInMempool.1')}
                 </SSText>
                 {tabIndex === 3 && (
                   <View
@@ -661,7 +660,7 @@ export default function AccountView() {
                   />
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -691,7 +690,7 @@ export default function AccountView() {
                     borderRightColor: Colors.gray[600]
                   }}
                 >
-                  <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
+                  <SSText uppercase>{t('account.signAndSend')}</SSText>
                 </SSActionButton>
                 <SSActionButton
                   onPress={() => router.navigate(`/account/${id}/camera`)}
@@ -707,7 +706,7 @@ export default function AccountView() {
                     borderLeftColor: Colors.gray[600]
                   }}
                 >
-                  <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
+                  <SSText uppercase>{t('account.receive')}</SSText>
                 </SSActionButton>
               </SSHStack>
               <SSSeparator

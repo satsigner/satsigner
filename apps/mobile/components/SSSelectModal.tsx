@@ -4,7 +4,7 @@ import { Modal, Platform, SafeAreaView, ScrollView } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSButton from './SSButton'
@@ -73,12 +73,12 @@ export default function SSSelectModal({
           </ScrollView>
           <SSVStack>
             <SSButton
-              label={i18n.t('common.select')}
+              label={t('common.select')}
               variant="secondary"
               onPress={() => onSelect()}
             />
             <SSButton
-              label={i18n.t('common.cancel')}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={() => onCancel()}
             />

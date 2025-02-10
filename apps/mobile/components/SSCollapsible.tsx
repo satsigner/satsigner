@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { LayoutAnimation, StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSText from './SSText'
@@ -43,7 +43,7 @@ export default function SSCollapsible({ children }: SSCollapsibleProps) {
           />
         </SSVStack>
         <SSText uppercase style={{ color: Colors.gray[100] }}>
-          {open ? i18n.t('common.less') : i18n.t('common.more')}
+          {open ? t('common.less') : t('common.more')}
         </SSText>
       </SSVStack>
     </TouchableOpacity>

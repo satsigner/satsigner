@@ -14,7 +14,7 @@ import SSText from '@/components/SSText'
 import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
@@ -111,9 +111,7 @@ function SelectUtxoBubbles() {
         <SSVStack>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
-            <SSText size="md">
-              {i18n.t('signAndSend.selectSpendableOutputs')}
-            </SSText>
+            <SSText size="md">{t('signAndSend.selectSpendableOutputs')}</SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
@@ -125,18 +123,18 @@ function SelectUtxoBubbles() {
           <SSVStack itemsCenter gap="sm">
             <SSVStack itemsCenter gap="xs">
               <SSText>
-                {inputs.size} {i18n.t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {i18n.t('common.selected').toLowerCase()}
+                {inputs.size} {t('common.of').toLowerCase()}{' '}
+                {account.utxos.length} {t('common.selected').toLowerCase()}
               </SSText>
               <SSHStack gap="xs">
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {i18n.t('common.total')}
+                  {t('common.total')}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(utxosTotalValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
                 <SSText size="xxs" style={{ color: Colors.gray[75] }}>
                   {formatNumber(satsToFiat(utxosTotalValue), 2)}
@@ -157,7 +155,7 @@ function SelectUtxoBubbles() {
                   {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -187,7 +185,7 @@ function SelectUtxoBubbles() {
         <SSVStack style={{ width: '92%' }}>
           <SSHStack justifyBetween>
             <SSButton
-              label={i18n.t('signAndSend.customAmount')}
+              label={t('signAndSend.customAmount')}
               variant="ghost"
               style={{ width: 'auto', height: 'auto' }}
               onPress={() => setCustomAmountModalVisible(true)}
@@ -195,8 +193,8 @@ function SelectUtxoBubbles() {
             <SSButton
               label={
                 selectedAllUtxos
-                  ? i18n.t('signAndSend.deselectAll')
-                  : i18n.t('signAndSend.selectAll')
+                  ? t('signAndSend.deselectAll')
+                  : t('signAndSend.selectAll')
               }
               variant="ghost"
               style={{ width: 'auto', height: 'auto' }}
@@ -208,7 +206,7 @@ function SelectUtxoBubbles() {
             />
           </SSHStack>
           <SSButton
-            label={i18n.t('signAndSend.addAsInputToMessage')}
+            label={t('signAndSend.addAsInputToMessage')}
             variant="secondary"
             disabled={!hasSelectedUtxos}
             style={[

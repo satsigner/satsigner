@@ -6,7 +6,7 @@ import {
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
 
@@ -83,9 +83,9 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
       })
       .addText(
         isNumeric(textInfo[0])
-          ? ` ${i18n.t('bitcoin.sats').toLowerCase()}\n`
+          ? ` ${t('bitcoin.sats').toLowerCase()}\n`
           : isMiningFee
-            ? ` ${i18n.t('bitcoin.sats').toLowerCase()}/vB \n`
+            ? ` ${t('bitcoin.sats').toLowerCase()}/vB \n`
             : '\n'
       )
       .pushStyle({

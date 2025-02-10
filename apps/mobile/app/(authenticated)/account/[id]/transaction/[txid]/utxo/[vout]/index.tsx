@@ -9,7 +9,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatNumber } from '@/utils/format'
@@ -58,7 +58,7 @@ export default function UtxoDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>{i18n.t('utxoDetails.labelEdit')}</SSText>
+          headerTitle: () => <SSText>{t('utxoDetails.labelEdit')}</SSText>
         }}
       />
       <SSVStack
@@ -72,13 +72,13 @@ export default function UtxoDetails() {
       >
         <SSVStack>
           <SSText center size="lg">
-            {i18n.t('utxoDetails.title')}
+            {t('utxoDetails.title')}
           </SSText>
           <SSSeparator color="gradient" />
           <SSLabelDetails
             label={utxo?.label || ''}
             link={`/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
-            header={i18n.t('utxoDetails.label')}
+            header={t('utxoDetails.label')}
           />
         </SSVStack>
         <SSVStack>
@@ -86,7 +86,7 @@ export default function UtxoDetails() {
           <SSHStack justifyBetween>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {i18n.t('common.date')}
+                {t('common.date')}
               </SSText>
               <SSText color="muted" uppercase>
                 {blockTime}
@@ -94,7 +94,7 @@ export default function UtxoDetails() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {i18n.t('common.block')}
+                {t('common.block')}
               </SSText>
               <SSText color="muted" uppercase>
                 {blockHeight}
@@ -102,12 +102,11 @@ export default function UtxoDetails() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {i18n.t('common.amount')}
+                {t('common.amount')}
               </SSText>
               <SSClipboardCopy text={amount}>
                 <SSText color="muted" uppercase>
-                  {amount}{' '}
-                  {amount !== placeholder ? i18n.t('bitcoin.sats') : ''}
+                  {amount} {amount !== placeholder ? t('bitcoin.sats') : ''}
                 </SSText>
               </SSClipboardCopy>
             </SSVStack>
@@ -116,7 +115,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={utxoAddress}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {i18n.t('common.address')}
+                {t('common.address')}
               </SSText>
               <SSText color="muted">{utxoAddress}</SSText>
             </SSVStack>
@@ -125,7 +124,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={txid || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {i18n.t('common.transaction')}
+                {t('common.transaction')}
               </SSText>
               <SSText color="muted">{txid}</SSText>
             </SSVStack>
@@ -134,7 +133,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={vout || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {i18n.t('common.outputIndex')}
+                {t('common.outputIndex')}
               </SSText>
               <SSText color="muted">{vout}</SSText>
             </SSVStack>

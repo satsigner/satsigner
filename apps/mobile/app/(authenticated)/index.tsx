@@ -9,7 +9,7 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { sampleSignetWalletSeed } from '@/utils/samples'
@@ -61,13 +61,11 @@ export default function AccountList() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{i18n.t('satsigner.name')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{t('app.name')}</SSText>
         }}
       />
       <SSButton
-        label={i18n.t('addMasterKey.title')}
+        label={t('account.add')}
         variant="gradient"
         style={{ borderRadius: 0 }}
         onPress={() => router.navigate('/addMasterKey/')}
@@ -77,10 +75,10 @@ export default function AccountList() {
           {accounts.length === 0 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
-                {i18n.t('accountList.noKeysYet')}
+                {t('accounts.empty')}
               </SSText>
               <SSButton
-                label={i18n.t('addMasterKey.loadSampleSignetWallet')}
+                label={t('account.load.sample.signet')}
                 variant="ghost"
                 style={{ borderRadius: 0 }}
                 onPress={loadSampleSignetWallet}

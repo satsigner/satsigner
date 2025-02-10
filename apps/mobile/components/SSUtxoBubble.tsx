@@ -17,7 +17,7 @@ import {
   withTiming
 } from 'react-native-reanimated'
 
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress, formatLabel } from '@/utils/format'
@@ -107,7 +107,7 @@ function SSUtxoBubble({
         color: Skia.Color(Colors.gray[600]),
         fontSize: satsFontSize
       })
-      .addText(` ${i18n.t('bitcoin.sats').toLowerCase()}`)
+      .addText(` ${t('bitcoin.sats').toLowerCase()}`)
       .pop()
       .build()
     para.layout(200)
@@ -181,7 +181,7 @@ function SSUtxoBubble({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
       })
-      .addText(`${i18n.t('common.memo').toLowerCase()}`)
+      .addText(`${t('common.memo').toLowerCase()}`)
       .pushStyle({
         ...textStyle,
         fontStyle: {
@@ -222,7 +222,7 @@ function SSUtxoBubble({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
       })
-      .addText(`${i18n.t('common.from').toLowerCase()}`)
+      .addText(`${t('common.from').toLowerCase()}`)
       .pushStyle({
         ...textStyle,
         fontStyle: {

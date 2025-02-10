@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -48,17 +48,15 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
             <SSText size="3xl" style={{ lineHeight: 30 }}>
               {formatNumber(utxo.value, 0, useZeroPadding)}
             </SSText>
-            <SSText color="muted">
-              {i18n.t('bitcoin.sats').toLowerCase()}
-            </SSText>
+            <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
           </SSHStack>
           <SSHStack>
             <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
             <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
           </SSHStack>
           <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
-            {i18n.t('common.memo')} {': '}
-            {formatLabel(utxo.label || i18n.t('account.noLabel'))['label']}
+            {t('common.memo')} {': '}
+            {formatLabel(utxo.label || t('account.noLabel'))['label']}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">
