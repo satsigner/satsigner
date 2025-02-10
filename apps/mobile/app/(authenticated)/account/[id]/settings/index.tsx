@@ -52,14 +52,12 @@ export default function AccountSettings() {
   const [seed, setSeed] = useState('')
 
   function getScriptVersionButtonLabel() {
-    if (scriptVersion === 'P2PKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
+    if (scriptVersion === 'P2PKH') return `${t('script.p2pkh.name')} (P2PKH)`
     else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+      return `${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`
     else if (scriptVersion === 'P2WPKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
-    else if (scriptVersion === 'P2TR')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
+      return `${t('script.p2wpkh.name')} (P2WPKH)`
+    else if (scriptVersion === 'P2TR') return `${t('script.p2tr.name')} (P2TR)`
 
     return ''
   }
