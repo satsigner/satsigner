@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,6 +21,12 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+import { i18n } from '@/locales'
+import { Account } from '@/types/models/Account'
+import SSLink from '@/components/SSLink'
+import { SSIconScriptsP2pkh } from '@/components/icons'
+import { setStateWithLayoutAnimation } from '@/utils/animation'
+import SSFormLayout from '@/layouts/SSFormLayout'
 
 const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
@@ -48,7 +54,13 @@ const text: Record<WatchOnlyOption, string> = {
 export default function WatchOnlyOptions() {
   const name = useAccountBuilderStore(useShallow((state) => state.name))
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
+
+  const [scriptVersion, setScriptVersion] =
+    useState<Account['scriptVersion'] | null>(null)
+
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
+  const [scriptVersionModalVisible, setScriptVersionModalVisible] =
+    useState(false)
 
   const [masterFingerprint, setMasterFingerprint] = useState('')
   const [derivationPath, setDerivationPath] = useState('')
@@ -80,20 +92,35 @@ export default function WatchOnlyOptions() {
   function updateXpub(xpub: string) {
     setValidXpub(!xpub || validateExtendedKey(xpub))
     setXpub(xpub)
-    if (xpub.match(/^x(pub|priv)/) && derivationPath === '') {
-      setDerivationPath("M/44'/0/0")
+    if (xpub.match(/^x(pub|priv)/)) {
+      if (!derivationPath) setDerivationPath("M/44'/0'/0'")
+      if (!scriptVersion) setScriptVersion('P2PKH')
     }
-    if (xpub.match(/^y(pub|priv)/) && derivationPath === '') {
-      setDerivationPath("M/49'/0/0")
+    if (xpub.match(/^y(pub|priv)/)) {
+      if (!derivationPath) setDerivationPath("M/49'/0'/0'")
+      if (!scriptVersion) setScriptVersion('P2SH-P2WPKH')
     }
     if (xpub.match(/^z(pub|priv)/) && derivationPath === '') {
-      setDerivationPath("M/84'/0/0")
+      if (!derivationPath) setDerivationPath("M/84'/0'/0'")
+      if (!scriptVersion) setScriptVersion('P2WPKH')
     }
   }
 
   function updateDescriptor(descriptor: string) {
     setValidDescriptor(!descriptor || validateDescriptor(descriptor))
     setDescriptor(descriptor)
+  }
+
+  function getScriptVersionButtonLabel() {
+    if (scriptVersion === 'P2PKH')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
+    else if (scriptVersion === 'P2SH-P2WPKH')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+    else if (scriptVersion === 'P2WPKH')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
+    else if (scriptVersion === 'P2TR')
+      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
+    return ''
   }
 
   async function pasteFromClipboard() {
@@ -140,54 +167,146 @@ export default function WatchOnlyOptions() {
             />
           ))}
         </SSSelectModal>
+
+        <SSSelectModal
+          visible={scriptVersionModalVisible}
+          title={i18n.t('addMasterKey.accountOptions.scriptVersion')}
+          selectedText={`${scriptVersion} - ${i18n.t(
+            `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
+          )}`}
+          selectedDescription={
+            <SSCollapsible>
+              <SSText color="muted" size="md">
+                {i18n.t(
+                  `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
+                )}
+                <SSLink
+                  size="md"
+                  text={i18n.t(
+                    `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
+                  )}
+                  url={i18n.t(
+                    `addMasterKey.accountOptions.scriptVersions.links.url.${scriptVersion?.toLowerCase()}`
+                  )}
+                />
+                {i18n.t(
+                  `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.1`
+                )}
+              </SSText>
+              <SSIconScriptsP2pkh height={80} width="100%" />
+            </SSCollapsible>
+          }
+          onSelect={() => setScriptVersionModalVisible(false)}
+          onCancel={() => setScriptVersionModalVisible(false)}
+        >
+          <SSRadioButton
+            label={`${i18n.t(
+              'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
+            )} (P2PKH)`}
+            selected={scriptVersion === 'P2PKH'}
+            onPress={() =>
+              setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')
+            }
+          />
+          <SSRadioButton
+            label={`${i18n.t(
+              'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
+            )} (P2SH-P2WPKH)`}
+            selected={scriptVersion === 'P2SH-P2WPKH'}
+            onPress={() =>
+              setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
+            }
+          />
+          <SSRadioButton
+            label={`${i18n.t(
+              'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
+            )} (P2WPKH)`}
+            selected={scriptVersion === 'P2WPKH'}
+            onPress={() =>
+              setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
+            }
+          />
+          <SSRadioButton
+            label={`${i18n.t(
+              'addMasterKey.accountOptions.scriptVersions.names.p2tr'
+            )} (P2TR)`}
+            selected={scriptVersion === 'P2TR'}
+            onPress={() =>
+              setStateWithLayoutAnimation(setScriptVersion, 'P2TR')
+            }
+          />
+        </SSSelectModal>
         {!modalOptionsVisible && (
           <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
             <SSVStack gap="lg">
-              <SSVStack gap="xs">
-                <SSText center>{labels[selectedOption]}</SSText>
+              <SSVStack gap="sm">
+                <SSVStack gap="xxs">
+                  <SSText center>{labels[selectedOption]}</SSText>
+                  {selectedOption === 'xpub' && (
+                    <SSTextInput
+                      value={xpub}
+                      style={validXpub ? styles.valid : styles.invalid}
+                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      onChangeText={updateXpub}
+                    />
+                  )}
+                  {selectedOption === 'descriptor' && (
+                    <SSTextInput
+                      value={descriptor}
+                      style={validDescriptor ? styles.valid : styles.invalid}
+                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      onChangeText={updateDescriptor}
+                    />
+                  )}
+                  {selectedOption === 'address' && (
+                    <SSTextInput
+                      value={address}
+                      style={validAddress ? styles.valid : styles.invalid}
+                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      onChangeText={updateAddress}
+                    />
+                  )}
+                </SSVStack>
                 {selectedOption === 'xpub' && (
-                  <SSTextInput
-                    value={xpub}
-                    style={validXpub ? styles.valid : styles.invalid}
-                    placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                    onChangeText={updateXpub}
-                  />
-                )}
-                {selectedOption === 'descriptor' && (
-                  <SSTextInput
-                    value={descriptor}
-                    style={validDescriptor ? styles.valid : styles.invalid}
-                    placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                    onChangeText={updateDescriptor}
-                  />
-                )}
-                {selectedOption === 'address' && (
-                  <SSTextInput
-                    value={address}
-                    style={validAddress ? styles.valid : styles.invalid}
-                    placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                    onChangeText={updateAddress}
-                  />
+                  <Fragment>
+                    <SSVStack gap="xxs">
+                      <SSFormLayout.Label
+                        label={i18n
+                          .t('addMasterKey.accountOptions.scriptVersion')
+                          .toUpperCase()}
+                      />
+                      <SSButton
+                        label={getScriptVersionButtonLabel()}
+                        withSelect
+                        onPress={() => setScriptVersionModalVisible(true)}
+                      />
+                    </SSVStack>
+                    <SSVStack gap="xxs">
+                      <SSText center>MASTER FINGERPRINT (optional)</SSText>
+                      <SSTextInput
+                        value={masterFingerprint}
+                        style={
+                          validMasterFingerprint ? styles.valid : styles.invalid
+                        }
+                        placeholder="ENTER FINGERPRINT"
+                        onChangeText={updateMasterFingerprint}
+                      />
+                    </SSVStack>
+                    <SSVStack gap="xxs">
+                      <SSText center>DERIVATION PATH (optional)</SSText>
+                      <SSTextInput
+                        value={derivationPath}
+                        style={
+                          validDerivationPath ? styles.valid : styles.invalid
+                        }
+                        placeholder="ENTER PATH"
+                        onChangeText={updateDerivationPath}
+                      />
+                    </SSVStack>
+                  </Fragment>
                 )}
               </SSVStack>
-              {selectedOption === 'xpub' && (
-                <SSVStack gap="xs">
-                  <SSText center>MASTER FINGERPRINT (optional)</SSText>
-                  <SSTextInput
-                    value={masterFingerprint}
-                    style={
-                      validMasterFingerprint ? styles.valid : styles.invalid
-                    }
-                    onChangeText={updateMasterFingerprint}
-                  />
-                  <SSText center>DERIVATION PATH (optional)</SSText>
-                  <SSTextInput
-                    value={derivationPath}
-                    style={validDerivationPath ? styles.valid : styles.invalid}
-                    onChangeText={updateDerivationPath}
-                  />
-                </SSVStack>
-              )}
+
               <SSVStack>
                 <SSButton
                   label="PASTE FROM CLIPBOARD"
