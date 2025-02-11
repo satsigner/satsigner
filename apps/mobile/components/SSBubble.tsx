@@ -7,7 +7,7 @@ import {
   type SkTypefaceFontProvider,
   TextAlign
 } from '@shopify/react-native-skia'
-import React, { useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import {
   type SharedValue,
   useDerivedValue,
@@ -23,7 +23,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
-type SSUtxoBubbleProps = {
+type SSBubbleProps = {
   utxo: Utxo
   x: number
   y: number
@@ -35,9 +35,7 @@ type SSUtxoBubbleProps = {
   animationDelay?: number
 }
 
-export default React.memo(SSUtxoBubble)
-
-function SSUtxoBubble({
+function SSBubble({
   utxo,
   x,
   y,
@@ -47,10 +45,10 @@ function SSUtxoBubble({
   customFontManager,
   scale,
   animationDelay = 0
-}: SSUtxoBubbleProps) {
+}: SSBubbleProps) {
   const opacity = useSharedValue(0)
 
-  React.useEffect(() => {
+  useEffect(() => {
     opacity.value = withDelay(
       animationDelay,
       withSequence(
@@ -284,3 +282,5 @@ function SSUtxoBubble({
     </Group>
   )
 }
+
+export default memo(SSBubble)

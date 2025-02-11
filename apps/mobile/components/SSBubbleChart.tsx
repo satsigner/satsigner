@@ -17,9 +17,9 @@ import { useLayout } from '@/hooks/useLayout'
 import { type Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-import SSUtxoBubble from './SSUtxoBubble'
+import SSBubble from './SSBubble'
 
-type SSUtxoBubblesProps = {
+type SSBubbleChartProps = {
   canvasSize: {
     width: number
     height: number
@@ -41,13 +41,13 @@ type UtxoListBubble = Partial<Utxo> & {
   children: UtxoListBubble[]
 }
 
-export default function SSUtxoBubbles({
+export default function SSBubbleChart({
   utxos,
   canvasSize,
   inputs,
   onPress,
   style = {}
-}: SSUtxoBubblesProps) {
+}: SSBubbleChartProps) {
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2
@@ -147,7 +147,7 @@ export default function SSUtxoBubbles({
             }
 
             return (
-              <SSUtxoBubble
+              <SSBubble
                 key={packedUtxo.data.id}
                 utxo={utxo}
                 x={packedUtxo.x}

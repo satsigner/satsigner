@@ -30,6 +30,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
+import SSBubbleChart from '@/components/SSBubbleChart'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -37,7 +38,6 @@ import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -300,7 +300,7 @@ function SpendableOutputs({
       )}
       <GestureHandlerRootView style={{ flex: 1 }}>
         {view === 'bubbles' && (
-          <SSUtxoBubbles
+          <SSBubbleChart
             utxos={[...account.utxos]}
             canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
             inputs={[]}

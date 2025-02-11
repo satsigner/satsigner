@@ -7,11 +7,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconList } from '@/components/icons'
+import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -168,7 +168,7 @@ function SelectUtxoBubbles() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <SSUtxoBubbles
+      <SSBubbleChart
         utxos={account.utxos}
         canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
         inputs={getInputs()}
