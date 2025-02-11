@@ -58,7 +58,7 @@ export default function SSBubbleChart({
       require('@/assets/fonts/SF-Pro-Text-Medium.otf')
     ]
   })
-  const [utxoList, setUtxoList] = useState([] as UtxoListItem[])
+  const [utxoList, setUtxoList] = useState<UtxoListItem[]>([])
 
   useEffect(() => {
     setUtxoList(
