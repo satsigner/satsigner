@@ -15,12 +15,12 @@ import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   bip329export,
-  Bip329FileType,
+  type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
   formatTransactionLabels,
   formatUtxoLabels,
-  Label
+  type Label
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 

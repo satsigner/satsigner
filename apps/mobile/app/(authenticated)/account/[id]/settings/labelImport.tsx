@@ -14,11 +14,11 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
-  Bip329FileType,
+  type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
   bip329parser,
-  Label
+  type Label
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
