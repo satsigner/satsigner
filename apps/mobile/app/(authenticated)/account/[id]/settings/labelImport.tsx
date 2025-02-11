@@ -16,9 +16,9 @@ import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   Bip329FileType,
   bip329FileTypes,
-  Label,
   bip329mimes,
-  bip329parser
+  bip329parser,
+  Label
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
@@ -64,6 +64,7 @@ export default function SSLabelExport() {
       try {
         bip329parser[type](text)
         setImportType(type)
+        setInvalidContent(false)
         break
       } catch {
         //
@@ -123,6 +124,7 @@ export default function SSLabelExport() {
             <SSButton
               label="IMPORT FROM CLIPBOARD"
               onPress={importLabelsFromClipboard}
+              disabled={invalidContent}
             />
           </SSVStack>
         )}

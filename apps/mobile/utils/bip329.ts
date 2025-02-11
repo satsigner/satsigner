@@ -1,8 +1,8 @@
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
-import { getUtxoOutpoint } from './utxo'
 import { PickFileProps } from './filesystem'
+import { getUtxoOutpoint } from './utxo'
 
 export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
 
@@ -81,10 +81,12 @@ export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
   if (lines.length < 0) throw new Error('Empty CSV text')
   const header = lines[0]
+  if (!header.match(/^([a-z]+,?)+/)) throw new Error('Invalid CSV header')
   const rows = lines.slice(1)
   const labels: Label[] = []
   const columns = header.split(',')
   for (const row of rows) {
+    if (!row.match(/^([^,]*,?)+$/)) throw new Error('Invalid CSV line')
     const rowItems = row.split(',')
     const label = {} as Label
     for (const index in columns) {
@@ -109,5 +111,8 @@ export function labelsToJSONL(labels: Label[]): string {
 }
 
 export function JSONLtoLabels(JSONLines: string): Label[] {
-  return JSONLines.split('\n').map((line) => JSON.parse(line) as Label)
+  return JSONLines.split('\n').map((line) => {
+    if (!line.match(/^{[^}]+}$/)) throw new Error('Invalid line (JSONL)')
+    return JSON.parse(line) as Label
+  })
 }
