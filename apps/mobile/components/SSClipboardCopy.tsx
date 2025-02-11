@@ -2,6 +2,8 @@ import * as Clipboard from 'expo-clipboard'
 import { useState } from 'react'
 import { TouchableWithoutFeedback, View } from 'react-native'
 
+import { t } from '@/locales'
+
 import SSPopupText from './SSPopupText'
 
 type SSTextClipboardProps = {
@@ -31,7 +33,7 @@ export default function SSTextClipboard({
           <SSPopupText
             isVisible={showPopup}
             onTimeout={() => setShowPopup(false)}
-            message="Copied to clipboard"
+            message={t('common.copiedToClipboard')}
           />
         )}
       </View>

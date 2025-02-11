@@ -109,6 +109,7 @@
     "close": "Close",
     "confirm": "Confirm",
     "continue": "Continue",
+    "copiedToClipboard": "Copied to clipboard",
     "copy": "Copy",
     "copyToClipboard": "Copy to clipboard",
     "createTag": "Create tag %{tag}",
