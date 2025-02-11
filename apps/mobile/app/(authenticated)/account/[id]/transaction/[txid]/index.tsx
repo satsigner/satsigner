@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -231,9 +230,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
   const [timestamp, setTimestamp] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const updateInfo = async () => {
     if (!tx) return
 

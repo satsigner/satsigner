@@ -1,7 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -16,10 +15,8 @@ import { shareFile } from '@/utils/filesystem'
 export default function SSLabelExport() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.name === accountId)
-    ])
+  const account = useAccountsStore((state) =>
+    state.accounts.find((_account) => _account.name === accountId)
   )
 
   const [exportContent, setExportContent] = useState('')

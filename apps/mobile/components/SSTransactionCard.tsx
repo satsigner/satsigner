@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -57,9 +56,7 @@ export default function SSTransactionCard({
   const { type, received, sent, prices } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   useEffect(() => {
     const itemsToDisplay: string[] = []

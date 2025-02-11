@@ -339,9 +339,7 @@ export default function AccountView() {
       ])
     )
 
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )

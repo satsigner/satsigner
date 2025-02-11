@@ -30,9 +30,7 @@ export default function SSUtxoItem({
   onToggleSelected
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected

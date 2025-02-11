@@ -34,12 +34,8 @@ export default function IOPreview() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const [permission, requestPermission] = useCameraPermissions()
 
-  const getCurrentAccount = useAccountsStore(
-    useShallow((state) => state.getCurrentAccount)
-  )
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,

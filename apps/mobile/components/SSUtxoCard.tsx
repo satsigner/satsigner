@@ -25,9 +25,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   const router = useRouter()
 

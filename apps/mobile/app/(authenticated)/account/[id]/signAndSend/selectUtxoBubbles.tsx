@@ -30,12 +30,8 @@ function SelectUtxoBubbles() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore(
-    useShallow((state) => state.getCurrentAccount)
-  )
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
       useShallow((state) => [

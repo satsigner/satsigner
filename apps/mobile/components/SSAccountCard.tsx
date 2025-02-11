@@ -1,5 +1,4 @@
 import { TouchableOpacity } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -24,9 +23,7 @@ export default function SSAccountCard({
   onPress
 }: SSAccountCardProps) {
   const priceStore = usePriceStore()
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
