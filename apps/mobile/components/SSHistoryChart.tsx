@@ -33,21 +33,9 @@ import { useChartSettingStore } from '@/store/chartSettings'
 import { Transaction } from '@/types/models/Transaction'
 import { Utxo } from '@/types/models/Utxo'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Rectangle } from '@/types/ui/geometry'
+import { isOverlapping } from '@/utils/geometry'
 import { getUtxoOutpoint } from '@/utils/utxo'
-
-type Rectangle = {
-  left: number
-  right: number
-  top: number
-  bottom: number
-  width?: number
-  height?: number
-}
-
-const isOverlapping = (rect1: Rectangle, rect2: Rectangle) => {
-  if (rect1.right < rect2.left || rect2.right < rect1.left) return false
-  return !(rect1.bottom < rect2.top || rect2.bottom < rect1.top)
-}
 
 type HistoryChartData = {
   memo: string
