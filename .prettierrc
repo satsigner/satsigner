@@ -4,6 +4,7 @@
   "semi": false,
   "singleQuote": true,
   "trailingComma": "none",
+  "plugins": ["prettier-plugin-pkg"],
   "overrides": [
     {
       "files": ["./apps/mobile/locales/*.json"],
