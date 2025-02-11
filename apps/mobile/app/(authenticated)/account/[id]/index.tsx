@@ -18,10 +18,10 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconBubbles,
   SSIconCamera,
-  SSIconChart,
   SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
+  SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
@@ -148,7 +148,7 @@ function TotalTransactions({
             {showHistoryChart ? (
               <SSIconMenu width={18} height={18} />
             ) : (
-              <SSIconChart width={18} height={18} />
+              <SSIconHistoryChart width={18} height={18} />
             )}
           </SSIconButton>
           <SSSortDirectionToggle
