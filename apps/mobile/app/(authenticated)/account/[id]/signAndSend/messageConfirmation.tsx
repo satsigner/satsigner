@@ -46,7 +46,7 @@ export default function MessageConfirmation() {
             </SSText>
             <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
-                {t('sent.transactionId')}
+                {t('transaction.id')}
               </SSText>
               <SSText>{formatAddress(txBuilderResult.txDetails.txid)}</SSText>
             </SSVStack>

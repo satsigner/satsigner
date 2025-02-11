@@ -116,6 +116,7 @@
     "invalid": "Invalid",
     "label": "Label",
     "less": "Less",
+    "loading": "Loading",
     "max": "Max",
     "more": "More",
     "next": "Next",
@@ -287,8 +288,7 @@
   "sent": {
     "broadcasted": "Message broadcasted",
     "copyTransactionId": "Copy transaction id",
-    "trackOnChain": "trackOnChain",
-    "transactionId": "Transaction id"
+    "trackOnChain": "trackOnChain"
   },
   "settings": {
     "about.description": "App version and other versioning information",
@@ -392,6 +392,7 @@
     "feeBytes": "Fee sat/b",
     "feeVBytes": "Fee sat/vb",
     "hash": "Hash",
+    "id": "Transaction id",
     "input.count": "Number of inputs",
     "input.plural": "Inputs",
     "input.previousOutput.transaction": "Previous transaction output hash",

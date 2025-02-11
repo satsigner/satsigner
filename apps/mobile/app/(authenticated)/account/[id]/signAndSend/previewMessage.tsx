@@ -97,9 +97,11 @@ export default function PreviewMessage() {
           <SSVStack>
             <SSVStack gap="xxs">
               <SSText color="muted" size="sm" uppercase>
-                Message Id
+                {t('transaction.id')}
               </SSText>
-              <SSText size="lg">{messageId || 'Loading...'}</SSText>
+              <SSText size="lg">
+                {messageId || `${t('common.loading')}...`}
+              </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
               <SSText color="muted" size="sm" uppercase>
