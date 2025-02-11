@@ -40,7 +40,7 @@ export default function Features() {
                   />
                 }
                 onPress={() => {
-                  router.navigate('/settings/config/features/chartSettings')
+                  router.navigate('/settings/features/historyChart')
                 }}
               />
               <SSSettingsCards
@@ -50,9 +50,7 @@ export default function Features() {
                 )}
                 icon={<SSIconZero width={24} height={24} />}
                 onPress={() => {
-                  router.navigate(
-                    '/settings/config/features/currencyFormatting'
-                  )
+                  router.navigate('/settings/features/currencyFormatting')
                 }}
               />
             </SSVStack>

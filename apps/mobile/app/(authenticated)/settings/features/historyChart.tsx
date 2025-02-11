@@ -11,7 +11,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useChartSettingStore } from '@/store/chartSettings'
 
-export default function ChartSettings() {
+export default function HistoryChart() {
   const router = useRouter()
   const [
     showLabel,

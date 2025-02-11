@@ -16,7 +16,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 
-export default function AppSecurity() {
+export default function Security() {
   const router = useRouter()
   const [pinMaxTries, setPinMaxTries] = useAuthStore(
     useShallow((state) => [state.pinMaxTries, state.setPinMaxTries])
