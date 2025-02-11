@@ -19,7 +19,7 @@ import {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
-  SSIconChartSetting,
+  SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
   SSIconKeys,
@@ -138,7 +138,7 @@ function TotalTransactions({
                 router.navigate(`/settings/config/features/chartSettings`)
               }
             >
-              <SSIconChartSetting width={22} height={18} />
+              <SSIconChartSettings width={22} height={18} />
             </SSIconButton>
           )}
         </SSHStack>

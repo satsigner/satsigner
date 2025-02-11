@@ -2,7 +2,7 @@ import SSIconAbout from './SSIconAbout'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
 import SSIconChart from './SSIconChart'
-import SSIconChartSetting from './SSIconChartSetting'
+import SSIconChartSettings from './SSIconChartSettings'
 import SSIconChartWhite from './SSIconChartWhite'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
@@ -41,7 +41,7 @@ export {
   SSIconBubbles,
   SSIconCamera,
   SSIconChart,
-  SSIconChartSetting,
+  SSIconChartSettings,
   SSIconChartWhite,
   SSIconCheckCircle,
   SSIconCheckCircleThin,
