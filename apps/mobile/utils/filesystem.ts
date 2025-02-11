@@ -22,7 +22,7 @@ export async function shareFile({
   await Sharing.shareAsync(fileUri, { mimeType, dialogTitle })
 }
 
-type PickFileProps = {
+export type PickFileProps = {
   type: 'application/json' | 'text/csv' | 'text/plain' | '*/*'
   encodingOrOptions?: any
 }
