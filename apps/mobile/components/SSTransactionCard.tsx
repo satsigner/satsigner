@@ -13,9 +13,9 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   formatConfirmations,
   formatFiatPrice,
-  formatLabel,
   formatPercentualChange
 } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSStyledSatText from './SSStyledSatText'
@@ -185,7 +185,7 @@ export default function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {formatLabel(transaction.label || t('transaction.noLabel')).label}
+            {parseLabel(transaction.label || t('transaction.noLabel')).label}
           </SSText>
           <SSHStack
             gap="xs"
@@ -194,7 +194,7 @@ export default function SSTransactionCard({
             }}
           >
             {transaction.label ? (
-              formatLabel(transaction.label).tags.map((tag, index) => (
+              parseLabel(transaction.label).tags.map((tag, index) => (
                 <SSText
                   key={index}
                   size={expand ? 'xxs' : 'xs'}

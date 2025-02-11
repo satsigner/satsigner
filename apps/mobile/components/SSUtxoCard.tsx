@@ -10,7 +10,8 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconInfo } from './icons'
 import SSText from './SSText'
@@ -56,7 +57,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
           </SSHStack>
           <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
             {t('common.memo')} {': '}
-            {formatLabel(utxo.label || t('utxo.noLabel'))['label']}
+            {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">

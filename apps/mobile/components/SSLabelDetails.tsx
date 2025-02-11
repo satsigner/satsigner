@@ -5,7 +5,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { formatLabel } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconEditPencil } from './icons'
 import SSButton from './SSButton'
@@ -27,7 +27,7 @@ export default function SSLabelDetails({
   const [tags, setTags] = useState<string[]>([])
 
   useEffect(() => {
-    const { label, tags } = formatLabel(originalLabel)
+    const { label, tags } = parseLabel(originalLabel)
     setLabel(label)
     setTags(tags)
   }, [originalLabel])

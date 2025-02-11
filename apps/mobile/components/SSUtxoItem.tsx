@@ -9,12 +9,8 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import {
-  formatAddress,
-  formatDate,
-  formatLabel,
-  formatNumber
-} from '@/utils/format'
+import { formatAddress, formatDate, formatNumber } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
@@ -45,7 +41,7 @@ export default function SSUtxoItem({
     })
   }, [selected])
 
-  const label = formatLabel(utxo.label || '').label
+  const label = parseLabel(utxo.label || '').label
 
   return (
     <View>

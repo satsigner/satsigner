@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { formatLabel, formatLabelTags } from '@/utils/format'
+import { parseLabel, parseLabelTags } from '@/utils/parse'
 
 import SSButton from './SSButton'
 import SSTagInput from './SSTagInput'
@@ -29,14 +29,14 @@ export default function SSLabelInput({
   const [label, setLabel] = useState('')
 
   function saveLabel() {
-    const newLabel = formatLabelTags(label, selectedTags)
+    const newLabel = parseLabelTags(label, selectedTags)
     if (newLabel !== originalLabel) {
       onUpdateLabel(newLabel)
     }
   }
 
   useEffect(() => {
-    const { label, tags } = formatLabel(originalLabel)
+    const { label, tags } = parseLabel(originalLabel)
     setLabel(label)
     setSelectedTags(tags)
   }, [originalLabel])
