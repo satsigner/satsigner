@@ -86,7 +86,7 @@ export default function FeeSelection() {
               color="white"
               style={styles.minerFeeLabel}
             >
-              MINER FEE
+              {t('transaction.build.minerFee')}
             </SSText>
             <SSHStack gap="lg" style={styles.periodSelector}>
               {timePeriod.map(({ value, label }) => (
@@ -128,7 +128,7 @@ export default function FeeSelection() {
               >
                 {feeSelected}{' '}
                 <SSText size="4xl" color="muted">
-                  sats/vB
+                  {t('bitcoin.satsVb')}
                 </SSText>
               </SSText>
 
@@ -143,7 +143,7 @@ export default function FeeSelection() {
                   <SSText size="md" weight="medium">
                     {formatNumber(feeSelected)}{' '}
                     <SSText size="md" color="muted">
-                      {feeSelected > 1 ? 'sats' : 'sat'}
+                      {feeSelected > 1 ? t('bitcoin.sats') : t('bitcoin.sat')}
                     </SSText>
                   </SSText>
                 </SSVStack>
@@ -151,21 +151,21 @@ export default function FeeSelection() {
                 <SSText size="md">
                   273{' '}
                   <SSText size="md" color="muted">
-                    sats
+                    {t('bitcoin.sats')}
                   </SSText>
                 </SSText>
 
                 <SSText size="md">
                   ~ 4{' '}
                   <SSText size="md" color="muted">
-                    blocks
+                    {t('bitcoin.blocks')}
                   </SSText>
                 </SSText>
 
                 <SSText size="md">
                   92{' '}
                   <SSText size="md" color="muted">
-                    sats
+                    {t('bitcoin.sats')}
                   </SSText>
                 </SSText>
               </SSHStack>
@@ -194,7 +194,7 @@ export default function FeeSelection() {
         >
           <SSVStack style={{ marginTop: 16 }}>
             <SSText color="muted" size="lg" uppercase>
-              Insufficient Sats
+              {t('transaction.build.insufficientSats')}
             </SSText>
           </SSVStack>
           <SSVStack

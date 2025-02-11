@@ -319,7 +319,7 @@ export default function IOPreview() {
         onClose={() => setAddOutputModalVisible(false)}
       >
         <SSText color="muted" uppercase>
-          {t('transaction..title')}
+          {t('transaction.build.add.output.title')}
         </SSText>
         <SSTextInput
           value={outputTo}

@@ -72,6 +72,8 @@
     "unlock": "Unlock Satsigner"
   },
   "bitcoin": {
+    "block": "Block",
+    "blocks": "Blocks",
     "checksum": "Checksum",
     "confirmations.manyBlocks": "Blocks deep",
     "confirmations.oneBlock": "Block deep",
@@ -83,7 +85,9 @@
     "notYourCoins": "Not your coins",
     "notYourKeys": "Not your keys",
     "passphrase": "Passphrase",
-    "sats": "Sats",
+    "sat": "sat",
+    "sats": "sats",
+    "satsVb": "sats/vB",
     "word": "Word",
     "words": "Words"
   },
@@ -96,6 +100,7 @@
   "common": {
     "acknowledge": "Acknowledge",
     "addTag": "Add tag",
+    "amount": "Amount",
     "areYouSure": "Are you sure?",
     "backToAccountHome": "Back to account home",
     "cancel": "Cancel",
@@ -333,10 +338,15 @@
     "address": "Address",
     "block": "In block",
     "build.add.input.title": "Add input",
+    "build.add.inputs.title": "Add as input to transaction",
     "build.add.label.title": "Add label",
     "build.add.output.title": "Add output",
+    "build.insufficientSats": "Insufficient sats",
+    "build.minerFee": "Miner fee",
+    "build.select.customAmount": "Custom amount",
     "build.select.spendableOutputs": "Select spendable outputs",
     "build.set.fee": "Set fee",
+    "build.type.customAmount": "Type custom amount for automatic selection",
     "build.type.label": "Type label",
     "decoded.description.flag": "This is a 1-byte flag that follows the marker in transactions with witness data. It must be non-zero. It can be interpreted as a bitvector, with the unused bits available for future extensibility for other types of witness data.",
     "decoded.description.locktime": "This is a 4-byte little-endian number that specifies the absolute locktime of the transaction.",
@@ -416,6 +426,7 @@
     "weight": "Weight"
   },
   "utxo": {
+    "group": "Group",
     "label": "Label"
   }
 }

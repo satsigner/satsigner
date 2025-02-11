@@ -121,8 +121,10 @@ export default function SelectUtxoList() {
       <SSMainLayout style={{ flex: 0 }}>
         <SSVStack>
           <SSHStack justifyBetween>
-            <SSText color="muted">Group</SSText>
-            <SSText size="md">{t('signAndSend.selectSpendableOutputs')}</SSText>
+            <SSText color="muted">{t('utxo.group')}</SSText>
+            <SSText size="md">
+              {t('transaction.build.select.spendableOutputs')}
+            </SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
@@ -237,7 +239,7 @@ export default function SelectUtxoList() {
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
         <SSButton
-          label={t('signAndSend.addAsInputToMessage')}
+          label={t('transaction.build.add.inputs.title')}
           variant="secondary"
           disabled={!hasSelectedUtxos}
           style={[

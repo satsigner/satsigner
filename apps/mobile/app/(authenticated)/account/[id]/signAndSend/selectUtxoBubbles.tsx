@@ -110,8 +110,10 @@ function SelectUtxoBubbles() {
       >
         <SSVStack>
           <SSHStack justifyBetween>
-            <SSText color="muted">Group</SSText>
-            <SSText size="md">{t('signAndSend.selectSpendableOutputs')}</SSText>
+            <SSText color="muted">{t('utxo.group')}</SSText>
+            <SSText size="md">
+              {t('transaction.build.select.spendableOutputs')}
+            </SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
@@ -185,7 +187,7 @@ function SelectUtxoBubbles() {
         <SSVStack style={{ width: '92%' }}>
           <SSHStack justifyBetween>
             <SSButton
-              label={t('signAndSend.customAmount')}
+              label={t('transaction.build.select.customAmount')}
               variant="ghost"
               style={{ width: 'auto', height: 'auto' }}
               onPress={() => setCustomAmountModalVisible(true)}
@@ -193,8 +195,8 @@ function SelectUtxoBubbles() {
             <SSButton
               label={
                 selectedAllUtxos
-                  ? t('signAndSend.deselectAll')
-                  : t('signAndSend.selectAll')
+                  ? t('common.deselectAll')
+                  : t('common.selectAll')
               }
               variant="ghost"
               style={{ width: 'auto', height: 'auto' }}
@@ -206,7 +208,7 @@ function SelectUtxoBubbles() {
             />
           </SSHStack>
           <SSButton
-            label={t('signAndSend.addAsInputToMessage')}
+            label={t('transaction.build.add.inputs.title')}
             variant="secondary"
             disabled={!hasSelectedUtxos}
             style={[
@@ -227,8 +229,8 @@ function SelectUtxoBubbles() {
         onClose={() => setCustomAmountModalVisible(false)}
       >
         <SSVStack>
-          <SSText size="lg" center style={{ maxWidth: 240 }}>
-            TYPE CUSTOM AMOUNT FOR AUTOMATIC SELECTION
+          <SSText size="lg" uppercase center style={{ maxWidth: 240 }}>
+            {t('transaction.build.type.customAmount')}
           </SSText>
         </SSVStack>
       </SSModal>
