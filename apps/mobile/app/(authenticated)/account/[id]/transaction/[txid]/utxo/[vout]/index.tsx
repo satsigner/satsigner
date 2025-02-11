@@ -11,7 +11,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import type { UtxoSearchParams } from '@/types/navigation/searchParams'
+import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatNumber } from '@/utils/format'
 
 export default function UtxoDetails() {
