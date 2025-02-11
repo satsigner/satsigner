@@ -6,9 +6,9 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { Account } from '@/types/models/Account'
-import { Transaction } from '@/types/models/Transaction'
-import { TxSearchParams } from '@/types/navigation/searchParams'
+import { type Account } from '@/types/models/Account'
+import { type Transaction } from '@/types/models/Transaction'
+import { type TxSearchParams } from '@/types/navigation/searchParams'
 
 import { SSTxDetailsHeader } from '.'
 

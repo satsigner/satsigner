@@ -8,7 +8,7 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { Utxo } from '@/types/models/Utxo'
+import { type Utxo } from '@/types/models/Utxo'
 import {
   formatAddress,
   formatDate,

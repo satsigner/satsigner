@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { TextInput } from 'react-native-gesture-handler'
+import { type TextInput } from 'react-native-gesture-handler'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'

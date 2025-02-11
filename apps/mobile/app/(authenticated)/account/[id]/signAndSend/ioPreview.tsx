@@ -23,8 +23,8 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
-import type { Utxo } from '@/types/models/Utxo'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Utxo } from '@/types/models/Utxo'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 
 const MINING_FEE_VALUE = 1635

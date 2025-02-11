@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
-import { TextFontSize } from '@/styles/sizes'
+import { type TextFontSize } from '@/styles/sizes'
 
 import SSText from './SSText'
 

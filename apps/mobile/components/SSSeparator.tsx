@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
 

@@ -1,10 +1,16 @@
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import {
   Keyboard,
-  NativeSyntheticEvent,
+  type NativeSyntheticEvent,
   StyleSheet,
   TextInput,
-  TextInputKeyPressEventData
+  type TextInputKeyPressEventData
 } from 'react-native'
 
 import { PIN_SIZE } from '@/config/auth'

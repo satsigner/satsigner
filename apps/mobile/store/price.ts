@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { Currency, Prices } from '@/types/models/Blockchain'
+import { type Currency, type Prices } from '@/types/models/Blockchain'
 // import { useBlockchainStore } from './blockchain'
 
 type PriceState = {

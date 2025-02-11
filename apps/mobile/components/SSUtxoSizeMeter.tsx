@@ -1,6 +1,6 @@
 import { scaleLinear } from 'd3'
 import { useMemo } from 'react'
-import { DimensionValue, StyleSheet, View } from 'react-native'
+import { type DimensionValue, StyleSheet, View } from 'react-native'
 
 import { Colors } from '@/styles'
 

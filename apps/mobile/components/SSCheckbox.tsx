@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import BouncyCheckbox, {
-  BouncyCheckboxProps
+  type BouncyCheckboxProps
 } from 'react-native-bouncy-checkbox'
 
 import { Colors, Sizes } from '@/styles'

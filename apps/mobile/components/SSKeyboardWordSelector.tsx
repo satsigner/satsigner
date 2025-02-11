@@ -4,13 +4,13 @@ import {
   FlatList,
   Keyboard,
   Platform,
-  StyleProp,
+  type StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
-  ViewStyle
+  type ViewStyle
 } from 'react-native'
 
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'

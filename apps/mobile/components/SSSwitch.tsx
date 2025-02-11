@@ -2,8 +2,8 @@ import { Switch } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import { HStackGap } from '@/styles/layout'
-import { TextFontSize } from '@/styles/sizes'
+import { type HStackGap } from '@/styles/layout'
+import { type TextFontSize } from '@/styles/sizes'
 
 import SSText from './SSText'
 

@@ -1,5 +1,5 @@
-import { Descriptor, Wallet } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { type Descriptor, type Wallet } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'

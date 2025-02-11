@@ -8,7 +8,7 @@ import {
   useRef,
   useState
 } from 'react'
-import { LayoutChangeEvent, StyleSheet, View } from 'react-native'
+import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import {
   Gesture,
   GestureDetector,
@@ -30,10 +30,10 @@ import Svg, {
 import { useShallow } from 'zustand/react/shallow'
 
 import { useChartSettingStore } from '@/store/chartSettings'
-import { Transaction } from '@/types/models/Transaction'
-import { Utxo } from '@/types/models/Utxo'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
-import type { Rectangle } from '@/types/ui/geometry'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Rectangle } from '@/types/ui/geometry'
 import { isOverlapping } from '@/utils/geometry'
 import { getUtxoOutpoint } from '@/utils/utxo'
 

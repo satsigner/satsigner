@@ -4,12 +4,12 @@ import {
   Paint,
   Paragraph,
   Skia,
-  SkTypefaceFontProvider,
+  type SkTypefaceFontProvider,
   TextAlign
 } from '@shopify/react-native-skia'
 import React, { useMemo } from 'react'
 import {
-  SharedValue,
+  type SharedValue,
   useDerivedValue,
   useSharedValue,
   withDelay,

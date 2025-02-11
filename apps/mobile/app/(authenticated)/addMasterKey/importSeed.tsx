@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { AppState, ScrollView, TextInput } from 'react-native'
+import { AppState, ScrollView, type TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'

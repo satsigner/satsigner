@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import {
   ActivityIndicator,
-  StyleProp,
+  type StyleProp,
   StyleSheet,
-  TextStyle,
+  type TextStyle,
   TouchableOpacity,
   View
 } from 'react-native'

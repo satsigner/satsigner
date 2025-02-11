@@ -1,4 +1,4 @@
-import type { BarCodeScanningResult } from 'expo-camera'
+import { type BarCodeScanningResult } from 'expo-camera'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'

@@ -1,7 +1,7 @@
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
-import { PickFileProps } from './filesystem'
+import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
 
 export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'

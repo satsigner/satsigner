@@ -1,13 +1,13 @@
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, HierarchyCircularNode, pack } from 'd3'
+import { hierarchy, type HierarchyCircularNode, pack } from 'd3'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  GestureResponderEvent,
+  type GestureResponderEvent,
   Platform,
-  StyleProp,
+  type StyleProp,
   TouchableOpacity,
   View,
-  ViewStyle
+  type ViewStyle
 } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'

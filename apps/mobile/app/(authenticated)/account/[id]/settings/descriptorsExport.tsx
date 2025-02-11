@@ -10,7 +10,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { shareFile } from '@/utils/filesystem'
 
 export default function SSLabelExport() {

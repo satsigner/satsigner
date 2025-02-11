@@ -1,5 +1,5 @@
-import { Wallet } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { type Wallet } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 
 import {

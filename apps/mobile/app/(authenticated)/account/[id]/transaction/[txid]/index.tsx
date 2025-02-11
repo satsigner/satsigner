@@ -1,7 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import {
-  DimensionValue,
+  type DimensionValue,
   ScrollView,
   StyleSheet,
   TouchableOpacity
@@ -23,8 +23,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { Transaction } from '@/types/models/Transaction'
-import type { TxSearchParams } from '@/types/navigation/searchParams'
+import { type Transaction } from '@/types/models/Transaction'
+import { type TxSearchParams } from '@/types/navigation/searchParams'
 import {
   formatConfirmations,
   formatDate,

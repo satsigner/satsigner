@@ -9,7 +9,7 @@ import { Animated, StyleSheet, Text, View } from 'react-native'
 import { Path, Svg } from 'react-native-svg'
 import { CartesianChart, StackedArea } from 'victory-native'
 
-import type { MempoolStatistics } from '@/types/models/Blockchain'
+import { type MempoolStatistics } from '@/types/models/Blockchain'
 
 import SSText from './SSText'
 

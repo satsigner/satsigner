@@ -9,7 +9,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
 
 import { SSIconInfo } from './icons'

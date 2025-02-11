@@ -5,7 +5,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { TxDecoded, TxDecodedField } from '@/utils/txDecoded'
+import { TxDecoded, type TxDecodedField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
 

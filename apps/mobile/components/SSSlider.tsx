@@ -1,5 +1,5 @@
 import Slider from '@react-native-community/slider'
-import { type StyleProp, ViewStyle } from 'react-native'
+import { type StyleProp, type ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
 

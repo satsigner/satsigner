@@ -1,4 +1,4 @@
-import { ForwardedRef, forwardRef, useMemo } from 'react'
+import { type ForwardedRef, forwardRef, useMemo } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'

@@ -8,8 +8,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import type { Currency } from '@/types/models/Blockchain'
-import type { Transaction } from '@/types/models/Transaction'
+import { type Currency } from '@/types/models/Blockchain'
+import { type Transaction } from '@/types/models/Transaction'
 import {
   formatConfirmations,
   formatFiatPrice,
