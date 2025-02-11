@@ -107,10 +107,10 @@ export default function SSBubbleChart({
     }
   )
 
-  const handleOnPressCircle = (
+  function handleOnPressCircle(
     event: GestureResponderEvent,
     packedUtxo: HierarchyCircularNode<UtxoListBubble>
-  ) => {
+  ) {
     const rSquared = packedUtxo.r * packedUtxo.r
     const touchPointX = event.nativeEvent.locationX
     const touchPointY = event.nativeEvent.locationY
