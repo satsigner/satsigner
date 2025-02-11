@@ -13,7 +13,13 @@ import { i18n } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { CSVtoLabels } from '@/utils/bip329'
+import {
+  type Bip329FileType,
+  bip329FileTypes,
+  bip329mimes,
+  bip329parser,
+  type Label
+} from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
 export default function SSLabelExport() {
@@ -26,31 +32,56 @@ export default function SSLabelExport() {
     ])
   )
 
-  const [importType, setImportType] = useState('JSON')
+  const [importType, setImportType] = useState<Bip329FileType>('JSONL')
   const [importContent, setImportContent] = useState('')
+  const [invalidContent, setInvalidContent] = useState(false)
 
   if (!account || !accountId) return <Redirect href="/" />
 
   function importLabelsFromClipboard() {
-    const labels =
-      importType === 'JSON'
-        ? JSON.parse(importContent)
-        : CSVtoLabels(importContent)
+    const labels: Label[] = bip329parser[importType](importContent)
     importLabelsToAccount(accountId!, labels)
     router.back()
   }
 
   async function importLabels() {
-    const type = importType === 'JSON' ? 'application/json' : 'text/csv'
+    const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
     if (!fileContent) return
-    const labels =
-      importType === 'JSON' ? JSON.parse(fileContent) : CSVtoLabels(fileContent)
+
+    const labels: Label[] = bip329parser[importType](fileContent)
     importLabelsToAccount(accountId!, labels)
     router.back()
   }
 
-  //
+  async function pasteFromClipboard() {
+    const text = await Clipboard.getStringAsync()
+    if (!text) return
+    setImportContent(text)
+
+    // try guessing import type
+    for (const type of bip329FileTypes) {
+      try {
+        bip329parser[type](text)
+        setImportType(type)
+        setInvalidContent(false)
+        break
+      } catch {
+        //
+      }
+    }
+  }
+
+  function updateImportType(type: Bip329FileType) {
+    setImportType(type)
+    try {
+      bip329parser[type](importContent)
+      setInvalidContent(false)
+    } catch {
+      setInvalidContent(true)
+    }
+  }
+
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
@@ -66,16 +97,14 @@ export default function SSLabelExport() {
           IMPORT BIP329 LABELS
         </SSText>
         <SSHStack>
-          <SSCheckbox
-            label="JSON"
-            selected={importType === 'JSON'}
-            onPress={() => setImportType('JSON')}
-          />
-          <SSCheckbox
-            label="CSV"
-            selected={importType === 'CSV'}
-            onPress={() => setImportType('CSV')}
-          />
+          {bip329FileTypes.map((type) => (
+            <SSCheckbox
+              key={type}
+              label={type}
+              selected={importType === type}
+              onPress={() => updateImportType(type)}
+            />
+          ))}
         </SSHStack>
         {importContent && (
           <SSVStack>
@@ -83,7 +112,9 @@ export default function SSLabelExport() {
               style={{
                 padding: 10,
                 backgroundColor: Colors.gray[900],
-                borderRadius: 5
+                borderRadius: 5,
+                borderWidth: 1,
+                borderColor: invalidContent ? Colors.error : Colors.gray[900]
               }}
             >
               <SSText color="white" size="md" type="mono">
@@ -93,16 +124,11 @@ export default function SSLabelExport() {
             <SSButton
               label="IMPORT FROM CLIPBOARD"
               onPress={importLabelsFromClipboard}
+              disabled={invalidContent}
             />
           </SSVStack>
         )}
-        <SSButton
-          label="PASTE FROM CLIPBOARD"
-          onPress={async () => {
-            const text = await Clipboard.getStringAsync()
-            setImportContent(text || '')
-          }}
-        />
+        <SSButton label="PASTE FROM CLIPBOARD" onPress={pasteFromClipboard} />
         <SSButton
           label={`IMPORT FROM ${importType}`}
           variant="secondary"
