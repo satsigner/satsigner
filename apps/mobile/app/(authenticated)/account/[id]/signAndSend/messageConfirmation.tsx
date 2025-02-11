@@ -42,11 +42,11 @@ export default function MessageConfirmation() {
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>
             <SSText weight="bold" size="lg">
-              {t('messageConfirmation.messageBroadcasted')}
+              {t('sent.broadcasted')}
             </SSText>
             <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
-                {t('messageConfirmation.messageId')}
+                {t('sent.transactionId')}
               </SSText>
               <SSText>{formatAddress(txBuilderResult.txDetails.txid)}</SSText>
             </SSVStack>
@@ -54,14 +54,14 @@ export default function MessageConfirmation() {
           <SSVStack>
             <SSButton
               variant="outline"
-              label={t('messageConfirmation.copyTxMessageId')}
+              label={t('sent.copyTransactionId')}
               onPress={() =>
                 Clipboard.setStringAsync(txBuilderResult.txDetails.txid)
               }
             />
             <SSButton
               variant="outline"
-              label={t('messageConfirmation.trackOnChain')}
+              label={t('sent.trackOnChain')}
               onPress={() =>
                 WebBrowser.openBrowserAsync(
                   `https://mempool.space/signet/tx/${txBuilderResult.txDetails.txid}`
@@ -70,7 +70,7 @@ export default function MessageConfirmation() {
             />
             <SSButton
               variant="secondary"
-              label={t('messageConfirmation.backToAccountHome')}
+              label={t('common.backToAccountHome')}
               onPress={() => handleBackToHome()}
             />
           </SSVStack>

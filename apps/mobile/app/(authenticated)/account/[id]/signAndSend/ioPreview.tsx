@@ -187,7 +187,9 @@ export default function IOPreview() {
         <SSVStack style={{ flex: 1 }}>
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
-            <SSText size="md">{t('signAndSend.selectSpendableOutputs')}</SSText>
+            <SSText size="md">
+              {t('transaction.build.selectSpendableOutputs')}
+            </SSText>
             <SSIconButton
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
@@ -284,12 +286,12 @@ export default function IOPreview() {
             variant="outline"
             size="small"
             align="left"
-            placeholder={t('ioPreview.typeMemo')}
+            placeholder={t('transaction.build.typeLabel')}
           />
           <SSHStack>
             <SSButton
               variant="outline"
-              label={t('ioPreview.addInput')}
+              label={t('transaction.build.add.input.title')}
               style={{ flex: 1 }}
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
@@ -297,14 +299,14 @@ export default function IOPreview() {
             />
             <SSButton
               variant={outputs.length > 0 ? 'outline' : 'secondary'}
-              label={t('ioPreview.addOutput')}
+              label={t('transaction.build.add.output.title')}
               style={{ flex: 1 }}
               onPress={() => setAddOutputModalVisible(true)}
             />
           </SSHStack>
           <SSButton
             variant="secondary"
-            label={t('ioPreview.setMessageFee')}
+            label={t('transaction.build.setMessageFee')}
             onPress={() =>
               router.navigate(`/account/${id}/signAndSend/feeSelection`)
             }
@@ -317,11 +319,11 @@ export default function IOPreview() {
         onClose={() => setAddOutputModalVisible(false)}
       >
         <SSText color="muted" uppercase>
-          Add Output
+          {t('transaction..title')}
         </SSText>
         <SSTextInput
           value={outputTo}
-          placeholder="Address"
+          placeholder={t('transaction.address')}
           align="left"
           actionRight={
             <SSIconButton onPress={() => setCameraModalVisible(true)}>
@@ -330,27 +332,18 @@ export default function IOPreview() {
           }
           onChangeText={(text) => setOutputTo(text)}
         />
-        <SSVStack style={{ width: '100%' }}>
-          <SSHStack style={{ width: '100%' }}>
-            <SSButton label="Paynyms" style={{ flex: 1 }} />
-            <SSButton label="Public Keys" style={{ flex: 1 }} />
-          </SSHStack>
-          <SSHStack style={{ width: '100%' }}>
-            <SSButton label="Nostr Nip05" style={{ flex: 1 }} />
-            <SSButton label="OP_RETURN" style={{ flex: 1 }} />
-          </SSHStack>
-        </SSVStack>
         <SSVStack gap="none" itemsCenter style={{ width: '100%' }}>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="2xl" weight="medium">
               {formatNumber(outputAmount)}
             </SSText>
             <SSText color="muted" size="lg">
-              sats
+              {t('bitcoin.sats')}
             </SSText>
           </SSHStack>
           <SSText style={{ color: Colors.gray[600] }}>
-            max {formatNumber(utxosSelectedValue)} sats
+            {t('common.max')} {formatNumber(utxosSelectedValue)}{' '}
+            {t('bitcoin.sats')}
           </SSText>
           <SSSlider
             min={1}
@@ -362,12 +355,12 @@ export default function IOPreview() {
           />
           <SSVStack style={{ width: '100%' }}>
             <SSTextInput
-              placeholder="Add note"
+              placeholder={t('transaction.build.add.label.title')}
               align="left"
               onChangeText={(text) => setOutputLabel(text)}
             />
             <SSButton
-              label="Continue"
+              label={t('common.continue')}
               variant="secondary"
               disabled={!outputTo || !outputAmount || !outputLabel}
               onPress={() => handleAddOutputAndClose()}
@@ -380,7 +373,7 @@ export default function IOPreview() {
           onClose={() => setCameraModalVisible(false)}
         >
           <SSText color="muted" uppercase>
-            Read QRCode
+            {t('camera.scanQRCode')}
           </SSText>
           <CameraView
             onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
@@ -389,7 +382,7 @@ export default function IOPreview() {
           />
           {!permission?.granted && (
             <SSButton
-              label="Enable Camera Access"
+              label={t('camera.enableCameraAccess')}
               onPress={requestPermission}
             />
           )}
