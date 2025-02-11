@@ -45,7 +45,7 @@ type HistoryChartData = {
   type: 'send' | 'receive' | 'end'
 }
 
-export type SSHistoryChartProps = {
+type SSHistoryChartProps = {
   transactions: Transaction[]
   utxos: Utxo[]
 }
