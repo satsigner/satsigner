@@ -4,29 +4,29 @@ import { Fragment, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
+import SSLink from '@/components/SSLink'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { i18n } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { Account } from '@/types/models/Account'
+import { setStateWithLayoutAnimation } from '@/utils/animation'
 import {
   validateAddress,
-  validateDerivationPath,
   validateDescriptor,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import { i18n } from '@/locales'
-import { Account } from '@/types/models/Account'
-import SSLink from '@/components/SSLink'
-import { SSIconScriptsP2pkh } from '@/components/icons'
-import { setStateWithLayoutAnimation } from '@/utils/animation'
-import SSFormLayout from '@/layouts/SSFormLayout'
 
 const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
@@ -52,18 +52,27 @@ const text: Record<WatchOnlyOption, string> = {
 }
 
 export default function WatchOnlyOptions() {
-  const name = useAccountBuilderStore(useShallow((state) => state.name))
+  const addSyncAccount = useAccountsStore((state) => state.addSyncAccount)
+  const [name, createAccountFromDescriptor, createAccountFromXpub] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.name,
+        state.createAccountFromDescriptor,
+        state.createAccountFromXpub
+      ])
+    )
+
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
 
-  const [scriptVersion, setScriptVersion] =
-    useState<Account['scriptVersion'] | null>(null)
+  const [scriptVersion, setScriptVersion] = useState<
+    Account['scriptVersion'] | null
+  >(null)
 
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
-  const [masterFingerprint, setMasterFingerprint] = useState('')
-  const [derivationPath, setDerivationPath] = useState('')
+  const [fingerprint, setFingerprint] = useState('')
   const [xpub, setXpub] = useState('')
   const [descriptor, setDescriptor] = useState('')
   const [address, setAddress] = useState('')
@@ -71,7 +80,6 @@ export default function WatchOnlyOptions() {
   const [validAddress, setValidAddress] = useState(true)
   const [validDescriptor, setValidDescriptor] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
-  const [validDerivationPath, setValidDerivationPath] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
 
   function updateAddress(address: string) {
@@ -81,28 +89,21 @@ export default function WatchOnlyOptions() {
 
   function updateMasterFingerprint(fingerprint: string) {
     setValidMasterFingerprint(!fingerprint || validateFingerprint(fingerprint))
-    setMasterFingerprint(fingerprint)
-  }
-
-  function updateDerivationPath(path: string) {
-    setValidDerivationPath(!path || validateDerivationPath(path))
-    setDerivationPath(path)
+    setFingerprint(fingerprint)
   }
 
   function updateXpub(xpub: string) {
     setValidXpub(!xpub || validateExtendedKey(xpub))
     setXpub(xpub)
+    if (scriptVersion) return
     if (xpub.match(/^x(pub|priv)/)) {
-      if (!derivationPath) setDerivationPath("M/44'/0'/0'")
-      if (!scriptVersion) setScriptVersion('P2PKH')
+      setScriptVersion('P2PKH')
     }
     if (xpub.match(/^y(pub|priv)/)) {
-      if (!derivationPath) setDerivationPath("M/49'/0'/0'")
-      if (!scriptVersion) setScriptVersion('P2SH-P2WPKH')
+      setScriptVersion('P2SH-P2WPKH')
     }
-    if (xpub.match(/^z(pub|priv)/) && derivationPath === '') {
-      if (!derivationPath) setDerivationPath("M/84'/0'/0'")
-      if (!scriptVersion) setScriptVersion('P2WPKH')
+    if (xpub.match(/^z(pub|priv)/)) {
+      setScriptVersion('P2WPKH')
     }
   }
 
@@ -123,38 +124,30 @@ export default function WatchOnlyOptions() {
     return ''
   }
 
-  function confirmAccountCreation() {
-    let accountDescriptor = ''
-    let accountScriptVersion: Account['scriptVersion'] | null
+  async function confirmAccountCreation() {
+    let account: Account | undefined
 
     if (selectedOption === 'descriptor' && descriptor) {
-      accountDescriptor = descriptor
+      account = await createAccountFromDescriptor(name!, descriptor)
+    }
+
+    if (selectedOption === 'xpub' && xpub && scriptVersion && fingerprint) {
+      account = await createAccountFromXpub(
+        name!,
+        xpub,
+        fingerprint,
+        scriptVersion
+      )
     }
 
     if (selectedOption === 'address' && address) {
-      accountDescriptor = `addr(${address})`
+      // TODO: implement it
     }
 
-    if (selectedOption === 'xpub' && xpub) {
-      let prefix = ''
-      if (scriptVersion === 'P2TR') prefix = 'tr'
-      if (scriptVersion === 'P2PKH') prefix = 'pkh'
-      if (scriptVersion === 'P2WPKH') prefix = 'wpkh'
-      if (scriptVersion === 'P2SH-P2WPKH') prefix = 'wsh'
-      let derivationInfo = ''
-      if (masterFingerprint && derivationPath) {
-        const rawPath = derivationPath.replace(/^[mM]\//, "")
-        derivationInfo = `[${masterFingerprint}/${rawPath}]`
-      }
-      accountDescriptor = `${prefix}(${derivationInfo}${xpub})`
+    if (account) {
+      await addSyncAccount(account)
+      router.navigate('/')
     }
-
-    if (descriptor.startsWith('pkh')) accountScriptVersion = 'P2PKH'
-    if (descriptor.startsWith('wsh')) accountScriptVersion = 'P2SH-P2WPKH'
-    if (descriptor.startsWith('wpk')) accountScriptVersion = 'P2WPKH'
-    if (descriptor.startsWith('tr')) accountScriptVersion = 'P2TR'
-
-    // TODO: create account
   }
 
   async function pasteFromClipboard() {
@@ -302,7 +295,7 @@ export default function WatchOnlyOptions() {
                   )}
                 </SSVStack>
                 {selectedOption === 'xpub' && (
-                  <Fragment>
+                  <>
                     <SSVStack gap="xxs">
                       <SSFormLayout.Label
                         label={i18n
@@ -318,7 +311,7 @@ export default function WatchOnlyOptions() {
                     <SSVStack gap="xxs">
                       <SSText center>MASTER FINGERPRINT (optional)</SSText>
                       <SSTextInput
-                        value={masterFingerprint}
+                        value={fingerprint}
                         style={
                           validMasterFingerprint ? styles.valid : styles.invalid
                         }
@@ -326,18 +319,7 @@ export default function WatchOnlyOptions() {
                         onChangeText={updateMasterFingerprint}
                       />
                     </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText center>DERIVATION PATH (optional)</SSText>
-                      <SSTextInput
-                        value={derivationPath}
-                        style={
-                          validDerivationPath ? styles.valid : styles.invalid
-                        }
-                        placeholder="ENTER PATH"
-                        onChangeText={updateDerivationPath}
-                      />
-                    </SSVStack>
-                  </Fragment>
+                  </>
                 )}
               </SSVStack>
 
@@ -352,23 +334,28 @@ export default function WatchOnlyOptions() {
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">
-            <SSButton
-              label="CONFIRM"
-              variant="secondary"
-              disabled={
-                (selectedOption === 'address' && (!address || !validAddress)) ||
-                (selectedOption === 'descriptor' && (!descriptor && !validDescriptor)) ||
-                (selectedOption === 'xpub' &&
-                 (!xpub || !validXpub || !validMasterFingerprint || !validDerivationPath)
-                )
-              }
-              onPress={() => confirmAccountCreation()}
-            />
-            <SSButton
-              label="CANCEL"
-              variant="secondary"
-              onPress={() => setModalOptionsVisible(true)}
-            />
+              <SSButton
+                label="CONFIRM"
+                variant="secondary"
+                disabled={
+                  (selectedOption === 'address' &&
+                    (!address || !validAddress)) ||
+                  (selectedOption === 'descriptor' &&
+                    !descriptor &&
+                    !validDescriptor) ||
+                  (selectedOption === 'xpub' &&
+                    (!xpub ||
+                      !fingerprint ||
+                      !validXpub ||
+                      !validMasterFingerprint))
+                }
+                onPress={() => confirmAccountCreation()}
+              />
+              <SSButton
+                label="CANCEL"
+                variant="secondary"
+                onPress={() => setModalOptionsVisible(true)}
+              />
             </SSVStack>
           </SSVStack>
         )}

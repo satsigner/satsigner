@@ -1,5 +1,5 @@
-import { Wallet } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { Descriptor, DescriptorPublicKey, Wallet } from 'bdk-rn'
+import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 
 import {
@@ -30,6 +30,16 @@ type AccountBuilderState = {
 
 type AccountBuilderAction = {
   clearAccount: () => void
+  createAccountFromDescriptor: (
+    name: string,
+    descriptor: string
+  ) => Promise<Account>
+  createAccountFromXpub: (
+    name: string,
+    xpub: string,
+    fingerprint: string,
+    scriptVersion: Account['scriptVersion']
+  ) => Promise<Account>
   getAccount: () => Account
   setName: (name: Account['name']) => void
   setType: (type: Account['accountCreationType']) => void
@@ -71,6 +81,99 @@ const useAccountBuilderStore = create<
       internalDescriptor: undefined,
       wallet: undefined
     })
+  },
+  createAccountFromDescriptor: async (name, descriptor) => {
+    // TODO: derive both internal an external descriptors from the descriptor
+    // const network = useBlockchainStore.getState().network as Network
+    // const descriptorObj = await new Descriptor().create(descriptor, network)
+    // const externalDescriptor = await descriptorObj.asStringPrivate()
+    // const internalDescriptor = await descriptorObj.asString()
+
+    const account: Account = {
+      name,
+      createdAt: new Date(),
+      accountCreationType: 'import',
+      utxos: [],
+      transactions: [],
+      externalDescriptor: descriptor,
+      summary: {
+        balance: 0,
+        satsInMempool: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0
+      }
+    }
+    return account
+  },
+  createAccountFromXpub: async (name, xpub, fingerprint, scriptVersion) => {
+    const network = useBlockchainStore.getState().network as Network
+    const key = new DescriptorPublicKey().create(xpub)
+
+    async function createDescriptors(callback: Descriptor['newBip44Public']) {
+      const externalDescriptor = await callback(
+        key,
+        fingerprint,
+        KeychainKind.External,
+        network
+      )
+      const internalDescriptor = await callback(
+        key,
+        fingerprint,
+        KeychainKind.Internal,
+        network
+      )
+      return Promise.all([
+        externalDescriptor.asString(),
+        internalDescriptor.asString()
+      ])
+    }
+
+    let externalDescriptor = ''
+    let internalDescriptor = ''
+
+    switch (scriptVersion) {
+      case 'P2PKH':
+        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
+          new Descriptor().newBip44Public
+        )
+        break
+      case 'P2SH-P2WPKH':
+        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
+          new Descriptor().newBip49Public
+        )
+        break
+      case 'P2WPKH':
+        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
+          new Descriptor().newBip84Public
+        )
+        break
+      case 'P2TR':
+        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
+          new Descriptor().newBip86Public
+        )
+        break
+      default:
+        throw new Error('invalid script version')
+    }
+
+    const account: Account = {
+      name,
+      createdAt: new Date(),
+      accountCreationType: 'import',
+      utxos: [],
+      transactions: [],
+      externalDescriptor,
+      internalDescriptor,
+      summary: {
+        balance: 0,
+        satsInMempool: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0
+      }
+    }
+    return account
   },
   getAccount: () => {
     const {
