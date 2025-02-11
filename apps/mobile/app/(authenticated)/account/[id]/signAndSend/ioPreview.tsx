@@ -188,7 +188,7 @@ export default function IOPreview() {
           <SSHStack justifyBetween>
             <SSText color="muted">Group</SSText>
             <SSText size="md">
-              {t('transaction.build.selectSpendableOutputs')}
+              {t('transaction.build.select.spendableOutputs')}
             </SSText>
             <SSIconButton
               onPress={() =>
@@ -286,7 +286,7 @@ export default function IOPreview() {
             variant="outline"
             size="small"
             align="left"
-            placeholder={t('transaction.build.typeLabel')}
+            placeholder={t('transaction.build.type.label')}
           />
           <SSHStack>
             <SSButton
@@ -306,7 +306,7 @@ export default function IOPreview() {
           </SSHStack>
           <SSButton
             variant="secondary"
-            label={t('transaction.build.setMessageFee')}
+            label={t('transaction.build.set.fee')}
             onPress={() =>
               router.navigate(`/account/${id}/signAndSend/feeSelection`)
             }
