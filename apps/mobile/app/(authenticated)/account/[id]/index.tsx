@@ -113,7 +113,7 @@ function TotalTransactions({
     return Math.max(...transactionBalances)
   }, [transactionBalances])
 
-  const [showChart, setShowChart] = useState<boolean>(false)
+  const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
     <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
@@ -132,7 +132,7 @@ function TotalTransactions({
               <SSIconExpand height={15} width={16} />
             )}
           </SSIconButton>
-          {showChart && (
+          {showHistoryChart && (
             <SSIconButton
               onPress={() =>
                 router.navigate(`/settings/config/features/chartSettings`)
@@ -144,8 +144,8 @@ function TotalTransactions({
         </SSHStack>
         <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
-          <SSIconButton onPress={() => setShowChart((prev) => !prev)}>
-            {showChart ? (
+          <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
+            {showHistoryChart ? (
               <SSIconMenu width={18} height={18} />
             ) : (
               <SSIconChart width={18} height={18} />
@@ -156,7 +156,7 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
-      {showChart ? (
+      {showHistoryChart ? (
         <View style={{ flex: 1, zIndex: -1 }}>
           <SSHistoryChart
             transactions={sortedTransactions}
