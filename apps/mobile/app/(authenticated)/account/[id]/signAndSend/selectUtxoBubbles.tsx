@@ -208,7 +208,7 @@ function SelectUtxoBubbles() {
             />
           </SSHStack>
           <SSButton
-            label={t('transaction.build.add.inputs.title')}
+            label={t('transaction.build.add.inputs.title.2')}
             variant="secondary"
             disabled={!hasSelectedUtxos}
             style={[

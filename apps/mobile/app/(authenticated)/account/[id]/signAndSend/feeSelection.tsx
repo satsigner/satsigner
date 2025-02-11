@@ -128,7 +128,7 @@ export default function FeeSelection() {
               >
                 {feeSelected}{' '}
                 <SSText size="4xl" color="muted">
-                  {t('bitcoin.satsVb')}
+                  {feeSelected === 1 ? t('bitcoin.satVb') : t('bitcoin.satsVb')}
                 </SSText>
               </SSText>
 
@@ -201,10 +201,10 @@ export default function FeeSelection() {
             itemsCenter
             style={{ marginVertical: 32, width: '100%', paddingHorizontal: 32 }}
           >
-            <SSButton label="Remove or Decrease Outputs" />
-            <SSButton label="Add Inputs" />
-            <SSButton label="Set Highest Fee Possible" />
-            <SSButton label="Set Minimum Automatic Fee" />
+            <SSButton label={t('transaction.build.update.outputs')} />
+            <SSButton label={t('transaction.build.add.inputs.title.1')} />
+            <SSButton label={t('"build.set.highestFeePossible')} />
+            <SSButton label={t('transaction.build.set.minimumAutomaticFee')} />
           </SSVStack>
         </SSGradientModal>
       </SSMainLayout>
