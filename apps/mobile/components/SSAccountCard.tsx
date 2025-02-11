@@ -1,4 +1,5 @@
 import { TouchableOpacity } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -22,7 +23,9 @@ export default function SSAccountCard({
   account,
   onPress
 }: SSAccountCardProps) {
-  const priceStore = usePriceStore()
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   return (
@@ -52,10 +55,10 @@ export default function SSAccountCard({
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText color="muted">
-              {formatNumber(priceStore.satsToFiat(account.summary.balance), 2)}
+              {formatNumber(satsToFiat(account.summary.balance), 2)}
             </SSText>
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              {priceStore.fiatCurrency}
+              {fiatCurrency}
             </SSText>
           </SSHStack>
           <SSHStack style={{ marginTop: 8 }}>
