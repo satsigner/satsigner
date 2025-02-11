@@ -35,7 +35,7 @@ export default function SSScriptDecoded({ script }: SSScriptDecodedProps) {
               )}
               <SSText>
                 <SSText size="xs" weight="bold">
-                  Description:{' '}
+                  {t('common.description')}:{' '}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {t(`opcode.${opcodeWord}`)}

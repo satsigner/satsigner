@@ -24,6 +24,7 @@
     "import.labels": "Import labels",
     "import.title": "Import existing seed",
     "import.title2": "Import seed",
+    "import.word.noMatch": "No matching words",
     "load.sample.signet": "Load sample signet wallet",
     "mnemonic.12": "12 words generated from 128 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
     "mnemonic.15": "15 words generated from 160 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
@@ -114,6 +115,7 @@
     "copyToClipboard": "Copy to clipboard",
     "createTag": "Create tag %{tag}",
     "date": "Date",
+    "description": "Description",
     "deselectAll": "Deselect All",
     "download": "Download",
     "downloadFile": "Download file",
@@ -129,6 +131,8 @@
     "next": "Next",
     "no": "No",
     "of": "Of",
+    "off": "Off",
+    "on": "On",
     "optional": "Optional",
     "paste": "Paste",
     "pasteFromClipboard": "Paste from clipboard",
@@ -335,7 +339,9 @@
     "title": "Config"
   },
   "sign": {},
-  "time": {},
+  "time": {
+    "lessThanAMinute": "Less than a minute"
+  },
   "transaction": {
     "address": "Address",
     "block": "In block",
@@ -433,6 +439,7 @@
   },
   "utxo": {
     "group": "Group",
-    "label": "Label"
+    "label": "Label",
+    "noLabel": "No label"
   }
 }

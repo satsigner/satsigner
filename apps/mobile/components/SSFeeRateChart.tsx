@@ -12,19 +12,23 @@ import { CartesianChart, StackedArea } from 'victory-native'
 import type { MempoolStatistics } from '@/types/models/Blockchain'
 
 import SSText from './SSText'
-const inter = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+
+const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+
+const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
+
 interface SSFeeRateChartProps {
   mempoolStatistics: MempoolStatistics[] | undefined
   timeRange: 'week' | 'day' | '2hours'
   boxPosition?: Animated.Value
 }
-const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
+
 export default function SSFeeRateChart({
   mempoolStatistics,
   timeRange,
   boxPosition = new Animated.Value(0)
 }: SSFeeRateChartProps) {
-  const font = useFont(inter, 12)
+  const font = useFont(sansSerif, 12)
   const [, setW] = React.useState(0)
   const [, setH] = React.useState(0)
 

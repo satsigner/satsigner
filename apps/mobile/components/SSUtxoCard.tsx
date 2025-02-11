@@ -56,7 +56,7 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
           </SSHStack>
           <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
             {t('common.memo')} {': '}
-            {formatLabel(utxo.label || t('account.noLabel'))['label']}
+            {formatLabel(utxo.label || t('utxo.noLabel'))['label']}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">

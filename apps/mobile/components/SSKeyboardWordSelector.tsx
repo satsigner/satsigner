@@ -155,7 +155,7 @@ export default function SSKeyboardWordSelector({
       ) : (
         <View style={styles.noMatchingWordsContainerBase}>
           <Text style={styles.wordText}>
-            {t('addMasterKey.importExistingSeed.noMatchingWords')}
+            {t('account.import.word.noMatch')}
           </Text>
         </View>
       )}

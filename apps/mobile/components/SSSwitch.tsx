@@ -1,6 +1,7 @@
 import { Switch } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
+import { t } from '@/locales'
 import { HStackGap } from '@/styles/layout'
 import { TextFontSize } from '@/styles/sizes'
 
@@ -17,8 +18,8 @@ type SSSwitchProps = {
 
 export default function SSSwitch({
   position = 'left',
-  textOn = 'ON',
-  textOff = 'OFF',
+  textOn = t('common.on'),
+  textOff = t('common.off'),
   size = '2xl',
   value,
   onToggle
