@@ -13,7 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 
-export default function BitcoinNetwork() {
+export default function Network() {
   const router = useRouter()
   const [
     backend,

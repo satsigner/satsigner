@@ -30,7 +30,7 @@ export default function Settings() {
             title={t('settings.network.title')}
             description={t('settings.network.description')}
             icon={<SSIconNetwork height={24} width={24} />}
-            onPress={() => router.navigate('/settings/config/bitcoinNetwork')}
+            onPress={() => router.navigate('/settings/config/network')}
           />
           <SSSettingsCards
             title={t('settings.features.title')}
