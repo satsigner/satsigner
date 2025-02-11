@@ -24,7 +24,6 @@ type AccountsState = {
 }
 
 type AccountsAction = {
-  getCurrentAccount: (name: string) => Account | undefined
   hasAccountWithName: (name: string) => boolean
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,
@@ -54,9 +53,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     (set, get) => ({
       accounts: [],
       tags: [],
-      getCurrentAccount: (name) => {
-        return get().accounts.find((account) => account.name === name)
-      },
       hasAccountWithName: (name) => {
         return !!get().accounts.find((account) => account.name === name)
       },
@@ -171,7 +167,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set({ tags })
       },
       setTxLabel: (accountName, txid, label) => {
-        const account = get().getCurrentAccount(accountName)
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
         if (!account) return
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
@@ -187,7 +185,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
       },
       setUtxoLabel: (accountName, txid, vout, label) => {
-        const account = get().getCurrentAccount(accountName)
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
         if (!account) return
 
         const utxoIndex = account.utxos.findIndex((u) => {
@@ -205,7 +205,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
       },
       importLabels: (accountName: string, labels: Label[]) => {
-        const account = get().getCurrentAccount(accountName)
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
 
         if (!account) return
 

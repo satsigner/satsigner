@@ -28,8 +28,11 @@ export default function SignMessage() {
   const [txBuilderResult, psbt, setPsbt] = useTransactionBuilderStore(
     useShallow((state) => [state.txBuilderResult, state.psbt, state.setPsbt])
   )
-  const [getCurrentAccount, decryptSeed] = useAccountsStore(
-    useShallow((state) => [state.getCurrentAccount, state.decryptSeed])
+  const [account, decryptSeed] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.name === id),
+      state.decryptSeed
+    ])
   )
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
@@ -41,8 +44,6 @@ export default function SignMessage() {
       state.url
     ])
   )
-
-  const account = getCurrentAccount(id!)!
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
@@ -71,7 +72,8 @@ export default function SignMessage() {
     async function signTransactionMessage() {
       const seed = await decryptSeed(id!)
 
-      if (!seed || !account.scriptVersion || !txBuilderResult) return
+      if (!seed || !account || !account.scriptVersion || !txBuilderResult)
+        return
 
       const result = await getWalletFromMnemonic(
         seed.replace(/,/g, ' '),
@@ -92,7 +94,7 @@ export default function SignMessage() {
     signTransactionMessage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) return <Redirect href="/" />
 
   return (
     <>

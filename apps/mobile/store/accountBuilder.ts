@@ -46,7 +46,7 @@ type AccountBuilderAction = {
   setPassphrase: (passphrase: Account['passphrase']) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
-  lockSeed: () => Promise<void>
+  encryptSeed: () => Promise<void>
 }
 
 const useAccountBuilderStore = create<
@@ -164,7 +164,7 @@ const useAccountBuilderStore = create<
     }))
     return wallet
   },
-  lockSeed: async () => {
+  encryptSeed: async () => {
     const savedPin = await getItem(PIN_KEY)
     if (!savedPin) return
 

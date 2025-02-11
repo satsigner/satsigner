@@ -25,13 +25,13 @@ export default function AccountList() {
     ])
   )
 
-  const [setName, setSeedWords, loadWallet, lockSeed, getAccount] =
+  const [setName, setSeedWords, loadWallet, encryptSeed, getAccount] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.setName,
         state.setSeedWords,
         state.loadWallet,
-        state.lockSeed,
+        state.encryptSeed,
         state.getAccount
       ])
     )
@@ -44,7 +44,7 @@ export default function AccountList() {
     setName('My Wallet')
     setSeedWords(sampleSignetWalletSeed)
     const wallet = await loadWallet()
-    await lockSeed()
+    await encryptSeed()
     const account = getAccount()
     await addAccount(account)
     setLoadingWallet(false)

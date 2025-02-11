@@ -20,16 +20,16 @@ export default function MessageConfirmation() {
   const [clearTransaction, txBuilderResult] = useTransactionBuilderStore(
     useShallow((state) => [state.clearTransaction, state.txBuilderResult])
   )
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
-
-  const account = getCurrentAccount(id!)!
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === id)
+  )
 
   function handleBackToHome() {
     clearTransaction()
     router.navigate(`/account/${id}`)
   }
 
-  if (!txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) return <Redirect href="/" />
 
   return (
     <>

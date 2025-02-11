@@ -34,7 +34,9 @@ export default function IOPreview() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const [permission, requestPermission] = useCameraPermissions()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const account = useAccountsStore(
+    (state) => state.accounts.find((account) => account.name === id)!
+  )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
     useShallow((state) => [
@@ -47,8 +49,6 @@ export default function IOPreview() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-
-  const account = getCurrentAccount(id!)! // Make use of non-null assertion operator for now
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)

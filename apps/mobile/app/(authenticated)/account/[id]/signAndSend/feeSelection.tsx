@@ -1,6 +1,6 @@
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
 
@@ -26,10 +26,10 @@ export default function FeeSelection() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const isFocused = useIsFocused()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === id)
+  )
   const setFeeRate = useTransactionBuilderStore((state) => state.setFeeRate)
-
-  const account = getCurrentAccount(id!)!
 
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
@@ -69,6 +69,8 @@ export default function FeeSelection() {
     { value: '24h', label: '24 HOURS' },
     { value: '1w', label: '1 WEEK' }
   ] as const
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <>

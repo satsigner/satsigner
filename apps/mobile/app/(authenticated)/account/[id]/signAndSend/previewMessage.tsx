@@ -1,6 +1,6 @@
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -32,22 +32,16 @@ export default function PreviewMessage() {
         state.setTxBuilderResult
       ])
     )
-  const [
-    getCurrentAccount,
-    loadWalletFromDescriptor,
-    syncWallet,
-    updateAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.getCurrentAccount,
-      state.loadWalletFromDescriptor,
-      state.syncWallet,
-      state.updateAccount
-    ])
-  )
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
   const network = useBlockchainStore((state) => state.network)
-
-  const account = getCurrentAccount(id!)!
 
   const [messageId, setMessageId] = useState('')
 
@@ -55,7 +49,12 @@ export default function PreviewMessage() {
 
   useEffect(() => {
     async function getTransactionMessage() {
-      if (!account.externalDescriptor || !account.internalDescriptor) return
+      if (
+        !account ||
+        !account.externalDescriptor ||
+        !account.internalDescriptor
+      )
+        return
 
       const [externalDescriptor, internalDescriptor] = await Promise.all([
         new Descriptor().create(account.externalDescriptor, network as Network),
@@ -84,6 +83,8 @@ export default function PreviewMessage() {
 
     getTransactionMessage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <>

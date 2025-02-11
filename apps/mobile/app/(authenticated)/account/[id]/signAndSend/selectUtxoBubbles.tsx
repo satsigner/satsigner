@@ -30,7 +30,9 @@ function SelectUtxoBubbles() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const account = useAccountsStore(
+    (state) => state.accounts.find((account) => account.name === id)!
+  )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
     useTransactionBuilderStore(
@@ -45,8 +47,6 @@ function SelectUtxoBubbles() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-
-  const account = getCurrentAccount(id!)! // Make use of non-null assertion operator for now
 
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()

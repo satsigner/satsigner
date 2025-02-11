@@ -53,7 +53,7 @@ export default function ImportSeed() {
     setPassphrase,
     updateFingerprint,
     loadWallet,
-    lockSeed
+    encryptSeed
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -67,7 +67,7 @@ export default function ImportSeed() {
       state.setPassphrase,
       state.updateFingerprint,
       state.loadWallet,
-      state.lockSeed
+      state.encryptSeed
     ])
   )
 
@@ -285,7 +285,7 @@ export default function ImportSeed() {
     setLoadingAccount(true)
 
     const wallet = await loadWallet()
-    await lockSeed()
+    await encryptSeed()
 
     setAccountAddedModalVisible(true)
 

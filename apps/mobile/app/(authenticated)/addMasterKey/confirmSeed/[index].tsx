@@ -42,7 +42,7 @@ export default function ConfirmSeed() {
     clearAccount,
     getAccount,
     loadWallet,
-    lockSeed
+    encryptSeed
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -51,7 +51,7 @@ export default function ConfirmSeed() {
       state.clearAccount,
       state.getAccount,
       state.loadWallet,
-      state.lockSeed
+      state.encryptSeed
     ])
   )
 
@@ -83,7 +83,7 @@ export default function ConfirmSeed() {
     setLoadingAccount(true)
 
     const wallet = await loadWallet()
-    await lockSeed()
+    await encryptSeed()
 
     const account = getAccount()
     await addAccount(account)
