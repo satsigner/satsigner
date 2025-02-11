@@ -23,7 +23,7 @@ type SSFeeRateChartProps = {
   boxPosition?: Animated.Value
 }
 
-export default function SSFeeRateChart({
+function SSFeeRateChart({
   mempoolStatistics,
   timeRange,
   boxPosition = new Animated.Value(0)
@@ -235,3 +235,5 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 })
+
+export default SSFeeRateChart

@@ -21,7 +21,7 @@ type SSUtxoCardProps = {
   utxo: Utxo
 }
 
-export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
+function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -75,3 +75,5 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
     </TouchableOpacity>
   )
 }
+
+export default SSUtxoCard

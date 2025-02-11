@@ -15,7 +15,7 @@ type SSLabelInputProps = {
   onUpdateLabel: (label: string) => void
 }
 
-export default function SSLabelInput({
+function SSLabelInput({
   label: originalLabel,
   onUpdateLabel
 }: SSLabelInputProps) {
@@ -123,3 +123,5 @@ export default function SSLabelInput({
     </SSVStack>
   )
 }
+
+export default SSLabelInput

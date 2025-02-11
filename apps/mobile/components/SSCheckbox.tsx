@@ -13,11 +13,7 @@ type SSCheckboxProps = {
   selected: boolean
 } & BouncyCheckboxProps
 
-export default function SSCheckbox({
-  label,
-  selected,
-  ...props
-}: SSCheckboxProps) {
+function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.innerIconStyleBase, {
       borderColor: selected ? Colors.white : Colors.transparent
@@ -55,3 +51,5 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.checkbox.borderRadius
   }
 })
+
+export default SSCheckbox

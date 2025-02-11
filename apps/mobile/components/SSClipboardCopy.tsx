@@ -11,8 +11,7 @@ type SSTextClipboardProps = {
   withPopup?: boolean
   children: React.ReactNode
 }
-
-export default function SSTextClipboard({
+function SSTextClipboard({
   text,
   withPopup = true,
   children
@@ -40,3 +39,5 @@ export default function SSTextClipboard({
     </TouchableWithoutFeedback>
   )
 }
+
+export default SSTextClipboard

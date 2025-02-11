@@ -24,12 +24,7 @@ type SSPinInputProps = {
   onFillEnded?: (pin?: string) => void
 }
 
-export default function SSPinInput({
-  pin,
-  setPin,
-  autoFocus,
-  onFillEnded
-}: SSPinInputProps) {
+function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
 
@@ -135,3 +130,5 @@ const styles = StyleSheet.create({
     fontSize: Sizes.textInput.fontSize.default
   }
 })
+
+export default SSPinInput

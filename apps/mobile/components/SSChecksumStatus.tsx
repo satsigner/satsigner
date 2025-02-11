@@ -10,7 +10,7 @@ type SSChecksumStatusProps = {
   valid: boolean
 }
 
-export default function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
+function SSChecksumStatus({ valid }: SSChecksumStatusProps) {
   const statusStyle = useMemo(() => {
     return { backgroundColor: valid ? Colors.success : Colors.error }
   }, [valid])
@@ -41,3 +41,5 @@ const styles = StyleSheet.create({
     textTransform: 'lowercase'
   }
 })
+
+export default SSChecksumStatus

@@ -20,7 +20,7 @@ type SSTagInputProps = {
   onRemove?: (tag: string) => void
 }
 
-export default function SSTagInput({
+function SSTagInput({
   tags,
   selectedTags,
   onSelect,
@@ -130,3 +130,5 @@ const styles = StyleSheet.create({
     width: 'auto'
   }
 })
+
+export default SSTagInput

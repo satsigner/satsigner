@@ -111,8 +111,6 @@ function SSTextInput(
   )
 }
 
-export default forwardRef(SSTextInput)
-
 const styles = StyleSheet.create({
   containerBase: {
     position: 'relative',
@@ -157,3 +155,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.error
   }
 })
+
+export default forwardRef(SSTextInput)

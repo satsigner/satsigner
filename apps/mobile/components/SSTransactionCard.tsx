@@ -31,7 +31,7 @@ type SSTransactionCardProps = {
   link: string
 }
 
-export default function SSTransactionCard({
+function SSTransactionCard({
   transaction,
   blockHeight,
   fiatCurrency,
@@ -247,3 +247,5 @@ const styles = StyleSheet.create({
     color: Colors.success
   }
 })
+
+export default SSTransactionCard

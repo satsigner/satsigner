@@ -22,7 +22,7 @@ type SSUtxoItemProps = {
   onToggleSelected(utxo: Utxo): void
 }
 
-export default function SSUtxoItem({
+function SSUtxoItem({
   utxo,
   selected,
   largestValue,
@@ -106,3 +106,5 @@ const styles = StyleSheet.create({
     marginTop: 2
   }
 })
+
+export default SSUtxoItem

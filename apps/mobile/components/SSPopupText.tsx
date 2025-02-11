@@ -12,7 +12,7 @@ type SSSnackbarProps = {
   duration?: number
 }
 
-export default function SSPopupText({
+function SSPopupText({
   message,
   isVisible,
   onTimeout,
@@ -53,3 +53,5 @@ const styles = StyleSheet.create({
     width: 'auto'
   }
 })
+
+export default SSPopupText

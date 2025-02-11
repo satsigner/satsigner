@@ -13,7 +13,7 @@ type SSTextProps = {
   center?: boolean
 } & React.ComponentPropsWithoutRef<typeof Text>
 
-export default function SSText({
+function SSText({
   color = 'white',
   size = 'sm',
   weight = 'regular',
@@ -119,3 +119,5 @@ const styles = StyleSheet.create({
     fontFamily: Typography.terminessNerdFontMonoBold
   }
 })
+
+export default SSText

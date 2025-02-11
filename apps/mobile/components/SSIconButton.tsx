@@ -5,7 +5,7 @@ type SSIconButtonProps = {
   rounded?: boolean
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-export default function SSIconButton({
+function SSIconButton({
   children,
   rounded = false,
   style,
@@ -37,3 +37,5 @@ const styles = StyleSheet.create({
     padding: 5
   }
 })
+
+export default SSIconButton

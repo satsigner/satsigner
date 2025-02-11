@@ -62,7 +62,7 @@ type SSKeyboardWordSelectorProps = {
   style: StyleProp<ViewStyle>
 }
 
-export default function SSKeyboardWordSelector({
+function SSKeyboardWordSelector({
   visible,
   wordStart,
   onWordSelected,
@@ -193,3 +193,5 @@ const styles = StyleSheet.create({
     width: 1
   }
 })
+
+export default SSKeyboardWordSelector

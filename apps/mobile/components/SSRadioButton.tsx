@@ -11,7 +11,7 @@ type SSRadioButtonProps = {
   disabled?: boolean
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-export default function SSRadioButton({
+function SSRadioButton({
   label,
   selected,
   disabled,
@@ -58,3 +58,5 @@ const styles = StyleSheet.create({
     opacity: 0.3
   }
 })
+
+export default SSRadioButton

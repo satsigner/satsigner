@@ -10,7 +10,7 @@ type SSSeparatorProps = {
   style?: StyleProp<ViewStyle>
 }
 
-export default function SSSeparator({
+function SSSeparator({
   color = 'gradient',
   colors = [Colors.gray[700], Colors.gray[800], Colors.gray[850]],
   percentages = [0.05, 0.6, 1],
@@ -71,3 +71,5 @@ const styles = StyleSheet.create({
     height: '100%'
   }
 })
+
+export default SSSeparator

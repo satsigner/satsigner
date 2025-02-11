@@ -19,17 +19,6 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 import SSBubble from './SSBubble'
 
-type SSBubbleChartProps = {
-  canvasSize: {
-    width: number
-    height: number
-  }
-  utxos: Utxo[]
-  inputs: Utxo[]
-  onPress: (utxo: Utxo) => void
-  style?: StyleProp<ViewStyle>
-}
-
 type UtxoListItem = Utxo & {
   id: string
   children: []
@@ -41,7 +30,18 @@ type UtxoListBubble = Partial<Utxo> & {
   children: UtxoListBubble[]
 }
 
-export default function SSBubbleChart({
+type SSBubbleChartProps = {
+  canvasSize: {
+    width: number
+    height: number
+  }
+  utxos: Utxo[]
+  inputs: Utxo[]
+  onPress: (utxo: Utxo) => void
+  style?: StyleProp<ViewStyle>
+}
+
+function SSBubbleChart({
   utxos,
   canvasSize,
   inputs,
@@ -219,3 +219,5 @@ export default function SSBubbleChart({
     </View>
   )
 }
+
+export default SSBubbleChart

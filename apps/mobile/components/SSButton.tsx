@@ -23,7 +23,7 @@ type SSButtonProps = {
   textStyle?: StyleProp<TextStyle>
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-export default function SSButton({
+function SSButton({
   label,
   variant = 'default',
   disabled,
@@ -150,3 +150,5 @@ const styles = StyleSheet.create({
     color: Colors.black
   }
 })
+
+export default SSButton

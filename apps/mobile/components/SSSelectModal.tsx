@@ -20,7 +20,7 @@ type SSSelectModalProps = {
   children: React.ReactNode
 }
 
-export default function SSSelectModal({
+function SSSelectModal({
   visible,
   title,
   selectedText,
@@ -88,3 +88,5 @@ export default function SSSelectModal({
     </Modal>
   )
 }
+
+export default SSSelectModal

@@ -10,7 +10,7 @@ type SSBalanceChangeBarProps = {
   style?: StyleProp<ViewStyle>
 }
 
-export default function SSBalanceChangeBar({
+function SSBalanceChangeBar({
   balance = 0,
   transaction,
   maxBalance = 1,
@@ -73,3 +73,5 @@ const styles = StyleSheet.create({
     height: '100%'
   }
 })
+
+export default SSBalanceChangeBar

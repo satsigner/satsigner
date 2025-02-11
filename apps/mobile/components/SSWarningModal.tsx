@@ -14,11 +14,7 @@ type SSWarningModalProps = {
   children: React.ReactNode
 }
 
-export default function SSWarningModal({
-  visible,
-  onClose,
-  children
-}: SSWarningModalProps) {
+function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
   useEffect(() => {
     if (Platform.OS !== 'android') return
     if (!visible)
@@ -43,3 +39,5 @@ export default function SSWarningModal({
     </Modal>
   )
 }
+
+export default SSWarningModal

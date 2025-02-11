@@ -12,7 +12,7 @@ type SSSliderProps = {
   style?: StyleProp<ViewStyle>
 }
 
-export default function SSSlider({
+function SSSlider({
   max,
   min,
   value,
@@ -34,3 +34,5 @@ export default function SSSlider({
     />
   )
 }
+
+export default SSSlider

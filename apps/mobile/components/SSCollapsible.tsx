@@ -12,7 +12,7 @@ type SSCollapsibleProps = {
   children: React.ReactNode
 }
 
-export default function SSCollapsible({ children }: SSCollapsibleProps) {
+function SSCollapsible({ children }: SSCollapsibleProps) {
   const [open, setOpen] = useState(false)
 
   function handleSetOpen() {
@@ -75,3 +75,5 @@ const styles = StyleSheet.create({
     height: 0
   }
 })
+
+export default SSCollapsible

@@ -54,8 +54,6 @@ function SSWordInput(
   )
 }
 
-export default forwardRef(SSWordInput)
-
 const styles = StyleSheet.create({
   containerBase: {
     height: Sizes.wordInput.height,
@@ -83,3 +81,5 @@ const styles = StyleSheet.create({
     lineHeight: Sizes.wordInput.lineHeight
   }
 })
+
+export default forwardRef(SSWordInput)

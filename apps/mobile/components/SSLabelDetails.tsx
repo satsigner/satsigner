@@ -18,7 +18,7 @@ type SSLabelDetailsProps = {
   header: string
 }
 
-export default function SSLabelDetails({
+function SSLabelDetails({
   label: originalLabel,
   link,
   header
@@ -68,3 +68,5 @@ export default function SSLabelDetails({
     </SSHStack>
   )
 }
+
+export default SSLabelDetails

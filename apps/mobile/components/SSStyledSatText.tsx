@@ -15,7 +15,7 @@ type SSStyledSatTextProps = {
   textSize?: TextFontSize
 }
 
-export default function SSStyledSatText({
+function SSStyledSatText({
   amount,
   decimals = 0,
   useZeroPadding = false,
@@ -73,3 +73,5 @@ export default function SSStyledSatText({
     </SSText>
   )
 }
+
+export default SSStyledSatText

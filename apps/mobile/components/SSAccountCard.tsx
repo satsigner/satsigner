@@ -19,10 +19,7 @@ type SSAccountCardProps = {
   onPress(): void
 }
 
-export default function SSAccountCard({
-  account,
-  onPress
-}: SSAccountCardProps) {
+function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -109,3 +106,5 @@ export default function SSAccountCard({
     </TouchableOpacity>
   )
 }
+
+export default SSAccountCard

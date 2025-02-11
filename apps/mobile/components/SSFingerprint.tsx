@@ -8,7 +8,7 @@ type SSFingerprintProps = {
   value: string
 }
 
-export default function SSFingerprint({ value }: SSFingerprintProps) {
+function SSFingerprint({ value }: SSFingerprintProps) {
   return (
     <SSHStack gap="xs">
       <SSText style={{ color: Colors.gray[500] }}>
@@ -18,3 +18,5 @@ export default function SSFingerprint({ value }: SSFingerprintProps) {
     </SSHStack>
   )
 }
+
+export default SSFingerprint

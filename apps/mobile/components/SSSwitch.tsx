@@ -16,7 +16,7 @@ type SSSwitchProps = {
   onToggle: (newValue: boolean) => void
 }
 
-export default function SSSwitch({
+function SSSwitch({
   position = 'left',
   textOn = t('common.on'),
   textOff = t('common.off'),
@@ -82,3 +82,5 @@ export default function SSSwitch({
     </SSHStack>
   )
 }
+
+export default SSSwitch

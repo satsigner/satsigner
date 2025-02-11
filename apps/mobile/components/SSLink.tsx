@@ -13,7 +13,7 @@ type SSLinkProps = {
   size?: TextFontSize
 }
 
-export default function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
+function SSLink({ url, text, size = 'sm' }: SSLinkProps) {
   const textStyle = useMemo(() => {
     return StyleSheet.compose(styles.textBase, {
       ...{ fontSize: Sizes.text.fontSize[size] }
@@ -38,3 +38,5 @@ const styles = StyleSheet.create({
     marginBottom: Platform.OS === 'android' ? -8 : -2.5 // TODO: changeme
   }
 })
+
+export default SSLink

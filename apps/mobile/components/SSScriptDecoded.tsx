@@ -11,7 +11,7 @@ type SSScriptDecodedProps = {
   script: number[]
 }
 
-export default function SSScriptDecoded({ script }: SSScriptDecodedProps) {
+function SSScriptDecoded({ script }: SSScriptDecodedProps) {
   const decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
   return (
     <SSVStack>
@@ -47,3 +47,5 @@ export default function SSScriptDecoded({ script }: SSScriptDecodedProps) {
     </SSVStack>
   )
 }
+
+export default SSScriptDecoded

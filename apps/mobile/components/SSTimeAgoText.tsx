@@ -9,7 +9,7 @@ type SSTimeAgoTextProps = {
   date: Date
 }
 
-export default function SSTimeAgoText({ date }: SSTimeAgoTextProps) {
+function SSTimeAgoText({ date }: SSTimeAgoTextProps) {
   function timeFormatter(value: number, unit: string, suffix: string) {
     if (unit === 'second') return `${t('time.lessThanAMinute')} ${suffix}`
     else if (unit === 'minute' || unit === 'hour')
@@ -28,3 +28,5 @@ export default function SSTimeAgoText({ date }: SSTimeAgoTextProps) {
     />
   )
 }
+
+export default SSTimeAgoText

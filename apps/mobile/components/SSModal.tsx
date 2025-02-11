@@ -13,7 +13,7 @@ type SSModalProps = {
   children: React.ReactNode
 }
 
-export default function SSModal({
+function SSModal({
   visible,
   fullOpacity = false,
   onClose,
@@ -45,3 +45,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 1)'
   }
 })
+
+export default SSModal

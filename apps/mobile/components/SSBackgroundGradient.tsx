@@ -9,7 +9,7 @@ type SSBackgroundGradientProps = {
   children?: React.ReactNode
 }
 
-export default function SSBackgroundGradient({
+function SSBackgroundGradient({
   orientation = 'diagonal',
   style,
   children
@@ -30,3 +30,5 @@ export default function SSBackgroundGradient({
     </LinearGradient>
   )
 }
+
+export default SSBackgroundGradient

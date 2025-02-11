@@ -14,7 +14,7 @@ type SSGradientModalProps = {
   children: React.ReactNode
 }
 
-export default function SSGradientModal({
+function SSGradientModal({
   visible,
   closeText,
   onClose,
@@ -53,3 +53,5 @@ const styles = StyleSheet.create({
     borderRadius: 3
   }
 })
+
+export default SSGradientModal
