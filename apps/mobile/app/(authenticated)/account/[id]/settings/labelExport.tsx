@@ -14,10 +14,13 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { AccountSearchParams } from '@/types/navigation/searchParams'
 import {
+  bip329export,
+  Bip329FileType,
+  bip329FileTypes,
+  bip329mimes,
   formatTransactionLabels,
   formatUtxoLabels,
-  Label,
-  labelsToCSV
+  Label
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 
@@ -30,12 +33,11 @@ export default function SSLabelExport() {
     ])
   )
 
-  const [exportType, setExportType] = useState('JSON')
+  const [exportType, setExportType] = useState<Bip329FileType>('JSONL')
   const [exportContent, setExportContent] = useState('')
 
   useEffect(() => {
-    if (exportType === 'JSON') setExportContent(JSON.stringify(labels))
-    if (exportType === 'CSV') setExportContent(labelsToCSV(labels))
+    setExportContent(bip329export[exportType](labels))
   }, [exportType]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) return <Redirect href="/" />
@@ -50,15 +52,15 @@ export default function SSLabelExport() {
     const date = new Date().toISOString().slice(0, -5)
     const ext = exportType.toLowerCase()
     const filename = `labels_${accountId}_${date}.${ext}`
+    const mime = bip329mimes[exportType]
     shareFile({
       filename,
       fileContent: exportContent,
       dialogTitle: 'Save Labels file',
-      mimeType: `application/${ext}`
+      mimeType: mime
     })
   }
 
-  //
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
@@ -87,16 +89,14 @@ export default function SSLabelExport() {
               EXPORT BIP329 LABELS
             </SSText>
             <SSHStack>
-              <SSCheckbox
-                label="JSON"
-                selected={exportType === 'JSON'}
-                onPress={() => setExportType('JSON')}
-              />
-              <SSCheckbox
-                label="CSV"
-                selected={exportType === 'CSV'}
-                onPress={() => setExportType('CSV')}
-              />
+              {bip329FileTypes.map((ext) => (
+                <SSCheckbox
+                  key={ext}
+                  label={ext}
+                  selected={exportType === ext}
+                  onPress={() => setExportType(ext)}
+                />
+              ))}
             </SSHStack>
             <View
               style={{
@@ -110,7 +110,7 @@ export default function SSLabelExport() {
               </SSText>
             </View>
             <SSClipboardCopy text={exportContent}>
-              <SSButton label="COPY TO CLIPBOARD" onPress={() => true} />
+              <SSButton label="COPY TO CLIPBOARD" />
             </SSClipboardCopy>
             <SSButton
               label={`DOWNLOAD ${exportType}`}
