@@ -46,7 +46,7 @@ interface LinkPoints {
   y2: number
 }
 
-interface SankeyProps {
+type SSSankeyDiagramProps = {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
   inputCount: number
@@ -105,7 +105,7 @@ function SSSankeyDiagram({
   sankeyNodes,
   sankeyLinks,
   inputCount
-}: SankeyProps) {
+}: SSSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
