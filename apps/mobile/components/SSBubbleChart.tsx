@@ -46,7 +46,7 @@ export default function SSBubbleChart({
   canvasSize,
   inputs,
   onPress,
-  style = {}
+  style
 }: SSBubbleChartProps) {
   const { height, width } = canvasSize
   const centerX = width / 2
