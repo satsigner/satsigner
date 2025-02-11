@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
