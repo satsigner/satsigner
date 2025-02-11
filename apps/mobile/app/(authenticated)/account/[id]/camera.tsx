@@ -13,7 +13,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 import { bip21decode } from '@/utils/bitcoin'
-import { clearClipboard, getClipboard } from '@/utils/clipboard'
+import {
+  clearClipboard,
+  getBitcoinAddressFromClipboard
+} from '@/utils/clipboard'
 
 export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
@@ -24,7 +27,7 @@ export default function Camera() {
 
   useEffect(() => {
     ;(async () => {
-      const text = await getClipboard()
+      const text = await getBitcoinAddressFromClipboard()
       setHasToPaste(!!text)
     })()
     const subscription = AppState.addEventListener(
@@ -35,7 +38,7 @@ export default function Camera() {
           nextAppState === 'active'
         ) {
           setTimeout(async () => {
-            const text = await getClipboard()
+            const text = await getBitcoinAddressFromClipboard()
             setHasToPaste(!!text)
           }, 1) // Refactor: without timeout, getStringAsync returns false
         }
@@ -48,7 +51,7 @@ export default function Camera() {
   }, [])
 
   async function handlePaste() {
-    const clipboard = await getClipboard()
+    const clipboard = await getBitcoinAddressFromClipboard()
     if (clipboard) {
       await clearClipboard()
     }
