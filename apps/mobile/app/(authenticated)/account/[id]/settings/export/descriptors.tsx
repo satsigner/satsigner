@@ -12,7 +12,7 @@ import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { shareFile } from '@/utils/filesystem'
 
-export default function SSLabelExport() {
+export default function ExportDescriptors() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>

@@ -22,7 +22,7 @@ import {
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
-export default function SSLabelExport() {
+export default function ImportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, importLabelsToAccount] = useAccountsStore(

@@ -23,7 +23,7 @@ import {
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 
-export default function SSLabelExport() {
+export default function ExportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>

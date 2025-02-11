@@ -128,7 +128,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccount}/settings/labelExport`
+                  `/account/${currentAccount}/settings/export/labels`
                 )
               }
             />
@@ -138,7 +138,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccount}/settings/labelImport`
+                  `/account/${currentAccount}/settings/import/labels`
                 )
               }
             />
@@ -155,7 +155,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccount}/settings/descriptorsExport`
+                  `/account/${currentAccount}/settings/export/descriptors`
                 )
               }
             />
