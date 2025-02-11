@@ -5,7 +5,6 @@ import { AppState, ScrollView, TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'
-import { getWordList } from '@/api/bip39'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
@@ -27,6 +26,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
+import { getWordList } from '@/utils/bip39'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
