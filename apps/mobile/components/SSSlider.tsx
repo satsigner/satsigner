@@ -13,8 +13,8 @@ type SSSliderProps = {
 }
 
 function SSSlider({
-  max,
   min,
+  max,
   value,
   step = 1,
   onValueChange,

@@ -26,9 +26,9 @@ type SSTransactionCardProps = {
   blockHeight: number
   fiatCurrency: Currency
   btcPrice: number
-  expand: boolean
   walletBalance: number
   link: string
+  expand: boolean
 }
 
 function SSTransactionCard({

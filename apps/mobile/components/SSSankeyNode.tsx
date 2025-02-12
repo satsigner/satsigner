@@ -22,7 +22,7 @@ type SSankeyNodeProps = {
   textInfo: string[]
 }
 
-function SSSankeyNode({ textInfo, width, x, y }: SSankeyNodeProps) {
+function SSSankeyNode({ width, x, y, textInfo }: SSankeyNodeProps) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),

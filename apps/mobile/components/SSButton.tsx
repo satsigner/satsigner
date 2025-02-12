@@ -26,12 +26,12 @@ type SSButtonProps = {
 function SSButton({
   label,
   variant = 'default',
-  disabled,
   loading,
   withSelect,
-  style,
-  textStyle,
   uppercase = true,
+  textStyle,
+  disabled,
+  style,
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {

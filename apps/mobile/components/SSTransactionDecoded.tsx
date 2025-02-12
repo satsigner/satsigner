@@ -9,16 +9,16 @@ import { TxDecoded, type TxDecodedField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
 
-type SSTranssctionDecodedProps = {
-  txHex: string
-}
-
 function byteChunks(hex: string) {
   const chunk = []
   for (let i = 0; i < hex.length; i += 2) {
     chunk.push([hex[i] + hex[i + 1]])
   }
   return chunk
+}
+
+type SSTranssctionDecodedProps = {
+  txHex: string
 }
 
 function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {

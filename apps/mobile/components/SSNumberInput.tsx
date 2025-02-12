@@ -23,12 +23,12 @@ function SSTextInput(
     variant = 'default',
     size = 'default',
     align = 'left',
-    actionRight,
-    style,
-    value,
-    onChangeText,
     min,
     max,
+    actionRight,
+    value,
+    onChangeText,
+    style,
     ...props
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>

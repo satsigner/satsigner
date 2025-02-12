@@ -16,8 +16,8 @@ type SSTextProps = {
 function SSText({
   color = 'white',
   size = 'sm',
-  weight = 'regular',
   type = 'sans-serif',
+  weight = 'regular',
   uppercase,
   center,
   style,

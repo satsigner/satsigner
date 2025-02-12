@@ -42,8 +42,8 @@ type SSBubbleChartProps = {
 }
 
 function SSBubbleChart({
-  utxos,
   canvasSize,
+  utxos,
   inputs,
   onPress,
   style

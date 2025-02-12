@@ -11,8 +11,8 @@ type SSSwitchProps = {
   position?: 'right' | 'left'
   textOn?: string
   textOff?: string
-  value: boolean
   size?: TextFontSize
+  value: boolean
   onToggle: (newValue: boolean) => void
 }
 

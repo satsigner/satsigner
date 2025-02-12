@@ -8,7 +8,6 @@ import SSText from './SSText'
 type SSRadioButtonProps = {
   label: string
   selected: boolean
-  disabled?: boolean
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 function SSRadioButton({

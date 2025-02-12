@@ -10,9 +10,9 @@ type SSStyledSatTextProps = {
   useZeroPadding?: boolean
   type?: 'send' | 'receive'
   noColor?: boolean
-  letterSpacing?: number
-  weight?: TextFontWeight
   textSize?: TextFontSize
+  weight?: TextFontWeight
+  letterSpacing?: number
 }
 
 function SSStyledSatText({

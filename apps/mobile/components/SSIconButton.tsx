@@ -6,9 +6,9 @@ type SSIconButtonProps = {
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 function SSIconButton({
-  children,
   rounded = false,
   style,
+  children,
   ...props
 }: SSIconButtonProps) {
   const buttonStyle = useMemo(() => {

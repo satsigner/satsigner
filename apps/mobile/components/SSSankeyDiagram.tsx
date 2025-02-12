@@ -21,7 +21,7 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { gray } from '@/styles/colors'
 
-import { SSSankeyNode } from './SSSankeyNode'
+import SSSankeyNode from './SSSankeyNode'
 
 interface Link extends SankeyLinkMinimal<object, object> {
   source: string
@@ -44,12 +44,6 @@ interface LinkPoints {
   y1: number
   x2: number
   y2: number
-}
-
-type SSSankeyDiagramProps = {
-  sankeyNodes: Node[]
-  sankeyLinks: Link[]
-  inputCount: number
 }
 
 const LINK_MAX_WIDTH = 60
@@ -99,6 +93,12 @@ const generateCustomLink = (points: LinkPoints) => {
     curveToA,
     'Z'
   ].join('\n')
+}
+
+type SSSankeyDiagramProps = {
+  sankeyNodes: Node[]
+  sankeyLinks: Link[]
+  inputCount: number
 }
 
 function SSSankeyDiagram({

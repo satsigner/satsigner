@@ -15,17 +15,17 @@ import SSTextInput from './SSTextInput'
 type SSTagInputProps = {
   tags: string[]
   selectedTags: string[]
-  onSelect?: (tags: string[]) => void
   onAdd?: (tag: string) => void
+  onSelect?: (tags: string[]) => void
   onRemove?: (tag: string) => void
 }
 
 function SSTagInput({
   tags,
   selectedTags,
+  onAdd,
   onSelect,
-  onRemove,
-  onAdd
+  onRemove
 }: SSTagInputProps) {
   const [text, setText] = useState('')
   const [inputFocused, setInputFocused] = useState(false)
