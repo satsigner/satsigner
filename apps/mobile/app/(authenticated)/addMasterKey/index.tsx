@@ -71,12 +71,12 @@ export default function AddMasterKey() {
             onPress={() => handleOnPressAddMasterKey('import')}
           />
           <SSButton
-            label={i18n.t('addMasterKey.importWatchOnly')}
+            label={t('account.import.watchOnly.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('import', true)}
           />
           <SSButton
-            label={i18n.t('addMasterKey.importWIF')}
+            label={t('addMasterKey.import.wif.title')}
             disabled={actionsDisabled}
           />
         </SSVStack>
