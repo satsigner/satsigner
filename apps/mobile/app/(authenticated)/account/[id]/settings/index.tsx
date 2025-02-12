@@ -51,17 +51,6 @@ export default function AccountSettings() {
   const [seedModalVisible, setSeedModalVisible] = useState(false)
   const [seed, setSeed] = useState('')
 
-  function getScriptVersionButtonLabel() {
-    if (scriptVersion === 'P2PKH') return `${t('script.p2pkh.name')} (P2PKH)`
-    else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`
-    else if (scriptVersion === 'P2WPKH')
-      return `${t('script.p2wpkh.name')} (P2WPKH)`
-    else if (scriptVersion === 'P2TR') return `${t('script.p2tr.name')} (P2TR)`
-
-    return ''
-  }
-
   function handleOnSelectScriptVersion() {
     setScriptVersion(scriptVersion)
     setScriptVersionModalVisible(false)
@@ -85,7 +74,8 @@ export default function AccountSettings() {
     updateSeed()
   }, [currentAccount, decryptSeed])
 
-  if (!currentAccount || !account) return <Redirect href="/" />
+  if (!currentAccount || !account || !scriptVersion)
+    return <Redirect href="/" />
 
   return (
     <ScrollView>
@@ -181,7 +171,7 @@ export default function AccountSettings() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.script')} />
             <SSButton
-              label={getScriptVersionButtonLabel()}
+              label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
               withSelect
               onPress={() => setScriptVersionModalVisible(true)}
             />
@@ -207,7 +197,7 @@ export default function AccountSettings() {
         visible={scriptVersionModalVisible}
         title={t('account.script')}
         selectedText={`${scriptVersion} - ${t(
-          `script.${scriptVersion?.toLowerCase()}.name`
+          `script.${scriptVersion.toLowerCase()}.name`
         )}`}
         selectedDescription={
           <SSCollapsible>
@@ -215,10 +205,10 @@ export default function AccountSettings() {
               {t(`script.${scriptVersion?.toLowerCase()}.description.1`)}
               <SSLink
                 size="md"
-                text={t(`script.${scriptVersion?.toLowerCase()}.link.name`)}
-                url={t(`script.${scriptVersion?.toLowerCase()}.link.url`)}
+                text={t(`script.${scriptVersion.toLowerCase()}.link.name`)}
+                url={t(`script.${scriptVersion.toLowerCase()}.link.url`)}
               />
-              {t(`script.${scriptVersion?.toLowerCase()}.description.2`)}
+              {t(`script.${scriptVersion.toLowerCase()}.description.2`)}
             </SSText>
             <SSIconScriptsP2pkh height={80} width="100%" />
           </SSCollapsible>

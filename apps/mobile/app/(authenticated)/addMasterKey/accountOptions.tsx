@@ -42,19 +42,6 @@ export default function AccountOptions() {
 
   const [loading, setLoading] = useState(false)
 
-  function getScriptVersionButtonLabel() {
-    if (localScriptVersion === 'P2PKH')
-      return `${t('script.p2pkh.name')} (P2PKH)`
-    else if (localScriptVersion === 'P2SH-P2WPKH')
-      return `${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`
-    else if (localScriptVersion === 'P2WPKH')
-      return `${t('script.p2wpkh.name')} (P2WPKH)`
-    else if (localScriptVersion === 'P2TR')
-      return `${t('script.p2tr.name')} (P2TR)`
-
-    return ''
-  }
-
   function getSeedWordCountButtonLabel() {
     if (localSeedWordCount === 12)
       return `12 ${t('bitcoin.words').toLowerCase()}`
@@ -115,7 +102,7 @@ export default function AccountOptions() {
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.script')} />
             <SSButton
-              label={getScriptVersionButtonLabel()}
+              label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
               withSelect
               onPress={() => setScriptVersionModalVisible(true)}
             />
@@ -147,20 +134,18 @@ export default function AccountOptions() {
         visible={scriptVersionModalVisible}
         title={t('account.script')}
         selectedText={`${localScriptVersion} - ${t(
-          `script.${localScriptVersion?.toLowerCase()}.name`
+          `script.${localScriptVersion.toLowerCase()}.name`
         )}`}
         selectedDescription={
           <SSCollapsible>
             <SSText color="muted" size="md">
-              {t(`script.${localScriptVersion?.toLowerCase()}.description.1`)}
+              {t(`script.${localScriptVersion.toLowerCase()}.description.1`)}
               <SSLink
                 size="md"
-                text={t(
-                  `script.${localScriptVersion?.toLowerCase()}.link.name`
-                )}
-                url={t(`script.${localScriptVersion?.toLowerCase()}.link.url`)}
+                text={t(`script.${localScriptVersion.toLowerCase()}.link.name`)}
+                url={t(`script.${localScriptVersion.toLowerCase()}.link.url`)}
               />
-              {t(`script.${localScriptVersion?.toLowerCase()}.description.2`)}
+              {t(`script.${localScriptVersion.toLowerCase()}.description.2`)}
             </SSText>
             <SSIconScriptsP2pkh height={80} width="100%" />
           </SSCollapsible>
