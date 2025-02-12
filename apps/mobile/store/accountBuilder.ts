@@ -32,7 +32,8 @@ type AccountBuilderAction = {
   clearAccount: () => void
   createAccountFromDescriptor: (
     name: string,
-    descriptor: string
+    externalDescriptor: string,
+    internalDescriptor?: string
   ) => Promise<Account>
   createAccountFromXpub: (
     name: string,
@@ -82,12 +83,29 @@ const useAccountBuilderStore = create<
       wallet: undefined
     })
   },
-  createAccountFromDescriptor: async (name, descriptor) => {
+  createAccountFromDescriptor: async (
+    name,
+    externalDescriptor,
+    internalDescriptor
+  ) => {
     // TODO: derive both internal an external descriptors from the descriptor
-    // const network = useBlockchainStore.getState().network as Network
-    // const descriptorObj = await new Descriptor().create(descriptor, network)
-    // const externalDescriptor = await descriptorObj.asStringPrivate()
-    // const internalDescriptor = await descriptorObj.asString()
+    const network = useBlockchainStore.getState().network as Network
+
+    const externalDescriptorObj = await new Descriptor().create(
+      externalDescriptor,
+      network
+    )
+    const externalDescriptorWithChecksum =
+      await externalDescriptorObj.asString()
+
+    let internalDescriptorWithChecksum: string | undefined
+    if (internalDescriptor) {
+      const internalDescriptorObj = await new Descriptor().create(
+        internalDescriptor,
+        network
+      )
+      internalDescriptorWithChecksum = await internalDescriptorObj.asString()
+    }
 
     const account: Account = {
       name,
@@ -96,7 +114,8 @@ const useAccountBuilderStore = create<
       watchOnly: 'public-key',
       utxos: [],
       transactions: [],
-      externalDescriptor: descriptor,
+      externalDescriptor: externalDescriptorWithChecksum,
+      internalDescriptor: internalDescriptorWithChecksum,
       summary: {
         balance: 0,
         satsInMempool: 0,
@@ -111,8 +130,8 @@ const useAccountBuilderStore = create<
     const network = useBlockchainStore.getState().network as Network
     const key = await new DescriptorPublicKey().fromString(xpub)
 
-    let externalDescriptorObj : Descriptor | undefined
-    let internalDescriptorObj : Descriptor | undefined
+    let externalDescriptorObj: Descriptor | undefined
+    let internalDescriptorObj: Descriptor | undefined
 
     switch (scriptVersion) {
       case 'P2PKH':

@@ -75,10 +75,12 @@ export default function WatchOnlyOptions() {
   const [fingerprint, setFingerprint] = useState('')
   const [xpub, setXpub] = useState('')
   const [descriptor, setDescriptor] = useState('')
+  const [internalDescriptor, setInternalDescriptor] = useState('')
   const [address, setAddress] = useState('')
 
   const [validAddress, setValidAddress] = useState(true)
   const [validDescriptor, setValidDescriptor] = useState(true)
+  const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
 
@@ -115,6 +117,11 @@ export default function WatchOnlyOptions() {
     setDescriptor(descriptor)
   }
 
+  function updateInternalDescriptor(descriptor: string) {
+    setValidInternalDescriptor(!descriptor || validateDescriptor(descriptor))
+    setInternalDescriptor(descriptor)
+  }
+
   function getScriptVersionButtonLabel() {
     if (scriptVersion === 'P2PKH')
       return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
@@ -132,7 +139,11 @@ export default function WatchOnlyOptions() {
     let account: Account | undefined
 
     if (selectedOption === 'descriptor' && descriptor) {
-      account = await createAccountFromDescriptor(name!, descriptor)
+      account = await createAccountFromDescriptor(
+        name!,
+        descriptor,
+        internalDescriptor || undefined
+      )
     }
 
     if (selectedOption === 'xpub' && xpub && scriptVersion && fingerprint) {
@@ -148,21 +159,39 @@ export default function WatchOnlyOptions() {
       // TODO: implement it
     }
 
-    if (account) {
-      await addSyncAccount(account)
-      router.navigate('/')
+    try {
+      if (account) {
+        await addSyncAccount(account)
+        router.navigate('/')
+      }
+    } finally {
+      setLoadingWallet(false)
     }
-    setLoadingWallet(false)
   }
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
+    if (!text) return
+
     if (selectedOption === 'descriptor') {
-      updateDescriptor(text)
+      let externalDescriptor = text
+      let internalDescriptor = ''
+      if (text.match(/<0[,;]1>/)) {
+        externalDescriptor = text
+          .replace(/<0[,;]1>/, '0')
+          .replace(/#[a-z0-9]+$/, '')
+        internalDescriptor = text
+          .replace(/<0[,;]1>/, '1')
+          .replace(/#[a-z0-9]+$/, '')
+      }
+      if (externalDescriptor) updateDescriptor(externalDescriptor)
+      if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
     }
+
     if (selectedOption === 'xpub') {
       updateXpub(text)
     }
+
     if (selectedOption === 'address') {
       updateAddress(text)
     }
@@ -280,6 +309,7 @@ export default function WatchOnlyOptions() {
                       style={validXpub ? styles.valid : styles.invalid}
                       placeholder={`ENTER ${selectedOption.toUpperCase()}`}
                       onChangeText={updateXpub}
+                      multiline
                     />
                   )}
                   {selectedOption === 'descriptor' && (
@@ -288,6 +318,7 @@ export default function WatchOnlyOptions() {
                       style={validDescriptor ? styles.valid : styles.invalid}
                       placeholder={`ENTER ${selectedOption.toUpperCase()}`}
                       onChangeText={updateDescriptor}
+                      multiline
                     />
                   )}
                   {selectedOption === 'address' && (
@@ -322,6 +353,24 @@ export default function WatchOnlyOptions() {
                         }
                         placeholder="ENTER FINGERPRINT"
                         onChangeText={updateMasterFingerprint}
+                      />
+                    </SSVStack>
+                  </>
+                )}
+                {selectedOption === 'descriptor' && (
+                  <>
+                    <SSVStack gap="xxs">
+                      <SSText center>INTERNAL DESCRIPTOR (optional)</SSText>
+                      <SSTextInput
+                        value={internalDescriptor}
+                        style={
+                          validInternalDescriptor
+                            ? styles.valid
+                            : styles.invalid
+                        }
+                        multiline
+                        onChangeText={updateInternalDescriptor}
+                        placeholder="ENTER DESCRIPTOR"
                       />
                     </SSVStack>
                   </>
@@ -373,9 +422,12 @@ export default function WatchOnlyOptions() {
 const styles = StyleSheet.create({
   invalid: {
     borderColor: Colors.error,
-    borderWidth: 1
+    borderWidth: 1,
+    height: 'auto',
+    paddingVertical: 10
   },
   valid: {
-    //
+    height: 'auto',
+    paddingVertical: 10
   }
 })
