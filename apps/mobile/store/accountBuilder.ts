@@ -93,6 +93,7 @@ const useAccountBuilderStore = create<
       name,
       createdAt: new Date(),
       accountCreationType: 'import',
+      watchOnly: 'public-key',
       utxos: [],
       transactions: [],
       externalDescriptor: descriptor,
@@ -108,58 +109,79 @@ const useAccountBuilderStore = create<
   },
   createAccountFromXpub: async (name, xpub, fingerprint, scriptVersion) => {
     const network = useBlockchainStore.getState().network as Network
-    const key = new DescriptorPublicKey().create(xpub)
+    const key = await new DescriptorPublicKey().fromString(xpub)
 
-    async function createDescriptors(callback: Descriptor['newBip44Public']) {
-      const externalDescriptor = await callback(
-        key,
-        fingerprint,
-        KeychainKind.External,
-        network
-      )
-      const internalDescriptor = await callback(
-        key,
-        fingerprint,
-        KeychainKind.Internal,
-        network
-      )
-      return Promise.all([
-        externalDescriptor.asString(),
-        internalDescriptor.asString()
-      ])
-    }
-
-    let externalDescriptor = ''
-    let internalDescriptor = ''
+    let externalDescriptorObj : Descriptor | undefined
+    let internalDescriptorObj : Descriptor | undefined
 
     switch (scriptVersion) {
       case 'P2PKH':
-        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
-          new Descriptor().newBip44Public
+        externalDescriptorObj = await new Descriptor().newBip44Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip44Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
         )
         break
       case 'P2SH-P2WPKH':
-        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
-          new Descriptor().newBip49Public
+        externalDescriptorObj = await new Descriptor().newBip49Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip49Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
         )
         break
       case 'P2WPKH':
-        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
-          new Descriptor().newBip84Public
+        externalDescriptorObj = await new Descriptor().newBip84Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip84Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
         )
         break
       case 'P2TR':
-        ;[externalDescriptor, internalDescriptor] = await createDescriptors(
-          new Descriptor().newBip86Public
+        externalDescriptorObj = await new Descriptor().newBip86Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip86Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
         )
         break
       default:
         throw new Error('invalid script version')
     }
 
+    const externalDescriptor = await externalDescriptorObj.asString()
+    const internalDescriptor = await internalDescriptorObj.asString()
+
     const account: Account = {
       name,
       createdAt: new Date(),
+      watchOnly: 'public-key',
       accountCreationType: 'import',
       utxos: [],
       transactions: [],

@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
-import { Fragment, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { useState } from 'react'
+import { Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconScriptsP2pkh } from '@/components/icons'
@@ -82,6 +82,8 @@ export default function WatchOnlyOptions() {
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
 
+  const [loadingWallet, setLoadingWallet] = useState(false)
+
   function updateAddress(address: string) {
     setValidAddress(!address || validateAddress(address))
     setAddress(address)
@@ -90,6 +92,7 @@ export default function WatchOnlyOptions() {
   function updateMasterFingerprint(fingerprint: string) {
     setValidMasterFingerprint(!fingerprint || validateFingerprint(fingerprint))
     setFingerprint(fingerprint)
+    if (validateFingerprint(fingerprint)) Keyboard.dismiss()
   }
 
   function updateXpub(xpub: string) {
@@ -125,6 +128,7 @@ export default function WatchOnlyOptions() {
   }
 
   async function confirmAccountCreation() {
+    setLoadingWallet(true)
     let account: Account | undefined
 
     if (selectedOption === 'descriptor' && descriptor) {
@@ -148,6 +152,7 @@ export default function WatchOnlyOptions() {
       await addSyncAccount(account)
       router.navigate('/')
     }
+    setLoadingWallet(false)
   }
 
   async function pasteFromClipboard() {
@@ -309,7 +314,7 @@ export default function WatchOnlyOptions() {
                       />
                     </SSVStack>
                     <SSVStack gap="xxs">
-                      <SSText center>MASTER FINGERPRINT (optional)</SSText>
+                      <SSText center>MASTER FINGERPRINT</SSText>
                       <SSTextInput
                         value={fingerprint}
                         style={
@@ -337,6 +342,7 @@ export default function WatchOnlyOptions() {
               <SSButton
                 label="CONFIRM"
                 variant="secondary"
+                loading={loadingWallet}
                 disabled={
                   (selectedOption === 'address' &&
                     (!address || !validAddress)) ||
