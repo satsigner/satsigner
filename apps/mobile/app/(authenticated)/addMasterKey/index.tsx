@@ -27,7 +27,8 @@ export default function AddMasterKey() {
   const actionsDisabled = accountName.length < 1
 
   function handleOnPressAddMasterKey(
-    creationType: Account['accountCreationType']
+    creationType: Account['accountCreationType'],
+    watchOnly = false
   ) {
     if (hasAccountWithName(accountName)) {
       Alert.alert(t('account.hasAccountWithName'))
@@ -37,7 +38,8 @@ export default function AddMasterKey() {
 
     setName(accountName)
     setType(creationType)
-    router.navigate('/addMasterKey/accountOptions')
+    if (watchOnly) router.navigate('/addMasterKey/watchOnlyOptions')
+    else router.navigate('/addMasterKey/accountOptions')
   }
 
   return (
@@ -67,6 +69,15 @@ export default function AddMasterKey() {
             label={t('account.import.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('import')}
+          />
+          <SSButton
+            label={i18n.t('addMasterKey.importWatchOnly')}
+            disabled={actionsDisabled}
+            onPress={() => handleOnPressAddMasterKey('import', true)}
+          />
+          <SSButton
+            label={i18n.t('addMasterKey.importWIF')}
+            disabled={actionsDisabled}
           />
         </SSVStack>
       </SSVStack>

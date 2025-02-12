@@ -27,10 +27,11 @@ type AccountsAction = {
   hasAccountWithName: (name: string) => boolean
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,
-    internalDescriptor: Descriptor
+    internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
+  addSyncAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
@@ -124,6 +125,31 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts.push(account)
           })
         )
+      },
+      addSyncAccount: async (account) => {
+        await get().addAccount(account)
+
+        if (!account.externalDescriptor) return
+
+        const network = useBlockchainStore.getState().network as Network
+
+        const externalDescriptor = await new Descriptor().create(
+          account.externalDescriptor,
+          network
+        )
+
+        const internalDescriptor = account.internalDescriptor
+          ? await new Descriptor().create(account.internalDescriptor, network)
+          : null
+
+        const wallet = await get().loadWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor
+        )
+        if (!wallet) return
+
+        const syncedAccount = await get().syncWallet(wallet, account)
+        get().updateAccount(syncedAccount)
       },
       updateAccount: async (account) => {
         set(

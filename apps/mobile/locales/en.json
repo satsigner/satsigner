@@ -24,6 +24,8 @@
     "import.labels": "Import labels",
     "import.title": "Import existing seed",
     "import.title2": "Import seed",
+    "import.watchOnly.title": "Import watch-only",
+    "import.wif.title": "Import WIF (single key)",
     "import.word.noMatch": "No matching words",
     "load.sample.signet": "Load sample signet wallet",
     "mnemonic.12": "12 words generated from 128 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
