@@ -24,8 +24,6 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
-export default memo(SelectUtxoBubbles)
-
 function SelectUtxoBubbles() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -254,3 +252,5 @@ const styles = StyleSheet.create({
     paddingBottom: 20
   }
 })
+
+export default memo(SelectUtxoBubbles)
