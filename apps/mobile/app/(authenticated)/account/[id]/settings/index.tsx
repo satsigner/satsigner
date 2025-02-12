@@ -38,7 +38,7 @@ export default function AccountSettings() {
     )
 
   const [scriptVersion, setScriptVersion] =
-    useState<Account['scriptVersion']>('P2WPKH')
+    useState<Account['scriptVersion']>('P2WPKH') // TODO: use current account script
   const [network, setNetwork] = useState<NonNullable<string>>('signet')
   const [accountName, setAccountName] = useState<Account['name']>(
     currentAccount!
