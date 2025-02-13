@@ -1,5 +1,10 @@
+import * as ecc from '@bitcoinerlab/secp256k1'
+import { FlashList } from '@shopify/flash-list'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
+import { BIP32Factory } from 'bip32'
+import { mnemonicToSeedSync, validateMnemonic } from 'bip39'
+import * as bitcoin from 'bitcoinjs-lib'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
@@ -46,6 +51,7 @@ import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -64,12 +70,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import useGetWalletAddress from '@/hooks/useGetWalletAddress'
-import { FlashList } from '@shopify/flash-list'
-import { BIP32Factory } from 'bip32'
-import { mnemonicToSeedSync, validateMnemonic } from 'bip39'
-import * as ecc from '@bitcoinerlab/secp256k1'
-import * as bitcoin from 'bitcoinjs-lib'
 
 const bip32 = BIP32Factory(ecc)
 
@@ -236,6 +236,7 @@ type ChildAccountsProps = {
   account: Account
   decryptSeed: Function
   setSortDirection: Function
+  sortDirection: Direction
 }
 
 function ChildAccounts({
@@ -277,7 +278,7 @@ function ChildAccounts({
           bitcoin.payments.p2wpkh({
             pubkey: Buffer.from(child.publicKey),
             network:
-              network == 'testnet' || network == 'signet'
+              network === 'testnet' || network === 'signet'
                 ? bitcoin.networks.testnet
                 : bitcoin.networks.bitcoin
           }) ?? {}
@@ -291,7 +292,6 @@ function ChildAccounts({
         if (!response.ok) throw new Error(`Failed to fetch transactions`)
 
         const transactions = await response.json()
-        console.log(`Transactions for Address ${address}:`, transactions.length)
         newAddresses.push({
           index: i,
           address,
@@ -315,7 +315,7 @@ function ChildAccounts({
     } catch (_) {
       //
     }
-  }, [account, decryptSeed, getWalletAddress])
+  }, [account, decryptSeed, network, getWalletAddress])
 
   useEffect(() => {
     fetchAddresses()
@@ -430,7 +430,7 @@ function ChildAccounts({
         renderItem={renderItem}
         estimatedItemSize={150}
         keyExtractor={(item) => `${item.index}-${item.address}`}
-        removeClippedSubviews={true}
+        removeClippedSubviews
       />
     </SSMainLayout>
   )
@@ -638,6 +638,7 @@ export default function AccountView() {
             account={account}
             decryptSeed={decryptSeed}
             setSortDirection={setSortDirectionChildAccounts}
+            sortDirection={sortDirectionChildAccounts}
           />
         )
       case 'spendableOutputs':
