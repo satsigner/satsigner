@@ -212,7 +212,7 @@ async function getMultiSigWalletFromMnemonic(
 
 async function getWalletFromDescriptor(
   externalDescriptor: Descriptor,
-  internalDescriptor: Descriptor,
+  internalDescriptor: Descriptor | null | undefined,
   network: Network
 ) {
   const dbConfig = await new DatabaseConfig().memory()

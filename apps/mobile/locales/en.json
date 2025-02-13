@@ -191,6 +191,8 @@
       "hasAccountWithName": "Account with that name already exists",
       "walletSyncFailed": "Failed to sync wallet. Make sure you have internet connection.",
       "loadSampleSignetWallet": "Load sample Signet Wallet",
+      "importWatchOnly": "Import Watch-Only",
+      "importWIF": "Import WIF (single key)",
       "generateNewSeed": {
         "title": "Generate New Secret Seed",
         "action": "Confirm Seed"
