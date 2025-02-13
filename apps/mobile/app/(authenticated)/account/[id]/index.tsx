@@ -696,12 +696,12 @@ export default function AccountView() {
                     >
                       <SSIconCamera height={13} width={18} />
                     </SSActionButton>
-                </>
+                  </>
                 )}
                 <SSActionButton
                   onPress={() => router.navigate(`/account/${id}/receive`)}
                   style={{
-                    width: (account.watchOnly) ? '100%' : '40%',
+                    width: account.watchOnly ? '100%' : '40%',
                     borderLeftWidth: 1,
                     borderLeftColor: Colors.gray[600]
                   }}
