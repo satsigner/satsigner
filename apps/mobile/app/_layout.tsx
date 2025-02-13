@@ -3,7 +3,12 @@ import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef } from 'react'
-import { AppState, AppStateStatus, Platform, UIManager } from 'react-native'
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  UIManager
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {

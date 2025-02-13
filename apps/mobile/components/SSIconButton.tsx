@@ -5,10 +5,10 @@ type SSIconButtonProps = {
   rounded?: boolean
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-export default function SSIconButton({
-  children,
+function SSIconButton({
   rounded = false,
   style,
+  children,
   ...props
 }: SSIconButtonProps) {
   const buttonStyle = useMemo(() => {
@@ -37,3 +37,5 @@ const styles = StyleSheet.create({
     padding: 5
   }
 })
+
+export default SSIconButton

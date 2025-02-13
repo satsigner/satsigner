@@ -1,13 +1,13 @@
 import { Canvas, Group, useFonts } from '@shopify/react-native-skia'
-import { hierarchy, HierarchyCircularNode, pack } from 'd3'
+import { hierarchy, type HierarchyCircularNode, pack } from 'd3'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  GestureResponderEvent,
+  type GestureResponderEvent,
   Platform,
-  StyleProp,
+  type StyleProp,
   TouchableOpacity,
   View,
-  ViewStyle
+  type ViewStyle
 } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
@@ -17,18 +17,7 @@ import { useLayout } from '@/hooks/useLayout'
 import { type Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-import SSUtxoBubble from './SSUtxoBubble'
-
-type SSUtxoBubblesProps = {
-  canvasSize: {
-    width: number
-    height: number
-  }
-  utxos: Utxo[]
-  inputs: Utxo[]
-  onPress: (utxo: Utxo) => void
-  style?: StyleProp<ViewStyle>
-}
+import SSBubble from './SSBubble'
 
 type UtxoListItem = Utxo & {
   id: string
@@ -41,13 +30,24 @@ type UtxoListBubble = Partial<Utxo> & {
   children: UtxoListBubble[]
 }
 
-export default function SSUtxoBubbles({
-  utxos,
+type SSBubbleChartProps = {
+  canvasSize: {
+    width: number
+    height: number
+  }
+  utxos: Utxo[]
+  inputs: Utxo[]
+  onPress: (utxo: Utxo) => void
+  style?: StyleProp<ViewStyle>
+}
+
+function SSBubbleChart({
   canvasSize,
+  utxos,
   inputs,
   onPress,
-  style = {}
-}: SSUtxoBubblesProps) {
+  style
+}: SSBubbleChartProps) {
   const { height, width } = canvasSize
   const centerX = width / 2
   const centerY = height / 2
@@ -58,7 +58,7 @@ export default function SSUtxoBubbles({
       require('@/assets/fonts/SF-Pro-Text-Medium.otf')
     ]
   })
-  const [utxoList, setUtxoList] = useState([] as UtxoListItem[])
+  const [utxoList, setUtxoList] = useState<UtxoListItem[]>([])
 
   useEffect(() => {
     setUtxoList(
@@ -107,10 +107,10 @@ export default function SSUtxoBubbles({
     }
   )
 
-  const handleOnPressCircle = (
+  function handleOnPressCircle(
     event: GestureResponderEvent,
     packedUtxo: HierarchyCircularNode<UtxoListBubble>
-  ) => {
+  ) {
     const rSquared = packedUtxo.r * packedUtxo.r
     const touchPointX = event.nativeEvent.locationX
     const touchPointY = event.nativeEvent.locationY
@@ -147,7 +147,7 @@ export default function SSUtxoBubbles({
             }
 
             return (
-              <SSUtxoBubble
+              <SSBubble
                 key={packedUtxo.data.id}
                 utxo={utxo}
                 x={packedUtxo.x}
@@ -219,3 +219,5 @@ export default function SSUtxoBubbles({
     </View>
   )
 }
+
+export default SSBubbleChart

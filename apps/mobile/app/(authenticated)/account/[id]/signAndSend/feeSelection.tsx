@@ -1,6 +1,6 @@
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
 
@@ -13,11 +13,11 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import type { MempoolStatistics } from '@/types/models/Blockchain'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type MempoolStatistics } from '@/types/models/Blockchain'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 
@@ -26,10 +26,10 @@ export default function FeeSelection() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const isFocused = useIsFocused()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === id)
+  )
   const setFeeRate = useTransactionBuilderStore((state) => state.setFeeRate)
-
-  const account = getCurrentAccount(id!)!
 
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
@@ -70,6 +70,8 @@ export default function FeeSelection() {
     { value: '1w', label: '1 WEEK' }
   ] as const
 
+  if (!account) return <Redirect href="/" />
+
   return (
     <>
       <Stack.Screen
@@ -86,7 +88,7 @@ export default function FeeSelection() {
               color="white"
               style={styles.minerFeeLabel}
             >
-              MINER FEE
+              {t('transaction.build.minerFee')}
             </SSText>
             <SSHStack gap="lg" style={styles.periodSelector}>
               {timePeriod.map(({ value, label }) => (
@@ -128,7 +130,7 @@ export default function FeeSelection() {
               >
                 {feeSelected}{' '}
                 <SSText size="4xl" color="muted">
-                  sats/vB
+                  {feeSelected === 1 ? t('bitcoin.satVb') : t('bitcoin.satsVb')}
                 </SSText>
               </SSText>
 
@@ -143,7 +145,7 @@ export default function FeeSelection() {
                   <SSText size="md" weight="medium">
                     {formatNumber(feeSelected)}{' '}
                     <SSText size="md" color="muted">
-                      {feeSelected > 1 ? 'sats' : 'sat'}
+                      {feeSelected > 1 ? t('bitcoin.sats') : t('bitcoin.sat')}
                     </SSText>
                   </SSText>
                 </SSVStack>
@@ -151,21 +153,21 @@ export default function FeeSelection() {
                 <SSText size="md">
                   273{' '}
                   <SSText size="md" color="muted">
-                    sats
+                    {t('bitcoin.sats')}
                   </SSText>
                 </SSText>
 
                 <SSText size="md">
                   ~ 4{' '}
                   <SSText size="md" color="muted">
-                    blocks
+                    {t('bitcoin.blocks')}
                   </SSText>
                 </SSText>
 
                 <SSText size="md">
                   92{' '}
                   <SSText size="md" color="muted">
-                    sats
+                    {t('bitcoin.sats')}
                   </SSText>
                 </SSText>
               </SSHStack>
@@ -182,29 +184,29 @@ export default function FeeSelection() {
             </SSVStack>
             <SSButton
               variant="secondary"
-              label="Set Fee"
+              label={t('transaction.build.set.fee')}
               onPress={() => handleOnPressPreviewTxMessage()}
             />
           </SSVStack>
         </SSVStack>
         <SSGradientModal
           visible={insufficientSatsModalVisible}
-          closeText={i18n.t('common.cancel')}
+          closeText={t('common.cancel')}
           onClose={() => setInsufficientSatsModalVisible(false)}
         >
           <SSVStack style={{ marginTop: 16 }}>
             <SSText color="muted" size="lg" uppercase>
-              Insufficient Sats
+              {t('transaction.build.insufficientSats')}
             </SSText>
           </SSVStack>
           <SSVStack
             itemsCenter
             style={{ marginVertical: 32, width: '100%', paddingHorizontal: 32 }}
           >
-            <SSButton label="Remove or Decrease Outputs" />
-            <SSButton label="Add Inputs" />
-            <SSButton label="Set Highest Fee Possible" />
-            <SSButton label="Set Minimum Automatic Fee" />
+            <SSButton label={t('transaction.build.update.outputs')} />
+            <SSButton label={t('transaction.build.add.inputs.title.1')} />
+            <SSButton label={t('"build.set.highestFeePossible')} />
+            <SSButton label={t('transaction.build.set.minimumAutomaticFee')} />
           </SSVStack>
         </SSGradientModal>
       </SSMainLayout>

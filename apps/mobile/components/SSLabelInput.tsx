@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { formatLabel, formatLabelTags } from '@/utils/format'
+import { parseLabel, parseLabelTags } from '@/utils/parse'
 
 import SSButton from './SSButton'
 import SSTagInput from './SSTagInput'
@@ -15,7 +15,7 @@ type SSLabelInputProps = {
   onUpdateLabel: (label: string) => void
 }
 
-export default function SSLabelInput({
+function SSLabelInput({
   label: originalLabel,
   onUpdateLabel
 }: SSLabelInputProps) {
@@ -29,14 +29,14 @@ export default function SSLabelInput({
   const [label, setLabel] = useState('')
 
   function saveLabel() {
-    const newLabel = formatLabelTags(label, selectedTags)
+    const newLabel = parseLabelTags(label, selectedTags)
     if (newLabel !== originalLabel) {
       onUpdateLabel(newLabel)
     }
   }
 
   useEffect(() => {
-    const { label, tags } = formatLabel(originalLabel)
+    const { label, tags } = parseLabel(originalLabel)
     setLabel(label)
     setSelectedTags(tags)
   }, [originalLabel])
@@ -89,7 +89,7 @@ export default function SSLabelInput({
   return (
     <SSVStack style={{ paddingVertical: 20 }}>
       <SSText weight="bold" uppercase>
-        {i18n.t('common.label')}
+        {t('common.label')}
       </SSText>
       <SSTextInput
         align="left"
@@ -107,7 +107,7 @@ export default function SSLabelInput({
         onSubmitEditing={handleInputEnded}
       />
       <SSText weight="bold" uppercase>
-        {i18n.t('common.tags')}
+        {t('common.tags')}
       </SSText>
       <SSTagInput
         tags={tags}
@@ -117,9 +117,11 @@ export default function SSLabelInput({
       />
       <SSButton
         onPress={saveLabel}
-        label={i18n.t('common.save')}
+        label={t('common.save')}
         variant="secondary"
       />
     </SSVStack>
   )
 }
+
+export default SSLabelInput

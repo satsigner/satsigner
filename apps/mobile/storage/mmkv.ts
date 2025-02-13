@@ -1,5 +1,5 @@
 import { MMKV } from 'react-native-mmkv'
-import { StateStorage } from 'zustand/middleware'
+import { type StateStorage } from 'zustand/middleware'
 
 const LAST_BACKGROUND_TIMESTAMP_KEY = 'lastBackgroundTimestamp'
 

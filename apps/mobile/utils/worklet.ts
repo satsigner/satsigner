@@ -1,4 +1,4 @@
-import { SharedValue } from 'react-native-reanimated'
+import { type SharedValue } from 'react-native-reanimated'
 
 function clamp(value: number, min: number, max: number) {
   'worklet'

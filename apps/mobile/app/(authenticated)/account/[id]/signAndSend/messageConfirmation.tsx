@@ -7,10 +7,10 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 
 export default function MessageConfirmation() {
@@ -20,16 +20,16 @@ export default function MessageConfirmation() {
   const [clearTransaction, txBuilderResult] = useTransactionBuilderStore(
     useShallow((state) => [state.clearTransaction, state.txBuilderResult])
   )
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
-
-  const account = getCurrentAccount(id!)!
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === id)
+  )
 
   function handleBackToHome() {
     clearTransaction()
     router.navigate(`/account/${id}`)
   }
 
-  if (!txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) return <Redirect href="/" />
 
   return (
     <>
@@ -42,11 +42,11 @@ export default function MessageConfirmation() {
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>
             <SSText weight="bold" size="lg">
-              {i18n.t('messageConfirmation.messageBroadcasted')}
+              {t('sent.broadcasted')}
             </SSText>
             <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
-                {i18n.t('messageConfirmation.messageId')}
+                {t('transaction.id')}
               </SSText>
               <SSText>{formatAddress(txBuilderResult.txDetails.txid)}</SSText>
             </SSVStack>
@@ -54,14 +54,14 @@ export default function MessageConfirmation() {
           <SSVStack>
             <SSButton
               variant="outline"
-              label={i18n.t('messageConfirmation.copyTxMessageId')}
+              label={t('sent.copyTransactionId')}
               onPress={() =>
                 Clipboard.setStringAsync(txBuilderResult.txDetails.txid)
               }
             />
             <SSButton
               variant="outline"
-              label={i18n.t('messageConfirmation.trackOnChain')}
+              label={t('sent.trackOnChain')}
               onPress={() =>
                 WebBrowser.openBrowserAsync(
                   `https://mempool.space/signet/tx/${txBuilderResult.txDetails.txid}`
@@ -70,7 +70,7 @@ export default function MessageConfirmation() {
             />
             <SSButton
               variant="secondary"
-              label={i18n.t('messageConfirmation.backToAccountHome')}
+              label={t('common.backToAccountHome')}
               onPress={() => handleBackToHome()}
             />
           </SSVStack>

@@ -10,10 +10,10 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 
-export default function BitcoinNetwork() {
+export default function Network() {
   const router = useRouter()
   const [
     backend,
@@ -68,7 +68,7 @@ export default function BitcoinNetwork() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{i18n.t('settings.bitcoinNetwork.title')}</SSText>
+            <SSText uppercase>{t('settings.network.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -79,9 +79,7 @@ export default function BitcoinNetwork() {
         <ScrollView>
           <SSVStack gap="lg">
             <SSVStack>
-              <SSText uppercase>
-                {i18n.t('settings.bitcoinNetwork.backend')}
-              </SSText>
+              <SSText uppercase>{t('settings.network.backend')}</SSText>
               <SSCheckbox
                 label="Electrum"
                 selected={selectedBackend === 'electrum'}
@@ -94,9 +92,7 @@ export default function BitcoinNetwork() {
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>
-                {i18n.t('settings.bitcoinNetwork.network')}
-              </SSText>
+              <SSText uppercase>{t('settings.network.network')}</SSText>
               <SSCheckbox
                 label="bitcoin"
                 selected={selectedNetwork === 'bitcoin'}
@@ -114,16 +110,14 @@ export default function BitcoinNetwork() {
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>{i18n.t('settings.bitcoinNetwork.url')}</SSText>
+              <SSText uppercase>{t('settings.network.url')}</SSText>
               <SSTextInput
                 value={selectedUrl}
                 onChangeText={(url) => setSelectedUrl(url)}
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>
-                {i18n.t('settings.bitcoinNetwork.retries')}
-              </SSText>
+              <SSText uppercase>{t('settings.network.retries')}</SSText>
               <SSNumberInput
                 value={selectedRetries}
                 min={1}
@@ -132,9 +126,7 @@ export default function BitcoinNetwork() {
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>
-                {i18n.t('settings.bitcoinNetwork.timeout')}
-              </SSText>
+              <SSText uppercase>{t('settings.network.timeout')}</SSText>
               <SSNumberInput
                 value={selectedTimeout}
                 min={1}
@@ -143,9 +135,7 @@ export default function BitcoinNetwork() {
               />
             </SSVStack>
             <SSVStack>
-              <SSText uppercase>
-                {i18n.t('settings.bitcoinNetwork.stopGap')}
-              </SSText>
+              <SSText uppercase>{t('settings.network.stopGap')}</SSText>
               <SSNumberInput
                 value={selectedStopGap}
                 min={1}
@@ -157,12 +147,12 @@ export default function BitcoinNetwork() {
         </ScrollView>
         <SSVStack>
           <SSButton
-            label={i18n.t('common.save')}
+            label={t('common.save')}
             variant="secondary"
             onPress={() => handleOnSave()}
           />
           <SSButton
-            label={i18n.t('common.cancel')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={() => router.back()}
           />

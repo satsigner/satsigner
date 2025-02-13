@@ -6,23 +6,23 @@ import {
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
-
-interface ISSankeyNode {
-  width: number
-  x: number
-  y: number
-  textInfo: string[]
-}
 
 const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 
-export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
+type SSankeyNodeProps = {
+  width: number
+  x: number
+  y: number
+  textInfo: string[]
+}
+
+function SSSankeyNode({ width, x, y, textInfo }: SSankeyNodeProps) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
@@ -83,9 +83,9 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
       })
       .addText(
         isNumeric(textInfo[0])
-          ? ` ${i18n.t('bitcoin.sats').toLowerCase()}\n`
+          ? ` ${t('bitcoin.sats').toLowerCase()}\n`
           : isMiningFee
-            ? ` ${i18n.t('bitcoin.sats').toLowerCase()}/vB \n`
+            ? ` ${t('bitcoin.sats').toLowerCase()}/vB \n`
             : '\n'
       )
       .pushStyle({
@@ -138,3 +138,5 @@ export function SSSankeyNode({ textInfo, width, x, y }: ISSankeyNode) {
     />
   )
 }
+
+export default SSSankeyNode
