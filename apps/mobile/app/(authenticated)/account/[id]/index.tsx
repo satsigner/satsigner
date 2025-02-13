@@ -2,7 +2,14 @@ import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import {
   Animated,
   Easing,
@@ -54,9 +61,17 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import useGetWalletAddress from '@/hooks/useGetWalletAddress'
+import { FlashList } from '@shopify/flash-list'
+import { BIP32Factory } from 'bip32'
+import { mnemonicToSeedSync, validateMnemonic } from 'bip39'
+import * as ecc from '@bitcoinerlab/secp256k1'
+import * as bitcoin from 'bitcoinjs-lib'
+
+const bip32 = BIP32Factory(ecc)
 
 type TotalTransactionsProps = {
   account: Account
@@ -209,10 +224,214 @@ function TotalTransactions({
   )
 }
 
-function ChildAccounts() {
+type ChildAccount = {
+  index: number
+  address: string
+  publicKey: string
+  privateKey: string | null
+  txs: number
+}
+
+type ChildAccountsProps = {
+  account: Account
+  decryptSeed: Function
+  setSortDirection: Function
+}
+
+function ChildAccounts({
+  account,
+  decryptSeed,
+  setSortDirection
+}: ChildAccountsProps) {
+  const [network] = useBlockchainStore(useShallow((state) => [state.network]))
+
+  const getWalletAddress = useGetWalletAddress(account!)
+
+  const [addressPath, setAddressPath] = useState('')
+  const [childAccounts, setChildAccounts] = useState<any[]>([])
+
+  const fetchAddresses = useCallback(async () => {
+    if (!account || !account.derivationPath) return
+
+    try {
+      const result = await getWalletAddress()
+      if (!result) return
+      setAddressPath(`${account.derivationPath}/0/${result.index}`)
+      const mnemonicRaw = await decryptSeed(account.name)
+      const mnemonic = mnemonicRaw.includes(',')
+        ? mnemonicRaw.split(',').join(' ')
+        : mnemonicRaw
+      if (!validateMnemonic(mnemonic)) throw new Error('Invalid mnemonic')
+
+      const seed1 = mnemonicToSeedSync(mnemonic)
+      const root = bip32.fromSeed(new Uint8Array(seed1))
+
+      const newAddresses: ChildAccount[] = []
+      const addressList: string[] = []
+
+      for (let i = 0; i < account.summary.numberOfAddresses; i++) {
+        const derivationPath = `${account.derivationPath}/0/${i}`
+        const child = root.derivePath(derivationPath)
+
+        const { address } =
+          bitcoin.payments.p2wpkh({
+            pubkey: Buffer.from(child.publicKey),
+            network:
+              network == 'testnet' || network == 'signet'
+                ? bitcoin.networks.testnet
+                : bitcoin.networks.bitcoin
+          }) ?? {}
+
+        if (!address) continue
+
+        addressList.push(address)
+        const response = await fetch(
+          `https://blockstream.info/signet/api/address/${address}/txs`
+        )
+        if (!response.ok) throw new Error(`Failed to fetch transactions`)
+
+        const transactions = await response.json()
+        console.log(`Transactions for Address ${address}:`, transactions.length)
+        newAddresses.push({
+          index: i,
+          address,
+          publicKey: Buffer.from(child.publicKey).toString('hex'),
+          privateKey: child.privateKey
+            ? Buffer.from(child.privateKey).toString('hex')
+            : null,
+          txs: transactions.length
+        })
+      }
+
+      setChildAccounts((prevAccounts) => {
+        const existingAddresses = new Set(
+          prevAccounts.map((acc) => acc.address)
+        )
+        const uniqueNewAccounts = newAddresses.filter(
+          (acc) => !existingAddresses.has(acc.address)
+        )
+        return [...prevAccounts, ...uniqueNewAccounts]
+      })
+    } catch (_) {
+      //
+    }
+  }, [account, decryptSeed, getWalletAddress])
+
+  useEffect(() => {
+    fetchAddresses()
+  }, [fetchAddresses])
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <SSHStack
+        style={{
+          paddingVertical: 12,
+          paddingHorizontal: 4,
+          borderBottomWidth: 1,
+          borderColor: '#333',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <SSText
+          style={{
+            fontWeight: 'bold',
+            color: '#fff',
+            textAlign: 'center',
+            flex: 1
+          }}
+        >
+          {item.index}
+        </SSText>
+        <SSText style={{ color: '#ccc', textAlign: 'center', flex: 2 }}>
+          {formatAddress(item.address, 4)}
+        </SSText>
+        <SSText style={{ color: '#ccc', textAlign: 'center', flex: 2 }}>
+          {formatAddress(item.publicKey, 4)}
+        </SSText>
+        <SSText style={{ color: '#ccc', textAlign: 'center', flex: 2 }}>
+          {formatAddress(item.privateKey, 4)}
+        </SSText>
+        <SSText style={{ color: '#fff', textAlign: 'center', flex: 1 }}>
+          {item.txs}
+        </SSText>
+      </SSHStack>
+    ),
+    []
+  )
+
   return (
-    <SSMainLayout>
-      <SSText>Being built...</SSText>
+    <SSMainLayout style={{ paddingTop: 20 }}>
+      <SSHStack gap="none" justifyBetween>
+        <SSVStack gap="none" itemsCenter style={{ width: '95%' }}>
+          <SSHStack gap="sm">
+            <SSText color="muted" uppercase>
+              {i18n.t('newInvoice.path')}
+            </SSText>
+            <SSText>{addressPath}</SSText>
+          </SSHStack>
+        </SSVStack>
+        <SSVStack>
+          <SSSortDirectionToggle
+            onDirectionChanged={(direction) => setSortDirection(direction)}
+          />
+        </SSVStack>
+      </SSHStack>
+      <SSSeparator color="grayDark" style={{ marginTop: 20 }} />
+      <SSHStack
+        style={{
+          paddingVertical: 12,
+          paddingHorizontal: 4,
+          borderBottomWidth: 1,
+          borderColor: '#333',
+          backgroundColor: '#111',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <SSText
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          INDEX
+        </SSText>
+        <SSText
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          ADDRESS
+        </SSText>
+        <SSText
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          PUBLIC KEY
+        </SSText>
+        <SSText
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          PRIVATE KEY
+        </SSText>
+        <SSText
+          style={{
+            textAlign: 'center'
+          }}
+        >
+          TXS
+        </SSText>
+      </SSHStack>
+      <FlashList
+        data={childAccounts}
+        renderItem={renderItem}
+        estimatedItemSize={150}
+        keyExtractor={(item) => `${item.index}-${item.address}`}
+        removeClippedSubviews={true}
+      />
     </SSMainLayout>
   )
 }
@@ -330,15 +549,21 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((account) => account.name === id),
-        state.loadWalletFromDescriptor,
-        state.syncWallet,
-        state.updateAccount
-      ])
-    )
+  const [
+    account,
+    loadWalletFromDescriptor,
+    syncWallet,
+    updateAccount,
+    decryptSeed
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.name === id),
+      state.loadWalletFromDescriptor,
+      state.syncWallet,
+      state.updateAccount,
+      state.decryptSeed
+    ])
+  )
 
   const useZeroPadding = useSettingsStore(
     useShallow((state) => state.useZeroPadding)
@@ -358,6 +583,8 @@ export default function AccountView() {
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
+    useState<Direction>('desc')
+  const [sortDirectionChildAccounts, setSortDirectionChildAccounts] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
@@ -406,7 +633,13 @@ export default function AccountView() {
           />
         )
       case 'childAccounts':
-        return <ChildAccounts />
+        return (
+          <ChildAccounts
+            account={account}
+            decryptSeed={decryptSeed}
+            setSortDirection={setSortDirectionChildAccounts}
+          />
+        )
       case 'spendableOutputs':
         return (
           <SpendableOutputs
