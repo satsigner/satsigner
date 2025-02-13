@@ -84,7 +84,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
 
-  const [walletAddresses] = useMemo(() => {
+  const walletAddresses = useMemo(() => {
     const addresses = new Set<string>()
     const transactinsMap = new Map<string, Transaction>()
     utxos.forEach((val) => {
@@ -105,7 +105,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
         })
       })
     addresses.delete('')
-    return [addresses]
+    return addresses
   }, [transactions, utxos])
 
   const balanceHistory = useMemo(() => {
@@ -191,11 +191,15 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
     )
   )
-  const [prevEndDate, setPrevEndDate] = useState<Date>(
-    new Date(currentDate.current)
+  const endDateRef = useRef<Date>(
+    new Date(
+      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+    )
   )
+  const prevEndDate = useRef<Date>(new Date(currentDate.current))
   const [startY, setStartY] = useState<number>(0)
-  const [prevStartY, setPrevStartY] = useState<number>(0)
+  const startYRef = useRef<number>(0)
+  const prevStartY = useRef<number>(0)
 
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
@@ -377,43 +381,46 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     .minDistance(1)
     .maxPointers(1)
     .onStart(() => {
-      setPrevEndDate(endDate)
-      setPrevStartY(startY)
+      prevEndDate.current = endDate
+      prevStartY.current = startY
     })
     .onUpdate((event) => {
-      setEndDate(
-        new Date(
-          Math.max(
-            Math.min(
-              prevEndDate.getTime() -
-                ((timeOffset / scale) * event.translationX) / chartWidth,
-              new Date(currentDate.current).setDate(
-                new Date(currentDate.current).getDate() + 5
-              )
-            ),
-            new Date(transactions[0].timestamp!).getTime()
-          )
+      endDateRef.current = new Date(
+        Math.max(
+          Math.min(
+            prevEndDate.current.getTime() -
+              ((timeOffset / scale) * event.translationX) / chartWidth,
+            new Date(currentDate.current).setDate(
+              new Date(currentDate.current).getDate() + 5
+            )
+          ),
+          new Date(transactions[0].timestamp!).getTime()
         )
       )
       if (!lockZoomToXAxis) {
-        setStartY(
-          Math.max(
-            Math.min(
-              prevStartY +
-                (((maxBalance * 1.2) / scale) * event.translationY) /
-                  chartHeight,
-              maxBalance * 1.2 - (maxBalance * 1.2) / scale
-            ),
-            0
-          )
+        startYRef.current = Math.max(
+          Math.min(
+            prevStartY.current +
+              (((maxBalance * 1.2) / scale) * event.translationY) / chartHeight,
+            maxBalance * 1.2 - (maxBalance * 1.2) / scale
+          ),
+          0
         )
       }
     })
     .onEnd(() => {
-      setPrevEndDate(endDate)
-      setPrevStartY(startY)
+      prevEndDate.current = endDate
+      prevStartY.current = startY
     })
     .runOnJS(true)
+
+  useEffect(() => {
+    const timerId = setInterval(() => {
+      setEndDate(endDateRef.current)
+      setStartY(startYRef.current)
+    }, 100)
+    return () => clearInterval(timerId)
+  }, [])
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
@@ -625,7 +632,13 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     })
     setTxXAxisLabels(result)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddresses, xScaleTransactions, txXBoundbox, xScale])
+  }, [
+    walletAddresses,
+    xScaleTransactions,
+    txXBoundbox,
+    xScale,
+    showTransactionInfo
+  ])
 
   const [txInfoLabels, setTxInfoLabels] = useState<
     {
@@ -635,6 +648,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       amount?: number
       type: string
       boundBox?: Rectangle
+      index: string
     }[]
   >([])
 
@@ -642,9 +656,11 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
     [key: string]: Rectangle
   }>({})
 
+  const txInfoBoundBoxRef = useRef<{ [key: string]: Rectangle }>({})
+
   const handleTxInfoLayout = (
     event: LayoutChangeEvent,
-    index: number,
+    index: string,
     x: number,
     y: number,
     type: string
@@ -673,20 +689,33 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       width: Math.round(event.nativeEvent.layout.width),
       height: Math.round(event.nativeEvent.layout.height)
     }
+    if (rect.height === 0 || rect.width === 0) {
+      return
+    }
     if (
-      txInfoBoundBox[index] !== undefined &&
-      txInfoBoundBox[index].width === rect.width &&
-      txInfoBoundBox[index].height === rect.height
+      txInfoBoundBoxRef.current[index] !== undefined &&
+      txInfoBoundBoxRef.current[index].width === rect.width &&
+      txInfoBoundBoxRef.current[index].height === rect.height
     ) {
       return
     }
-    setTxInfoBoundBox((prev) => ({
-      ...prev,
+    txInfoBoundBoxRef.current = {
+      ...txInfoBoundBoxRef.current,
       [index]: rect
-    }))
+    }
   }
 
   useEffect(() => {
+    const timerId = setInterval(() => {
+      setTxInfoBoundBox(txInfoBoundBoxRef.current)
+    }, 100)
+    return () => clearTimeout(timerId)
+  }, [])
+
+  useEffect(() => {
+    if (!showAmount && !showLabel) {
+      return
+    }
     const initialLabels: {
       x: number
       y: number
@@ -694,87 +723,83 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
       amount?: number
       type: string
       boundBox?: Rectangle
+      index: string
     }[] = []
-    if (
-      validChartData.findIndex(
-        (d, index) => d.type !== 'end' && txInfoBoundBox[index] === undefined
-      ) !== -1
-    ) {
-      validChartData.forEach((d) => {
-        if (d.type === 'end') return
-        const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
-        const y = yScale(d.balance) - 5
-        if (showLabel && d.memo) {
-          initialLabels.push({
-            x,
-            y: y + (showAmount ? -15 : 0),
-            memo: d.memo,
-            type: d.type
-          })
-        }
-        if (showAmount) {
-          initialLabels.push({
-            x,
-            y,
-            amount: d.amount,
-            type: d.type
-          })
-        }
-      })
-    } else {
-      validChartData.forEach((d, index) => {
-        if (d.type === 'end') return
-        const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
-        const y = Math.round(yScale(d.balance) - 5)
-        const width = Math.round(txInfoBoundBox[index].width!)
-        const height = Math.round(txInfoBoundBox[index].height!)
+
+    validChartData.forEach((d) => {
+      if (d.type === 'end') return
+      const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
+      const y = Math.round(yScale(d.balance) - 5)
+      if (showLabel && d.memo) {
+        const index = d.date.getTime().toString() + d.balance.toString() + 'L'
+        const width = Math.round(
+          txInfoBoundBox[index] !== undefined ? txInfoBoundBox[index].width! : 0
+        )
+        const height = Math.round(
+          txInfoBoundBox[index] !== undefined
+            ? txInfoBoundBox[index].height!
+            : 0
+        )
         const left = Math.round(d.type === 'receive' ? x - width : x)
         const right = Math.round(d.type === 'receive' ? x : x + width)
         const bottom = y
         const top = y - height
-        if (showLabel && d.memo) {
-          initialLabels.push({
-            x,
-            y: y + (showAmount ? -15 : 0),
-            memo: d.memo,
-            type: d.type,
-            boundBox: {
-              left,
-              right,
-              top: top + (showAmount ? -15 : 0),
-              bottom: bottom + (showAmount ? -15 : 0),
-              width,
-              height
-            }
-          })
-        }
-        if (showAmount) {
-          initialLabels.push({
-            x,
-            y,
-            amount: d.amount,
-            type: d.type,
-            boundBox: {
-              left,
-              right,
-              top,
-              bottom,
-              width,
-              height
-            }
-          })
-        }
-      })
-    }
+        initialLabels.push({
+          x,
+          y: y + (showAmount ? -15 : 0),
+          memo: d.memo,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top: top + (showAmount ? -15 : 0),
+            bottom: bottom + (showAmount ? -15 : 0),
+            width,
+            height
+          },
+          index
+        })
+      }
+      if (showAmount) {
+        const index = d.date.getTime().toString() + d.balance.toString() + 'A'
+        const width = Math.round(
+          txInfoBoundBox[index] !== undefined ? txInfoBoundBox[index].width! : 0
+        )
+        const height = Math.round(
+          txInfoBoundBox[index] !== undefined
+            ? txInfoBoundBox[index].height!
+            : 0
+        )
+        const left = Math.round(d.type === 'receive' ? x - width : x)
+        const right = Math.round(d.type === 'receive' ? x : x + width)
+        const bottom = y
+        const top = y - height
+        initialLabels.push({
+          x,
+          y,
+          amount: d.amount,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top,
+            bottom,
+            width,
+            height
+          },
+          index
+        })
+      }
+    })
     for (let i = 0; i < initialLabels.length - 1; i++) {
       const boundBoxA = initialLabels[i].boundBox
       for (let j = i + 1; j < initialLabels.length; j++) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxA !== undefined && boundBoxB !== undefined) {
           if (isOverlapping(boundBoxA!, boundBoxB!)) {
-            initialLabels[j].y -= 20
-            initialLabels[j].boundBox!.top -= 20
-            initialLabels[j].boundBox!.bottom -= 20
+            initialLabels[j].y -= 30
+            initialLabels[j].boundBox!.top -= 30
+            initialLabels[j].boundBox!.bottom -= 30
           }
         }
       }
@@ -1042,7 +1067,7 @@ function SSBalanceChart({ transactions, utxos }: SSBalanceChartProps) {
                         onLayout={(e) =>
                           handleTxInfoLayout(
                             e,
-                            index,
+                            label.index,
                             label.x,
                             label.y,
                             label.type
