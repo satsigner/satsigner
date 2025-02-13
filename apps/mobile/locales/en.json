@@ -440,8 +440,11 @@
     "weight": "Weight"
   },
   "utxo": {
+    "details": "UTXO Details",
     "group": "Group",
     "label": "Label",
-    "noLabel": "No label"
+    "noLabel": "No label",
+    "outputIndex": "Output Index",
+    "unlockingScript": "Unlocking script"
   }
 }

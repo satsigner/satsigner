@@ -58,7 +58,7 @@ export default function UtxoDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>{t('utxoDetails.labelEdit')}</SSText>
+          headerTitle: () => <SSText>{t('utxo.details')}</SSText>
         }}
       />
       <SSVStack
@@ -71,14 +71,10 @@ export default function UtxoDetails() {
         }}
       >
         <SSVStack>
-          <SSText center size="lg">
-            {t('utxoDetails.title')}
-          </SSText>
-          <SSSeparator color="gradient" />
           <SSLabelDetails
             label={utxo?.label || ''}
             link={`/account/${accountId}/transaction/${txid}/utxo/${vout}/label`}
-            header={t('utxoDetails.label')}
+            header={t('utxo.label')}
           />
         </SSVStack>
         <SSVStack>
@@ -94,7 +90,7 @@ export default function UtxoDetails() {
             </SSVStack>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {t('common.block')}
+                {t('bitcoin.block')}
               </SSText>
               <SSText color="muted" uppercase>
                 {blockHeight}
@@ -115,7 +111,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={utxoAddress}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {t('common.address')}
+                {t('transaction.address')}
               </SSText>
               <SSText color="muted">{utxoAddress}</SSText>
             </SSVStack>
@@ -124,7 +120,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={txid || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {t('common.transaction')}
+                {t('transaction.id')}
               </SSText>
               <SSText color="muted">{txid}</SSText>
             </SSVStack>
@@ -133,7 +129,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={vout || ''}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {t('common.outputIndex')}
+                {t('utxo.outputIndex')}
               </SSText>
               <SSText color="muted">{vout}</SSText>
             </SSVStack>
@@ -141,7 +137,7 @@ export default function UtxoDetails() {
           <SSSeparator color="gradient" />
           <SSVStack>
             <SSText uppercase weight="bold">
-              Unlocking script
+              {t('utxo.unlockingScript')}
             </SSText>
             <SSScriptDecoded script={utxo?.script || []} />
           </SSVStack>
