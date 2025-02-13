@@ -678,26 +678,30 @@ export default function AccountView() {
                 gap="none"
                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
               >
-                <SSActionButton
-                  onPress={() => navigateToSignAndSend()}
-                  style={{
-                    width: '40%',
-                    borderRightWidth: 1,
-                    borderRightColor: Colors.gray[600]
-                  }}
-                >
-                  <SSText uppercase>{t('account.signAndSend')}</SSText>
-                </SSActionButton>
-                <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/camera`)}
-                  style={{ width: '20%' }}
-                >
-                  <SSIconCamera height={13} width={18} />
-                </SSActionButton>
+                {!account.watchOnly && (
+                  <>
+                    <SSActionButton
+                      onPress={() => navigateToSignAndSend()}
+                      style={{
+                        width: '40%',
+                        borderRightWidth: 1,
+                        borderRightColor: Colors.gray[600]
+                      }}
+                    >
+                      <SSText uppercase>{t('account.signAndSend')}</SSText>
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/camera`)}
+                      style={{ width: '20%' }}
+                    >
+                      <SSIconCamera height={13} width={18} />
+                    </SSActionButton>
+                </>
+                )}
                 <SSActionButton
                   onPress={() => router.navigate(`/account/${id}/receive`)}
                   style={{
-                    width: '40%',
+                    width: (account.watchOnly) ? '100%' : '40%',
                     borderLeftWidth: 1,
                     borderLeftColor: Colors.gray[600]
                   }}

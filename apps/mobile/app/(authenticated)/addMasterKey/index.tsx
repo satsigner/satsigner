@@ -76,7 +76,7 @@ export default function AddMasterKey() {
             onPress={() => handleOnPressAddMasterKey('import', true)}
           />
           <SSButton
-            label={t('addMasterKey.import.wif.title')}
+            label={t('account.import.wif.title')}
             disabled={actionsDisabled}
           />
         </SSVStack>
