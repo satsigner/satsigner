@@ -4,20 +4,20 @@ import {
   FlatList,
   Keyboard,
   Platform,
-  StyleProp,
+  type StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
-  ViewStyle
+  type ViewStyle
 } from 'react-native'
 
-import { getWordList } from '@/api/bip39'
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
+import { getWordList } from '@/utils/bip39'
 
 type WordInfo = {
   index: number
@@ -62,7 +62,7 @@ type SSKeyboardWordSelectorProps = {
   style: StyleProp<ViewStyle>
 }
 
-export default function SSKeyboardWordSelector({
+function SSKeyboardWordSelector({
   visible,
   wordStart,
   onWordSelected,
@@ -155,7 +155,7 @@ export default function SSKeyboardWordSelector({
       ) : (
         <View style={styles.noMatchingWordsContainerBase}>
           <Text style={styles.wordText}>
-            {i18n.t('addMasterKey.importExistingSeed.noMatchingWords')}
+            {t('account.import.word.noMatch')}
           </Text>
         </View>
       )}
@@ -193,3 +193,5 @@ const styles = StyleSheet.create({
     width: 1
   }
 })
+
+export default SSKeyboardWordSelector

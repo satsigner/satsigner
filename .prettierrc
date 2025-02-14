@@ -1,7 +1,17 @@
 {
+  "endOfLine": "auto",
+  "printWidth": 80,
   "semi": false,
   "singleQuote": true,
   "trailingComma": "none",
-  "printWidth": 80,
-  "endOfLine": "auto"
+  "plugins": ["prettier-plugin-pkg"],
+  "overrides": [
+    {
+      "files": ["./apps/mobile/locales/*.json"],
+      "options": {
+        "plugins": ["prettier-plugin-sort-json"],
+        "jsonRecursiveSort": true
+      }
+    }
+  ]
 }

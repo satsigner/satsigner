@@ -34,10 +34,7 @@ export type TxDecodedField = {
   hex: string
   field: TxField
   value: string | number
-  placeholders?: {
-    label?: (string | number)[]
-    description?: (string | number)[]
-  }
+  placeholders?: Record<string, string | number>
 }
 
 export class TxDecoded extends bitcoinjs.Transaction {
@@ -117,7 +114,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const hex = bigEndianHash.toString('hex')
     const value = Endian(bigEndianHash.toString('hex'))
     const field = TxField.TxInHash
-    const placeholders = { label: [index] }
+    const placeholders = { input: index }
     return { hex, value, field, placeholders }
   }
 
@@ -125,7 +122,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.ins[index].index
     const hex = toUInt32LE(value)
     const field = TxField.TxInIndex
-    const placeholders = { label: [index] }
+    const placeholders = { input: index }
     return { hex, value, field, placeholders }
   }
 
@@ -133,7 +130,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.ins[index].script.length
     const hex = toVarInt(value)
     const field = TxField.TxInScriptVarInt
-    const placeholders = { label: [index] }
+    const placeholders = { input: index }
     return { hex, value, field, placeholders }
   }
 
@@ -147,7 +144,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
       value = bitcoinjs.script.toASM(script)
     }
     const field = TxField.TxInScript
-    const placeholders = { label: [index] }
+    const placeholders = { input: index }
     return { hex, value, field, placeholders }
   }
 
@@ -155,7 +152,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.ins[index].sequence
     const hex = toUInt32LE(value)
     const field = TxField.TxInSequence
-    const placeholders = { label: [index] }
+    const placeholders = { input: index }
     return { hex, value, field, placeholders }
   }
 
@@ -179,7 +176,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.outs[index].value
     const hex = toBigUInt64LE(value)
     const field = TxField.TxOutValue
-    const placeholders = { label: [index] }
+    const placeholders = { output: index }
     return { hex, value, field, placeholders }
   }
 
@@ -187,7 +184,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.outs[index].script.length
     const hex = toVarInt(value)
     const field = TxField.TxOutScriptVarInt
-    const placeholders = { label: [index] }
+    const placeholders = { output: index }
     return { hex, value, field, placeholders }
   }
 
@@ -199,7 +196,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const field = address
       ? TxField.TxOutScriptStandard
       : TxField.TxOutScriptNonStandard
-    const placeholders = { label: [index], description: [address] }
+    const placeholders = { output: index, address }
     return { hex, value, field, placeholders }
   }
 
@@ -228,7 +225,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.ins[index].witness.length
     const hex = toVarInt(value)
     const field = TxField.WitnessVarInt
-    const placeholders = { label: [index] }
+    const placeholders = { witness: index }
     return { hex, value, field, placeholders }
   }
 
@@ -236,7 +233,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const value = this.ins[index].witness[witnessIndex].length
     const hex = toVarInt(value)
     const field = TxField.WitnessItemsVarInt
-    const placeholders = { label: [index, witnessIndex] }
+    const placeholders = { input: index, witness: witnessIndex }
     return { hex, field, value, placeholders }
   }
 
@@ -244,7 +241,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
     const witnessItem = this.ins[index].witness[witnessIndex]
     const hex = witnessItem.toString('hex')
     const { field, value } = this.identifyWitnessItem(witnessItem)
-    const placeholders = { label: [index, witnessIndex] }
+    const placeholders = { input: index, witness: witnessIndex }
     return { hex, field, value, placeholders }
   }
 

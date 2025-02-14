@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
@@ -19,14 +19,11 @@ type SSAccountCardProps = {
   onPress(): void
 }
 
-export default function SSAccountCard({
-  account,
-  onPress
-}: SSAccountCardProps) {
-  const priceStore = usePriceStore()
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
+function SSAccountCard({ account, onPress }: SSAccountCardProps) {
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
@@ -50,15 +47,15 @@ export default function SSAccountCard({
               />
             </SSText>
             <SSText size="xl" color="muted">
-              {i18n.t('bitcoin.sats').toLowerCase()}
+              {t('bitcoin.sats').toLowerCase()}
             </SSText>
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText color="muted">
-              {formatNumber(priceStore.satsToFiat(account.summary.balance), 2)}
+              {formatNumber(satsToFiat(account.summary.balance), 2)}
             </SSText>
             <SSText size="xs" style={{ color: Colors.gray[500] }}>
-              {priceStore.fiatCurrency}
+              {fiatCurrency}
             </SSText>
           </SSHStack>
           <SSHStack style={{ marginTop: 8 }}>
@@ -67,9 +64,9 @@ export default function SSAccountCard({
                 {formatNumber(account.summary.numberOfAddresses)}
               </SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.childAccounts.0')}
+                {t('accounts.childAccounts.0')}
                 {'\n'}
-                {i18n.t('accountList.childAccounts.1')}
+                {t('accounts.childAccounts.1')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -77,9 +74,9 @@ export default function SSAccountCard({
                 {formatNumber(account.summary.numberOfTransactions)}
               </SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.totalTransactions.0')}
+                {t('accounts.totalTransactions.0')}
                 {'\n'}
-                {i18n.t('accountList.totalTransactions.1')}
+                {t('accounts.totalTransactions.1')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -87,9 +84,9 @@ export default function SSAccountCard({
                 {formatNumber(account.summary.numberOfUtxos)}
               </SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.spendableOutputs.0')}
+                {t('accounts.spendableOutputs.0')}
                 {'\n'}
-                {i18n.t('accountList.spendableOutputs.1')}
+                {t('accounts.spendableOutputs.1')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -97,9 +94,9 @@ export default function SSAccountCard({
                 {formatNumber(account.summary.satsInMempool)}
               </SSText>
               <SSText size="xs" color="muted">
-                {i18n.t('accountList.satsInMempool.0')}
+                {t('accounts.satsInMempool.0')}
                 {'\n'}
-                {i18n.t('accountList.satsInMempool.1')}
+                {t('accounts.satsInMempool.1')}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -109,3 +106,5 @@ export default function SSAccountCard({
     </TouchableOpacity>
   )
 }
+
+export default SSAccountCard

@@ -10,12 +10,12 @@ type SSStyledSatTextProps = {
   useZeroPadding?: boolean
   type?: 'send' | 'receive'
   noColor?: boolean
-  letterSpacing?: number
-  weight?: TextFontWeight
   textSize?: TextFontSize
+  weight?: TextFontWeight
+  letterSpacing?: number
 }
 
-export default function SSStyledSatText({
+function SSStyledSatText({
   amount,
   decimals = 0,
   useZeroPadding = false,
@@ -73,3 +73,5 @@ export default function SSStyledSatText({
     </SSText>
   )
 }
+
+export default SSStyledSatText

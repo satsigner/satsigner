@@ -1,5 +1,4 @@
 import { Stack } from 'expo-router'
-import { useState } from 'react'
 import { Alert } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,7 +8,7 @@ import SSSwitch from '@/components/SSSwitch'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 
@@ -19,13 +18,9 @@ export default function Developer() {
     useShallow((state) => [state.setFirstTime, state.skipPin, state.setSkipPin])
   )
 
-  const [deletingAccounts, setDeletingAccounts] = useState(false)
-
   async function handleDeleteAccount() {
-    setDeletingAccounts(true)
-    await deleteAccounts()
-    setDeletingAccounts(false)
-    Alert.alert('Accounts deleted')
+    deleteAccounts()
+    Alert.alert(t('settings.developer.accountsDeleted'))
   }
 
   return (
@@ -33,7 +28,7 @@ export default function Developer() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{i18n.t('settings.developer.title')}</SSText>
+            <SSText uppercase>{t('settings.developer.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -44,12 +39,11 @@ export default function Developer() {
         <SSVStack gap="lg">
           <SSVStack>
             <SSButton
-              label="Delete Accounts"
-              loading={deletingAccounts}
+              label={t('settings.developer.deleteAccounts')}
               onPress={() => handleDeleteAccount()}
             />
             <SSButton
-              label="Set PIN First Time"
+              label={t('settings.developer.setPinFirstTime')}
               onPress={() => setFirstTime(true)}
             />
           </SSVStack>
@@ -57,8 +51,8 @@ export default function Developer() {
           <SSVStack gap="none">
             <SSSwitch
               value={skipPin}
-              textOn="Skip Pin (ON)"
-              textOff="Skip Pin (OFF)"
+              textOn={t('settings.developer.skipPin')}
+              textOff={t('settings.developer.skipPin')}
               size="lg"
               position="right"
               onToggle={() => setSkipPin(!skipPin)}

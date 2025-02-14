@@ -6,7 +6,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 
 export default function CurrencyFormatting() {
@@ -24,7 +24,7 @@ export default function CurrencyFormatting() {
         options={{
           headerTitle: () => (
             <SSText uppercase>
-              {i18n.t('settings.features.featurePage.currencyFormatting.title')}
+              {t('settings.features.currencyFormatting.title')}
             </SSText>
           ),
           headerBackVisible: true,
@@ -35,7 +35,7 @@ export default function CurrencyFormatting() {
       <SSMainLayout>
         <SSVStack>
           <SSCheckbox
-            label="SHOW '0.00..' PADDING"
+            label={t('settings.features.currencyFormatting.showZeroPadding')}
             selected={useZeroPadding}
             onPress={togglePadding}
           />

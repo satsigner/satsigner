@@ -1,4 +1,10 @@
-import { ForwardedRef, forwardRef, useEffect, useMemo, useState } from 'react'
+import {
+  type ForwardedRef,
+  forwardRef,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -17,12 +23,12 @@ function SSTextInput(
     variant = 'default',
     size = 'default',
     align = 'left',
-    actionRight,
-    style,
-    value,
-    onChangeText,
     min,
     max,
+    actionRight,
+    value,
+    onChangeText,
+    style,
     ...props
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>
@@ -105,8 +111,6 @@ function SSTextInput(
   )
 }
 
-export default forwardRef(SSTextInput)
-
 const styles = StyleSheet.create({
   containerBase: {
     position: 'relative',
@@ -151,3 +155,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.error
   }
 })
+
+export default forwardRef(SSTextInput)

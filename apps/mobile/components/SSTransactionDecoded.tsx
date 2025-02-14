@@ -3,23 +3,11 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { TxDecoded, TxDecodedField } from '@/utils/txDecoded'
+import { TxDecoded, type TxDecodedField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
-
-type SSTranssctionDecodedProps = {
-  txHex: string
-}
-
-function replacePlaceholders(text: string, placeholders: (string | number)[]) {
-  let result = text
-  for (const item of placeholders) {
-    result = result.replace(/(%d|%s)/, '' + item)
-  }
-  return result
-}
 
 function byteChunks(hex: string) {
   const chunk = []
@@ -29,9 +17,11 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-export default function SSTransactionDecoded({
-  txHex
-}: SSTranssctionDecodedProps) {
+type SSTranssctionDecodedProps = {
+  txHex: string
+}
+
+function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [selectedItem, setSelectedItem] = useState(0)
 
@@ -79,22 +69,15 @@ export default function SSTransactionDecoded({
 }
 
 function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
-  let label = i18n.t(`txDecoded.label.${field}`)
-  let description = i18n.t(`txDecoded.description.${field}`)
-
-  label = replacePlaceholders(label, placeholders?.label || [])
-  description = replacePlaceholders(
-    description,
-    placeholders?.description || []
-  )
-
   return (
     <SSVStack gap="xs">
       <SSText color="muted" type="mono">
-        {label}
+        {t(`transaction.decoded.label.${field}`, { ...placeholders })}
       </SSText>
       <SSText type="mono">{value}</SSText>
-      <SSText color="muted">{description}</SSText>
+      <SSText color="muted">
+        {t(`transaction.decoded.description.${field}`, { ...placeholders })}
+      </SSText>
     </SSVStack>
   )
 }
@@ -118,3 +101,5 @@ const styles = StyleSheet.create({
     padding: 2
   }
 })
+
+export default SSTransactionDecoded

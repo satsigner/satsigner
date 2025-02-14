@@ -12,6 +12,12 @@ module.exports = {
     'simple-import-sort/imports': 'error',
     'simple-import-sort/exports': 'error',
     'import/order': 'off',
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {
+        fixStyle: 'inline-type-imports'
+      }
+    ],
     '@typescript-eslint/no-unused-vars': [
       'error',
       {

@@ -1,5 +1,5 @@
-import { Transaction } from './Transaction'
-import { Utxo } from './Utxo'
+import { type Transaction } from './Transaction'
+import { type Utxo } from './Utxo'
 
 export type Account = {
   name: string

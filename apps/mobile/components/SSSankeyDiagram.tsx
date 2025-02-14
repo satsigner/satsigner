@@ -7,8 +7,11 @@ import {
   TileMode,
   vec
 } from '@shopify/react-native-skia'
-import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
-import { sankey } from 'd3-sankey'
+import {
+  sankey,
+  type SankeyLinkMinimal,
+  type SankeyNodeMinimal
+} from 'd3-sankey'
 import React, { useCallback } from 'react'
 import { Platform, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
@@ -18,7 +21,7 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { gray } from '@/styles/colors'
 
-import { SSSankeyNode } from './SSSankeyNode'
+import SSSankeyNode from './SSSankeyNode'
 
 interface Link extends SankeyLinkMinimal<object, object> {
   source: string
@@ -41,12 +44,6 @@ interface LinkPoints {
   y1: number
   x2: number
   y2: number
-}
-
-interface SankeyProps {
-  sankeyNodes: Node[]
-  sankeyLinks: Link[]
-  inputCount: number
 }
 
 const LINK_MAX_WIDTH = 60
@@ -98,11 +95,17 @@ const generateCustomLink = (points: LinkPoints) => {
   ].join('\n')
 }
 
+type SSSankeyDiagramProps = {
+  sankeyNodes: Node[]
+  sankeyLinks: Link[]
+  inputCount: number
+}
+
 function SSSankeyDiagram({
   sankeyNodes,
   sankeyLinks,
   inputCount
-}: SankeyProps) {
+}: SSSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,

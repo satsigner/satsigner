@@ -1,11 +1,11 @@
 import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useCallback } from 'react'
 
 import { getLastUnusedWalletAddress } from '@/api/bdk'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 
 function useGetWalletAddress(account: Account) {
   const loadWalletFromDescriptor = useAccountsStore(

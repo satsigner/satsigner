@@ -9,22 +9,26 @@ import { Animated, StyleSheet, Text, View } from 'react-native'
 import { Path, Svg } from 'react-native-svg'
 import { CartesianChart, StackedArea } from 'victory-native'
 
-import type { MempoolStatistics } from '@/types/models/Blockchain'
+import { type MempoolStatistics } from '@/types/models/Blockchain'
 
 import SSText from './SSText'
-const inter = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
-interface SSFeeRateChartProps {
+
+const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+
+const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
+
+type SSFeeRateChartProps = {
   mempoolStatistics: MempoolStatistics[] | undefined
   timeRange: 'week' | 'day' | '2hours'
   boxPosition?: Animated.Value
 }
-const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
-export default function SSFeeRateChart({
+
+function SSFeeRateChart({
   mempoolStatistics,
   timeRange,
   boxPosition = new Animated.Value(0)
 }: SSFeeRateChartProps) {
-  const font = useFont(inter, 12)
+  const font = useFont(sansSerif, 12)
   const [, setW] = React.useState(0)
   const [, setH] = React.useState(0)
 
@@ -231,3 +235,5 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 })
+
+export default SSFeeRateChart

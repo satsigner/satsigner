@@ -19,7 +19,7 @@ import { i18n } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import {
   validateAddress,

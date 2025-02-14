@@ -1,4 +1,4 @@
-import { DimensionValue } from 'react-native'
+import { type DimensionValue } from 'react-native'
 
 export const mainContainer = {
   paddingHorizontal: '6%' as DimensionValue,

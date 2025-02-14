@@ -1,4 +1,4 @@
-export interface EsploraTx {
+export type EsploraTx = {
   txid: string
   version: number
   locktime: number
@@ -36,7 +36,7 @@ export interface EsploraTx {
   }
 }
 
-export interface EsploraUtxo {
+export type EsploraUtxo = {
   txid: string
   vout: number
   status: {

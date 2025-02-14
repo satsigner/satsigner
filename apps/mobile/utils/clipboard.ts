@@ -10,7 +10,7 @@ export async function setClipboard(value: string): Promise<void> {
   }
 }
 
-export async function getClipboard(): Promise<string | void> {
+export async function getBitcoinAddressFromClipboard(): Promise<string | void> {
   try {
     if (!(await Clipboard.hasStringAsync())) {
       return

@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { formatLabel } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconEditPencil } from './icons'
 import SSButton from './SSButton'
@@ -18,7 +18,7 @@ type SSLabelDetailsProps = {
   header: string
 }
 
-export default function SSLabelDetails({
+function SSLabelDetails({
   label: originalLabel,
   link,
   header
@@ -27,7 +27,7 @@ export default function SSLabelDetails({
   const [tags, setTags] = useState<string[]>([])
 
   useEffect(() => {
-    const { label, tags } = formatLabel(originalLabel)
+    const { label, tags } = parseLabel(originalLabel)
     setLabel(label)
     setTags(tags)
   }, [originalLabel])
@@ -57,9 +57,9 @@ export default function SSLabelDetails({
             ))}
           </SSHStack>
         )}
-        {!label && <SSText color="muted">{i18n.t('account.noLabel')}</SSText>}
+        {!label && <SSText color="muted">{t('transaction.noLabel')}</SSText>}
         {tags.length === 0 && (
-          <SSText color="muted">{i18n.t('account.noTags')}</SSText>
+          <SSText color="muted">{t('transaction.noTags')}</SSText>
         )}
       </SSVStack>
       <SSIconButton onPress={() => router.navigate(link)}>
@@ -68,3 +68,5 @@ export default function SSLabelDetails({
     </SSHStack>
   )
 }
+
+export default SSLabelDetails

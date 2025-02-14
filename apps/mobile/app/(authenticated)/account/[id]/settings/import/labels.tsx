@@ -9,10 +9,10 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   type Bip329FileType,
   bip329FileTypes,
@@ -22,7 +22,7 @@ import {
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
-export default function SSLabelExport() {
+export default function ImportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, importLabelsToAccount] = useAccountsStore(
@@ -35,8 +35,6 @@ export default function SSLabelExport() {
   const [importType, setImportType] = useState<Bip329FileType>('JSONL')
   const [importContent, setImportContent] = useState('')
   const [invalidContent, setInvalidContent] = useState(false)
-
-  if (!account || !accountId) return <Redirect href="/" />
 
   function importLabelsFromClipboard() {
     const labels: Label[] = bip329parser[importType](importContent)
@@ -82,19 +80,19 @@ export default function SSLabelExport() {
     }
   }
 
+  if (!account || !accountId) return <Redirect href="/" />
+
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText size="xl">{i18n.t('settings.title')}</SSText>
-          ),
+          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
           headerRight: undefined
         }}
       />
       <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase weight="bold" size="lg" color="muted">
-          IMPORT BIP329 LABELS
+          {t('account.import.labels')}
         </SSText>
         <SSHStack>
           {bip329FileTypes.map((type) => (
@@ -122,20 +120,23 @@ export default function SSLabelExport() {
               </SSText>
             </View>
             <SSButton
-              label="IMPORT FROM CLIPBOARD"
+              label={t('common.importFromClipboard')}
               onPress={importLabelsFromClipboard}
               disabled={invalidContent}
             />
           </SSVStack>
         )}
-        <SSButton label="PASTE FROM CLIPBOARD" onPress={pasteFromClipboard} />
         <SSButton
-          label={`IMPORT FROM ${importType}`}
+          label={t('common.pasteFromClipboard')}
+          onPress={pasteFromClipboard}
+        />
+        <SSButton
+          label={t('import.from', { name: importType })}
           variant="secondary"
           onPress={importLabels}
         />
         <SSButton
-          label="CANCEL"
+          label={t('common.cancel')}
           variant="ghost"
           onPress={() => router.back()}
         />

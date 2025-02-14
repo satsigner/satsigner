@@ -15,7 +15,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 
 export default function GenerateSeed() {
@@ -70,9 +70,7 @@ export default function GenerateSeed() {
         <SSVStack justifyBetween>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={i18n.t('addMasterKey.accountOptions.mnemonic')}
-              />
+              <SSFormLayout.Label label={t('account.mnemonic.title')} />
               {seedWordCount && (
                 <SSSeedLayout count={seedWordCount}>
                   {[...Array(seedWordCount)].map((_, index) => (
@@ -90,7 +88,7 @@ export default function GenerateSeed() {
             {policyType === 'single' && (
               <SSFormLayout.Item>
                 <SSFormLayout.Label
-                  label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+                  label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
                 />
                 <SSTextInput
                   onChangeText={(text) => handleUpdatePassphrase(text)}
@@ -106,13 +104,13 @@ export default function GenerateSeed() {
           </SSFormLayout>
           <SSVStack>
             <SSButton
-              label={i18n.t('addMasterKey.generateNewSeed.action')}
+              label={t('account.confirmSeed.title')}
               variant="secondary"
               disabled={!checksumValid}
               onPress={() => router.navigate('/addMasterKey/confirmSeed/0')}
             />
             <SSButton
-              label={i18n.t('common.cancel')}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={handleOnPressCancel}
             />

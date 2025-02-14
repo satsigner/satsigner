@@ -15,7 +15,7 @@ import SSWarningModal from '@/components/SSWarningModal'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { getConfirmWordCandidates } from '@/utils/seed'
@@ -43,7 +43,7 @@ export default function ConfirmSeed() {
     clearAccount,
     getAccount,
     loadWallet,
-    lockSeed,
+    encryptSeed,
     setParticipantWithSeedWord
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -54,7 +54,7 @@ export default function ConfirmSeed() {
       state.clearAccount,
       state.getAccount,
       state.loadWallet,
-      state.lockSeed,
+      state.encryptSeed,
       state.setParticipantWithSeedWord
     ])
   )
@@ -88,7 +88,7 @@ export default function ConfirmSeed() {
       setLoadingAccount(true)
 
       const wallet = await loadWallet()
-      await lockSeed()
+      await encryptSeed()
 
       const account = getAccount()
       await addAccount(account)
@@ -132,7 +132,7 @@ export default function ConfirmSeed() {
       <SSVStack justifyBetween>
         <SSVStack gap="lg">
           <SSText color="white" uppercase style={{ alignSelf: 'center' }}>
-            {`${i18n.t('common.confirm')} ${i18n.t('bitcoin.word')} ${+index! + 1}`}
+            {`${t('common.confirm')} ${t('bitcoin.word')} ${+index! + 1}`}
           </SSText>
           <SSVStack gap="lg">
             <SSCheckbox
@@ -154,14 +154,14 @@ export default function ConfirmSeed() {
         </SSVStack>
         <SSVStack>
           <SSButton
-            label={i18n.t('common.next')}
+            label={t('common.next')}
             variant="secondary"
             loading={loadingAccount}
             disabled={!selectedCheckbox}
             onPress={() => handleNavigateNextWord()}
           />
           <SSButton
-            label={i18n.t('common.cancel')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={handleOnPressCancel}
           />
@@ -169,13 +169,13 @@ export default function ConfirmSeed() {
       </SSVStack>
       <SSGradientModal
         visible={incorrectWordModalVisible}
-        closeText={i18n.t('addMasterKey.confirmSeed.incorrectWordModal.action')}
+        closeText={t('account.confirmSeed.tryAgain')}
         onClose={() => setIncorrectWordModalVisible(false)}
       >
         <SSVStack itemsCenter style={{ marginVertical: 32 }}>
           <SSIconCircleX height={88} width={88} />
           <SSText size="3xl" center style={{ maxWidth: 200 }}>
-            {i18n.t('addMasterKey.confirmSeed.incorrectWordModal.warning')}
+            {t('account.confirmSeed.warning')}
           </SSText>
         </SSVStack>
       </SSGradientModal>
@@ -187,32 +187,31 @@ export default function ConfirmSeed() {
           <SSHStack>
             <SSIconCheckCircle height={30} width={30} />
             <SSText size="3xl">
-              {seedWordCount} {i18n.t('common.of').toLowerCase()}{' '}
-              {seedWordCount}
+              {seedWordCount} {t('common.of').toLowerCase()} {seedWordCount}
             </SSText>
           </SSHStack>
           <SSText uppercase center>
-            {i18n.t('bitcoin.notYourKeys')}
+            {t('bitcoin.notYourKeys')}
             {'\n'}
-            {i18n.t('bitcoin.notYourCoins')}
+            {t('bitcoin.notYourCoins')}
           </SSText>
-          <SSText size="6xl">{i18n.t('common.warning')}</SSText>
+          <SSText size="6xl">{t('common.warning')}</SSText>
           <SSIconHideWarning height={132} width={210} />
           <SSText size="2xl" center style={{ maxWidth: 260 }}>
-            {i18n.t('addMasterKey.confirmSeed.warningModal.warning')}
+            {t('account.generate.warning')}
           </SSText>
           <SSText size="xl" color="muted" center>
-            {i18n.t('addMasterKey.confirmSeed.warningModal.disclaimer1')}
+            {t('account.generate.disclaimer.1')}
           </SSText>
           <SSText size="xl" color="muted" center>
-            {i18n.t('addMasterKey.confirmSeed.warningModal.disclaimer2')}
+            {t('account.generate.disclaimer.2')}
           </SSText>
           <SSText size="xl" color="muted" center>
-            {i18n.t('addMasterKey.confirmSeed.warningModal.disclaimer3')}
+            {t('account.generate.disclaimer.3')}
           </SSText>
           {walletSyncFailed && (
             <SSText size="3xl" color="muted" center>
-              {i18n.t('addMasterKey.walletSyncFailed')}
+              {t('account.syncFailed')}
             </SSText>
           )}
         </SSVStack>

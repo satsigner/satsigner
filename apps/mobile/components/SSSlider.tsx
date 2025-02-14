@@ -1,5 +1,5 @@
 import Slider from '@react-native-community/slider'
-import { type StyleProp, ViewStyle } from 'react-native'
+import { type StyleProp, type ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
 
@@ -12,9 +12,9 @@ type SSSliderProps = {
   style?: StyleProp<ViewStyle>
 }
 
-export default function SSSlider({
-  max,
+function SSSlider({
   min,
+  max,
   value,
   step = 1,
   onValueChange,
@@ -34,3 +34,5 @@ export default function SSSlider({
     />
   )
 }
+
+export default SSSlider

@@ -1,21 +1,20 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import type { Currency } from '@/types/models/Blockchain'
-import type { Transaction } from '@/types/models/Transaction'
+import { type Currency } from '@/types/models/Blockchain'
+import { type Transaction } from '@/types/models/Transaction'
 import {
   formatConfirmations,
   formatFiatPrice,
-  formatLabel,
   formatPercentualChange
 } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
 import SSStyledSatText from './SSStyledSatText'
@@ -27,12 +26,12 @@ type SSTransactionCardProps = {
   blockHeight: number
   fiatCurrency: Currency
   btcPrice: number
-  expand: boolean
   walletBalance: number
   link: string
+  expand: boolean
 }
 
-export default function SSTransactionCard({
+function SSTransactionCard({
   transaction,
   blockHeight,
   fiatCurrency,
@@ -57,9 +56,7 @@ export default function SSTransactionCard({
   const { type, received, sent, prices } = transaction
   const amount = type === 'receive' ? received : sent - received
 
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   useEffect(() => {
     const itemsToDisplay: string[] = []
@@ -139,7 +136,7 @@ export default function SSTransactionCard({
                   letterSpacing={expand ? 0 : -0.5}
                 />
                 <SSText color="muted" size={expand ? 'xs' : 'sm'}>
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
             </SSHStack>
@@ -185,7 +182,7 @@ export default function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {formatLabel(transaction.label || i18n.t('account.noMemo')).label}
+            {parseLabel(transaction.label || t('transaction.noLabel')).label}
           </SSText>
           <SSHStack
             gap="xs"
@@ -194,7 +191,7 @@ export default function SSTransactionCard({
             }}
           >
             {transaction.label ? (
-              formatLabel(transaction.label).tags.map((tag, index) => (
+              parseLabel(transaction.label).tags.map((tag, index) => (
                 <SSText
                   key={index}
                   size={expand ? 'xxs' : 'xs'}
@@ -229,7 +226,7 @@ export default function SSTransactionCard({
                 uppercase
                 numberOfLines={1}
               >
-                {i18n.t('account.noTags')}
+                {t('transaction.noTags')}
               </SSText>
             )}
           </SSHStack>
@@ -250,3 +247,5 @@ const styles = StyleSheet.create({
     color: Colors.success
   }
 })
+
+export default SSTransactionCard
