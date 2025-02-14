@@ -2,10 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSCollapsible from '@/components/SSCollapsible'
-import SSLink from '@/components/SSLink'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
@@ -16,6 +13,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { type Account } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 
 export default function AccountOptions() {
   const router = useRouter()
@@ -76,11 +74,6 @@ export default function AccountOptions() {
     } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
   }
 
-  function handleOnSelectScriptVersion() {
-    setLocalScriptVersion(localScriptVersion)
-    setScriptVersionModalVisible(false)
-  }
-
   function handleOnSelectSeedWordCount() {
     setLocalSeedWordCount(localSeedWordCount)
     setSeedWordCountModalVisibile(false)
@@ -130,58 +123,15 @@ export default function AccountOptions() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
+      <SSScriptVersionModal
         visible={scriptVersionModalVisible}
-        title={t('account.script')}
-        selectedText={`${localScriptVersion} - ${t(
-          `script.${localScriptVersion.toLowerCase()}.name`
-        )}`}
-        selectedDescription={
-          <SSCollapsible>
-            <SSText color="muted" size="md">
-              {t(`script.${localScriptVersion.toLowerCase()}.description.1`)}
-              <SSLink
-                size="md"
-                text={t(`script.${localScriptVersion.toLowerCase()}.link.name`)}
-                url={t(`script.${localScriptVersion.toLowerCase()}.link.url`)}
-              />
-              {t(`script.${localScriptVersion.toLowerCase()}.description.2`)}
-            </SSText>
-            <SSIconScriptsP2pkh height={80} width="100%" />
-          </SSCollapsible>
-        }
-        onSelect={() => handleOnSelectScriptVersion()}
+        scriptVersion={localScriptVersion}
         onCancel={() => setScriptVersionModalVisible(false)}
-      >
-        <SSRadioButton
-          label={`${t('script.p2pkh.name')} (P2PKH)`}
-          selected={localScriptVersion === 'P2PKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2PKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`}
-          selected={localScriptVersion === 'P2SH-P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2SH-P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2wpkh.name')} (P2WPKH)`}
-          selected={localScriptVersion === 'P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2tr.name')} (P2TR)`}
-          selected={localScriptVersion === 'P2TR'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2TR')
-          }
-        />
-      </SSSelectModal>
+        onSelect={(scriptVersion) => {
+          setLocalScriptVersion(scriptVersion)
+          setScriptVersionModalVisible(false)
+        }}
+      />
       <SSSelectModal
         visible={seedWordCountModalVisible}
         title={t('account.mnemonic.title')}

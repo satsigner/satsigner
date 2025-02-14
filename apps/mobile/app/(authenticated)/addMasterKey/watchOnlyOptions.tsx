@@ -4,10 +4,8 @@ import { useState } from 'react'
 import { Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
-import SSLink from '@/components/SSLink'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
@@ -15,18 +13,18 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
-import { setStateWithLayoutAnimation } from '@/utils/animation'
 import {
   validateAddress,
   validateDescriptor,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 
 const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
@@ -64,9 +62,8 @@ export default function WatchOnlyOptions() {
 
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
 
-  const [scriptVersion, setScriptVersion] = useState<
-    Account['scriptVersion'] | null
-  >(null)
+  const [scriptVersion, setScriptVersion] =
+    useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
 
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
@@ -121,19 +118,6 @@ export default function WatchOnlyOptions() {
     setValidInternalDescriptor(!descriptor || validateDescriptor(descriptor))
     setInternalDescriptor(descriptor)
   }
-
-  function getScriptVersionButtonLabel() {
-    if (scriptVersion === 'P2PKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
-    else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
-    else if (scriptVersion === 'P2WPKH')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
-    else if (scriptVersion === 'P2TR')
-      return `${i18n.t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
-    return ''
-  }
-
   async function confirmAccountCreation() {
     setLoadingWallet(true)
     let account: Account | undefined
@@ -229,74 +213,16 @@ export default function WatchOnlyOptions() {
           ))}
         </SSSelectModal>
 
-        <SSSelectModal
+        <SSScriptVersionModal
           visible={scriptVersionModalVisible}
-          title={i18n.t('addMasterKey.accountOptions.scriptVersion')}
-          selectedText={`${scriptVersion} - ${i18n.t(
-            `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion?.toLowerCase()}`
-          )}`}
-          selectedDescription={
-            <SSCollapsible>
-              <SSText color="muted" size="md">
-                {i18n.t(
-                  `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.0`
-                )}
-                <SSLink
-                  size="md"
-                  text={i18n.t(
-                    `addMasterKey.accountOptions.scriptVersions.links.name.${scriptVersion?.toLowerCase()}`
-                  )}
-                  url={i18n.t(
-                    `addMasterKey.accountOptions.scriptVersions.links.url.${scriptVersion?.toLowerCase()}`
-                  )}
-                />
-                {i18n.t(
-                  `addMasterKey.accountOptions.scriptVersions.descriptions.${scriptVersion?.toLowerCase()}.1`
-                )}
-              </SSText>
-              <SSIconScriptsP2pkh height={80} width="100%" />
-            </SSCollapsible>
-          }
-          onSelect={() => setScriptVersionModalVisible(false)}
+          scriptVersion={scriptVersion}
           onCancel={() => setScriptVersionModalVisible(false)}
-        >
-          <SSRadioButton
-            label={`${i18n.t(
-              'addMasterKey.accountOptions.scriptVersions.names.p2pkh'
-            )} (P2PKH)`}
-            selected={scriptVersion === 'P2PKH'}
-            onPress={() =>
-              setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')
-            }
-          />
-          <SSRadioButton
-            label={`${i18n.t(
-              'addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh'
-            )} (P2SH-P2WPKH)`}
-            selected={scriptVersion === 'P2SH-P2WPKH'}
-            onPress={() =>
-              setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
-            }
-          />
-          <SSRadioButton
-            label={`${i18n.t(
-              'addMasterKey.accountOptions.scriptVersions.names.p2wpkh'
-            )} (P2WPKH)`}
-            selected={scriptVersion === 'P2WPKH'}
-            onPress={() =>
-              setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
-            }
-          />
-          <SSRadioButton
-            label={`${i18n.t(
-              'addMasterKey.accountOptions.scriptVersions.names.p2tr'
-            )} (P2TR)`}
-            selected={scriptVersion === 'P2TR'}
-            onPress={() =>
-              setStateWithLayoutAnimation(setScriptVersion, 'P2TR')
-            }
-          />
-        </SSSelectModal>
+          onSelect={(scriptVersion) => {
+            setScriptVersion(scriptVersion)
+            setScriptVersionModalVisible(false)
+          }}
+        />
+
         {!modalOptionsVisible && (
           <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
             <SSVStack gap="lg">
@@ -334,12 +260,10 @@ export default function WatchOnlyOptions() {
                   <>
                     <SSVStack gap="xxs">
                       <SSFormLayout.Label
-                        label={i18n
-                          .t('addMasterKey.accountOptions.scriptVersion')
-                          .toUpperCase()}
+                        label={t('account.script').toUpperCase()}
                       />
                       <SSButton
-                        label={getScriptVersionButtonLabel()}
+                        label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
                         withSelect
                         onPress={() => setScriptVersionModalVisible(true)}
                       />
