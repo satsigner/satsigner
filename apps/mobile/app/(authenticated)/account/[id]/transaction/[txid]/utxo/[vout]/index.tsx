@@ -58,7 +58,7 @@ export default function UtxoDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>{t('utxo.details')}</SSText>
+          headerTitle: () => <SSText>{t('utxo.details.title')}</SSText>
         }}
       />
       <SSVStack
@@ -111,7 +111,7 @@ export default function UtxoDetails() {
           <SSClipboardCopy text={utxoAddress}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {t('transaction.address')}
+                {t('utxo.address')}
               </SSText>
               <SSText color="muted">{utxoAddress}</SSText>
             </SSVStack>

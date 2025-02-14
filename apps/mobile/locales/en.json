@@ -440,7 +440,8 @@
     "weight": "Weight"
   },
   "utxo": {
-    "details": "UTXO Details",
+    "address": "Address",
+    "details.title": "UTXO Details",
     "group": "Group",
     "label": "Label",
     "noLabel": "No label",
