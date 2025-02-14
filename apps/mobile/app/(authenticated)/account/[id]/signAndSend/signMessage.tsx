@@ -1,4 +1,4 @@
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,11 +14,11 @@ import SSText from '@/components/SSText'
 import { getBlockchainConfig } from '@/config/servers'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 
 export default function SignMessage() {
@@ -28,8 +28,11 @@ export default function SignMessage() {
   const [txBuilderResult, psbt, setPsbt] = useTransactionBuilderStore(
     useShallow((state) => [state.txBuilderResult, state.psbt, state.setPsbt])
   )
-  const [getCurrentAccount, decryptSeed] = useAccountsStore(
-    useShallow((state) => [state.getCurrentAccount, state.decryptSeed])
+  const [account, decryptSeed] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.name === id),
+      state.decryptSeed
+    ])
   )
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
@@ -41,8 +44,6 @@ export default function SignMessage() {
       state.url
     ])
   )
-
-  const account = getCurrentAccount(id!)!
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
@@ -71,7 +72,8 @@ export default function SignMessage() {
     async function signTransactionMessage() {
       const seed = await decryptSeed(id!)
 
-      if (!seed || !account.scriptVersion || !txBuilderResult) return
+      if (!seed || !account || !account.scriptVersion || !txBuilderResult)
+        return
 
       const result = await getWalletFromMnemonic(
         seed.replace(/,/g, ' '),
@@ -92,7 +94,7 @@ export default function SignMessage() {
     signTransactionMessage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!txBuilderResult) return <Redirect href="/" />
+  if (!account || !txBuilderResult) return <Redirect href="/" />
 
   return (
     <>
@@ -130,7 +132,7 @@ export default function SignMessage() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label={i18n.t('signMessage.broadcastTxMessage')}
+            label={t('signMessage.broadcastTxMessage')}
             disabled={!signed || !psbt}
             loading={broadcasting}
             onPress={() => handleBroadcastTransaction()}

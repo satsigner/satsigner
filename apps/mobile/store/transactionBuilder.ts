@@ -1,10 +1,10 @@
-import { PartiallySignedTransaction } from 'bdk-rn'
-import { TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
+import { type PartiallySignedTransaction } from 'bdk-rn'
+import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { enableMapSet, produce } from 'immer'
 import { create } from 'zustand'
 
-import type { Output } from '@/types/models/Output'
-import type { Utxo } from '@/types/models/Utxo'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
 import { generateId } from '@/utils/id'
 import { getUtxoOutpoint } from '@/utils/utxo'
 

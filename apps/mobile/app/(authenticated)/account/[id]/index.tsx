@@ -1,5 +1,5 @@
 import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
@@ -18,10 +18,10 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconBubbles,
   SSIconCamera,
-  SSIconChart,
-  SSIconChartSetting,
+  SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
+  SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
@@ -30,19 +30,19 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
-import SSBalanceChart from '@/components/SSBalanceChart'
+import SSBubbleChart from '@/components/SSBubbleChart'
+import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
@@ -113,7 +113,7 @@ function TotalTransactions({
     return Math.max(...transactionBalances)
   }, [transactionBalances])
 
-  const [showChart, setShowChart] = useState<boolean>(false)
+  const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
     <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
@@ -132,23 +132,21 @@ function TotalTransactions({
               <SSIconExpand height={15} width={16} />
             )}
           </SSIconButton>
-          {showChart && (
+          {showHistoryChart && (
             <SSIconButton
-              onPress={() =>
-                router.navigate(`/settings/config/features/chartSettings`)
-              }
+              onPress={() => router.navigate(`/settings/features/historyChart`)}
             >
-              <SSIconChartSetting width={22} height={18} />
+              <SSIconChartSettings width={22} height={18} />
             </SSIconButton>
           )}
         </SSHStack>
-        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
-          <SSIconButton onPress={() => setShowChart((prev) => !prev)}>
-            {showChart ? (
+          <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
+            {showHistoryChart ? (
               <SSIconMenu width={18} height={18} />
             ) : (
-              <SSIconChart width={18} height={18} />
+              <SSIconHistoryChart width={18} height={18} />
             )}
           </SSIconButton>
           <SSSortDirectionToggle
@@ -156,9 +154,9 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
-      {showChart ? (
+      {showHistoryChart ? (
         <View style={{ flex: 1, zIndex: -1 }}>
-          <SSBalanceChart
+          <SSHistoryChart
             transactions={sortedTransactions}
             utxos={account.utxos}
           />
@@ -174,7 +172,6 @@ function TotalTransactions({
             />
           }
         >
-          {/* account.transactions */}
           <SSVStack
             style={{ marginBottom: expand ? 8 : 16 }}
             gap={expand ? 'sm' : 'md'}
@@ -261,7 +258,7 @@ function SpendableOutputs({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           {view === 'list' && (
             <SSIconButton onPress={() => setView('bubbles')}>
@@ -301,7 +298,7 @@ function SpendableOutputs({
       )}
       <GestureHandlerRootView style={{ flex: 1 }}>
         {view === 'bubbles' && (
-          <SSUtxoBubbles
+          <SSBubbleChart
             utxos={[...account.utxos]}
             canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
             inputs={[]}
@@ -340,9 +337,7 @@ export default function AccountView() {
       ])
     )
 
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -514,9 +509,9 @@ export default function AccountView() {
                   {account.summary.numberOfTransactions}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.totalTransactions.0')}
+                  {t('accounts.totalTransactions.0')}
                   {'\n'}
-                  {i18n.t('accountList.totalTransactions.1')}
+                  {t('accounts.totalTransactions.1')}
                 </SSText>
                 {tabIndex === 0 && (
                   <View
@@ -541,9 +536,9 @@ export default function AccountView() {
                   {account.summary.numberOfAddresses}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.childAccounts.0')}
+                  {t('accounts.childAccounts.0')}
                   {'\n'}
-                  {i18n.t('accountList.childAccounts.1')}
+                  {t('accounts.childAccounts.1')}
                 </SSText>
                 {tabIndex === 1 && (
                   <View
@@ -568,9 +563,9 @@ export default function AccountView() {
                   {account.summary.numberOfUtxos}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.spendableOutputs.0')}
+                  {t('accounts.spendableOutputs.0')}
                   {'\n'}
-                  {i18n.t('accountList.spendableOutputs.1')}
+                  {t('accounts.spendableOutputs.1')}
                 </SSText>
                 {tabIndex === 2 && (
                   <View
@@ -595,9 +590,9 @@ export default function AccountView() {
                   {account.summary.satsInMempool}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.satsInMempool.0')}
+                  {t('accounts.satsInMempool.0')}
                   {'\n'}
-                  {i18n.t('accountList.satsInMempool.1')}
+                  {t('accounts.satsInMempool.1')}
                 </SSText>
                 {tabIndex === 3 && (
                   <View
@@ -661,7 +656,7 @@ export default function AccountView() {
                   />
                 </SSText>
                 <SSText size="xl" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -683,31 +678,35 @@ export default function AccountView() {
                 gap="none"
                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
               >
+                {!account.watchOnly && (
+                  <>
+                    <SSActionButton
+                      onPress={() => navigateToSignAndSend()}
+                      style={{
+                        width: '40%',
+                        borderRightWidth: 1,
+                        borderRightColor: Colors.gray[600]
+                      }}
+                    >
+                      <SSText uppercase>{t('account.signAndSend')}</SSText>
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/camera`)}
+                      style={{ width: '20%' }}
+                    >
+                      <SSIconCamera height={13} width={18} />
+                    </SSActionButton>
+                  </>
+                )}
                 <SSActionButton
-                  onPress={() => navigateToSignAndSend()}
+                  onPress={() => router.navigate(`/account/${id}/receive`)}
                   style={{
-                    width: '40%',
-                    borderRightWidth: 1,
-                    borderRightColor: Colors.gray[600]
-                  }}
-                >
-                  <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
-                </SSActionButton>
-                <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/camera`)}
-                  style={{ width: '20%' }}
-                >
-                  <SSIconCamera height={13} width={18} />
-                </SSActionButton>
-                <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/newInvoice`)}
-                  style={{
-                    width: '40%',
+                    width: account.watchOnly ? '100%' : '40%',
                     borderLeftWidth: 1,
                     borderLeftColor: Colors.gray[600]
                   }}
                 >
-                  <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
+                  <SSText uppercase>{t('account.receive')}</SSText>
                 </SSActionButton>
               </SSHStack>
               <SSSeparator

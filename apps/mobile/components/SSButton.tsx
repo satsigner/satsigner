@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import {
   ActivityIndicator,
-  StyleProp,
+  type StyleProp,
   StyleSheet,
-  TextStyle,
+  type TextStyle,
   TouchableOpacity,
   View
 } from 'react-native'
@@ -23,15 +23,15 @@ type SSButtonProps = {
   textStyle?: StyleProp<TextStyle>
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-export default function SSButton({
+function SSButton({
   label,
   variant = 'default',
-  disabled,
   loading,
   withSelect,
-  style,
-  textStyle,
   uppercase = true,
+  textStyle,
+  disabled,
+  style,
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
@@ -150,3 +150,5 @@ const styles = StyleSheet.create({
     color: Colors.black
   }
 })
+
+export default SSButton

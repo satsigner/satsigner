@@ -1,5 +1,5 @@
-import { Descriptor, DescriptorPublicKey, Wallet } from 'bdk-rn'
-import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
+import { Descriptor, DescriptorPublicKey, type Wallet } from 'bdk-rn'
+import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 
 import {
@@ -57,7 +57,7 @@ type AccountBuilderAction = {
   setPassphrase: (passphrase: Account['passphrase']) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
-  lockSeed: () => Promise<void>
+  encryptSeed: () => Promise<void>
 }
 
 const useAccountBuilderStore = create<
@@ -308,7 +308,7 @@ const useAccountBuilderStore = create<
     }))
     return wallet
   },
-  lockSeed: async () => {
+  encryptSeed: async () => {
     const savedPin = await getItem(PIN_KEY)
     if (!savedPin) return
 
