@@ -440,8 +440,12 @@
     "weight": "Weight"
   },
   "utxo": {
+    "address": "Address",
+    "details.title": "UTXO Details",
     "group": "Group",
     "label": "Label",
-    "noLabel": "No label"
+    "noLabel": "No label",
+    "outputIndex": "Output Index",
+    "unlockingScript": "Unlocking script"
   }
 }
