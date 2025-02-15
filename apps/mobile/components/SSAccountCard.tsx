@@ -10,7 +10,7 @@ import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
-import { SSIconChevronRight } from './icons'
+import { SSIconChevronRight, SSIconEyeOn } from './icons'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
@@ -32,9 +32,12 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           <SSText size="xs" style={{ color: Colors.gray[500], lineHeight: 10 }}>
             {account.fingerprint}
           </SSText>
-          <SSText size="lg" color="muted">
-            {account.name}
-          </SSText>
+          <SSHStack gap="sm">
+            <SSText size="lg" color="muted">
+              {account.name}
+            </SSText>
+            {account.watchOnly && <SSIconEyeOn height={16} width={16} />}
+          </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>
               <SSStyledSatText

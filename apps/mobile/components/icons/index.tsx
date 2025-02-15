@@ -12,6 +12,8 @@ import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconCollapse from './SSIconCollapse'
 import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
+import SSIconEyeOn from './SSIconEyeOn'
+import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconExpand from './SSIconExpand'
 import SSIconFeature from './SSIconFeature'
@@ -53,6 +55,8 @@ export {
   SSIconEdit,
   SSIconEditPencil,
   SSIconExpand,
+  SSIconEyeOff,
+  SSIconEyeOn,
   SSIconFeature,
   SSIconHideWarning,
   SSIconHistoryChart,
