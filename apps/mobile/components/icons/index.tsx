@@ -14,6 +14,8 @@ import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconExpand from './SSIconExpand'
+import SSIconEyeOff from './SSIconEyeOff'
+import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconHistoryChart from './SSIconHistoryChart'
@@ -31,6 +33,7 @@ import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSettings from './SSIconSettings'
+import SSIconWalletEye from './SSIconWalletEye'
 import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
 import SSIconZero from './SSIconZero'
@@ -52,6 +55,8 @@ export {
   SSIconEdit,
   SSIconEditPencil,
   SSIconExpand,
+  SSIconEyeOff,
+  SSIconEyeOn,
   SSIconFeature,
   SSIconHideWarning,
   SSIconHistoryChart,
@@ -69,6 +74,7 @@ export {
   SSIconRemove,
   SSIconScriptsP2pkh,
   SSIconSettings,
+  SSIconWalletEye,
   SSIconWarning,
   SSIconX,
   SSIconZero
