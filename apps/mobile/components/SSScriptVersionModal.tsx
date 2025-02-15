@@ -6,17 +6,10 @@ import SSLink from './SSLink'
 import SSRadioButton from './SSRadioButton'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { useState } from 'react'
-import { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
 import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
 
 type ScriptVersion = NonNullable<Account['scriptVersion']>
-
-type SSScriptVersionModalProps = {
-  visible: boolean
-  scriptVersion: ScriptVersion
-  onSelect: (scriptVersion: ScriptVersion) => void
-  onCancel: () => void
-}
 
 const scriptVersions: ScriptVersion[] = [
   'P2PKH',
@@ -25,7 +18,14 @@ const scriptVersions: ScriptVersion[] = [
   'P2TR'
 ]
 
-export default function SSScriptVersionModal({
+type SSScriptVersionModalProps = {
+  visible: boolean
+  scriptVersion: ScriptVersion
+  onSelect: (scriptVersion: ScriptVersion) => void
+  onCancel: () => void
+}
+
+function SSScriptVersionModal({
   visible,
   scriptVersion,
   onSelect,
@@ -75,3 +75,5 @@ export default function SSScriptVersionModal({
     </SSSelectModal>
   )
 }
+
+export default SSScriptVersionModal
