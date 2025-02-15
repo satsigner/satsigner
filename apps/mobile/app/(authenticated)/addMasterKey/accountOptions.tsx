@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -13,7 +14,6 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { type Account } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 
 export default function AccountOptions() {
   const router = useRouter()

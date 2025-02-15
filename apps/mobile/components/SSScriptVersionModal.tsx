@@ -1,13 +1,15 @@
+import { useState } from 'react'
+
 import { t } from '@/locales'
+import { type Account } from '@/types/models/Account'
+import { setStateWithLayoutAnimation } from '@/utils/animation'
+
+import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
 import SSCollapsible from './SSCollapsible'
-import SSSelectModal from './SSSelectModal'
-import SSText from './SSText'
 import SSLink from './SSLink'
 import SSRadioButton from './SSRadioButton'
-import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { useState } from 'react'
-import { type Account } from '@/types/models/Account'
-import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
+import SSSelectModal from './SSSelectModal'
+import SSText from './SSText'
 
 type ScriptVersion = NonNullable<Account['scriptVersion']>
 

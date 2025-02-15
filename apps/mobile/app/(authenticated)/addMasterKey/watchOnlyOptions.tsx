@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -24,7 +25,6 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 
 const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
