@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconScriptsP2pkh, SSIconWarning } from '@/components/icons'
+import { SSIconEyeOn, SSIconScriptsP2pkh, SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -81,7 +81,12 @@ export default function AccountSettings() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{currentAccount}</SSText>,
+          headerTitle: () => <SSHStack gap="sm">
+            <SSText uppercase>
+              {currentAccount}
+            </SSText>
+            {account.watchOnly && <SSIconEyeOn stroke="#fff" height={16} width={16} />}
+          </SSHStack>,
           headerRight: () => null
         }}
       />
@@ -104,13 +109,13 @@ export default function AccountSettings() {
           </SSHStack>
         </SSVStack>
         <SSVStack>
-          <SSHStack>
+          {account.seedWords && (<SSHStack>
             <SSButton
               style={{ flex: 1 }}
               label={t('account.viewSeed')}
               onPress={() => setSeedModalVisible(true)}
             />
-          </SSHStack>
+          </SSHStack>)}
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
