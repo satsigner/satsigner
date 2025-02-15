@@ -2,7 +2,11 @@ import Svg, { G, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'stroke'>
 
-export default function SSIconEyeOn({ width, height, stroke = '#828282' }: IconProps) {
+export default function SSIconEyeOn({
+  width,
+  height,
+  stroke = '#828282'
+}: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 21.536 16.5">
       <G id="eye-on" transform="translate(-1.232 -3.75)">

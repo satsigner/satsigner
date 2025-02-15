@@ -619,12 +619,14 @@ export default function AccountView() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSHStack gap="sm">
-            <SSText uppercase>
-              {id}
-            </SSText>
-            {account.watchOnly && <SSIconEyeOn stroke="#fff" height={16} width={16} />}
-          </SSHStack>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{id}</SSText>
+              {account.watchOnly && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerBackground: () => (
             <LinearGradient
               style={{
