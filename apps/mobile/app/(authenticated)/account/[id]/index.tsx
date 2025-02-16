@@ -21,6 +21,7 @@ import {
   SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
+  SSIconEyeOn,
   SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
@@ -618,7 +619,14 @@ export default function AccountView() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{id}</SSText>
+              {account.watchOnly && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerBackground: () => (
             <LinearGradient
               style={{
