@@ -9,10 +9,9 @@ import {
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSCollapsible from '@/components/SSCollapsible'
-import SSLink from '@/components/SSLink'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -119,24 +118,13 @@ export default function AccountOptions() {
   async function handleOnPressConfirmAccountOptions() {
     setScriptVersion(localScriptVersion)
     setSeedWordCount(localSeedWordCount)
-    setPolicyType(localPolicyType)
-    if (localPolicyType === 'multi') {
-      setParticipantsCount(localParticipantsCount)
-      setRequiredParticipantsCount(localRequiredParticipantsCount)
-      router.navigate('/addMasterKey/multisigKeyControl')
-    } else {
-      if (type === 'generate') {
-        setLoading(true)
-        await generateMnemonic(localSeedWordCount)
-        setLoading(false)
-        router.navigate('/addMasterKey/generateSeed')
-      } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
-    }
-  }
 
-  function handleOnSelectScriptVersion() {
-    setLocalScriptVersion(localScriptVersion)
-    setScriptVersionModalVisible(false)
+    if (type === 'generate') {
+      setLoading(true)
+      await generateMnemonic(localSeedWordCount)
+      setLoading(false)
+      router.navigate('/addMasterKey/generateSeed')
+    } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
   }
 
   function handleOnSelectSeedWordCount() {
@@ -214,58 +202,15 @@ export default function AccountOptions() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
+      <SSScriptVersionModal
         visible={scriptVersionModalVisible}
-        title={t('account.script')}
-        selectedText={`${localScriptVersion} - ${t(
-          `script.${localScriptVersion.toLowerCase()}.name`
-        )}`}
-        selectedDescription={
-          <SSCollapsible>
-            <SSText color="muted" size="md">
-              {t(`script.${localScriptVersion.toLowerCase()}.description.1`)}
-              <SSLink
-                size="md"
-                text={t(`script.${localScriptVersion.toLowerCase()}.link.name`)}
-                url={t(`script.${localScriptVersion.toLowerCase()}.link.url`)}
-              />
-              {t(`script.${localScriptVersion.toLowerCase()}.description.2`)}
-            </SSText>
-            <SSIconScriptsP2pkh height={80} width="100%" />
-          </SSCollapsible>
-        }
-        onSelect={() => handleOnSelectScriptVersion()}
+        scriptVersion={localScriptVersion}
         onCancel={() => setScriptVersionModalVisible(false)}
-      >
-        <SSRadioButton
-          label={`${t('script.p2pkh.name')} (P2PKH)`}
-          selected={localScriptVersion === 'P2PKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2PKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`}
-          selected={localScriptVersion === 'P2SH-P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2SH-P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2wpkh.name')} (P2WPKH)`}
-          selected={localScriptVersion === 'P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2tr.name')} (P2TR)`}
-          selected={localScriptVersion === 'P2TR'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setLocalScriptVersion, 'P2TR')
-          }
-        />
-      </SSSelectModal>
+        onSelect={(scriptVersion) => {
+          setLocalScriptVersion(scriptVersion)
+          setScriptVersionModalVisible(false)
+        }}
+      />
       <SSSelectModal
         visible={seedWordCountModalVisible}
         title={t('account.mnemonic.title')}
@@ -309,9 +254,7 @@ export default function AccountOptions() {
         onCancel={() => setPolicyTypeModalVisible(false)}
       >
         <SSCheckbox
-          label={t(
-            'addMasterKey.accountOptions.policyTypes.singleSignature'
-          )}
+          label={t('addMasterKey.accountOptions.policyTypes.singleSignature')}
           selected={localPolicyType === 'single'}
           onPress={() => setLocalPolicyType('single')}
         />
@@ -322,9 +265,7 @@ export default function AccountOptions() {
         </SSText>
         <SSIconSingleSignature width="100%" height={180} />
         <SSCheckbox
-          label={t(
-            'addMasterKey.accountOptions.policyTypes.multiSignature'
-          )}
+          label={t('addMasterKey.accountOptions.policyTypes.multiSignature')}
           selected={localPolicyType === 'multi'}
           onPress={() => setLocalPolicyType('multi')}
         />
