@@ -11414,6 +11414,11 @@ rimraf@~2.6.2:
   dependencies:
     glob "^7.1.3"
 
+rn-electrum-client@^0.0.21:
+  version "0.0.21"
+  resolved "https://registry.yarnpkg.com/rn-electrum-client/-/rn-electrum-client-0.0.21.tgz#46c02bc7a7310c924395c8a6a03c0d5b60038ea5"
+  integrity sha512-UWImjAXwhezFF9KrA8mGCsz1gx14/afi36YWj+7YdSFWKy9ORRwjKdjcZWuWwCy7whn9AgU0gxOoUATWbH3nPA==
+
 rn-nodeify@^10.3.0:
   version "10.3.0"
   resolved "https://registry.yarnpkg.com/rn-nodeify/-/rn-nodeify-10.3.0.tgz#06dc77819f7f500cdc41eda9654e60ecb140027a"

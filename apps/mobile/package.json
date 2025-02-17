@@ -66,6 +66,7 @@
     "react-native-svg": "14.1.0",
     "react-native-tab-view": "^3.5.2",
     "react-timeago": "^7.2.0",
+    "rn-electrum-client": "^0.0.21",
     "varuint-bitcoin": "1.1.2",
     "victory-native": "^41.16.0",
     "zustand": "^4.5.2"
