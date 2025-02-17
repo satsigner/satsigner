@@ -7,11 +7,13 @@ import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { Colors } from '@/styles'
 import { sampleSignetWalletSeed } from '@/utils/samples'
 
 export default function AccountList() {
@@ -64,12 +66,13 @@ export default function AccountList() {
           headerTitle: () => <SSText uppercase>{t('app.name')}</SSText>
         }}
       />
-      <SSButton
-        label={t('account.add')}
-        variant="gradient"
-        style={{ borderRadius: 0 }}
-        onPress={() => router.navigate('/addMasterKey/')}
-      />
+      <SSHStack style={{ paddingHorizontal: '5%' }}>
+        <SSButton
+          label={t('account.add')}
+          style={{ borderRadius: 0, backgroundColor: Colors.gray[870] }}
+          onPress={() => router.navigate('/addMasterKey/')}
+        />
+      </SSHStack>
       <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
           {accounts.length === 0 && (

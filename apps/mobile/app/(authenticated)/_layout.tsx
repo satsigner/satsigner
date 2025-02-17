@@ -4,7 +4,6 @@ import {
   getFocusedRouteNameFromRoute,
   useRoute
 } from '@react-navigation/native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useGlobalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
@@ -84,15 +83,13 @@ export default function AuthenticatedLayout() {
             backgroundColor: Colors.gray[950]
           },
           headerBackground: () => (
-            <LinearGradient
+            <View
               style={{
                 height: '100%',
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
+                backgroundColor: Colors.gray[950]
               }}
-              colors={[Colors.gray[950], Colors.gray[850]]}
-              start={{ x: 0.94, y: 1.0 }}
-              end={{ x: 0.86, y: -0.64 }}
             />
           ),
           headerRight: () => (
