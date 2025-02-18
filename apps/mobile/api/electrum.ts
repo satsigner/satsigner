@@ -170,37 +170,36 @@ type AddressInfo = {
 }
 
 class ElectrumClient extends BaseElectrumClient {
-  async getAddressInfo(
+  //
+
+  parseAddressUtxos(
+    utxos: IElectrumClient['addressUtxos'],
     address: string,
-    addressKeychain: Utxo['keychain'] = 'external'
-  ): Promise<AddressInfo> {
-    const addressTxs = await super.getAddressTransactions(address)
-    const addressUtxos = await super.getAddressUtxos(address)
-    const txIds = addressTxs.map((value) => value.tx_hash)
-    const rawTransactions = await this.getTransactions(txIds)
-    const balance = await this.getAddressBalance(address)
-
-    const network = this.network
-    const transactions: Transaction[] = []
-    const utxos: Utxo[] = []
-
-    // this is used to look up the parent transaction of an input
-    const parsedTxs: TxDecoded[] = []
-    const txDictionary: Record<string, number> = {}
-
-    addressUtxos.forEach((electrumUtxo) => {
-      const utxo: Utxo = {
+    addressKeychain: string
+  ): Utxo[] {
+    return utxos.map((electrumUtxo) => {
+      return {
         txid: electrumUtxo.tx_hash,
         value: electrumUtxo.value,
         vout: electrumUtxo.tx_pos,
         addressTo: address,
         keychain: addressKeychain,
         label: '',
-        script: [...bitcoinjs.address.toOutputScript(address, network)]
-      }
-
-      utxos.push(utxo)
+        script: [...bitcoinjs.address.toOutputScript(address, this.network)]
+      } as Utxo
     })
+  }
+
+  parseAddressTransactions(
+    rawTransactions: string[],
+    address: string
+  ): Transaction[] {
+    const transactions: Transaction[] = []
+    const network = this.network
+
+    // this is used to look up the parent transaction of an input
+    const parsedTransactions: TxDecoded[] = []
+    const txDictionary: Record<string, number> = {}
 
     rawTransactions.forEach((rawTx, index) => {
       const parsedTx = TxDecoded.fromHex(rawTx)
@@ -222,40 +221,63 @@ class ElectrumClient extends BaseElectrumClient {
       } as Transaction
 
       transactions.push(tx)
-      parsedTxs.push(parsedTx)
+      parsedTransactions.push(parsedTx)
       txDictionary[tx.id] = index
     })
 
+    // Compute sent and received vales
     for (let i = 0; i < transactions.length; i++) {
-      const outputCount = Number(parsedTxs[i].getOutputCount().value)
-      const inputCount = Number(parsedTxs[i].getInputCount().value)
+      const currentTx = parsedTransactions[i]
+      const outputCount = Number(currentTx.getOutputCount().value)
+      const inputCount = Number(currentTx.getInputCount().value)
 
+      // Compute received value by checking if tx outputs match address
       for (let j = 0; j < outputCount; j++) {
-        const addr = parsedTxs[i].generateOutputScriptAddress(j, network)
+        const addr = currentTx.generateOutputScriptAddress(j, network)
         if (addr !== address) continue
 
-        const value = Number(parsedTxs[i].getOutputValue(j).value)
+        const value = Number(currentTx.getOutputValue(j).value)
         transactions[i].received += value
       }
 
+      // Compute sent value by checking if tx inputs match address
       for (let j = 0; j < inputCount; j++) {
-        const prevTxId = parsedTxs[i].getInputHash(j).value
+        const prevTxId = currentTx.getInputHash(j).value
         if (!txDictionary[prevTxId]) continue
 
         const prevTxIndex = txDictionary[prevTxId]
-        const vout = Number(parsedTxs[i].getInputIndex(j).value)
-        const addr = parsedTxs[prevTxIndex].generateOutputScriptAddress(
-          vout,
-          network
-        )
+        const vout = Number(currentTx.getInputIndex(j).value)
+        const parentTx = parsedTransactions[prevTxIndex]
+        const addr = parentTx.generateOutputScriptAddress(vout, network)
         if (addr !== address) continue
 
-        const value = Number(parsedTxs[prevTxIndex].getOutputValue(j).value)
+        const value = Number(parentTx.getOutputValue(j).value)
         transactions[i].sent += value
       }
 
       transactions[i].type = transactions[i].sent > 0 ? 'send' : 'receive'
     }
+
+    return transactions
+  }
+
+  async getAddressInfo(
+    address: string,
+    addressKeychain: Utxo['keychain'] = 'external'
+  ): Promise<AddressInfo> {
+    const addressUtxos = await super.getAddressUtxos(address)
+    const utxos: Utxo[] = this.parseAddressUtxos(
+      addressUtxos,
+      address,
+      addressKeychain
+    )
+
+    const addressTxs = await super.getAddressTransactions(address)
+    const txIds = addressTxs.map((value) => value.tx_hash)
+    const rawTransactions = await this.getTransactions(txIds)
+    const transactions = this.parseAddressTransactions(rawTransactions, address)
+
+    const balance = await this.getAddressBalance(address)
 
     return { utxos, transactions, balance }
   }
