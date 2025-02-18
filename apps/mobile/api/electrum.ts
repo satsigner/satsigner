@@ -13,7 +13,7 @@ type IElectrumClient = {
     host: string
     port: number
     protocol?: 'tcp' | 'tls' | 'ssl'
-    network?: 'bitcoin' | 'testnet' | 'regtest'
+    network?: bitcoinjs.Network
   }
   addressBalance: {
     confirmed: number
@@ -82,7 +82,7 @@ class BaseElectrumClient {
     host,
     port,
     protocol = 'ssl',
-    network = 'testnet'
+    network = bitcoinjs.networks.testnet
   }: IElectrumClient['props']) {
     const net = TcpSocket
     const tls = TcpSocket
@@ -231,11 +231,11 @@ class ElectrumClient extends BaseElectrumClient {
       const inputCount = Number(parsedTxs[i].getInputCount().value)
 
       for (let j = 0; j < outputCount; j++) {
-        const addr = parsedTxs[i].generateOutputScriptAddress(j)
+        const addr = parsedTxs[i].generateOutputScriptAddress(j, network)
         if (addr !== address) continue
 
         const value = Number(parsedTxs[i].getOutputValue(j).value)
-        transactions[i].sent += value
+        transactions[i].received += value
       }
 
       for (let j = 0; j < inputCount; j++) {
@@ -244,11 +244,14 @@ class ElectrumClient extends BaseElectrumClient {
 
         const prevTxIndex = txDictionary[prevTxId]
         const vout = Number(parsedTxs[i].getInputIndex(j).value)
-        const addr = parsedTxs[prevTxIndex].generateOutputScriptAddress(vout)
+        const addr = parsedTxs[prevTxIndex].generateOutputScriptAddress(
+          vout,
+          network
+        )
         if (addr !== address) continue
 
         const value = Number(parsedTxs[prevTxIndex].getOutputValue(j).value)
-        transactions[i].received += value
+        transactions[i].sent += value
       }
 
       transactions[i].type = transactions[i].sent > 0 ? 'send' : 'receive'
