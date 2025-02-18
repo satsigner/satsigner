@@ -1,10 +1,12 @@
-import { Transaction } from '@/types/models/Transaction'
-import { Utxo } from '@/types/models/Utxo'
-import { parseHexToBytes } from '@/utils/parse'
-import { TxDecoded } from '@/utils/txDecoded'
 import * as bitcoinjs from 'bitcoinjs-lib'
+// @ts-ignore @eslint-disable-next-line
 import RnElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
+
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
+import { parseHexToBytes } from '@/utils/parse'
+import { TxDecoded } from '@/utils/txDecoded'
 
 type IElectrumClient = {
   props: {
@@ -205,7 +207,7 @@ class ElectrumClient extends BaseElectrumClient {
         type: 'send', // TODO
         sent: 0, // TODO
         received: 0, // TODO
-        address: address,
+        address,
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         version: parsedTx.version,
