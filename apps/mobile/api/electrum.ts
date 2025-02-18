@@ -180,10 +180,13 @@ class ElectrumClient extends BaseElectrumClient {
     const rawTransactions = await this.getTransactions(txIds)
     const balance = await this.getAddressBalance(address)
 
+    const network = this.network
     const transactions: Transaction[] = []
     const utxos: Utxo[] = []
 
-    const network = this.network
+    // this is used to look up the parent transaction of an input
+    const parsedTxs: TxDecoded[] = []
+    const txDictionary: Record<string, number> = {}
 
     addressUtxos.forEach((electrumUtxo) => {
       const utxo: Utxo = {
@@ -199,14 +202,13 @@ class ElectrumClient extends BaseElectrumClient {
       utxos.push(utxo)
     })
 
-    rawTransactions.forEach((rawTx) => {
+    rawTransactions.forEach((rawTx, index) => {
       const parsedTx = TxDecoded.fromHex(rawTx)
-
       const tx = {
         id: parsedTx.getId(),
-        type: 'send', // TODO
-        sent: 0, // TODO
-        received: 0, // TODO
+        type: 'send',
+        sent: 0,
+        received: 0,
         address,
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
@@ -220,7 +222,37 @@ class ElectrumClient extends BaseElectrumClient {
       } as Transaction
 
       transactions.push(tx)
+      parsedTxs.push(parsedTx)
+      txDictionary[tx.id] = index
     })
+
+    for (let i = 0; i < transactions.length; i++) {
+      const outputCount = Number(parsedTxs[i].getOutputCount().value)
+      const inputCount = Number(parsedTxs[i].getInputCount().value)
+
+      for (let j = 0; j < outputCount; j++) {
+        const addr = parsedTxs[i].generateOutputScriptAddress(j)
+        if (addr !== address) continue
+
+        const value = Number(parsedTxs[i].getOutputValue(j).value)
+        transactions[i].sent += value
+      }
+
+      for (let j = 0; j < inputCount; j++) {
+        const prevTxId = parsedTxs[i].getInputHash(j).value
+        if (!txDictionary[prevTxId]) continue
+
+        const prevTxIndex = txDictionary[prevTxId]
+        const vout = Number(parsedTxs[i].getInputIndex(j).value)
+        const addr = parsedTxs[prevTxIndex].generateOutputScriptAddress(vout)
+        if (addr !== address) continue
+
+        const value = Number(parsedTxs[prevTxIndex].getOutputValue(j).value)
+        transactions[i].received += value
+      }
+
+      transactions[i].type = transactions[i].sent > 0 ? 'send' : 'receive'
+    }
 
     return { utxos, transactions, balance }
   }
