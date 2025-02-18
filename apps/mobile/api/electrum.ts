@@ -74,6 +74,15 @@ type IElectrumClient = {
   }
 }
 
+type AddressInfo = {
+  transactions: Transaction[]
+  utxos: Utxo[]
+  balance: {
+    confirmed: number
+    unconfirmed: number
+  }
+}
+
 class BaseElectrumClient {
   client: any
   network: bitcoinjs.networks.Network
@@ -160,17 +169,27 @@ class BaseElectrumClient {
   }
 }
 
-type AddressInfo = {
-  transactions: Transaction[]
-  utxos: Utxo[]
-  balance: {
-    confirmed: number
-    unconfirmed: number
-  }
-}
-
 class ElectrumClient extends BaseElectrumClient {
-  //
+  async getAddressInfo(
+    address: string,
+    addressKeychain: Utxo['keychain'] = 'external'
+  ): Promise<AddressInfo> {
+    const addressUtxos = await super.getAddressUtxos(address)
+    const utxos: Utxo[] = this.parseAddressUtxos(
+      addressUtxos,
+      address,
+      addressKeychain
+    )
+
+    const addressTxs = await super.getAddressTransactions(address)
+    const txIds = addressTxs.map((value) => value.tx_hash)
+    const rawTransactions = await this.getTransactions(txIds)
+    const transactions = this.parseAddressTransactions(rawTransactions, address)
+
+    const balance = await this.getAddressBalance(address)
+
+    return { utxos, transactions, balance }
+  }
 
   parseAddressUtxos(
     utxos: IElectrumClient['addressUtxos'],
@@ -259,27 +278,6 @@ class ElectrumClient extends BaseElectrumClient {
     }
 
     return transactions
-  }
-
-  async getAddressInfo(
-    address: string,
-    addressKeychain: Utxo['keychain'] = 'external'
-  ): Promise<AddressInfo> {
-    const addressUtxos = await super.getAddressUtxos(address)
-    const utxos: Utxo[] = this.parseAddressUtxos(
-      addressUtxos,
-      address,
-      addressKeychain
-    )
-
-    const addressTxs = await super.getAddressTransactions(address)
-    const txIds = addressTxs.map((value) => value.tx_hash)
-    const rawTransactions = await this.getTransactions(txIds)
-    const transactions = this.parseAddressTransactions(rawTransactions, address)
-
-    const balance = await this.getAddressBalance(address)
-
-    return { utxos, transactions, balance }
   }
 }
 
