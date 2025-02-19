@@ -687,7 +687,7 @@ export default function AccountView() {
                       marginRight: 2,
                       borderTopWidth: 1,
                       borderTopColor: '#242424',
-                      borderRadius: 1
+                      borderRadius: 3
                     }}
                   >
                     <SSText uppercase>{t('account.signAndSend')}</SSText>
@@ -699,7 +699,7 @@ export default function AccountView() {
                       backgroundColor: Colors.gray[910],
                       borderTopWidth: 1,
                       borderTopColor: '#242424',
-                      borderRadius: 1
+                      borderRadius: 3
                     }}
                   >
                     <SSIconCamera height={13} width={18} />
@@ -714,7 +714,7 @@ export default function AccountView() {
                   marginLeft: 2,
                   borderTopWidth: 1,
                   borderTopColor: '#242424',
-                  borderRadius: 1
+                  borderRadius: 3
                 }}
               >
                 <SSText uppercase>{t('account.receive')}</SSText>
