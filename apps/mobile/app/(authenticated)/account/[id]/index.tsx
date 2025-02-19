@@ -1,10 +1,5 @@
-import * as ecc from '@bitcoinerlab/secp256k1'
-import { FlashList } from '@shopify/flash-list'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
-import { BIP32Factory } from 'bip32'
-import { mnemonicToSeedSync, validateMnemonic } from 'bip39'
-import * as bitcoin from 'bitcoinjs-lib'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
@@ -27,6 +22,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getWalletFromMnemonic } from '@/api/bdk'
 import {
   SSIconBubbles,
   SSIconCamera,
@@ -43,6 +39,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBalanceChart from '@/components/SSBalanceChart'
+import SSChildAccountList from '@/components/SSChildAccountList'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -67,11 +64,9 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-
-const bip32 = BIP32Factory(ecc)
 
 type TotalTransactionsProps = {
   account: Account
@@ -224,163 +219,149 @@ function TotalTransactions({
   )
 }
 
-type ChildAccount = {
-  index: number
-  address: string
-  publicKey: string
-  privateKey: string | null
-  txs: number
-}
-
 type ChildAccountsProps = {
   account: Account
   decryptSeed: Function
   setSortDirection: Function
   sortDirection: Direction
+  handleOnExpand: (state: boolean) => Promise<void>
+  expand: boolean
+  setChange: Function
+  change: boolean
 }
-
 function ChildAccounts({
   account,
   decryptSeed,
+  handleOnExpand,
+  setChange,
+  change,
+  expand,
   setSortDirection
 }: ChildAccountsProps) {
-  const [network] = useBlockchainStore(useShallow((state) => [state.network]))
-
   const getWalletAddress = useGetWalletAddress(account!)
-
-  const [addressPath, setAddressPath] = useState('')
   const [childAccounts, setChildAccounts] = useState<any[]>([])
+  const { id } = useLocalSearchParams()
+  const network = useBlockchainStore((state) => state.network)
+  const [addressPath, setAddressPath] = useState('')
 
   const fetchAddresses = useCallback(async () => {
-    if (!account || !account.derivationPath) return
+    if (!account || !account.externalDescriptor || !account.internalDescriptor)
+      return
 
-    try {
-      const result = await getWalletAddress()
-      if (!result) return
-      setAddressPath(`${account.derivationPath}/0/${result.index}`)
-      const mnemonicRaw = await decryptSeed(account.name)
-      const mnemonic = mnemonicRaw.includes(',')
-        ? mnemonicRaw.split(',').join(' ')
-        : mnemonicRaw
-      if (!validateMnemonic(mnemonic)) throw new Error('Invalid mnemonic')
+    const newAddresses: any[] = []
+    const result = await getWalletAddress()
+    if (!result) return
 
-      const seed1 = mnemonicToSeedSync(mnemonic)
-      const root = bip32.fromSeed(new Uint8Array(seed1))
+    setAddressPath(`${account.derivationPath}/0/${result.index}`)
+    const seed = await decryptSeed(id!)
+    if (!seed || !account.scriptVersion) return
 
-      const newAddresses: ChildAccount[] = []
-      const addressList: string[] = []
+    const walletPrivate = await getWalletFromMnemonic(
+      seed.replace(/,/g, ' '),
+      account.scriptVersion,
+      account.passphrase,
+      network as Network
+    )
 
-      for (let i = 0; i < account.summary.numberOfAddresses; i++) {
-        const derivationPath = `${account.derivationPath}/0/${i}`
-        const child = root.derivePath(derivationPath)
+    for (let i = 0; i < account.summary.numberOfAddresses; i++) {
+      const derivedAddress = await walletPrivate.wallet.getAddress(i)
+      const derivedAddressResult = await derivedAddress.address.asString()
+      let txs = 0,
+        utxos = 0,
+        label
 
-        const { address } =
-          bitcoin.payments.p2wpkh({
-            pubkey: Buffer.from(child.publicKey),
-            network:
-              network === 'testnet' || network === 'signet'
-                ? bitcoin.networks.testnet
-                : bitcoin.networks.bitcoin
-          }) ?? {}
-
-        if (!address) continue
-
-        addressList.push(address)
-        const response = await fetch(
-          `https://blockstream.info/signet/api/address/${address}/txs`
-        )
-        if (!response.ok) throw new Error(`Failed to fetch transactions`)
-
-        const transactions = await response.json()
-        newAddresses.push({
-          index: i,
-          address,
-          publicKey: Buffer.from(child.publicKey).toString('hex'),
-          privateKey: child.privateKey
-            ? Buffer.from(child.privateKey).toString('hex')
-            : null,
-          txs: transactions.length
-        })
-      }
-
-      setChildAccounts((prevAccounts) => {
-        const existingAddresses = new Set(
-          prevAccounts.map((acc) => acc.address)
-        )
-        const uniqueNewAccounts = newAddresses.filter(
-          (acc) => !existingAddresses.has(acc.address)
-        )
-        return [...prevAccounts, ...uniqueNewAccounts]
+      account?.transactions?.forEach((tx) => {
+        if (tx.type === 'receive') {
+          tx.vout.forEach((v) => {
+            if (derivedAddressResult === v.address) txs++
+          })
+        }
       })
-    } catch (_) {
-      //
+
+      account?.utxos?.forEach((utxo) => {
+        if (derivedAddressResult === utxo.addressTo) {
+          utxos += utxo.value
+          label = utxo.label
+        }
+      })
+
+      newAddresses.push({
+        index: i,
+        address: derivedAddressResult,
+        label,
+        unspendSats: utxos,
+        txs
+      })
     }
-  }, [account, decryptSeed, network, getWalletAddress])
+
+    setChildAccounts((prevAccounts) => {
+      const existingAddresses = new Set(prevAccounts.map((acc) => acc.address))
+      return [
+        ...prevAccounts,
+        ...newAddresses.filter((acc) => !existingAddresses.has(acc.address))
+      ]
+    })
+  }, [account, decryptSeed, network, getWalletAddress, id])
 
   useEffect(() => {
     fetchAddresses()
   }, [fetchAddresses])
 
-  const renderItem = useCallback(
-    ({ item }: { item: any }) => (
-      <SSHStack
-        style={{
-          paddingVertical: 12,
-          paddingHorizontal: 4,
-          borderBottomWidth: 1,
-          borderColor: '#333',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
-        <SSText
-          style={{
-            fontWeight: 'bold',
-            color: '#fff',
-            textAlign: 'center',
-            flex: 1
-          }}
-        >
-          {item.index}
-        </SSText>
-        <SSText style={{ color: '#ccc', textAlign: 'center', flex: 2 }}>
-          {formatAddress(item.address, 4)}
-        </SSText>
-        <SSText style={{ color: '#ccc', textAlign: 'center', flex: 2 }}>
-          {formatAddress(item.publicKey, 4)}
-        </SSText>
-        <SSText style={{ color: '#ccc', textAlign: 'center', flex: 2 }}>
-          {formatAddress(item.privateKey, 4)}
-        </SSText>
-        <SSText style={{ color: '#fff', textAlign: 'center', flex: 1 }}>
-          {item.txs}
-        </SSText>
-      </SSHStack>
-    ),
-    []
-  )
-
   return (
     <SSMainLayout style={{ paddingTop: 20 }}>
-      <SSHStack gap="none" justifyBetween>
-        <SSVStack gap="none" itemsCenter style={{ width: '95%' }}>
-          <SSHStack gap="sm">
-            <SSText color="muted" uppercase>
-              {i18n.t('newInvoice.path')}
-            </SSText>
-            <SSText>{addressPath}</SSText>
-          </SSHStack>
-        </SSVStack>
-        <SSVStack>
+      <SSHStack justifyBetween style={{ paddingVertical: 4 }}>
+        <SSHStack>
+          <SSIconButton onPress={() => {}}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={16} />
+            )}
+          </SSIconButton>
+        </SSHStack>
+        <SSHStack gap="sm">
+          <SSText color="muted" uppercase>
+            {i18n.t('newInvoice.path')}
+          </SSText>
+          <SSText>{addressPath}</SSText>
+        </SSHStack>
+        <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
           <SSSortDirectionToggle
-            onDirectionChanged={(direction) => setSortDirection(direction)}
+            onDirectionChanged={() => setSortDirection()}
           />
-        </SSVStack>
+        </SSHStack>
       </SSHStack>
-      <SSSeparator color="grayDark" style={{ marginTop: 20 }} />
+
+      <SSHStack
+        gap="md"
+        justifyBetween
+        style={{ display: 'flex', width: '100%', marginTop: 10 }}
+      >
+        {['receive', 'change'].map((type, index) => (
+          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+            <SSText
+              style={{
+                textAlign: 'center',
+                paddingVertical: 20,
+                borderWidth: 1,
+                borderColor: change === (index === 1) ? '#fff' : '#333',
+                width: '100%'
+              }}
+              uppercase
+              onPress={() => setChange(index === 1)}
+            >
+              {type}
+            </SSText>
+          </SSHStack>
+        ))}
+      </SSHStack>
+
       <SSHStack
         style={{
-          paddingVertical: 12,
+          paddingVertical: 18,
           paddingHorizontal: 4,
           borderBottomWidth: 1,
           borderColor: '#333',
@@ -389,49 +370,18 @@ function ChildAccounts({
           alignItems: 'center'
         }}
       >
-        <SSText
-          style={{
-            textAlign: 'center'
-          }}
-        >
-          INDEX
-        </SSText>
-        <SSText
-          style={{
-            textAlign: 'center'
-          }}
-        >
-          ADDRESS
-        </SSText>
-        <SSText
-          style={{
-            textAlign: 'center'
-          }}
-        >
-          PUBLIC KEY
-        </SSText>
-        <SSText
-          style={{
-            textAlign: 'center'
-          }}
-        >
-          PRIVATE KEY
-        </SSText>
-        <SSText
-          style={{
-            textAlign: 'center'
-          }}
-        >
-          TXS
-        </SSText>
+        {['index', 'address', 'label', 'unspend sats', 'TXs'].map((title) => (
+          <SSText
+            key={title}
+            style={{ textAlign: 'center', color: '#777' }}
+            uppercase
+          >
+            {title}
+          </SSText>
+        ))}
       </SSHStack>
-      <FlashList
-        data={childAccounts}
-        renderItem={renderItem}
-        estimatedItemSize={150}
-        keyExtractor={(item) => `${item.index}-${item.address}`}
-        removeClippedSubviews
-      />
+
+      <SSChildAccountList childAccounts={childAccounts} />
     </SSMainLayout>
   )
 }
@@ -580,6 +530,7 @@ export default function AccountView() {
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
+  const [change, setChange] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
@@ -636,6 +587,10 @@ export default function AccountView() {
         return (
           <ChildAccounts
             account={account}
+            handleOnExpand={handleOnExpand}
+            setChange={setChange}
+            expand={expand}
+            change={change}
             decryptSeed={decryptSeed}
             setSortDirection={setSortDirectionChildAccounts}
             sortDirection={sortDirectionChildAccounts}
