@@ -684,14 +684,23 @@ export default function AccountView() {
                     style={{
                       width: '40%',
                       backgroundColor: Colors.gray[910],
-                      marginRight: 2
+                      marginRight: 2,
+                      borderTopWidth: 1,
+                      borderTopColor: '#242424',
+                      borderRadius: 1
                     }}
                   >
                     <SSText uppercase>{t('account.signAndSend')}</SSText>
                   </SSActionButton>
                   <SSActionButton
                     onPress={() => router.navigate(`/account/${id}/camera`)}
-                    style={{ width: '20%', backgroundColor: Colors.gray[910] }}
+                    style={{
+                      width: '20%',
+                      backgroundColor: Colors.gray[910],
+                      borderTopWidth: 1,
+                      borderTopColor: '#242424',
+                      borderRadius: 1
+                    }}
                   >
                     <SSIconCamera height={13} width={18} />
                   </SSActionButton>
@@ -702,7 +711,10 @@ export default function AccountView() {
                 style={{
                   width: account.watchOnly ? '100%' : '40%',
                   backgroundColor: Colors.gray[910],
-                  marginLeft: 2
+                  marginLeft: 2,
+                  borderTopWidth: 1,
+                  borderTopColor: '#242424',
+                  borderRadius: 1
                 }}
               >
                 <SSText uppercase>{t('account.receive')}</SSText>
