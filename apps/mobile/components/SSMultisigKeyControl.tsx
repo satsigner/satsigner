@@ -7,7 +7,7 @@ import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 
 export type SSMultisigKeyControlProps = {
@@ -83,11 +83,11 @@ export default function SSMultisigKeyControl({
       {collapsed && (
         <>
           <SSButton
-            label={i18n.t('addMasterKey.generateNewSeed.title')}
+            label={t('account.generate.title')}
             onPress={handleOnClickGenerate}
           />
           <SSButton
-            label={i18n.t('addMasterKey.importExistingSeed.title')}
+            label={t('account.import.title')}
             onPress={handleOnClickImport}
           />
         </>

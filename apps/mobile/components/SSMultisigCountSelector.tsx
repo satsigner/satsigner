@@ -8,6 +8,7 @@ import {
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
 import SSText from '@/components/SSText'
+import { t } from '@/locales'
 
 const RADIUS_INDICATOR = 8
 const RADIUS_INNER_RECT = 13
@@ -69,13 +70,13 @@ export default function SSMultisigCountSelector({
       if (index === -1) {
         return
       }
-      if (activeTotalNumber === true) {
+      if (activeTotalNumber) {
         if (index + 1 < requiredNumber) {
           onChangeRequiredNumber(index + 1)
         }
         onChangeTotalNumber(index + 1)
       }
-      if (activeRequiredNumber === true) {
+      if (activeRequiredNumber) {
         if (index + 1 > totalNumber) {
           onChangeTotalNumber(index + 1)
         }
@@ -94,9 +95,17 @@ export default function SSMultisigCountSelector({
         flexDirection: 'column'
       }}
     >
-      <SSText style={{ alignSelf: 'center' }}>Signatures Required</SSText>
-      <SSText style={{ alignSelf: 'center', fontSize: 55 }}>
-        {requiredNumber} of {totalNumber}
+      <SSText style={{ alignSelf: 'center' }}>
+        {t('account.signatureRequired')}
+      </SSText>
+      <SSText
+        style={{
+          alignSelf: 'center',
+          fontSize: 55,
+          textTransform: 'lowercase'
+        }}
+      >
+        {requiredNumber} {t('common.of')} {totalNumber}
       </SSText>
       <GestureHandlerRootView>
         <GestureDetector gesture={panGesture}>

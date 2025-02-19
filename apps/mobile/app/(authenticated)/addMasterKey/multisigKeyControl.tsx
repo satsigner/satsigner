@@ -9,6 +9,7 @@ import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 
@@ -42,7 +43,7 @@ export default function MultisigKeyControl() {
   const isValidParticipantSeeds = useMemo(() => {
     return (
       participants?.length === participantsCount &&
-      participants!.every((t) => t !== undefined && typeof t === 'string')
+      participants!.every((t) => t !== undefined)
     )
   }, [participants, participantsCount])
 
@@ -65,7 +66,9 @@ export default function MultisigKeyControl() {
     <SSMainLayout style={{ paddingHorizontal: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>Multi-Party Contract</SSText>
+          headerTitle: () => (
+            <SSText uppercase>{t('account.multiPartyContract')}</SSText>
+          )
         }}
       />
       <SSVStack style={{ flex: 1 }}>
@@ -78,7 +81,7 @@ export default function MultisigKeyControl() {
             requiredCount={requiredParticipantsCount!}
             totalCount={participantsCount!}
           />
-          <SSText center>Add or Generate your keys</SSText>
+          <SSText center>{t('account.addOrGenerateKeys')}</SSText>
         </SSVStack>
         <ScrollView>
           <SSVStack gap="none">
@@ -88,9 +91,7 @@ export default function MultisigKeyControl() {
                   key={index}
                   isBlackBackground={index % 2 === 1}
                   collapsed={collapsedIndex === index}
-                  collapseChanged={(value) =>
-                    value === true && setCollapsedIndex(index)
-                  }
+                  collapseChanged={(value) => value && setCollapsedIndex(index)}
                   index={index}
                 />
               )

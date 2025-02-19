@@ -2,11 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconMultiSignature,
-  SSIconScriptsP2pkh,
-  SSIconSingleSignature
-} from '@/components/icons'
+import { SSIconMultiSignature, SSIconSingleSignature } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
@@ -67,13 +63,13 @@ export default function AccountOptions() {
 
   function getScriptVersionButtonLabel() {
     if (localScriptVersion === 'P2PKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
+      return `${t('script.p2pkh.description.1')} (P2PKH)`
     else if (localScriptVersion === 'P2SH-P2WPKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+      return `${t('script.p2sh-p2wpkh.description.1')} (P2SH-P2WPKH)`
     else if (localScriptVersion === 'P2WPKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
+      return `${t('script.p2wpkh.description.1')} (P2WPKH)`
     else if (localScriptVersion === 'P2TR')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
+      return `${t('script.p2tr.description.1')} (P2TR)`
     return ''
   }
 
@@ -92,24 +88,21 @@ export default function AccountOptions() {
   }
 
   function getPolicyTypeButtonLabel() {
-    if (localPolicyType === 'single')
-      return t('addMasterKey.accountOptions.policyTypes.singleSignature')
-    if (localPolicyType === 'multi')
-      return t('addMasterKey.accountOptions.policyTypes.multiSignature')
+    if (localPolicyType === 'single') return t('account.policy.singleSignature')
+    if (localPolicyType === 'multi') return t('account.policy.multiSignature')
     return ''
   }
 
   function getContinueButtonLabel() {
     if (localPolicyType === 'single') {
-      if (type === 'generate')
-        return t('addMasterKey.accountOptions.generateNewSeed')
+      if (type === 'generate') return t('account.generate.title')
       else if (type === 'import')
-        return t('addMasterKey.accountOptions.importSeed')
+        return t('account.import.title').replace(' ', '')
     } else if (localPolicyType === 'multi') {
       if (type === 'generate') {
-        return 'Generate Keys'
+        return t('account.generate.multi.title')
       } else if (type === 'import') {
-        return 'Import Keys'
+        return t('account.import.multi.title')
       }
     }
     return ''
@@ -118,13 +111,19 @@ export default function AccountOptions() {
   async function handleOnPressConfirmAccountOptions() {
     setScriptVersion(localScriptVersion)
     setSeedWordCount(localSeedWordCount)
-
-    if (type === 'generate') {
-      setLoading(true)
-      await generateMnemonic(localSeedWordCount)
-      setLoading(false)
-      router.navigate('/addMasterKey/generateSeed')
-    } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
+    setPolicyType(localPolicyType)
+    if (localPolicyType === 'multi') {
+      setParticipantsCount(localParticipantsCount)
+      setRequiredParticipantsCount(localRequiredParticipantsCount)
+      router.navigate('/addMasterKey/multisigKeyControl')
+    } else {
+      if (type === 'generate') {
+        setLoading(true)
+        await generateMnemonic(localSeedWordCount)
+        setLoading(false)
+        router.navigate('/addMasterKey/generateSeed')
+      } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
+    }
   }
 
   function handleOnSelectSeedWordCount() {
@@ -148,9 +147,7 @@ export default function AccountOptions() {
         <SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={t('addMasterKey.accountOptions.policyType')}
-              />
+              <SSFormLayout.Label label={t('account.policy.title')} />
               <SSButton
                 label={getPolicyTypeButtonLabel()}
                 withSelect
@@ -158,9 +155,7 @@ export default function AccountOptions() {
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={t('addMasterKey.accountOptions.scriptVersion')}
-              />
+              <SSFormLayout.Label label={t('account.script')} />
               <SSButton
                 label={getScriptVersionButtonLabel()}
                 withSelect
@@ -168,9 +163,7 @@ export default function AccountOptions() {
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={t('addMasterKey.accountOptions.mnemonic')}
-              />
+              <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSButton
                 label={getSeedWordCountButtonLabel()}
                 withSelect
@@ -247,32 +240,28 @@ export default function AccountOptions() {
       </SSSelectModal>
       <SSSelectModal
         visible={policyTypeModalVisible}
-        title={t('addMasterKey.accountOptions.policyType')}
+        title={t('account.policy.title')}
         selectedText=""
         selectedDescription=""
         onSelect={() => handleOnSelectPolicyType()}
         onCancel={() => setPolicyTypeModalVisible(false)}
       >
         <SSCheckbox
-          label={t('addMasterKey.accountOptions.policyTypes.singleSignature')}
+          label={t('account.policy.singleSignature')}
           selected={localPolicyType === 'single'}
           onPress={() => setLocalPolicyType('single')}
         />
         <SSText color="muted" size="lg" style={{ alignSelf: 'auto' }}>
-          {t(
-            'addMasterKey.accountOptions.policyTypes.singleSignatureDescription'
-          )}
+          {t('account.policy.singleSignatureDescription')}
         </SSText>
         <SSIconSingleSignature width="100%" height={180} />
         <SSCheckbox
-          label={t('addMasterKey.accountOptions.policyTypes.multiSignature')}
+          label={t('account.policy.multiSignature')}
           selected={localPolicyType === 'multi'}
           onPress={() => setLocalPolicyType('multi')}
         />
         <SSText color="muted" size="lg" style={{ alignSelf: 'auto' }}>
-          {t(
-            'addMasterKey.accountOptions.policyTypes.multiSignatureDescription'
-          )}
+          {t('account.policy.multiSignatureDescription')}
         </SSText>
         <SSIconMultiSignature width="100%" height={200} />
       </SSSelectModal>
