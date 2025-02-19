@@ -253,6 +253,7 @@ export default function WatchOnlyOptions() {
                       style={validAddress ? styles.valid : styles.invalid}
                       placeholder={`ENTER ${selectedOption.toUpperCase()}`}
                       onChangeText={updateAddress}
+                      multiline
                     />
                   )}
                 </SSVStack>
