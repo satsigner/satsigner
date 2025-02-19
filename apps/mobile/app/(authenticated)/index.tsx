@@ -167,7 +167,12 @@ export default function AccountList() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{t('app.name')}</SSText>
+          headerTitle: () => (
+            <SSHStack style={{ gap: 8 }}>
+              <SSText uppercase>{t('app.name').split(' ').at(0)}</SSText>
+              <SSText uppercase>{t('app.name').split(' ').at(1)}</SSText>
+            </SSHStack>
+          )
         }}
       />
       <SSHStack style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}>
@@ -180,7 +185,15 @@ export default function AccountList() {
         ) : (
           <SSIconBlackIndicator height={24} width={24} />
         )}
-        <SSText uppercase>{connectionString}</SSText>
+        <SSText
+          size="xxs"
+          uppercase
+          style={{
+            color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+          }}
+        >
+          {connectionString}
+        </SSText>
       </SSHStack>
       <SSHStack style={{ paddingHorizontal: '5%' }}>
         <SSButton
