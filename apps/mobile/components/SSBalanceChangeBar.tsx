@@ -1,7 +1,7 @@
-import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native'
+import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
-import { Transaction } from '@/types/models/Transaction'
+import { type Transaction } from '@/types/models/Transaction'
 
 type SSBalanceChangeBarProps = {
   balance?: number
@@ -10,7 +10,7 @@ type SSBalanceChangeBarProps = {
   style?: StyleProp<ViewStyle>
 }
 
-export default function SSBalanceChangeBar({
+function SSBalanceChangeBar({
   balance = 0,
   transaction,
   maxBalance = 1,
@@ -73,3 +73,5 @@ const styles = StyleSheet.create({
     height: '100%'
   }
 })
+
+export default SSBalanceChangeBar

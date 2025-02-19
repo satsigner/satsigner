@@ -2,16 +2,19 @@
 
 | Dependency                     | Used for                                                             |
 | ------------------------------ | -------------------------------------------------------------------- |
+| @bitcoinerlab/secp256k1        | ECC library (used with bitcoinjs-lib to decode transactions)         |
 | @react-native-community/slider | Slider                                                               |
 | @shopify/react-native-skia     | Utxo Bubbles                                                         |
-| assert                         | Implementation of assert core module                                 |
+| assert                         | Assert nodejs core module (required by varuint and/or bitcoinjs)     |
 | bdk-rn                         | Bitcoin Development Kit for React Native                             |
 | bip21                          | BIP21 compatible URL encoding library                                |
 | bip39                          | BIP39 Word List                                                      |
 | bitcoinjs-lib                  | Bitcoin JS Library                                                   |
-| buffer                         | Implementation of Buffer core module                                 |
+| buffer                         | Buffer nodejs core module (required by bitcoinjs-lib)                |
 | d3                             | Data manipulation for data visualization                             |
 | d3-sankey                      | Sankey diagram visualization                                         |
+| electrum-client                | Electrum client (keep untill BDK adds support to addr descriptors)   |
+| events                         | Events nodejs core module (required by electrum-client)              |
 | expo                           | Framework to develop Android and iOS apps easier                     |
 | expo-camera                    | Render preview for the device's front or back camera                 |
 | expo-clipboard                 | Interface for getting and settings Clipboard content                 |
@@ -46,9 +49,11 @@
 | react-native-screens           | Required by expo-router                                              |
 | react-native-svg               | Required to use react-native-qrcode-svg                              |
 | react-native-tab-view          | Tabs                                                                 |
+| react-native-tcp-socket        | TCP & TLS nodejs core modules (Required by electrum-client)          |
 | react-timeago                  | Help us to display timeago                                           |
 | rn-nodeify                     | Allow React Native projects to use nodejs core modules               |
 | shopify/flash-list             | High-performance list rendering for React Native                     |
 | tanstack/react-query           | Hooks for fetching, caching and updating asynchronous data           |
+| varuint-bitcoin                | Deal with variable unsigned integers used in raw transactions        |
 | victory-native                 | Chart                                                                |
 | zustand                        | Simple State Management                                              |

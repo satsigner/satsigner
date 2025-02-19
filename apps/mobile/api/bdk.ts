@@ -5,28 +5,28 @@ import {
   Descriptor,
   DescriptorSecretKey,
   Mnemonic,
-  PartiallySignedTransaction,
+  type PartiallySignedTransaction,
   TxBuilder,
   Wallet
 } from 'bdk-rn'
 import {
-  LocalUtxo,
-  TransactionDetails,
-  TxBuilderResult
+  type LocalUtxo,
+  type TransactionDetails,
+  type TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
 import {
   AddressIndex,
-  BlockchainElectrumConfig,
-  BlockchainEsploraConfig,
+  type BlockchainElectrumConfig,
+  type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  Network
+  type Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { Backend } from '@/types/settings/blockchain'
+import { type Backend } from '@/types/settings/blockchain'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
@@ -137,7 +137,7 @@ async function getWalletFromMnemonic(
 
 async function getWalletFromDescriptor(
   externalDescriptor: Descriptor,
-  internalDescriptor: Descriptor,
+  internalDescriptor: Descriptor | null | undefined,
   network: Network
 ) {
   const dbConfig = await new DatabaseConfig().memory()

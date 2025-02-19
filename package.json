@@ -1,26 +1,22 @@
 {
   "name": "satsigner",
-  "private": true,
   "version": "0.1.0",
   "description": "UTXO Manager and Message Signer",
-  "keywords": [
-    "Bitcoin"
-  ],
-  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satsigner/satsigner"
+  },
+  "homepage": "https://satsigner.com/",
   "bugs": {
     "url": "https://github.com/satsigner/satsigner/issues"
   },
-  "scripts": {
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix --",
-    "format": "prettier --config --check .prettierrc .",
-    "format:fix": "prettier --config .prettierrc . --write"
+  "author": {
+    "name": "Satsigner Team",
+    "url": "https://satsigner.com/",
+    "email": "satsigner@pm.me"
   },
-  "devDependencies": {
-    "prettier": "^3.2.5",
-    "turbo": "^2.0.1"
-  },
-  "packageManager": "yarn@1.22.21",
+  "license": "MIT",
+  "private": true,
   "workspaces": {
     "packages": [
       "apps/*",
@@ -30,5 +26,21 @@
       "**/rn-nodeify/**",
       "**/rn-nodeify"
     ]
+  },
+  "packageManager": "yarn@1.22.21",
+  "keywords": [
+    "Bitcoin"
+  ],
+  "scripts": {
+    "format": "prettier --config --check .prettierrc .",
+    "format:fix": "prettier --config .prettierrc . --write",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix --"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "prettier-plugin-pkg": "^0.18.1",
+    "prettier-plugin-sort-json": "^4.1.1",
+    "turbo": "^2.0.1"
   }
 }

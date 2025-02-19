@@ -1,21 +1,21 @@
-import type {
-  Block,
-  BlockchainOracle,
-  BlockFeeRates,
-  BlockStatus,
-  Currency,
-  DifficultyAdjustment,
-  MemPool,
-  MemPoolBlock,
-  MemPoolFees,
-  MempoolStatistics,
-  Prices,
-  PriceValue,
-  Tx,
-  TxOutspend,
-  TxPriority,
-  TxStatus,
-  UTXO
+import {
+  type Block,
+  type BlockchainOracle,
+  type BlockFeeRates,
+  type BlockStatus,
+  type Currency,
+  type DifficultyAdjustment,
+  type MemPool,
+  type MemPoolBlock,
+  type MemPoolFees,
+  type MempoolStatistics,
+  type Prices,
+  type PriceValue,
+  type Tx,
+  type TxOutspend,
+  type TxPriority,
+  type TxStatus,
+  type UTXO
 } from '@/types/models/Blockchain'
 
 const SATS_PER_BTC = 100_000_000

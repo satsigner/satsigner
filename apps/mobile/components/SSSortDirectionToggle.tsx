@@ -12,7 +12,7 @@ type SSSortDirectionToggleProps = {
   onDirectionChanged(direction: Direction): void
 }
 
-export default function SSSortDirectionToggle({
+function SSSortDirectionToggle({
   label,
   showArrow = true,
   onDirectionChanged
@@ -61,3 +61,5 @@ const styles = StyleSheet.create({
     width: 14
   }
 })
+
+export default SSSortDirectionToggle

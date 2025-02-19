@@ -1,9 +1,9 @@
 import {
-  BlockchainElectrumConfig,
-  BlockchainEsploraConfig
+  type BlockchainElectrumConfig,
+  type BlockchainEsploraConfig
 } from 'bdk-rn/lib/lib/enums'
 
-import { Backend } from '@/types/settings/blockchain'
+import { type Backend } from '@/types/settings/blockchain'
 
 const ELECTRUM_BLOCKSTREAM_URL = 'ssl://electrum.blockstream.info:60002'
 const MEMPOOL_SIGNET_URL = 'ssl://mempool.space:60602'

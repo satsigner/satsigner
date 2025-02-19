@@ -1,4 +1,4 @@
-import '../../shim'
+import '@/shim'
 
 import {
   getFocusedRouteNameFromRoute,
@@ -15,7 +15,7 @@ import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import type { PageRoute } from '@/types/navigation/page'
+import { type PageRoute } from '@/types/navigation/page'
 
 export default function AuthenticatedLayout() {
   const router = useRouter()

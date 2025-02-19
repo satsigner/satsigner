@@ -13,10 +13,10 @@ import {
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 
-export default function AppSecurity() {
+export default function Security() {
   const router = useRouter()
   const [pinMaxTries, setPinMaxTries] = useAuthStore(
     useShallow((state) => [state.pinMaxTries, state.setPinMaxTries])
@@ -34,7 +34,7 @@ export default function AppSecurity() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{i18n.t('settings.appSecurity.title')}</SSText>
+            <SSText uppercase>{t('settings.security.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -46,7 +46,7 @@ export default function AppSecurity() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSText uppercase>
-                {i18n.t('settings.appSecurity.maxPinTries')}: {pinMaxTries}
+                {t('settings.security.maxPinTries')}: {pinMaxTries}
               </SSText>
               <SSHStack justifyBetween gap="none">
                 <SSText center style={{ width: '5%' }}>
@@ -68,12 +68,12 @@ export default function AppSecurity() {
         </ScrollView>
         <SSVStack>
           <SSButton
-            label={i18n.t('common.save')}
+            label={t('common.save')}
             variant="secondary"
             onPress={() => handleOnSave()}
           />
           <SSButton
-            label={i18n.t('common.cancel')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={() => router.back()}
           />

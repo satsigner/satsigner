@@ -8,11 +8,7 @@ type SSQRCodeProps = {
   ecl?: 'H' | 'Q' | 'M' | 'L'
 }
 
-export default function SSQRCode({
-  value,
-  size = 200,
-  ecl = 'H'
-}: SSQRCodeProps) {
+function SSQRCode({ value, size = 200, ecl = 'H' }: SSQRCodeProps) {
   return (
     <QRCode
       value={value}
@@ -23,3 +19,5 @@ export default function SSQRCode({
     />
   )
 }
+
+export default SSQRCode

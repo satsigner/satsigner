@@ -1,4 +1,4 @@
-import { Blockchain } from 'bdk-rn'
+import { type Blockchain } from 'bdk-rn'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 

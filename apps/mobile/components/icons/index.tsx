@@ -1,9 +1,7 @@
 import SSIconAbout from './SSIconAbout'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
-import SSIconChart from './SSIconChart'
-import SSIconChartSetting from './SSIconChartSetting'
-import SSIconChartWhite from './SSIconChartWhite'
+import SSIconChartSettings from './SSIconChartSettings'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
@@ -16,8 +14,11 @@ import SSIconDev from './SSIconDev'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconExpand from './SSIconExpand'
+import SSIconEyeOff from './SSIconEyeOff'
+import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
 import SSIconHideWarning from './SSIconHideWarning'
+import SSIconHistoryChart from './SSIconHistoryChart'
 import SSIconIncoming from './SSIconIncoming'
 import SSIconInfo from './SSIconInfo'
 import SSIconKeys from './SSIconKeys'
@@ -32,6 +33,7 @@ import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSettings from './SSIconSettings'
+import SSIconWalletEye from './SSIconWalletEye'
 import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
 import SSIconZero from './SSIconZero'
@@ -40,9 +42,7 @@ export {
   SSIconAbout,
   SSIconBubbles,
   SSIconCamera,
-  SSIconChart,
-  SSIconChartSetting,
-  SSIconChartWhite,
+  SSIconChartSettings,
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,
@@ -55,8 +55,11 @@ export {
   SSIconEdit,
   SSIconEditPencil,
   SSIconExpand,
+  SSIconEyeOff,
+  SSIconEyeOn,
   SSIconFeature,
   SSIconHideWarning,
+  SSIconHistoryChart,
   SSIconIncoming,
   SSIconInfo,
   SSIconKeys,
@@ -71,6 +74,7 @@ export {
   SSIconRemove,
   SSIconScriptsP2pkh,
   SSIconSettings,
+  SSIconWalletEye,
   SSIconWarning,
   SSIconX,
   SSIconZero

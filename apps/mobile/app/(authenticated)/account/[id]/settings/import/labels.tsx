@@ -9,14 +9,20 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { CSVtoLabels } from '@/utils/bip329'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import {
+  type Bip329FileType,
+  bip329FileTypes,
+  bip329mimes,
+  bip329parser,
+  type Label
+} from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
-export default function SSLabelExport() {
+export default function ImportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, importLabelsToAccount] = useAccountsStore(
@@ -26,56 +32,77 @@ export default function SSLabelExport() {
     ])
   )
 
-  const [importType, setImportType] = useState('JSON')
+  const [importType, setImportType] = useState<Bip329FileType>('JSONL')
   const [importContent, setImportContent] = useState('')
-
-  if (!account || !accountId) return <Redirect href="/" />
+  const [invalidContent, setInvalidContent] = useState(false)
 
   function importLabelsFromClipboard() {
-    const labels =
-      importType === 'JSON'
-        ? JSON.parse(importContent)
-        : CSVtoLabels(importContent)
+    const labels: Label[] = bip329parser[importType](importContent)
     importLabelsToAccount(accountId!, labels)
     router.back()
   }
 
   async function importLabels() {
-    const type = importType === 'JSON' ? 'application/json' : 'text/csv'
+    const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
     if (!fileContent) return
-    const labels =
-      importType === 'JSON' ? JSON.parse(fileContent) : CSVtoLabels(fileContent)
+
+    const labels: Label[] = bip329parser[importType](fileContent)
     importLabelsToAccount(accountId!, labels)
     router.back()
   }
 
-  //
+  async function pasteFromClipboard() {
+    const text = await Clipboard.getStringAsync()
+    if (!text) return
+    setImportContent(text)
+
+    // try guessing import type
+    for (const type of bip329FileTypes) {
+      try {
+        bip329parser[type](text)
+        setImportType(type)
+        setInvalidContent(false)
+        break
+      } catch {
+        //
+      }
+    }
+  }
+
+  function updateImportType(type: Bip329FileType) {
+    setImportType(type)
+    try {
+      bip329parser[type](importContent)
+      setInvalidContent(false)
+    } catch {
+      setInvalidContent(true)
+    }
+  }
+
+  if (!account || !accountId) return <Redirect href="/" />
+
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText size="xl">{i18n.t('settings.title')}</SSText>
-          ),
+          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
           headerRight: undefined
         }}
       />
       <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase weight="bold" size="lg" color="muted">
-          IMPORT BIP329 LABELS
+          {t('account.import.labels')}
         </SSText>
         <SSHStack>
-          <SSCheckbox
-            label="JSON"
-            selected={importType === 'JSON'}
-            onPress={() => setImportType('JSON')}
-          />
-          <SSCheckbox
-            label="CSV"
-            selected={importType === 'CSV'}
-            onPress={() => setImportType('CSV')}
-          />
+          {bip329FileTypes.map((type) => (
+            <SSCheckbox
+              key={type}
+              label={type}
+              selected={importType === type}
+              onPress={() => updateImportType(type)}
+            />
+          ))}
         </SSHStack>
         {importContent && (
           <SSVStack>
@@ -83,7 +110,9 @@ export default function SSLabelExport() {
               style={{
                 padding: 10,
                 backgroundColor: Colors.gray[900],
-                borderRadius: 5
+                borderRadius: 5,
+                borderWidth: 1,
+                borderColor: invalidContent ? Colors.error : Colors.gray[900]
               }}
             >
               <SSText color="white" size="md" type="mono">
@@ -91,25 +120,23 @@ export default function SSLabelExport() {
               </SSText>
             </View>
             <SSButton
-              label="IMPORT FROM CLIPBOARD"
+              label={t('common.importFromClipboard')}
               onPress={importLabelsFromClipboard}
+              disabled={invalidContent}
             />
           </SSVStack>
         )}
         <SSButton
-          label="PASTE FROM CLIPBOARD"
-          onPress={async () => {
-            const text = await Clipboard.getStringAsync()
-            setImportContent(text || '')
-          }}
+          label={t('common.pasteFromClipboard')}
+          onPress={pasteFromClipboard}
         />
         <SSButton
-          label={`IMPORT FROM ${importType}`}
+          label={t('import.from', { name: importType })}
           variant="secondary"
           onPress={importLabels}
         />
         <SSButton
-          label="CANCEL"
+          label={t('common.cancel')}
           variant="ghost"
           onPress={() => router.back()}
         />

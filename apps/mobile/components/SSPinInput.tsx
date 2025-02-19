@@ -1,10 +1,16 @@
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import {
   Keyboard,
-  NativeSyntheticEvent,
+  type NativeSyntheticEvent,
   StyleSheet,
   TextInput,
-  TextInputKeyPressEventData
+  type TextInputKeyPressEventData
 } from 'react-native'
 
 import { PIN_SIZE } from '@/config/auth'
@@ -18,12 +24,7 @@ type SSPinInputProps = {
   onFillEnded?: (pin?: string) => void
 }
 
-export default function SSPinInput({
-  pin,
-  setPin,
-  autoFocus,
-  onFillEnded
-}: SSPinInputProps) {
+function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
 
@@ -129,3 +130,5 @@ const styles = StyleSheet.create({
     fontSize: Sizes.textInput.fontSize.default
   }
 })
+
+export default SSPinInput

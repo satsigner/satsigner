@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import {
-  AnimatableValue,
-  AnimationCallback,
+  type AnimatableValue,
+  type AnimationCallback,
   runOnJS,
   useSharedValue
 } from 'react-native-reanimated'

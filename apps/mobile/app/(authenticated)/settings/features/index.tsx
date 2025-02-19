@@ -1,11 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconChartWhite, SSIconZero } from '@/components/icons'
+import { SSIconHistoryChart, SSIconZero } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
+import { Colors } from '@/styles'
 
 export default function Features() {
   const router = useRouter()
@@ -15,9 +16,7 @@ export default function Features() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>
-              {i18n.t('settings.features.featurePage.title')}
-            </SSText>
+            <SSText uppercase>{t('settings.features.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -29,29 +28,29 @@ export default function Features() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
-                title={i18n.t(
-                  'settings.features.featurePage.transactionChart.title'
+                title={t('settings.features.charts.historyChart.title')}
+                description={t(
+                  'settings.features.charts.historyChart.description'
                 )}
-                description={i18n.t(
-                  'settings.features.featurePage.transactionChart.description'
-                )}
-                icon={<SSIconChartWhite width={24} height={24} />}
+                icon={
+                  <SSIconHistoryChart
+                    width={24}
+                    height={24}
+                    stroke={Colors.white}
+                  />
+                }
                 onPress={() => {
-                  router.navigate('/settings/config/features/chartSettings')
+                  router.navigate('/settings/features/historyChart')
                 }}
               />
               <SSSettingsCards
-                title={i18n.t(
-                  'settings.features.featurePage.currencyFormatting.title'
-                )}
-                description={i18n.t(
-                  'settings.features.featurePage.currencyFormatting.description'
+                title={t('settings.features.currencyFormatting.title')}
+                description={t(
+                  'settings.features.currencyFormatting.description'
                 )}
                 icon={<SSIconZero width={24} height={24} />}
                 onPress={() => {
-                  router.navigate(
-                    '/settings/config/features/currencyFormatting'
-                  )
+                  router.navigate('/settings/features/currencyFormatting')
                 }}
               />
             </SSVStack>

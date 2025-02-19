@@ -1,20 +1,15 @@
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { Utxo } from '@/types/models/Utxo'
-import {
-  formatAddress,
-  formatDate,
-  formatLabel,
-  formatNumber
-} from '@/utils/format'
+import { type Utxo } from '@/types/models/Utxo'
+import { formatAddress, formatDate, formatNumber } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconPlus, SSIconX } from './icons'
 import SSText from './SSText'
@@ -27,16 +22,14 @@ type SSUtxoItemProps = {
   onToggleSelected(utxo: Utxo): void
 }
 
-export default function SSUtxoItem({
+function SSUtxoItem({
   utxo,
   selected,
   largestValue,
   onToggleSelected
 }: SSUtxoItemProps) {
   const priceStore = usePriceStore()
-  const useZeroPadding = useSettingsStore(
-    useShallow((state) => state.useZeroPadding)
-  )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const selectIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.selectIconBase, {
       ...(selected
@@ -45,7 +38,7 @@ export default function SSUtxoItem({
     })
   }, [selected])
 
-  const label = formatLabel(utxo.label || '').label
+  const label = parseLabel(utxo.label || '').label
 
   return (
     <View>
@@ -71,7 +64,7 @@ export default function SSUtxoItem({
                   {formatNumber(utxo.value, 0, useZeroPadding)}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
+                  {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -80,7 +73,7 @@ export default function SSUtxoItem({
                 </SSText>
                 <SSText color="muted">{priceStore.fiatCurrency}</SSText>
               </SSHStack>
-              <SSText>{label && `${i18n.t('bitcoin.memo')}: ${label}`}</SSText>
+              <SSText>{label && `${t('utxo.label')}: ${label}`}</SSText>
             </SSVStack>
           </SSHStack>
           <SSVStack gap="xs" style={{ alignSelf: 'flex-start' }}>
@@ -113,3 +106,5 @@ const styles = StyleSheet.create({
     marginTop: 2
   }
 })
+
+export default SSUtxoItem

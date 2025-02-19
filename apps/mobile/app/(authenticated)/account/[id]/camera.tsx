@@ -1,4 +1,4 @@
-import type { BarCodeScanningResult } from 'expo-camera'
+import { type BarCodeScanningResult } from 'expo-camera'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack } from 'expo-router'
@@ -10,10 +10,13 @@ import SSCameraOverlay from '@/components/SSCameraOverlay'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 import { bip21decode } from '@/utils/bitcoin'
-import { clearClipboard, getClipboard } from '@/utils/clipboard'
+import {
+  clearClipboard,
+  getBitcoinAddressFromClipboard
+} from '@/utils/clipboard'
 
 export default function Camera() {
   const [permission, requestPermission] = useCameraPermissions()
@@ -24,7 +27,7 @@ export default function Camera() {
 
   useEffect(() => {
     ;(async () => {
-      const text = await getClipboard()
+      const text = await getBitcoinAddressFromClipboard()
       setHasToPaste(!!text)
     })()
     const subscription = AppState.addEventListener(
@@ -35,7 +38,7 @@ export default function Camera() {
           nextAppState === 'active'
         ) {
           setTimeout(async () => {
-            const text = await getClipboard()
+            const text = await getBitcoinAddressFromClipboard()
             setHasToPaste(!!text)
           }, 1) // Refactor: without timeout, getStringAsync returns false
         }
@@ -48,7 +51,7 @@ export default function Camera() {
   }, [])
 
   async function handlePaste() {
-    const clipboard = await getClipboard()
+    const clipboard = await getBitcoinAddressFromClipboard()
     if (clipboard) {
       await clearClipboard()
     }
@@ -68,7 +71,9 @@ export default function Camera() {
     <View style={StyleSheet.absoluteFillObject}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>Scan QRCode</SSText>,
+          headerTitle: () => (
+            <SSText uppercase>{t('camera.scanQRCode')}</SSText>
+          ),
           headerBackground: () => (
             <LinearGradient
               style={{
@@ -105,15 +110,15 @@ export default function Camera() {
           <SSVStack itemsCenter>
             {permission?.granted ? (
               <SSText center style={{ maxWidth: 250 }}>
-                {i18n.t('camera.scanText')}
+                {t('camera.scanText')}
               </SSText>
             ) : (
               <>
                 <SSText center style={{ maxWidth: 250 }}>
-                  {i18n.t('camera.permissions')}
+                  {t('camera.permissions')}
                 </SSText>
                 <SSButton
-                  label="Enable Camera Access"
+                  label={t('camera.enableCameraAccess')}
                   onPress={requestPermission}
                 />
               </>
@@ -121,7 +126,7 @@ export default function Camera() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label="Paste"
+            label={t('common.paste')}
             disabled={!hasToPaste}
             onPress={handlePaste}
           />

@@ -2,7 +2,7 @@ import Svg, { Circle, Line, Path, type SvgProps } from 'react-native-svg'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 
-export default function SSIconChartSetting({ width, height }: IconProps) {
+export default function SSIconChartSettings({ width, height }: IconProps) {
   return (
     <Svg width={width} height={height} viewBox="0 0 21 17" fill="none">
       <Path

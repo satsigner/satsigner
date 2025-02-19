@@ -7,11 +7,7 @@ type SSActionButtonProps = React.ComponentPropsWithoutRef<
   typeof TouchableHighlight
 >
 
-export default function SSActionButton({
-  style,
-  children,
-  ...props
-}: SSActionButtonProps) {
+function SSActionButton({ style, children, ...props }: SSActionButtonProps) {
   const buttonStyle = useMemo(() => {
     return StyleSheet.compose(
       {
@@ -41,3 +37,5 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 })
+
+export default SSActionButton

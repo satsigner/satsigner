@@ -1,11 +1,10 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { AppState, ScrollView, TextInput } from 'react-native'
+import { AppState, ScrollView, type TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { validateMnemonic } from '@/api/bdk'
-import { getWordList } from '@/api/bip39'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
@@ -21,12 +20,13 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
+import { getWordList } from '@/utils/bip39'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
@@ -53,7 +53,7 @@ export default function ImportSeed() {
     setPassphrase,
     updateFingerprint,
     loadWallet,
-    lockSeed
+    encryptSeed
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -67,7 +67,7 @@ export default function ImportSeed() {
       state.setPassphrase,
       state.updateFingerprint,
       state.loadWallet,
-      state.lockSeed
+      state.encryptSeed
     ])
   )
 
@@ -285,7 +285,7 @@ export default function ImportSeed() {
     setLoadingAccount(true)
 
     const wallet = await loadWallet()
-    await lockSeed()
+    await encryptSeed()
 
     setAccountAddedModalVisible(true)
 
@@ -326,9 +326,7 @@ export default function ImportSeed() {
         <SSVStack justifyBetween>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label
-                label={i18n.t('addMasterKey.accountOptions.mnemonic')}
-              />
+              <SSFormLayout.Label label={t('account.mnemonic.title')} />
               {seedWordCount && (
                 <SSSeedLayout count={seedWordCount}>
                   {[...Array(seedWordsInfo.length)].map((_, index) => (
@@ -359,7 +357,7 @@ export default function ImportSeed() {
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label
-                label={`${i18n.t('bitcoin.passphrase')} (${i18n.t('common.optional')})`}
+                label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
               />
               <SSTextInput
                 ref={(input: TextInput) => (passphraseRef.current = input)}
@@ -377,14 +375,14 @@ export default function ImportSeed() {
           </SSFormLayout>
           <SSVStack>
             <SSButton
-              label={i18n.t('addMasterKey.importExistingSeed.action')}
+              label={t('account.import.title2')}
               variant="secondary"
               loading={loadingAccount}
               disabled={!checksumValid}
               onPress={() => handleOnPressImportSeed()}
             />
             <SSButton
-              label={i18n.t('common.cancel')}
+              label={t('common.cancel')}
               variant="ghost"
               onPress={() => router.replace('/')}
             />
@@ -401,26 +399,24 @@ export default function ImportSeed() {
               {name}
             </SSText>
             <SSText color="muted" size="lg">
-              {i18n.t('addMasterKey.importExistingSeed.accountAdded')}
+              {t('account.added')}
             </SSText>
           </SSVStack>
           <SSSeparator />
           <SSHStack justifyEvenly style={{ alignItems: 'flex-start' }}>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
-                {i18n.t('bitcoin.script')}
+                {t('account.script')}
               </SSText>
               <SSText size="md" color="muted" center>
-                {i18n.t(
-                  `addMasterKey.accountOptions.scriptVersions.names.${scriptVersion.toLowerCase()}`
-                )}
+                {t(`script.${scriptVersion.toLowerCase()}.name`)}
                 {'\n'}
                 {`(${scriptVersion})`}
               </SSText>
             </SSVStack>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
-                {i18n.t('bitcoin.fingerprint')}
+                {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
                 {fingerprint}
@@ -431,9 +427,7 @@ export default function ImportSeed() {
           <SSVStack>
             <SSVStack itemsCenter>
               <SSText style={{ color: Colors.gray[500] }}>
-                {i18n.t(
-                  'addMasterKey.importExistingSeed.accountAddedModal.derivationPath'
-                )}
+                {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
                 {derivationPath}
@@ -442,9 +436,7 @@ export default function ImportSeed() {
             <SSHStack justifyEvenly>
               <SSVStack itemsCenter>
                 <SSText style={{ color: Colors.gray[500] }}>
-                  {i18n.t(
-                    'addMasterKey.importExistingSeed.accountAddedModal.utxos'
-                  )}
+                  {t('account.utxos')}
                 </SSText>
                 {loadingAccount || !syncedAccount ? (
                   <SSEllipsisAnimation />
@@ -456,9 +448,7 @@ export default function ImportSeed() {
               </SSVStack>
               <SSVStack itemsCenter>
                 <SSText style={{ color: Colors.gray[500] }}>
-                  {i18n.t(
-                    'addMasterKey.importExistingSeed.accountAddedModal.sats'
-                  )}
+                  {t('bitcoin.sats')}
                 </SSText>
                 {loadingAccount || !syncedAccount ? (
                   <SSEllipsisAnimation />
@@ -472,7 +462,7 @@ export default function ImportSeed() {
             <SSHStack>
               {walletSyncFailed && (
                 <SSText size="3xl" color="muted" center>
-                  {i18n.t('addMasterKey.walletSyncFailed')}
+                  {t('account.syncFailed')}
                 </SSText>
               )}
             </SSHStack>

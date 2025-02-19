@@ -1,5 +1,5 @@
-import { Descriptor, Wallet } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { Descriptor, type Wallet } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -24,14 +24,14 @@ type AccountsState = {
 }
 
 type AccountsAction = {
-  getCurrentAccount: (name: string) => Account | undefined
   hasAccountWithName: (name: string) => boolean
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,
-    internalDescriptor: Descriptor
+    internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
+  addSyncAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
@@ -54,9 +54,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     (set, get) => ({
       accounts: [],
       tags: [],
-      getCurrentAccount: (name) => {
-        return get().accounts.find((account) => account.name === name)
-      },
       hasAccountWithName: (name) => {
         return !!get().accounts.find((account) => account.name === name)
       },
@@ -129,6 +126,31 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
+      addSyncAccount: async (account) => {
+        await get().addAccount(account)
+
+        if (!account.externalDescriptor) return
+
+        const network = useBlockchainStore.getState().network as Network
+
+        const externalDescriptor = await new Descriptor().create(
+          account.externalDescriptor,
+          network
+        )
+
+        const internalDescriptor = account.internalDescriptor
+          ? await new Descriptor().create(account.internalDescriptor, network)
+          : null
+
+        const wallet = await get().loadWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor
+        )
+        if (!wallet) return
+
+        const syncedAccount = await get().syncWallet(wallet, account)
+        get().updateAccount(syncedAccount)
+      },
       updateAccount: async (account) => {
         set(
           produce((state: AccountsState) => {
@@ -171,7 +193,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set({ tags })
       },
       setTxLabel: (accountName, txid, label) => {
-        const account = get().getCurrentAccount(accountName)
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
         if (!account) return
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
@@ -187,7 +211,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
       },
       setUtxoLabel: (accountName, txid, vout, label) => {
-        const account = get().getCurrentAccount(accountName)
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
         if (!account) return
 
         const utxoIndex = account.utxos.findIndex((u) => {
@@ -205,7 +231,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
       },
       importLabels: (accountName: string, labels: Label[]) => {
-        const account = get().getCurrentAccount(accountName)
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
 
         if (!account) return
 

@@ -14,7 +14,7 @@ type SSSettingsCardsProps = {
   onPress(): void
 }
 
-export default function SSSettingsCards({
+function SSSettingsCards({
   title,
   description,
   icon,
@@ -49,3 +49,5 @@ const styles = StyleSheet.create({
     padding: 24
   }
 })
+
+export default SSSettingsCards
