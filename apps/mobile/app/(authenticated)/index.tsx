@@ -1,7 +1,7 @@
 import NetInfo from '@react-native-community/netinfo'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -168,10 +168,9 @@ export default function AccountList() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSHStack style={{ gap: 8 }}>
-              <SSText uppercase>{t('app.name').split(' ').at(0)}</SSText>
-              <SSText uppercase>{t('app.name').split(' ').at(1)}</SSText>
-            </SSHStack>
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {t('app.name')}
+            </SSText>
           )
         }}
       />
@@ -196,11 +195,20 @@ export default function AccountList() {
         </SSText>
       </SSHStack>
       <SSHStack style={{ paddingHorizontal: '5%' }}>
-        <SSButton
-          label={t('account.add')}
-          style={{ borderRadius: 0, backgroundColor: Colors.gray[870] }}
-          onPress={() => router.navigate('/addMasterKey/')}
-        />
+        <View style={{ flex: 1 }}>
+          <SSButton
+            label={t('account.add')}
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: '#303030',
+              borderBottomWidth: 1,
+              borderBottomColor: '#222222'
+            }}
+            onPress={() => router.navigate('/addMasterKey/')}
+            variant="gradient"
+            gradientType="special"
+          />
+        </View>
       </SSHStack>
       <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
