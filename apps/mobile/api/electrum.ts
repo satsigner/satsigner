@@ -230,7 +230,7 @@ class ElectrumClient extends BaseElectrumClient {
       const parsedTx = TxDecoded.fromHex(rawTx)
       const tx = {
         id: parsedTx.getId(),
-        type: 'send',
+        type: 'receive',
         sent: 0,
         received: 0,
         address,
@@ -289,7 +289,7 @@ class ElectrumClient extends BaseElectrumClient {
           witness
         })
 
-        if (!txDictionary[prevTxId]) continue
+        if (txDictionary[prevTxId] === undefined) continue
         const prevTxIndex = txDictionary[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
@@ -300,7 +300,8 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].sent += value
       }
 
-      transactions[i].type = transactions[i].sent > 0 ? 'send' : 'receive'
+      transactions[i].type = transactions[i].received >
+        transactions[i].sent ? 'receive' : 'send'
     }
 
     return transactions
