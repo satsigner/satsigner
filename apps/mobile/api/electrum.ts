@@ -184,7 +184,12 @@ class ElectrumClient extends BaseElectrumClient {
     const addressTxs = await super.getAddressTransactions(address)
     const txIds = addressTxs.map((value) => value.tx_hash)
     const rawTransactions = await this.getTransactions(txIds)
-    const transactions = this.parseAddressTransactions(rawTransactions, address)
+    const heights = addressTxs.map((value) => value.height)
+    const transactions = this.parseAddressTransactions(
+      rawTransactions,
+      heights,
+      address
+    )
 
     const balance = await this.getAddressBalance(address)
 
@@ -211,6 +216,7 @@ class ElectrumClient extends BaseElectrumClient {
 
   parseAddressTransactions(
     rawTransactions: string[],
+    heights: number[],
     address: string
   ): Transaction[] {
     const transactions: Transaction[] = []
@@ -228,6 +234,7 @@ class ElectrumClient extends BaseElectrumClient {
         sent: 0,
         received: 0,
         address,
+        blockHeight: heights[index],
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         version: parsedTx.version,
