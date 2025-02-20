@@ -1,4 +1,5 @@
 import SSIconAbout from './SSIconAbout'
+import SSIconBlackIndicator from './SSIconBlackIndicator'
 import SSIconBubbles from './SSIconBubbles'
 import SSIconCamera from './SSIconCamera'
 import SSIconChartSettings from './SSIconChartSettings'
@@ -17,6 +18,7 @@ import SSIconExpand from './SSIconExpand'
 import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
+import SSIconGreenIndicator from './SSIconGreenIndicator'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconHistoryChart from './SSIconHistoryChart'
 import SSIconIncoming from './SSIconIncoming'
@@ -36,10 +38,12 @@ import SSIconSettings from './SSIconSettings'
 import SSIconWalletEye from './SSIconWalletEye'
 import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
+import SSIconYellowIndicator from './SSIconYellowIndicator'
 import SSIconZero from './SSIconZero'
 
 export {
   SSIconAbout,
+  SSIconBlackIndicator,
   SSIconBubbles,
   SSIconCamera,
   SSIconChartSettings,
@@ -58,6 +62,7 @@ export {
   SSIconEyeOff,
   SSIconEyeOn,
   SSIconFeature,
+  SSIconGreenIndicator,
   SSIconHideWarning,
   SSIconHistoryChart,
   SSIconIncoming,
@@ -77,5 +82,6 @@ export {
   SSIconWalletEye,
   SSIconWarning,
   SSIconX,
+  SSIconYellowIndicator,
   SSIconZero
 }
