@@ -175,22 +175,25 @@ class ElectrumClient extends BaseElectrumClient {
     addressKeychain: Utxo['keychain'] = 'external'
   ): Promise<AddressInfo> {
     const addressUtxos = await super.getAddressUtxos(address)
+    const utxoHeights = addressUtxos.map((value) => value.height)
+    const utxoTimestamps = await this.getBlockTimestamps(utxoHeights)
     const utxos: Utxo[] = this.parseAddressUtxos(
       address,
       addressUtxos,
+      utxoTimestamps,
       addressKeychain
     )
 
     const addressTxs = await super.getAddressTransactions(address)
     const txIds = addressTxs.map((value) => value.tx_hash)
     const rawTransactions = await this.getTransactions(txIds)
-    const heights = addressTxs.map((value) => value.height)
-    const timestamps = await this.getBlockTimestamps(heights)
+    const txHeights = addressTxs.map((value) => value.height)
+    const txTimestamps = await this.getBlockTimestamps(txHeights)
     const transactions = this.parseAddressTransactions(
       address,
       rawTransactions,
-      heights,
-      timestamps
+      txHeights,
+      txTimestamps
     )
 
     const balance = await this.getAddressBalance(address)
@@ -219,15 +222,17 @@ class ElectrumClient extends BaseElectrumClient {
   parseAddressUtxos(
     address: string,
     utxos: IElectrumClient['addressUtxos'],
+    timestamps: number[],
     addressKeychain: string
   ): Utxo[] {
-    return utxos.map((electrumUtxo) => {
+    return utxos.map((electrumUtxo, index) => {
       return {
         txid: electrumUtxo.tx_hash,
         value: electrumUtxo.value,
         vout: electrumUtxo.tx_pos,
         addressTo: address,
         keychain: addressKeychain,
+        timestamp: new Date(timestamps[index] * 1000),
         label: '',
         script: [...bitcoinjs.address.toOutputScript(address, this.network)]
       } as Utxo
