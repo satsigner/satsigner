@@ -176,8 +176,8 @@ class ElectrumClient extends BaseElectrumClient {
   ): Promise<AddressInfo> {
     const addressUtxos = await super.getAddressUtxos(address)
     const utxos: Utxo[] = this.parseAddressUtxos(
-      addressUtxos,
       address,
+      addressUtxos,
       addressKeychain
     )
 
@@ -185,10 +185,12 @@ class ElectrumClient extends BaseElectrumClient {
     const txIds = addressTxs.map((value) => value.tx_hash)
     const rawTransactions = await this.getTransactions(txIds)
     const heights = addressTxs.map((value) => value.height)
+    const timestamps = await this.getBlockTimestamps(heights)
     const transactions = this.parseAddressTransactions(
+      address,
       rawTransactions,
       heights,
-      address
+      timestamps
     )
 
     const balance = await this.getAddressBalance(address)
@@ -196,9 +198,27 @@ class ElectrumClient extends BaseElectrumClient {
     return { utxos, transactions, balance }
   }
 
+  async getBlockTimestamp(height: number): Promise<number> {
+    const blockHeader = await this.client.blockchainBlock_header(height)
+    const block = bitcoinjs.Block.fromHex(blockHeader)
+    return block.timestamp
+  }
+
+  async getBlockTimestamps(heights: number[]): Promise<number[]> {
+    const heightTimestampDict: Record<number, number> = {}
+    const timestamps: number[] = []
+    for (const height of heights) {
+      if (!heightTimestampDict[height]) {
+        heightTimestampDict[height] = await this.getBlockTimestamp(height)
+      }
+      timestamps.push(heightTimestampDict[height])
+    }
+    return timestamps
+  }
+
   parseAddressUtxos(
-    utxos: IElectrumClient['addressUtxos'],
     address: string,
+    utxos: IElectrumClient['addressUtxos'],
     addressKeychain: string
   ): Utxo[] {
     return utxos.map((electrumUtxo) => {
@@ -215,9 +235,10 @@ class ElectrumClient extends BaseElectrumClient {
   }
 
   parseAddressTransactions(
+    address: string,
     rawTransactions: string[],
     heights: number[],
-    address: string
+    timestamps: number[]
   ): Transaction[] {
     const transactions: Transaction[] = []
     const network = this.network
@@ -235,6 +256,7 @@ class ElectrumClient extends BaseElectrumClient {
         received: 0,
         address,
         blockHeight: heights[index],
+        timestamp: new Date(timestamps[index] * 1000),
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         version: parsedTx.version,
