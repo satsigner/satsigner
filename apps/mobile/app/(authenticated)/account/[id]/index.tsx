@@ -683,7 +683,7 @@ export default function AccountView() {
                     onPress={() => navigateToSignAndSend()}
                     style={{
                       width: '40%',
-                      backgroundColor: Colors.gray[910],
+                      backgroundColor: Colors.gray[925],
                       marginRight: 2,
                       borderTopWidth: 1,
                       borderTopColor: '#242424',
@@ -696,7 +696,7 @@ export default function AccountView() {
                     onPress={() => router.navigate(`/account/${id}/camera`)}
                     style={{
                       width: '20%',
-                      backgroundColor: Colors.gray[910],
+                      backgroundColor: Colors.gray[925],
                       borderTopWidth: 1,
                       borderTopColor: '#242424',
                       borderRadius: 3
@@ -710,7 +710,7 @@ export default function AccountView() {
                 onPress={() => router.navigate(`/account/${id}/receive`)}
                 style={{
                   width: account.watchOnly ? '100%' : '40%',
-                  backgroundColor: Colors.gray[910],
+                  backgroundColor: Colors.gray[925],
                   marginLeft: 2,
                   borderTopWidth: 1,
                   borderTopColor: '#242424',
