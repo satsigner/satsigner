@@ -163,6 +163,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         const { transactions, utxos, balance } = addrInfo
 
+        const timestamps = transactions
+          .filter((transaction) => transaction.timestamp)
+          .map((transaction) => formatTimestamp(transaction.timestamp!))
+
+        const oracle = new MempoolOracle()
+        const prices = await oracle.getPricesAt('USD', timestamps)
+
+        transactions.forEach((_, index) => {
+          transactions[index].prices = { USD: prices[index] }
+        })
+
         const summary = {
           numberOfAddresses: 1,
           numberOfTransactions: transactions.length,
