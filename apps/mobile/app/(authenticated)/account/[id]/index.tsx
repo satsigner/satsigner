@@ -7,6 +7,7 @@ import {
   Easing,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -30,6 +31,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -54,6 +56,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -628,6 +631,10 @@ export default function AccountView() {
     )
   }
 
+  const watchOnlyAddress = account.watchOnly
+    ? parseAddressDescriptorToAddress(account.externalDescriptor)
+    : ''
+
   return (
     <>
       <Stack.Screen
@@ -697,12 +704,8 @@ export default function AccountView() {
                   <SSActionButton
                     onPress={() => navigateToSignAndSend()}
                     style={{
-                      width: '40%',
-                      backgroundColor: Colors.gray[925],
-                      marginRight: 2,
-                      borderTopWidth: 1,
-                      borderTopColor: '#242424',
-                      borderRadius: 3
+                      ...styles.actionButton,
+                      width: '40%'
                     }}
                   >
                     <SSText uppercase>{t('account.signAndSend')}</SSText>
@@ -710,30 +713,40 @@ export default function AccountView() {
                   <SSActionButton
                     onPress={() => router.navigate(`/account/${id}/camera`)}
                     style={{
-                      width: '20%',
-                      backgroundColor: Colors.gray[925],
-                      borderTopWidth: 1,
-                      borderTopColor: '#242424',
-                      borderRadius: 3
+                      ...styles.actionButton,
+                      width: '20%'
                     }}
                   >
                     <SSIconCamera height={13} width={18} />
                   </SSActionButton>
+                  <SSActionButton
+                    onPress={() => router.navigate(`/account/${id}/receive`)}
+                    style={{
+                      ...styles.actionButton,
+                      width: '40%'
+                    }}
+                  >
+                    <SSText uppercase>{t('account.receive')}</SSText>
+                  </SSActionButton>
                 </>
               )}
-              <SSActionButton
-                onPress={() => router.navigate(`/account/${id}/receive`)}
-                style={{
-                  width: account.watchOnly ? '100%' : '40%',
-                  backgroundColor: Colors.gray[925],
-                  marginLeft: 2,
-                  borderTopWidth: 1,
-                  borderTopColor: '#242424',
-                  borderRadius: 3
-                }}
-              >
-                <SSText uppercase>{t('account.receive')}</SSText>
-              </SSActionButton>
+              {account.watchOnly === 'address' && (
+                <SSClipboardCopy text={watchOnlyAddress}>
+                  <SSActionButton
+                    style={{
+                      ...styles.actionButton,
+                      width: '100%'
+                    }}
+                  >
+                    <SSVStack gap="none" style={{ alignItems: 'center' }}>
+                      <SSText center color="muted">
+                        {t('receive.address').toUpperCase()}
+                      </SSText>
+                      <SSText center>{watchOnlyAddress}</SSText>
+                    </SSVStack>
+                  </SSActionButton>
+                </SSClipboardCopy>
+              )}
             </SSHStack>
           </SSVStack>
         </SSVStack>
@@ -749,3 +762,13 @@ export default function AccountView() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  actionButton: {
+    backgroundColor: Colors.gray[925],
+    marginLeft: 2,
+    borderTopWidth: 1,
+    borderTopColor: '#242424',
+    borderRadius: 3
+  }
+})
