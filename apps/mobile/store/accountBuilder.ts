@@ -30,6 +30,7 @@ type AccountBuilderState = {
 
 type AccountBuilderAction = {
   clearAccount: () => void
+  createAccountFromAddress: (name: string, address: string) => Promise<Account>
   createAccountFromDescriptor: (
     name: string,
     externalDescriptor: string,
@@ -82,6 +83,25 @@ const useAccountBuilderStore = create<
       internalDescriptor: undefined,
       wallet: undefined
     })
+  },
+  createAccountFromAddress: async (name, address) => {
+    const account: Account = {
+      name,
+      createdAt: new Date(),
+      accountCreationType: 'import',
+      watchOnly: 'address',
+      externalDescriptor: `addr(${address})`,
+      transactions: [],
+      utxos: [],
+      summary: {
+        balance: 0,
+        numberOfAddresses: 1,
+        numberOfUtxos: 0,
+        numberOfTransactions: 0,
+        satsInMempool: 0
+      }
+    }
+    return account
   },
   createAccountFromDescriptor: async (
     name,

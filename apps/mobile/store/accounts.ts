@@ -6,6 +6,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
+import ElectrumClient from '@/api/electrum'
 import { PIN_KEY } from '@/config/auth'
 import { getBlockchainConfig } from '@/config/servers'
 import { getItem } from '@/storage/encrypted'
@@ -30,8 +31,9 @@ type AccountsAction = {
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
+  syncWalletWatchOnlyAddress: (account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
-  addSyncAccount: (account: Account) => Promise<void>
+  addSyncAccount: (account: Account) => Promise<Account>
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
@@ -119,6 +121,61 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         return { ...account, transactions, utxos, summary }
       },
+      syncWalletWatchOnlyAddress: async (account) => {
+        if (account.watchOnly !== 'address' || !account.externalDescriptor) {
+          throw new Error('Not watch-only account')
+        }
+
+        const { backend, _network, url } = useBlockchainStore.getState()
+
+        if (backend !== 'electrum') {
+          throw new Error('Only electrum backend is supported for this account')
+        }
+
+        const port = url.replace(/.*:/, '')
+        const protocol = url.replace(/:\/\/.*/, '')
+        const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
+
+        if (
+          !host.match(/^[a-z][a-z.]+$/i) ||
+          !port.match(/^[0-9]+$/) ||
+          (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+        ) {
+          throw new Error('Invalid backend URL')
+        }
+
+        // TODO: pass the network as well
+        const electrumClient = new ElectrumClient({
+          host,
+          port: Number(port),
+          protocol
+        })
+
+        await electrumClient.init()
+
+        const addrDescriptor = account.externalDescriptor
+        const address = addrDescriptor.replace('addr(', '').replace(')', '')
+        const addrInfo = await electrumClient.getAddressInfo(address)
+
+        electrumClient.close()
+
+        const { transactions, utxos, balance } = addrInfo
+
+        const summary = {
+          numberOfAddresses: 1,
+          numberOfTransactions: transactions.length,
+          numberOfUtxos: utxos.length,
+          satsInMempool: balance.unconfirmed,
+          balance: balance.confirmed
+        }
+
+        return {
+          ...account,
+          transactions,
+          utxos,
+          summary
+        }
+      },
       addAccount: async (account) => {
         set(
           produce((state: AccountsState) => {
@@ -126,30 +183,38 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      addSyncAccount: async (account) => {
+      addSyncAccount: async (account): Promise<Account> => {
         await get().addAccount(account)
 
-        if (!account.externalDescriptor) return
+        if (!account.externalDescriptor) return account
 
-        const network = useBlockchainStore.getState().network as Network
+        // address descriptors not supported by BDK yet
+        if (account.externalDescriptor.startsWith('addr')) return account
 
-        const externalDescriptor = await new Descriptor().create(
-          account.externalDescriptor,
-          network
-        )
+        try {
+          const network = useBlockchainStore.getState().network as Network
 
-        const internalDescriptor = account.internalDescriptor
-          ? await new Descriptor().create(account.internalDescriptor, network)
-          : null
+          const externalDescriptor = await new Descriptor().create(
+            account.externalDescriptor,
+            network
+          )
 
-        const wallet = await get().loadWalletFromDescriptor(
-          externalDescriptor,
-          internalDescriptor
-        )
-        if (!wallet) return
+          const internalDescriptor = account.internalDescriptor
+            ? await new Descriptor().create(account.internalDescriptor, network)
+            : null
 
-        const syncedAccount = await get().syncWallet(wallet, account)
-        get().updateAccount(syncedAccount)
+          const wallet = await get().loadWalletFromDescriptor(
+            externalDescriptor,
+            internalDescriptor
+          )
+          if (!wallet) return account
+
+          const syncedAccount = await get().syncWallet(wallet, account)
+          get().updateAccount(syncedAccount)
+          return syncedAccount
+        } catch {
+          return account
+        }
       },
       updateAccount: async (account) => {
         set(

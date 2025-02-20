@@ -328,22 +328,28 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((account) => account.name === id),
-        state.loadWalletFromDescriptor,
-        state.syncWallet,
-        state.updateAccount
-      ])
-    )
+  const [
+    account,
+    loadWalletFromDescriptor,
+    syncWallet,
+    syncWalletWatchOnlyAddress,
+    updateAccount
+  ] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.name === id),
+      state.loadWalletFromDescriptor,
+      state.syncWallet,
+      state.syncWalletWatchOnlyAddress,
+      state.updateAccount
+    ])
+  )
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const [network, getBlockchainHeight] = useBlockchainStore(
-    useShallow((state) => [state.network, state.getBlockchainHeight])
+    useShallow((state) => [state.network as Network, state.getBlockchainHeight])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -453,20 +459,26 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account || !account.externalDescriptor || !account.internalDescriptor)
-      return
+    if (!account || !account.externalDescriptor) return
 
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      new Descriptor().create(account.externalDescriptor, network as Network),
-      new Descriptor().create(account.internalDescriptor, network as Network)
-    ])
+    let syncedAccount: Account
 
-    const wallet = await loadWalletFromDescriptor(
-      externalDescriptor,
-      internalDescriptor
-    )
+    if (account.watchOnly === 'address') {
+      syncedAccount = await syncWalletWatchOnlyAddress(account)
+    } else {
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network),
+        account.internalDescriptor
+          ? new Descriptor().create(account.internalDescriptor, network)
+          : null
+      ])
+      const wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
+      )
+      syncedAccount = await syncWallet(wallet, account)
+    }
 
-    const syncedAccount = await syncWallet(wallet, account)
     await updateAccount(syncedAccount)
   }
 

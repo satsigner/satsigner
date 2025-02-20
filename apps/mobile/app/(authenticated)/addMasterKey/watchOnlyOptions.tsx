@@ -51,14 +51,19 @@ const text: Record<WatchOnlyOption, string> = {
 
 export default function WatchOnlyOptions() {
   const addSyncAccount = useAccountsStore((state) => state.addSyncAccount)
-  const [name, createAccountFromDescriptor, createAccountFromXpub] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.name,
-        state.createAccountFromDescriptor,
-        state.createAccountFromXpub
-      ])
-    )
+  const [
+    name,
+    createAccountFromAddress,
+    createAccountFromDescriptor,
+    createAccountFromXpub
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.createAccountFromAddress,
+      state.createAccountFromDescriptor,
+      state.createAccountFromXpub
+    ])
+  )
 
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
 
@@ -140,7 +145,7 @@ export default function WatchOnlyOptions() {
     }
 
     if (selectedOption === 'address' && address) {
-      // TODO: implement it
+      account = await createAccountFromAddress(name!, address)
     }
 
     try {
