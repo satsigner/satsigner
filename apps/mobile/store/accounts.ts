@@ -126,7 +126,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           throw new Error('Not watch-only account')
         }
 
-        const { backend, _network, url } = useBlockchainStore.getState()
+        // TODO: use network variable
+        const { backend, network: _, url } = useBlockchainStore.getState()
 
         if (backend !== 'electrum') {
           throw new Error('Only electrum backend is supported for this account')
