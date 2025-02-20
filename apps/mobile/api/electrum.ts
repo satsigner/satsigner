@@ -263,7 +263,7 @@ class ElectrumClient extends BaseElectrumClient {
       for (let j = 0; j < outputCount; j++) {
         const addr = currentTx.generateOutputScriptAddress(j, network)
         const value = Number(currentTx.getOutputValue(j).value)
-        const script = [... currentTx.outs[j].script]
+        const script = [...currentTx.outs[j].script]
 
         transactions[i].vout.push({ address: addr, value, script })
 
@@ -300,8 +300,8 @@ class ElectrumClient extends BaseElectrumClient {
         transactions[i].sent += value
       }
 
-      transactions[i].type = transactions[i].received >
-        transactions[i].sent ? 'receive' : 'send'
+      transactions[i].type =
+        transactions[i].received > transactions[i].sent ? 'receive' : 'send'
     }
 
     return transactions
