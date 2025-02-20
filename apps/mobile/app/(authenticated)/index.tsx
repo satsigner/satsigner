@@ -1,17 +1,25 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import {
+  SSIconBlackIndicator,
+  SSIconGreenIndicator,
+  SSIconYellowIndicator
+} from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { Colors } from '@/styles'
 import { sampleSignetWalletSeed } from '@/utils/samples'
 
 export default function AccountList() {
@@ -57,19 +65,56 @@ export default function AccountList() {
     }
   }
 
+  const [connectionState, connectionString, isPrivateConnection] =
+    useVerifyConnection()
+
   return (
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{t('app.name')}</SSText>
+          headerTitle: () => (
+            <SSText uppercase style={{ letterSpacing: 1 }}>
+              {t('app.name')}
+            </SSText>
+          )
         }}
       />
-      <SSButton
-        label={t('account.add')}
-        variant="gradient"
-        style={{ borderRadius: 0 }}
-        onPress={() => router.navigate('/addMasterKey/')}
-      />
+      <SSHStack style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}>
+        {connectionState ? (
+          isPrivateConnection ? (
+            <SSIconYellowIndicator height={24} width={24} />
+          ) : (
+            <SSIconGreenIndicator height={24} width={24} />
+          )
+        ) : (
+          <SSIconBlackIndicator height={24} width={24} />
+        )}
+        <SSText
+          size="xxs"
+          uppercase
+          style={{
+            color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+          }}
+        >
+          {connectionString}
+        </SSText>
+      </SSHStack>
+      <SSHStack style={{ paddingHorizontal: '5%' }}>
+        <View style={{ flex: 1 }}>
+          <SSButton
+            label={t('account.add')}
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: '#303030',
+              borderBottomWidth: 1,
+              borderBottomColor: '#222222'
+            }}
+            onPress={() => router.navigate('/addMasterKey/')}
+            variant="gradient"
+            gradientType="special"
+          />
+        </View>
+      </SSHStack>
       <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
           {accounts.length === 0 && (

@@ -1,6 +1,5 @@
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -29,7 +28,6 @@ import {
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
-import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSHistoryChart from '@/components/SSHistoryChart'
@@ -507,7 +505,7 @@ export default function AccountView() {
     // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
 
     return (
-      <SSBackgroundGradient orientation="horizontal">
+      <>
         {!expand && (
           <SSHStack
             gap="none"
@@ -623,7 +621,7 @@ export default function AccountView() {
             </SSActionButton>
           </SSHStack>
         )}
-      </SSBackgroundGradient>
+      </>
     )
   }
 
@@ -640,15 +638,13 @@ export default function AccountView() {
             </SSHStack>
           ),
           headerBackground: () => (
-            <LinearGradient
+            <View
               style={{
                 height: '100%',
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
+                backgroundColor: Colors.gray[950]
               }}
-              colors={[Colors.gray[900], Colors.gray[800]]}
-              start={{ x: 0.86, y: 1.0 }}
-              end={{ x: 0.14, y: 1 }}
             />
           ),
           headerRight: () => (
@@ -661,81 +657,83 @@ export default function AccountView() {
         }}
       />
       <Animated.View style={{ height: gradientHeight }}>
-        <SSBackgroundGradient orientation="horizontal">
-          <SSVStack itemsCenter gap="none">
-            <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="7xl" color="white">
-                  <SSStyledSatText
-                    amount={account?.summary.balance || 0}
-                    decimals={0}
-                    useZeroPadding={useZeroPadding}
-                    textSize="7xl"
-                    weight="ultralight"
-                    letterSpacing={-1}
-                  />
-                </SSText>
-                <SSText size="xl" color="muted">
-                  {t('bitcoin.sats').toLowerCase()}
-                </SSText>
-              </SSHStack>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="muted">
-                  {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSSeparator
-                color="gradient"
-                colors={[Colors.gray[600], Colors.gray[850]]}
-              />
-              <SSHStack
-                justifyEvenly
-                gap="none"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-              >
-                {!account.watchOnly && (
-                  <>
-                    <SSActionButton
-                      onPress={() => navigateToSignAndSend()}
-                      style={{
-                        width: '40%',
-                        borderRightWidth: 1,
-                        borderRightColor: Colors.gray[600]
-                      }}
-                    >
-                      <SSText uppercase>{t('account.signAndSend')}</SSText>
-                    </SSActionButton>
-                    <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/camera`)}
-                      style={{ width: '20%' }}
-                    >
-                      <SSIconCamera height={13} width={18} />
-                    </SSActionButton>
-                  </>
-                )}
-                <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/receive`)}
-                  style={{
-                    width: account.watchOnly ? '100%' : '40%',
-                    borderLeftWidth: 1,
-                    borderLeftColor: Colors.gray[600]
-                  }}
-                >
-                  <SSText uppercase>{t('account.receive')}</SSText>
-                </SSActionButton>
-              </SSHStack>
-              <SSSeparator
-                color="gradient"
-                colors={[Colors.gray[600], Colors.gray[850]]}
-              />
-            </SSVStack>
+        <SSVStack itemsCenter gap="none">
+          <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText size="7xl" color="white">
+                <SSStyledSatText
+                  amount={account?.summary.balance || 0}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  textSize="7xl"
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+              </SSText>
+              <SSText size="xl" color="muted">
+                {t('bitcoin.sats').toLowerCase()}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText color="muted">
+                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+              </SSText>
+              <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
           </SSVStack>
-        </SSBackgroundGradient>
+          <SSVStack gap="none">
+            <SSHStack
+              justifyEvenly
+              gap="none"
+              style={{ paddingHorizontal: '5%' }}
+            >
+              {!account.watchOnly && (
+                <>
+                  <SSActionButton
+                    onPress={() => navigateToSignAndSend()}
+                    style={{
+                      width: '40%',
+                      backgroundColor: Colors.gray[925],
+                      marginRight: 2,
+                      borderTopWidth: 1,
+                      borderTopColor: '#242424',
+                      borderRadius: 3
+                    }}
+                  >
+                    <SSText uppercase>{t('account.signAndSend')}</SSText>
+                  </SSActionButton>
+                  <SSActionButton
+                    onPress={() => router.navigate(`/account/${id}/camera`)}
+                    style={{
+                      width: '20%',
+                      backgroundColor: Colors.gray[925],
+                      borderTopWidth: 1,
+                      borderTopColor: '#242424',
+                      borderRadius: 3
+                    }}
+                  >
+                    <SSIconCamera height={13} width={18} />
+                  </SSActionButton>
+                </>
+              )}
+              <SSActionButton
+                onPress={() => router.navigate(`/account/${id}/receive`)}
+                style={{
+                  width: account.watchOnly ? '100%' : '40%',
+                  backgroundColor: Colors.gray[925],
+                  marginLeft: 2,
+                  borderTopWidth: 1,
+                  borderTopColor: '#242424',
+                  borderRadius: 3
+                }}
+              >
+                <SSText uppercase>{t('account.receive')}</SSText>
+              </SSActionButton>
+            </SSHStack>
+          </SSVStack>
+        </SSVStack>
       </Animated.View>
       <TabView
         swipeEnabled={false}
