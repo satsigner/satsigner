@@ -501,8 +501,9 @@ export default function AccountView() {
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
+  // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
-    // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
+    const tabWidth = account.watchOnly === 'address' ? '33.33%' : '25%'
 
     return (
       <>
@@ -512,7 +513,7 @@ export default function AccountView() {
             style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
           >
             <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(0)}
             >
               <SSVStack gap="none">
@@ -538,35 +539,37 @@ export default function AccountView() {
                 )}
               </SSVStack>
             </SSActionButton>
+            {account.watchOnly !== 'address' && (
+              <SSActionButton
+                style={{ width: tabWidth }}
+                onPress={() => setTabIndex(1)}
+              >
+                <SSVStack gap="none">
+                  <SSText center size="lg">
+                    {account.summary.numberOfAddresses}
+                  </SSText>
+                  <SSText center color="muted" style={{ lineHeight: 12 }}>
+                    {t('accounts.childAccounts.0')}
+                    {'\n'}
+                    {t('accounts.childAccounts.1')}
+                  </SSText>
+                  {tabIndex === 1 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: 2,
+                        bottom: -12,
+                        alignSelf: 'center',
+                        backgroundColor: Colors.white
+                      }}
+                    />
+                  )}
+                </SSVStack>
+              </SSActionButton>
+            )}
             <SSActionButton
-              style={{ width: '25%' }}
-              onPress={() => setTabIndex(1)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfAddresses}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.childAccounts.0')}
-                  {'\n'}
-                  {t('accounts.childAccounts.1')}
-                </SSText>
-                {tabIndex === 1 && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: 2,
-                      bottom: -12,
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(2)}
             >
               <SSVStack gap="none">
@@ -593,7 +596,7 @@ export default function AccountView() {
               </SSVStack>
             </SSActionButton>
             <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(3)}
             >
               <SSVStack gap="none">
