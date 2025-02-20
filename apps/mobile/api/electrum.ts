@@ -270,7 +270,7 @@ class ElectrumClient extends BaseElectrumClient {
         const addr = parentTx.generateOutputScriptAddress(vout, network)
         if (addr !== address) continue
 
-        const value = Number(parentTx.getOutputValue(j).value)
+        const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }
 
