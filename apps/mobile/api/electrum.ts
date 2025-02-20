@@ -240,6 +240,8 @@ class ElectrumClient extends BaseElectrumClient {
         version: parsedTx.version,
         label: '',
         raw: parseHexToBytes(rawTx),
+        vout: [],
+        vin: [],
         vsize: parsedTx.virtualSize(),
         weight: parsedTx.weight(),
         size: parsedTx.byteLength(),
@@ -252,31 +254,48 @@ class ElectrumClient extends BaseElectrumClient {
     })
 
     // Compute sent and received vales
+    // Also, add the fields VINS && VOUTS to the transaction
     for (let i = 0; i < transactions.length; i++) {
       const currentTx = parsedTransactions[i]
       const outputCount = Number(currentTx.getOutputCount().value)
       const inputCount = Number(currentTx.getInputCount().value)
 
-      // Compute received value by checking if tx outputs match address
       for (let j = 0; j < outputCount; j++) {
         const addr = currentTx.generateOutputScriptAddress(j, network)
-        if (addr !== address) continue
-
         const value = Number(currentTx.getOutputValue(j).value)
+        const script = [... currentTx.outs[j].script]
+
+        transactions[i].vout.push({ address: addr, value, script })
+
+        // Compute received value by checking if tx outputs match address
+        if (addr !== address) continue
         transactions[i].received += value
       }
 
-      // Compute sent value by checking if tx inputs match address
       for (let j = 0; j < inputCount; j++) {
-        const prevTxId = currentTx.getInputHash(j).value
-        if (!txDictionary[prevTxId]) continue
-
-        const prevTxIndex = txDictionary[prevTxId]
+        const prevTxId = currentTx.getInputHash(j).value as string
         const vout = Number(currentTx.getInputIndex(j).value)
+        const sequence = currentTx.ins[j].sequence
+        const witness = currentTx.ins[j].witness.map((w) => [...w])
+        const scriptSig = [...currentTx.ins[j].script]
+
+        transactions[i].vin?.push({
+          previousOutput: {
+            txid: prevTxId,
+            vout
+          },
+          sequence,
+          scriptSig,
+          witness
+        })
+
+        if (!txDictionary[prevTxId]) continue
+        const prevTxIndex = txDictionary[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
-        if (addr !== address) continue
 
+        // Compute sent value by checking if tx inputs match address
+        if (addr !== address) continue
         const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }
