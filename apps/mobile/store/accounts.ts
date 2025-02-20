@@ -18,6 +18,7 @@ import { formatTimestamp } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
 type AccountsState = {
   accounts: Account[]
@@ -155,7 +156,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         await electrumClient.init()
 
         const addrDescriptor = account.externalDescriptor
-        const address = addrDescriptor.replace('addr(', '').replace(')', '')
+        const address = parseAddressDescriptorToAddress(addrDescriptor)
         const addrInfo = await electrumClient.getAddressInfo(address)
 
         electrumClient.close()
