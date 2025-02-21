@@ -118,6 +118,7 @@
     "createTag": "Create tag %{tag}",
     "date": "Date",
     "description": "Description",
+    "descriptor": "Descriptor",
     "deselectAll": "Deselect All",
     "download": "Download",
     "downloadFile": "Download file",
@@ -447,5 +448,28 @@
     "noLabel": "No label",
     "outputIndex": "Output Index",
     "unlockingScript": "Unlocking script"
+  },
+  "watch-only": {
+    "address.label": "Address",
+    "address.text": "A single bitcoin address",
+    "address.title": "Address",
+    "address.warning": "Watch-only Address wallets are currently only supported via Electrum",
+    "address.warningCallToAction": "Go to Settings » Network",
+    "descriptor.external": "External Descriptor",
+    "descriptor.internal": "Interal Descriptor (optional)",
+    "descriptor.label": "Descriptor",
+    "descriptor.text": "A Bitcoin descriptor is a flexible and expressive way to describe how Bitcoin addresses and keys are derived and used within a wallet. Introduced in BIP 174, descriptors allow users to specify the structure of their wallets in a more human-readable format. They can represent various types of addresses, including standard pay-to-public-key-hash (P2PKH), pay-to-script-hash (P2SH), and more complex constructions such as multisig. Descriptors improve wallet interoperability and make it easier for software to understand how to derive keys and addresses based on user-defined rules.",
+    "descriptor.title": "Descriptor",
+    "fingerprint.label": "Master Fingerprint",
+    "fingerprint.text": "Fingerprint",
+    "inputPlaceholder": "Enter %{option}",
+    "read.clipboard": "Paste from clibpoard",
+    "read.computerVision": "Computer Vision text",
+    "read.nfc": "Tap NFC",
+    "read.qrcode": "Scan qrcode",
+    "titleModal": "Watch-only wallet",
+    "xpub.label": "XPUB / YPUB / ZPUB",
+    "xpub.text": "An extended public key is a type of key used in Bitcoin that allows for the generation of multiple public addresses from a single key. It is part of the hierarchical deterministic (HD) wallet structure defined by BIP32. An xpub can generate child public keys, which can be used to receive funds without exposing the corresponding private keys. This feature is useful for managing multiple addresses while maintaining privacy and security, as users can receive payments at different addresses without needing to create new wallets or expose sensitive information.",
+    "xpub.title": "Extended Public Key"
   }
 }

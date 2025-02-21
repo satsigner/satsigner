@@ -1,4 +1,4 @@
-import { Descriptor } from 'bdk-rn'
+import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
@@ -7,6 +7,7 @@ import {
   Easing,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -30,6 +31,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -54,6 +56,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -341,7 +344,7 @@ export default function AccountView() {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const [network, getBlockchainHeight] = useBlockchainStore(
-    useShallow((state) => [state.network, state.getBlockchainHeight])
+    useShallow((state) => [state.network as Network, state.getBlockchainHeight])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -451,20 +454,26 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account || !account.externalDescriptor || !account.internalDescriptor)
-      return
+    if (!account || !account.externalDescriptor) return
 
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      new Descriptor().create(account.externalDescriptor, network as Network),
-      new Descriptor().create(account.internalDescriptor, network as Network)
-    ])
+    let wallet: Wallet | null
 
-    const wallet = await loadWalletFromDescriptor(
-      externalDescriptor,
-      internalDescriptor
-    )
-
+    if (account.watchOnly === 'address') {
+      wallet = null
+    } else {
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network),
+        account.internalDescriptor
+          ? new Descriptor().create(account.internalDescriptor, network)
+          : null
+      ])
+      wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
+      )
+    }
     const syncedAccount = await syncWallet(wallet, account)
+
     await updateAccount(syncedAccount)
   }
 
@@ -489,8 +498,9 @@ export default function AccountView() {
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
+  // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
-    // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
+    const tabWidth = account.watchOnly === 'address' ? '33.33%' : '25%'
 
     return (
       <>
@@ -500,7 +510,7 @@ export default function AccountView() {
             style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
           >
             <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(0)}
             >
               <SSVStack gap="none">
@@ -526,35 +536,37 @@ export default function AccountView() {
                 )}
               </SSVStack>
             </SSActionButton>
+            {account.watchOnly !== 'address' && (
+              <SSActionButton
+                style={{ width: tabWidth }}
+                onPress={() => setTabIndex(1)}
+              >
+                <SSVStack gap="none">
+                  <SSText center size="lg">
+                    {account.summary.numberOfAddresses}
+                  </SSText>
+                  <SSText center color="muted" style={{ lineHeight: 12 }}>
+                    {t('accounts.childAccounts.0')}
+                    {'\n'}
+                    {t('accounts.childAccounts.1')}
+                  </SSText>
+                  {tabIndex === 1 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: 2,
+                        bottom: -12,
+                        alignSelf: 'center',
+                        backgroundColor: Colors.white
+                      }}
+                    />
+                  )}
+                </SSVStack>
+              </SSActionButton>
+            )}
             <SSActionButton
-              style={{ width: '25%' }}
-              onPress={() => setTabIndex(1)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfAddresses}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.childAccounts.0')}
-                  {'\n'}
-                  {t('accounts.childAccounts.1')}
-                </SSText>
-                {tabIndex === 1 && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: 2,
-                      bottom: -12,
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(2)}
             >
               <SSVStack gap="none">
@@ -581,7 +593,7 @@ export default function AccountView() {
               </SSVStack>
             </SSActionButton>
             <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(3)}
             >
               <SSVStack gap="none">
@@ -612,6 +624,11 @@ export default function AccountView() {
       </>
     )
   }
+
+  const watchOnlyAddress =
+    account.watchOnly === 'address' && account.externalDescriptor
+      ? parseAddressDescriptorToAddress(account.externalDescriptor)
+      : ''
 
   return (
     <>
@@ -682,12 +699,8 @@ export default function AccountView() {
                   <SSActionButton
                     onPress={() => navigateToSignAndSend()}
                     style={{
-                      width: '40%',
-                      backgroundColor: Colors.gray[925],
-                      marginRight: 2,
-                      borderTopWidth: 1,
-                      borderTopColor: '#242424',
-                      borderRadius: 3
+                      ...styles.actionButton,
+                      width: '40%'
                     }}
                   >
                     <SSText uppercase>{t('account.signAndSend')}</SSText>
@@ -695,30 +708,51 @@ export default function AccountView() {
                   <SSActionButton
                     onPress={() => router.navigate(`/account/${id}/camera`)}
                     style={{
-                      width: '20%',
-                      backgroundColor: Colors.gray[925],
-                      borderTopWidth: 1,
-                      borderTopColor: '#242424',
-                      borderRadius: 3
+                      ...styles.actionButton,
+                      width: '20%'
                     }}
                   >
                     <SSIconCamera height={13} width={18} />
                   </SSActionButton>
+                  <SSActionButton
+                    onPress={() => router.navigate(`/account/${id}/receive`)}
+                    style={{
+                      ...styles.actionButton,
+                      width: '40%'
+                    }}
+                  >
+                    <SSText uppercase>{t('account.receive')}</SSText>
+                  </SSActionButton>
                 </>
               )}
-              <SSActionButton
-                onPress={() => router.navigate(`/account/${id}/receive`)}
-                style={{
-                  width: account.watchOnly ? '100%' : '40%',
-                  backgroundColor: Colors.gray[925],
-                  marginLeft: 2,
-                  borderTopWidth: 1,
-                  borderTopColor: '#242424',
-                  borderRadius: 3
-                }}
-              >
-                <SSText uppercase>{t('account.receive')}</SSText>
-              </SSActionButton>
+              {account.watchOnly === 'public-key' && (
+                <SSActionButton
+                  onPress={() => router.navigate(`/account/${id}/receive`)}
+                  style={{
+                    ...styles.actionButton,
+                    width: '100%'
+                  }}
+                >
+                  <SSText uppercase>{t('account.receive')}</SSText>
+                </SSActionButton>
+              )}
+              {account.watchOnly === 'address' && (
+                <SSClipboardCopy text={watchOnlyAddress}>
+                  <SSActionButton
+                    style={{
+                      ...styles.actionButton,
+                      width: '100%'
+                    }}
+                  >
+                    <SSVStack gap="none" style={{ alignItems: 'center' }}>
+                      <SSText center color="muted">
+                        {t('receive.address').toUpperCase()}
+                      </SSText>
+                      <SSText center>{watchOnlyAddress}</SSText>
+                    </SSVStack>
+                  </SSActionButton>
+                </SSClipboardCopy>
+              )}
             </SSHStack>
           </SSVStack>
         </SSVStack>
@@ -734,3 +768,13 @@ export default function AccountView() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  actionButton: {
+    backgroundColor: Colors.gray[925],
+    marginLeft: 2,
+    borderTopWidth: 1,
+    borderTopColor: '#242424',
+    borderRadius: 3
+  }
+})

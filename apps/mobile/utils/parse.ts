@@ -1,3 +1,9 @@
+function parseAddressDescriptorToAddress(descriptor: string) {
+  const match = descriptor.match(/^addr\(([a-z0-9]+)\)$/i)
+  if (!match) throw new Error('invalid address descriptor')
+  return match[1]
+}
+
 function parseHexToBytes(hex: string): number[] {
   const bytes = []
   for (let i = 0; i < hex.length; i += 2) {
@@ -22,4 +28,9 @@ function parseLabelTags(label: string, tags: string[]) {
   return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
 
-export { parseHexToBytes, parseLabel, parseLabelTags }
+export {
+  parseAddressDescriptorToAddress,
+  parseHexToBytes,
+  parseLabel,
+  parseLabelTags
+}

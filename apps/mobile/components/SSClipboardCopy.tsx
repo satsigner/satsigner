@@ -26,7 +26,7 @@ function SSTextClipboard({
 
   return (
     <TouchableWithoutFeedback onPress={handleClick}>
-      <View>
+      <View style={{ width: '100%' }}>
         <View style={{ pointerEvents: 'none' }}>{children}</View>
         {withPopup && (
           <SSPopupText
