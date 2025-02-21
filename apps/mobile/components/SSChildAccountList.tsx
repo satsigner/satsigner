@@ -1,8 +1,8 @@
 import { FlashList } from '@shopify/flash-list'
-import React, { useCallback } from 'react'
+import { useCallback } from 'react'
 
 import SSHStack from '@/layouts/SSHStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { formatAddress } from '@/utils/format'
 
 import SSText from './SSText'
@@ -52,7 +52,7 @@ function SSChildAccountList({
             flex: 2
           }}
         >
-          {item.label || i18n.t('account.noLabel')}
+          {item.label || t('transaction.noLabel')}
         </SSText>
         <SSText
           style={{

@@ -23,6 +23,7 @@ import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletFromMnemonic } from '@/api/bdk'
+import ElectrumClient from '@/api/electrum'
 import {
   SSIconBubbles,
   SSIconCamera,
@@ -39,8 +40,8 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBackgroundGradient from '@/components/SSBackgroundGradient'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
-import SSChildAccountList from '@/components/SSChildAccountList'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSChildAccountList from '@/components/SSChildAccountList'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -53,7 +54,7 @@ import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n, t } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
@@ -227,6 +228,7 @@ type ChildAccountsProps = {
   setChange: Function
   change: boolean
 }
+
 function ChildAccounts({
   account,
   decryptSeed,
@@ -239,77 +241,137 @@ function ChildAccounts({
   const getWalletAddress = useGetWalletAddress(account!)
   const [childAccounts, setChildAccounts] = useState<any[]>([])
   const { id } = useLocalSearchParams()
-  const network = useBlockchainStore((state) => state.network)
+  const networkString = useBlockchainStore((state) => state.network)
   const [addressPath, setAddressPath] = useState('')
+
+  const electrumRef = useRef<ElectrumClient | null>(null)
+
+  const isMounted = useRef(false)
+
+  useEffect(() => {
+    if (!electrumRef.current) {
+      electrumRef.current = new ElectrumClient({
+        host: 'mempool.space',
+        port: 60602,
+        protocol: 'ssl'
+      })
+    }
+
+    return () => {
+      electrumRef.current?.close()
+    }
+  }, [])
+
+  const fetchWithTimeout = <T,>(
+    promise: Promise<T>,
+    timeout = 5000
+  ): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('getAddressInfo timeout')), timeout)
+      ) as Promise<T>
+    ])
+  }
 
   const fetchAddresses = useCallback(async () => {
     if (!account || !account.externalDescriptor || !account.internalDescriptor)
       return
 
-    const newAddresses: any[] = []
-    const result = await getWalletAddress()
-    if (!result) return
+    if (!electrumRef.current) return
 
-    setAddressPath(`${account.derivationPath}/0/${result.index}`)
-    const seed = await decryptSeed(id!)
-    if (!seed || !account.scriptVersion) return
+    try {
+      await electrumRef.current.init()
 
-    const walletPrivate = await getWalletFromMnemonic(
-      seed.replace(/,/g, ' '),
-      account.scriptVersion,
-      account.passphrase,
-      network as Network
-    )
+      const result = await getWalletAddress()
+      if (!result) return
 
-    for (let i = 0; i < account.summary.numberOfAddresses; i++) {
-      const derivedAddress = await walletPrivate.wallet.getAddress(i)
-      const derivedAddressResult = await derivedAddress.address.asString()
-      let txs = 0,
-        utxos = 0,
-        label
+      setAddressPath(`${account.derivationPath}/0/${result.index}`)
 
-      account?.transactions?.forEach((tx) => {
-        if (tx.type === 'receive') {
-          tx.vout.forEach((v) => {
-            if (derivedAddressResult === v.address) txs++
+      const seed = await decryptSeed(id!)
+      if (!seed || !account.scriptVersion) return
+
+      const walletPrivate = await getWalletFromMnemonic(
+        seed.replace(/,/g, ' '),
+        account.scriptVersion,
+        account.passphrase,
+        networkString as Network
+      )
+
+      const newAddresses: {
+        index: number
+        address: string
+        label: string
+        unspendSats: number
+        txs: number
+      }[] = []
+
+      for (let i = 0; i < account.summary.numberOfAddresses; i++) {
+        const derivedAddress = await walletPrivate.wallet.getAddress(i)
+        const derivedAddressResult = await derivedAddress.address.asString()
+
+        try {
+          const addressInfo = await fetchWithTimeout(
+            electrumRef.current.getAddressInfo(derivedAddressResult)
+          ).catch(() => ({
+            utxos: [],
+            transactions: []
+          }))
+
+          const sum = addressInfo.utxos.reduce(
+            (acc, utxo) => acc + utxo.value,
+            0
+          )
+
+          newAddresses.push({
+            index: i,
+            address: derivedAddressResult,
+            label: '',
+            unspendSats: sum,
+            txs: addressInfo.transactions?.length ?? 0
+          })
+        } catch {
+          newAddresses.push({
+            index: i,
+            address: derivedAddressResult,
+            label: '',
+            unspendSats: 0,
+            txs: 0
           })
         }
-      })
+      }
 
-      account?.utxos?.forEach((utxo) => {
-        if (derivedAddressResult === utxo.addressTo) {
-          utxos += utxo.value
-          label = utxo.label
-        }
+      setChildAccounts((prevAccounts) => {
+        const existingAddresses = new Set(
+          prevAccounts.map((acc) => acc.address)
+        )
+        return [
+          ...prevAccounts,
+          ...newAddresses.filter((acc) => !existingAddresses.has(acc.address))
+        ]
       })
-
-      newAddresses.push({
-        index: i,
-        address: derivedAddressResult,
-        label,
-        unspendSats: utxos,
-        txs
-      })
+    } catch {
+    } finally {
+      if (electrumRef.current) {
+        try {
+          electrumRef.current.close()
+        } catch {}
+      }
     }
-
-    setChildAccounts((prevAccounts) => {
-      const existingAddresses = new Set(prevAccounts.map((acc) => acc.address))
-      return [
-        ...prevAccounts,
-        ...newAddresses.filter((acc) => !existingAddresses.has(acc.address))
-      ]
-    })
-  }, [account, decryptSeed, network, getWalletAddress, id])
+  }, [account, decryptSeed, networkString, getWalletAddress, id])
 
   useEffect(() => {
-    fetchAddresses()
+    if (!isMounted.current) {
+      isMounted.current = true
+      fetchAddresses()
+    }
   }, [fetchAddresses])
 
   return (
     <SSMainLayout style={{ paddingTop: 20 }}>
       <SSHStack justifyBetween style={{ paddingVertical: 4 }}>
         <SSHStack>
-          <SSIconButton onPress={() => {}}>
+          <SSIconButton onPress={fetchAddresses}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
@@ -322,7 +384,7 @@ function ChildAccounts({
         </SSHStack>
         <SSHStack gap="sm">
           <SSText color="muted" uppercase>
-            {i18n.t('newInvoice.path')}
+            {t('receive.path')}
           </SSText>
           <SSText>{addressPath}</SSText>
         </SSHStack>
@@ -338,23 +400,25 @@ function ChildAccounts({
         justifyBetween
         style={{ display: 'flex', width: '100%', marginTop: 10 }}
       >
-        {['receive', 'change'].map((type, index) => (
-          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-            <SSText
-              style={{
-                textAlign: 'center',
-                paddingVertical: 20,
-                borderWidth: 1,
-                borderColor: change === (index === 1) ? '#fff' : '#333',
-                width: '100%'
-              }}
-              uppercase
-              onPress={() => setChange(index === 1)}
-            >
-              {type}
-            </SSText>
-          </SSHStack>
-        ))}
+        {[t('childAccount.receive'), t('childAccount.change')].map(
+          (type, index) => (
+            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+              <SSText
+                style={{
+                  textAlign: 'center',
+                  paddingVertical: 20,
+                  borderWidth: 1,
+                  borderColor: change === (index === 1) ? '#fff' : '#333',
+                  width: '100%'
+                }}
+                uppercase
+                onPress={() => setChange(index === 1)}
+              >
+                {type}
+              </SSText>
+            </SSHStack>
+          )
+        )}
       </SSHStack>
 
       <SSHStack
@@ -368,7 +432,13 @@ function ChildAccounts({
           alignItems: 'center'
         }}
       >
-        {['index', 'address', 'label', 'unspend sats', 'TXs'].map((title) => (
+        {[
+          t('childAccount.index'),
+          t('childAccount.address'),
+          t('childAccount.label'),
+          t('childAccount.unspendSats'),
+          t('childAccount.txs')
+        ].map((title) => (
           <SSText
             key={title}
             style={{ textAlign: 'center', color: '#777' }}

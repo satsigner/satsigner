@@ -101,6 +101,15 @@
     "scanQRCode": "Scan QRCode",
     "scanText": "Scan any Bitcoin or Lightning related QR code."
   },
+  "childAccount": {
+    "address": "Address",
+    "change": "Change",
+    "index": "Index",
+    "label": "Label",
+    "receive": "Receive",
+    "txs": "Txs",
+    "unspendSats": "Unspend Sats"
+  },
   "common": {
     "acknowledge": "Acknowledge",
     "addTag": "Add tag",
