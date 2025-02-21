@@ -24,6 +24,8 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+import { SSIconWarning } from '@/components/icons'
+import SSHStack from '@/layouts/SSHStack'
 
 type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
 const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
@@ -136,7 +138,8 @@ export default function WatchOnlyOptions() {
   }
 
   function updateExternalDescriptor(descriptor: string) {
-    const validExternalDescriptor = validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
+    const validExternalDescriptor =
+      validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
@@ -321,6 +324,31 @@ export default function WatchOnlyOptions() {
                   </>
                 )}
               </SSVStack>
+
+              {selectedOption === 'address' && (
+                <SSVStack gap="xs">
+                  <SSHStack>
+                    <SSIconWarning height={16} width={16} />
+                    <SSText center style={{ width: '80%' }}>
+                      Watch-only Address wallets are currently only supported
+                      via Electrum
+                    </SSText>
+                    <SSIconWarning height={16} width={16} />
+                  </SSHStack>
+
+                  <SSText
+                    size="xs"
+                    center
+                    onPress={() => router.navigate('/settings/network')}
+                    style={{
+                      textDecorationStyle: 'solid',
+                      textDecorationLine: 'underline'
+                    }}
+                  >
+                    Go to Settings » Network
+                  </SSText>
+                </SSVStack>
+              )}
 
               <SSVStack>
                 <SSButton

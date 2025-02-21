@@ -248,7 +248,7 @@ const useAccountBuilderStore = create<
       // TODO: allow creation of signing wallets from descriptors
       // currently only watch-only wallets are created from descriptors
       watchOnly: 'public-key',
-      externalDescriptor: externalDescriptorWithChecksum,
+      externalDescriptor: externalDescriptorWithChecksum
     })
   },
   setInternalDescriptor: async (internalDescriptor) => {
@@ -263,7 +263,7 @@ const useAccountBuilderStore = create<
       // TODO: allow creation of signing wallets from descriptors
       // currently only watch-only wallets are created from descriptors
       watchOnly: 'public-key',
-      internalDescriptor: internalDescriptorWithChecksum,
+      internalDescriptor: internalDescriptorWithChecksum
     })
   },
   setWatchOnly: (watchOnly) => {
