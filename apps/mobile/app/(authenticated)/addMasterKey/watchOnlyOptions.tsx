@@ -136,7 +136,7 @@ export default function WatchOnlyOptions() {
   }
 
   function updateExternalDescriptor(descriptor: string) {
-    const validExternalDescriptor = validateDescriptor(descriptor)
+    const validExternalDescriptor = validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)

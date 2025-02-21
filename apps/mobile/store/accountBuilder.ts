@@ -244,7 +244,12 @@ const useAccountBuilderStore = create<
     )
     const externalDescriptorWithChecksum =
       await externalDescriptorObj.asString()
-    set({ externalDescriptor: externalDescriptorWithChecksum })
+    set({
+      // TODO: allow creation of signing wallets from descriptors
+      // currently only watch-only wallets are created from descriptors
+      watchOnly: 'public-key',
+      externalDescriptor: externalDescriptorWithChecksum,
+    })
   },
   setInternalDescriptor: async (internalDescriptor) => {
     const { network } = useBlockchainStore.getState()
@@ -254,7 +259,12 @@ const useAccountBuilderStore = create<
     )
     const internalDescriptorWithChecksum =
       await internalDescriptorObj.asString()
-    set({ internalDescriptor: internalDescriptorWithChecksum })
+    set({
+      // TODO: allow creation of signing wallets from descriptors
+      // currently only watch-only wallets are created from descriptors
+      watchOnly: 'public-key',
+      internalDescriptor: internalDescriptorWithChecksum,
+    })
   },
   setWatchOnly: (watchOnly) => {
     set({ watchOnly })
