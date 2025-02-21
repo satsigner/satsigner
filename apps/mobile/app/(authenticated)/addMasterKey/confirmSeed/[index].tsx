@@ -104,7 +104,7 @@ export default function ConfirmSeed() {
       }
     } else if (policyType === 'multi') {
       setParticipantWithSeedWord()
-      router.dismiss(Number.parseInt(index, 10) + 2)
+      router.dismiss(Number.parseInt(index!, 10) + 2)
     }
   }
 
@@ -116,7 +116,7 @@ export default function ConfirmSeed() {
 
   function handleOnPressCancel() {
     if (policyType === 'multi') {
-      router.dismiss(Number.parseInt(index, 10) + 1)
+      router.dismiss(Number.parseInt(index!, 10) + 1)
     } else if (policyType === 'single') {
       router.replace('/')
     }
