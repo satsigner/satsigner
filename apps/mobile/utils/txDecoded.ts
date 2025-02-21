@@ -2,10 +2,6 @@ import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
-import { type Network } from '@/types/settings/blockchain'
-
-import { bitcoinjsNetwork } from './bitcoin'
-
 bitcoinjs.initEccLib(ecc)
 
 export enum TxField {
@@ -256,13 +252,13 @@ export class TxDecoded extends bitcoinjs.Transaction {
     return { hex, field, value }
   }
 
-  generateOutputScriptAddress(index: number, network: Network = 'signet') {
+  generateOutputScriptAddress(
+    index: number,
+    network: bitcoinjs.Network = bitcoinjs.networks.testnet
+  ) {
     try {
       const script = this.outs[index].script
-      const address = bitcoinjs.address.fromOutputScript(
-        script,
-        bitcoinjsNetwork(network)
-      )
+      const address = bitcoinjs.address.fromOutputScript(script, network)
       return address
     } catch {
       return ''

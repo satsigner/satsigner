@@ -158,13 +158,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         // backup utxo labels
         for (const index in utxos) {
           const utxoRef = getUtxoOutpoint(utxos[index])
-          utxos[index].label = labelsDictionary[utxoRef]
+          utxos[index].label = labelsDictionary[utxoRef] || ''
         }
 
         // backup transaction labels
         for (const index in transactions) {
           const txRef = transactions[index].id
-          transactions[index].label = labelsDictionary[txRef]
+          transactions[index].label = labelsDictionary[txRef] || ''
         }
 
         // extract timestamps
