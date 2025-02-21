@@ -87,8 +87,9 @@ export default function WatchOnlyOptions() {
   const [internalDescriptor, setLocalInternalDescriptor] = useState('')
   const [address, setAddress] = useState('')
 
+  const [disabled, setDisabled] = useState(true)
   const [validAddress, setValidAddress] = useState(true)
-  const [validDescriptor, setValidDescriptor] = useState(true)
+  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
@@ -98,6 +99,7 @@ export default function WatchOnlyOptions() {
   function updateAddress(address: string) {
     const validAddress = validateAddress(address)
     setValidAddress(!address || validAddress)
+    setDisabled(!validAddress)
     setAddress(address)
     if (validAddress) setDescriptorFromAddress(address)
   }
@@ -105,6 +107,7 @@ export default function WatchOnlyOptions() {
   function updateMasterFingerprint(fingerprint: string) {
     const validFingerprint = validateFingerprint(fingerprint)
     setValidMasterFingerprint(!fingerprint || validFingerprint)
+    setDisabled(!validFingerprint)
     if (validFingerprint) {
       Keyboard.dismiss()
       setFingerprint(fingerprint)
@@ -114,6 +117,7 @@ export default function WatchOnlyOptions() {
   function updateXpub(xpub: string) {
     const validXpub = validateExtendedKey(xpub)
     setValidXpub(!xpub || validXpub)
+    setDisabled(!validXpub)
     setXpub(xpub)
     if (validXpub) setDescriptorFromXpub(xpub)
     if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
@@ -123,7 +127,8 @@ export default function WatchOnlyOptions() {
 
   function updateExternalDescriptor(descriptor: string) {
     const validExternalDescriptor = validateDescriptor(descriptor)
-    setValidDescriptor(!descriptor || validExternalDescriptor)
+    setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
     if (validExternalDescriptor) setExternalDescriptor(descriptor)
   }
@@ -131,6 +136,7 @@ export default function WatchOnlyOptions() {
   function updateInternalDescriptor(descriptor: string) {
     const validInternalDescriptor = validateDescriptor(descriptor)
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
+    setDisabled(!validInternalDescriptor)
     setLocalInternalDescriptor(descriptor)
     if (validInternalDescriptor) setInternalDescriptor(descriptor)
   }
@@ -163,6 +169,11 @@ export default function WatchOnlyOptions() {
         internalDescriptor = text
           .replace(/<0[,;]1>/, '1')
           .replace(/#[a-z0-9]+$/, '')
+      }
+      if (text.includes('\n')) {
+        const lines = text.split('\n')
+        externalDescriptor = lines[0]
+        internalDescriptor = lines[1]
       }
       if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
       if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
@@ -237,7 +248,7 @@ export default function WatchOnlyOptions() {
                   {selectedOption === 'descriptor' && (
                     <SSTextInput
                       value={externalDescriptor}
-                      style={validDescriptor ? styles.valid : styles.invalid}
+                      style={validExternalDescriptor ? styles.valid : styles.invalid}
                       placeholder={`ENTER ${selectedOption.toUpperCase()}`}
                       onChangeText={updateExternalDescriptor}
                       multiline
@@ -313,18 +324,7 @@ export default function WatchOnlyOptions() {
                 label="CONFIRM"
                 variant="secondary"
                 loading={loadingWallet}
-                disabled={
-                  (selectedOption === 'address' &&
-                    (!address || !validAddress)) ||
-                  (selectedOption === 'descriptor' &&
-                    !externalDescriptor &&
-                    !validDescriptor) ||
-                  (selectedOption === 'xpub' &&
-                    (!xpub ||
-                      !fingerprint ||
-                      !validXpub ||
-                      !validMasterFingerprint))
-                }
+                disabled={disabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton
