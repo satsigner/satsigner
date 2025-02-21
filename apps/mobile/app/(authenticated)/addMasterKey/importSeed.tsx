@@ -372,17 +372,15 @@ export default function ImportSeed() {
                 </SSSeedLayout>
               )}
             </SSFormLayout.Item>
-            {policyType === 'single' && (
-              <SSFormLayout.Item>
-                <SSFormLayout.Label
-                  label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
-                />
-                <SSTextInput
-                  ref={(input: TextInput) => (passphraseRef.current = input)}
-                  onChangeText={(text) => handleUpdatePassphrase(text)}
-                />
-              </SSFormLayout.Item>
-            )}
+            <SSFormLayout.Item>
+              <SSFormLayout.Label
+                label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
+              />
+              <SSTextInput
+                ref={(input: TextInput) => (passphraseRef.current = input)}
+                onChangeText={(text) => handleUpdatePassphrase(text)}
+              />
+            </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />

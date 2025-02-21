@@ -50,12 +50,7 @@ export default function MultisigKeyControl() {
   const [collapsedIndex, setCollapsedIndex] = useState<number>(1)
 
   async function handleOnPressConfirm() {
-    const wallet = await loadWallet()
-    const account = getAccount()
-    await addAccount(account)
-    const syncedAccount = await syncWallet(wallet, account)
-    await updateAccount(syncedAccount)
-    router.navigate('/')
+    router.navigate('/addMasterKey/confirmScreen')
   }
 
   function handleOnPressCancel() {

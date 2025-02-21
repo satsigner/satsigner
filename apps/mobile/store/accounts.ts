@@ -50,7 +50,7 @@ type AccountsAction = {
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
-  persist(
+  persist<AccountsState & AccountsAction>(
     (set, get) => ({
       accounts: [],
       tags: [],

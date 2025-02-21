@@ -85,16 +85,14 @@ export default function GenerateSeed() {
                 </SSSeedLayout>
               )}
             </SSFormLayout.Item>
-            {policyType === 'single' && (
-              <SSFormLayout.Item>
-                <SSFormLayout.Label
-                  label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
-                />
-                <SSTextInput
-                  onChangeText={(text) => handleUpdatePassphrase(text)}
-                />
-              </SSFormLayout.Item>
-            )}
+            <SSFormLayout.Item>
+              <SSFormLayout.Label
+                label={`${t('bitcoin.passphrase')} (${t('common.optional')})`}
+              />
+              <SSTextInput
+                onChangeText={(text) => handleUpdatePassphrase(text)}
+              />
+            </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSHStack justifyBetween>
                 <SSChecksumStatus valid={checksumValid} />

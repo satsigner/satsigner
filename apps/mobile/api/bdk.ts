@@ -23,7 +23,7 @@ import {
   type Network
 } from 'bdk-rn/lib/lib/enums'
 
-import { type Account } from '@/types/models/Account'
+import { type Account, type MultisigParticipant } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Backend } from '@/types/settings/blockchain'
@@ -139,10 +139,49 @@ async function getWalletFromMnemonic(
   }
 }
 
+async function getParticipantInfo(
+  participant: MultisigParticipant,
+  network: Network
+) {
+  try {
+    const seedWords = participant.seedWords!
+    const scriptVersion = participant.scriptVersion!
+    const passphrase = participant.passphrase!
+    const [externalDescriptor, internalDescriptor] = await Promise.all([
+      getDescriptor(
+        seedWords,
+        scriptVersion,
+        KeychainKind.External,
+        passphrase,
+        network
+      ),
+      getDescriptor(
+        seedWords,
+        scriptVersion,
+        KeychainKind.Internal,
+        passphrase,
+        network
+      )
+    ])
+    const { fingerprint, derivationPath } =
+      await parseDescriptor(externalDescriptor)
+    const externalDescriptorString = await externalDescriptor.asString()
+    const internalDescriptorString = await internalDescriptor.asString()
+    const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
+    return {
+      fingerprint,
+      derivationPath,
+      externalDescriptorString,
+      internalDescriptorString,
+      pubKey
+    }
+  } catch {
+    return null
+  }
+}
+
 async function getMultiSigWalletFromMnemonic(
   participants: NonNullable<Account['participants']>,
-  scriptVersion: NonNullable<Account['scriptVersion']>,
-  passphrase: Account['passphrase'],
   network: Network,
   totalParticipants: number,
   requiredParticipants: number
@@ -150,13 +189,11 @@ async function getMultiSigWalletFromMnemonic(
   try {
     const externalDescriptors: Descriptor[] = []
     const internalDescriptors: Descriptor[] = []
-    const externalDescriptorsString: string[] = []
-    const internalDescriptorsString: string[] = []
-    const derivedPaths = []
-    const fingerprints = []
     const keys = []
     for (let i = 0; i < totalParticipants; i++) {
-      const seedWords = participants[i]
+      const seedWords = participants[i].seedWords!
+      const scriptVersion = participants[i].scriptVersion!
+      const passphrase = participants[i].passphrase!
       const [externalDescriptor, internalDescriptor] = await Promise.all([
         getDescriptor(
           seedWords,
@@ -173,16 +210,8 @@ async function getMultiSigWalletFromMnemonic(
           network
         )
       ])
-      const { fingerprint, derivationPath } =
-        await parseDescriptor(externalDescriptor)
-      const externalDescriptorString = await externalDescriptor.asString()
-      const internalDescriptorString = await internalDescriptor.asString()
-      externalDescriptorsString.push(externalDescriptorString)
-      internalDescriptorsString.push(internalDescriptorString)
       externalDescriptors.push(externalDescriptor)
       internalDescriptors.push(internalDescriptor)
-      fingerprints.push(fingerprint)
-      derivedPaths.push(derivationPath)
       const key = await extractPubKeyFromDescriptor(externalDescriptor)
       keys.push(key)
     }
@@ -199,10 +228,6 @@ async function getMultiSigWalletFromMnemonic(
       dbConfig
     )
     return {
-      fingerprints,
-      derivedPaths,
-      expternalDescriptorsString: externalDescriptorsString,
-      internalDescriptorsString,
       wallet
     }
   } catch {
@@ -468,6 +493,7 @@ export {
   getFingerprint,
   getLastUnusedWalletAddress,
   getMultiSigWalletFromMnemonic,
+  getParticipantInfo,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,

@@ -19,6 +19,7 @@ import SSIconExpand from './SSIconExpand'
 import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
+import SSIconGreen from './SSIconGreen'
 import SSIconHideWarning from './SSIconHideWarning'
 import SSIconHistoryChart from './SSIconHistoryChart'
 import SSIconIncoming from './SSIconIncoming'
@@ -65,6 +66,7 @@ export {
   SSIconEyeOff,
   SSIconEyeOn,
   SSIconFeature,
+  SSIconGreen,
   SSIconHideWarning,
   SSIconHistoryChart,
   SSIconIncoming,
