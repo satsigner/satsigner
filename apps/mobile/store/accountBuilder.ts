@@ -178,10 +178,17 @@ const useAccountBuilderStore = create<
     const externalDescriptor = await externalDescriptorObj.asString()
     const internalDescriptor = await internalDescriptorObj.asString()
 
-    set({ externalDescriptor, internalDescriptor })
+    set({
+      watchOnly: 'public-key',
+      externalDescriptor,
+      internalDescriptor,
+    })
   },
   setDescriptorFromAddress: (address) => {
-    set({ externalDescriptor: `addr(${address})` })
+    set({
+      watchOnly: 'address',
+      externalDescriptor: `addr(${address})`,
+    })
   },
   setFingerprint: (fingerprint) => {
     set({ fingerprint })
