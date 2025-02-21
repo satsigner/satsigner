@@ -25,7 +25,6 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-
 type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
 const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
 
@@ -49,11 +48,18 @@ const text: Record<WatchOnlyOption, string> = {
 }
 
 export default function WatchOnlyOptions() {
-  const addSyncAccount = useAccountsStore((state) => state.addSyncAccount)
+  const [addAccount, syncWallet, loadWalletFromDescriptor] = useAccountsStore(
+    (state) => [
+      state.addAccount,
+      state.syncWallet,
+      state.loadWalletFromDescriptor
+    ]
+  )
   const [
     name,
     scriptVersion,
     fingerprint,
+    clearAccount,
     getAccountFromDescriptor,
     setFingerprint,
     setDescriptorFromXpub,
@@ -66,6 +72,7 @@ export default function WatchOnlyOptions() {
       state.name,
       state.scriptVersion,
       state.fingerprint,
+      state.clearAccount,
       state.getAccountFromDescriptor,
       state.setFingerprint,
       state.setDescriptorFromXpub,
@@ -83,6 +90,7 @@ export default function WatchOnlyOptions() {
     useState(false)
 
   const [xpub, setXpub] = useState('')
+  const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
   const [externalDescriptor, setLocalExternalDescriptor] = useState('')
   const [internalDescriptor, setLocalInternalDescriptor] = useState('')
   const [address, setAddress] = useState('')
@@ -108,9 +116,12 @@ export default function WatchOnlyOptions() {
     const validFingerprint = validateFingerprint(fingerprint)
     setValidMasterFingerprint(!fingerprint || validFingerprint)
     setDisabled(!validFingerprint)
+    setLocalFingerprint(fingerprint)
     if (validFingerprint) {
-      Keyboard.dismiss()
       setFingerprint(fingerprint)
+      Keyboard.dismiss()
+      // force update xpub again because it depends upon the fingerprint
+      if (selectedOption === 'xpub' && validXpub) setDescriptorFromXpub(xpub)
     }
   }
 
@@ -119,7 +130,6 @@ export default function WatchOnlyOptions() {
     setValidXpub(!xpub || validXpub)
     setDisabled(!validXpub)
     setXpub(xpub)
-    if (validXpub) setDescriptorFromXpub(xpub)
     if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
     if (xpub.match(/^y(pub|priv)/)) setScriptVersion('P2SH-P2WPKH')
     if (xpub.match(/^z(pub|priv)/)) setScriptVersion('P2WPKH')
@@ -147,7 +157,8 @@ export default function WatchOnlyOptions() {
 
     try {
       if (account) {
-        await addSyncAccount(account)
+        await addAccount(account)
+        clearAccount()
         router.navigate('/')
       }
     } finally {
@@ -248,7 +259,9 @@ export default function WatchOnlyOptions() {
                   {selectedOption === 'descriptor' && (
                     <SSTextInput
                       value={externalDescriptor}
-                      style={validExternalDescriptor ? styles.valid : styles.invalid}
+                      style={
+                        validExternalDescriptor ? styles.valid : styles.invalid
+                      }
                       placeholder={`ENTER ${selectedOption.toUpperCase()}`}
                       onChangeText={updateExternalDescriptor}
                       multiline
@@ -279,7 +292,7 @@ export default function WatchOnlyOptions() {
                     <SSVStack gap="xxs">
                       <SSText center>MASTER FINGERPRINT</SSText>
                       <SSTextInput
-                        value={fingerprint}
+                        value={localFingerprint}
                         style={
                           validMasterFingerprint ? styles.valid : styles.invalid
                         }

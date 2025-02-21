@@ -1,4 +1,4 @@
-import { Descriptor, type Wallet } from 'bdk-rn'
+import type { Descriptor, Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
@@ -35,7 +35,6 @@ type AccountsAction = {
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
-  addSyncAccount: (account: Account) => Promise<Account>
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
@@ -189,39 +188,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts.push(account)
           })
         )
-      },
-      addSyncAccount: async (account): Promise<Account> => {
-        await get().addAccount(account)
-
-        if (!account.externalDescriptor) return account
-
-        // address descriptors not supported by BDK yet
-        if (account.externalDescriptor.startsWith('addr')) return account
-
-        try {
-          const network = useBlockchainStore.getState().network as Network
-
-          const externalDescriptor = await new Descriptor().create(
-            account.externalDescriptor,
-            network
-          )
-
-          const internalDescriptor = account.internalDescriptor
-            ? await new Descriptor().create(account.internalDescriptor, network)
-            : null
-
-          const wallet = await get().loadWalletFromDescriptor(
-            externalDescriptor,
-            internalDescriptor
-          )
-          if (!wallet) return account
-
-          const syncedAccount = await get().syncWallet(wallet, account)
-          get().updateAccount(syncedAccount)
-          return syncedAccount
-        } catch {
-          return account
-        }
       },
       updateAccount: async (account) => {
         set(

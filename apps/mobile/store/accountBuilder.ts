@@ -112,7 +112,7 @@ const useAccountBuilderStore = create<
     let externalDescriptorObj: Descriptor | undefined
     let internalDescriptorObj: Descriptor | undefined
 
-    if (!fingerprint) throw new Error('Fingerprint undefined')
+    if (!fingerprint) return
 
     switch (scriptVersion) {
       case 'P2PKH':
@@ -181,13 +181,13 @@ const useAccountBuilderStore = create<
     set({
       watchOnly: 'public-key',
       externalDescriptor,
-      internalDescriptor,
+      internalDescriptor
     })
   },
   setDescriptorFromAddress: (address) => {
     set({
       watchOnly: 'address',
-      externalDescriptor: `addr(${address})`,
+      externalDescriptor: `addr(${address})`
     })
   },
   setFingerprint: (fingerprint) => {
