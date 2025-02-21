@@ -108,7 +108,12 @@ const useAccountBuilderStore = create<
       derivationPath: undefined,
       externalDescriptor: undefined,
       internalDescriptor: undefined,
-      wallet: undefined
+      wallet: undefined,
+      participants: [],
+      policyType: 'single',
+      participantsCount: 0,
+      requiredParticipantsCount: 0,
+      currentParticipantIndex: -1
     })
   },
   createAccountFromDescriptor: async (

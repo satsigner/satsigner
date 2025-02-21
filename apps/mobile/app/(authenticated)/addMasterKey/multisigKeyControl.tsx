@@ -31,7 +31,7 @@ export default function MultisigKeyControl() {
     )
   }, [participants, participantsCount])
 
-  const [collapsedIndex, setCollapsedIndex] = useState<number>(1)
+  const [collapsedIndex, setCollapsedIndex] = useState<number>(0)
 
   async function handleOnPressConfirm() {
     router.navigate('/addMasterKey/confirmScreen')
@@ -64,27 +64,29 @@ export default function MultisigKeyControl() {
         </SSVStack>
         <ScrollView>
           <SSVStack gap="none">
-            {Array.from({ length: participantsCount! }, (_, i) => i + 1).map(
+            {Array.from({ length: participantsCount! }, (_, i) => i).map(
               (index) => (
                 <SSMultisigKeyControl
                   key={index}
-                  isBlackBackground={index % 2 === 1}
+                  isBlackBackground={index % 2 === 0}
                   collapsed={collapsedIndex === index}
                   collapseChanged={(value) => value && setCollapsedIndex(index)}
                   index={index}
+                  creating
+                  participant={participants![index]}
                 />
               )
             )}
           </SSVStack>
           <SSVStack style={{ padding: 16 }}>
             <SSButton
-              label="Confirm"
+              label={t('common.confirm')}
               variant="secondary"
               disabled={!isValidParticipantSeeds}
               onPress={handleOnPressConfirm}
             />
             <SSButton
-              label="Cancel"
+              label={t('common.cancel')}
               variant="ghost"
               onPress={handleOnPressCancel}
             />

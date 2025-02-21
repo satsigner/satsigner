@@ -9,6 +9,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { type MultisigParticipant } from '@/types/models/Account'
 import { formatAddress } from '@/utils/format'
 
 export type SSMultisigKeyControlProps = {
@@ -16,21 +17,19 @@ export type SSMultisigKeyControlProps = {
   collapsed: boolean
   collapseChanged: (value: boolean) => void
   index: number
+  creating: boolean
+  participant: MultisigParticipant | undefined
 }
 
 export default function SSMultisigKeyControl({
   isBlackBackground,
   collapsed,
   collapseChanged,
-  index
+  index,
+  creating,
+  participant
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
-
-  const [participants] = useAccountBuilderStore(
-    useShallow((state) => [state.participants])
-  )
-
-  const participant = participants![index - 1]
 
   const [setCurrentParticipantIndex, setParticipantCreationType] =
     useAccountBuilderStore(
@@ -41,19 +40,19 @@ export default function SSMultisigKeyControl({
     )
 
   async function handleOnClickGenerate() {
-    setCurrentParticipantIndex(index - 1)
+    setCurrentParticipantIndex(index)
     setParticipantCreationType('generate')
     router.navigate('/addMasterKey/participantOptions')
   }
 
   function handleOnClickImport() {
-    setCurrentParticipantIndex(index - 1)
+    setCurrentParticipantIndex(index)
     setParticipantCreationType('importseed')
     router.navigate('/addMasterKey/participantOptions')
   }
 
   function handleOnClickImportDescriptor() {
-    setCurrentParticipantIndex(index - 1)
+    setCurrentParticipantIndex(index)
     setParticipantCreationType('importdescriptor')
     router.navigate('/addMasterKey/importDescriptor')
   }
@@ -62,7 +61,9 @@ export default function SSMultisigKeyControl({
     if (participant === undefined || participant === null) {
       return t('account.selectKeySource')
     } else if (participant.creationType === 'generate') {
-      return t('account.seed.newSeed', { name: participant.scriptVersion })
+      return t('account.seed.newSeed', {
+        name: participant.scriptVersion
+      })
     } else if (participant.creationType === 'importseed') {
       return t('account.seed.importedSeed', { name: participant.scriptVersion })
     } else if (participant.creationType === 'importdescriptor') {
@@ -95,7 +96,9 @@ export default function SSMultisigKeyControl({
               <SSIconAdd width={24} height={24} />
             )}
           </SSIconButton>
-          <SSText>Key {index}</SSText>
+          <SSText>
+            {t('common.key')} {index}
+          </SSText>
           <SSVStack gap="none">
             <SSText>{getSourceLabel()}</SSText>
             <SSText>{participant?.keyName ?? t('account.seed.noLabel')}</SSText>
@@ -113,7 +116,7 @@ export default function SSMultisigKeyControl({
         </SSVStack>
       </SSHStack>
       {collapsed &&
-        (participant ? (
+        (!creating || (creating && participant) ? (
           <>
             <SSButton
               uppercase

@@ -13,6 +13,8 @@ import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
+import SSMultisigCountView from '@/components/SSMultisigCountView'
+import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
@@ -56,23 +58,20 @@ export default function AccountSettings() {
   const [seed, setSeed] = useState('')
 
   function getScriptVersionButtonLabel() {
-    if (scriptVersion === 'P2PKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2pkh')} (P2PKH)`
+    if (scriptVersion === 'P2PKH') return `${t('script.p2pkh.name')} (P2PKH)`
     else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2sh-p2wpkh')} (P2SH-P2WPKH)`
+      return `${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`
     else if (scriptVersion === 'P2WPKH')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2wpkh')} (P2WPKH)`
-    else if (scriptVersion === 'P2TR')
-      return `${t('addMasterKey.accountOptions.scriptVersions.names.p2tr')} (P2TR)`
-
+      return `${t('script.p2wpkh.name')} (P2WPKH)`
+    else if (scriptVersion === 'P2TR') return `${t('script.p2tr.name')} (P2TR)`
     return ''
   }
 
   function getPolicyTypeButtonLabel() {
     if (account?.policyType === 'single') {
-      return 'Signle Signature'
+      return t('account.policy.singleSignature')
     } else if (account?.policyType === 'multi') {
-      return 'Multi Signature'
+      return t('account.policy.multiSignature')
     } else {
       return ''
     }
@@ -100,6 +99,8 @@ export default function AccountSettings() {
     }
     updateSeed()
   }, [currentAccount, decryptSeed])
+
+  const [collapsedIndex, setCollapsedIndex] = useState<number>(0)
 
   if (!currentAccount || !account || !scriptVersion)
     return <Redirect href="/" />
@@ -201,20 +202,48 @@ export default function AccountSettings() {
             />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
-            <SSFormLayout.Label
-              label={t('addMasterKey.accountOptions.policyType')}
-            />
+            <SSFormLayout.Label label={t('account.policy.title')} />
             <SSButton label={getPolicyTypeButtonLabel()} withSelect />
           </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.script')} />
-            <SSButton
-              label={getScriptVersionButtonLabel()}
-              withSelect
-              onPress={() => setScriptVersionModalVisible(true)}
-            />
-          </SSFormLayout.Item>
+          {account.policyType === 'single' && (
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.script')} />
+              <SSButton
+                label={getScriptVersionButtonLabel()}
+                withSelect
+                onPress={() => setScriptVersionModalVisible(true)}
+              />
+            </SSFormLayout.Item>
+          )}
         </SSFormLayout>
+        {account.policyType === 'multi' && (
+          <>
+            <SSVStack
+              style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
+              gap="md"
+            >
+              <SSMultisigCountView
+                maxCount={12}
+                requiredCount={account.requiredParticipantsCount!}
+                totalCount={account.participantsCount!}
+              />
+              <SSText center>{t('account.addOrGenerateKeys')}</SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              {account.participants!.map((p, index) => (
+                <SSMultisigKeyControl
+                  key={index}
+                  isBlackBackground={index % 2 === 1}
+                  collapsed={collapsedIndex === index}
+                  collapseChanged={(value) => value && setCollapsedIndex(index)}
+                  index={index}
+                  creating={false}
+                  participant={p}
+                />
+              ))}
+            </SSVStack>
+          </>
+        )}
         <SSVStack style={{ marginTop: 60 }}>
           <SSButton label={t('account.duplicate.masterKey')} />
           <SSButton
