@@ -625,9 +625,10 @@ export default function AccountView() {
     )
   }
 
-  const watchOnlyAddress = account.watchOnly
-    ? parseAddressDescriptorToAddress(account.externalDescriptor)
-    : ''
+  const watchOnlyAddress =
+    account.watchOnly === 'address' && account.externalDescriptor
+      ? parseAddressDescriptorToAddress(account.externalDescriptor)
+      : ''
 
   return (
     <>
@@ -723,6 +724,17 @@ export default function AccountView() {
                     <SSText uppercase>{t('account.receive')}</SSText>
                   </SSActionButton>
                 </>
+              )}
+              {account.watchOnly === 'public-key' && (
+                <SSActionButton
+                  onPress={() => router.navigate(`/account/${id}/receive`)}
+                  style={{
+                    ...styles.actionButton,
+                    width: '100%'
+                  }}
+                >
+                  <SSText uppercase>{t('account.receive')}</SSText>
+                </SSActionButton>
               )}
               {account.watchOnly === 'address' && (
                 <SSClipboardCopy text={watchOnlyAddress}>
