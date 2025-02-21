@@ -59,7 +59,7 @@
     "totalTransactions": ["Total", "Transactions"]
   },
   "app": {
-    "name": "Satsigner",
+    "name": "Sat Signer",
     "notImplemented": "Not yet implemented"
   },
   "auth": {
