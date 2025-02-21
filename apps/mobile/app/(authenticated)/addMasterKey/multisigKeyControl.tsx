@@ -11,34 +11,18 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useAccountsStore } from '@/store/accounts'
 
 export default function MultisigKeyControl() {
   const router = useRouter()
 
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
-
-  const [
-    participants,
-    participantsCount,
-    requiredParticipantsCount,
-    loadWallet,
-    getAccount
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.participants,
-      state.participantsCount,
-      state.requiredParticipantsCount,
-      state.loadWallet,
-      state.getAccount
-    ])
-  )
+  const [participants, participantsCount, requiredParticipantsCount] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.participants,
+        state.participantsCount,
+        state.requiredParticipantsCount
+      ])
+    )
 
   const isValidParticipantSeeds = useMemo(() => {
     return (
