@@ -18,7 +18,6 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
 import {
   validateAddress,
   validateDescriptor,
@@ -26,9 +25,9 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-const watchOnlyOptions = ['xpub', 'descriptor', 'address']
 
-type WatchOnlyOption = (typeof watchOnlyOptions)[number]
+type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
+const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
 
 const labels: Record<WatchOnlyOption, string> = {
   xpub: 'XPUB / YPUB / ZPUB',
@@ -53,31 +52,39 @@ export default function WatchOnlyOptions() {
   const addSyncAccount = useAccountsStore((state) => state.addSyncAccount)
   const [
     name,
-    createAccountFromAddress,
-    createAccountFromDescriptor,
-    createAccountFromXpub
+    scriptVersion,
+    fingerprint,
+    getAccountFromDescriptor,
+    setFingerprint,
+    setDescriptorFromXpub,
+    setDescriptorFromAddress,
+    setExternalDescriptor,
+    setInternalDescriptor,
+    setScriptVersion
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.createAccountFromAddress,
-      state.createAccountFromDescriptor,
-      state.createAccountFromXpub
+      state.scriptVersion,
+      state.fingerprint,
+      state.getAccountFromDescriptor,
+      state.setFingerprint,
+      state.setDescriptorFromXpub,
+      state.setDescriptorFromAddress,
+      state.setExternalDescriptor,
+      state.setInternalDescriptor,
+      state.setScriptVersion
     ])
   )
 
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
 
-  const [scriptVersion, setScriptVersion] =
-    useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
-
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
-  const [fingerprint, setFingerprint] = useState('')
   const [xpub, setXpub] = useState('')
-  const [descriptor, setDescriptor] = useState('')
-  const [internalDescriptor, setInternalDescriptor] = useState('')
+  const [externalDescriptor, setLocalExternalDescriptor] = useState('')
+  const [internalDescriptor, setLocalInternalDescriptor] = useState('')
   const [address, setAddress] = useState('')
 
   const [validAddress, setValidAddress] = useState(true)
@@ -89,64 +96,48 @@ export default function WatchOnlyOptions() {
   const [loadingWallet, setLoadingWallet] = useState(false)
 
   function updateAddress(address: string) {
-    setValidAddress(!address || validateAddress(address))
+    const validAddress = validateAddress(address)
+    setValidAddress(!address || validAddress)
     setAddress(address)
+    if (validAddress) setDescriptorFromAddress(address)
   }
 
   function updateMasterFingerprint(fingerprint: string) {
-    setValidMasterFingerprint(!fingerprint || validateFingerprint(fingerprint))
-    setFingerprint(fingerprint)
-    if (validateFingerprint(fingerprint)) Keyboard.dismiss()
+    const validFingerprint = validateFingerprint(fingerprint)
+    setValidMasterFingerprint(!fingerprint || validFingerprint)
+    if (validFingerprint) {
+      Keyboard.dismiss()
+      setFingerprint(fingerprint)
+    }
   }
 
   function updateXpub(xpub: string) {
-    setValidXpub(!xpub || validateExtendedKey(xpub))
+    const validXpub = validateExtendedKey(xpub)
+    setValidXpub(!xpub || validXpub)
     setXpub(xpub)
-    if (scriptVersion) return
-    if (xpub.match(/^x(pub|priv)/)) {
-      setScriptVersion('P2PKH')
-    }
-    if (xpub.match(/^y(pub|priv)/)) {
-      setScriptVersion('P2SH-P2WPKH')
-    }
-    if (xpub.match(/^z(pub|priv)/)) {
-      setScriptVersion('P2WPKH')
-    }
+    if (validXpub) setDescriptorFromXpub(xpub)
+    if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
+    if (xpub.match(/^y(pub|priv)/)) setScriptVersion('P2SH-P2WPKH')
+    if (xpub.match(/^z(pub|priv)/)) setScriptVersion('P2WPKH')
   }
 
-  function updateDescriptor(descriptor: string) {
-    setValidDescriptor(!descriptor || validateDescriptor(descriptor))
-    setDescriptor(descriptor)
+  function updateExternalDescriptor(descriptor: string) {
+    const validExternalDescriptor = validateDescriptor(descriptor)
+    setValidDescriptor(!descriptor || validExternalDescriptor)
+    setLocalExternalDescriptor(descriptor)
+    if (validExternalDescriptor) setExternalDescriptor(descriptor)
   }
 
   function updateInternalDescriptor(descriptor: string) {
-    setValidInternalDescriptor(!descriptor || validateDescriptor(descriptor))
-    setInternalDescriptor(descriptor)
+    const validInternalDescriptor = validateDescriptor(descriptor)
+    setValidInternalDescriptor(!descriptor || validInternalDescriptor)
+    setLocalInternalDescriptor(descriptor)
+    if (validInternalDescriptor) setInternalDescriptor(descriptor)
   }
+
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    let account: Account | undefined
-
-    if (selectedOption === 'descriptor' && descriptor) {
-      account = await createAccountFromDescriptor(
-        name!,
-        descriptor,
-        internalDescriptor || undefined
-      )
-    }
-
-    if (selectedOption === 'xpub' && xpub && scriptVersion && fingerprint) {
-      account = await createAccountFromXpub(
-        name!,
-        xpub,
-        fingerprint,
-        scriptVersion
-      )
-    }
-
-    if (selectedOption === 'address' && address) {
-      account = await createAccountFromAddress(name!, address)
-    }
+    const account = await getAccountFromDescriptor()
 
     try {
       if (account) {
@@ -173,7 +164,7 @@ export default function WatchOnlyOptions() {
           .replace(/<0[,;]1>/, '1')
           .replace(/#[a-z0-9]+$/, '')
       }
-      if (externalDescriptor) updateDescriptor(externalDescriptor)
+      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
       if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
     }
 
@@ -245,10 +236,10 @@ export default function WatchOnlyOptions() {
                   )}
                   {selectedOption === 'descriptor' && (
                     <SSTextInput
-                      value={descriptor}
+                      value={externalDescriptor}
                       style={validDescriptor ? styles.valid : styles.invalid}
                       placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                      onChangeText={updateDescriptor}
+                      onChangeText={updateExternalDescriptor}
                       multiline
                     />
                   )}
@@ -326,7 +317,7 @@ export default function WatchOnlyOptions() {
                   (selectedOption === 'address' &&
                     (!address || !validAddress)) ||
                   (selectedOption === 'descriptor' &&
-                    !descriptor &&
+                    !externalDescriptor &&
                     !validDescriptor) ||
                   (selectedOption === 'xpub' &&
                     (!xpub ||
