@@ -1,4 +1,4 @@
-import { Descriptor } from 'bdk-rn'
+import { Descriptor, Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
@@ -333,14 +333,12 @@ export default function AccountView() {
     account,
     loadWalletFromDescriptor,
     syncWallet,
-    syncWalletWatchOnlyAddress,
     updateAccount
   ] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((account) => account.name === id),
       state.loadWalletFromDescriptor,
       state.syncWallet,
-      state.syncWalletWatchOnlyAddress,
       state.updateAccount
     ])
   )
@@ -462,10 +460,10 @@ export default function AccountView() {
   async function refreshAccount() {
     if (!account || !account.externalDescriptor) return
 
-    let syncedAccount: Account
+    let wallet: Wallet | null
 
     if (account.watchOnly === 'address') {
-      syncedAccount = await syncWalletWatchOnlyAddress(account)
+      wallet = null
     } else {
       const [externalDescriptor, internalDescriptor] = await Promise.all([
         new Descriptor().create(account.externalDescriptor, network),
@@ -473,12 +471,12 @@ export default function AccountView() {
           ? new Descriptor().create(account.internalDescriptor, network)
           : null
       ])
-      const wallet = await loadWalletFromDescriptor(
+      wallet = await loadWalletFromDescriptor(
         externalDescriptor,
         internalDescriptor
       )
-      syncedAccount = await syncWallet(wallet, account)
     }
+    const syncedAccount = await syncWallet(wallet, account)
 
     await updateAccount(syncedAccount)
   }
