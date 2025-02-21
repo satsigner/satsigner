@@ -5,11 +5,13 @@ import { create } from 'zustand'
 import {
   generateMnemonic,
   getFingerprint,
+  getMultiSigWalletFromMnemonic,
+  getParticipantInfo,
   getWalletFromMnemonic
 } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
-import { type Account } from '@/types/models/Account'
+import { type Account, type MultisigParticipant } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
 
 import { useBlockchainStore } from './blockchain'
@@ -26,10 +28,18 @@ type AccountBuilderState = {
   externalDescriptor?: Account['externalDescriptor']
   internalDescriptor?: Account['internalDescriptor']
   wallet?: Wallet
+  policyType?: Account['policyType']
+  participants?: Account['participants']
+  participantsCount?: Account['participantsCount']
+  requiredParticipantsCount?: Account['requiredParticipantsCount']
+  participantName?: MultisigParticipant['keyName']
+  currentParticipantIndex?: number
+  participantCreationType?: MultisigParticipant['creationType']
 }
 
 type AccountBuilderAction = {
   clearAccount: () => void
+  clearParticipants: () => void
   createAccountFromDescriptor: (
     name: string,
     externalDescriptor: string,
@@ -51,10 +61,24 @@ type AccountBuilderAction = {
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => void
   setSeedWords: (seedWords: NonNullable<Account['seedWords']>) => void
+  setParticipant: (participants: string) => Promise<void>
+  setParticipantWithSeedWord: () => Promise<void>
+  setParticipantsCount: (
+    participantsCount: Account['participantsCount']
+  ) => void
+  setRequiredParticipantsCount: (
+    requiredParticipantsCount: Account['requiredParticipantsCount']
+  ) => void
+  setParticipantCreationType: (
+    type: MultisigParticipant['creationType']
+  ) => void
+  setParticipantName: (name: MultisigParticipant['keyName']) => void
   generateMnemonic: (
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => Promise<void>
   setPassphrase: (passphrase: Account['passphrase']) => void
+  setPolicyType: (policyType: Account['policyType']) => void
+  setCurrentParticipantIndex: (index: number) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
   encryptSeed: () => Promise<void>
@@ -67,7 +91,12 @@ const useAccountBuilderStore = create<
   type: null,
   scriptVersion: 'P2WPKH',
   seedWordCount: 24,
+  policyType: 'single',
   seedWords: '',
+  participants: [],
+  participantsCount: 0,
+  requiredParticipantsCount: 0,
+  currentParticipantIndex: -1,
   clearAccount: () => {
     set({
       name: '',
@@ -80,7 +109,17 @@ const useAccountBuilderStore = create<
       derivationPath: undefined,
       externalDescriptor: undefined,
       internalDescriptor: undefined,
-      wallet: undefined
+      wallet: undefined,
+      participants: [],
+      policyType: 'single',
+      participantsCount: 0,
+      requiredParticipantsCount: 0,
+      currentParticipantIndex: -1
+    })
+  },
+  clearParticipants: () => {
+    set({
+      participants: []
     })
   },
   createAccountFromDescriptor: async (
@@ -227,7 +266,11 @@ const useAccountBuilderStore = create<
       fingerprint,
       derivationPath,
       externalDescriptor,
-      internalDescriptor
+      internalDescriptor,
+      policyType,
+      participants,
+      participantsCount,
+      requiredParticipantsCount
     } = get()
 
     return {
@@ -250,7 +293,11 @@ const useAccountBuilderStore = create<
         numberOfUtxos: 0,
         satsInMempool: 0
       },
-      createdAt: new Date()
+      createdAt: new Date(),
+      policyType,
+      participants,
+      participantsCount,
+      requiredParticipantsCount
     }
   },
   setName: (name) => {
@@ -268,6 +315,9 @@ const useAccountBuilderStore = create<
   setSeedWords: (seedWords) => {
     set({ seedWords })
   },
+  setCurrentParticipantIndex: (index) => {
+    set({ currentParticipantIndex: index })
+  },
   generateMnemonic: async (seedWordCount) => {
     const mnemonic = await generateMnemonic(seedWordCount)
     set({ seedWords: mnemonic })
@@ -275,6 +325,96 @@ const useAccountBuilderStore = create<
   },
   setPassphrase: (passphrase) => {
     set({ passphrase })
+  },
+  setPolicyType: (policyType) => {
+    set({ policyType })
+  },
+  setParticipant: async (participantSeedWords) => {
+    const {
+      participants,
+      currentParticipantIndex: index,
+      scriptVersion,
+      seedWordCount,
+      participantName,
+      participantCreationType
+    } = get()
+    const { network } = useBlockchainStore.getState()
+    if (index! >= 0 && index! < get().participantsCount!) {
+      const p: MultisigParticipant = {
+        seedWords: participantSeedWords,
+        createdAt: new Date(),
+        scriptVersion,
+        seedWordCount,
+        keyName: participantName,
+        creationType: participantCreationType!
+      }
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptorString,
+        internalDescriptorString,
+        pubKey
+      } = (await getParticipantInfo(p, network as Network))!
+      participants![index!] = {
+        ...p,
+        fingerprint,
+        derivationPath,
+        publicKey: pubKey,
+        externalDescriptor: externalDescriptorString,
+        internalDescriptor: internalDescriptorString
+      }
+      set({ participants: [...participants!] })
+    }
+  },
+  setParticipantWithSeedWord: async () => {
+    const {
+      seedWords,
+      participants,
+      currentParticipantIndex: index,
+      scriptVersion,
+      seedWordCount,
+      participantName,
+      participantCreationType
+    } = get()
+    const { network } = useBlockchainStore.getState()
+    if (index! >= 0 && index! < get().participantsCount!) {
+      const p: MultisigParticipant = {
+        seedWords,
+        createdAt: new Date(),
+        scriptVersion,
+        seedWordCount,
+        keyName: participantName,
+        creationType: participantCreationType!
+      }
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptorString,
+        internalDescriptorString,
+        pubKey
+      } = (await getParticipantInfo(p, network as Network))!
+      participants![index!] = {
+        ...p,
+        fingerprint,
+        derivationPath,
+        publicKey: pubKey,
+        externalDescriptor: externalDescriptorString,
+        internalDescriptor: internalDescriptorString
+      }
+      set({ participants: [...participants!] })
+    }
+  },
+  setParticipantsCount: (participantsCount) => {
+    set({ participantsCount })
+  },
+  setRequiredParticipantsCount: (requiredParticipantsCount) => {
+    set({ requiredParticipantsCount })
+  },
+  setParticipantCreationType: (type) => {
+    set({ participantCreationType: type })
+  },
+  setParticipantName: (name) => {
+    set({ participantName: name })
   },
   updateFingerprint: async () => {
     const { network } = useBlockchainStore.getState()
@@ -287,26 +427,40 @@ const useAccountBuilderStore = create<
   },
   loadWallet: async () => {
     const { network } = useBlockchainStore.getState()
-    const {
-      fingerprint,
-      derivationPath,
-      externalDescriptor,
-      internalDescriptor,
-      wallet
-    } = await getWalletFromMnemonic(
-      get().seedWords,
-      get().scriptVersion,
-      get().passphrase,
-      network as Network
-    )
-    set(() => ({
-      fingerprint,
-      derivationPath,
-      externalDescriptor,
-      internalDescriptor,
-      wallet
-    }))
-    return wallet
+    const policyType = get().policyType
+    if (policyType === 'single') {
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptor,
+        internalDescriptor,
+        wallet
+      } = await getWalletFromMnemonic(
+        get().seedWords,
+        get().scriptVersion,
+        get().passphrase,
+        network as Network
+      )
+      set(() => ({
+        fingerprint,
+        derivationPath,
+        externalDescriptor,
+        internalDescriptor,
+        wallet
+      }))
+      return wallet
+    } else {
+      const result = await getMultiSigWalletFromMnemonic(
+        get().participants!,
+        network as Network,
+        get().participantsCount!,
+        get().requiredParticipantsCount!
+      )
+      set(() => ({
+        wallet: result?.wallet!
+      }))
+      return result?.wallet!
+    }
   },
   encryptSeed: async () => {
     const savedPin = await getItem(PIN_KEY)

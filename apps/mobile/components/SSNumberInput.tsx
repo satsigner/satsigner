@@ -18,7 +18,7 @@ type SSTextInputProps = {
   actionRight?: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSTextInput(
+function SSNumberInput(
   {
     variant = 'default',
     size = 'default',
@@ -156,4 +156,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default forwardRef(SSTextInput)
+export default forwardRef(SSNumberInput)

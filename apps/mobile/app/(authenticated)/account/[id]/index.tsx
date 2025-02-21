@@ -153,7 +153,7 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
-      {showHistoryChart ? (
+      {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
           <SSHistoryChart
             transactions={sortedTransactions}

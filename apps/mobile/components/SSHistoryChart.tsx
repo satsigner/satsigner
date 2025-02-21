@@ -74,19 +74,19 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
 
   const [walletAddresses] = useMemo(() => {
     const addresses = new Set<string>()
-    const transactinsMap = new Map<string, Transaction>()
+    const transactionsMap = new Map<string, Transaction>()
     utxos.forEach((val) => {
       addresses.add(val.addressTo ?? '')
     })
     transactions.forEach((t) => {
-      transactinsMap.set(t.id, t)
+      transactionsMap.set(t.id, t)
     })
     transactions
       .filter((t) => t.type === 'send')
       .forEach((t) => {
         t.vin?.forEach((input) => {
           addresses.add(
-            transactinsMap
+            transactionsMap
               .get(input?.previousOutput?.txid ?? '')
               ?.vout?.at(input?.previousOutput?.vout ?? 0)?.address ?? ''
           )
@@ -608,7 +608,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     const result = xAxisLabels.map((x) => {
       return {
         ...x,
-        textColor: visible[x.index] === true ? 'white' : 'transparent'
+        textColor: visible[x.index] ? 'white' : 'transparent'
       }
     })
     setTxXAxisLabels(result)
