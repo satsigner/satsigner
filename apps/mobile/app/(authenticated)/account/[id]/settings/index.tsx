@@ -57,16 +57,6 @@ export default function AccountSettings() {
   const [seedModalVisible, setSeedModalVisible] = useState(false)
   const [seed, setSeed] = useState('')
 
-  function getScriptVersionButtonLabel() {
-    if (scriptVersion === 'P2PKH') return `${t('script.p2pkh.name')} (P2PKH)`
-    else if (scriptVersion === 'P2SH-P2WPKH')
-      return `${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`
-    else if (scriptVersion === 'P2WPKH')
-      return `${t('script.p2wpkh.name')} (P2WPKH)`
-    else if (scriptVersion === 'P2TR') return `${t('script.p2tr.name')} (P2TR)`
-    return ''
-  }
-
   function getPolicyTypeButtonLabel() {
     if (account?.policyType === 'single') {
       return t('account.policy.singleSignature')
@@ -209,7 +199,7 @@ export default function AccountSettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={getScriptVersionButtonLabel()}
+                label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
                 withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
               />

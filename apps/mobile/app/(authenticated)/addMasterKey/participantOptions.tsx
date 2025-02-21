@@ -50,18 +50,6 @@ export default function ParticipantOptions() {
 
   const [loading, setLoading] = useState(false)
 
-  function getScriptVersionButtonLabel() {
-    if (localScriptVersion === 'P2PKH')
-      return `${t('script.p2pkh.description.1')} (P2PKH)`
-    else if (localScriptVersion === 'P2SH-P2WPKH')
-      return `${t('script.p2sh-p2wpkh.description.1')} (P2SH-P2WPKH)`
-    else if (localScriptVersion === 'P2WPKH')
-      return `${t('script.p2wpkh.description.1')} (P2WPKH)`
-    else if (localScriptVersion === 'P2TR')
-      return `${t('script.p2tr.description.1')} (P2TR)`
-    return ''
-  }
-
   function getSeedWordCountButtonLabel() {
     if (localSeedWordCount === 12)
       return `12 ${t('bitcoin.words').toLowerCase()}`
@@ -122,7 +110,7 @@ export default function ParticipantOptions() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={getScriptVersionButtonLabel()}
+                label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
                 withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
               />

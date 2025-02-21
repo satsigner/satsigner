@@ -14,7 +14,7 @@ const RADIUS_INDICATOR = 8
 const RADIUS_INNER_RECT = 13
 const RADIUS_OUTER_RECT = 16
 
-export type SSMultisigCountSelectorProps = {
+type SSMultisigCountSelectorProps = {
   onChangeTotalNumber: (value: number) => void
   onChangeRequiredNumber: (value: number) => void
   maxCount: number

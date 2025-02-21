@@ -2,15 +2,15 @@ import { useMemo, useState } from 'react'
 import { type LayoutChangeEvent, View } from 'react-native'
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
-export type SSMultiSigCountViewProps = {
+const RADIUS_INDICATOR = 8
+const RADIUS_INNER_RECT = 13
+const RADIUS_OUTER_RECT = 16
+
+type SSMultiSigCountViewProps = {
   maxCount: number
   totalCount: number
   requiredCount: number
 }
-
-const RADIUS_INDICATOR = 8
-const RADIUS_INNER_RECT = 13
-const RADIUS_OUTER_RECT = 16
 
 export default function SSMultisigCountView({
   maxCount,

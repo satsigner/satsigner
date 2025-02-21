@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSButton from '@/components/SSButton'
+import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -20,7 +21,13 @@ function ImportDescriptor() {
 
   return (
     <SSMainLayout>
-      <Stack.Screen />
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <SSText uppercase>{t('account.import.descriptor')}</SSText>
+          )
+        }}
+      />
       <ScrollView>
         <SSVStack justifyBetween>
           <SSFormLayout>
@@ -47,8 +54,16 @@ function ImportDescriptor() {
             label={t('account.import.fromOtherWallet')}
             onPress={() => {}}
           />
-          <SSButton label="Confirm" variant="secondary" onPress={() => {}} />
-          <SSButton label="Cancel" variant="ghost" onPress={() => {}} />
+          <SSButton
+            label={t('common.confirm')}
+            variant="secondary"
+            onPress={() => {}}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => {}}
+          />
         </SSVStack>
       </ScrollView>
     </SSMainLayout>

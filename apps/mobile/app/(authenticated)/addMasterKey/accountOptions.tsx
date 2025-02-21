@@ -23,6 +23,7 @@ export default function AccountOptions() {
   const [
     name,
     type,
+    clearParticipants,
     setScriptVersion,
     setSeedWordCount,
     generateMnemonic,
@@ -33,6 +34,7 @@ export default function AccountOptions() {
     useShallow((state) => [
       state.name,
       state.type,
+      state.clearParticipants,
       state.setScriptVersion,
       state.setSeedWordCount,
       state.generateMnemonic,
@@ -60,18 +62,6 @@ export default function AccountOptions() {
   const [policyTypeModalVisible, setPolicyTypeModalVisible] = useState(false)
 
   const [loading, setLoading] = useState(false)
-
-  function getScriptVersionButtonLabel() {
-    if (localScriptVersion === 'P2PKH')
-      return `${t('script.p2pkh.description.1')} (P2PKH)`
-    else if (localScriptVersion === 'P2SH-P2WPKH')
-      return `${t('script.p2sh-p2wpkh.description.1')} (P2SH-P2WPKH)`
-    else if (localScriptVersion === 'P2WPKH')
-      return `${t('script.p2wpkh.description.1')} (P2WPKH)`
-    else if (localScriptVersion === 'P2TR')
-      return `${t('script.p2tr.description.1')} (P2TR)`
-    return ''
-  }
 
   function getSeedWordCountButtonLabel() {
     if (localSeedWordCount === 12)
@@ -115,6 +105,7 @@ export default function AccountOptions() {
     if (localPolicyType === 'multi') {
       setParticipantsCount(localParticipantsCount)
       setRequiredParticipantsCount(localRequiredParticipantsCount)
+      clearParticipants()
       router.navigate('/addMasterKey/multisigKeyControl')
     } else {
       if (type === 'generate') {
@@ -159,7 +150,7 @@ export default function AccountOptions() {
                 <SSFormLayout.Item>
                   <SSFormLayout.Label label={t('account.script')} />
                   <SSButton
-                    label={getScriptVersionButtonLabel()}
+                    label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
                     withSelect
                     onPress={() => setScriptVersionModalVisible(true)}
                   />

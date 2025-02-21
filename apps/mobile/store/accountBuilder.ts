@@ -39,6 +39,7 @@ type AccountBuilderState = {
 
 type AccountBuilderAction = {
   clearAccount: () => void
+  clearParticipants: () => void
   createAccountFromDescriptor: (
     name: string,
     externalDescriptor: string,
@@ -114,6 +115,11 @@ const useAccountBuilderStore = create<
       participantsCount: 0,
       requiredParticipantsCount: 0,
       currentParticipantIndex: -1
+    })
+  },
+  clearParticipants: () => {
+    set({
+      participants: []
     })
   },
   createAccountFromDescriptor: async (
