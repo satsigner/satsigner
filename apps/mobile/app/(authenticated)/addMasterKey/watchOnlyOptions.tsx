@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -12,6 +13,7 @@ import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -24,39 +26,12 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import { SSIconWarning } from '@/components/icons'
-import SSHStack from '@/layouts/SSHStack'
 
 type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
 const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
 
-const labels: Record<WatchOnlyOption, string> = {
-  xpub: 'XPUB / YPUB / ZPUB',
-  descriptor: 'DESCRIPTOR',
-  address: 'Address'
-}
-
-const title: Record<WatchOnlyOption, string> = {
-  xpub: 'Extended Public Key',
-  descriptor: 'Descriptor',
-  address: 'Address'
-}
-
-const text: Record<WatchOnlyOption, string> = {
-  xpub: 'An extended public key is a type of key used in Bitcoin that allows for the generation of multiple public addresses from a single key. It is part of the hierarchical deterministic (HD) wallet structure defined by BIP32. An xpub can generate child public keys, which can be used to receive funds without exposing the corresponding private keys. This feature is useful for managing multiple addresses while maintaining privacy and security, as users can receive payments at different addresses without needing to create new wallets or expose sensitive information.',
-  descriptor:
-    'A Bitcoin descriptor is a flexible and expressive way to describe how Bitcoin addresses and keys are derived and used within a wallet. Introduced in BIP 174, descriptors allow users to specify the structure of their wallets in a more human-readable format. They can represent various types of addresses, including standard pay-to-public-key-hash (P2PKH), pay-to-script-hash (P2SH), and more complex constructions such as multisig. Descriptors improve wallet interoperability and make it easier for software to understand how to derive keys and addresses based on user-defined rules.',
-  address: 'A single bitcoin address'
-}
-
 export default function WatchOnlyOptions() {
-  const [addAccount, syncWallet, loadWalletFromDescriptor] = useAccountsStore(
-    (state) => [
-      state.addAccount,
-      state.syncWallet,
-      state.loadWalletFromDescriptor
-    ]
-  )
+  const [addAccount] = useAccountsStore((state) => [state.addAccount])
   const [
     name,
     scriptVersion,
@@ -212,12 +187,12 @@ export default function WatchOnlyOptions() {
       <ScrollView>
         <SSSelectModal
           visible={modalOptionsVisible}
-          title="WATCH-ONLY WALLET"
-          selectedText={title[selectedOption]}
+          title={t('watch-only.titleModal').toUpperCase()}
+          selectedText={t(`watch-only.${selectedOption}.title`)}
           selectedDescription={
             <SSCollapsible>
               <SSText color="muted" size="md">
-                {text[selectedOption]}
+                {t(`watch-only.${selectedOption}Text`)}
               </SSText>
             </SSCollapsible>
           }
@@ -227,7 +202,7 @@ export default function WatchOnlyOptions() {
           {watchOnlyOptions.map((type) => (
             <SSRadioButton
               key={type}
-              label={labels[type]}
+              label={t(`watch-only.${type}.label`)}
               selected={selectedOption === type}
               onPress={() => setSelectedOption(type)}
             />
@@ -249,12 +224,16 @@ export default function WatchOnlyOptions() {
             <SSVStack gap="lg">
               <SSVStack gap="sm">
                 <SSVStack gap="xxs">
-                  <SSText center>{labels[selectedOption]}</SSText>
+                  <SSText center>
+                    {t(`watch-only.${selectedOption}.label`)}
+                  </SSText>
                   {selectedOption === 'xpub' && (
                     <SSTextInput
                       value={xpub}
                       style={validXpub ? styles.valid : styles.invalid}
-                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      placeholder={t('watch-only.inputPlaceholder', {
+                        option: t('watch-only.xpub.label')
+                      }).toUpperCase()}
                       onChangeText={updateXpub}
                       multiline
                     />
@@ -265,7 +244,9 @@ export default function WatchOnlyOptions() {
                       style={
                         validExternalDescriptor ? styles.valid : styles.invalid
                       }
-                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      placeholder={t('watch-only.inputPlaceholder', {
+                        option: t('watch-only.descriptor.label')
+                      }).toUpperCase()}
                       onChangeText={updateExternalDescriptor}
                       multiline
                     />
@@ -274,7 +255,9 @@ export default function WatchOnlyOptions() {
                     <SSTextInput
                       value={address}
                       style={validAddress ? styles.valid : styles.invalid}
-                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      placeholder={t('watch-only.inputPlaceholder', {
+                        option: t('watch-only.address.label')
+                      }).toUpperCase()}
                       onChangeText={updateAddress}
                       multiline
                     />
@@ -293,14 +276,18 @@ export default function WatchOnlyOptions() {
                       />
                     </SSVStack>
                     <SSVStack gap="xxs">
-                      <SSText center>MASTER FINGERPRINT</SSText>
+                      <SSText center>
+                        {t('watch-only.fingerprint.label')}
+                      </SSText>
                       <SSTextInput
                         value={localFingerprint}
+                        onChangeText={updateMasterFingerprint}
                         style={
                           validMasterFingerprint ? styles.valid : styles.invalid
                         }
-                        placeholder="ENTER FINGERPRINT"
-                        onChangeText={updateMasterFingerprint}
+                        placeholder={t('watch-only.inputPlaceholder', {
+                          option: t('watch-only.fingerprint.text')
+                        }).toUpperCase()}
                       />
                     </SSVStack>
                   </>
@@ -308,7 +295,9 @@ export default function WatchOnlyOptions() {
                 {selectedOption === 'descriptor' && (
                   <>
                     <SSVStack gap="xxs">
-                      <SSText center>INTERNAL DESCRIPTOR (optional)</SSText>
+                      <SSText center>
+                        {t('watch-only.descriptor.internal')}
+                      </SSText>
                       <SSTextInput
                         value={internalDescriptor}
                         style={
@@ -318,7 +307,9 @@ export default function WatchOnlyOptions() {
                         }
                         multiline
                         onChangeText={updateInternalDescriptor}
-                        placeholder="ENTER DESCRIPTOR"
+                        placeholder={t('watch-only.inputPlaceholder', {
+                          option: t('common.descriptor')
+                        }).toUpperCase()}
                       />
                     </SSVStack>
                   </>
@@ -330,12 +321,10 @@ export default function WatchOnlyOptions() {
                   <SSHStack>
                     <SSIconWarning height={16} width={16} />
                     <SSText center style={{ width: '80%' }}>
-                      Watch-only Address wallets are currently only supported
-                      via Electrum
+                      {t('watch-only.addressWarning')}
                     </SSText>
                     <SSIconWarning height={16} width={16} />
                   </SSHStack>
-
                   <SSText
                     size="xs"
                     center
@@ -345,31 +334,34 @@ export default function WatchOnlyOptions() {
                       textDecorationLine: 'underline'
                     }}
                   >
-                    Go to Settings » Network
+                    {t('watch-only.addressWarningCallToAction')}
                   </SSText>
                 </SSVStack>
               )}
 
               <SSVStack>
                 <SSButton
-                  label="PASTE FROM CLIPBOARD"
+                  label={t('watch-only.read.clipboard')}
                   onPress={pasteFromClipboard}
                 />
-                <SSButton label="SCAN QRCODE" disabled />
-                <SSButton label="TAP NFC" disabled />
-                <SSButton label="COMPUTER VISION TEXT" disabled />
+                <SSButton label={t('watch-only.read.qrcode')} disabled />
+                <SSButton label={t('watch-only.read.nfc')} disabled />
+                <SSButton
+                  label={t('watch-only.read.computerVision')}
+                  disabled
+                />
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">
               <SSButton
-                label="CONFIRM"
+                label={t('common.confirm')}
                 variant="secondary"
                 loading={loadingWallet}
                 disabled={disabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton
-                label="CANCEL"
+                label={t('common.cancel')}
                 variant="secondary"
                 onPress={() => setModalOptionsVisible(true)}
               />
