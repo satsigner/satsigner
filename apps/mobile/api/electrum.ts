@@ -5,6 +5,8 @@ import TcpSocket from 'react-native-tcp-socket'
 
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { type Network } from '@/types/settings/blockchain'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -13,7 +15,7 @@ type IElectrumClient = {
     host: string
     port: number
     protocol?: 'tcp' | 'tls' | 'ssl'
-    network?: bitcoinjs.Network
+    network?: Network
   }
   addressBalance: {
     confirmed: number
@@ -91,13 +93,13 @@ class BaseElectrumClient {
     host,
     port,
     protocol = 'ssl',
-    network = bitcoinjs.networks.testnet
+    network = 'signet'
   }: IElectrumClient['props']) {
     const net = TcpSocket
     const tls = TcpSocket
     const options = {}
     this.client = new RnElectrumClient(net, tls, port, host, protocol, options)
-    this.network = network as never as bitcoinjs.networks.Network
+    this.network = bitcoinjsNetwork(network)
   }
 
   async init() {

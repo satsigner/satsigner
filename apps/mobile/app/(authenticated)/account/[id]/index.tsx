@@ -1,4 +1,4 @@
-import { Descriptor, Wallet } from 'bdk-rn'
+import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
@@ -329,19 +329,15 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [
-    account,
-    loadWalletFromDescriptor,
-    syncWallet,
-    updateAccount
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.name === id),
-      state.loadWalletFromDescriptor,
-      state.syncWallet,
-      state.updateAccount
-    ])
-  )
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(

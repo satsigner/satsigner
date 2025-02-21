@@ -33,7 +33,7 @@ type AccountsAction = {
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
-  syncWallet: (wallet: Wallet|null, account: Account) => Promise<Account>
+  syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
   addSyncAccount: (account: Account) => Promise<Account>
   updateAccount: (account: Account) => Promise<void>
@@ -117,11 +117,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             throw new Error('Invalid backend URL')
           }
 
-          // TODO: pass the network as well
           const electrumClient = new ElectrumClient({
             host,
             port: Number(port),
-            protocol
+            protocol,
+            network
           })
 
           await electrumClient.init()
@@ -142,7 +142,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             balance: addrInfo.balance.confirmed
           }
         } else {
-          if (! wallet) throw new Error('Got null wallet to sync')
+          if (!wallet) throw new Error('Got null wallet to sync')
 
           await syncWallet(
             wallet,
