@@ -31,7 +31,7 @@ type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
 const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
 
 export default function WatchOnlyOptions() {
-  const [addAccount] = useAccountsStore((state) => [state.addAccount])
+  const addAccount = useAccountsStore((state) => state.addAccount)
   const [
     name,
     scriptVersion,
