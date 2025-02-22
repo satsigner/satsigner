@@ -1,4 +1,4 @@
-import type { Descriptor, Wallet } from 'bdk-rn'
+import { type Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
