@@ -187,12 +187,12 @@ export default function WatchOnlyOptions() {
       <ScrollView>
         <SSSelectModal
           visible={modalOptionsVisible}
-          title={t('watch-only.titleModal').toUpperCase()}
-          selectedText={t(`watch-only.${selectedOption}.title`)}
+          title={t('watchonly.titleModal').toUpperCase()}
+          selectedText={t(`watchonly.${selectedOption}.title`)}
           selectedDescription={
             <SSCollapsible>
               <SSText color="muted" size="md">
-                {t(`watch-only.${selectedOption}Text`)}
+                {t(`watchonly.${selectedOption}Text`)}
               </SSText>
             </SSCollapsible>
           }
@@ -202,7 +202,7 @@ export default function WatchOnlyOptions() {
           {watchOnlyOptions.map((type) => (
             <SSRadioButton
               key={type}
-              label={t(`watch-only.${type}.label`)}
+              label={t(`watchonly.${type}.label`)}
               selected={selectedOption === type}
               onPress={() => setSelectedOption(type)}
             />
@@ -225,14 +225,14 @@ export default function WatchOnlyOptions() {
               <SSVStack gap="sm">
                 <SSVStack gap="xxs">
                   <SSText center>
-                    {t(`watch-only.${selectedOption}.label`)}
+                    {t(`watchonly.${selectedOption}.label`)}
                   </SSText>
                   {selectedOption === 'xpub' && (
                     <SSTextInput
                       value={xpub}
                       style={validXpub ? styles.valid : styles.invalid}
-                      placeholder={t('watch-only.inputPlaceholder', {
-                        option: t('watch-only.xpub.label')
+                      placeholder={t('watchonly.inputPlaceholder', {
+                        option: t('watchonly.xpub.label')
                       }).toUpperCase()}
                       onChangeText={updateXpub}
                       multiline
@@ -244,8 +244,8 @@ export default function WatchOnlyOptions() {
                       style={
                         validExternalDescriptor ? styles.valid : styles.invalid
                       }
-                      placeholder={t('watch-only.inputPlaceholder', {
-                        option: t('watch-only.descriptor.label')
+                      placeholder={t('watchonly.inputPlaceholder', {
+                        option: t('watchonly.descriptor.label')
                       }).toUpperCase()}
                       onChangeText={updateExternalDescriptor}
                       multiline
@@ -255,8 +255,8 @@ export default function WatchOnlyOptions() {
                     <SSTextInput
                       value={address}
                       style={validAddress ? styles.valid : styles.invalid}
-                      placeholder={t('watch-only.inputPlaceholder', {
-                        option: t('watch-only.address.label')
+                      placeholder={t('watchonly.inputPlaceholder', {
+                        option: t('watchonly.address.label')
                       }).toUpperCase()}
                       onChangeText={updateAddress}
                       multiline
@@ -276,17 +276,15 @@ export default function WatchOnlyOptions() {
                       />
                     </SSVStack>
                     <SSVStack gap="xxs">
-                      <SSText center>
-                        {t('watch-only.fingerprint.label')}
-                      </SSText>
+                      <SSText center>{t('watchonly.fingerprint.label')}</SSText>
                       <SSTextInput
                         value={localFingerprint}
                         onChangeText={updateMasterFingerprint}
                         style={
                           validMasterFingerprint ? styles.valid : styles.invalid
                         }
-                        placeholder={t('watch-only.inputPlaceholder', {
-                          option: t('watch-only.fingerprint.text')
+                        placeholder={t('watchonly.inputPlaceholder', {
+                          option: t('watchonly.fingerprint.text')
                         }).toUpperCase()}
                       />
                     </SSVStack>
@@ -296,7 +294,7 @@ export default function WatchOnlyOptions() {
                   <>
                     <SSVStack gap="xxs">
                       <SSText center>
-                        {t('watch-only.descriptor.internal')}
+                        {t('watchonly.descriptor.internal')}
                       </SSText>
                       <SSTextInput
                         value={internalDescriptor}
@@ -307,7 +305,7 @@ export default function WatchOnlyOptions() {
                         }
                         multiline
                         onChangeText={updateInternalDescriptor}
-                        placeholder={t('watch-only.inputPlaceholder', {
+                        placeholder={t('watchonly.inputPlaceholder', {
                           option: t('common.descriptor')
                         }).toUpperCase()}
                       />
@@ -321,7 +319,7 @@ export default function WatchOnlyOptions() {
                   <SSHStack>
                     <SSIconWarning height={16} width={16} />
                     <SSText center style={{ width: '80%' }}>
-                      {t('watch-only.addressWarning')}
+                      {t('watchonly.addressWarning')}
                     </SSText>
                     <SSIconWarning height={16} width={16} />
                   </SSHStack>
@@ -334,22 +332,19 @@ export default function WatchOnlyOptions() {
                       textDecorationLine: 'underline'
                     }}
                   >
-                    {t('watch-only.addressWarningCallToAction')}
+                    {t('watchonly.addressWarningCallToAction')}
                   </SSText>
                 </SSVStack>
               )}
 
               <SSVStack>
                 <SSButton
-                  label={t('watch-only.read.clipboard')}
+                  label={t('watchonly.read.clipboard')}
                   onPress={pasteFromClipboard}
                 />
-                <SSButton label={t('watch-only.read.qrcode')} disabled />
-                <SSButton label={t('watch-only.read.nfc')} disabled />
-                <SSButton
-                  label={t('watch-only.read.computerVision')}
-                  disabled
-                />
+                <SSButton label={t('watchonly.read.qrcode')} disabled />
+                <SSButton label={t('watchonly.read.nfc')} disabled />
+                <SSButton label={t('watchonly.read.computerVision')} disabled />
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">
