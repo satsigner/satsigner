@@ -192,7 +192,7 @@ export default function WatchOnlyOptions() {
           selectedDescription={
             <SSCollapsible>
               <SSText color="muted" size="md">
-                {t(`watchonly.${selectedOption}Text`)}
+                {t(`watchonly.${selectedOption}.text`)}
               </SSText>
             </SSCollapsible>
           }
