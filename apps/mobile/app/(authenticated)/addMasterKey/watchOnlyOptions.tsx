@@ -208,7 +208,6 @@ export default function WatchOnlyOptions() {
             />
           ))}
         </SSSelectModal>
-
         <SSScriptVersionModal
           visible={scriptVersionModalVisible}
           scriptVersion={scriptVersion}
@@ -218,7 +217,6 @@ export default function WatchOnlyOptions() {
             setScriptVersionModalVisible(false)
           }}
         />
-
         {!modalOptionsVisible && (
           <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
             <SSVStack gap="lg">
@@ -313,7 +311,6 @@ export default function WatchOnlyOptions() {
                   </>
                 )}
               </SSVStack>
-
               {selectedOption === 'address' && (
                 <SSVStack gap="xs">
                   <SSHStack>
@@ -336,7 +333,6 @@ export default function WatchOnlyOptions() {
                   </SSText>
                 </SSVStack>
               )}
-
               <SSVStack>
                 <SSButton
                   label={t('watchonly.read.clipboard')}
