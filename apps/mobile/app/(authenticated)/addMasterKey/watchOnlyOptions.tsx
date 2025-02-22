@@ -316,7 +316,7 @@ export default function WatchOnlyOptions() {
                   <SSHStack>
                     <SSIconWarning height={16} width={16} />
                     <SSText center style={{ width: '80%' }}>
-                      {t('watchonly.addressWarning')}
+                      {t('watchonly.address.warning.text')}
                     </SSText>
                     <SSIconWarning height={16} width={16} />
                   </SSHStack>
@@ -329,7 +329,7 @@ export default function WatchOnlyOptions() {
                       textDecorationLine: 'underline'
                     }}
                   >
-                    {t('watchonly.addressWarningCallToAction')}
+                    {t('watchonly.address.warningCallToAction')}
                   </SSText>
                 </SSVStack>
               )}
@@ -353,7 +353,7 @@ export default function WatchOnlyOptions() {
               />
               <SSButton
                 label={t('common.cancel')}
-                variant="secondary"
+                variant="ghost"
                 onPress={() => setModalOptionsVisible(true)}
               />
             </SSVStack>
