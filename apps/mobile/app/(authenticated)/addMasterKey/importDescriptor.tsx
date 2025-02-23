@@ -1,7 +1,8 @@
 import * as Clipboard from 'expo-clipboard'
-import { Stack } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -10,13 +11,28 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
 
 function ImportDescriptor() {
   const [localDescriptor, setLocalDescriptor] = useState<string>('')
+  const router = useRouter()
+
+  const [setParticipantWithDescriptor] = useAccountBuilderStore(
+    useShallow((state) => [state.setParticipantWithDescriptor])
+  )
 
   async function handleOnPressPaste() {
     const text = await Clipboard.getStringAsync()
     setLocalDescriptor(text)
+  }
+
+  function handlePressCancel() {
+    router.back()
+  }
+
+  function handlePressConfirm() {
+    setParticipantWithDescriptor(localDescriptor)
+    router.back()
   }
 
   return (
@@ -57,12 +73,12 @@ function ImportDescriptor() {
           <SSButton
             label={t('common.confirm')}
             variant="secondary"
-            onPress={() => {}}
+            onPress={handlePressConfirm}
           />
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            onPress={() => {}}
+            onPress={handlePressCancel}
           />
         </SSVStack>
       </ScrollView>

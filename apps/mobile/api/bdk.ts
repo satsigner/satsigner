@@ -191,29 +191,36 @@ async function getMultiSigWalletFromMnemonic(
     const internalDescriptors: Descriptor[] = []
     const keys = []
     for (let i = 0; i < totalParticipants; i++) {
-      const seedWords = participants[i].seedWords!
-      const scriptVersion = participants[i].scriptVersion!
-      const passphrase = participants[i].passphrase!
-      const [externalDescriptor, internalDescriptor] = await Promise.all([
-        getDescriptor(
-          seedWords,
-          scriptVersion,
-          KeychainKind.External,
-          passphrase,
-          network
-        ),
-        getDescriptor(
-          seedWords,
-          scriptVersion,
-          KeychainKind.Internal,
-          passphrase,
-          network
-        )
-      ])
-      externalDescriptors.push(externalDescriptor)
-      internalDescriptors.push(internalDescriptor)
-      const key = await extractPubKeyFromDescriptor(externalDescriptor)
-      keys.push(key)
+      if (participants[i].creationType !== 'importdescriptor') {
+        const seedWords = participants[i].seedWords!
+        const scriptVersion = participants[i].scriptVersion!
+        const passphrase = participants[i].passphrase!
+        const [externalDescriptor, internalDescriptor] = await Promise.all([
+          getDescriptor(
+            seedWords,
+            scriptVersion,
+            KeychainKind.External,
+            passphrase,
+            network
+          ),
+          getDescriptor(
+            seedWords,
+            scriptVersion,
+            KeychainKind.Internal,
+            passphrase,
+            network
+          )
+        ])
+        externalDescriptors.push(externalDescriptor)
+        internalDescriptors.push(internalDescriptor)
+        const key = await extractPubKeyFromDescriptor(externalDescriptor)
+        keys.push(key)
+      } else {
+        const match =
+          participants[i].externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
+        const key = match ? match[0] : ''
+        keys.push(key)
+      }
     }
     const multisigDescriptorString = `wsh(multi(${requiredParticipants},${keys.join(',')}))`
     const multisigDescriptor = await new Descriptor().create(
@@ -487,6 +494,7 @@ async function broadcastTransaction(
 export {
   broadcastTransaction,
   buildTransaction,
+  extractPubKeyFromDescriptor,
   generateMnemonic,
   getBlockchain,
   getDescriptor,

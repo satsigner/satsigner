@@ -3,11 +3,13 @@ import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 
 import {
+  extractPubKeyFromDescriptor,
   generateMnemonic,
   getFingerprint,
   getMultiSigWalletFromMnemonic,
   getParticipantInfo,
-  getWalletFromMnemonic
+  getWalletFromMnemonic,
+  parseDescriptor
 } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
@@ -63,6 +65,7 @@ type AccountBuilderAction = {
   setSeedWords: (seedWords: NonNullable<Account['seedWords']>) => void
   setParticipant: (participants: string) => Promise<void>
   setParticipantWithSeedWord: () => Promise<void>
+  setParticipantWithDescriptor: (descriptor: string) => Promise<void>
   setParticipantsCount: (
     participantsCount: Account['participantsCount']
   ) => void
@@ -360,6 +363,7 @@ const useAccountBuilderStore = create<
         fingerprint,
         derivationPath,
         publicKey: pubKey,
+        creationType: 'importseed',
         externalDescriptor: externalDescriptorString,
         internalDescriptor: internalDescriptorString
       }
@@ -399,10 +403,33 @@ const useAccountBuilderStore = create<
         derivationPath,
         publicKey: pubKey,
         externalDescriptor: externalDescriptorString,
+        creationType: 'generate',
         internalDescriptor: internalDescriptorString
       }
       set({ participants: [...participants!] })
     }
+  },
+  setParticipantWithDescriptor: async (descriptor: string) => {
+    try {
+      const externalDescriptor = await new Descriptor().create(
+        descriptor,
+        useBlockchainStore.getState().network as Network
+      )
+      const { participants, currentParticipantIndex: index } = get()
+      const { fingerprint, derivationPath } =
+        await parseDescriptor(externalDescriptor)
+      const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
+      const p: MultisigParticipant = {
+        externalDescriptor: descriptor,
+        derivationPath,
+        fingerprint,
+        createdAt: new Date(),
+        creationType: 'importdescriptor',
+        publicKey: pubKey
+      }
+      participants![index!] = p
+      set({ participants: [...participants!] })
+    } catch {}
   },
   setParticipantsCount: (participantsCount) => {
     set({ participantsCount })
