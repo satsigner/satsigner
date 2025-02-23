@@ -77,7 +77,7 @@ async function parseDescriptor(descriptor: Descriptor) {
 
 async function extractPubKeyFromDescriptor(descriptor: Descriptor) {
   const descriptorString = await descriptor.asString()
-  const match = descriptorString.match(/tpub[A-Za-z0-9]+/)
+  const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
 }
 
@@ -144,9 +144,12 @@ async function getParticipantInfo(
   network: Network
 ) {
   try {
-    const seedWords = participant.seedWords!
-    const scriptVersion = participant.scriptVersion!
-    const passphrase = participant.passphrase!
+    if (!participant.seedWords || !participant.scriptVersion) {
+      return null
+    }
+    const seedWords = participant.seedWords
+    const scriptVersion = participant.scriptVersion
+    const passphrase = participant.passphrase
     const [externalDescriptor, internalDescriptor] = await Promise.all([
       getDescriptor(
         seedWords,
@@ -191,10 +194,14 @@ async function getMultiSigWalletFromMnemonic(
     const internalDescriptors: Descriptor[] = []
     const keys = []
     for (let i = 0; i < totalParticipants; i++) {
-      if (participants[i].creationType !== 'importdescriptor') {
-        const seedWords = participants[i].seedWords!
-        const scriptVersion = participants[i].scriptVersion!
-        const passphrase = participants[i].passphrase!
+      const participant = participants[i]
+      if (participant.creationType !== 'importdescriptor') {
+        if (!participant.seedWords || !participant.scriptVersion) {
+          return null
+        }
+        const seedWords = participant.seedWords
+        const scriptVersion = participant.scriptVersion
+        const passphrase = participant.passphrase
         const [externalDescriptor, internalDescriptor] = await Promise.all([
           getDescriptor(
             seedWords,
@@ -216,8 +223,7 @@ async function getMultiSigWalletFromMnemonic(
         const key = await extractPubKeyFromDescriptor(externalDescriptor)
         keys.push(key)
       } else {
-        const match =
-          participants[i].externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
+        const match = participant.externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
         const key = match ? match[0] : ''
         keys.push(key)
       }

@@ -2,7 +2,9 @@ import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
 
 export type SeedWordCountType = 12 | 15 | 18 | 21 | 24
+
 export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
+
 export type AccountCreationType =
   | 'generate'
   | 'import'
@@ -10,12 +12,14 @@ export type AccountCreationType =
   | 'wif'
   | null
   | undefined
+
 export type ParticipantCrationType =
   | 'generate'
   | 'importseed'
   | 'importdescriptor'
   | null
   | undefined
+
 export type MultisigParticipant = {
   keyName?: string
   createdAt?: Date
