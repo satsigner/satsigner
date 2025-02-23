@@ -29,6 +29,7 @@ type AccountBuilderState = {
   derivationPath?: Account['derivationPath']
   externalDescriptor?: Account['externalDescriptor']
   internalDescriptor?: Account['internalDescriptor']
+  watchOnly?: Account['watchOnly']
   wallet?: Wallet
   policyType?: Account['policyType']
   participants?: Account['participants']
@@ -42,19 +43,15 @@ type AccountBuilderState = {
 type AccountBuilderAction = {
   clearAccount: () => void
   clearParticipants: () => void
-  createAccountFromDescriptor: (
-    name: string,
-    externalDescriptor: string,
-    internalDescriptor?: string
-  ) => Promise<Account>
-  createAccountFromXpub: (
-    name: string,
-    xpub: string,
-    fingerprint: string,
-    scriptVersion: Account['scriptVersion']
-  ) => Promise<Account>
+  getAccountFromDescriptor: () => Promise<Account>
   getAccount: () => Account
   setName: (name: Account['name']) => void
+  setExternalDescriptor: (descriptor: string) => Promise<void>
+  setInternalDescriptor: (descriptor: string) => Promise<void>
+  setDescriptorFromXpub: (xpub: string) => Promise<void>
+  setDescriptorFromAddress: (address: string) => void
+  setFingerprint: (fingerprint: string) => void
+  setWatchOnly: (watchOnlyType: Account['watchOnly']) => void
   setType: (type: Account['accountCreationType']) => void
   setScriptVersion: (
     scriptVersion: NonNullable<Account['scriptVersion']>
@@ -112,6 +109,7 @@ const useAccountBuilderStore = create<
       derivationPath: undefined,
       externalDescriptor: undefined,
       internalDescriptor: undefined,
+      watchOnly: undefined,
       wallet: undefined,
       participants: [],
       policyType: 'single',
@@ -125,39 +123,19 @@ const useAccountBuilderStore = create<
       participants: []
     })
   },
-  createAccountFromDescriptor: async (
-    name,
-    externalDescriptor,
-    internalDescriptor
-  ) => {
-    // TODO: derive both internal an external descriptors from the descriptor
-    const network = useBlockchainStore.getState().network as Network
-
-    const externalDescriptorObj = await new Descriptor().create(
-      externalDescriptor,
-      network
-    )
-    const externalDescriptorWithChecksum =
-      await externalDescriptorObj.asString()
-
-    let internalDescriptorWithChecksum: string | undefined
-    if (internalDescriptor) {
-      const internalDescriptorObj = await new Descriptor().create(
-        internalDescriptor,
-        network
-      )
-      internalDescriptorWithChecksum = await internalDescriptorObj.asString()
-    }
+  getAccountFromDescriptor: async () => {
+    const { name, externalDescriptor, internalDescriptor, watchOnly, type } =
+      get()
 
     const account: Account = {
       name,
       createdAt: new Date(),
-      accountCreationType: 'import',
-      watchOnly: 'public-key',
+      accountCreationType: type,
+      watchOnly,
       utxos: [],
       transactions: [],
-      externalDescriptor: externalDescriptorWithChecksum,
-      internalDescriptor: internalDescriptorWithChecksum,
+      externalDescriptor,
+      internalDescriptor,
       summary: {
         balance: 0,
         satsInMempool: 0,
@@ -168,12 +146,15 @@ const useAccountBuilderStore = create<
     }
     return account
   },
-  createAccountFromXpub: async (name, xpub, fingerprint, scriptVersion) => {
+  setDescriptorFromXpub: async (xpub) => {
+    const { fingerprint, scriptVersion } = get()
     const network = useBlockchainStore.getState().network as Network
     const key = await new DescriptorPublicKey().fromString(xpub)
 
     let externalDescriptorObj: Descriptor | undefined
     let internalDescriptorObj: Descriptor | undefined
+
+    if (!fingerprint) return
 
     switch (scriptVersion) {
       case 'P2PKH':
@@ -239,24 +220,20 @@ const useAccountBuilderStore = create<
     const externalDescriptor = await externalDescriptorObj.asString()
     const internalDescriptor = await internalDescriptorObj.asString()
 
-    const account: Account = {
-      name,
-      createdAt: new Date(),
+    set({
       watchOnly: 'public-key',
-      accountCreationType: 'import',
-      utxos: [],
-      transactions: [],
       externalDescriptor,
-      internalDescriptor,
-      summary: {
-        balance: 0,
-        satsInMempool: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0
-      }
-    }
-    return account
+      internalDescriptor
+    })
+  },
+  setDescriptorFromAddress: (address) => {
+    set({
+      watchOnly: 'address',
+      externalDescriptor: `addr(${address})`
+    })
+  },
+  setFingerprint: (fingerprint) => {
+    set({ fingerprint })
   },
   getAccount: () => {
     const {
@@ -308,6 +285,39 @@ const useAccountBuilderStore = create<
   },
   setType: (type) => {
     set({ type })
+  },
+  setExternalDescriptor: async (externalDescriptor) => {
+    const { network } = useBlockchainStore.getState()
+    const externalDescriptorObj = await new Descriptor().create(
+      externalDescriptor,
+      network as Network
+    )
+    const externalDescriptorWithChecksum =
+      await externalDescriptorObj.asString()
+    set({
+      // TODO: allow creation of signing wallets from descriptors
+      // currently only watch-only wallets are created from descriptors
+      watchOnly: 'public-key',
+      externalDescriptor: externalDescriptorWithChecksum
+    })
+  },
+  setInternalDescriptor: async (internalDescriptor) => {
+    const { network } = useBlockchainStore.getState()
+    const internalDescriptorObj = await new Descriptor().create(
+      internalDescriptor,
+      network as Network
+    )
+    const internalDescriptorWithChecksum =
+      await internalDescriptorObj.asString()
+    set({
+      // TODO: allow creation of signing wallets from descriptors
+      // currently only watch-only wallets are created from descriptors
+      watchOnly: 'public-key',
+      internalDescriptor: internalDescriptorWithChecksum
+    })
+  },
+  setWatchOnly: (watchOnly) => {
+    set({ watchOnly })
   },
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })

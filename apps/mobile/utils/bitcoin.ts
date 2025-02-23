@@ -1,4 +1,7 @@
 import { decode } from 'bip21'
+import { networks } from 'bitcoinjs-lib'
+
+import { type Network } from '@/types/settings/blockchain'
 
 // from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet addresses
 function isBitcoinAddress(address: string): boolean {
@@ -17,4 +20,17 @@ function bip21decode(uri: string) {
   } catch (_error) {}
 }
 
-export { bip21decode, isBitcoinAddress }
+// Convert network notation used by our app (and by BDK enum too)
+// too the network interface used by bitcoinjs-lib
+function bitcoinjsNetwork(network: Network): networks.Network {
+  switch (network) {
+    case 'bitcoin':
+      return networks['bitcoin']
+    case 'signet':
+      return networks['testnet']
+    case 'testnet':
+      return networks['regtest']
+  }
+}
+
+export { bip21decode, bitcoinjsNetwork, isBitcoinAddress }
