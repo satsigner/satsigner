@@ -4,6 +4,7 @@ import { View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
@@ -99,16 +100,7 @@ export default function ConfirmScreen() {
           <SSHStack style={{ alignSelf: 'center', marginTop: 40 }}>
             <View style={{ width: 163, height: 163 }}>
               {completed ? (
-                <Svg width="159" height="159" viewBox="0 0 159 159" fill="none">
-                  <Circle cx="79.4999" cy="79.4999" r="79.4999" fill="white" />
-                  <Path
-                    d="M46.6267 76.8234L69.9627 104.048L110.084 57.2402"
-                    stroke="#A8A8A8"
-                    stroke-width="4"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </Svg>
+                <SSIconSuccess width={159} height={159} />
               ) : (
                 <Svg width="163" height="163" viewBox="0 0 163 163" fill="none">
                   <Circle

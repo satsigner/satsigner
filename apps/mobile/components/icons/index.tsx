@@ -42,6 +42,7 @@ import SSIconScan from './SSIconScan'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSettings from './SSIconSettings'
 import SSIconSingleSignature from './SSIconSingleSignature'
+import SSIconSuccess from './SSIconSuccess'
 import SSIconWalletEye from './SSIconWalletEye'
 import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
@@ -93,6 +94,7 @@ export {
   SSIconScriptsP2pkh,
   SSIconSettings,
   SSIconSingleSignature,
+  SSIconSuccess,
   SSIconWalletEye,
   SSIconWarning,
   SSIconX,

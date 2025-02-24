@@ -13,7 +13,11 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { type Account, type MultisigParticipant } from '@/types/models/Account'
+import {
+  type Account,
+  type MultisigParticipant,
+  type SeedWordCountType
+} from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
 export default function ParticipantOptions() {
@@ -51,17 +55,7 @@ export default function ParticipantOptions() {
   const [loading, setLoading] = useState(false)
 
   function getSeedWordCountButtonLabel() {
-    if (localSeedWordCount === 12)
-      return `12 ${t('bitcoin.words').toLowerCase()}`
-    if (localSeedWordCount === 15)
-      return `15 ${t('bitcoin.words').toLowerCase()}`
-    if (localSeedWordCount === 18)
-      return `18 ${t('bitcoin.words').toLowerCase()}`
-    if (localSeedWordCount === 21)
-      return `21 ${t('bitcoin.words').toLowerCase()}`
-    if (localSeedWordCount === 24)
-      return `24 ${t('bitcoin.words').toLowerCase()}`
-    return ''
+    return `${localSeedWordCount} ${t('bitcoin.words').toLowerCase()}`
   }
 
   function getContinueButtonLabel() {
@@ -158,31 +152,19 @@ export default function ParticipantOptions() {
         onSelect={() => handleOnSelectSeedWordCount()}
         onCancel={() => setSeedWordCountModalVisibile(false)}
       >
-        <SSRadioButton
-          label={`24 ${t('bitcoin.words').toLowerCase()}`}
-          selected={localSeedWordCount === 24}
-          onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 24)}
-        />
-        <SSRadioButton
-          label={`21 ${t('bitcoin.words').toLowerCase()}`}
-          selected={localSeedWordCount === 21}
-          onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 21)}
-        />
-        <SSRadioButton
-          label={`18 ${t('bitcoin.words').toLowerCase()}`}
-          selected={localSeedWordCount === 18}
-          onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 18)}
-        />
-        <SSRadioButton
-          label={`15 ${t('bitcoin.words').toLowerCase()}`}
-          selected={localSeedWordCount === 15}
-          onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 15)}
-        />
-        <SSRadioButton
-          label={`12 ${t('bitcoin.words').toLowerCase()}`}
-          selected={localSeedWordCount === 12}
-          onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 12)}
-        />
+        {[24, 21, 18, 15, 12].map((count) => (
+          <SSRadioButton
+            key={count}
+            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
+            selected={localSeedWordCount === count}
+            onPress={() =>
+              setStateWithLayoutAnimation(
+                setLocalSeedWordCount,
+                count as SeedWordCountType
+              )
+            }
+          />
+        ))}
       </SSSelectModal>
     </SSMainLayout>
   )
