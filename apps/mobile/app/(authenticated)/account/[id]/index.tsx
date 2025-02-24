@@ -22,7 +22,6 @@ import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletFromMnemonic } from '@/api/bdk'
-import ElectrumClient from '@/api/electrum'
 import {
   SSIconBubbles,
   SSIconCamera,
@@ -242,45 +241,12 @@ function ChildAccounts({
   const networkString = useBlockchainStore((state) => state.network)
   const [addressPath, setAddressPath] = useState('')
 
-  const electrumRef = useRef<ElectrumClient | null>(null)
-
   const isMounted = useRef(false)
-
-  useEffect(() => {
-    if (!electrumRef.current) {
-      electrumRef.current = new ElectrumClient({
-        host: 'mempool.space',
-        port: 60602,
-        protocol: 'ssl'
-      })
-    }
-
-    return () => {
-      electrumRef.current?.close()
-    }
-  }, [])
-
-  const fetchWithTimeout = <T,>(
-    promise: Promise<T>,
-    timeout = 5000
-  ): Promise<T> => {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error('getAddressInfo timeout')), timeout)
-      ) as Promise<T>
-    ])
-  }
-
   const fetchAddresses = useCallback(async () => {
     if (!account || !account.externalDescriptor || !account.internalDescriptor)
       return
 
-    if (!electrumRef.current) return
-
     try {
-      await electrumRef.current.init()
-
       const result = await getWalletAddress()
       if (!result) return
 
@@ -308,35 +274,44 @@ function ChildAccounts({
         const derivedAddress = await walletPrivate.wallet.getAddress(i)
         const derivedAddressResult = await derivedAddress.address.asString()
 
-        try {
-          const addressInfo = await fetchWithTimeout(
-            electrumRef.current.getAddressInfo(derivedAddressResult)
-          ).catch(() => ({
-            utxos: [],
-            transactions: []
-          }))
-
-          const sum = addressInfo.utxos.reduce(
-            (acc, utxo) => acc + utxo.value,
-            0
-          )
-
-          newAddresses.push({
-            index: i,
-            address: derivedAddressResult,
-            label: '',
-            unspendSats: sum,
-            txs: addressInfo.transactions?.length ?? 0
-          })
-        } catch {
-          newAddresses.push({
-            index: i,
-            address: derivedAddressResult,
-            label: '',
-            unspendSats: 0,
-            txs: 0
-          })
+        let utxo = 0
+        let txCount = 0
+        for (const ux of account.utxos) {
+          if (ux.addressTo && ux.addressTo === derivedAddressResult) {
+            utxo += ux.value
+          }
         }
+        for (const tx of account.transactions) {
+          const isInVout = tx.vout.some(
+            (output) => output.address === derivedAddressResult
+          )
+          let isInVin = false
+
+          for (const input of tx.vin || []) {
+            const prevTx = account.transactions.find(
+              (t) => t.id === input.previousOutput.txid
+            )
+            if (prevTx) {
+              const voutEntry = prevTx.vout[input.previousOutput.vout]
+              if (voutEntry?.address === derivedAddressResult) {
+                isInVin = true
+                break
+              }
+            }
+          }
+
+          if (isInVout || isInVin) {
+            txCount++
+          }
+        }
+
+        newAddresses.push({
+          index: i,
+          address: derivedAddressResult,
+          label: '',
+          unspendSats: utxo,
+          txs: txCount
+        })
       }
 
       setChildAccounts((prevAccounts) => {
@@ -348,14 +323,7 @@ function ChildAccounts({
           ...newAddresses.filter((acc) => !existingAddresses.has(acc.address))
         ]
       })
-    } catch {
-    } finally {
-      if (electrumRef.current) {
-        try {
-          electrumRef.current.close()
-        } catch {}
-      }
-    }
+    } catch {}
   }, [account, decryptSeed, networkString, getWalletAddress, id])
 
   useEffect(() => {
