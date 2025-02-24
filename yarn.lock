@@ -2330,6 +2330,11 @@
     prompts "^2.4.2"
     semver "^7.5.2"
 
+"@react-native-community/netinfo@^11.4.1":
+  version "11.4.1"
+  resolved "https://registry.yarnpkg.com/@react-native-community/netinfo/-/netinfo-11.4.1.tgz#a3c247aceab35f75dd0aa4bfa85d2be5a4508688"
+  integrity sha512-B0BYAkghz3Q2V09BF88RA601XursIEA111tnc2JOaN7axJWmNefmfjZqw/KdSxKZp7CZUuPpjBmz/WCR9uaHYg==
+
 "@react-native-community/slider@^4.5.2":
   version "4.5.2"
   resolved "https://registry.npmjs.org/@react-native-community/slider/-/slider-4.5.2.tgz#c3835788dbc1bd83d3778b83ca15533c805db149"
@@ -5508,6 +5513,10 @@ electron-to-chromium@^1.4.668:
   resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.717.tgz#99db370cae8cd090d5b01f8748e9ad369924d0f8"
   integrity sha512-6Fmg8QkkumNOwuZ/5mIbMU9WI3H2fmn5ajcVya64I5Yr5CcNmO7vcLt0Y7c96DCiMO5/9G+4sI2r6eEvdg1F7A==
 
+"electrum-client@https://github.com/BlueWallet/rn-electrum-client#1bfe3cc4249d5440b816baac942b0cfa921eebf9":
+  version "3.1.0"
+  resolved "https://github.com/BlueWallet/rn-electrum-client#1bfe3cc4249d5440b816baac942b0cfa921eebf9"
+
 elkjs@^0.9.0:
   version "0.9.2"
   resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.9.2.tgz#3d4ef6f17fde06a5d7eaa3063bb875e25e59e972"
@@ -6037,6 +6046,16 @@ event-target-shim@^5.0.0, event-target-shim@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/event-target-shim/-/event-target-shim-5.0.1.tgz#5d4d3ebdf9583d63a5333ce2deb7480ab2b05789"
   integrity sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==
+
+eventemitter3@^4.0.7:
+  version "4.0.7"
+  resolved "https://registry.yarnpkg.com/eventemitter3/-/eventemitter3-4.0.7.tgz#2de9b68f6528d5644ef5c59526a1b4a07306169f"
+  integrity sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==
+
+events@^1.0.0:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/events/-/events-1.1.1.tgz#9ebdb7635ad099c70dcc4c2a1f5004288e8bd924"
+  integrity sha512-kEcvvCBByWXGnZy6JUlgAp2gBIUjfCAV6P6TgT1/aaQKcmuAEC4OZTV1I4EWQLz2gxZw76atuVyvHhTxvi0Flw==
 
 exec-async@^2.2.0:
   version "2.2.0"
@@ -10936,6 +10955,14 @@ react-native-tab-view@^3.5.2:
   integrity sha512-nE5WqjbeEPsWQx4mtz81QGVvgHRhujTNIIZiMCx3Bj6CBFDafbk7XZp9ocmtzXUQaZ4bhtVS43R4FIiR4LboJw==
   dependencies:
     use-latest-callback "^0.1.5"
+
+react-native-tcp-socket@^6.2.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/react-native-tcp-socket/-/react-native-tcp-socket-6.2.0.tgz#2dc3a794c0fea53f037a3fccf391296451314664"
+  integrity sha512-q1FSK3cdwyFP3eNxgk+Z6Dgnb84RoAFKaDOIrt2gjG8YbLUad+StGhdd7BUdufNw1bS7JY7IAAgnwwvee3z08Q==
+  dependencies:
+    buffer "^5.4.3"
+    eventemitter3 "^4.0.7"
 
 react-native@0.73.6:
   version "0.73.6"

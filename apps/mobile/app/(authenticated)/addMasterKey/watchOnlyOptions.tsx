@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -12,13 +13,13 @@ import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
 import {
   validateAddress,
   validateDescriptor,
@@ -26,57 +27,54 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-const watchOnlyOptions = ['xpub', 'descriptor', 'address']
-
-type WatchOnlyOption = (typeof watchOnlyOptions)[number]
-
-const labels: Record<WatchOnlyOption, string> = {
-  xpub: 'XPUB / YPUB / ZPUB',
-  descriptor: 'DESCRIPTOR',
-  address: 'Address'
-}
-
-const title: Record<WatchOnlyOption, string> = {
-  xpub: 'Extended Public Key',
-  descriptor: 'Descriptor',
-  address: 'Address'
-}
-
-const text: Record<WatchOnlyOption, string> = {
-  xpub: 'An extended public key is a type of key used in Bitcoin that allows for the generation of multiple public addresses from a single key. It is part of the hierarchical deterministic (HD) wallet structure defined by BIP32. An xpub can generate child public keys, which can be used to receive funds without exposing the corresponding private keys. This feature is useful for managing multiple addresses while maintaining privacy and security, as users can receive payments at different addresses without needing to create new wallets or expose sensitive information.',
-  descriptor:
-    'A Bitcoin descriptor is a flexible and expressive way to describe how Bitcoin addresses and keys are derived and used within a wallet. Introduced in BIP 174, descriptors allow users to specify the structure of their wallets in a more human-readable format. They can represent various types of addresses, including standard pay-to-public-key-hash (P2PKH), pay-to-script-hash (P2SH), and more complex constructions such as multisig. Descriptors improve wallet interoperability and make it easier for software to understand how to derive keys and addresses based on user-defined rules.',
-  address: 'A single bitcoin address'
-}
+type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
+const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
 
 export default function WatchOnlyOptions() {
-  const addSyncAccount = useAccountsStore((state) => state.addSyncAccount)
-  const [name, createAccountFromDescriptor, createAccountFromXpub] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.name,
-        state.createAccountFromDescriptor,
-        state.createAccountFromXpub
-      ])
-    )
+  const addAccount = useAccountsStore((state) => state.addAccount)
+  const [
+    name,
+    scriptVersion,
+    fingerprint,
+    clearAccount,
+    getAccountFromDescriptor,
+    setFingerprint,
+    setDescriptorFromXpub,
+    setDescriptorFromAddress,
+    setExternalDescriptor,
+    setInternalDescriptor,
+    setScriptVersion
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.scriptVersion,
+      state.fingerprint,
+      state.clearAccount,
+      state.getAccountFromDescriptor,
+      state.setFingerprint,
+      state.setDescriptorFromXpub,
+      state.setDescriptorFromAddress,
+      state.setExternalDescriptor,
+      state.setInternalDescriptor,
+      state.setScriptVersion
+    ])
+  )
 
   const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
-
-  const [scriptVersion, setScriptVersion] =
-    useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
 
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
-  const [fingerprint, setFingerprint] = useState('')
   const [xpub, setXpub] = useState('')
-  const [descriptor, setDescriptor] = useState('')
-  const [internalDescriptor, setInternalDescriptor] = useState('')
+  const [localFingerprint, setLocalFingerprint] = useState(fingerprint)
+  const [externalDescriptor, setLocalExternalDescriptor] = useState('')
+  const [internalDescriptor, setLocalInternalDescriptor] = useState('')
   const [address, setAddress] = useState('')
 
+  const [disabled, setDisabled] = useState(true)
   const [validAddress, setValidAddress] = useState(true)
-  const [validDescriptor, setValidDescriptor] = useState(true)
+  const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
@@ -84,68 +82,61 @@ export default function WatchOnlyOptions() {
   const [loadingWallet, setLoadingWallet] = useState(false)
 
   function updateAddress(address: string) {
-    setValidAddress(!address || validateAddress(address))
+    const validAddress = validateAddress(address)
+    setValidAddress(!address || validAddress)
+    setDisabled(!validAddress)
     setAddress(address)
+    if (validAddress) setDescriptorFromAddress(address)
   }
 
   function updateMasterFingerprint(fingerprint: string) {
-    setValidMasterFingerprint(!fingerprint || validateFingerprint(fingerprint))
-    setFingerprint(fingerprint)
-    if (validateFingerprint(fingerprint)) Keyboard.dismiss()
+    const validFingerprint = validateFingerprint(fingerprint)
+    setValidMasterFingerprint(!fingerprint || validFingerprint)
+    setDisabled(!validFingerprint)
+    setLocalFingerprint(fingerprint)
+    if (validFingerprint) {
+      setFingerprint(fingerprint)
+      Keyboard.dismiss()
+      // force update xpub again because it depends upon the fingerprint
+      if (selectedOption === 'xpub' && validXpub) setDescriptorFromXpub(xpub)
+    }
   }
 
   function updateXpub(xpub: string) {
-    setValidXpub(!xpub || validateExtendedKey(xpub))
+    const validXpub = validateExtendedKey(xpub)
+    setValidXpub(!xpub || validXpub)
+    setDisabled(!validXpub)
     setXpub(xpub)
-    if (scriptVersion) return
-    if (xpub.match(/^x(pub|priv)/)) {
-      setScriptVersion('P2PKH')
-    }
-    if (xpub.match(/^y(pub|priv)/)) {
-      setScriptVersion('P2SH-P2WPKH')
-    }
-    if (xpub.match(/^z(pub|priv)/)) {
-      setScriptVersion('P2WPKH')
-    }
+    if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
+    if (xpub.match(/^y(pub|priv)/)) setScriptVersion('P2SH-P2WPKH')
+    if (xpub.match(/^z(pub|priv)/)) setScriptVersion('P2WPKH')
   }
 
-  function updateDescriptor(descriptor: string) {
-    setValidDescriptor(!descriptor || validateDescriptor(descriptor))
-    setDescriptor(descriptor)
+  function updateExternalDescriptor(descriptor: string) {
+    const validExternalDescriptor =
+      validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
+    setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    setDisabled(!validExternalDescriptor)
+    setLocalExternalDescriptor(descriptor)
+    if (validExternalDescriptor) setExternalDescriptor(descriptor)
   }
 
   function updateInternalDescriptor(descriptor: string) {
-    setValidInternalDescriptor(!descriptor || validateDescriptor(descriptor))
-    setInternalDescriptor(descriptor)
+    const validInternalDescriptor = validateDescriptor(descriptor)
+    setValidInternalDescriptor(!descriptor || validInternalDescriptor)
+    setDisabled(!validInternalDescriptor)
+    setLocalInternalDescriptor(descriptor)
+    if (validInternalDescriptor) setInternalDescriptor(descriptor)
   }
+
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    let account: Account | undefined
-
-    if (selectedOption === 'descriptor' && descriptor) {
-      account = await createAccountFromDescriptor(
-        name!,
-        descriptor,
-        internalDescriptor || undefined
-      )
-    }
-
-    if (selectedOption === 'xpub' && xpub && scriptVersion && fingerprint) {
-      account = await createAccountFromXpub(
-        name!,
-        xpub,
-        fingerprint,
-        scriptVersion
-      )
-    }
-
-    if (selectedOption === 'address' && address) {
-      // TODO: implement it
-    }
+    const account = await getAccountFromDescriptor()
 
     try {
       if (account) {
-        await addSyncAccount(account)
+        await addAccount(account)
+        clearAccount()
         router.navigate('/')
       }
     } finally {
@@ -168,7 +159,12 @@ export default function WatchOnlyOptions() {
           .replace(/<0[,;]1>/, '1')
           .replace(/#[a-z0-9]+$/, '')
       }
-      if (externalDescriptor) updateDescriptor(externalDescriptor)
+      if (text.includes('\n')) {
+        const lines = text.split('\n')
+        externalDescriptor = lines[0]
+        internalDescriptor = lines[1]
+      }
+      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
       if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
     }
 
@@ -191,12 +187,12 @@ export default function WatchOnlyOptions() {
       <ScrollView>
         <SSSelectModal
           visible={modalOptionsVisible}
-          title="WATCH-ONLY WALLET"
-          selectedText={title[selectedOption]}
+          title={t('watchonly.titleModal').toUpperCase()}
+          selectedText={t(`watchonly.${selectedOption}.title`)}
           selectedDescription={
             <SSCollapsible>
               <SSText color="muted" size="md">
-                {text[selectedOption]}
+                {t(`watchonly.${selectedOption}.text`)}
               </SSText>
             </SSCollapsible>
           }
@@ -206,13 +202,12 @@ export default function WatchOnlyOptions() {
           {watchOnlyOptions.map((type) => (
             <SSRadioButton
               key={type}
-              label={labels[type]}
+              label={t(`watchonly.${type}.label`)}
               selected={selectedOption === type}
               onPress={() => setSelectedOption(type)}
             />
           ))}
         </SSSelectModal>
-
         <SSScriptVersionModal
           visible={scriptVersionModalVisible}
           scriptVersion={scriptVersion}
@@ -222,28 +217,35 @@ export default function WatchOnlyOptions() {
             setScriptVersionModalVisible(false)
           }}
         />
-
         {!modalOptionsVisible && (
           <SSVStack justifyBetween gap="lg" style={{ paddingBottom: 20 }}>
             <SSVStack gap="lg">
               <SSVStack gap="sm">
                 <SSVStack gap="xxs">
-                  <SSText center>{labels[selectedOption]}</SSText>
+                  <SSText center>
+                    {t(`watchonly.${selectedOption}.label`)}
+                  </SSText>
                   {selectedOption === 'xpub' && (
                     <SSTextInput
                       value={xpub}
                       style={validXpub ? styles.valid : styles.invalid}
-                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      placeholder={t('watchonly.inputPlaceholder', {
+                        option: t('watchonly.xpub.label')
+                      }).toUpperCase()}
                       onChangeText={updateXpub}
                       multiline
                     />
                   )}
                   {selectedOption === 'descriptor' && (
                     <SSTextInput
-                      value={descriptor}
-                      style={validDescriptor ? styles.valid : styles.invalid}
-                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
-                      onChangeText={updateDescriptor}
+                      value={externalDescriptor}
+                      style={
+                        validExternalDescriptor ? styles.valid : styles.invalid
+                      }
+                      placeholder={t('watchonly.inputPlaceholder', {
+                        option: t('watchonly.descriptor.label')
+                      }).toUpperCase()}
+                      onChangeText={updateExternalDescriptor}
                       multiline
                     />
                   )}
@@ -251,8 +253,11 @@ export default function WatchOnlyOptions() {
                     <SSTextInput
                       value={address}
                       style={validAddress ? styles.valid : styles.invalid}
-                      placeholder={`ENTER ${selectedOption.toUpperCase()}`}
+                      placeholder={t('watchonly.inputPlaceholder', {
+                        option: t('watchonly.address.label')
+                      }).toUpperCase()}
                       onChangeText={updateAddress}
+                      multiline
                     />
                   )}
                 </SSVStack>
@@ -269,14 +274,16 @@ export default function WatchOnlyOptions() {
                       />
                     </SSVStack>
                     <SSVStack gap="xxs">
-                      <SSText center>MASTER FINGERPRINT</SSText>
+                      <SSText center>{t('watchonly.fingerprint.label')}</SSText>
                       <SSTextInput
-                        value={fingerprint}
+                        value={localFingerprint}
+                        onChangeText={updateMasterFingerprint}
                         style={
                           validMasterFingerprint ? styles.valid : styles.invalid
                         }
-                        placeholder="ENTER FINGERPRINT"
-                        onChangeText={updateMasterFingerprint}
+                        placeholder={t('watchonly.inputPlaceholder', {
+                          option: t('watchonly.fingerprint.text')
+                        }).toUpperCase()}
                       />
                     </SSVStack>
                   </>
@@ -284,7 +291,9 @@ export default function WatchOnlyOptions() {
                 {selectedOption === 'descriptor' && (
                   <>
                     <SSVStack gap="xxs">
-                      <SSText center>INTERNAL DESCRIPTOR (optional)</SSText>
+                      <SSText center>
+                        {t('watchonly.descriptor.internal')}
+                      </SSText>
                       <SSTextInput
                         value={internalDescriptor}
                         style={
@@ -294,45 +303,57 @@ export default function WatchOnlyOptions() {
                         }
                         multiline
                         onChangeText={updateInternalDescriptor}
-                        placeholder="ENTER DESCRIPTOR"
+                        placeholder={t('watchonly.inputPlaceholder', {
+                          option: t('common.descriptor')
+                        }).toUpperCase()}
                       />
                     </SSVStack>
                   </>
                 )}
               </SSVStack>
-
+              {selectedOption === 'address' && (
+                <SSVStack gap="xs">
+                  <SSHStack>
+                    <SSIconWarning height={16} width={16} />
+                    <SSText center style={{ width: '80%' }}>
+                      {t('watchonly.address.warning.text')}
+                    </SSText>
+                    <SSIconWarning height={16} width={16} />
+                  </SSHStack>
+                  <SSText
+                    size="xs"
+                    center
+                    onPress={() => router.navigate('/settings/network')}
+                    style={{
+                      textDecorationStyle: 'solid',
+                      textDecorationLine: 'underline'
+                    }}
+                  >
+                    {t('watchonly.address.warningCallToAction')}
+                  </SSText>
+                </SSVStack>
+              )}
               <SSVStack>
                 <SSButton
-                  label="PASTE FROM CLIPBOARD"
+                  label={t('watchonly.read.clipboard')}
                   onPress={pasteFromClipboard}
                 />
-                <SSButton label="SCAN QRCODE" disabled />
-                <SSButton label="TAP NFC" disabled />
-                <SSButton label="COMPUTER VISION TEXT" disabled />
+                <SSButton label={t('watchonly.read.qrcode')} disabled />
+                <SSButton label={t('watchonly.read.nfc')} disabled />
+                <SSButton label={t('watchonly.read.computerVision')} disabled />
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">
               <SSButton
-                label="CONFIRM"
+                label={t('common.confirm')}
                 variant="secondary"
                 loading={loadingWallet}
-                disabled={
-                  (selectedOption === 'address' &&
-                    (!address || !validAddress)) ||
-                  (selectedOption === 'descriptor' &&
-                    !descriptor &&
-                    !validDescriptor) ||
-                  (selectedOption === 'xpub' &&
-                    (!xpub ||
-                      !fingerprint ||
-                      !validXpub ||
-                      !validMasterFingerprint))
-                }
+                disabled={disabled}
                 onPress={() => confirmAccountCreation()}
               />
               <SSButton
-                label="CANCEL"
-                variant="secondary"
+                label={t('common.cancel')}
+                variant="ghost"
                 onPress={() => setModalOptionsVisible(true)}
               />
             </SSVStack>
