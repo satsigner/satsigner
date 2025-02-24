@@ -33,10 +33,22 @@ export default function AccountList() {
     ])
   )
 
-  const [setName, setSeedWords, loadWallet, encryptSeed, getAccount] =
+  const [
+    setName,
+    setPassphrase,
+    setScriptVersion,
+    setSeedWordCount,
+    setSeedWords,
+    loadWallet,
+    encryptSeed,
+    getAccount
+  ] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.setName,
+        state.setPassphrase,
+        state.setScriptVersion,
+        state.setSeedWordCount,
         state.setSeedWords,
         state.loadWallet,
         state.encryptSeed,
@@ -44,18 +56,30 @@ export default function AccountList() {
       ])
     )
 
-  const [loadingWallet, setLoadingWallet] = useState(false)
+  const [loadingWallet, setLoadingWallet] = useState('')
 
-  async function loadSampleSignetWallet() {
-    if (loadingWallet) return
-    setLoadingWallet(true)
-    setName('My Wallet')
+  async function loadSampleSignetLegacyWallet() {
+    setScriptVersion('P2PKH')
+    await loadSampleSignetWallet('legacy')
+  }
+
+  async function loadSampleSignetSegwitWallet() {
+    setScriptVersion('P2WPKH')
+    await loadSampleSignetWallet('segwit')
+  }
+
+  async function loadSampleSignetWallet(walletType: string) {
+    if (loadingWallet !== '') return
+    setLoadingWallet(walletType)
+    setName(`My Wallet (${walletType})`)
+    setPassphrase('')
+    setSeedWordCount(12)
     setSeedWords(sampleSignetWalletSeed)
     const wallet = await loadWallet()
     await encryptSeed()
     const account = getAccount()
     await addAccount(account)
-    setLoadingWallet(false)
+    setLoadingWallet('')
 
     try {
       const syncedAccount = await syncWallet(wallet, account)
@@ -123,11 +147,20 @@ export default function AccountList() {
                 {t('accounts.empty')}
               </SSText>
               <SSButton
-                label={t('account.load.sample.signet')}
+                label={t('account.load.sample.segwit')}
                 variant="ghost"
                 style={{ borderRadius: 0 }}
-                onPress={loadSampleSignetWallet}
-                loading={loadingWallet}
+                onPress={loadSampleSignetSegwitWallet}
+                disabled={loadingWallet !== ''}
+                loading={loadingWallet === 'segwit'}
+              />
+              <SSButton
+                label={t('account.load.sample.legacy')}
+                variant="ghost"
+                style={{ borderRadius: 0 }}
+                onPress={loadSampleSignetLegacyWallet}
+                disabled={loadingWallet !== ''}
+                loading={loadingWallet === 'legacy'}
               />
             </SSVStack>
           )}
