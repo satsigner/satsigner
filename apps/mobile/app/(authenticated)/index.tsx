@@ -176,8 +176,8 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 32 }}>
-        <ScrollView style={{ paddingRight: 16 }}>
+      <SSMainLayout style={{ paddingTop: 32, paddingRight: 2 }}>
+        <ScrollView style={{ paddingRight: '6%' }}>
           {accounts.length === 0 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
