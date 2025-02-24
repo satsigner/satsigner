@@ -173,6 +173,7 @@ function TotalTransactions({
               progressBackgroundColor={Colors.white}
             />
           }
+          style={{ marginHorizontal: 16, paddingRight: 8 }}
         >
           <SSVStack
             style={{ marginBottom: expand ? 8 : 16 }}

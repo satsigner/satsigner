@@ -107,7 +107,8 @@ export default function AccountList() {
               borderTopWidth: 1,
               borderTopColor: '#303030',
               borderBottomWidth: 1,
-              borderBottomColor: '#222222'
+              borderBottomColor: '#222222',
+              borderRadius: 0
             }}
             onPress={() => router.navigate('/addMasterKey/')}
             variant="gradient"
@@ -115,8 +116,8 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
-        <ScrollView>
+      <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 32 }}>
+        <ScrollView style={{ paddingRight: 16 }}>
           {accounts.length === 0 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
