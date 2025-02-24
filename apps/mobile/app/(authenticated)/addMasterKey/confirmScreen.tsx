@@ -36,10 +36,10 @@ export default function ConfirmScreen() {
       }, 30000)
       const wallet = await loadWallet()
       const account = getAccount()
+      accountName.current = account.name
       await addAccount(account)
       const syncedAccount = await syncWallet(wallet, account)
       await updateAccount(syncedAccount)
-      accountName.current = account.name
       setTimeout(() => {
         setCompleted(true)
       }, 2000)
