@@ -5,6 +5,8 @@ import TcpSocket from 'react-native-tcp-socket'
 
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
+import { type Network } from '@/types/settings/blockchain'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { TxDecoded } from '@/utils/txDecoded'
 
@@ -13,7 +15,7 @@ type IElectrumClient = {
     host: string
     port: number
     protocol?: 'tcp' | 'tls' | 'ssl'
-    network?: bitcoinjs.Network
+    network?: Network
   }
   addressBalance: {
     confirmed: number
@@ -91,13 +93,13 @@ class BaseElectrumClient {
     host,
     port,
     protocol = 'ssl',
-    network = bitcoinjs.networks.testnet
+    network = 'signet'
   }: IElectrumClient['props']) {
     const net = TcpSocket
     const tls = TcpSocket
     const options = {}
     this.client = new RnElectrumClient(net, tls, port, host, protocol, options)
-    this.network = network as never as bitcoinjs.networks.Network
+    this.network = bitcoinjsNetwork(network)
   }
 
   async init() {
@@ -175,34 +177,64 @@ class ElectrumClient extends BaseElectrumClient {
     addressKeychain: Utxo['keychain'] = 'external'
   ): Promise<AddressInfo> {
     const addressUtxos = await super.getAddressUtxos(address)
+    const utxoHeights = addressUtxos.map((value) => value.height)
+    const utxoTimestamps = await this.getBlockTimestamps(utxoHeights)
     const utxos: Utxo[] = this.parseAddressUtxos(
-      addressUtxos,
       address,
+      addressUtxos,
+      utxoTimestamps,
       addressKeychain
     )
 
     const addressTxs = await super.getAddressTransactions(address)
     const txIds = addressTxs.map((value) => value.tx_hash)
     const rawTransactions = await this.getTransactions(txIds)
-    const transactions = this.parseAddressTransactions(rawTransactions, address)
+    const txHeights = addressTxs.map((value) => value.height)
+    const txTimestamps = await this.getBlockTimestamps(txHeights)
+    const transactions = this.parseAddressTransactions(
+      address,
+      rawTransactions,
+      txHeights,
+      txTimestamps
+    )
 
     const balance = await this.getAddressBalance(address)
 
     return { utxos, transactions, balance }
   }
 
+  async getBlockTimestamp(height: number): Promise<number> {
+    const blockHeader = await this.client.blockchainBlock_header(height)
+    const block = bitcoinjs.Block.fromHex(blockHeader)
+    return block.timestamp
+  }
+
+  async getBlockTimestamps(heights: number[]): Promise<number[]> {
+    const heightTimestampDict: Record<number, number> = {}
+    const timestamps: number[] = []
+    for (const height of heights) {
+      if (!heightTimestampDict[height]) {
+        heightTimestampDict[height] = await this.getBlockTimestamp(height)
+      }
+      timestamps.push(heightTimestampDict[height])
+    }
+    return timestamps
+  }
+
   parseAddressUtxos(
-    utxos: IElectrumClient['addressUtxos'],
     address: string,
+    utxos: IElectrumClient['addressUtxos'],
+    timestamps: number[],
     addressKeychain: string
   ): Utxo[] {
-    return utxos.map((electrumUtxo) => {
+    return utxos.map((electrumUtxo, index) => {
       return {
         txid: electrumUtxo.tx_hash,
         value: electrumUtxo.value,
         vout: electrumUtxo.tx_pos,
         addressTo: address,
         keychain: addressKeychain,
+        timestamp: new Date(timestamps[index] * 1000),
         label: '',
         script: [...bitcoinjs.address.toOutputScript(address, this.network)]
       } as Utxo
@@ -210,8 +242,10 @@ class ElectrumClient extends BaseElectrumClient {
   }
 
   parseAddressTransactions(
+    address: string,
     rawTransactions: string[],
-    address: string
+    heights: number[],
+    timestamps: number[]
   ): Transaction[] {
     const transactions: Transaction[] = []
     const network = this.network
@@ -224,15 +258,19 @@ class ElectrumClient extends BaseElectrumClient {
       const parsedTx = TxDecoded.fromHex(rawTx)
       const tx = {
         id: parsedTx.getId(),
-        type: 'send',
+        type: 'receive',
         sent: 0,
         received: 0,
         address,
+        blockHeight: heights[index],
+        timestamp: new Date(timestamps[index] * 1000),
         lockTime: parsedTx.locktime,
         lockTimeEnabled: parsedTx.locktime > 0,
         version: parsedTx.version,
         label: '',
         raw: parseHexToBytes(rawTx),
+        vout: [],
+        vin: [],
         vsize: parsedTx.virtualSize(),
         weight: parsedTx.weight(),
         size: parsedTx.byteLength(),
@@ -245,36 +283,54 @@ class ElectrumClient extends BaseElectrumClient {
     })
 
     // Compute sent and received vales
+    // Also, add the fields VINS && VOUTS to the transaction
     for (let i = 0; i < transactions.length; i++) {
       const currentTx = parsedTransactions[i]
       const outputCount = Number(currentTx.getOutputCount().value)
       const inputCount = Number(currentTx.getInputCount().value)
 
-      // Compute received value by checking if tx outputs match address
       for (let j = 0; j < outputCount; j++) {
         const addr = currentTx.generateOutputScriptAddress(j, network)
-        if (addr !== address) continue
-
         const value = Number(currentTx.getOutputValue(j).value)
+        const script = [...currentTx.outs[j].script]
+
+        transactions[i].vout.push({ address: addr, value, script })
+
+        // Compute received value by checking if tx outputs match address
+        if (addr !== address) continue
         transactions[i].received += value
       }
 
-      // Compute sent value by checking if tx inputs match address
       for (let j = 0; j < inputCount; j++) {
-        const prevTxId = currentTx.getInputHash(j).value
-        if (!txDictionary[prevTxId]) continue
-
-        const prevTxIndex = txDictionary[prevTxId]
+        const prevTxId = currentTx.getInputHash(j).value as string
         const vout = Number(currentTx.getInputIndex(j).value)
+        const sequence = currentTx.ins[j].sequence
+        const witness = currentTx.ins[j].witness.map((w) => [...w])
+        const scriptSig = [...currentTx.ins[j].script]
+
+        transactions[i].vin?.push({
+          previousOutput: {
+            txid: prevTxId,
+            vout
+          },
+          sequence,
+          scriptSig,
+          witness
+        })
+
+        if (txDictionary[prevTxId] === undefined) continue
+        const prevTxIndex = txDictionary[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
-        if (addr !== address) continue
 
+        // Compute sent value by checking if tx inputs match address
+        if (addr !== address) continue
         const value = Number(parentTx.getOutputValue(vout).value)
         transactions[i].sent += value
       }
 
-      transactions[i].type = transactions[i].sent > 0 ? 'send' : 'receive'
+      transactions[i].type =
+        transactions[i].received > transactions[i].sent ? 'receive' : 'send'
     }
 
     return transactions

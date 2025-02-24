@@ -1,4 +1,4 @@
-import { Descriptor, type Wallet } from 'bdk-rn'
+import { type Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
@@ -6,14 +6,18 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
+import ElectrumClient from '@/api/electrum'
 import { PIN_KEY } from '@/config/auth'
 import { getBlockchainConfig } from '@/config/servers'
 import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type Label } from '@/utils/bip329'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatTimestamp } from '@/utils/format'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
@@ -29,9 +33,8 @@ type AccountsAction = {
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
-  syncWallet: (wallet: Wallet, account: Account) => Promise<Account>
+  syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
-  addSyncAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
@@ -75,13 +78,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           useBlockchainStore.getState()
         const opts = { retries, stopGap, timeout }
 
-        await syncWallet(
-          wallet,
-          backend,
-          getBlockchainConfig(backend, url, opts)
-        )
-
-        // TODO: move label backup elsewhere
+        // make backup of the labels
         const labelsDictionary: Record<string, string> = {}
         account.transactions.forEach((tx) => {
           const txRef = tx.id
@@ -92,24 +89,90 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           labelsDictionary[utxoRef] = utxo.label
         })
 
-        const { transactions, utxos, summary } = await getWalletData(
-          wallet,
-          network as Network
-        )
+        let transactions: Transaction[]
+        let utxos: Utxo[]
+        let summary: Account['summary']
 
+        if (!account.externalDescriptor) {
+          throw new Error('No external descriptor')
+        }
+
+        if (account.watchOnly === 'address') {
+          if (backend !== 'electrum') {
+            throw new Error(
+              'Only electrum backend is supported for this account'
+            )
+          }
+
+          const port = url.replace(/.*:/, '')
+          const protocol = url.replace(/:\/\/.*/, '')
+          const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
+
+          if (
+            !host.match(/^[a-z][a-z.]+$/i) ||
+            !port.match(/^[0-9]+$/) ||
+            (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+          ) {
+            throw new Error('Invalid backend URL')
+          }
+
+          const electrumClient = new ElectrumClient({
+            host,
+            port: Number(port),
+            protocol,
+            network
+          })
+
+          await electrumClient.init()
+
+          const addrDescriptor = account.externalDescriptor
+          const address = parseAddressDescriptorToAddress(addrDescriptor)
+          const addrInfo = await electrumClient.getAddressInfo(address)
+
+          electrumClient.close()
+
+          transactions = addrInfo.transactions
+          utxos = addrInfo.utxos
+          summary = {
+            numberOfAddresses: 1,
+            numberOfTransactions: transactions.length,
+            numberOfUtxos: utxos.length,
+            satsInMempool: addrInfo.balance.unconfirmed,
+            balance: addrInfo.balance.confirmed
+          }
+        } else {
+          if (!wallet) throw new Error('Got null wallet to sync')
+
+          await syncWallet(
+            wallet,
+            backend,
+            getBlockchainConfig(backend, url, opts)
+          )
+
+          const walletData = await getWalletData(wallet, network as Network)
+          transactions = walletData.transactions
+          utxos = walletData.utxos
+          summary = walletData.summary
+        }
+
+        // backup utxo labels
         for (const index in utxos) {
           const utxoRef = getUtxoOutpoint(utxos[index])
-          utxos[index].label = labelsDictionary[utxoRef]
-        }
-        for (const index in transactions) {
-          const txRef = transactions[index].id
-          transactions[index].label = labelsDictionary[txRef]
+          utxos[index].label = labelsDictionary[utxoRef] || ''
         }
 
+        // backup transaction labels
+        for (const index in transactions) {
+          const txRef = transactions[index].id
+          transactions[index].label = labelsDictionary[txRef] || ''
+        }
+
+        // extract timestamps
         const timestamps = transactions
           .filter((transaction) => transaction.timestamp)
           .map((transaction) => formatTimestamp(transaction.timestamp!))
 
+        // fetch prices for the timestamps
         const oracle = new MempoolOracle()
         const prices = await oracle.getPricesAt('USD', timestamps)
 
@@ -125,31 +188,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts.push(account)
           })
         )
-      },
-      addSyncAccount: async (account) => {
-        await get().addAccount(account)
-
-        if (!account.externalDescriptor) return
-
-        const network = useBlockchainStore.getState().network as Network
-
-        const externalDescriptor = await new Descriptor().create(
-          account.externalDescriptor,
-          network
-        )
-
-        const internalDescriptor = account.internalDescriptor
-          ? await new Descriptor().create(account.internalDescriptor, network)
-          : null
-
-        const wallet = await get().loadWalletFromDescriptor(
-          externalDescriptor,
-          internalDescriptor
-        )
-        if (!wallet) return
-
-        const syncedAccount = await get().syncWallet(wallet, account)
-        get().updateAccount(syncedAccount)
       },
       updateAccount: async (account) => {
         set(
