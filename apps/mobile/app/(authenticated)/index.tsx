@@ -34,6 +34,7 @@ export default function AccountList() {
   )
 
   const [
+    clearAccount,
     setDescriptorFromAddress,
     setName,
     setPassphrase,
@@ -47,6 +48,7 @@ export default function AccountList() {
   ] =
     useAccountBuilderStore(
       useShallow((state) => [
+        state.clearAccount,
         state.setDescriptorFromAddress,
         state.setName,
         state.setPassphrase,
@@ -86,6 +88,7 @@ export default function AccountList() {
     setPassphrase('')
     setSeedWordCount(12)
     setSeedWords(sampleSignetWalletSeed)
+    setWatchOnly(undefined)
     await loadWallet()
     await encryptSeed()
     await loadSampleWallet()
@@ -96,7 +99,7 @@ export default function AccountList() {
     const account = getAccount()
     await addAccount(account)
     setLoadingWallet('')
-
+    clearAccount()
     // try {
     //   const syncedAccount = await syncWallet(wallet, account)
     //   await updateAccount(syncedAccount)
@@ -157,7 +160,7 @@ export default function AccountList() {
       </SSHStack>
       <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
-          {accounts.length === 0 && (
+          {accounts.length < 5 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
                 {t('accounts.empty')}
