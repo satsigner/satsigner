@@ -204,7 +204,8 @@ const useAccountBuilderStore = create<
       fingerprint,
       derivationPath,
       externalDescriptor,
-      internalDescriptor
+      internalDescriptor,
+      watchOnly
     } = get()
 
     return {
@@ -218,6 +219,7 @@ const useAccountBuilderStore = create<
       derivationPath,
       externalDescriptor,
       internalDescriptor,
+      watchOnly,
       transactions: [],
       utxos: [],
       summary: {
