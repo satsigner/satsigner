@@ -247,6 +247,7 @@ const useAccountBuilderStore = create<
       derivationPath,
       externalDescriptor,
       internalDescriptor,
+      watchOnly,
       policyType,
       participants,
       participantsCount,
@@ -264,6 +265,7 @@ const useAccountBuilderStore = create<
       derivationPath,
       externalDescriptor,
       internalDescriptor,
+      watchOnly,
       transactions: [],
       utxos: [],
       summary: {
