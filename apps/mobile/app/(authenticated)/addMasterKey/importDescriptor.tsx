@@ -35,6 +35,10 @@ function ImportDescriptor() {
     router.back()
   }
 
+  function handleSelectFromOtherWallet() {
+    router.push('/addMasterKey/selectFromOtherWallet')
+  }
+
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -48,7 +52,7 @@ function ImportDescriptor() {
         <SSVStack justifyBetween>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label="Descriptor" />
+              <SSFormLayout.Label label={t('common.descriptor')} />
               <SSTextInput
                 align="left"
                 style={{
@@ -68,7 +72,7 @@ function ImportDescriptor() {
           <SSButton
             variant="outline"
             label={t('account.import.fromOtherWallet')}
-            onPress={() => {}}
+            onPress={handleSelectFromOtherWallet}
           />
           <SSButton
             label={t('common.confirm')}

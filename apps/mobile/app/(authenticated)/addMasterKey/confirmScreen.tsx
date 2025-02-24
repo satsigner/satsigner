@@ -31,6 +31,9 @@ export default function ConfirmScreen() {
 
   const createMultisigWallet = useCallback(async () => {
     try {
+      setTimeout(() => {
+        setCompleted(true)
+      }, 30000)
       const wallet = await loadWallet()
       const account = getAccount()
       await addAccount(account)
