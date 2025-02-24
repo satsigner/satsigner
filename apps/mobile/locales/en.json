@@ -29,6 +29,7 @@
     "import.word.noMatch": "No matching words",
     "load.sample.segwit": "Load sample SegWit wallet",
     "load.sample.legacy": "Load sample Legacy wallet",
+    "load.sample.address": "Load sample watch-only address",
     "mnemonic.12": "12 words generated from 128 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
     "mnemonic.15": "15 words generated from 160 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
     "mnemonic.18": "18 words generated from 192 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",

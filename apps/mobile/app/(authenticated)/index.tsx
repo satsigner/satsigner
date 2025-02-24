@@ -20,7 +20,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { sampleSignetWalletSeed } from '@/utils/samples'
+import { sampleSignetAddress, sampleSignetWalletSeed } from '@/utils/samples'
 
 export default function AccountList() {
   const router = useRouter()
@@ -34,22 +34,26 @@ export default function AccountList() {
   )
 
   const [
+    setDescriptorFromAddress,
     setName,
     setPassphrase,
     setScriptVersion,
     setSeedWordCount,
     setSeedWords,
+    setWatchOnly,
     loadWallet,
     encryptSeed,
     getAccount
   ] =
     useAccountBuilderStore(
       useShallow((state) => [
+        state.setDescriptorFromAddress,
         state.setName,
         state.setPassphrase,
         state.setScriptVersion,
         state.setSeedWordCount,
         state.setSeedWords,
+        state.setWatchOnly,
         state.loadWallet,
         state.encryptSeed,
         state.getAccount
@@ -58,35 +62,47 @@ export default function AccountList() {
 
   const [loadingWallet, setLoadingWallet] = useState('')
 
-  async function loadSampleSignetLegacyWallet() {
+  async function loadSampleLegacyWallet() {
     setScriptVersion('P2PKH')
-    await loadSampleSignetWallet('legacy')
+    await loadSampleSigningWallet('legacy')
   }
 
-  async function loadSampleSignetSegwitWallet() {
+  async function loadSampleSegwitWallet() {
     setScriptVersion('P2WPKH')
-    await loadSampleSignetWallet('segwit')
+    await loadSampleSigningWallet('segwit')
   }
 
-  async function loadSampleSignetWallet(walletType: string) {
-    if (loadingWallet !== '') return
+  async function loadSampleWatchOnlyAddressWallet() {
+    setLoadingWallet('watch-only address')
+    setDescriptorFromAddress(sampleSignetAddress)
+    setName('My wallet (watch-only address)')
+    setWatchOnly('address')
+    await loadSampleWallet()
+  }
+
+  async function loadSampleSigningWallet(walletType: string) {
     setLoadingWallet(walletType)
     setName(`My Wallet (${walletType})`)
     setPassphrase('')
     setSeedWordCount(12)
     setSeedWords(sampleSignetWalletSeed)
-    const wallet = await loadWallet()
+    await loadWallet()
     await encryptSeed()
+    await loadSampleWallet()
+  }
+
+  async function loadSampleWallet() {
+    if (loadingWallet !== '') return
     const account = getAccount()
     await addAccount(account)
     setLoadingWallet('')
 
-    try {
-      const syncedAccount = await syncWallet(wallet, account)
-      await updateAccount(syncedAccount)
-    } catch {
-      //
-    }
+    // try {
+    //   const syncedAccount = await syncWallet(wallet, account)
+    //   await updateAccount(syncedAccount)
+    // } catch {
+    //   //
+    // }
   }
 
   const [connectionState, connectionString, isPrivateConnection] =
@@ -150,7 +166,7 @@ export default function AccountList() {
                 label={t('account.load.sample.segwit')}
                 variant="ghost"
                 style={{ borderRadius: 0 }}
-                onPress={loadSampleSignetSegwitWallet}
+                onPress={loadSampleSegwitWallet}
                 disabled={loadingWallet !== ''}
                 loading={loadingWallet === 'segwit'}
               />
@@ -158,9 +174,17 @@ export default function AccountList() {
                 label={t('account.load.sample.legacy')}
                 variant="ghost"
                 style={{ borderRadius: 0 }}
-                onPress={loadSampleSignetLegacyWallet}
+                onPress={loadSampleLegacyWallet}
                 disabled={loadingWallet !== ''}
                 loading={loadingWallet === 'legacy'}
+              />
+              <SSButton
+                label={t('account.load.sample.address')}
+                variant="ghost"
+                style={{ borderRadius: 0 }}
+                onPress={loadSampleWatchOnlyAddressWallet}
+                disabled={loadingWallet !== ''}
+                loading={loadingWallet === 'watch-only address'}
               />
             </SSVStack>
           )}
