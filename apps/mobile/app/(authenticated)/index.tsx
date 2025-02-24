@@ -20,18 +20,18 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { sampleSignetAddress, sampleSignetWalletSeed, sampleSignetXpub, sampleSignetXpubFingerprint } from '@/utils/samples'
-import { Account } from '@/types/models/Account'
+import { type Account } from '@/types/models/Account'
+import {
+  sampleSignetAddress,
+  sampleSignetWalletSeed,
+  sampleSignetXpub,
+  sampleSignetXpubFingerprint
+} from '@/utils/samples'
 
 export default function AccountList() {
   const router = useRouter()
-  const [accounts, addAccount, updateAccount, syncWallet] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.addAccount,
-      state.updateAccount,
-      state.syncWallet
-    ])
+  const [accounts, addAccount] = useAccountsStore(
+    useShallow((state) => [state.accounts, state.addAccount])
   )
 
   const [
@@ -47,25 +47,24 @@ export default function AccountList() {
     setScriptVersion,
     setSeedWordCount,
     setSeedWords,
-    setWatchOnly,
-  ] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.clearAccount,
-        state.encryptSeed,
-        state.getAccount,
-        state.loadWallet,
-        state.setDescriptorFromAddress,
-        state.setDescriptorFromXpub,
-        state.setFingerprint,
-        state.setName,
-        state.setPassphrase,
-        state.setScriptVersion,
-        state.setSeedWordCount,
-        state.setSeedWords,
-        state.setWatchOnly,
-      ])
-    )
+    setWatchOnly
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.clearAccount,
+      state.encryptSeed,
+      state.getAccount,
+      state.loadWallet,
+      state.setDescriptorFromAddress,
+      state.setDescriptorFromXpub,
+      state.setFingerprint,
+      state.setName,
+      state.setPassphrase,
+      state.setScriptVersion,
+      state.setSeedWordCount,
+      state.setSeedWords,
+      state.setWatchOnly
+    ])
+  )
 
   const [loadingWallet, setLoadingWallet] = useState('')
 
