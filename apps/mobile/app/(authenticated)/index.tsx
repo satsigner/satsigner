@@ -20,7 +20,8 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { sampleSignetAddress, sampleSignetWalletSeed } from '@/utils/samples'
+import { sampleSignetAddress, sampleSignetWalletSeed, sampleSignetXpub, sampleSignetXpubFingerprint } from '@/utils/samples'
+import { Account } from '@/types/models/Account'
 
 export default function AccountList() {
   const router = useRouter()
@@ -35,30 +36,34 @@ export default function AccountList() {
 
   const [
     clearAccount,
+    encryptSeed,
+    getAccount,
+    loadWallet,
     setDescriptorFromAddress,
+    setDescriptorFromXpub,
+    setFingerprint,
     setName,
     setPassphrase,
     setScriptVersion,
     setSeedWordCount,
     setSeedWords,
     setWatchOnly,
-    loadWallet,
-    encryptSeed,
-    getAccount
   ] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.clearAccount,
+        state.encryptSeed,
+        state.getAccount,
+        state.loadWallet,
         state.setDescriptorFromAddress,
+        state.setDescriptorFromXpub,
+        state.setFingerprint,
         state.setName,
         state.setPassphrase,
         state.setScriptVersion,
         state.setSeedWordCount,
         state.setSeedWords,
         state.setWatchOnly,
-        state.loadWallet,
-        state.encryptSeed,
-        state.getAccount
       ])
     )
 
@@ -74,11 +79,24 @@ export default function AccountList() {
     await loadSampleSigningWallet('segwit')
   }
 
+  async function loadSampleWatchOnlyWallet() {
+    setScriptVersion('P2PKH')
+    setFingerprint(sampleSignetXpubFingerprint)
+    await setDescriptorFromXpub(sampleSignetXpub)
+    await loadSampleWatchOnly('public-key')
+  }
+
   async function loadSampleWatchOnlyAddressWallet() {
-    setLoadingWallet('watch-only address')
     setDescriptorFromAddress(sampleSignetAddress)
-    setName('My wallet (watch-only address)')
-    setWatchOnly('address')
+    await loadSampleWatchOnly('address')
+  }
+
+  async function loadSampleWatchOnly(
+    walletType: NonNullable<Account['watchOnly']>
+  ) {
+    setLoadingWallet(walletType)
+    setName(`My Wallet (watch-only ${walletType})`)
+    setWatchOnly(walletType)
     await loadSampleWallet()
   }
 
@@ -160,7 +178,7 @@ export default function AccountList() {
       </SSHStack>
       <SSMainLayout style={{ paddingHorizontal: '5%', paddingTop: 16 }}>
         <ScrollView>
-          {accounts.length < 5 && (
+          {accounts.length === 0 && (
             <SSVStack itemsCenter>
               <SSText color="muted" uppercase>
                 {t('accounts.empty')}
@@ -182,12 +200,20 @@ export default function AccountList() {
                 loading={loadingWallet === 'legacy'}
               />
               <SSButton
+                label={t('account.load.sample.xpub')}
+                variant="ghost"
+                style={{ borderRadius: 0 }}
+                onPress={loadSampleWatchOnlyWallet}
+                disabled={loadingWallet !== ''}
+                loading={loadingWallet === 'xpub'}
+              />
+              <SSButton
                 label={t('account.load.sample.address')}
                 variant="ghost"
                 style={{ borderRadius: 0 }}
                 onPress={loadSampleWatchOnlyAddressWallet}
                 disabled={loadingWallet !== ''}
-                loading={loadingWallet === 'watch-only address'}
+                loading={loadingWallet === 'address'}
               />
             </SSVStack>
           )}
