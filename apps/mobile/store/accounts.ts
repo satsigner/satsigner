@@ -1,4 +1,4 @@
-import { typeDescriptor, type Wallet } from 'bdk-rn'
+import { type Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
@@ -7,6 +7,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { getWalletData, getWalletFromDescriptor, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
+import { Esplora } from '@/api/esplora'
 import { PIN_KEY } from '@/config/auth'
 import { getBlockchainConfig } from '@/config/servers'
 import { getItem } from '@/storage/encrypted'
@@ -24,7 +25,6 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
-import { Esplora } from '@/api/esplora'
 
 type AccountsState = {
   accounts: Account[]
