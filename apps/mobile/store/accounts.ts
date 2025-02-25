@@ -1,4 +1,4 @@
-import { type Descriptor, type Wallet } from 'bdk-rn'
+import { typeDescriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
@@ -17,10 +17,14 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type Label } from '@/utils/bip329'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatTimestamp } from '@/utils/format'
-import { parseAddressDescriptorToAddress } from '@/utils/parse'
+import {
+  parseAddressDescriptorToAddress,
+  parseHexToBytes as hexToBytes
+} from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { Esplora } from '@/api/esplora'
 
 type AccountsState = {
   accounts: Account[]
@@ -74,6 +78,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return wallet
       },
       syncWallet: async (wallet, account) => {
+        // TODO: refactor this HUGE function, break it down
         const { backend, network, retries, stopGap, timeout, url } =
           useBlockchainStore.getState()
         const opts = { retries, stopGap, timeout }
@@ -89,8 +94,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           labelsDictionary[utxoRef] = utxo.label
         })
 
-        let transactions: Transaction[]
-        let utxos: Utxo[]
+        let transactions: Transaction[] = []
+        let utxos: Utxo[] = []
         let summary: Account['summary']
 
         if (!account.externalDescriptor) {
@@ -98,47 +103,139 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
 
         if (account.watchOnly === 'address') {
-          if (backend !== 'electrum') {
-            throw new Error(
-              'Only electrum backend is supported for this account'
-            )
-          }
-
-          const port = url.replace(/.*:/, '')
-          const protocol = url.replace(/:\/\/.*/, '')
-          const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
-
-          if (
-            !host.match(/^[a-z][a-z.]+$/i) ||
-            !port.match(/^[0-9]+$/) ||
-            (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
-          ) {
-            throw new Error('Invalid backend URL')
-          }
-
-          const electrumClient = new ElectrumClient({
-            host,
-            port: Number(port),
-            protocol,
-            network
-          })
-
-          await electrumClient.init()
-
           const addrDescriptor = account.externalDescriptor
           const address = parseAddressDescriptorToAddress(addrDescriptor)
-          const addrInfo = await electrumClient.getAddressInfo(address)
+          let confirmed = 0
+          let unconfirmed = 0
 
-          electrumClient.close()
+          if (backend === 'esplora') {
+            const esploraClient = new Esplora(url)
+            const esploraTxs = await esploraClient.getAddressTx(address)
+            const esploraUtxos = await esploraClient.getAddressUtxos(address)
 
-          transactions = addrInfo.transactions
-          utxos = addrInfo.utxos
+            const txDictionary: Record<string, number> = {}
+
+            for (let index = 0; index < esploraTxs.length; index++) {
+              const t = esploraTxs[index]
+              const vin: Transaction['vin'] = []
+              const vout: Transaction['vout'] = []
+              let sent = 0
+              let received = 0
+
+              t.vin.forEach((input) => {
+                vin.push({
+                  previousOutput: {
+                    txid: input.txid,
+                    vout: input.vout
+                  },
+                  sequence: input.sequence,
+                  scriptSig: hexToBytes(input.scriptsig),
+                  witness: input.witness.map(hexToBytes)
+                })
+                if (input.prevout.scriptpubkey_address === address) {
+                  sent += input.prevout.value
+                }
+              })
+
+              t.vout.forEach((out) => {
+                vout.push({
+                  value: out.value,
+                  address: out.scriptpubkey_address,
+                  script: hexToBytes(out.scriptpubkey)
+                })
+                if (out.scriptpubkey_address === address) {
+                  received += out.value
+                }
+              })
+
+              const raw = await esploraClient.getTxHex(t.txid)
+
+              const tx = {
+                address,
+                blockHeight: t.status.block_height,
+                fee: t.fee,
+                id: t.txid,
+                label: '',
+                locktime: t.locktime,
+                lockTimeEnabled: t.locktime > 0,
+                prices: {},
+                raw: hexToBytes(raw),
+                received,
+                sent,
+                size: t.size,
+                timestamp: new Date(t.status.block_time * 1000),
+                type: sent > 0 ? 'send' : 'receive',
+                version: t.version,
+                vin,
+                vout,
+                weight: t.weight
+              } as Transaction
+
+              txDictionary[tx.id] = index
+              transactions.push(tx)
+            }
+
+            utxos = esploraUtxos.map((u) => {
+              if (u.status.confirmed) confirmed += u.value
+              else unconfirmed += u.value
+
+              let script: number[] | undefined
+              if (txDictionary[u.txid] !== undefined) {
+                const index = txDictionary[u.txid]
+                const tx = esploraTxs[index]
+                script = hexToBytes(tx.vout[u.vout].scriptpubkey)
+              }
+
+              return {
+                txid: u.txid,
+                vout: u.vout,
+                value: u.value,
+                label: '',
+                addressTo: address,
+                keychain: 'external',
+                script,
+                timestamp: u.status.block_time
+                  ? new Date(u.status.block_time * 1000)
+                  : undefined
+              }
+            })
+          } else {
+            const port = url.replace(/.*:/, '')
+            const protocol = url.replace(/:\/\/.*/, '')
+            const host = url
+              .replace(`${protocol}://`, '')
+              .replace(`:${port}`, '')
+
+            if (
+              !host.match(/^[a-z][a-z.]+$/i) ||
+              !port.match(/^[0-9]+$/) ||
+              (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+            ) {
+              throw new Error('Invalid backend URL')
+            }
+
+            const electrumClient = new ElectrumClient({
+              host,
+              port: Number(port),
+              protocol,
+              network
+            })
+
+            await electrumClient.init()
+            const addrInfo = await electrumClient.getAddressInfo(address)
+            electrumClient.close()
+            transactions = addrInfo.transactions
+            utxos = addrInfo.utxos
+            confirmed = addrInfo.balance.confirmed
+            unconfirmed = addrInfo.balance.unconfirmed
+          }
+
           summary = {
             numberOfAddresses: 1,
             numberOfTransactions: transactions.length,
             numberOfUtxos: utxos.length,
-            satsInMempool: addrInfo.balance.unconfirmed,
-            balance: addrInfo.balance.confirmed
+            satsInMempool: unconfirmed,
+            balance: confirmed
           }
         } else {
           if (!wallet) throw new Error('Got null wallet to sync')

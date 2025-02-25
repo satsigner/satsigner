@@ -473,6 +473,7 @@ export default function AccountView() {
         internalDescriptor
       )
     }
+
     const syncedAccount = await syncWallet(wallet, account)
 
     await updateAccount(syncedAccount)

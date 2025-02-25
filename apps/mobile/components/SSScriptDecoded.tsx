@@ -12,7 +12,13 @@ type SSScriptDecodedProps = {
 }
 
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
-  const decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
+  let decodedScript : string
+  try {
+    decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
+  } catch {
+    return <SSText>Error decoding</SSText>
+  }
+
   return (
     <SSVStack>
       {!decodedScript && <SSText>The script is empty</SSText>}
