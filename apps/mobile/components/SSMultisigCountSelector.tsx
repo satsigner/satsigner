@@ -24,12 +24,12 @@ type SSMultisigCountSelectorProps = {
 }
 
 function SSMultisigCountSelector({
-  onChangeRequiredNumber = () => {},
-  onChangeTotalNumber = () => {},
   maxCount,
   requiredNumber,
   totalNumber,
-  viewOnly
+  viewOnly,
+  onChangeRequiredNumber = () => {},
+  onChangeTotalNumber = () => {}
 }: SSMultisigCountSelectorProps) {
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
   const [activeTotalNumber, setActiveTotalNumber] = useState<boolean>(false)
