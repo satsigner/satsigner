@@ -22,7 +22,7 @@ type SSMultisigCountSelectorProps = {
   totalNumber: number
 }
 
-export default function SSMultisigCountSelector({
+function SSMultisigCountSelector({
   onChangeRequiredNumber,
   onChangeTotalNumber,
   maxCount,
@@ -237,3 +237,5 @@ export default function SSMultisigCountSelector({
     </View>
   )
 }
+
+export default SSMultisigCountSelector

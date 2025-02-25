@@ -12,22 +12,22 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { type MultisigParticipant } from '@/types/models/Account'
 import { formatAddress } from '@/utils/format'
 
-export type SSMultisigKeyControlProps = {
+type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
   collapsed: boolean
-  collapseChanged: (value: boolean) => void
   index: number
   creating: boolean
   participant: MultisigParticipant | undefined
+  collapseChanged: (value: boolean) => void
 }
 
-export default function SSMultisigKeyControl({
+function SSMultisigKeyControl({
   isBlackBackground,
   collapsed,
-  collapseChanged,
   index,
   creating,
-  participant
+  participant,
+  collapseChanged
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
 
@@ -145,3 +145,5 @@ export default function SSMultisigKeyControl({
     </SSVStack>
   )
 }
+
+export default SSMultisigKeyControl
