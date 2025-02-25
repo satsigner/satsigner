@@ -417,6 +417,8 @@
     "decoded.description.witnessItemSignature": "This witness item is a signature.",
     "decoded.description.witnessItemsVarInt": "This is a variable integer (VarInt) that denotes the length (in bytes) of the subsequent witness item.",
     "decoded.description.witnessVarInt": "This is a variable integer (VarInt) that indicates the number of witness items for the transaction input. Note that each segwit input has its own witnessVarInt. The order of the witness items is the same as the order of the transaction inputs.",
+    "decoded.empty": "The script is empty",
+    "decoded.error": "Unable to decode the script",
     "decoded.label.flag": "Flag",
     "decoded.label.locktime": "LockTime",
     "decoded.label.marker": "Marker",
