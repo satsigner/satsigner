@@ -37,7 +37,7 @@ export default function WatchOnlyOptions() {
     scriptVersion,
     fingerprint,
     clearAccount,
-    getAccountFromDescriptor,
+    getAccount,
     setFingerprint,
     setDescriptorFromXpub,
     setDescriptorFromAddress,
@@ -50,7 +50,7 @@ export default function WatchOnlyOptions() {
       state.scriptVersion,
       state.fingerprint,
       state.clearAccount,
-      state.getAccountFromDescriptor,
+      state.getAccount,
       state.setFingerprint,
       state.setDescriptorFromXpub,
       state.setDescriptorFromAddress,
@@ -131,7 +131,7 @@ export default function WatchOnlyOptions() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    const account = await getAccountFromDescriptor()
+    const account = getAccount()
 
     try {
       if (account) {
