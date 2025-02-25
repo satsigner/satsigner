@@ -13,7 +13,7 @@ import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
-import SSMultisigCountView from '@/components/SSMultisigCountView'
+import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -212,10 +212,11 @@ export default function AccountSettings() {
               style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
               gap="md"
             >
-              <SSMultisigCountView
+              <SSMultisigCountSelector
                 maxCount={12}
-                requiredCount={account.requiredParticipantsCount!}
-                totalCount={account.participantsCount!}
+                requiredNumber={account.requiredParticipantsCount!}
+                totalNumber={account.participantsCount!}
+                viewOnly
               />
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>

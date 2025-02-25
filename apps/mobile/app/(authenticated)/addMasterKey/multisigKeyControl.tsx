@@ -4,7 +4,7 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
-import SSMultisigCountView from '@/components/SSMultisigCountView'
+import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -55,10 +55,11 @@ export default function MultisigKeyControl() {
           style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
           gap="md"
         >
-          <SSMultisigCountView
+          <SSMultisigCountSelector
             maxCount={12}
-            requiredCount={requiredParticipantsCount!}
-            totalCount={participantsCount!}
+            requiredNumber={requiredParticipantsCount!}
+            totalNumber={participantsCount!}
+            viewOnly
           />
           <SSText center>{t('account.addOrGenerateKeys')}</SSText>
         </SSVStack>

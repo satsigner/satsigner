@@ -173,6 +173,7 @@ export default function AccountOptions() {
               totalNumber={localParticipantsCount}
               onChangeRequiredNumber={setLocalRequiredParticipantsCount}
               onChangeTotalNumber={setLocalParticipantsCount}
+              viewOnly={false}
             />
           )}
         </SSVStack>

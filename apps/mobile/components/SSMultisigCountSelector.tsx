@@ -15,19 +15,21 @@ const RADIUS_INNER_RECT = 13
 const RADIUS_OUTER_RECT = 16
 
 type SSMultisigCountSelectorProps = {
-  onChangeTotalNumber: (value: number) => void
-  onChangeRequiredNumber: (value: number) => void
   maxCount: number
   requiredNumber: number
   totalNumber: number
+  viewOnly: boolean
+  onChangeTotalNumber?: (value: number) => void
+  onChangeRequiredNumber?: (value: number) => void
 }
 
 function SSMultisigCountSelector({
-  onChangeRequiredNumber,
-  onChangeTotalNumber,
+  onChangeRequiredNumber = () => {},
+  onChangeTotalNumber = () => {},
   maxCount,
   requiredNumber,
-  totalNumber
+  totalNumber,
+  viewOnly
 }: SSMultisigCountSelectorProps) {
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
   const [activeTotalNumber, setActiveTotalNumber] = useState<boolean>(false)
@@ -49,45 +51,51 @@ function SSMultisigCountSelector({
     )
   }, [maxCount, sizeBetweenPoints])
 
-  const panGesture = Gesture.Pan()
-    .activateAfterLongPress(30)
-    .onStart((event) => {
-      const x = event.x
-      const index = centerPoints.findIndex((point) => {
-        return x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
-      })
-      if (index + 1 === requiredNumber) {
-        setActiveRequiredNumber(true)
-      } else if (index + 1 === totalNumber) {
-        setActiveTotalNumber(true)
-      }
-    })
-    .onUpdate((event) => {
-      const x = event.x
-      const index = centerPoints.findIndex((point) => {
-        return x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
-      })
-      if (index === -1) {
-        return
-      }
-      if (activeTotalNumber) {
-        if (index + 1 < requiredNumber) {
-          onChangeRequiredNumber(index + 1)
-        }
-        onChangeTotalNumber(index + 1)
-      }
-      if (activeRequiredNumber) {
-        if (index + 1 > totalNumber) {
-          onChangeTotalNumber(index + 1)
-        }
-        onChangeRequiredNumber(index + 1)
-      }
-    })
-    .onEnd(() => {
-      setActiveRequiredNumber(false)
-      setActiveTotalNumber(false)
-    })
-    .runOnJS(true)
+  const panGesture = viewOnly
+    ? Gesture.Pan()
+    : Gesture.Pan()
+        .activateAfterLongPress(30)
+        .onStart((event) => {
+          const x = event.x
+          const index = centerPoints.findIndex((point) => {
+            return (
+              x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
+            )
+          })
+          if (index + 1 === requiredNumber) {
+            setActiveRequiredNumber(true)
+          } else if (index + 1 === totalNumber) {
+            setActiveTotalNumber(true)
+          }
+        })
+        .onUpdate((event) => {
+          const x = event.x
+          const index = centerPoints.findIndex((point) => {
+            return (
+              x >= point - RADIUS_INDICATOR && x <= point + RADIUS_INDICATOR
+            )
+          })
+          if (index === -1) {
+            return
+          }
+          if (activeTotalNumber) {
+            if (index + 1 < requiredNumber) {
+              onChangeRequiredNumber(index + 1)
+            }
+            onChangeTotalNumber(index + 1)
+          }
+          if (activeRequiredNumber) {
+            if (index + 1 > totalNumber) {
+              onChangeTotalNumber(index + 1)
+            }
+            onChangeRequiredNumber(index + 1)
+          }
+        })
+        .onEnd(() => {
+          setActiveRequiredNumber(false)
+          setActiveTotalNumber(false)
+        })
+        .runOnJS(true)
 
   return (
     <View
@@ -95,18 +103,22 @@ function SSMultisigCountSelector({
         flexDirection: 'column'
       }}
     >
-      <SSText style={{ alignSelf: 'center' }}>
-        {t('account.signatureRequired')}
-      </SSText>
-      <SSText
-        style={{
-          alignSelf: 'center',
-          fontSize: 55,
-          textTransform: 'lowercase'
-        }}
-      >
-        {requiredNumber} {t('common.of')} {totalNumber}
-      </SSText>
+      {!viewOnly && (
+        <>
+          <SSText style={{ alignSelf: 'center' }}>
+            {t('account.signatureRequired')}
+          </SSText>
+          <SSText
+            style={{
+              alignSelf: 'center',
+              fontSize: 55,
+              textTransform: 'lowercase'
+            }}
+          >
+            {requiredNumber} {t('common.of')} {totalNumber}
+          </SSText>
+        </>
+      )}
       <GestureHandlerRootView>
         <GestureDetector gesture={panGesture}>
           <View
