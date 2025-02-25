@@ -156,7 +156,7 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
-      {showHistoryChart ? (
+      {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
           <SSHistoryChart
             transactions={sortedTransactions}
@@ -173,6 +173,7 @@ function TotalTransactions({
               progressBackgroundColor={Colors.white}
             />
           }
+          style={{ marginLeft: 16, marginRight: 2, paddingRight: 14 }}
         >
           <SSVStack
             style={{ marginBottom: expand ? 8 : 16 }}
