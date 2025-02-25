@@ -236,8 +236,6 @@ export default function AccountOptions() {
       <SSSelectModal
         visible={policyTypeModalVisible}
         title={t('account.policy.title')}
-        selectedText=""
-        selectedDescription=""
         onSelect={() => handleOnSelectPolicyType()}
         onCancel={() => setPolicyTypeModalVisible(false)}
       >

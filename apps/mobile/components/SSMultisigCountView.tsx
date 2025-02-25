@@ -12,7 +12,7 @@ type SSMultiSigCountViewProps = {
   requiredCount: number
 }
 
-export default function SSMultisigCountView({
+function SSMultisigCountView({
   maxCount,
   totalCount,
   requiredCount
@@ -156,3 +156,5 @@ export default function SSMultisigCountView({
     </View>
   )
 }
+
+export default SSMultisigCountView
