@@ -311,28 +311,6 @@ export default function WatchOnlyOptions() {
                   </>
                 )}
               </SSVStack>
-              {selectedOption === 'address' && (
-                <SSVStack gap="xs">
-                  <SSHStack>
-                    <SSIconWarning height={16} width={16} />
-                    <SSText center style={{ width: '80%' }}>
-                      {t('watchonly.address.warning.text')}
-                    </SSText>
-                    <SSIconWarning height={16} width={16} />
-                  </SSHStack>
-                  <SSText
-                    size="xs"
-                    center
-                    onPress={() => router.navigate('/settings/network')}
-                    style={{
-                      textDecorationStyle: 'solid',
-                      textDecorationLine: 'underline'
-                    }}
-                  >
-                    {t('watchonly.address.warningCallToAction')}
-                  </SSText>
-                </SSVStack>
-              )}
               <SSVStack>
                 <SSButton
                   label={t('watchonly.read.clipboard')}
