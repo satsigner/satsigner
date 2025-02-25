@@ -219,7 +219,7 @@ export default function AccountSettings() {
               />
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>
-            <SSVStack gap="none">
+            <SSVStack gap="none" style={{ marginHorizontal: -20 }}>
               {account.participants!.map((p, index) => (
                 <SSMultisigKeyControl
                   key={index}

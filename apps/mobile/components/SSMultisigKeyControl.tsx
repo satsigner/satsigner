@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router'
+import { TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
@@ -71,77 +72,81 @@ export default function SSMultisigKeyControl({
     }
   }
 
+  function handlePressIcon() {
+    collapseChanged(!collapsed)
+  }
+
   return (
-    <SSVStack
-      style={{
-        borderColor: '#6A6A6A',
-        borderTopWidth: 2,
-        borderBottomWidth: 2,
-        backgroundColor: isBlackBackground ? 'black' : '#1E1E1E',
-        paddingHorizontal: 16,
-        paddingBottom: 32,
-        paddingTop: 16
-      }}
-    >
-      <SSHStack justifyBetween>
-        <SSHStack style={{ alignItems: 'center' }}>
-          <SSIconButton
-            onPress={() => {
-              collapseChanged(!collapsed)
-            }}
-          >
-            {participant ? (
-              <SSIconGreen width={24} height={24} />
-            ) : (
-              <SSIconAdd width={24} height={24} />
-            )}
-          </SSIconButton>
-          <SSText>
-            {t('common.key')} {index}
-          </SSText>
-          <SSVStack gap="none">
-            <SSText>{getSourceLabel()}</SSText>
-            <SSText>{participant?.keyName ?? t('account.seed.noLabel')}</SSText>
+    <TouchableOpacity onPress={handlePressIcon}>
+      <SSVStack
+        style={{
+          borderColor: '#6A6A6A',
+          borderTopWidth: 2,
+          borderBottomWidth: 2,
+          backgroundColor: isBlackBackground ? 'black' : '#1E1E1E',
+          paddingHorizontal: 16,
+          paddingBottom: 32,
+          paddingTop: 16
+        }}
+      >
+        <SSHStack justifyBetween>
+          <SSHStack style={{ alignItems: 'center' }}>
+            <SSIconButton>
+              {participant ? (
+                <SSIconGreen width={24} height={24} />
+              ) : (
+                <SSIconAdd width={24} height={24} />
+              )}
+            </SSIconButton>
+            <SSText>
+              {t('common.key')} {index}
+            </SSText>
+            <SSVStack gap="none">
+              <SSText>{getSourceLabel()}</SSText>
+              <SSText>
+                {participant?.keyName ?? t('account.seed.noLabel')}
+              </SSText>
+            </SSVStack>
+          </SSHStack>
+          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
+            <SSText>
+              {participant?.fingerprint ?? t('account.fingerprint')}
+            </SSText>
+            <SSText>
+              {participant?.publicKey
+                ? formatAddress(participant?.publicKey, 6)
+                : t('account.seed.publicKey')}
+            </SSText>
           </SSVStack>
         </SSHStack>
-        <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-          <SSText>
-            {participant?.fingerprint ?? t('account.fingerprint')}
-          </SSText>
-          <SSText>
-            {participant?.publicKey
-              ? formatAddress(participant?.publicKey, 6)
-              : t('account.seed.publicKey')}
-          </SSText>
-        </SSVStack>
-      </SSHStack>
-      {collapsed &&
-        (!creating || (creating && participant) ? (
-          <>
-            <SSButton
-              uppercase
-              label={t('account.seed.dropAndKeep')}
-              variant="outline"
-            />
-            <SSButton uppercase label={t('account.seed.sharePub')} />
-            <SSButton uppercase label={t('account.seed.shareDescriptor')} />
-          </>
-        ) : (
-          <>
-            <SSButton
-              label={t('account.generate.title')}
-              onPress={handleOnClickGenerate}
-            />
-            <SSButton
-              label={t('account.import.title')}
-              onPress={handleOnClickImport}
-            />
-            <SSButton
-              label={t('account.import.descriptor')}
-              onPress={handleOnClickImportDescriptor}
-            />
-          </>
-        ))}
-    </SSVStack>
+        {collapsed &&
+          (!creating || (creating && participant) ? (
+            <>
+              <SSButton
+                uppercase
+                label={t('account.seed.dropAndKeep')}
+                variant="outline"
+              />
+              <SSButton uppercase label={t('account.seed.sharePub')} />
+              <SSButton uppercase label={t('account.seed.shareDescriptor')} />
+            </>
+          ) : (
+            <>
+              <SSButton
+                label={t('account.generate.title')}
+                onPress={handleOnClickGenerate}
+              />
+              <SSButton
+                label={t('account.import.title')}
+                onPress={handleOnClickImport}
+              />
+              <SSButton
+                label={t('account.import.descriptor')}
+                onPress={handleOnClickImportDescriptor}
+              />
+            </>
+          ))}
+      </SSVStack>
+    </TouchableOpacity>
   )
 }
