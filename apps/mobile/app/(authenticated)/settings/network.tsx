@@ -250,7 +250,12 @@ export default function NetworkSettings() {
       >
         {networks.map((network) => (
           <SSVStack key={network} gap="sm">
+            <SSVStack gap="none">
             <SSText uppercase>{network}</SSText>
+              <SSText color="muted">
+              {t(`settings.network.type.${network}`)}
+              </SSText>
+            </SSVStack>
             {servers
               .filter((server) => server.network === network)
               .map((server, index) => (
