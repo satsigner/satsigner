@@ -14,6 +14,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Backend, Network } from '@/types/settings/blockchain'
+import { SSIconWarning } from '@/components/icons'
 
 type ServerType = 'CUSTOM' | 'PUBLIC'
 
@@ -102,8 +103,7 @@ export default function NetworkSettings() {
           ))}
         </SSHStack>
         <ScrollView>
-          <SSVStack
-            gap="lg"
+          <SSVStack gap="lg"
             style={{
               display: serverType === 'CUSTOM' ? 'flex' : 'none'
             }}
@@ -163,6 +163,36 @@ export default function NetworkSettings() {
                 max={30}
                 onChangeText={setSelectedStopGap}
               />
+            </SSVStack>
+          </SSVStack>
+          <SSVStack
+            gap="lg"
+            style={{
+              display: serverType === 'PUBLIC' ? 'flex' : 'none'
+            }}
+          >
+            <SSHStack
+              gap="sm"
+              style={{ justifyContent: 'center', width: '100%' }}
+            >
+              <SSIconWarning
+                height={30}
+                width={30}
+                fill="black"
+                strokeExclamation="white"
+                strokeTriangle="red"
+              />
+              <SSText>WARNING</SSText>
+            </SSHStack>
+            <SSText center style={{ paddingHorizontal: '10%' }}>
+              Your data requests relating to wallet addresses, transactions, and utxos will go out to potentially untrusted server.
+            </SSText>
+            <SSVStack gap="md">
+              <SSButton
+                withSelect
+                label="BLOCKSTREAM (BITCOIN)"
+              />
+              <SSButton label="TEST CONNECTION" />
             </SSVStack>
           </SSVStack>
         </ScrollView>
