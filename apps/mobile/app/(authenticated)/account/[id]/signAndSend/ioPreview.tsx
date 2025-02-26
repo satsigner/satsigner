@@ -1,12 +1,14 @@
+import type BottomSheet from '@gorhom/bottom-sheet'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconBubbles, SSIconScan } from '@/components/icons'
+import { SSIconScan } from '@/components/icons'
+import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
@@ -51,6 +53,10 @@ export default function IOPreview() {
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+
+  const addOutputBottomSheetRef = useRef<BottomSheet>(null)
+  const optionsBottomSheetRef = useRef<BottomSheet>(null)
+  const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
 
   const utxosValue = (utxos: Utxo[]): number =>
     utxos.reduce((acc, utxo) => acc + utxo.value, 0)
@@ -179,67 +185,52 @@ export default function IOPreview() {
         locations={[0.185, 0.5554, 0.7713, 1]}
         colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}
       >
-        <SSVStack style={{ flex: 1 }}>
-          <SSHStack justifyBetween>
-            <SSText color="muted">Group</SSText>
-            <SSText size="md">
-              {t('transaction.build.select.spendableOutputs')}
+        <SSVStack itemsCenter gap="sm" style={{ flex: 1 }}>
+          <SSVStack itemsCenter gap="xs">
+            <SSText>
+              {inputs.size} {t('common.of').toLowerCase()}{' '}
+              {account.utxos.length} {t('common.selected').toLowerCase()}
             </SSText>
-            <SSIconButton
-              onPress={() =>
-                router.navigate(`/account/${id}/signAndSend/selectUtxoBubbles`)
-              }
-            >
-              <SSIconBubbles height={22} width={24} />
-            </SSIconButton>
-          </SSHStack>
-          <SSVStack itemsCenter gap="sm">
-            <SSVStack itemsCenter gap="xs">
-              <SSText>
-                {inputs.size} {t('common.of').toLowerCase()}{' '}
-                {account.utxos.length} {t('common.selected').toLowerCase()}
+            <SSHStack gap="xs">
+              <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                {t('common.total')}
               </SSText>
-              <SSHStack gap="xs">
-                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {t('common.total')}
-                </SSText>
-                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(utxosTotalValue, 0, useZeroPadding)}
-                </SSText>
-                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {t('bitcoin.sats').toLowerCase()}
-                </SSText>
-                <SSText size="xxs" style={{ color: Colors.gray[75] }}>
-                  {formatNumber(satsToFiat(utxosTotalValue), 2)}
-                </SSText>
-                <SSText size="xxs" style={{ color: Colors.gray[400] }}>
-                  {fiatCurrency}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
-            <SSVStack itemsCenter gap="none">
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText
-                  size="7xl"
-                  color="white"
-                  weight="ultralight"
-                  style={{ lineHeight: 62 }}
-                >
-                  {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
-                </SSText>
-                <SSText size="xl" color="muted">
-                  {t('bitcoin.sats').toLowerCase()}
-                </SSText>
-              </SSHStack>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="md" color="muted">
-                  {formatNumber(satsToFiat(utxosSelectedValue), 2)}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
+              <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                {formatNumber(utxosTotalValue, 0, useZeroPadding)}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                {t('bitcoin.sats').toLowerCase()}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray[75] }}>
+                {formatNumber(satsToFiat(utxosTotalValue), 2)}
+              </SSText>
+              <SSText size="xxs" style={{ color: Colors.gray[400] }}>
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
+          </SSVStack>
+          <SSVStack itemsCenter gap="none">
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText
+                size="7xl"
+                color="white"
+                weight="ultralight"
+                style={{ lineHeight: 62 }}
+              >
+                {formatNumber(utxosSelectedValue, 0, useZeroPadding)}
+              </SSText>
+              <SSText size="xl" color="muted">
+                {t('bitcoin.sats').toLowerCase()}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText size="md" color="muted">
+                {formatNumber(satsToFiat(utxosSelectedValue), 2)}
+              </SSText>
+              <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
           </SSVStack>
         </SSVStack>
       </LinearGradient>
@@ -274,40 +265,69 @@ export default function IOPreview() {
       >
         <SSVStack
           style={{
-            width: '92%'
+            width: '100%',
+            paddingHorizontal: Layout.mainContainer.paddingHorizontal
           }}
         >
-          <SSTextInput
-            variant="outline"
-            size="small"
-            align="left"
-            placeholder={t('transaction.build.type.label')}
-          />
-          <SSHStack>
-            <SSButton
-              variant="outline"
-              label={t('transaction.build.add.input.title')}
-              style={{ flex: 1 }}
-              onPress={() =>
-                router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
-              }
-            />
-            <SSButton
-              variant={outputs.length > 0 ? 'outline' : 'secondary'}
-              label={t('transaction.build.add.output.title')}
-              style={{ flex: 1 }}
-              onPress={() => setAddOutputModalVisible(true)}
-            />
-          </SSHStack>
+          <SSVStack>
+            <SSHStack>
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.add.input.title')}
+                style={{ flex: 1 }}
+                onPress={() =>
+                  router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
+                }
+              />
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.add.output.title')}
+                style={{ flex: 1 }}
+                onPress={() => addOutputBottomSheetRef.current?.expand()}
+              />
+            </SSHStack>
+            <SSHStack>
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.options.title')}
+                style={{ flex: 1 }}
+                onPress={() => optionsBottomSheetRef.current?.expand()}
+              />
+              <SSButton
+                variant="outline"
+                label={t('transaction.build.update.fee.title')}
+                style={{ flex: 1 }}
+                onPress={() => changeFeeBottomSheetRef.current?.expand()}
+              />
+            </SSHStack>
+          </SSVStack>
           <SSButton
             variant="secondary"
-            label={t('transaction.build.set.fee')}
-            onPress={() =>
-              router.navigate(`/account/${id}/signAndSend/feeSelection`)
-            }
+            label={t('sign.transaction')}
+            onPress={() => {}}
           />
         </SSVStack>
       </LinearGradient>
+      <SSBottomSheet
+        ref={addOutputBottomSheetRef}
+        title={t('transaction.build.add.output.number', {
+          number: outputs.length + 1
+        })}
+      >
+        <SSText>Placeholder</SSText>
+      </SSBottomSheet>
+      <SSBottomSheet
+        ref={optionsBottomSheetRef}
+        title={t('transaction.build.options.title')}
+      >
+        <SSText>Placeholder</SSText>
+      </SSBottomSheet>
+      <SSBottomSheet
+        ref={changeFeeBottomSheetRef}
+        title={t('transaction.build.update.fee.title')}
+      >
+        <SSText>Placeholder</SSText>
+      </SSBottomSheet>
       <SSModal
         visible={addOutputModalVisible}
         fullOpacity
