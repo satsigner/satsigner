@@ -339,21 +339,15 @@ const useAccountBuilderStore = create<
         keyName: participantName,
         creationType: participantCreationType!
       }
-      const {
-        fingerprint,
-        derivationPath,
-        externalDescriptorString,
-        internalDescriptorString,
-        pubKey
-      } = (await getParticipantInfo(p, network as Network))!
+      const { fingerprint, derivationPath, publicKey, privateKey } =
+        (await getParticipantInfo(p, network as Network))!
       participants![index!] = {
         ...p,
         fingerprint,
         derivationPath,
-        publicKey: pubKey,
-        creationType: 'importseed',
-        externalDescriptor: externalDescriptorString,
-        internalDescriptor: internalDescriptorString
+        publicKey,
+        privateKey,
+        creationType: 'importseed'
       }
       set({ participants: [...participants!] })
     }
@@ -378,21 +372,15 @@ const useAccountBuilderStore = create<
         keyName: participantName,
         creationType: participantCreationType!
       }
-      const {
-        fingerprint,
-        derivationPath,
-        externalDescriptorString,
-        internalDescriptorString,
-        pubKey
-      } = (await getParticipantInfo(p, network as Network))!
+      const { fingerprint, derivationPath, publicKey, privateKey } =
+        (await getParticipantInfo(p, network as Network))!
       participants![index!] = {
         ...p,
         fingerprint,
         derivationPath,
-        publicKey: pubKey,
-        externalDescriptor: externalDescriptorString,
+        publicKey,
         creationType: 'generate',
-        internalDescriptor: internalDescriptorString
+        privateKey
       }
       set({ participants: [...participants!] })
     }
@@ -408,7 +396,6 @@ const useAccountBuilderStore = create<
         await parseDescriptor(externalDescriptor)
       const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
       const p: MultisigParticipant = {
-        externalDescriptor: descriptor,
         derivationPath,
         fingerprint,
         createdAt: new Date(),
@@ -472,7 +459,9 @@ const useAccountBuilderStore = create<
         get().requiredParticipantsCount!
       )
       set(() => ({
-        wallet: result?.wallet!
+        wallet: result?.wallet!,
+        externalDescriptor: result?.externalDescriptor!,
+        internalDescriptor: result?.internalDescriptor!
       }))
       return result?.wallet!
     }
