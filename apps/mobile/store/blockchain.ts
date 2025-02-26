@@ -3,7 +3,13 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getBlockchain } from '@/api/bdk'
-import { DEFAULT_RETRIES, DEFAULT_STOP_GAP, DEFAULT_TIME_OUT, getBlockchainConfig, MEMPOOL_SIGNET_URL } from '@/config/servers'
+import {
+  DEFAULT_RETRIES,
+  DEFAULT_STOP_GAP,
+  DEFAULT_TIME_OUT,
+  getBlockchainConfig,
+  MEMPOOL_SIGNET_URL
+} from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Backend, type Network } from '@/types/settings/blockchain'
 

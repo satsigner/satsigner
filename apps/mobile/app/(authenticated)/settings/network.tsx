@@ -10,6 +10,11 @@ import SSNumberInput from '@/components/SSNumberInput'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import {
+  DEFAULT_RETRIES,
+  DEFAULT_STOP_GAP,
+  DEFAULT_TIME_OUT
+} from '@/config/servers'
 import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -17,7 +22,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Backend, Network, ServerType } from '@/types/settings/blockchain'
-import { DEFAULT_RETRIES, DEFAULT_STOP_GAP, DEFAULT_TIME_OUT } from '@/config/servers'
 
 const networks: Network[] = ['bitcoin', 'signet', 'testnet']
 const backends: Backend[] = ['esplora', 'electrum']
@@ -147,9 +151,7 @@ export default function NetworkSettings() {
           <SSVStack gap="md">
             <SSButton
               withSelect
-              label={
-              `${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()
-              }
+              label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
               onPress={() => setServerModalVisible(true)}
             />
             <SSButton label="TEST CONNECTION" />
@@ -189,7 +191,7 @@ export default function NetworkSettings() {
               <SSTextInput
                 value={selectedUrl}
                 onChangeText={(url) => setSelectedUrl(url)}
-                style={{ paddingHorizontal: 16 }}
+                align="center"
               />
             </SSVStack>
             <SSVStack>
@@ -199,7 +201,7 @@ export default function NetworkSettings() {
                 min={1}
                 max={10}
                 onChangeText={setSelectedRetries}
-                style={{ paddingHorizontal: 16 }}
+                align="left"
               />
             </SSVStack>
             <SSVStack>
@@ -209,7 +211,7 @@ export default function NetworkSettings() {
                 min={1}
                 max={20}
                 onChangeText={setSelectedTimeout}
-                style={{ paddingHorizontal: 16 }}
+                align="left"
               />
             </SSVStack>
             <SSVStack>
@@ -219,7 +221,7 @@ export default function NetworkSettings() {
                 min={1}
                 max={30}
                 onChangeText={setSelectedStopGap}
-                style={{ paddingHorizontal: 16 }}
+                align="left"
               />
             </SSVStack>
           </SSVStack>
