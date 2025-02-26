@@ -192,7 +192,6 @@ export default function NetworkSettings() {
               <SSTextInput
                 value={selectedUrl}
                 onChangeText={(url) => setSelectedUrl(url)}
-                align="center"
               />
             </SSVStack>
             <SSVStack>
