@@ -1,3 +1,4 @@
+import { FlashList } from '@shopify/flash-list'
 import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -22,7 +23,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWalletFromMnemonic } from '@/api/bdk'
 import {
   SSIconBubbles,
   SSIconCamera,
@@ -39,7 +39,6 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
-import SSChildAccountList from '@/components/SSChildAccountList'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
@@ -65,7 +64,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -220,7 +219,7 @@ function TotalTransactions({
 
 type ChildAccountsProps = {
   account: Account
-  decryptSeed: Function
+  loadWalletFromDescriptor: Function
   setSortDirection: Function
   sortDirection: Direction
   handleOnExpand: (state: boolean) => Promise<void>
@@ -229,9 +228,17 @@ type ChildAccountsProps = {
   change: boolean
 }
 
+type ChildAccount = {
+  index: number
+  address: string
+  label: string | undefined
+  unspentSats: number | null
+  txs: number
+}
+
 function ChildAccounts({
   account,
-  decryptSeed,
+  loadWalletFromDescriptor,
   handleOnExpand,
   setChange,
   change,
@@ -240,11 +247,9 @@ function ChildAccounts({
 }: ChildAccountsProps) {
   const getWalletAddress = useGetWalletAddress(account!)
   const [childAccounts, setChildAccounts] = useState<any[]>([])
-  const { id } = useLocalSearchParams()
-  const networkString = useBlockchainStore((state) => state.network)
   const [addressPath, setAddressPath] = useState('')
+  const network = useBlockchainStore((state) => state.network)
 
-  const isMounted = useRef(false)
   const fetchAddresses = useCallback(async () => {
     if (!account || !account.externalDescriptor || !account.internalDescriptor)
       return
@@ -253,41 +258,52 @@ function ChildAccounts({
       const result = await getWalletAddress()
       if (!result) return
 
-      setAddressPath(`${account.derivationPath}/0/${result.index}`)
+      const changePath = change ? '1' : '0'
+      setAddressPath(`${account.derivationPath}/${changePath}/${result.index}`)
 
-      const seed = await decryptSeed(id!)
-      if (!seed || !account.scriptVersion) return
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network as Network),
+        new Descriptor().create(account.internalDescriptor, network as Network)
+      ])
 
-      const walletPrivate = await getWalletFromMnemonic(
-        seed.replace(/,/g, ' '),
-        account.scriptVersion,
-        account.passphrase,
-        networkString as Network
+      const wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
       )
 
-      const newAddresses: {
-        index: number
-        address: string
-        label: string
-        unspendSats: number
-        txs: number
-      }[] = []
+      const derivedAddresses = await Promise.all(
+        Array.from(
+          { length: account.summary.numberOfAddresses },
+          async (_, i) => {
+            if (change) {
+              const addrInfo = await wallet.getInternalAddress(i)
+              return {
+                index: i,
+                address: await addrInfo.address.asString()
+              }
+            } else {
+              const addrInfo = await wallet.getAddress(i)
+              return {
+                index: i,
+                address: await addrInfo.address.asString()
+              }
+            }
+          }
+        )
+      )
 
-      for (let i = 0; i < account.summary.numberOfAddresses; i++) {
-        const derivedAddress = await walletPrivate.wallet.getAddress(i)
-        const derivedAddressResult = await derivedAddress.address.asString()
-
+      const newAddresses = derivedAddresses.map(({ index, address }) => {
         let utxo = 0
         let txCount = 0
+
         for (const ux of account.utxos) {
-          if (ux.addressTo && ux.addressTo === derivedAddressResult) {
+          if (ux.addressTo && ux.addressTo === address) {
             utxo += ux.value
           }
         }
+
         for (const tx of account.transactions) {
-          const isInVout = tx.vout.some(
-            (output) => output.address === derivedAddressResult
-          )
+          const isInVout = tx.vout.some((output) => output.address === address)
           let isInVin = false
 
           for (const input of tx.vin || []) {
@@ -296,7 +312,7 @@ function ChildAccounts({
             )
             if (prevTx) {
               const voutEntry = prevTx.vout[input.previousOutput.vout]
-              if (voutEntry?.address === derivedAddressResult) {
+              if (voutEntry?.address === address) {
                 isInVin = true
                 break
               }
@@ -308,37 +324,63 @@ function ChildAccounts({
           }
         }
 
-        newAddresses.push({
-          index: i,
-          address: derivedAddressResult,
+        return {
+          index,
+          address,
           label: '',
-          unspendSats: utxo,
+          unspentSats: utxo,
           txs: txCount
-        })
-      }
-
-      setChildAccounts((prevAccounts) => {
-        const existingAddresses = new Set(
-          prevAccounts.map((acc) => acc.address)
-        )
-        return [
-          ...prevAccounts,
-          ...newAddresses.filter((acc) => !existingAddresses.has(acc.address))
-        ]
+        }
       })
+
+      setChildAccounts(newAddresses)
     } catch {}
-  }, [account, decryptSeed, networkString, getWalletAddress, id])
+  }, [account, loadWalletFromDescriptor, getWalletAddress, network, change])
 
   useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true
-      fetchAddresses()
-    }
-  }, [fetchAddresses])
+    fetchAddresses()
+  }, [fetchAddresses, change])
+
+  const renderItem = useCallback(
+    ({ item }: { item: ChildAccount }) => (
+      <SSHStack style={styles.row}>
+        <SSText style={styles.indexText}>{item.index}</SSText>
+        <SSText style={styles.addressText}>
+          {formatAddress(item.address, 4)}
+        </SSText>
+        <SSText
+          style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
+        >
+          {item.label || t('transaction.noLabel')}
+        </SSText>
+        <SSText
+          style={[
+            styles.unspentSatsText,
+            {
+              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+            }
+          ]}
+        >
+          {item.unspentSats}
+        </SSText>
+        <SSText
+          style={[
+            styles.txsText,
+            {
+              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+            }
+          ]}
+        >
+          {item.txs}
+        </SSText>
+      </SSHStack>
+    ),
+    []
+  )
 
   return (
-    <SSMainLayout style={{ paddingTop: 20 }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 4 }}>
+    <SSMainLayout style={styles.container}>
+      <SSHStack justifyBetween style={styles.header}>
         <SSHStack>
           <SSIconButton onPress={fetchAddresses}>
             <SSIconRefresh height={18} width={22} />
@@ -364,61 +406,44 @@ function ChildAccounts({
         </SSHStack>
       </SSHStack>
 
-      <SSHStack
-        gap="md"
-        justifyBetween
-        style={{ display: 'flex', width: '100%', marginTop: 10 }}
-      >
-        {[t('childAccount.receive'), t('childAccount.change')].map(
-          (type, index) => (
-            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-              <SSText
-                style={{
-                  textAlign: 'center',
-                  paddingVertical: 20,
-                  borderWidth: 1,
-                  borderColor: change === (index === 1) ? '#fff' : '#333',
-                  width: '100%'
-                }}
-                uppercase
-                onPress={() => setChange(index === 1)}
-              >
-                {type}
-              </SSText>
-            </SSHStack>
-          )
-        )}
+      <SSHStack gap="md" justifyBetween style={styles.receiveChangeContainer}>
+        {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+            <SSText
+              style={[
+                styles.receiveChangeButton,
+                { borderColor: change === (index === 1) ? '#fff' : '#333' }
+              ]}
+              uppercase
+              onPress={() => setChange(index === 1)}
+            >
+              {type}
+            </SSText>
+          </SSHStack>
+        ))}
       </SSHStack>
 
-      <SSHStack
-        style={{
-          paddingVertical: 18,
-          paddingHorizontal: 4,
-          borderBottomWidth: 1,
-          borderColor: '#333',
-          backgroundColor: '#111',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
+      <SSHStack style={styles.headerRow}>
         {[
-          t('childAccount.index'),
-          t('childAccount.address'),
-          t('childAccount.label'),
-          t('childAccount.unspendSats'),
-          t('childAccount.txs')
+          t('accounts.index'),
+          t('accounts.address'),
+          t('accounts.label'),
+          t('accounts.unspentSats'),
+          t('accounts.txs')
         ].map((title) => (
-          <SSText
-            key={title}
-            style={{ textAlign: 'center', color: '#777' }}
-            uppercase
-          >
+          <SSText key={title} style={styles.headerText} uppercase>
             {title}
           </SSText>
         ))}
       </SSHStack>
 
-      <SSChildAccountList childAccounts={childAccounts} />
+      <FlashList
+        data={childAccounts}
+        renderItem={renderItem}
+        estimatedItemSize={150}
+        keyExtractor={(item) => `${item.index}-${item.address}`}
+        removeClippedSubviews
+      />
     </SSMainLayout>
   )
 }
@@ -536,21 +561,15 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [
-    account,
-    loadWalletFromDescriptor,
-    syncWallet,
-    updateAccount,
-    decryptSeed
-  ] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.name === id),
-      state.loadWalletFromDescriptor,
-      state.syncWallet,
-      state.updateAccount,
-      state.decryptSeed
-    ])
-  )
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(
@@ -626,7 +645,7 @@ export default function AccountView() {
             setChange={setChange}
             expand={expand}
             change={change}
-            decryptSeed={decryptSeed}
+            loadWalletFromDescriptor={loadWalletFromDescriptor}
             setSortDirection={setSortDirectionChildAccounts}
             sortDirection={sortDirectionChildAccounts}
           />
@@ -1003,5 +1022,67 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#242424',
     borderRadius: 3
+  },
+  container: {
+    paddingTop: 20
+  },
+  header: {
+    paddingVertical: 4
+  },
+  headerText: {
+    textAlign: 'center',
+    color: '#777',
+    textTransform: 'uppercase'
+  },
+  row: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  indexText: {
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    flex: 1
+  },
+  addressText: {
+    color: '#fff',
+    textAlign: 'center',
+    flex: 2
+  },
+  labelText: {
+    textAlign: 'center',
+    flex: 2
+  },
+  unspentSatsText: {
+    textAlign: 'center',
+    flex: 2
+  },
+  txsText: {
+    textAlign: 'center',
+    flex: 1
+  },
+  headerRow: {
+    paddingVertical: 18,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#111',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  receiveChangeContainer: {
+    display: 'flex',
+    width: '100%',
+    marginTop: 10
+  },
+  receiveChangeButton: {
+    textAlign: 'center',
+    paddingVertical: 20,
+    borderWidth: 1,
+    width: '100%'
   }
 })

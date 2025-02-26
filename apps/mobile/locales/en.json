@@ -55,11 +55,18 @@
     "viewSeed": "View seed"
   },
   "accounts": {
+    "address": "Address",
+    "change": "Change",
     "childAccounts": ["Child", "Accounts"],
     "empty": "No keys yet",
+    "index": "Index",
+    "label": "Label",
+    "receive": "Receive",
     "satsInMempool": ["Sats in", "Mempool"],
     "spendableOutputs": ["Spendable", "Outputs"],
-    "totalTransactions": ["Total", "Transactions"]
+    "totalTransactions": ["Total", "Transactions"],
+    "txs": "Txs",
+    "unspentSats": "Unspent Sats"
   },
   "app": {
     "name": "Sat Signer",
@@ -103,15 +110,6 @@
     "permissions": "Enable camera access in your phone's settings to scan a QR code.",
     "scanQRCode": "Scan QRCode",
     "scanText": "Scan any Bitcoin or Lightning related QR code."
-  },
-  "childAccount": {
-    "address": "Address",
-    "change": "Change",
-    "index": "Index",
-    "label": "Label",
-    "receive": "Receive",
-    "txs": "Txs",
-    "unspendSats": "Unspend Sats"
   },
   "common": {
     "acknowledge": "Acknowledge",
