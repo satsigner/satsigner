@@ -379,7 +379,9 @@
     "security.title": "App Security",
     "title": "Config"
   },
-  "sign": {},
+  "sign": {
+    "transaction": "Sign transaction"
+  },
   "time": {
     "lessThanAMinute": "Less than a minute"
   },

@@ -157,7 +157,7 @@ export default function PreviewMessage() {
           <SSButton
             variant="secondary"
             disabled={!messageId}
-            label={t('previewMessage.signTxMessage')}
+            label={t('sign.transaction')}
             onPress={() =>
               router.navigate(`/account/${id}/signAndSend/signMessage`)
             }
