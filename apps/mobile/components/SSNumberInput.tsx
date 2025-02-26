@@ -140,11 +140,11 @@ const styles = StyleSheet.create({
   },
   alignCenter: {
     textAlign: 'center',
-    padding: 12
+    paddingHorizontal: 12
   },
   alignLeft: {
     textAlign: 'left',
-    padding: 12
+    paddingHorizontal: 12
   },
   actionRightBase: {
     position: 'absolute',
