@@ -17,6 +17,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Backend, Network, ServerType } from '@/types/settings/blockchain'
+import { DEFAULT_RETRIES, DEFAULT_STOP_GAP, DEFAULT_TIME_OUT } from '@/config/servers'
 
 const networks: Network[] = ['bitcoin', 'signet', 'testnet']
 const backends: Backend[] = ['esplora', 'electrum']
@@ -62,9 +63,15 @@ export default function NetworkSettings() {
   const [selectedTimeout, setSelectedTimeout] = useState(timeout.toString())
   const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
 
-  const [serverType, setServerType] = useState<ServerType>('CUSTOM')
-  const [selectedServer, setSelectedServer] = useState(servers[0])
-  const [confirmedServer, setConfirmedServer] = useState(servers[0])
+  const serverIndex = servers.findIndex((s) => {
+    return s.url === url && s.backend === backend && s.network === network
+  })
+  const defaultServer = serverIndex !== -1 ? servers[serverIndex] : servers[0]
+  const defaultServerType = serverIndex !== -1 ? 'PUBLIC' : 'CUSTOM'
+
+  const [serverType, setServerType] = useState<ServerType>(defaultServerType)
+  const [selectedServer, setSelectedServer] = useState(defaultServer)
+  const [confirmedServer, setConfirmedServer] = useState(defaultServer)
   const [serverModalVisible, setServerModalVisible] = useState(false)
 
   function handleOnSave() {
@@ -73,16 +80,15 @@ export default function NetworkSettings() {
       setNetwork(selectedNetwork)
       setUrl(selectedUrl)
       setRetries(Number(selectedRetries))
-      setTimeout(Number(selectedTimeout))
       setStopGap(Number(selectedStopGap))
+      setTimeout(Number(selectedTimeout))
     } else {
       setBackend(confirmedServer.backend)
       setNetwork(confirmedServer.network)
       setUrl(confirmedServer.url)
-      // TODO: set defaults
-      // setRetries(Number(selectedRetries))
-      // setTimeout(Number(selectedTimeout))
-      // setStopGap(Number(selectedStopGap))
+      setRetries(DEFAULT_RETRIES)
+      setStopGap(DEFAULT_STOP_GAP)
+      setTimeout(DEFAULT_TIME_OUT)
     }
     router.back()
   }
@@ -141,7 +147,9 @@ export default function NetworkSettings() {
           <SSVStack gap="md">
             <SSButton
               withSelect
-              label="BLOCKSTREAM (BITCOIN)"
+              label={
+              `${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()
+              }
               onPress={() => setServerModalVisible(true)}
             />
             <SSButton label="TEST CONNECTION" />

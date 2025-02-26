@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Sizes.checkbox.height/2
+    gap: Sizes.checkbox.height / 2
   },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
