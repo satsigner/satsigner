@@ -202,7 +202,6 @@ export default function NetworkSettings() {
                 min={1}
                 max={10}
                 onChangeText={setSelectedRetries}
-                align="left"
               />
             </SSVStack>
             <SSVStack>
@@ -212,7 +211,6 @@ export default function NetworkSettings() {
                 min={1}
                 max={20}
                 onChangeText={setSelectedTimeout}
-                align="left"
               />
             </SSVStack>
             <SSVStack>
@@ -222,7 +220,6 @@ export default function NetworkSettings() {
                 min={1}
                 max={30}
                 onChangeText={setSelectedStopGap}
-                align="left"
               />
             </SSVStack>
           </SSVStack>
