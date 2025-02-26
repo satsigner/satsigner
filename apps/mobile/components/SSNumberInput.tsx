@@ -42,14 +42,16 @@ function SSNumberInput(
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
     const borderStyle = invalid ? styles.borderInvalid : {}
-    const newStyle = {
-      ...styles.textInputBase,
-      ...variantStyle,
-      ...sizeStyle,
-      ...borderStyle,
-      ...alignStyle,
-      ...(style || {})
-    }
+    const newStyle = StyleSheet.compose(
+      {
+        ...styles.textInputBase,
+        ...variantStyle,
+        ...sizeStyle,
+        ...borderStyle,
+        ...alignStyle
+      },
+      style
+    )
     return newStyle
   }, [variant, size, align, style, invalid])
 
