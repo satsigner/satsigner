@@ -3,20 +3,20 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSNumberInput from '@/components/SSNumberInput'
+import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Backend, Network } from '@/types/settings/blockchain'
-import { SSIconWarning } from '@/components/icons'
-
-type ServerType = 'CUSTOM' | 'PUBLIC'
+import type { Backend, Network, ServerType } from '@/types/settings/blockchain'
 
 const networks: Network[] = ['bitcoin', 'signet', 'testnet']
 const backends: Backend[] = ['esplora', 'electrum']
@@ -63,6 +63,7 @@ export default function NetworkSettings() {
   const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
 
   const [serverType, setServerType] = useState<ServerType>('CUSTOM')
+  const [serverModalVisible, setServerModalVisible] = useState(false)
 
   function handleOnSave() {
     setBackend(selectedBackend)
@@ -122,18 +123,21 @@ export default function NetworkSettings() {
             <SSText>WARNING</SSText>
           </SSHStack>
           <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
-            Your data requests relating to wallet addresses, transactions, and utxos will go out to potentially untrusted server.
+            Your data requests relating to wallet addresses, transactions, and
+            utxos will go out to potentially untrusted server.
           </SSText>
           <SSVStack gap="md">
             <SSButton
               withSelect
               label="BLOCKSTREAM (BITCOIN)"
+              onPress={() => setServerModalVisible(true)}
             />
             <SSButton label="TEST CONNECTION" />
           </SSVStack>
         </SSVStack>
         <ScrollView>
-          <SSVStack gap="lg"
+          <SSVStack
+            gap="lg"
             style={{
               display: serverType === 'CUSTOM' ? 'flex' : 'none'
             }}
@@ -214,6 +218,34 @@ export default function NetworkSettings() {
           />
         </SSVStack>
       </SSVStack>
+      <SSSelectModal
+        visible={serverModalVisible}
+        title="SELECT SERVER"
+        onCancel={() => setServerModalVisible(false)}
+        onSelect={() => null}
+      >
+        {networks.map((network) => (
+          <SSVStack key={network} gap="sm">
+            <SSText uppercase>{network}</SSText>
+            {servers
+              .filter((s) => s.network === network)
+              .map((server, index) => (
+                <SSHStack key={index} gap="xs" style={{ alignItems: 'center' }}>
+                  <SSCheckbox selected={false} />
+                  <SSVStack gap="none" style={{ flexGrow: 1 }}>
+                    <SSText style={{ lineHeight: 16 }} size="md">
+                      {server.name}
+                    </SSText>
+                    <SSText color="muted">{server.url}</SSText>
+                  </SSVStack>
+                  <SSText uppercase color="muted" size="xs">
+                    {server.backend}
+                  </SSText>
+                </SSHStack>
+              ))}
+          </SSVStack>
+        ))}
+      </SSSelectModal>
     </SSMainLayout>
   )
 }

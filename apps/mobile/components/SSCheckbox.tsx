@@ -9,7 +9,7 @@ import { Colors, Sizes } from '@/styles'
 import SSText from './SSText'
 
 type SSCheckboxProps = {
-  label: string
+  label?: string
   selected: boolean
 } & BouncyCheckboxProps
 
@@ -31,9 +31,11 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
         innerIconStyle={innerIconStyle}
         {...props}
       />
-      <SSText color="white" size="lg">
-        {label}
-      </SSText>
+      {label && (
+        <SSText color="white" size="lg">
+          {label}
+        </SSText>
+      )}
     </View>
   )
 }

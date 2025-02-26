@@ -1,6 +1,9 @@
 import Svg, { Path, type SvgProps } from 'react-native-svg'
 
-type IconProps = Pick<SvgProps, 'width' | 'height' | 'fill' | 'stroke' | 'strokeWidth'> & {
+type IconProps = Pick<
+  SvgProps,
+  'width' | 'height' | 'fill' | 'stroke' | 'strokeWidth'
+> & {
   strokeTriangle?: SvgProps['stroke']
   strokeExclamation?: SvgProps['stroke']
   strokeWidthTriangle?: SvgProps['strokeWidth']
