@@ -1,7 +1,7 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -165,6 +165,8 @@ export default function IOPreview() {
 
     return [...inputToBlockLinks, ...blockToOutputLinks]
   }, [inputs, utxosSelectedValue])
+
+  if (!sankeyNodes.length || !sankeyLinks.length) return <Redirect href="/" />
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
