@@ -218,6 +218,14 @@ function TotalTransactions({
   )
 }
 
+type ChildAccount = {
+  index: number
+  address: string
+  label: string | undefined
+  unspentSats: number | null
+  txs: number
+}
+
 type ChildAccountsProps = {
   account: Account
   loadWalletFromDescriptor: Function
@@ -227,14 +235,6 @@ type ChildAccountsProps = {
   expand: boolean
   setChange: Function
   change: boolean
-}
-
-type ChildAccount = {
-  index: number
-  address: string
-  label: string | undefined
-  unspentSats: number | null
-  txs: number
 }
 
 function ChildAccounts({
