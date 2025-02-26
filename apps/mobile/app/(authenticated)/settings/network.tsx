@@ -8,14 +8,18 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Network, Backend } from '@/types/settings/blockchain'
+import type { Backend, Network } from '@/types/settings/blockchain'
+
+type ServerType = 'CUSTOM' | 'PUBLIC'
 
 const networks: Network[] = ['bitcoin', 'signet', 'testnet']
 const backends: Backend[] = ['esplora', 'electrum']
+const serverTypes: ServerType[] = ['CUSTOM', 'PUBLIC']
 
 export default function NetworkSettings() {
   const router = useRouter()
@@ -57,6 +61,8 @@ export default function NetworkSettings() {
   const [selectedTimeout, setSelectedTimeout] = useState(timeout.toString())
   const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
 
+  const [serverType, setServerType] = useState<ServerType>('CUSTOM')
+
   function handleOnSave() {
     setBackend(selectedBackend)
     setNetwork(selectedNetwork)
@@ -79,13 +85,34 @@ export default function NetworkSettings() {
           headerRight: undefined
         }}
       />
-      <SSVStack justifyBetween>
+      <SSVStack gap="lg" justifyBetween>
+        <SSHStack>
+          {serverTypes.map((type) => (
+            <SSButton
+              key={type}
+              variant="outline"
+              style={{
+                width: 'auto',
+                flexGrow: 1,
+                borderColor: type === serverType ? 'white' : 'gray'
+              }}
+              label={type}
+              onPress={() => setServerType(type)}
+            />
+          ))}
+        </SSHStack>
         <ScrollView>
-          <SSVStack gap="lg">
+          <SSVStack
+            gap="lg"
+            style={{
+              display: serverType === 'CUSTOM' ? 'flex' : 'none'
+            }}
+          >
             <SSVStack>
               <SSText uppercase>{t('settings.network.backend')}</SSText>
               {backends.map((backend) => (
                 <SSCheckbox
+                  key={backend}
                   label={backend}
                   selected={selectedBackend === backend}
                   onPress={() => setSelectedBackend(backend)}
