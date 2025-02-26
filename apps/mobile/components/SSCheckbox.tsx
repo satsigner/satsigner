@@ -24,6 +24,7 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
     <View style={styles.containerBase}>
       <BouncyCheckbox
         isChecked={selected}
+        useBuiltInState={false}
         fillColor={Colors.gray[700]}
         unFillColor={Colors.gray[700]}
         size={Sizes.checkbox.height}
