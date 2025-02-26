@@ -241,7 +241,7 @@ export default function NetworkSettings() {
       </SSVStack>
       <SSSelectModal
         visible={serverModalVisible}
-        title={t('network.server.modal.title')}
+        title={t('settings.network.server.modal.title').toUpperCase()}
         onCancel={() => setServerModalVisible(false)}
         onSelect={() => {
           setConfirmedServer(selectedServer)
