@@ -102,6 +102,36 @@ export default function NetworkSettings() {
             />
           ))}
         </SSHStack>
+        <SSVStack
+          gap="lg"
+          style={{
+            display: serverType === 'PUBLIC' ? 'flex' : 'none'
+          }}
+        >
+          <SSHStack
+            gap="sm"
+            style={{ justifyContent: 'center', width: '100%' }}
+          >
+            <SSIconWarning
+              height={30}
+              width={30}
+              fill="black"
+              strokeExclamation="white"
+              strokeTriangle="red"
+            />
+            <SSText>WARNING</SSText>
+          </SSHStack>
+          <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
+            Your data requests relating to wallet addresses, transactions, and utxos will go out to potentially untrusted server.
+          </SSText>
+          <SSVStack gap="md">
+            <SSButton
+              withSelect
+              label="BLOCKSTREAM (BITCOIN)"
+            />
+            <SSButton label="TEST CONNECTION" />
+          </SSVStack>
+        </SSVStack>
         <ScrollView>
           <SSVStack gap="lg"
             style={{
@@ -135,6 +165,7 @@ export default function NetworkSettings() {
               <SSTextInput
                 value={selectedUrl}
                 onChangeText={(url) => setSelectedUrl(url)}
+                style={{ paddingHorizontal: 16 }}
               />
             </SSVStack>
             <SSVStack>
@@ -144,6 +175,7 @@ export default function NetworkSettings() {
                 min={1}
                 max={10}
                 onChangeText={setSelectedRetries}
+                style={{ paddingHorizontal: 16 }}
               />
             </SSVStack>
             <SSVStack>
@@ -153,6 +185,7 @@ export default function NetworkSettings() {
                 min={1}
                 max={20}
                 onChangeText={setSelectedTimeout}
+                style={{ paddingHorizontal: 16 }}
               />
             </SSVStack>
             <SSVStack>
@@ -162,40 +195,12 @@ export default function NetworkSettings() {
                 min={1}
                 max={30}
                 onChangeText={setSelectedStopGap}
+                style={{ paddingHorizontal: 16 }}
               />
-            </SSVStack>
-          </SSVStack>
-          <SSVStack
-            gap="lg"
-            style={{
-              display: serverType === 'PUBLIC' ? 'flex' : 'none'
-            }}
-          >
-            <SSHStack
-              gap="sm"
-              style={{ justifyContent: 'center', width: '100%' }}
-            >
-              <SSIconWarning
-                height={30}
-                width={30}
-                fill="black"
-                strokeExclamation="white"
-                strokeTriangle="red"
-              />
-              <SSText>WARNING</SSText>
-            </SSHStack>
-            <SSText center style={{ paddingHorizontal: '10%' }}>
-              Your data requests relating to wallet addresses, transactions, and utxos will go out to potentially untrusted server.
-            </SSText>
-            <SSVStack gap="md">
-              <SSButton
-                withSelect
-                label="BLOCKSTREAM (BITCOIN)"
-              />
-              <SSButton label="TEST CONNECTION" />
             </SSVStack>
           </SSVStack>
         </ScrollView>
+
         <SSVStack>
           <SSButton
             label={t('common.save')}
