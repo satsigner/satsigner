@@ -63,15 +63,27 @@ export default function NetworkSettings() {
   const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
 
   const [serverType, setServerType] = useState<ServerType>('CUSTOM')
+  const [selectedServer, setSelectedServer] = useState(servers[0])
+  const [confirmedServer, setConfirmedServer] = useState(servers[0])
   const [serverModalVisible, setServerModalVisible] = useState(false)
 
   function handleOnSave() {
-    setBackend(selectedBackend)
-    setNetwork(selectedNetwork)
-    setUrl(selectedUrl)
-    setRetries(Number(selectedRetries))
-    setTimeout(Number(selectedTimeout))
-    setStopGap(Number(selectedStopGap))
+    if (serverType === 'CUSTOM') {
+      setBackend(selectedBackend)
+      setNetwork(selectedNetwork)
+      setUrl(selectedUrl)
+      setRetries(Number(selectedRetries))
+      setTimeout(Number(selectedTimeout))
+      setStopGap(Number(selectedStopGap))
+    } else {
+      setBackend(confirmedServer.backend)
+      setNetwork(confirmedServer.network)
+      setUrl(confirmedServer.url)
+      // TODO: set defaults
+      // setRetries(Number(selectedRetries))
+      // setTimeout(Number(selectedTimeout))
+      // setStopGap(Number(selectedStopGap))
+    }
     router.back()
   }
 
@@ -222,16 +234,25 @@ export default function NetworkSettings() {
         visible={serverModalVisible}
         title="SELECT SERVER"
         onCancel={() => setServerModalVisible(false)}
-        onSelect={() => null}
+        onSelect={() => {
+          setConfirmedServer(selectedServer)
+          setServerModalVisible(false)
+        }}
       >
         {networks.map((network) => (
           <SSVStack key={network} gap="sm">
             <SSText uppercase>{network}</SSText>
             {servers
-              .filter((s) => s.network === network)
+              .filter((server) => server.network === network)
               .map((server, index) => (
-                <SSHStack key={index} gap="xs" style={{ alignItems: 'center' }}>
-                  <SSCheckbox selected={false} />
+                <SSHStack key={index} style={{ alignItems: 'center' }}>
+                  <SSCheckbox
+                    selected={
+                      selectedServer.url === server.url &&
+                      selectedServer.network === server.network
+                    }
+                    onPress={() => setSelectedServer(server)}
+                  />
                   <SSVStack gap="none" style={{ flexGrow: 1 }}>
                     <SSText style={{ lineHeight: 16 }} size="md">
                       {server.name}

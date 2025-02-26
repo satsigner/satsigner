@@ -29,6 +29,7 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
         unFillColor={Colors.gray[700]}
         size={Sizes.checkbox.height}
         iconStyle={styles.iconStyleBase}
+        style={{ width: Sizes.checkbox.height }}
         innerIconStyle={innerIconStyle}
         {...props}
       />
@@ -44,7 +45,8 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
 const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: Sizes.checkbox.height/2
   },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
