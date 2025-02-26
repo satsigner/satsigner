@@ -142,11 +142,10 @@ export default function NetworkSettings() {
               strokeExclamation="white"
               strokeTriangle="red"
             />
-            <SSText>WARNING</SSText>
+            <SSText>{t('settings.network.server.warning.title')}</SSText>
           </SSHStack>
           <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
-            Your data requests relating to wallet addresses, transactions, and
-            utxos will go out to potentially untrusted server.
+            {t('settings.network.server.warning.text')}
           </SSText>
           <SSVStack gap="md">
             <SSButton
@@ -154,7 +153,7 @@ export default function NetworkSettings() {
               label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
               onPress={() => setServerModalVisible(true)}
             />
-            <SSButton label="TEST CONNECTION" />
+            <SSButton label={t('settings.network.test').toUpperCase()} />
           </SSVStack>
         </SSVStack>
         <ScrollView>
@@ -242,7 +241,7 @@ export default function NetworkSettings() {
       </SSVStack>
       <SSSelectModal
         visible={serverModalVisible}
-        title="SELECT SERVER"
+        title={t('network.server.modal.title')}
         onCancel={() => setServerModalVisible(false)}
         onSelect={() => {
           setConfirmedServer(selectedServer)
