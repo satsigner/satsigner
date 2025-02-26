@@ -12,38 +12,47 @@ type SSScriptDecodedProps = {
 }
 
 function SSScriptDecoded({ script }: SSScriptDecodedProps) {
-  const decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
+  let decodedScript: string | undefined
+
+  try {
+    decodedScript = bitcoinjs.script.toASM(Buffer.from(script))
+  } catch {
+    return <SSText>{t('transaction.decoded.error')}</SSText>
+  }
+
+  if (!decodedScript) {
+    return <SSText>{t('transaction.decoded.empty')}</SSText>
+  }
+
   return (
     <SSVStack>
-      {!decodedScript && <SSText>The script is empty</SSText>}
-      {decodedScript &&
-        decodedScript.split(' ').map((item, index) => {
-          const opcodeWord = getOpcodeWord(item)
-          const opcodeDetails = getOpcodeDetails(item)
-          return (
-            <SSVStack key={index} gap="none">
-              {opcodeDetails.word !== OP_CODE_WORD.DATA && (
-                <SSText type="mono">
-                  {opcodeDetails.word} (code={opcodeDetails.code} hex=
-                  {opcodeDetails.hex})
-                </SSText>
-              )}
-              {opcodeDetails.word === OP_CODE_WORD.DATA && (
-                <SSText type="mono" uppercase>
-                  {item}
-                </SSText>
-              )}
-              <SSText>
-                <SSText size="xs" weight="bold">
-                  {t('common.description')}:{' '}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {t(`opcode.${opcodeWord}`)}
-                </SSText>
+      {decodedScript.split(' ').map((item, index) => {
+        const opcodeWord = getOpcodeWord(item)
+        const opcodeDetails = getOpcodeDetails(item)
+        return (
+          <SSVStack key={index} gap="none">
+            {opcodeDetails.word !== OP_CODE_WORD.DATA && (
+              <SSText type="mono">
+                {opcodeDetails.word} (code={opcodeDetails.code} hex=
+                {opcodeDetails.hex})
               </SSText>
-            </SSVStack>
-          )
-        })}
+            )}
+            {opcodeDetails.word === OP_CODE_WORD.DATA && (
+              <SSText type="mono" uppercase>
+                {item}
+              </SSText>
+            )}
+            <SSText>
+              <SSText size="xs" weight="bold">
+                {t('common.description')}:{' '}
+              </SSText>
+              <SSText size="xs" color="muted">
+                {t(`opcode.${opcodeWord}`)}
+              </SSText>
+            </SSText>
+          </SSVStack>
+        )
+      })}
     </SSVStack>
   )
 }
