@@ -7,8 +7,6 @@ import { Colors, Layout } from '@/styles'
 
 import SSText from './SSText'
 
-// Note: It needs to be nested inside a GestureHandlerRootView to work
-
 type SSBottomSheetProps = {
   title: string
   snapPoints?: (string | number)[]

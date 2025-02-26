@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { View } from 'react-native'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconScan } from '@/components/icons'
@@ -169,7 +168,7 @@ export default function IOPreview() {
   if (!sankeyNodes.length || !sankeyLinks.length) return <Redirect href="/" />
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
@@ -405,6 +404,6 @@ export default function IOPreview() {
           )}
         </SSModal>
       </SSModal>
-    </GestureHandlerRootView>
+    </View>
   )
 }

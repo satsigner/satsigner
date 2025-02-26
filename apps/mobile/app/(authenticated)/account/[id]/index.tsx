@@ -19,7 +19,6 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -531,7 +530,7 @@ function SpendableOutputs({
           </SSVStack>
         </ScrollView>
       )}
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         {view === 'bubbles' && (
           <SSBubbleChart
             utxos={[...account.utxos]}
@@ -544,7 +543,7 @@ function SpendableOutputs({
             }
           />
         )}
-      </GestureHandlerRootView>
+      </View>
     </SSMainLayout>
   )
 }
