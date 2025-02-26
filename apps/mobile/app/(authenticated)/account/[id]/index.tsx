@@ -1,7 +1,15 @@
+import { FlashList } from '@shopify/flash-list'
 import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import {
   Animated,
   Easing,
@@ -40,6 +48,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -55,7 +64,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -209,10 +218,233 @@ function TotalTransactions({
   )
 }
 
-function ChildAccounts() {
+type ChildAccount = {
+  index: number
+  address: string
+  label: string | undefined
+  unspentSats: number | null
+  txs: number
+}
+
+type ChildAccountsProps = {
+  account: Account
+  loadWalletFromDescriptor: Function
+  setSortDirection: Function
+  sortDirection: Direction
+  handleOnExpand: (state: boolean) => Promise<void>
+  expand: boolean
+  setChange: Function
+  change: boolean
+}
+
+function ChildAccounts({
+  account,
+  loadWalletFromDescriptor,
+  handleOnExpand,
+  setChange,
+  change,
+  expand,
+  setSortDirection
+}: ChildAccountsProps) {
+  const getWalletAddress = useGetWalletAddress(account!)
+  const [childAccounts, setChildAccounts] = useState<any[]>([])
+  const [addressPath, setAddressPath] = useState('')
+  const network = useBlockchainStore((state) => state.network)
+
+  const fetchAddresses = useCallback(async () => {
+    if (!account || !account.externalDescriptor || !account.internalDescriptor)
+      return
+
+    try {
+      const result = await getWalletAddress()
+      if (!result) return
+
+      const changePath = change ? '1' : '0'
+      setAddressPath(`${account.derivationPath}/${changePath}/${result.index}`)
+
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network as Network),
+        new Descriptor().create(account.internalDescriptor, network as Network)
+      ])
+
+      const wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
+      )
+
+      const derivedAddresses = await Promise.all(
+        Array.from(
+          { length: account.summary.numberOfAddresses },
+          async (_, i) => {
+            if (change) {
+              const addrInfo = await wallet.getInternalAddress(i)
+              return {
+                index: i,
+                address: await addrInfo.address.asString()
+              }
+            } else {
+              const addrInfo = await wallet.getAddress(i)
+              return {
+                index: i,
+                address: await addrInfo.address.asString()
+              }
+            }
+          }
+        )
+      )
+
+      const newAddresses = derivedAddresses.map(({ index, address }) => {
+        let utxo = 0
+        let txCount = 0
+
+        for (const ux of account.utxos) {
+          if (ux.addressTo && ux.addressTo === address) {
+            utxo += ux.value
+          }
+        }
+
+        for (const tx of account.transactions) {
+          const isInVout = tx.vout.some((output) => output.address === address)
+          let isInVin = false
+
+          for (const input of tx.vin || []) {
+            const prevTx = account.transactions.find(
+              (t) => t.id === input.previousOutput.txid
+            )
+            if (prevTx) {
+              const voutEntry = prevTx.vout[input.previousOutput.vout]
+              if (voutEntry?.address === address) {
+                isInVin = true
+                break
+              }
+            }
+          }
+
+          if (isInVout || isInVin) {
+            txCount++
+          }
+        }
+
+        return {
+          index,
+          address,
+          label: '',
+          unspentSats: utxo,
+          txs: txCount
+        }
+      })
+
+      setChildAccounts(newAddresses)
+    } catch {}
+  }, [account, loadWalletFromDescriptor, getWalletAddress, network, change])
+
+  useEffect(() => {
+    fetchAddresses()
+  }, [fetchAddresses, change])
+
+  const renderItem = useCallback(
+    ({ item }: { item: ChildAccount }) => (
+      <SSHStack style={styles.row}>
+        <SSText style={styles.indexText}>{item.index}</SSText>
+        <SSText style={styles.addressText}>
+          {formatAddress(item.address, 4)}
+        </SSText>
+        <SSText
+          style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
+        >
+          {item.label || t('transaction.noLabel')}
+        </SSText>
+        <SSText
+          style={[
+            styles.unspentSatsText,
+            {
+              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+            }
+          ]}
+        >
+          {item.unspentSats}
+        </SSText>
+        <SSText
+          style={[
+            styles.txsText,
+            {
+              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+            }
+          ]}
+        >
+          {item.txs}
+        </SSText>
+      </SSHStack>
+    ),
+    []
+  )
+
   return (
-    <SSMainLayout>
-      <SSText>Being built...</SSText>
+    <SSMainLayout style={styles.container}>
+      <SSHStack justifyBetween style={styles.header}>
+        <SSHStack>
+          <SSIconButton onPress={fetchAddresses}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={16} />
+            )}
+          </SSIconButton>
+        </SSHStack>
+        <SSHStack gap="sm">
+          <SSText color="muted" uppercase>
+            {t('receive.path')}
+          </SSText>
+          <SSText>{addressPath}</SSText>
+        </SSHStack>
+        <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
+          <SSSortDirectionToggle
+            onDirectionChanged={() => setSortDirection()}
+          />
+        </SSHStack>
+      </SSHStack>
+
+      <SSHStack gap="md" justifyBetween style={styles.receiveChangeContainer}>
+        {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+            <SSText
+              style={[
+                styles.receiveChangeButton,
+                { borderColor: change === (index === 1) ? '#fff' : '#333' }
+              ]}
+              uppercase
+              onPress={() => setChange(index === 1)}
+            >
+              {type}
+            </SSText>
+          </SSHStack>
+        ))}
+      </SSHStack>
+
+      <SSHStack style={styles.headerRow}>
+        {[
+          t('accounts.index'),
+          t('accounts.address'),
+          t('accounts.label'),
+          t('accounts.unspentSats'),
+          t('accounts.txs')
+        ].map((title) => (
+          <SSText key={title} style={styles.headerText} uppercase>
+            {title}
+          </SSText>
+        ))}
+      </SSHStack>
+
+      <FlashList
+        data={childAccounts}
+        renderItem={renderItem}
+        estimatedItemSize={150}
+        keyExtractor={(item) => `${item.index}-${item.address}`}
+        removeClippedSubviews
+      />
     </SSMainLayout>
   )
 }
@@ -353,9 +585,12 @@ export default function AccountView() {
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
+  const [change, setChange] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
+    useState<Direction>('desc')
+  const [sortDirectionChildAccounts, setSortDirectionChildAccounts] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
@@ -404,7 +639,18 @@ export default function AccountView() {
           />
         )
       case 'childAccounts':
-        return <ChildAccounts />
+        return (
+          <ChildAccounts
+            account={account}
+            handleOnExpand={handleOnExpand}
+            setChange={setChange}
+            expand={expand}
+            change={change}
+            loadWalletFromDescriptor={loadWalletFromDescriptor}
+            setSortDirection={setSortDirectionChildAccounts}
+            sortDirection={sortDirectionChildAccounts}
+          />
+        )
       case 'spendableOutputs':
         return (
           <SpendableOutputs
@@ -473,6 +719,7 @@ export default function AccountView() {
         internalDescriptor
       )
     }
+
     const syncedAccount = await syncWallet(wallet, account)
 
     await updateAccount(syncedAccount)
@@ -777,5 +1024,67 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#242424',
     borderRadius: 3
+  },
+  container: {
+    paddingTop: 20
+  },
+  header: {
+    paddingVertical: 4
+  },
+  headerText: {
+    textAlign: 'center',
+    color: '#777',
+    textTransform: 'uppercase'
+  },
+  row: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  indexText: {
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    flex: 1
+  },
+  addressText: {
+    color: '#fff',
+    textAlign: 'center',
+    flex: 2
+  },
+  labelText: {
+    textAlign: 'center',
+    flex: 2
+  },
+  unspentSatsText: {
+    textAlign: 'center',
+    flex: 2
+  },
+  txsText: {
+    textAlign: 'center',
+    flex: 1
+  },
+  headerRow: {
+    paddingVertical: 18,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#111',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  receiveChangeContainer: {
+    display: 'flex',
+    width: '100%',
+    marginTop: 10
+  },
+  receiveChangeButton: {
+    textAlign: 'center',
+    paddingVertical: 20,
+    borderWidth: 1,
+    width: '100%'
   }
 })
