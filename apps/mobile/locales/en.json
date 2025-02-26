@@ -81,11 +81,18 @@
     "viewSeed": "View seed"
   },
   "accounts": {
+    "address": "Address",
+    "change": "Change",
     "childAccounts": ["Child", "Accounts"],
     "empty": "No keys yet",
+    "index": "Index",
+    "label": "Label",
+    "receive": "Receive",
     "satsInMempool": ["Sats in", "Mempool"],
     "spendableOutputs": ["Spendable", "Outputs"],
-    "totalTransactions": ["Total", "Transactions"]
+    "totalTransactions": ["Total", "Transactions"],
+    "txs": "Txs",
+    "unspentSats": "Unspent Sats"
   },
   "app": {
     "name": "Sat Signer",
