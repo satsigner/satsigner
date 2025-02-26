@@ -12,8 +12,12 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import type { Network, Backend } from '@/types/settings/blockchain'
 
-export default function Network() {
+const networks: Network[] = ['bitcoin', 'signet', 'testnet']
+const backends: Backend[] = ['esplora', 'electrum']
+
+export default function NetworkSettings() {
   const router = useRouter()
   const [
     backend,
@@ -80,34 +84,24 @@ export default function Network() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSText uppercase>{t('settings.network.backend')}</SSText>
-              <SSCheckbox
-                label="Electrum"
-                selected={selectedBackend === 'electrum'}
-                onPress={() => setSelectedBackend('electrum')}
-              />
-              <SSCheckbox
-                label="Esplora"
-                selected={selectedBackend === 'esplora'}
-                onPress={() => setSelectedBackend('esplora')}
-              />
+              {backends.map((backend) => (
+                <SSCheckbox
+                  label={backend}
+                  selected={selectedBackend === backend}
+                  onPress={() => setSelectedBackend(backend)}
+                />
+              ))}
             </SSVStack>
             <SSVStack>
               <SSText uppercase>{t('settings.network.network')}</SSText>
-              <SSCheckbox
-                label="bitcoin"
-                selected={selectedNetwork === 'bitcoin'}
-                onPress={() => setSelectedNetwork('bitcoin')}
-              />
-              <SSCheckbox
-                label="testnet"
-                selected={selectedNetwork === 'testnet'}
-                onPress={() => setSelectedNetwork('testnet')}
-              />
-              <SSCheckbox
-                label="signet"
-                selected={selectedNetwork === 'signet'}
-                onPress={() => setSelectedNetwork('signet')}
-              />
+              {networks.map((network: Network) => (
+                <SSCheckbox
+                  key={network}
+                  label={network}
+                  selected={selectedNetwork === network}
+                  onPress={() => setSelectedNetwork(network)}
+                />
+              ))}
             </SSVStack>
             <SSVStack>
               <SSText uppercase>{t('settings.network.url')}</SSText>
