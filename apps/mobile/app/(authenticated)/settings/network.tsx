@@ -225,7 +225,6 @@ export default function NetworkSettings() {
             </SSVStack>
           </SSVStack>
         </ScrollView>
-
         <SSVStack>
           <SSButton
             label={t('common.save')}
