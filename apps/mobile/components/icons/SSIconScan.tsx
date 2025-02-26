@@ -4,7 +4,7 @@ import { Colors } from '@/styles'
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'stroke'>
 
-export default function Scan({
+export default function SSIconScan({
   width = 24,
   height = 24,
   stroke = Colors.gray[400]
