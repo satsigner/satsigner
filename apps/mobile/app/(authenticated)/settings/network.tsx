@@ -142,7 +142,9 @@ export default function NetworkSettings() {
               strokeExclamation="white"
               strokeTriangle="red"
             />
-            <SSText>{t('settings.network.server.warning.title')}</SSText>
+            <SSText uppercase>
+              {t('settings.network.server.warning.title')}
+            </SSText>
           </SSHStack>
           <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
             {t('settings.network.server.warning.text')}
