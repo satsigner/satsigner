@@ -3,7 +3,13 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getBlockchain } from '@/api/bdk'
-import { getBlockchainConfig, MEMPOOL_SIGNET_URL } from '@/config/servers'
+import {
+  DEFAULT_RETRIES,
+  DEFAULT_STOP_GAP,
+  DEFAULT_TIME_OUT,
+  getBlockchainConfig,
+  MEMPOOL_SIGNET_URL
+} from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import { type Backend, type Network } from '@/types/settings/blockchain'
 
@@ -33,9 +39,9 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       backend: 'electrum',
       network: 'signet',
       url: MEMPOOL_SIGNET_URL,
-      timeout: 6,
-      retries: 7,
-      stopGap: 20,
+      timeout: DEFAULT_TIME_OUT,
+      retries: DEFAULT_RETRIES,
+      stopGap: DEFAULT_STOP_GAP,
       setBackend: (backend) => {
         set({ backend })
       },
