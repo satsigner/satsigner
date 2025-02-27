@@ -24,6 +24,7 @@ import {
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account, type MultisigParticipant } from '@/types/models/Account'
+import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Backend } from '@/types/settings/blockchain'
@@ -459,24 +460,37 @@ async function getLastUnusedWalletAddress(
   return newAddress
 }
 
+async function getScriptPubKeyFromAddress(address: string) {
+  const recipientAddress = await new Address().create(address)
+  return recipientAddress.scriptPubKey()
+}
+
 async function buildTransaction(
   wallet: Wallet,
-  utxos: Utxo[],
-  recipient: string,
-  amount: number,
-  fee: number
+  data: {
+    inputs: Utxo[]
+    outputs: Output[]
+    feeRate: number
+    options: {
+      rbf: boolean
+    }
+  }
 ) {
-  const address = await new Address().create(recipient)
-  const script = await address.scriptPubKey()
-
   const transactionBuilder = await new TxBuilder().create()
 
-  await transactionBuilder.feeAbsolute(fee)
   await transactionBuilder.addUtxos(
-    utxos.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
+    data.inputs.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
   )
   await transactionBuilder.manuallySelectedOnly()
-  await transactionBuilder.addRecipient(script, amount)
+
+  for (const output of data.outputs) {
+    const recipient = await getScriptPubKeyFromAddress(output.to)
+    await transactionBuilder.addRecipient(recipient, output.amount)
+  }
+
+  await transactionBuilder.feeAbsolute(data.feeRate)
+
+  if (data.options.rbf) await transactionBuilder.enableRbf()
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult
