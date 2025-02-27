@@ -14,6 +14,7 @@ type TransactionBuilderState = {
   inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
   outputs: Output[]
   feeRate: number
+  timeLock: number
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
 }
@@ -36,6 +37,7 @@ const useTransactionBuilderStore = create<
   inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
   outputs: [],
   feeRate: 0,
+  timeLock: 0,
   clearTransaction: () => {
     set({
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
