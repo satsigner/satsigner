@@ -37,19 +37,24 @@ function FeeManagement() {
           headerTitle: () => <SSText uppercase>EXTRA SECURITY</SSText>
         }}
       />
-      <SSMainLayout style={{ paddingBottom: 24 }}>
+      <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
         <SSVStack justifyBetween>
-          <SSVStack>
-            <SSCheckbox
-              selected={localRBF}
-              label="Replace By Fee"
-              onPress={() => setLocalRBF(!localRBF)}
-            />
-            <SSCheckbox
-              selected={localCPFP}
-              label="Child Pays For Parents"
-              onPress={() => setLocalCPFP(!localCPFP)}
-            />
+          <SSVStack gap="lg">
+            <SSText center uppercase size="lg">
+              FEE MANAGEMENT
+            </SSText>
+            <SSVStack>
+              <SSCheckbox
+                selected={localRBF}
+                label="REPLACE BY FEE"
+                onPress={() => setLocalRBF(!localRBF)}
+              />
+              <SSCheckbox
+                selected={localCPFP}
+                label="CHILD PAYS FOR PARENTS"
+                onPress={() => setLocalCPFP(!localCPFP)}
+              />
+            </SSVStack>
           </SSVStack>
           <SSVStack>
             <SSButton
