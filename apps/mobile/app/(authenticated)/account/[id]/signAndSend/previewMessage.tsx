@@ -23,12 +23,13 @@ export default function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [inputs, outputs, feeRate, setTxBuilderResult] =
+  const [inputs, outputs, feeRate, rbf, setTxBuilderResult] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.outputs,
         state.feeRate,
+        state.rbf,
         state.setTxBuilderResult
       ])
     )
@@ -69,13 +70,14 @@ export default function PreviewMessage() {
       const syncedAccount = await syncWallet(wallet, account)
       await updateAccount(syncedAccount)
 
-      const transactionMessage = await buildTransaction(
-        wallet,
-        Array.from(inputs.values()),
-        outputs[0].to,
-        outputs[0].amount,
-        feeRate
-      )
+      const transactionMessage = await buildTransaction(wallet, {
+        inputs: Array.from(inputs.values()),
+        outputs: Array.from(outputs.values()),
+        feeRate,
+        options: {
+          rbf
+        }
+      })
 
       setMessageId(transactionMessage.txDetails.txid)
       setTxBuilderResult(transactionMessage)
