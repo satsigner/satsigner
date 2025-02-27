@@ -63,6 +63,18 @@ function SSNumberInput(
     }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (value === undefined || value === '') {
+      return
+    }
+    if (!value.match(/^[0-9]*$/)) {
+      setInvalid(true)
+      return
+    }
+    const numericVal = Number(value)
+    setInvalid(numericVal < min || numericVal > max)
+  }, [min, max])// eslint-disable-line react-hooks/exhaustive-deps
+
   function handleTextChange(text: string) {
     if (!text.match(/^[0-9]*$/)) {
       return
