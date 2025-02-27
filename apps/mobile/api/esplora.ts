@@ -141,7 +141,7 @@ export class Esplora {
   }
 
   async getAddressTx(address: string) {
-    return await this._call('/address/' + address + '/txs')
+    return (await this._call('/address/' + address + '/txs')) as EsploraTx[]
   }
 
   async getAddressTxInMempool(address: string) {
