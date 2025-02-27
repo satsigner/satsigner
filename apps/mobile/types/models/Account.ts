@@ -13,7 +13,7 @@ export type AccountCreationType =
   | null
   | undefined
 
-export type ParticipantCrationType =
+export type ParticipantCreationType =
   | 'generate'
   | 'importseed'
   | 'importdescriptor'
@@ -27,12 +27,13 @@ export type MultisigParticipant = {
   seedWords?: string
   passphrase?: string
   scriptVersion?: ScriptVersionType
-  externalDescriptor?: string
-  internalDescriptor?: string
+  //externalDescriptor?: string
+  //internalDescriptor?: string
   fingerprint?: string
   derivationPath?: string
   publicKey?: string
-  creationType?: ParticipantCrationType
+  privateKey?: string
+  creationType?: ParticipantCreationType
 }
 
 export type Account = {

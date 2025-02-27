@@ -85,7 +85,7 @@ function SSTransactionCard({
     <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSVStack
         style={{
-          paddingHorizontal: 16,
+          paddingHorizontal: 0,
           paddingTop: expand ? 4 : 8
         }}
         gap="none"

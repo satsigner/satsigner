@@ -1,7 +1,9 @@
+import ecc from '@bitcoinerlab/secp256k1'
 import {
   Address,
   Blockchain,
   DatabaseConfig,
+  DerivationPath,
   Descriptor,
   DescriptorSecretKey,
   Mnemonic,
@@ -20,8 +22,10 @@ import {
   type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  type Network
+  Network
 } from 'bdk-rn/lib/lib/enums'
+import BIP32Factory from 'bip32'
+import * as Bitcoin from 'bitcoinjs-lib'
 
 import { type Account, type MultisigParticipant } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
@@ -65,6 +69,44 @@ async function getDescriptor(
     case 'P2TR':
       return new Descriptor().newBip86(descriptorSecretKey, kind, network)
   }
+}
+
+async function getParticipantDescriptor(
+  seedWords: NonNullable<Account['seedWords']>,
+  scriptVersion: NonNullable<Account['scriptVersion']>,
+  kind: KeychainKind,
+  passphrase: Account['passphrase'],
+  network: Network
+) {
+  const mnemonic = await new Mnemonic().fromString(seedWords)
+  const pathName = `m/48'/${network === Network.Bitcoin ? '0' : '1'}'/0'/2'`
+  const derivationPath = await new DerivationPath().create(pathName)
+  const descriptorSecretKey = await new DescriptorSecretKey().create(
+    network,
+    mnemonic,
+    passphrase
+  )
+  const newKey = await descriptorSecretKey.derive(derivationPath)
+  const bip32 = BIP32Factory(ecc)
+  const privateMatch = newKey.match(/(tprv|xprv|vprv|zprv)[A-Za-z0-9]+/)
+  const privateKey = privateMatch ? privateMatch[0] : ''
+  let bipNetwork: Bitcoin.Network = Bitcoin.networks.bitcoin
+  switch (network) {
+    case Network.Bitcoin:
+      bipNetwork = Bitcoin.networks.bitcoin
+      break
+    case Network.Signet:
+    case Network.Testnet:
+      bipNetwork = Bitcoin.networks.testnet
+      break
+    case Network.Regtest:
+      bipNetwork = Bitcoin.networks.regtest
+      break
+  }
+  const node = bip32.fromBase58(privateKey, bipNetwork)
+  const publicKey = node.neutered().toBase58()
+  const fingerprint = await getFingerprint(seedWords, passphrase, network)
+  return { derivationPath: pathName, privateKey, publicKey, fingerprint }
 }
 
 async function parseDescriptor(descriptor: Descriptor) {
@@ -150,33 +192,19 @@ async function getParticipantInfo(
     const seedWords = participant.seedWords
     const scriptVersion = participant.scriptVersion
     const passphrase = participant.passphrase
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      getDescriptor(
+    const { derivationPath, fingerprint, privateKey, publicKey } =
+      await getParticipantDescriptor(
         seedWords,
         scriptVersion,
         KeychainKind.External,
         passphrase,
         network
-      ),
-      getDescriptor(
-        seedWords,
-        scriptVersion,
-        KeychainKind.Internal,
-        passphrase,
-        network
       )
-    ])
-    const { fingerprint, derivationPath } =
-      await parseDescriptor(externalDescriptor)
-    const externalDescriptorString = await externalDescriptor.asString()
-    const internalDescriptorString = await internalDescriptor.asString()
-    const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
     return {
       fingerprint,
       derivationPath,
-      externalDescriptorString,
-      internalDescriptorString,
-      pubKey
+      publicKey,
+      privateKey
     }
   } catch {
     return null
@@ -190,58 +218,39 @@ async function getMultiSigWalletFromMnemonic(
   requiredParticipants: number
 ) {
   try {
-    const externalDescriptors: Descriptor[] = []
-    const internalDescriptors: Descriptor[] = []
-    const keys = []
-    for (let i = 0; i < totalParticipants; i++) {
-      const participant = participants[i]
-      if (participant.creationType !== 'importdescriptor') {
-        if (!participant.seedWords || !participant.scriptVersion) {
-          return null
-        }
-        const seedWords = participant.seedWords
-        const scriptVersion = participant.scriptVersion
-        const passphrase = participant.passphrase
-        const [externalDescriptor, internalDescriptor] = await Promise.all([
-          getDescriptor(
-            seedWords,
-            scriptVersion,
-            KeychainKind.External,
-            passphrase,
-            network
-          ),
-          getDescriptor(
-            seedWords,
-            scriptVersion,
-            KeychainKind.Internal,
-            passphrase,
-            network
-          )
-        ])
-        externalDescriptors.push(externalDescriptor)
-        internalDescriptors.push(internalDescriptor)
-        const key = await extractPubKeyFromDescriptor(externalDescriptor)
-        keys.push(key)
-      } else {
-        const match = participant.externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
-        const key = match ? match[0] : ''
-        keys.push(key)
-      }
-    }
-    const multisigDescriptorString = `wsh(multi(${requiredParticipants},${keys.join(',')}))`
-    const multisigDescriptor = await new Descriptor().create(
-      multisigDescriptorString,
+    const sortedParticipants = [...participants]
+    sortedParticipants.sort((a, b) => a.publicKey!.localeCompare(b.publicKey!))
+    const extKeys: string[] = []
+    const intKeys: string[] = []
+    sortedParticipants.forEach((p) => {
+      extKeys.push(
+        `[${p.fingerprint}/${p.derivationPath?.slice(2)}]${p.publicKey}/0/*`
+      )
+      intKeys.push(
+        `[${p.fingerprint}/${p.derivationPath?.slice(2)}]${p.publicKey}/1/*`
+      )
+    })
+    const externalDescriptorString = `wsh(sortedmulti(${requiredParticipants},${extKeys.join(',')}))`
+    const internalDescriptorString = `wsh(sortedmulti(${requiredParticipants},${intKeys.join(',')}))`
+    const externalDescriptor = await new Descriptor().create(
+      externalDescriptorString,
+      network
+    )
+    const internalDescriptor = await new Descriptor().create(
+      internalDescriptorString,
       network
     )
     const dbConfig = await new DatabaseConfig().memory()
     const wallet = await new Wallet().create(
-      multisigDescriptor,
-      null,
+      externalDescriptor,
+      internalDescriptor,
       network,
       dbConfig
     )
     return {
-      wallet
+      wallet,
+      externalDescriptor: externalDescriptorString,
+      internalDescriptor: internalDescriptorString
     }
   } catch {
     return null

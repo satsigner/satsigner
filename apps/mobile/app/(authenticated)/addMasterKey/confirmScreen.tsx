@@ -34,7 +34,7 @@ export default function ConfirmScreen() {
     try {
       setTimeout(() => {
         setCompleted(true)
-      }, 30000)
+      }, 100000)
       const wallet = await loadWallet()
       const account = getAccount()
       accountName.current = account.name
