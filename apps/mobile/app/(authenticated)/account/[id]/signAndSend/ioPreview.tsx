@@ -11,6 +11,7 @@ import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
+import SSRadioButton from '@/components/SSRadioButton'
 import SSSankeyDiagram from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
@@ -49,6 +50,10 @@ export default function IOPreview() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+
+  type AutoSelectUtxosAlgorithms = 'user' | 'privacy' | 'efficiency'
+  const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
+    useState<AutoSelectUtxosAlgorithms>('user')
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
@@ -118,10 +123,18 @@ export default function IOPreview() {
           depthH: 3,
           textInfo: [
             'Unspent',
-            `${utxosSelectedValue - MINING_FEE_VALUE}`,
+            `${utxosSelectedValue - MINING_FEE_VALUE - 5000}`,
             'to'
           ],
-          value: utxosSelectedValue - MINING_FEE_VALUE
+          value: utxosSelectedValue - MINING_FEE_VALUE - 5000
+        },
+        {
+          id: String(inputs.size + 2),
+          indexC: inputs.size + 2,
+          type: 'text',
+          depthH: 3,
+          textInfo: [`5000`, 'to test'],
+          value: 5000
         },
         {
           id: String(inputs.size + 3),
@@ -321,7 +334,47 @@ export default function IOPreview() {
         ref={optionsBottomSheetRef}
         title={t('transaction.build.options.title')}
       >
-        <SSText>Placeholder</SSText>
+        <SSVStack>
+          <SSVStack gap="xs">
+            <SSText color="muted" uppercase>
+              {t('transaction.build.options.autoSelect.utxos.label')}
+            </SSText>
+            <SSHStack justifyBetween>
+              <SSRadioButton
+                variant="outline"
+                label={t(
+                  'transaction.build.options.autoSelect.utxos.user.title'
+                )}
+                selected={selectedAutoSelectUtxos === 'user'}
+                style={{ width: '33%', flex: 1 }}
+                onPress={() => setSelectedAutoSelectUtxos('user')}
+              />
+              <SSRadioButton
+                variant="outline"
+                label={t(
+                  'transaction.build.options.autoSelect.utxos.privacy.title'
+                )}
+                selected={selectedAutoSelectUtxos === 'privacy'}
+                style={{ width: '33%', flex: 1 }}
+                onPress={() => setSelectedAutoSelectUtxos('privacy')}
+              />
+              <SSRadioButton
+                variant="outline"
+                label={t(
+                  'transaction.build.options.autoSelect.utxos.efficiency.title'
+                )}
+                selected={selectedAutoSelectUtxos === 'efficiency'}
+                style={{ width: '33%', flex: 1 }}
+                onPress={() => setSelectedAutoSelectUtxos('efficiency')}
+              />
+            </SSHStack>
+            <SSText color="muted">
+              {t(
+                `transaction.build.options.autoSelect.utxos.${selectedAutoSelectUtxos}.description`
+              )}
+            </SSText>
+          </SSVStack>
+        </SSVStack>
       </SSBottomSheet>
       <SSBottomSheet
         ref={changeFeeBottomSheetRef}
