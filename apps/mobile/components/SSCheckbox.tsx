@@ -9,7 +9,7 @@ import { Colors, Sizes } from '@/styles'
 import SSText from './SSText'
 
 type SSCheckboxProps = {
-  label: string
+  label?: string
   selected: boolean
 } & BouncyCheckboxProps
 
@@ -24,16 +24,20 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
     <View style={styles.containerBase}>
       <BouncyCheckbox
         isChecked={selected}
+        useBuiltInState={false}
         fillColor={Colors.gray[700]}
         unFillColor={Colors.gray[700]}
         size={Sizes.checkbox.height}
         iconStyle={styles.iconStyleBase}
+        style={{ width: Sizes.checkbox.height }}
         innerIconStyle={innerIconStyle}
         {...props}
       />
-      <SSText color="white" size="lg">
-        {label}
-      </SSText>
+      {label && (
+        <SSText color="white" size="lg">
+          {label}
+        </SSText>
+      )}
     </View>
   )
 }
@@ -41,7 +45,8 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
 const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: Sizes.checkbox.height / 2
   },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
