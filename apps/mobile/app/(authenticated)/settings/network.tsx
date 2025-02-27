@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
+import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconWarning } from '@/components/icons'
@@ -78,6 +79,138 @@ export default function NetworkSettings() {
   const [confirmedServer, setConfirmedServer] = useState(defaultServer)
   const [serverModalVisible, setServerModalVisible] = useState(false)
 
+  const defaultTabIndex = serverIndex !== -1 ? 1 : 0
+  const [tabIndex, setTabIndex] = useState(defaultTabIndex)
+  const tabs = serverTypes.map((type) => ({ key: type }))
+
+  const renderTab = () => {
+    return (
+      <SSHStack style={{ marginBottom: 24 }}>
+        {serverTypes.map((type, index) => (
+          <SSButton
+            key={type}
+            variant="outline"
+            style={{
+              width: 'auto',
+              flexGrow: 1,
+              borderColor: type === serverType ? 'white' : 'gray'
+            }}
+            label={type}
+            onPress={() => {
+              setServerType(type)
+              setTabIndex(index)
+            }}
+          />
+        ))}
+      </SSHStack>
+    )
+  }
+
+  const renderScene = ({
+    route
+  }: SceneRendererProps & { route: { key: string } }) => {
+    switch (route.key) {
+      case 'CUSTOM':
+        return (
+          <ScrollView>
+            <SSVStack gap="md">
+              <SSVStack>
+                <SSText uppercase>{t('settings.network.backend')}</SSText>
+                {backends.map((backend) => (
+                  <SSCheckbox
+                    key={backend}
+                    label={backend}
+                    selected={selectedBackend === backend}
+                    onPress={() => setSelectedBackend(backend)}
+                  />
+                ))}
+              </SSVStack>
+              <SSVStack>
+                <SSText uppercase>{t('settings.network.network')}</SSText>
+                {networks.map((network: Network) => (
+                  <SSCheckbox
+                    key={network}
+                    label={network}
+                    selected={selectedNetwork === network}
+                    onPress={() => setSelectedNetwork(network)}
+                  />
+                ))}
+              </SSVStack>
+              <SSVStack>
+                <SSText uppercase>{t('settings.network.url')}</SSText>
+                <SSTextInput
+                  value={selectedUrl}
+                  onChangeText={(url) => setSelectedUrl(url)}
+                />
+              </SSVStack>
+              <SSVStack>
+                <SSText uppercase>{t('settings.network.retries')}</SSText>
+                <SSNumberInput
+                  value={selectedRetries}
+                  min={1}
+                  max={10}
+                  onChangeText={setSelectedRetries}
+                />
+              </SSVStack>
+              <SSVStack>
+                <SSText uppercase>{t('settings.network.timeout')}</SSText>
+                <SSNumberInput
+                  value={selectedTimeout}
+                  min={1}
+                  max={20}
+                  onChangeText={setSelectedTimeout}
+                />
+              </SSVStack>
+              <SSVStack>
+                <SSText uppercase>{t('settings.network.stopGap')}</SSText>
+                <SSNumberInput
+                  value={selectedStopGap}
+                  min={1}
+                  max={30}
+                  onChangeText={setSelectedStopGap}
+                />
+              </SSVStack>
+            </SSVStack>
+          </ScrollView>
+        )
+      case 'PUBLIC':
+        return (
+          <SSVStack gap="lg">
+            <SSVStack>
+              <SSHStack
+                gap="sm"
+                style={{ justifyContent: 'center', width: '100%' }}
+              >
+                <SSIconWarning
+                  height={30}
+                  width={30}
+                  fill="black"
+                  strokeExclamation="white"
+                  strokeTriangle="red"
+                />
+                <SSText uppercase>
+                  {t('settings.network.server.warning.title')}
+                </SSText>
+              </SSHStack>
+              <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
+                {t('settings.network.server.warning.text')}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="md">
+              <SSButton
+                withSelect
+                label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
+                onPress={() => setServerModalVisible(true)}
+              />
+              <SSButton label={t('settings.network.test').toUpperCase()} />
+            </SSVStack>
+          </SSVStack>
+        )
+      default:
+        return null
+    }
+  }
+
   function handleOnSave() {
     if (serverType === 'CUSTOM') {
       setBackend(selectedBackend)
@@ -110,128 +243,22 @@ export default function NetworkSettings() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <SSHStack>
-          {serverTypes.map((type) => (
-            <SSButton
-              key={type}
-              variant="outline"
-              style={{
-                width: 'auto',
-                flexGrow: 1,
-                borderColor: type === serverType ? 'white' : 'gray'
-              }}
-              label={type}
-              onPress={() => setServerType(type)}
-            />
-          ))}
-        </SSHStack>
-        <SSVStack
-          gap="lg"
-          style={{
-            display: serverType === 'PUBLIC' ? 'flex' : 'none'
-          }}
-        >
-          <SSHStack
-            gap="sm"
-            style={{ justifyContent: 'center', width: '100%' }}
-          >
-            <SSIconWarning
-              height={30}
-              width={30}
-              fill="black"
-              strokeExclamation="white"
-              strokeTriangle="red"
-            />
-            <SSText uppercase>
-              {t('settings.network.server.warning.title')}
-            </SSText>
-          </SSHStack>
-          <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
-            {t('settings.network.server.warning.text')}
-          </SSText>
-          <SSVStack gap="md">
-            <SSButton
-              withSelect
-              label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
-              onPress={() => setServerModalVisible(true)}
-            />
-            <SSButton label={t('settings.network.test').toUpperCase()} />
-          </SSVStack>
-        </SSVStack>
-        <ScrollView>
-          <SSVStack
-            gap="lg"
-            style={{
-              display: serverType === 'CUSTOM' ? 'flex' : 'none'
-            }}
-          >
-            <SSVStack>
-              <SSText uppercase>{t('settings.network.backend')}</SSText>
-              {backends.map((backend) => (
-                <SSCheckbox
-                  key={backend}
-                  label={backend}
-                  selected={selectedBackend === backend}
-                  onPress={() => setSelectedBackend(backend)}
-                />
-              ))}
-            </SSVStack>
-            <SSVStack>
-              <SSText uppercase>{t('settings.network.network')}</SSText>
-              {networks.map((network: Network) => (
-                <SSCheckbox
-                  key={network}
-                  label={network}
-                  selected={selectedNetwork === network}
-                  onPress={() => setSelectedNetwork(network)}
-                />
-              ))}
-            </SSVStack>
-            <SSVStack>
-              <SSText uppercase>{t('settings.network.url')}</SSText>
-              <SSTextInput
-                value={selectedUrl}
-                onChangeText={(url) => setSelectedUrl(url)}
-              />
-            </SSVStack>
-            <SSVStack>
-              <SSText uppercase>{t('settings.network.retries')}</SSText>
-              <SSNumberInput
-                value={selectedRetries}
-                min={1}
-                max={10}
-                onChangeText={setSelectedRetries}
-              />
-            </SSVStack>
-            <SSVStack>
-              <SSText uppercase>{t('settings.network.timeout')}</SSText>
-              <SSNumberInput
-                value={selectedTimeout}
-                min={1}
-                max={20}
-                onChangeText={setSelectedTimeout}
-              />
-            </SSVStack>
-            <SSVStack>
-              <SSText uppercase>{t('settings.network.stopGap')}</SSText>
-              <SSNumberInput
-                value={selectedStopGap}
-                min={1}
-                max={30}
-                onChangeText={setSelectedStopGap}
-              />
-            </SSVStack>
-          </SSVStack>
-        </ScrollView>
+        <TabView
+          swipeEnabled={false}
+          navigationState={{ index: tabIndex, routes: tabs }}
+          renderScene={renderScene}
+          renderTabBar={renderTab}
+          onIndexChange={setTabIndex}
+        />
         <SSVStack>
           <SSButton
-            label={t('common.save')}
             variant="secondary"
+            label={t('common.save')}
             onPress={() => handleOnSave()}
           />
           <SSButton
-            label={t('common.cancel')}
             variant="ghost"
+            label={t('common.cancel')}
             onPress={() => router.back()}
           />
         </SSVStack>
@@ -256,19 +283,21 @@ export default function NetworkSettings() {
             {servers
               .filter((server) => server.network === network)
               .map((server, index) => (
-                <SSHStack key={index} style={{ alignItems: 'center' }}>
+                <SSHStack key={index}>
                   <SSCheckbox
+                    onPress={() => setSelectedServer(server)}
                     selected={
                       selectedServer.url === server.url &&
                       selectedServer.network === server.network
                     }
-                    onPress={() => setSelectedServer(server)}
                   />
                   <SSVStack gap="none" style={{ flexGrow: 1 }}>
                     <SSText style={{ lineHeight: 16 }} size="md">
                       {server.name}
                     </SSText>
-                    <SSText color="muted">{server.url}</SSText>
+                    <SSText style={{ lineHeight: 14 }} color="muted">
+                      {server.url}
+                    </SSText>
                   </SSVStack>
                   <SSText uppercase color="muted" size="xs">
                     {server.backend}
