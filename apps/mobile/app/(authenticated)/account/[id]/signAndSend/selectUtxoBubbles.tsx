@@ -2,8 +2,7 @@ import { useHeaderHeight } from '@react-navigation/elements'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useMemo, useState } from 'react'
-import { StyleSheet, useWindowDimensions } from 'react-native'
-import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconList } from '@/components/icons'
@@ -91,7 +90,7 @@ function SelectUtxoBubbles() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
@@ -228,7 +227,7 @@ function SelectUtxoBubbles() {
           </SSText>
         </SSVStack>
       </SSModal>
-    </GestureHandlerRootView>
+    </View>
   )
 }
 

@@ -9,11 +9,7 @@ import {
   useState
 } from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView
-} from 'react-native-gesture-handler'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Svg, {
   ClipPath,
   Defs,
@@ -777,7 +773,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   let previousDate: string = ''
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <GestureDetector gesture={combinedGesture}>
         <View style={styles.container} onLayout={handleLayout}>
           <Svg
@@ -1080,7 +1076,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           </Svg>
         </View>
       </GestureDetector>
-    </GestureHandlerRootView>
+    </View>
   )
 }
 

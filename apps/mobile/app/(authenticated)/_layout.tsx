@@ -7,7 +7,7 @@ import {
 import { Redirect, Stack, useGlobalSearchParams, useRouter } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
-import { StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSettings } from '@/components/icons'
@@ -76,7 +76,7 @@ export default function AuthenticatedLayout() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1 }}>
       <Stack
         screenOptions={{
           contentStyle: {
@@ -106,10 +106,3 @@ export default function AuthenticatedLayout() {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.gray[900]
-  }
-})
