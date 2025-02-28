@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
@@ -10,7 +10,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 const CURRENT_BLOCK_HEIGHT = 885_000
 const AVERAGE_BLOCKS_PER_YEAR = 52560
@@ -22,8 +21,6 @@ const SAFE_TIMELOCK_LIMIT = CURRENT_BLOCK_HEIGHT + AVERAGE_BLOCKS_PER_YEAR * 2
 const DAYS_BY_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 function TimeLock() {
-  const { id } = useLocalSearchParams<AccountSearchParams>()
-
   const timeLockTypes = ['BLOCK HEIGHT', 'DATE']
   const [timeLockType, setTimeLockType] = useState(timeLockTypes[0])
   const tabs = timeLockTypes.map((type) => ({ key: type }))
@@ -147,15 +144,15 @@ function TimeLock() {
   }
 
   function cancel() {
-    router.navigate(`/account/${id}/signAndSend/ioPreview`)
+    router.back()
   }
 
   function saveChanges() {
-    router.navigate(`/account/${id}/signAndSend/ioPreview`)
+    router.back()
   }
 
   function removeTimeLock() {
-    router.navigate(`/account/${id}/signAndSend/ioPreview`)
+    router.back()
   }
 
   return (

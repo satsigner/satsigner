@@ -1,4 +1,4 @@
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,10 +9,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 function FeeManagement() {
-  const { id } = useLocalSearchParams<AccountSearchParams>()
   const [rbf, cpfp, setRbf, setCpfp] = useTransactionBuilderStore(
     useShallow((state) => [state.rbf, state.cpfp, state.setRbf, state.setCpfp])
   )
@@ -21,13 +19,13 @@ function FeeManagement() {
   const [localCPFP, setLocalCPFP] = useState(cpfp)
 
   function cancel() {
-    router.navigate(`/account/${id}/signAndSend/ioPreview`)
+    router.back()
   }
 
   function saveChanges() {
     setRbf(localRBF)
     setCpfp(localCPFP)
-    router.navigate(`/account/${id}/signAndSend/ioPreview`)
+    router.back()
   }
 
   return (
