@@ -374,6 +374,27 @@ export default function IOPreview() {
               )}
             </SSText>
           </SSVStack>
+          <SSVStack>
+            <SSHStack>
+              <SSButton
+                label="FEE CONTROL"
+                variant="outline"
+                onPress={() =>
+                  router.navigate(`/account/${id}/signAndSend/feeManagement`)
+                }
+                style={{ width: '45%', flexGrow: 1 }}
+              />
+              <SSButton
+                label="TIMELOCK"
+                variant="outline"
+                onPress={() =>
+                  router.navigate(`/account/${id}/signAndSend/timeLock`)
+                }
+                style={{ width: '45%', flexGrow: 1 }}
+              />
+            </SSHStack>
+            <SSButton label="IMPORT OUTPUTS" variant="outline" />
+          </SSVStack>
         </SSVStack>
       </SSBottomSheet>
       <SSBottomSheet
