@@ -286,8 +286,22 @@ export function usePreviousTransactions(
           filteredTransactions.set(txid, { ...tx, depthH: 0 })
         }
 
+        // Map inputs to the format expected by recalculateDepthH
+        const mappedInputs = new Map(
+          Array.from(inputs.entries()).map(([key, utxo]) => [
+            key,
+            {
+              value: utxo.value,
+              scriptpubkey_address: utxo.addressTo || ''
+            }
+          ])
+        )
+
         // Use recalculateDepthH to calculate actual dependency-based depths
-        const transactionsWithDepthH = recalculateDepthH(filteredTransactions)
+        const transactionsWithDepthH = recalculateDepthH(
+          filteredTransactions,
+          mappedInputs
+        )
 
         // Assign indexH to vins and vouts
         const transactionsWithIndexH = assignIndexH(transactionsWithDepthH)

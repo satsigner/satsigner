@@ -110,7 +110,7 @@ export default function IOPreview() {
       </SSVStack>
     )
   }
-
+  console.log('sankeyNodes', nodes)
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen

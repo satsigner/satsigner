@@ -4,6 +4,7 @@ import {
   type SankeyLinkMinimal,
   type SankeyNodeMinimal
 } from 'd3-sankey'
+import { useMemo } from 'react'
 import { Platform, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
@@ -39,14 +40,9 @@ const NODE_WIDTH = 98
 type SSSankeyDiagramProps = {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
-  inputCount: number
 }
 
-function SSSankeyDiagram({
-  sankeyNodes,
-  sankeyLinks,
-  inputCount
-}: SSSankeyDiagramProps) {
+function SSSankeyDiagram({ sankeyNodes, sankeyLinks }: SSSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
@@ -64,12 +60,28 @@ function SSSankeyDiagram({
     }
   })
 
+  // Calculate the maximum number of nodes at any depthH level
+  const maxNodeCountInDepthH = useMemo(() => {
+    const depthCounts = new Map<number, number>()
+
+    sankeyNodes.forEach((node) => {
+      const count = depthCounts.get(node.depthH) || 0
+      depthCounts.set(node.depthH, count + 1)
+    })
+
+    return depthCounts.size > 0
+      ? Math.max(...Array.from(depthCounts.values()))
+      : 0
+  }, [sankeyNodes])
+
+  console.log({ maxNodeCountInDepthH })
+
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(120)
     .extent([
       [0, 160],
-      [2000 * 0.7, 1000 * (Math.max(inputCount * 2, 8) / 10)]
+      [2000 * 0.7, 1000 * (maxNodeCountInDepthH / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
