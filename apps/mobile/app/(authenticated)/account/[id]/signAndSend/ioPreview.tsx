@@ -27,6 +27,7 @@ import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
+import SSFeeInput from '@/components/SSFeeInput'
 
 const MINING_FEE_VALUE = 1635
 
@@ -57,6 +58,8 @@ export default function IOPreview() {
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+
+  const [feeRate, setFeeRate] = useState(1)
 
   const addOutputBottomSheetRef = useRef<BottomSheet>(null)
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
@@ -407,7 +410,13 @@ export default function IOPreview() {
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
-        <SSText>Placeholder</SSText>
+        <SSFeeInput
+          value={feeRate}
+          onValueChange={setFeeRate}
+          vbytes={250}
+          max={40}
+          estimatedBlock={Math.trunc(40/feeRate)}
+        />
       </SSBottomSheet>
       <SSModal
         visible={addOutputModalVisible}
