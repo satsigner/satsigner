@@ -393,7 +393,13 @@ export default function IOPreview() {
                 style={{ width: '45%', flexGrow: 1 }}
               />
             </SSHStack>
-            <SSButton label="IMPORT OUTPUTS" variant="outline" />
+            <SSButton
+              label="IMPORT OUTPUTS"
+              variant="outline"
+              onPress={() =>
+                router.navigate(`/account/${id}/signAndSend/importOutputs`)
+              }
+            />
           </SSVStack>
         </SSVStack>
       </SSBottomSheet>
