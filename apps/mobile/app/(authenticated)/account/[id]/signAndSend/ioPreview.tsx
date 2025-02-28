@@ -26,7 +26,7 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 
 const DEEP_LEVEL = 3
 
@@ -89,7 +89,6 @@ export default function IOPreview() {
     inputs,
     outputs,
     utxosSelectedValue,
-    deepLevel: DEEP_LEVEL
   })
 
   // Show loading state

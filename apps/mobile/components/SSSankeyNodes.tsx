@@ -215,4 +215,4 @@ function NodeText({
   )
 }
 
-export default SSSankeyNode
+export default SSSankeyNodes
