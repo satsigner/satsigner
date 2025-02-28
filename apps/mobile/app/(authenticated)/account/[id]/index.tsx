@@ -1,13 +1,21 @@
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
-import { LinearGradient } from 'expo-linear-gradient'
+import { FlashList } from '@shopify/flash-list'
+import { Descriptor, type Wallet } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type Dispatch,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import {
   Animated,
   Easing,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -18,32 +26,37 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconBubbles,
   SSIconCamera,
-  SSIconChart,
-  SSIconChartSetting,
+  SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
+  SSIconEyeOn,
+  SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
-import SSBackgroundGradient from '@/components/SSBackgroundGradient'
-import SSBalanceChart from '@/components/SSBalanceChart'
+import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
+import SSBubbleChart from '@/components/SSBubbleChart'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
-import SSUtxoBubbles from '@/components/SSUtxoBubbles'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
@@ -51,7 +64,8 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -73,7 +87,6 @@ function TotalTransactions({
   expand,
   setSortDirection,
   refreshing,
-  sortTransactions,
   blockchainHeight
 }: TotalTransactionsProps) {
   const router = useRouter()
@@ -94,11 +107,31 @@ function TotalTransactions({
     )
   }, [account.transactions])
 
-  const [showChart, setShowChart] = useState<boolean>(false)
+  const transactionBalances = useMemo(() => {
+    let balance = 0
+    const balances = sortedTransactions.map((tx) => {
+      const received = tx.received || 0
+      const sent = tx.sent || 0
+      balance = balance + received - sent
+      return balance
+    })
+
+    return balances.reverse()
+  }, [sortedTransactions])
+
+  const maxBalance = useMemo(() => {
+    if (transactionBalances.length === 0) return 0
+    return Math.max(...transactionBalances)
+  }, [transactionBalances])
+
+  const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
 
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
+    <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
+      <SSHStack
+        justifyBetween
+        style={{ paddingVertical: 16, paddingHorizontal: 16 }}
+      >
         <SSHStack>
           <SSIconButton onPress={() => handleOnRefresh()}>
             <SSIconRefresh height={18} width={22} />
@@ -110,23 +143,21 @@ function TotalTransactions({
               <SSIconExpand height={15} width={16} />
             )}
           </SSIconButton>
-          {showChart && (
+          {showHistoryChart && (
             <SSIconButton
-              onPress={() =>
-                router.navigate(`/settings/config/features/chartSettings`)
-              }
+              onPress={() => router.navigate(`/settings/features/historyChart`)}
             >
-              <SSIconChartSetting width={22} height={18} />
+              <SSIconChartSettings width={22} height={18} />
             </SSIconButton>
           )}
         </SSHStack>
-        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
-          <SSIconButton onPress={() => setShowChart((prev) => !prev)}>
-            {showChart ? (
+          <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
+            {showHistoryChart ? (
               <SSIconMenu width={18} height={18} />
             ) : (
-              <SSIconChart width={18} height={18} />
+              <SSIconHistoryChart width={18} height={18} />
             )}
           </SSIconButton>
           <SSSortDirectionToggle
@@ -134,9 +165,9 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
-      {showChart ? (
+      {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
-          <SSBalanceChart
+          <SSHistoryChart
             transactions={sortedTransactions}
             utxos={account.utxos}
           />
@@ -151,20 +182,35 @@ function TotalTransactions({
               progressBackgroundColor={Colors.white}
             />
           }
+          style={{ marginLeft: 16, marginRight: 2, paddingRight: 14 }}
         >
-          <SSVStack style={{ marginBottom: 16 }}>
-            {sortTransactions([...account.transactions]).map((transaction) => (
-              <SSVStack gap="xs" key={transaction.id}>
-                <SSSeparator color="grayDark" />
-                <SSTransactionCard
-                  btcPrice={btcPrice}
-                  fiatCurrency={fiatCurrency}
-                  transaction={transaction}
-                  blockHeight={blockchainHeight}
-                  link={`/account/${account.name}/transaction/${transaction.id}`}
-                />
-              </SSVStack>
-            ))}
+          <SSVStack
+            style={{ marginBottom: expand ? 8 : 16 }}
+            gap={expand ? 'sm' : 'md'}
+          >
+            {sortedTransactions
+              .slice()
+              .reverse()
+              .map((transaction, index) => {
+                return (
+                  <SSVStack gap="none" key={transaction.id}>
+                    <SSBalanceChangeBar
+                      transaction={transaction}
+                      balance={transactionBalances[index]}
+                      maxBalance={maxBalance}
+                    />
+                    <SSTransactionCard
+                      btcPrice={btcPrice}
+                      fiatCurrency={fiatCurrency}
+                      transaction={transaction}
+                      expand={expand}
+                      walletBalance={transactionBalances[index]}
+                      blockHeight={blockchainHeight}
+                      link={`/account/${account.name}/transaction/${transaction.id}`}
+                    />
+                  </SSVStack>
+                )
+              })}
           </SSVStack>
         </ScrollView>
       )}
@@ -172,10 +218,233 @@ function TotalTransactions({
   )
 }
 
-function ChildAccounts() {
+type ChildAccount = {
+  index: number
+  address: string
+  label: string | undefined
+  unspentSats: number | null
+  txs: number
+}
+
+type ChildAccountsProps = {
+  account: Account
+  loadWalletFromDescriptor: Function
+  setSortDirection: Function
+  sortDirection: Direction
+  handleOnExpand: (state: boolean) => Promise<void>
+  expand: boolean
+  setChange: Function
+  change: boolean
+}
+
+function ChildAccounts({
+  account,
+  loadWalletFromDescriptor,
+  handleOnExpand,
+  setChange,
+  change,
+  expand,
+  setSortDirection
+}: ChildAccountsProps) {
+  const getWalletAddress = useGetWalletAddress(account!)
+  const [childAccounts, setChildAccounts] = useState<any[]>([])
+  const [addressPath, setAddressPath] = useState('')
+  const network = useBlockchainStore((state) => state.network)
+
+  const fetchAddresses = useCallback(async () => {
+    if (!account || !account.externalDescriptor || !account.internalDescriptor)
+      return
+
+    try {
+      const result = await getWalletAddress()
+      if (!result) return
+
+      const changePath = change ? '1' : '0'
+      setAddressPath(`${account.derivationPath}/${changePath}/${result.index}`)
+
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network as Network),
+        new Descriptor().create(account.internalDescriptor, network as Network)
+      ])
+
+      const wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
+      )
+
+      const derivedAddresses = await Promise.all(
+        Array.from(
+          { length: account.summary.numberOfAddresses },
+          async (_, i) => {
+            if (change) {
+              const addrInfo = await wallet.getInternalAddress(i)
+              return {
+                index: i,
+                address: await addrInfo.address.asString()
+              }
+            } else {
+              const addrInfo = await wallet.getAddress(i)
+              return {
+                index: i,
+                address: await addrInfo.address.asString()
+              }
+            }
+          }
+        )
+      )
+
+      const newAddresses = derivedAddresses.map(({ index, address }) => {
+        let utxo = 0
+        let txCount = 0
+
+        for (const ux of account.utxos) {
+          if (ux.addressTo && ux.addressTo === address) {
+            utxo += ux.value
+          }
+        }
+
+        for (const tx of account.transactions) {
+          const isInVout = tx.vout.some((output) => output.address === address)
+          let isInVin = false
+
+          for (const input of tx.vin || []) {
+            const prevTx = account.transactions.find(
+              (t) => t.id === input.previousOutput.txid
+            )
+            if (prevTx) {
+              const voutEntry = prevTx.vout[input.previousOutput.vout]
+              if (voutEntry?.address === address) {
+                isInVin = true
+                break
+              }
+            }
+          }
+
+          if (isInVout || isInVin) {
+            txCount++
+          }
+        }
+
+        return {
+          index,
+          address,
+          label: '',
+          unspentSats: utxo,
+          txs: txCount
+        }
+      })
+
+      setChildAccounts(newAddresses)
+    } catch {}
+  }, [account, loadWalletFromDescriptor, getWalletAddress, network, change])
+
+  useEffect(() => {
+    fetchAddresses()
+  }, [fetchAddresses, change])
+
+  const renderItem = useCallback(
+    ({ item }: { item: ChildAccount }) => (
+      <SSHStack style={styles.row}>
+        <SSText style={styles.indexText}>{item.index}</SSText>
+        <SSText style={styles.addressText}>
+          {formatAddress(item.address, 4)}
+        </SSText>
+        <SSText
+          style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
+        >
+          {item.label || t('transaction.noLabel')}
+        </SSText>
+        <SSText
+          style={[
+            styles.unspentSatsText,
+            {
+              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+            }
+          ]}
+        >
+          {item.unspentSats}
+        </SSText>
+        <SSText
+          style={[
+            styles.txsText,
+            {
+              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+            }
+          ]}
+        >
+          {item.txs}
+        </SSText>
+      </SSHStack>
+    ),
+    []
+  )
+
   return (
-    <SSMainLayout>
-      <SSText>Being built...</SSText>
+    <SSMainLayout style={styles.container}>
+      <SSHStack justifyBetween style={styles.header}>
+        <SSHStack>
+          <SSIconButton onPress={fetchAddresses}>
+            <SSIconRefresh height={18} width={22} />
+          </SSIconButton>
+          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+            {expand ? (
+              <SSIconCollapse height={15} width={15} />
+            ) : (
+              <SSIconExpand height={15} width={16} />
+            )}
+          </SSIconButton>
+        </SSHStack>
+        <SSHStack gap="sm">
+          <SSText color="muted" uppercase>
+            {t('receive.path')}
+          </SSText>
+          <SSText>{addressPath}</SSText>
+        </SSHStack>
+        <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
+          <SSSortDirectionToggle
+            onDirectionChanged={() => setSortDirection()}
+          />
+        </SSHStack>
+      </SSHStack>
+
+      <SSHStack gap="md" justifyBetween style={styles.receiveChangeContainer}>
+        {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+            <SSText
+              style={[
+                styles.receiveChangeButton,
+                { borderColor: change === (index === 1) ? '#fff' : '#333' }
+              ]}
+              uppercase
+              onPress={() => setChange(index === 1)}
+            >
+              {type}
+            </SSText>
+          </SSHStack>
+        ))}
+      </SSHStack>
+
+      <SSHStack style={styles.headerRow}>
+        {[
+          t('accounts.index'),
+          t('accounts.address'),
+          t('accounts.label'),
+          t('accounts.unspentSats'),
+          t('accounts.txs')
+        ].map((title) => (
+          <SSText key={title} style={styles.headerText} uppercase>
+            {title}
+          </SSText>
+        ))}
+      </SSHStack>
+
+      <FlashList
+        data={childAccounts}
+        renderItem={renderItem}
+        estimatedItemSize={150}
+        keyExtractor={(item) => `${item.index}-${item.address}`}
+        removeClippedSubviews
+      />
     </SSMainLayout>
   )
 }
@@ -224,7 +493,7 @@ function SpendableOutputs({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSText color="muted">{i18n.t('account.parentAccountActivity')}</SSText>
+        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
         <SSHStack>
           {view === 'list' && (
             <SSIconButton onPress={() => setView('bubbles')}>
@@ -264,7 +533,7 @@ function SpendableOutputs({
       )}
       <GestureHandlerRootView style={{ flex: 1 }}>
         {view === 'bubbles' && (
-          <SSUtxoBubbles
+          <SSBubbleChart
             utxos={[...account.utxos]}
             canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
             inputs={[]}
@@ -302,11 +571,13 @@ export default function AccountView() {
         state.updateAccount
       ])
     )
+
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const [network, getBlockchainHeight] = useBlockchainStore(
-    useShallow((state) => [state.network, state.getBlockchainHeight])
+    useShallow((state) => [state.network as Network, state.getBlockchainHeight])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -314,9 +585,12 @@ export default function AccountView() {
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
+  const [change, setChange] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
+    useState<Direction>('desc')
+  const [sortDirectionChildAccounts, setSortDirectionChildAccounts] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
@@ -365,7 +639,18 @@ export default function AccountView() {
           />
         )
       case 'childAccounts':
-        return <ChildAccounts />
+        return (
+          <ChildAccounts
+            account={account}
+            handleOnExpand={handleOnExpand}
+            setChange={setChange}
+            expand={expand}
+            change={change}
+            loadWalletFromDescriptor={loadWalletFromDescriptor}
+            setSortDirection={setSortDirectionChildAccounts}
+            sortDirection={sortDirectionChildAccounts}
+          />
+        )
       case 'spendableOutputs':
         return (
           <SpendableOutputs
@@ -416,20 +701,27 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account || !account.externalDescriptor || !account.internalDescriptor)
-      return
+    if (!account || !account.externalDescriptor) return
 
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      new Descriptor().create(account.externalDescriptor, network as Network),
-      new Descriptor().create(account.internalDescriptor, network as Network)
-    ])
+    let wallet: Wallet | null
 
-    const wallet = await loadWalletFromDescriptor(
-      externalDescriptor,
-      internalDescriptor
-    )
+    if (account.watchOnly === 'address') {
+      wallet = null
+    } else {
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network),
+        account.internalDescriptor
+          ? new Descriptor().create(account.internalDescriptor, network)
+          : null
+      ])
+      wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
+      )
+    }
 
     const syncedAccount = await syncWallet(wallet, account)
+
     await updateAccount(syncedAccount)
   }
 
@@ -454,18 +746,19 @@ export default function AccountView() {
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
+  // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
-    // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
+    const tabWidth = account.watchOnly === 'address' ? '33.33%' : '25%'
 
     return (
-      <SSBackgroundGradient orientation="horizontal">
+      <>
         {!expand && (
           <SSHStack
             gap="none"
             style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
           >
             <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(0)}
             >
               <SSVStack gap="none">
@@ -473,9 +766,9 @@ export default function AccountView() {
                   {account.summary.numberOfTransactions}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.totalTransactions.0')}
+                  {t('accounts.totalTransactions.0')}
                   {'\n'}
-                  {i18n.t('accountList.totalTransactions.1')}
+                  {t('accounts.totalTransactions.1')}
                 </SSText>
                 {tabIndex === 0 && (
                   <View
@@ -491,35 +784,37 @@ export default function AccountView() {
                 )}
               </SSVStack>
             </SSActionButton>
+            {account.watchOnly !== 'address' && (
+              <SSActionButton
+                style={{ width: tabWidth }}
+                onPress={() => setTabIndex(1)}
+              >
+                <SSVStack gap="none">
+                  <SSText center size="lg">
+                    {account.summary.numberOfAddresses}
+                  </SSText>
+                  <SSText center color="muted" style={{ lineHeight: 12 }}>
+                    {t('accounts.childAccounts.0')}
+                    {'\n'}
+                    {t('accounts.childAccounts.1')}
+                  </SSText>
+                  {tabIndex === 1 && (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: 2,
+                        bottom: -12,
+                        alignSelf: 'center',
+                        backgroundColor: Colors.white
+                      }}
+                    />
+                  )}
+                </SSVStack>
+              </SSActionButton>
+            )}
             <SSActionButton
-              style={{ width: '25%' }}
-              onPress={() => setTabIndex(1)}
-            >
-              <SSVStack gap="none">
-                <SSText center size="lg">
-                  {account.summary.numberOfAddresses}
-                </SSText>
-                <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.childAccounts.0')}
-                  {'\n'}
-                  {i18n.t('accountList.childAccounts.1')}
-                </SSText>
-                {tabIndex === 1 && (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      width: '100%',
-                      height: 2,
-                      bottom: -12,
-                      alignSelf: 'center',
-                      backgroundColor: Colors.white
-                    }}
-                  />
-                )}
-              </SSVStack>
-            </SSActionButton>
-            <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(2)}
             >
               <SSVStack gap="none">
@@ -527,9 +822,9 @@ export default function AccountView() {
                   {account.summary.numberOfUtxos}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.spendableOutputs.0')}
+                  {t('accounts.spendableOutputs.0')}
                   {'\n'}
-                  {i18n.t('accountList.spendableOutputs.1')}
+                  {t('accounts.spendableOutputs.1')}
                 </SSText>
                 {tabIndex === 2 && (
                   <View
@@ -546,7 +841,7 @@ export default function AccountView() {
               </SSVStack>
             </SSActionButton>
             <SSActionButton
-              style={{ width: '25%' }}
+              style={{ width: tabWidth }}
               onPress={() => setTabIndex(3)}
             >
               <SSVStack gap="none">
@@ -554,9 +849,9 @@ export default function AccountView() {
                   {account.summary.satsInMempool}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {i18n.t('accountList.satsInMempool.0')}
+                  {t('accounts.satsInMempool.0')}
                   {'\n'}
-                  {i18n.t('accountList.satsInMempool.1')}
+                  {t('accounts.satsInMempool.1')}
                 </SSText>
                 {tabIndex === 3 && (
                   <View
@@ -574,25 +869,35 @@ export default function AccountView() {
             </SSActionButton>
           </SSHStack>
         )}
-      </SSBackgroundGradient>
+      </>
     )
   }
+
+  const watchOnlyAddress =
+    account.watchOnly === 'address' && account.externalDescriptor
+      ? parseAddressDescriptorToAddress(account.externalDescriptor)
+      : ''
 
   return (
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{id}</SSText>
+              {account.watchOnly && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerBackground: () => (
-            <LinearGradient
+            <View
               style={{
                 height: '100%',
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
+                backgroundColor: Colors.gray[950]
               }}
-              colors={[Colors.gray[900], Colors.gray[800]]}
-              start={{ x: 0.86, y: 1.0 }}
-              end={{ x: 0.14, y: 1 }}
             />
           ),
           headerRight: () => (
@@ -605,70 +910,100 @@ export default function AccountView() {
         }}
       />
       <Animated.View style={{ height: gradientHeight }}>
-        <SSBackgroundGradient orientation="horizontal">
-          <SSVStack itemsCenter gap="none">
-            <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText size="7xl" color="white" weight="ultralight">
-                  {formatNumber(account.summary.balance || 0)}
-                </SSText>
-                <SSText size="xl" color="muted">
-                  {i18n.t('bitcoin.sats').toLowerCase()}
-                </SSText>
-              </SSHStack>
-              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                <SSText color="muted">
-                  {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
-                </SSText>
-                <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                  {fiatCurrency}
-                </SSText>
-              </SSHStack>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSSeparator
-                color="gradient"
-                colors={[Colors.gray[600], Colors.gray[850]]}
-              />
-              <SSHStack
-                justifyEvenly
-                gap="none"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-              >
-                <SSActionButton
-                  onPress={() => navigateToSignAndSend()}
-                  style={{
-                    width: '40%',
-                    borderRightWidth: 1,
-                    borderRightColor: Colors.gray[600]
-                  }}
-                >
-                  <SSText uppercase>{i18n.t('account.signAndSend')}</SSText>
-                </SSActionButton>
-                <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/camera`)}
-                  style={{ width: '20%' }}
-                >
-                  <SSIconCamera height={13} width={18} />
-                </SSActionButton>
-                <SSActionButton
-                  onPress={() => router.navigate(`/account/${id}/newInvoice`)}
-                  style={{
-                    width: '40%',
-                    borderLeftWidth: 1,
-                    borderLeftColor: Colors.gray[600]
-                  }}
-                >
-                  <SSText uppercase>{i18n.t('account.newInvoice')}</SSText>
-                </SSActionButton>
-              </SSHStack>
-              <SSSeparator
-                color="gradient"
-                colors={[Colors.gray[600], Colors.gray[850]]}
-              />
-            </SSVStack>
+        <SSVStack itemsCenter gap="none">
+          <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText size="7xl" color="white">
+                <SSStyledSatText
+                  amount={account?.summary.balance || 0}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  textSize="7xl"
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+              </SSText>
+              <SSText size="xl" color="muted">
+                {t('bitcoin.sats').toLowerCase()}
+              </SSText>
+            </SSHStack>
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              <SSText color="muted">
+                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+              </SSText>
+              <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                {fiatCurrency}
+              </SSText>
+            </SSHStack>
           </SSVStack>
-        </SSBackgroundGradient>
+          <SSVStack gap="none">
+            <SSHStack
+              justifyEvenly
+              gap="none"
+              style={{ paddingHorizontal: '5%' }}
+            >
+              {!account.watchOnly && (
+                <>
+                  <SSActionButton
+                    onPress={() => navigateToSignAndSend()}
+                    style={{
+                      ...styles.actionButton,
+                      width: '40%'
+                    }}
+                  >
+                    <SSText uppercase>{t('account.signAndSend')}</SSText>
+                  </SSActionButton>
+                  <SSActionButton
+                    onPress={() => router.navigate(`/account/${id}/camera`)}
+                    style={{
+                      ...styles.actionButton,
+                      width: '20%'
+                    }}
+                  >
+                    <SSIconCamera height={13} width={18} />
+                  </SSActionButton>
+                  <SSActionButton
+                    onPress={() => router.navigate(`/account/${id}/receive`)}
+                    style={{
+                      ...styles.actionButton,
+                      width: '40%'
+                    }}
+                  >
+                    <SSText uppercase>{t('account.receive')}</SSText>
+                  </SSActionButton>
+                </>
+              )}
+              {account.watchOnly === 'public-key' && (
+                <SSActionButton
+                  onPress={() => router.navigate(`/account/${id}/receive`)}
+                  style={{
+                    ...styles.actionButton,
+                    width: '100%'
+                  }}
+                >
+                  <SSText uppercase>{t('account.receive')}</SSText>
+                </SSActionButton>
+              )}
+              {account.watchOnly === 'address' && (
+                <SSClipboardCopy text={watchOnlyAddress}>
+                  <SSActionButton
+                    style={{
+                      ...styles.actionButton,
+                      width: '100%'
+                    }}
+                  >
+                    <SSVStack gap="none" style={{ alignItems: 'center' }}>
+                      <SSText center color="muted">
+                        {t('receive.address').toUpperCase()}
+                      </SSText>
+                      <SSText center>{watchOnlyAddress}</SSText>
+                    </SSVStack>
+                  </SSActionButton>
+                </SSClipboardCopy>
+              )}
+            </SSHStack>
+          </SSVStack>
+        </SSVStack>
       </Animated.View>
       <TabView
         swipeEnabled={false}
@@ -681,3 +1016,75 @@ export default function AccountView() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  actionButton: {
+    backgroundColor: Colors.gray[925],
+    marginLeft: 2,
+    borderTopWidth: 1,
+    borderTopColor: '#242424',
+    borderRadius: 3
+  },
+  container: {
+    paddingTop: 20
+  },
+  header: {
+    paddingVertical: 4
+  },
+  headerText: {
+    textAlign: 'center',
+    color: '#777',
+    textTransform: 'uppercase'
+  },
+  row: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  indexText: {
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    flex: 1
+  },
+  addressText: {
+    color: '#fff',
+    textAlign: 'center',
+    flex: 2
+  },
+  labelText: {
+    textAlign: 'center',
+    flex: 2
+  },
+  unspentSatsText: {
+    textAlign: 'center',
+    flex: 2
+  },
+  txsText: {
+    textAlign: 'center',
+    flex: 1
+  },
+  headerRow: {
+    paddingVertical: 18,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#111',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  receiveChangeContainer: {
+    display: 'flex',
+    width: '100%',
+    marginTop: 10
+  },
+  receiveChangeButton: {
+    textAlign: 'center',
+    paddingVertical: 20,
+    borderWidth: 1,
+    width: '100%'
+  }
+})

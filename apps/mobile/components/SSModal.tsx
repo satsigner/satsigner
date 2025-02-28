@@ -2,7 +2,7 @@ import { Modal, StyleSheet } from 'react-native'
 
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 
 import SSButton from './SSButton'
 
@@ -13,7 +13,7 @@ type SSModalProps = {
   children: React.ReactNode
 }
 
-export default function SSModal({
+function SSModal({
   visible,
   fullOpacity = false,
   onClose,
@@ -27,7 +27,7 @@ export default function SSModal({
         <SSVStack itemsCenter justifyBetween style={{ paddingVertical: 16 }}>
           {children}
           <SSButton
-            label={i18n.t('common.cancel')}
+            label={t('common.cancel')}
             variant="ghost"
             onPress={onClose}
           />
@@ -45,3 +45,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 1)'
   }
 })
+
+export default SSModal

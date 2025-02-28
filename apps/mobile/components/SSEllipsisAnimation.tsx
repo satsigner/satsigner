@@ -14,9 +14,7 @@ type SSEllipsisAnimationProps = {
   size?: number
 }
 
-export default function SSEllipsisAnimation({
-  size = 3
-}: SSEllipsisAnimationProps) {
+function SSEllipsisAnimation({ size = 3 }: SSEllipsisAnimationProps) {
   const opacity1 = useSharedValue(0)
   const opacity2 = useSharedValue(0)
   const opacity3 = useSharedValue(0)
@@ -73,3 +71,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[400]
   }
 })
+
+export default SSEllipsisAnimation

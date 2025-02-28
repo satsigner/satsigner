@@ -1,4 +1,4 @@
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { type PageParams } from '@/types/navigation/page'
 
 function formatAddress(address: string, character: number = 8) {
@@ -9,13 +9,15 @@ function formatAddress(address: string, character: number = 8) {
   return `${beginning}...${end}`
 }
 
-function formatNumber(n: number, decimals = 0) {
-  return decimals > 0
-    ? n.toLocaleString(undefined, {
+function formatNumber(n: number, decimals = 0, padding = false) {
+  const formatted = padding
+    ? (n / 10 ** 8).toFixed(8)
+    : n.toLocaleString(undefined, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals
       })
-    : n.toLocaleString()
+
+  return formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
 }
 
 function formatTime(date: Date) {
@@ -43,22 +45,6 @@ function formatTimestamp(date: Date) {
   return Math.floor(date.getTime() / 1000)
 }
 
-function formatLabel(rawLabel: string) {
-  const matches = rawLabel.match(/#\w[\w\d]+/g)
-  if (!matches) return { label: rawLabel, tags: [] }
-
-  const tags = matches.map((match) => match.replace('#', ''))
-  const label = rawLabel.replace(/#.*/, '').trim()
-  return { label, tags }
-}
-
-function formatLabelTags(label: string, tags: string[]) {
-  const trimmedLabel = label.trim()
-  if (tags.length === 0) return trimmedLabel
-  const labelTagSeparator = label.length === 0 ? '' : ' '
-  return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
-}
-
 function formatPageUrl(path: string, params: PageParams) {
   let url = '/' + (path || '')
 
@@ -84,12 +70,12 @@ function formatFiatPrice(sats: number, btcPrice: number) {
 }
 
 function formatConfirmations(confirmations: number) {
-  if (confirmations <= 0) return i18n.t('bitcoin.confirmations.unconfirmed')
+  if (confirmations <= 0) return t('bitcoin.confirmations.unconfirmed')
 
   if (confirmations === 1)
-    return `1 ${i18n.t('bitcoin.confirmations.oneBlock').toLowerCase()}`
+    return `1 ${t('bitcoin.confirmations.oneBlock').toLowerCase()}`
 
-  const manyBlocks = i18n.t('bitcoin.confirmations.manyBlocks').toLowerCase()
+  const manyBlocks = t('bitcoin.confirmations.manyBlocks').toLowerCase()
 
   if (confirmations < 6) return `${confirmations} ${manyBlocks}`
   if (confirmations < 10) return `6+ ${manyBlocks}`
@@ -105,8 +91,6 @@ export {
   formatConfirmations,
   formatDate,
   formatFiatPrice,
-  formatLabel,
-  formatLabelTags,
   formatNumber,
   formatPageUrl,
   formatPercentualChange,

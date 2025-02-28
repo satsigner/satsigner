@@ -1,4 +1,10 @@
-import { ForwardedRef, forwardRef, useEffect, useMemo, useState } from 'react'
+import {
+  type ForwardedRef,
+  forwardRef,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
@@ -12,17 +18,17 @@ type SSTextInputProps = {
   actionRight?: React.ReactNode
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
-function SSTextInput(
+function SSNumberInput(
   {
     variant = 'default',
     size = 'default',
     align = 'left',
-    actionRight,
-    style,
-    value,
-    onChangeText,
     min,
     max,
+    actionRight,
+    value,
+    onChangeText,
+    style,
     ...props
   }: SSTextInputProps,
   ref: ForwardedRef<TextInput>
@@ -36,16 +42,17 @@ function SSTextInput(
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
     const borderStyle = invalid ? styles.borderInvalid : {}
-    return StyleSheet.compose(
+    const newStyle = StyleSheet.compose(
       {
         ...styles.textInputBase,
         ...variantStyle,
         ...sizeStyle,
-        ...alignStyle,
-        ...borderStyle
+        ...borderStyle,
+        ...alignStyle
       },
       style
     )
+    return newStyle
   }, [variant, size, align, style, invalid])
 
   const [localValue, setLocalValue] = useState(value || '')
@@ -105,8 +112,6 @@ function SSTextInput(
   )
 }
 
-export default forwardRef(SSTextInput)
-
 const styles = StyleSheet.create({
   containerBase: {
     position: 'relative',
@@ -134,7 +139,8 @@ const styles = StyleSheet.create({
     height: Sizes.textInput.height.small
   },
   alignCenter: {
-    textAlign: 'center'
+    textAlign: 'center',
+    paddingHorizontal: 12
   },
   alignLeft: {
     textAlign: 'left',
@@ -151,3 +157,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.error
   }
 })
+
+export default forwardRef(SSNumberInput)

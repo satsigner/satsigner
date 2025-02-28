@@ -1,8 +1,14 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Slot } from 'expo-router'
 import { setStatusBarStyle } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
 import { useEffect, useRef } from 'react'
-import { AppState, AppStateStatus, Platform, UIManager } from 'react-native'
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  UIManager
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -18,6 +24,8 @@ if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental)
     UIManager.setLayoutAnimationEnabledExperimental(true)
 }
+
+const queryClient = new QueryClient()
 
 export default function RootLayout() {
   const [firstTime, setLockTriggered, requiresAuth, lockDeltaTime] =
@@ -68,5 +76,9 @@ export default function RootLayout() {
     appState.current = nextAppState
   }
 
-  return <Slot />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Slot />
+    </QueryClientProvider>
+  )
 }

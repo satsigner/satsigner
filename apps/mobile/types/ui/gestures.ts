@@ -1,11 +1,11 @@
-import type { LayoutRectangle } from 'react-native'
-import type {
-  GestureStateChangeEvent,
-  PanGestureHandlerEventPayload,
-  PinchGestureHandlerEventPayload,
-  TapGestureHandlerEventPayload
+import { type LayoutRectangle } from 'react-native'
+import {
+  type GestureStateChangeEvent,
+  type PanGestureHandlerEventPayload,
+  type PinchGestureHandlerEventPayload,
+  type TapGestureHandlerEventPayload
 } from 'react-native-gesture-handler'
-import { AnimatableValue } from 'react-native-reanimated'
+import { type AnimatableValue } from 'react-native-reanimated'
 
 export type OnPinchStartCallback = (
   event: GestureStateChangeEvent<PinchGestureHandlerEventPayload>

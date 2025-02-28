@@ -1,4 +1,4 @@
-export interface EsploraTx {
+export type EsploraTx = {
   txid: string
   version: number
   locktime: number
@@ -36,7 +36,7 @@ export interface EsploraTx {
   }
 }
 
-export interface EsploraUtxo {
+export type EsploraUtxo = {
   txid: string
   vout: number
   status: {
@@ -141,7 +141,7 @@ export class Esplora {
   }
 
   async getAddressTx(address: string) {
-    return await this._call('/address/' + address + '/txs')
+    return (await this._call('/address/' + address + '/txs')) as EsploraTx[]
   }
 
   async getAddressTxInMempool(address: string) {

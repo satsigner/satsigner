@@ -3,17 +3,17 @@ import {
   Paragraph,
   Rect,
   Skia,
-  SkTypefaceFontProvider,
+  type SkTypefaceFontProvider,
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
 
-import { Node } from './SSSankeyDiagram'
+import { type Node } from './SSSankeyDiagram'
 
 interface ISSankeyNodes {
   nodes: any[]
@@ -159,9 +159,9 @@ function NodeText({
       })
       .addText(
         isNumeric(textInfo[0])
-          ? ` ${i18n.t('bitcoin.sats').toLowerCase()}\n`
+          ? ` ${t('bitcoin.sats').toLowerCase()}\n`
           : isMiningFee
-            ? ` ${i18n.t('bitcoin.sats').toLowerCase()}/vB \n`
+            ? ` ${t('bitcoin.sats').toLowerCase()}/vB \n`
             : '\n'
       )
       .pushStyle({
@@ -214,3 +214,5 @@ function NodeText({
     />
   )
 }
+
+export default SSSankeyNode

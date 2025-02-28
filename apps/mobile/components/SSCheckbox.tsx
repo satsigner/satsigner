@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 import BouncyCheckbox, {
-  BouncyCheckboxProps
+  type BouncyCheckboxProps
 } from 'react-native-bouncy-checkbox'
 
 import { Colors, Sizes } from '@/styles'
@@ -9,15 +9,11 @@ import { Colors, Sizes } from '@/styles'
 import SSText from './SSText'
 
 type SSCheckboxProps = {
-  label: string
+  label?: string
   selected: boolean
 } & BouncyCheckboxProps
 
-export default function SSCheckbox({
-  label,
-  selected,
-  ...props
-}: SSCheckboxProps) {
+function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.innerIconStyleBase, {
       borderColor: selected ? Colors.white : Colors.transparent
@@ -28,16 +24,20 @@ export default function SSCheckbox({
     <View style={styles.containerBase}>
       <BouncyCheckbox
         isChecked={selected}
+        useBuiltInState={false}
         fillColor={Colors.gray[700]}
         unFillColor={Colors.gray[700]}
         size={Sizes.checkbox.height}
         iconStyle={styles.iconStyleBase}
+        style={{ width: Sizes.checkbox.height }}
         innerIconStyle={innerIconStyle}
         {...props}
       />
-      <SSText color="white" size="lg">
-        {label}
-      </SSText>
+      {label && (
+        <SSText color="white" size="lg">
+          {label}
+        </SSText>
+      )}
     </View>
   )
 }
@@ -45,7 +45,8 @@ export default function SSCheckbox({
 const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: Sizes.checkbox.height / 2
   },
   iconStyleBase: {
     borderRadius: Sizes.checkbox.borderRadius
@@ -55,3 +56,5 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.checkbox.borderRadius
   }
 })
+
+export default SSCheckbox

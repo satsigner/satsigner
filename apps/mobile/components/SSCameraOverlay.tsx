@@ -14,10 +14,7 @@ type SSCameraOverlayProps = {
   active?: boolean
 }
 
-export default function SSCameraOverlay({
-  dimension = 320,
-  active
-}: SSCameraOverlayProps) {
+function SSCameraOverlay({ dimension = 320, active }: SSCameraOverlayProps) {
   const { width, height } = useWindowDimensions()
 
   const outer = rrect(rect(0, 0, width, height), 0, 0)
@@ -52,3 +49,5 @@ export default function SSCameraOverlay({
     </Canvas>
   )
 }
+
+export default SSCameraOverlay

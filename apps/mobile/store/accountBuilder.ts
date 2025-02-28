@@ -1,15 +1,19 @@
-import { Wallet } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
+import { Descriptor, DescriptorPublicKey, type Wallet } from 'bdk-rn'
+import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { create } from 'zustand'
 
 import {
+  extractPubKeyFromDescriptor,
   generateMnemonic,
   getFingerprint,
-  getWalletFromMnemonic
+  getMultiSigWalletFromMnemonic,
+  getParticipantInfo,
+  getWalletFromMnemonic,
+  parseDescriptor
 } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
-import { type Account } from '@/types/models/Account'
+import { type Account, type MultisigParticipant } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
 
 import { useBlockchainStore } from './blockchain'
@@ -25,13 +29,28 @@ type AccountBuilderState = {
   derivationPath?: Account['derivationPath']
   externalDescriptor?: Account['externalDescriptor']
   internalDescriptor?: Account['internalDescriptor']
+  watchOnly?: Account['watchOnly']
   wallet?: Wallet
+  policyType?: Account['policyType']
+  participants?: Account['participants']
+  participantsCount?: Account['participantsCount']
+  requiredParticipantsCount?: Account['requiredParticipantsCount']
+  participantName?: MultisigParticipant['keyName']
+  currentParticipantIndex?: number
+  participantCreationType?: MultisigParticipant['creationType']
 }
 
 type AccountBuilderAction = {
   clearAccount: () => void
+  clearParticipants: () => void
   getAccount: () => Account
   setName: (name: Account['name']) => void
+  setExternalDescriptor: (descriptor: string) => Promise<void>
+  setInternalDescriptor: (descriptor: string) => Promise<void>
+  setDescriptorFromXpub: (xpub: string) => Promise<void>
+  setDescriptorFromAddress: (address: string) => void
+  setFingerprint: (fingerprint: string) => void
+  setWatchOnly: (watchOnlyType: Account['watchOnly']) => void
   setType: (type: Account['accountCreationType']) => void
   setScriptVersion: (
     scriptVersion: NonNullable<Account['scriptVersion']>
@@ -40,13 +59,28 @@ type AccountBuilderAction = {
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => void
   setSeedWords: (seedWords: NonNullable<Account['seedWords']>) => void
+  setParticipant: (participants: string) => Promise<void>
+  setParticipantWithSeedWord: () => Promise<void>
+  setParticipantWithDescriptor: (descriptor: string) => Promise<void>
+  setParticipantsCount: (
+    participantsCount: Account['participantsCount']
+  ) => void
+  setRequiredParticipantsCount: (
+    requiredParticipantsCount: Account['requiredParticipantsCount']
+  ) => void
+  setParticipantCreationType: (
+    type: MultisigParticipant['creationType']
+  ) => void
+  setParticipantName: (name: MultisigParticipant['keyName']) => void
   generateMnemonic: (
     seedWordCount: NonNullable<Account['seedWordCount']>
   ) => Promise<void>
   setPassphrase: (passphrase: Account['passphrase']) => void
+  setPolicyType: (policyType: Account['policyType']) => void
+  setCurrentParticipantIndex: (index: number) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
-  lockSeed: () => Promise<void>
+  encryptSeed: () => Promise<void>
 }
 
 const useAccountBuilderStore = create<
@@ -56,7 +90,12 @@ const useAccountBuilderStore = create<
   type: null,
   scriptVersion: 'P2WPKH',
   seedWordCount: 24,
+  policyType: 'single',
   seedWords: '',
+  participants: [],
+  participantsCount: 0,
+  requiredParticipantsCount: 0,
+  currentParticipantIndex: -1,
   clearAccount: () => {
     set({
       name: '',
@@ -69,8 +108,108 @@ const useAccountBuilderStore = create<
       derivationPath: undefined,
       externalDescriptor: undefined,
       internalDescriptor: undefined,
-      wallet: undefined
+      watchOnly: undefined,
+      wallet: undefined,
+      participants: [],
+      policyType: 'single',
+      participantsCount: 0,
+      requiredParticipantsCount: 0,
+      currentParticipantIndex: -1
     })
+  },
+  clearParticipants: () => {
+    set({
+      participants: []
+    })
+  },
+  setDescriptorFromXpub: async (xpub) => {
+    const { fingerprint, scriptVersion } = get()
+    const network = useBlockchainStore.getState().network as Network
+    const key = await new DescriptorPublicKey().fromString(xpub)
+
+    let externalDescriptorObj: Descriptor | undefined
+    let internalDescriptorObj: Descriptor | undefined
+
+    if (!fingerprint) return
+
+    switch (scriptVersion) {
+      case 'P2PKH':
+        externalDescriptorObj = await new Descriptor().newBip44Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip44Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
+        )
+        break
+      case 'P2SH-P2WPKH':
+        externalDescriptorObj = await new Descriptor().newBip49Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip49Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
+        )
+        break
+      case 'P2WPKH':
+        externalDescriptorObj = await new Descriptor().newBip84Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip84Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
+        )
+        break
+      case 'P2TR':
+        externalDescriptorObj = await new Descriptor().newBip86Public(
+          key,
+          fingerprint,
+          KeychainKind.External,
+          network
+        )
+        internalDescriptorObj = await new Descriptor().newBip86Public(
+          key,
+          fingerprint,
+          KeychainKind.Internal,
+          network
+        )
+        break
+      default:
+        throw new Error('invalid script version')
+    }
+
+    const externalDescriptor = await externalDescriptorObj.asString()
+    const internalDescriptor = await internalDescriptorObj.asString()
+
+    set({
+      watchOnly: 'public-key',
+      externalDescriptor,
+      internalDescriptor
+    })
+  },
+  setDescriptorFromAddress: (address) => {
+    set({
+      watchOnly: 'address',
+      externalDescriptor: `addr(${address})`
+    })
+  },
+  setFingerprint: (fingerprint) => {
+    set({ fingerprint })
   },
   getAccount: () => {
     const {
@@ -83,7 +222,12 @@ const useAccountBuilderStore = create<
       fingerprint,
       derivationPath,
       externalDescriptor,
-      internalDescriptor
+      internalDescriptor,
+      watchOnly,
+      policyType,
+      participants,
+      participantsCount,
+      requiredParticipantsCount
     } = get()
 
     return {
@@ -97,6 +241,7 @@ const useAccountBuilderStore = create<
       derivationPath,
       externalDescriptor,
       internalDescriptor,
+      watchOnly,
       transactions: [],
       utxos: [],
       summary: {
@@ -106,7 +251,11 @@ const useAccountBuilderStore = create<
         numberOfUtxos: 0,
         satsInMempool: 0
       },
-      createdAt: new Date()
+      createdAt: new Date(),
+      policyType,
+      participants,
+      participantsCount,
+      requiredParticipantsCount
     }
   },
   setName: (name) => {
@@ -114,6 +263,39 @@ const useAccountBuilderStore = create<
   },
   setType: (type) => {
     set({ type })
+  },
+  setExternalDescriptor: async (externalDescriptor) => {
+    const { network } = useBlockchainStore.getState()
+    const externalDescriptorObj = await new Descriptor().create(
+      externalDescriptor,
+      network as Network
+    )
+    const externalDescriptorWithChecksum =
+      await externalDescriptorObj.asString()
+    set({
+      // TODO: allow creation of signing wallets from descriptors
+      // currently only watch-only wallets are created from descriptors
+      watchOnly: 'public-key',
+      externalDescriptor: externalDescriptorWithChecksum
+    })
+  },
+  setInternalDescriptor: async (internalDescriptor) => {
+    const { network } = useBlockchainStore.getState()
+    const internalDescriptorObj = await new Descriptor().create(
+      internalDescriptor,
+      network as Network
+    )
+    const internalDescriptorWithChecksum =
+      await internalDescriptorObj.asString()
+    set({
+      // TODO: allow creation of signing wallets from descriptors
+      // currently only watch-only wallets are created from descriptors
+      watchOnly: 'public-key',
+      internalDescriptor: internalDescriptorWithChecksum
+    })
+  },
+  setWatchOnly: (watchOnly) => {
+    set({ watchOnly })
   },
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })
@@ -124,6 +306,9 @@ const useAccountBuilderStore = create<
   setSeedWords: (seedWords) => {
     set({ seedWords })
   },
+  setCurrentParticipantIndex: (index) => {
+    set({ currentParticipantIndex: index })
+  },
   generateMnemonic: async (seedWordCount) => {
     const mnemonic = await generateMnemonic(seedWordCount)
     set({ seedWords: mnemonic })
@@ -131,6 +316,120 @@ const useAccountBuilderStore = create<
   },
   setPassphrase: (passphrase) => {
     set({ passphrase })
+  },
+  setPolicyType: (policyType) => {
+    set({ policyType })
+  },
+  setParticipant: async (participantSeedWords) => {
+    const {
+      participants,
+      currentParticipantIndex: index,
+      scriptVersion,
+      seedWordCount,
+      participantName,
+      participantCreationType
+    } = get()
+    const { network } = useBlockchainStore.getState()
+    if (index! >= 0 && index! < get().participantsCount!) {
+      const p: MultisigParticipant = {
+        seedWords: participantSeedWords,
+        createdAt: new Date(),
+        scriptVersion,
+        seedWordCount,
+        keyName: participantName,
+        creationType: participantCreationType!
+      }
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptorString,
+        internalDescriptorString,
+        pubKey
+      } = (await getParticipantInfo(p, network as Network))!
+      participants![index!] = {
+        ...p,
+        fingerprint,
+        derivationPath,
+        publicKey: pubKey,
+        creationType: 'importseed',
+        externalDescriptor: externalDescriptorString,
+        internalDescriptor: internalDescriptorString
+      }
+      set({ participants: [...participants!] })
+    }
+  },
+  setParticipantWithSeedWord: async () => {
+    const {
+      seedWords,
+      participants,
+      currentParticipantIndex: index,
+      scriptVersion,
+      seedWordCount,
+      participantName,
+      participantCreationType
+    } = get()
+    const { network } = useBlockchainStore.getState()
+    if (index! >= 0 && index! < get().participantsCount!) {
+      const p: MultisigParticipant = {
+        seedWords,
+        createdAt: new Date(),
+        scriptVersion,
+        seedWordCount,
+        keyName: participantName,
+        creationType: participantCreationType!
+      }
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptorString,
+        internalDescriptorString,
+        pubKey
+      } = (await getParticipantInfo(p, network as Network))!
+      participants![index!] = {
+        ...p,
+        fingerprint,
+        derivationPath,
+        publicKey: pubKey,
+        externalDescriptor: externalDescriptorString,
+        creationType: 'generate',
+        internalDescriptor: internalDescriptorString
+      }
+      set({ participants: [...participants!] })
+    }
+  },
+  setParticipantWithDescriptor: async (descriptor: string) => {
+    try {
+      const externalDescriptor = await new Descriptor().create(
+        descriptor,
+        useBlockchainStore.getState().network as Network
+      )
+      const { participants, currentParticipantIndex: index } = get()
+      const { fingerprint, derivationPath } =
+        await parseDescriptor(externalDescriptor)
+      const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
+      const p: MultisigParticipant = {
+        externalDescriptor: descriptor,
+        derivationPath,
+        fingerprint,
+        createdAt: new Date(),
+        creationType: 'importdescriptor',
+        publicKey: pubKey
+      }
+      participants![index!] = p
+      set({ participants: [...participants!] })
+    } catch {}
+  },
+  setParticipantsCount: (participantsCount) => {
+    set({ participantsCount })
+  },
+  setRequiredParticipantsCount: (requiredParticipantsCount) => {
+    set({ requiredParticipantsCount })
+  },
+  setParticipantCreationType: (type) => {
+    set({ participantCreationType: type })
+  },
+  setParticipantName: (name) => {
+    set({ participantName: name })
   },
   updateFingerprint: async () => {
     const { network } = useBlockchainStore.getState()
@@ -143,28 +442,42 @@ const useAccountBuilderStore = create<
   },
   loadWallet: async () => {
     const { network } = useBlockchainStore.getState()
-    const {
-      fingerprint,
-      derivationPath,
-      externalDescriptor,
-      internalDescriptor,
-      wallet
-    } = await getWalletFromMnemonic(
-      get().seedWords,
-      get().scriptVersion,
-      get().passphrase,
-      network as Network
-    )
-    set(() => ({
-      fingerprint,
-      derivationPath,
-      externalDescriptor,
-      internalDescriptor,
-      wallet
-    }))
-    return wallet
+    const policyType = get().policyType
+    if (policyType === 'single') {
+      const {
+        fingerprint,
+        derivationPath,
+        externalDescriptor,
+        internalDescriptor,
+        wallet
+      } = await getWalletFromMnemonic(
+        get().seedWords,
+        get().scriptVersion,
+        get().passphrase,
+        network as Network
+      )
+      set(() => ({
+        fingerprint,
+        derivationPath,
+        externalDescriptor,
+        internalDescriptor,
+        wallet
+      }))
+      return wallet
+    } else {
+      const result = await getMultiSigWalletFromMnemonic(
+        get().participants!,
+        network as Network,
+        get().participantsCount!,
+        get().requiredParticipantsCount!
+      )
+      set(() => ({
+        wallet: result?.wallet!
+      }))
+      return result?.wallet!
+    }
   },
-  lockSeed: async () => {
+  encryptSeed: async () => {
     const savedPin = await getItem(PIN_KEY)
     if (!savedPin) return
 

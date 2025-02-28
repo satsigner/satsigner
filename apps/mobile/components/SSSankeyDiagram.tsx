@@ -1,6 +1,12 @@
-import { Canvas, Group } from '@shopify/react-native-skia'
-import type { SankeyLinkMinimal, SankeyNodeMinimal } from 'd3-sankey'
-import { sankey } from 'd3-sankey'
+import {
+  Canvas,
+  Group
+} from '@shopify/react-native-skia'
+import {
+  sankey,
+  type SankeyLinkMinimal,
+  type SankeyNodeMinimal
+} from 'd3-sankey'
 import { Platform, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
@@ -29,21 +35,21 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
 }
 
-interface SankeyProps {
+const LINK_MAX_WIDTH = 60
+const BLOCK_WIDTH = 50
+const NODE_WIDTH = 98
+
+type SSSankeyDiagramProps = {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
   inputCount: number
 }
 
-const LINK_MAX_WIDTH = 60
-const BLOCK_WIDTH = 50
-const NODE_WIDTH = 98
-
 function SSSankeyDiagram({
   sankeyNodes,
   sankeyLinks,
   inputCount
-}: SankeyProps) {
+}: SSSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
