@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { EsploraTx } from '@/api/esplora'
+import type { EsploraTx } from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePreviousTransactionsStore } from '@/store/previousTransactions'
-import { Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
+import { recalculateDepthH } from '@/utils/transaction'
 
 const SIGNET_URL = 'https://mempool.space/signet/api'
 const TESTNET_URL = 'https://mempool.space/testnet/api'
@@ -40,7 +41,9 @@ export function usePreviousTransactions(
   const [error, setError] = useState<Error | null>(null)
   const { addTransactions, getTransaction } = usePreviousTransactionsStore()
 
-  const getInitialDepthH = (txCount: number) => {
+  // Deprecated - kept for reference
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _getInitialDepthH = (txCount: number) => {
     // For single transaction, use depth of 1
     // For two transactions, use depths of 3 and 1
     // For three or more, spread them out with max depth of 5
@@ -48,29 +51,37 @@ export function usePreviousTransactions(
   }
 
   const assignIndexH = (transactions: Map<string, ExtendedEsploraTx>) => {
+    if (transactions.size === 0) {
+      return transactions
+    }
+
     // Group vins and vouts by depthH
     const vinsByDepth = new Map<number, { txid: string; index: number }[]>()
     const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
 
     // First pass: group by depthH
     for (const [txid, tx] of transactions.entries()) {
-      tx.vin?.forEach((_, index) => {
-        if (!vinsByDepth.has(tx.depthH)) {
-          vinsByDepth.set(tx.depthH, [])
-        }
-        vinsByDepth.get(tx.depthH)?.push({ txid, index })
-      })
+      if (tx.vin) {
+        tx.vin.forEach((_, index) => {
+          if (!vinsByDepth.has(tx.depthH)) {
+            vinsByDepth.set(tx.depthH, [])
+          }
+          vinsByDepth.get(tx.depthH)?.push({ txid, index })
+        })
+      }
 
-      tx.vout?.forEach((_, index) => {
-        if (!voutsByDepth.has(tx.depthH)) {
-          voutsByDepth.set(tx.depthH, [])
-        }
-        voutsByDepth.get(tx.depthH)?.push({ txid, index })
-      })
+      if (tx.vout) {
+        tx.vout.forEach((_, index) => {
+          if (!voutsByDepth.has(tx.depthH)) {
+            voutsByDepth.set(tx.depthH, [])
+          }
+          voutsByDepth.get(tx.depthH)?.push({ txid, index })
+        })
+      }
     }
 
     // Second pass: assign indexH
-    for (const [depthH, vins] of vinsByDepth.entries()) {
+    for (const [_depthH, vins] of vinsByDepth.entries()) {
       let currentIndex = 0
       vins.forEach(({ txid, index }) => {
         const tx = transactions.get(txid)
@@ -81,7 +92,7 @@ export function usePreviousTransactions(
       })
     }
 
-    for (const [depthH, vouts] of voutsByDepth.entries()) {
+    for (const [_depthH, vouts] of voutsByDepth.entries()) {
       let currentIndex = 0
       vouts.forEach(({ txid, index }) => {
         const tx = transactions.get(txid)
@@ -129,6 +140,7 @@ export function usePreviousTransactions(
       // Store transactions with their input addresses
       const transactionInputAddresses = new Map<string, Set<string>>()
 
+      // BFS approach to fetch transactions by level
       while (currentLevelDeep < levelDeep && queue.length > 0) {
         const currentLevelTxids = queue.filter(
           (item) => item.level === currentLevelDeep + 1
@@ -182,15 +194,8 @@ export function usePreviousTransactions(
               }
             }
 
-            const tx = await oracle.getTransaction(txid).catch((err) => {
-              throw new Error(
-                `Failed to fetch transaction ${txid}: ${err.message}`
-              )
-            })
-
-            if (!tx) {
-              throw new Error(`No transaction data received for ${txid}`)
-            }
+            const tx = await oracle.getTransaction(txid).catch(() => null)
+            if (!tx) return
 
             newTransactions.set(txid, { ...(tx as EsploraTx), depthH: 0 })
 
@@ -228,6 +233,7 @@ export function usePreviousTransactions(
             }
           })
         )
+
         currentLevelDeep++
       }
 
@@ -248,36 +254,63 @@ export function usePreviousTransactions(
           }
         }
 
-        // Only include transactions that have matching addresses
-        if (hasMatchingAddress) {
+        // Include all level 1 transactions (directly selected UTXOs)
+        const isLevel1 = queue.some(
+          (item) => item.txid === txid && item.level === 1
+        )
+
+        // Only include transactions that have matching addresses or are level 1
+        if (hasMatchingAddress || isLevel1) {
           filteredTransactions.set(txid, tx)
         }
       }
 
-      // Now calculate depthH based on actual transaction count and level
-      const txCount = filteredTransactions.size
-      for (const [txid, tx] of filteredTransactions.entries()) {
-        const queueItem = queue.find((item) => item.txid === txid)
-        if (queueItem) {
-          const depthH = getInitialDepthH(txCount) - (queueItem.level - 1) * 2
-          filteredTransactions.set(txid, { ...tx, depthH })
+      // Handle case when few transactions are found
+      if (filteredTransactions.size === 0 && newTransactions.size > 0) {
+        // If no transactions passed the filter but we have raw transactions,
+        // use at least the direct transactions (level 1)
+        for (const [txid, tx] of newTransactions.entries()) {
+          const isLevel1 = queue.some(
+            (item) => item.txid === txid && item.level === 1
+          )
+          if (isLevel1) {
+            filteredTransactions.set(txid, tx)
+          }
         }
       }
 
-      // Assign indexH to vins and vouts
-      const transactionsWithIndexH = assignIndexH(filteredTransactions)
+      // Now calculate depthH based on dependencies - NEW IMPLEMENTATION
+      if (filteredTransactions.size > 0) {
+        // Initialize depthH to 0 for all transactions
+        for (const [txid, tx] of filteredTransactions.entries()) {
+          filteredTransactions.set(txid, { ...tx, depthH: 0 })
+        }
 
-      // Cache the filtered transactions
-      if (transactionsWithIndexH.size > 0) {
-        addTransactions(transactionsWithIndexH)
-        setTransactions(
-          new Map([...transactionsWithIndexH.entries()].reverse())
-        )
+        // Use recalculateDepthH to calculate actual dependency-based depths
+        const transactionsWithDepthH = recalculateDepthH(filteredTransactions)
+
+        // Assign indexH to vins and vouts
+        const transactionsWithIndexH = assignIndexH(transactionsWithDepthH)
+
+        // Cache the filtered transactions
+        if (transactionsWithIndexH.size > 0) {
+          // Convert the array of transactions back to a Map for addTransactions
+          const txMap = new Map<string, EsploraTx>()
+          for (const [txid, tx] of transactionsWithIndexH.entries()) {
+            txMap.set(txid, tx)
+          }
+          addTransactions(txMap)
+
+          // Update state
+          setTransactions(transactionsWithIndexH)
+        }
+      } else {
+        setTransactions(new Map())
       }
-    } catch (e) {
-      const error = e as Error
-      setError(error)
-    } finally {
+
+      setLoading(false)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)))
       setLoading(false)
     }
   }, [inputs, network, levelDeep, skipCache, getTransaction, addTransactions])
@@ -286,5 +319,5 @@ export function usePreviousTransactions(
     fetchInputTransactions()
   }, [fetchInputTransactions])
 
-  return { transactions, loading, error }
+  return { transactions, loading, error, fetchInputTransactions }
 }

@@ -22,6 +22,8 @@ interface Transaction {
   size: number
   weight: number
   vin: {
+    txid: string
+    vout: number
     prevout: {
       scriptpubkey_address: string
       value: number
@@ -108,16 +110,15 @@ export const useNodesAndLinks = ({
 
   const incomingAndOutgoingVinTxId = Array.from(transactions.values()).flatMap(
     (tx) =>
-      tx.vin
-        .filter((input) => {
-          return outputAddresses.includes(input.prevout.scriptpubkey_address)
-        })
-        .map((input) => ({
-          txid: `${tx.txid}`,
-          prevValue: input.prevout.value
-        }))
+      tx.vin.map((input) => ({
+        txid: tx.txid,
+        inputTxid: input.txid,
+        vout: input.vout,
+        prevValue: input.prevout?.value
+      }))
   )
-  console.log('TX', Array.from(transactions.values()))
+
+  console.log('TX', JSON.stringify(Array.from(transactions.values()), null, 2))
 
   const confirmedNodes: Node[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
@@ -181,6 +182,13 @@ export const useNodesAndLinks = ({
           const outputNodes = tx.vout.map((output) => {
             const outputDepth = tx.depthH + 1
 
+            // Find transactions that use this output as an input
+            const nextTx =
+              incomingAndOutgoingVinTxId.find(
+                (vinTx) =>
+                  vinTx.inputTxid === tx.txid && vinTx.vout === output.indexH
+              )?.txid || ''
+
             const node = {
               id: `vout-${outputDepth}-${output.indexH}`,
               type: 'text',
@@ -192,10 +200,7 @@ export const useNodesAndLinks = ({
               ],
               value: output.value,
               txId: tx.txid,
-              nextTx:
-                incomingAndOutgoingVinTxId.find(
-                  ({ prevValue }) => prevValue === output.value
-                )?.txid ?? '',
+              nextTx,
               indexH: output.indexH
             }
             return node
@@ -236,7 +241,6 @@ export const useNodesAndLinks = ({
       })
 
       nodes.forEach((node: Node) => {
-        const maxDepthForVout = maxExistingDepth + 1
         if (node.type === 'text' && node.depthH === 0) {
           // vin node in the first depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
@@ -259,10 +263,9 @@ export const useNodesAndLinks = ({
           vouts.forEach((vout: Node) => {
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
-        } else if (node.type === 'text' && node.depthH > 0 && node.nextTx) {
+        } else if (node.type === 'text' && node.nextTx) {
           // vout node that has connection to block
-          const nextDepthNodes = depthMap.get(node.depthH + 1) || []
-          const targetBlock = nextDepthNodes.find(
+          const targetBlock = nodes.find(
             (n: Node) => n.type === 'block' && n.txId === node.nextTx
           )
           if (targetBlock) {
@@ -274,12 +277,12 @@ export const useNodesAndLinks = ({
           }
         } else if (
           node.type === 'text' &&
-          node.depthH === maxDepthForVout &&
+          node.id.includes('vout') &&
           Array.from(inputs.values())
             .map((input) => input.value)
             .includes(node?.value ?? 0)
         ) {
-          // vout node that has input selected by users
+          // vout node that has input selected by users - now works with any depthH
           const targetBlock = ingoingNodes[0].id
           if (targetBlock) {
             links.push({
@@ -322,9 +325,9 @@ export const useNodesAndLinks = ({
     if (allNodes?.length === 0) return []
 
     return generateSankeyLinks(confirmedNodes)
-  }, [allNodes?.length, confirmedNodes, ingoingNodes, inputs, maxExistingDepth])
+  }, [allNodes?.length, confirmedNodes, ingoingNodes, inputs])
 
   console.log({ node: allNodes, link: links })
 
-  return { allNodes, links }
+  return { nodes: allNodes, links }
 }

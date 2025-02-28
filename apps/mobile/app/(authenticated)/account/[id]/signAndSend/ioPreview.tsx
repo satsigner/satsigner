@@ -28,7 +28,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
-const DEEP_LEVEL = 3
+const DEEP_LEVEL = 2
 
 export default function IOPreview() {
   const router = useRouter()
@@ -84,11 +84,11 @@ export default function IOPreview() {
     setAddOutputModalVisible(false)
   }
 
-  const { allNodes, links } = useNodesAndLinks({
+  const { nodes, links } = useNodesAndLinks({
     transactions,
     inputs,
     outputs,
-    utxosSelectedValue,
+    utxosSelectedValue
   })
 
   // Show loading state
@@ -197,13 +197,21 @@ export default function IOPreview() {
       <View style={{ position: 'absolute', top: 80 }}>
         {transactions.size > 0 &&
         inputs.size > 0 &&
-        allNodes?.length > 0 &&
-        links?.length > 0 ? (
+        nodes &&
+        Array.isArray(nodes) &&
+        nodes.length > 0 &&
+        links &&
+        Array.isArray(links) &&
+        links.length > 0 ? (
           <SSSankeyDiagram
-            sankeyNodes={allNodes}
+            sankeyNodes={nodes}
             sankeyLinks={links}
             inputCount={inputs.size}
           />
+        ) : inputs.size > 0 ? (
+          <SSVStack itemsCenter style={{ width: '100%', padding: 20 }}>
+            <SSText>Insufficient data to display transaction diagram.</SSText>
+          </SSVStack>
         ) : null}
       </View>
       <LinearGradient
