@@ -177,9 +177,6 @@ export default function FeeSelection() {
                 value={feeSelected}
                 step={1}
                 onValueChange={handleSliderChange}
-                style={{
-                  width: '100%'
-                }}
               />
             </SSVStack>
             <SSButton

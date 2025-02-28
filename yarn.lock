@@ -1993,6 +1993,11 @@
     "@types/mdx" "^2.0.0"
     "@types/react" ">=16"
 
+"@miblanchard/react-native-slider@^2.6.0":
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/@miblanchard/react-native-slider/-/react-native-slider-2.6.0.tgz#9f78c805d637ffaff0e3e7429932d2995a67edc9"
+  integrity sha512-o7hk/f/8vkqh6QNR5L52m+ws846fQeD/qNCC9CCSRdBqjq66KiCgbxzlhRzKM/gbtxcvMYMIEEJ1yes5cr6I3A==
+
 "@napi-rs/simple-git-android-arm-eabi@0.1.16":
   version "0.1.16"
   resolved "https://registry.yarnpkg.com/@napi-rs/simple-git-android-arm-eabi/-/simple-git-android-arm-eabi-0.1.16.tgz#36b752f84a7e75a9dada3d8b307817f0b015a57d"
@@ -2349,11 +2354,6 @@
   version "11.4.1"
   resolved "https://registry.yarnpkg.com/@react-native-community/netinfo/-/netinfo-11.4.1.tgz#a3c247aceab35f75dd0aa4bfa85d2be5a4508688"
   integrity sha512-B0BYAkghz3Q2V09BF88RA601XursIEA111tnc2JOaN7axJWmNefmfjZqw/KdSxKZp7CZUuPpjBmz/WCR9uaHYg==
-
-"@react-native-community/slider@^4.5.2":
-  version "4.5.2"
-  resolved "https://registry.npmjs.org/@react-native-community/slider/-/slider-4.5.2.tgz#c3835788dbc1bd83d3778b83ca15533c805db149"
-  integrity sha512-DbFyCyI7rwl0FkBkp0lzEVp+5mNfS5qU/nM2sK2aSguWhj0Odkt1aKHP2iW/ljruOhgS/O4dEixXlne4OdZJDQ==
 
 "@react-native/assets-registry@0.73.1", "@react-native/assets-registry@~0.73.1":
   version "0.73.1"

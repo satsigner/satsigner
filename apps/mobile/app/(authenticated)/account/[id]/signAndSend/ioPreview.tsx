@@ -446,7 +446,6 @@ export default function IOPreview() {
             max={utxosSelectedValue}
             value={outputAmount}
             step={100}
-            style={{ width: 340 }}
             onValueChange={(value) => setOutputAmount(value)}
           />
           <SSVStack style={{ width: '100%' }}>

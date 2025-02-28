@@ -1,5 +1,4 @@
-import Slider from '@react-native-community/slider'
-import { type StyleProp, type ViewStyle } from 'react-native'
+import { Slider } from '@miblanchard/react-native-slider'
 
 import { Colors } from '@/styles'
 
@@ -9,7 +8,6 @@ type SSSliderProps = {
   value: number
   step?: number
   onValueChange(value: number): void
-  style?: StyleProp<ViewStyle>
 }
 
 function SSSlider({
@@ -18,7 +16,6 @@ function SSSlider({
   value,
   step = 1,
   onValueChange,
-  style
 }: SSSliderProps) {
   return (
     <Slider
@@ -29,8 +26,7 @@ function SSSlider({
       minimumTrackTintColor={Colors.gray[800]}
       maximumTrackTintColor={Colors.gray[400]}
       thumbTintColor={Colors.white}
-      onValueChange={(value) => onValueChange(value)}
-      style={style}
+      onValueChange={(value) => onValueChange(value[0])}
     />
   )
 }
