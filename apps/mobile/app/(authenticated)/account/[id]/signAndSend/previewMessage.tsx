@@ -1,17 +1,21 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -19,14 +23,68 @@ export default function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
-  const [inputs, outputs] = useTransactionBuilderStore(
-    useShallow((state) => [state.inputs, state.outputs])
-  )
+  const [inputs, outputs, feeRate, setTxBuilderResult] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.inputs,
+        state.outputs,
+        state.feeRate,
+        state.setTxBuilderResult
+      ])
+    )
+  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.name === id),
+        state.loadWalletFromDescriptor,
+        state.syncWallet,
+        state.updateAccount
+      ])
+    )
+  const network = useBlockchainStore((state) => state.network)
 
-  const account = getCurrentAccount(id!)!
+  const [messageId, setMessageId] = useState('')
 
-  const [noKeyModalVisible, setNoKeyModalVisible] = useState(true)
+  const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
+
+  useEffect(() => {
+    async function getTransactionMessage() {
+      if (
+        !account ||
+        !account.externalDescriptor ||
+        !account.internalDescriptor
+      )
+        return
+
+      const [externalDescriptor, internalDescriptor] = await Promise.all([
+        new Descriptor().create(account.externalDescriptor, network as Network),
+        new Descriptor().create(account.internalDescriptor, network as Network)
+      ])
+
+      const wallet = await loadWalletFromDescriptor(
+        externalDescriptor,
+        internalDescriptor
+      )
+
+      const syncedAccount = await syncWallet(wallet, account)
+      await updateAccount(syncedAccount)
+
+      const transactionMessage = await buildTransaction(
+        wallet,
+        Array.from(inputs.values()),
+        outputs[0].to,
+        outputs[0].amount,
+        feeRate
+      )
+
+      setMessageId(transactionMessage.txDetails.txid)
+      setTxBuilderResult(transactionMessage)
+    }
+
+    getTransactionMessage()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <>
@@ -40,10 +98,10 @@ export default function PreviewMessage() {
           <SSVStack>
             <SSVStack gap="xxs">
               <SSText color="muted" size="sm" uppercase>
-                Message Id
+                {t('transaction.id')}
               </SSText>
               <SSText size="lg">
-                e3b71e8056ceb986ad0172205bef03d6b4d091bdc7bfc3cc25fbb1d18608e485
+                {messageId || `${t('common.loading')}...`}
               </SSText>
             </SSVStack>
             <SSVStack gap="xxs">
@@ -98,7 +156,8 @@ export default function PreviewMessage() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label={i18n.t('previewMessage.signTxMessage')}
+            disabled={!messageId}
+            label={t('previewMessage.signTxMessage')}
             onPress={() =>
               router.navigate(`/account/${id}/signAndSend/signMessage`)
             }
@@ -106,7 +165,7 @@ export default function PreviewMessage() {
         </SSVStack>
         <SSGradientModal
           visible={noKeyModalVisible}
-          closeText={i18n.t('common.cancel')}
+          closeText={t('common.cancel')}
           onClose={() => setNoKeyModalVisible(false)}
         >
           <SSVStack style={{ marginTop: 16 }}>

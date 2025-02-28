@@ -4,12 +4,14 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import { AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatLabel, formatNumber } from '@/utils/format'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { formatAddress, formatNumber } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
 import { SSIconInfo } from './icons'
 import SSText from './SSText'
@@ -19,10 +21,11 @@ type SSUtxoCardProps = {
   utxo: Utxo
 }
 
-export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
+function SSUtxoCard({ utxo }: SSUtxoCardProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   const router = useRouter()
 
@@ -42,19 +45,17 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
         <SSVStack gap="none" style={{}}>
           <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" style={{ lineHeight: 30 }}>
-              {formatNumber(utxo.value)}
+              {formatNumber(utxo.value, 0, useZeroPadding)}
             </SSText>
-            <SSText color="muted">
-              {i18n.t('bitcoin.sats').toLowerCase()}
-            </SSText>
+            <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
           </SSHStack>
           <SSHStack>
             <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
             <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
           </SSHStack>
           <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
-            {i18n.t('common.memo')} {': '}
-            {formatLabel(utxo.label || i18n.t('account.noLabel'))['label']}
+            {t('common.memo')} {': '}
+            {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">
@@ -74,3 +75,5 @@ export default function SSUtxoCard({ utxo }: SSUtxoCardProps) {
     </TouchableOpacity>
   )
 }
+
+export default SSUtxoCard

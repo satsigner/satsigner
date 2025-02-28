@@ -7,14 +7,18 @@ Components in **satsigner** are prefixed with "SS" so we can quickly distinguish
 The following table shows the anatomy of a **satsigner** component, from the top of the file to the bottom.
 
 | Block of code        | Description                                                                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --- |
 | Imports              | Imports on the top of the file. We use path alias `@` and imports are automatically sorted using `eslint-plugin-simple-import-sort` |
-| Prop type            | The type of the props the component will receive                                                                                    |
-| Function declaration | Declare the component function and export it as default. Use object destructuring for the props and set default values.             |
-| Logic                | Component logic                                                                                                                     |
+| Prop type            | The type of the props the component will receive. Define other types above.                                                         |
+| Function declaration | Declare the component function. Use object destructuring for the props and set default values.                                      |
+| Constants            | Declare constants if necessary                                                                                                      |
+| Hooks                | Declare hooks - hooks like useState, useMemo, useEffect come last                                                                   |
+| Functions            | Use the function keyword                                                                                                            |
+| Other                | Other component logic here                                                                                                          |
 | Computed styles      | Styles that are conditional, based on props, are computed here                                                                      |
 | Tsx                  | Return the tsx                                                                                                                      |
-| Base styles          | Keep the base styles on the bottom of the file                                                                                      |
+| Base styles          | Styles are the second to last thing                                                                                                 |
+| Export               | Export the component with `export default` on the bottom of the file                                                                |     |
 
 ## When to create components
 

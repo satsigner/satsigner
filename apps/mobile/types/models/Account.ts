@@ -1,8 +1,9 @@
-import { Transaction } from './Transaction'
-import { Utxo } from './Utxo'
+import { type Transaction } from './Transaction'
+import { type Utxo } from './Utxo'
 
 export type Account = {
   name: string
+  createdAt: Date
   accountCreationType:
     | 'generate'
     | 'import'
@@ -10,6 +11,7 @@ export type Account = {
     | 'wif'
     | null
     | undefined
+  watchOnly?: 'public-key' | 'address'
   seedWordCount?: 12 | 15 | 18 | 21 | 24
   /** Seed phrase with seed words separated with space */
   seedWords?: string

@@ -1,23 +1,35 @@
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 
 export default function MessageConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const getCurrentAccount = useAccountsStore((state) => state.getCurrentAccount)
+  const [clearTransaction, txBuilderResult] = useTransactionBuilderStore(
+    useShallow((state) => [state.clearTransaction, state.txBuilderResult])
+  )
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === id)
+  )
 
-  const account = getCurrentAccount(id!)!
+  function handleBackToHome() {
+    clearTransaction()
+    router.navigate(`/account/${id}`)
+  }
+
+  if (!account || !txBuilderResult) return <Redirect href="/" />
 
   return (
     <>
@@ -30,42 +42,36 @@ export default function MessageConfirmation() {
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>
             <SSText weight="bold" size="lg">
-              {i18n.t('messageConfirmation.messageBroadcasted')}
+              {t('sent.broadcasted')}
             </SSText>
             <SSVStack gap="none" itemsCenter>
               <SSText color="muted" uppercase>
-                {i18n.t('messageConfirmation.messageId')}
+                {t('transaction.id')}
               </SSText>
-              <SSText>
-                {formatAddress(
-                  'e86acff74b79424c67eb3df54c3a525b60e2b0e3bd8f3e661df2c7ef8ea66174'
-                )}
-              </SSText>
+              <SSText>{formatAddress(txBuilderResult.txDetails.txid)}</SSText>
             </SSVStack>
           </SSVStack>
           <SSVStack>
             <SSButton
               variant="outline"
-              label={i18n.t('messageConfirmation.copyTxMessageId')}
+              label={t('sent.copyTransactionId')}
               onPress={() =>
-                Clipboard.setStringAsync(
-                  'e3b71e8056ceb986ad0172205bef03d6b4d091bdc7bfc3cc25fbb1d18608e485'
-                )
+                Clipboard.setStringAsync(txBuilderResult.txDetails.txid)
               }
             />
             <SSButton
               variant="outline"
-              label={i18n.t('messageConfirmation.trackOnChain')}
+              label={t('sent.trackOnChain')}
               onPress={() =>
                 WebBrowser.openBrowserAsync(
-                  'https://mempool.space/signet/tx/e86acff74b79424c67eb3df54c3a525b60e2b0e3bd8f3e661df2c7ef8ea66174'
+                  `https://mempool.space/signet/tx/${txBuilderResult.txDetails.txid}`
                 )
               }
             />
             <SSButton
               variant="secondary"
-              label={i18n.t('messageConfirmation.backToAccountHome')}
-              onPress={() => router.navigate(`/account/${id}`)}
+              label={t('common.backToAccountHome')}
+              onPress={() => handleBackToHome()}
             />
           </SSVStack>
         </SSVStack>

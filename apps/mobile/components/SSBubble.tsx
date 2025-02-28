@@ -4,12 +4,12 @@ import {
   Paint,
   Paragraph,
   Skia,
-  SkTypefaceFontProvider,
+  type SkTypefaceFontProvider,
   TextAlign
 } from '@shopify/react-native-skia'
-import React, { useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import {
-  SharedValue,
+  type SharedValue,
   useDerivedValue,
   useSharedValue,
   withDelay,
@@ -17,12 +17,13 @@ import {
   withTiming
 } from 'react-native-reanimated'
 
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
-import { formatAddress, formatLabel } from '@/utils/format'
+import { formatAddress } from '@/utils/format'
+import { parseLabel } from '@/utils/parse'
 
-type SSUtxoBubbleProps = {
+type SSBubbleProps = {
   utxo: Utxo
   x: number
   y: number
@@ -34,9 +35,7 @@ type SSUtxoBubbleProps = {
   animationDelay?: number
 }
 
-export default React.memo(SSUtxoBubble)
-
-function SSUtxoBubble({
+function SSBubble({
   utxo,
   x,
   y,
@@ -46,10 +45,10 @@ function SSUtxoBubble({
   customFontManager,
   scale,
   animationDelay = 0
-}: SSUtxoBubbleProps) {
+}: SSBubbleProps) {
   const opacity = useSharedValue(0)
 
-  React.useEffect(() => {
+  useEffect(() => {
     opacity.value = withDelay(
       animationDelay,
       withSequence(
@@ -82,7 +81,7 @@ function SSUtxoBubble({
   const satsFontSize = fontSize / 1.5
   const descriptionFontSize = fontSize / 2.5
 
-  const label = formatLabel(utxo.label || '').label
+  const label = parseLabel(utxo.label || '').label
 
   // Utxo value
   const mainParagraph = useMemo(() => {
@@ -107,7 +106,7 @@ function SSUtxoBubble({
         color: Skia.Color(Colors.gray[600]),
         fontSize: satsFontSize
       })
-      .addText(` ${i18n.t('bitcoin.sats').toLowerCase()}`)
+      .addText(` ${t('bitcoin.sats').toLowerCase()}`)
       .pop()
       .build()
     para.layout(200)
@@ -181,7 +180,7 @@ function SSUtxoBubble({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
       })
-      .addText(`${i18n.t('common.memo').toLowerCase()}`)
+      .addText(`${t('common.memo').toLowerCase()}`)
       .pushStyle({
         ...textStyle,
         fontStyle: {
@@ -222,7 +221,7 @@ function SSUtxoBubble({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
       })
-      .addText(`${i18n.t('common.from').toLowerCase()}`)
+      .addText(`${t('common.from').toLowerCase()}`)
       .pushStyle({
         ...textStyle,
         fontStyle: {
@@ -283,3 +282,5 @@ function SSUtxoBubble({
     </Group>
   )
 }
+
+export default memo(SSBubble)

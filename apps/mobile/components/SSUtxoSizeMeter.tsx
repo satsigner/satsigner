@@ -1,6 +1,6 @@
 import { scaleLinear } from 'd3'
 import { useMemo } from 'react'
-import { DimensionValue, StyleSheet, View } from 'react-native'
+import { type DimensionValue, StyleSheet, View } from 'react-native'
 
 import { Colors } from '@/styles'
 
@@ -10,7 +10,7 @@ type SSUtxoSizeMeterProps = {
   selected: boolean
 }
 
-export default function SSUtxoSizeMeter({
+function SSUtxoSizeMeter({
   size,
   largestSize,
   selected
@@ -71,3 +71,5 @@ const styles = StyleSheet.create({
     height: 6
   }
 })
+
+export default SSUtxoSizeMeter

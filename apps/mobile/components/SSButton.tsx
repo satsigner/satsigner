@@ -1,9 +1,10 @@
+import { LinearGradient } from 'expo-linear-gradient'
 import { useMemo } from 'react'
 import {
   ActivityIndicator,
-  StyleProp,
+  type StyleProp,
   StyleSheet,
-  TextStyle,
+  type TextStyle,
   TouchableOpacity,
   View
 } from 'react-native'
@@ -21,17 +22,19 @@ type SSButtonProps = {
   withSelect?: boolean
   uppercase?: boolean
   textStyle?: StyleProp<TextStyle>
+  gradientType?: 'default' | 'special'
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
-export default function SSButton({
+function SSButton({
   label,
   variant = 'default',
-  disabled,
   loading,
   withSelect,
-  style,
-  textStyle,
   uppercase = true,
+  textStyle,
+  disabled,
+  style,
+  gradientType = 'default',
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
@@ -73,9 +76,17 @@ export default function SSButton({
       disabled={disabled || loading}
       {...props}
     >
-      {variant === 'gradient' && (
-        <SSBackgroundGradient style={styles.buttonGradient} />
-      )}
+      {variant === 'gradient' &&
+        (gradientType === 'default' ? (
+          <SSBackgroundGradient style={styles.buttonGradient} />
+        ) : (
+          <LinearGradient
+            style={styles.buttonGradient}
+            colors={['#212121', '#1C1C1C']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+        ))}
       {!loading ? (
         <SSText uppercase={uppercase} style={textStyles}>
           {label}
@@ -150,3 +161,5 @@ const styles = StyleSheet.create({
     color: Colors.black
   }
 })
+
+export default SSButton

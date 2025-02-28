@@ -5,28 +5,28 @@ import {
   Descriptor,
   DescriptorSecretKey,
   Mnemonic,
-  PartiallySignedTransaction,
+  type PartiallySignedTransaction,
   TxBuilder,
   Wallet
 } from 'bdk-rn'
 import {
-  LocalUtxo,
-  TransactionDetails,
-  TxBuilderResult
+  type LocalUtxo,
+  type TransactionDetails,
+  type TxBuilderResult
 } from 'bdk-rn/lib/classes/Bindings'
 import {
   AddressIndex,
-  BlockchainElectrumConfig,
-  BlockchainEsploraConfig,
+  type BlockchainElectrumConfig,
+  type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  Network
+  type Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { Backend } from '@/types/settings/blockchain'
+import { type Backend } from '@/types/settings/blockchain'
 
 async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
   const mnemonic = await new Mnemonic().create(count)
@@ -137,7 +137,7 @@ async function getWalletFromMnemonic(
 
 async function getWalletFromDescriptor(
   externalDescriptor: Descriptor,
-  internalDescriptor: Descriptor,
+  internalDescriptor: Descriptor | null | undefined,
   network: Network
 ) {
   const dbConfig = await new DatabaseConfig().memory()
@@ -223,10 +223,11 @@ async function parseTransactionDetailsToTransaction(
     }
 
     for (const index in outputs) {
-      const { value, script } = outputs[index]
-      const addressObj = await new Address().fromScript(script, network)
+      const { value, script: scriptObj } = outputs[index]
+      const script = await scriptObj.toBytes()
+      const addressObj = await new Address().fromScript(scriptObj, network)
       const address = await addressObj.asString()
-      vout.push({ value, address })
+      vout.push({ value, address, script })
     }
   }
 
@@ -265,6 +266,7 @@ async function parseLocalUtxoToUtxo(
   const transactionDetails = transactionsDetails.find(
     (transactionDetails) => transactionDetails.txid === transactionId
   )
+  const script = await localUtxo.txout.script.toBytes()
 
   return {
     txid: transactionId,
@@ -275,6 +277,7 @@ async function parseLocalUtxoToUtxo(
       : undefined,
     label: '',
     addressTo,
+    script,
     keychain: 'external'
   }
 }
@@ -353,12 +356,14 @@ async function buildTransaction(
   const address = await new Address().create(recipient)
   const script = await address.scriptPubKey()
 
-  const transactionBuilder = new TxBuilder()
-  transactionBuilder.addUtxos(
+  const transactionBuilder = await new TxBuilder().create()
+
+  await transactionBuilder.feeAbsolute(fee)
+  await transactionBuilder.addUtxos(
     utxos.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
   )
-  transactionBuilder.feeAbsolute(fee)
-  transactionBuilder.addRecipient(script, amount) // TODO: crashing here
+  await transactionBuilder.manuallySelectedOnly()
+  await transactionBuilder.addRecipient(script, amount)
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult

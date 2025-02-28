@@ -9,7 +9,7 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
@@ -27,32 +27,32 @@ export default function AddMasterKey() {
   const actionsDisabled = accountName.length < 1
 
   function handleOnPressAddMasterKey(
-    creationType: Account['accountCreationType']
+    creationType: Account['accountCreationType'],
+    watchOnly = false
   ) {
     if (hasAccountWithName(accountName)) {
-      Alert.alert(i18n.t('addMasterKey.hasAccountWithName'))
+      Alert.alert(t('account.hasAccountWithName'))
       setAccountName('')
       return
     }
 
     setName(accountName)
     setType(creationType)
-    router.navigate('/addMasterKey/accountOptions')
+    if (watchOnly) router.navigate('/addMasterKey/watchOnlyOptions')
+    else router.navigate('/addMasterKey/accountOptions')
   }
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{i18n.t('addMasterKey.title')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{t('account.add')}</SSText>
         }}
       />
       <SSVStack gap="lg">
         <SSFormLayout>
           <SSFormLayout.Item>
-            <SSFormLayout.Label label={i18n.t('addMasterKey.masterKeyName')} />
+            <SSFormLayout.Label label={t('account.name')} />
             <SSTextInput
               value={accountName}
               onChangeText={(accountName) => setAccountName(accountName)}
@@ -61,14 +61,23 @@ export default function AddMasterKey() {
         </SSFormLayout>
         <SSVStack>
           <SSButton
-            label={i18n.t('addMasterKey.generateNewSeed.title')}
+            label={t('account.generate.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('generate')}
           />
           <SSButton
-            label={i18n.t('addMasterKey.importExistingSeed.title')}
+            label={t('account.import.title')}
             disabled={actionsDisabled}
             onPress={() => handleOnPressAddMasterKey('import')}
+          />
+          <SSButton
+            label={t('account.import.watchOnly.title')}
+            disabled={actionsDisabled}
+            onPress={() => handleOnPressAddMasterKey('import', true)}
+          />
+          <SSButton
+            label={t('account.import.wif.title')}
+            disabled={actionsDisabled}
           />
         </SSVStack>
       </SSVStack>

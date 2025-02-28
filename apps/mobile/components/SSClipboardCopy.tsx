@@ -2,6 +2,8 @@ import * as Clipboard from 'expo-clipboard'
 import { useState } from 'react'
 import { TouchableWithoutFeedback, View } from 'react-native'
 
+import { t } from '@/locales'
+
 import SSPopupText from './SSPopupText'
 
 type SSTextClipboardProps = {
@@ -9,8 +11,7 @@ type SSTextClipboardProps = {
   withPopup?: boolean
   children: React.ReactNode
 }
-
-export default function SSTextClipboard({
+function SSTextClipboard({
   text,
   withPopup = true,
   children
@@ -26,15 +27,17 @@ export default function SSTextClipboard({
   return (
     <TouchableWithoutFeedback onPress={handleClick}>
       <View>
-        {children}
+        <View style={{ pointerEvents: 'none' }}>{children}</View>
         {withPopup && (
           <SSPopupText
             isVisible={showPopup}
             onTimeout={() => setShowPopup(false)}
-            message="Copied to clipboard"
+            message={t('common.copiedToClipboard')}
           />
         )}
       </View>
     </TouchableWithoutFeedback>
   )
 }
+
+export default SSTextClipboard

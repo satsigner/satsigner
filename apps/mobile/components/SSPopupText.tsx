@@ -7,16 +7,16 @@ import SSText from './SSText'
 
 type SSSnackbarProps = {
   message: string
-  onTimeout: () => void
   isVisible: boolean
   duration?: number
+  onTimeout: () => void
 }
 
-export default function SSPopupText({
+function SSPopupText({
   message,
   isVisible,
-  onTimeout,
-  duration = 600
+  duration = 600,
+  onTimeout
 }: SSSnackbarProps) {
   useEffect(() => {
     if (isVisible) {
@@ -29,7 +29,9 @@ export default function SSPopupText({
 
   return isVisible ? (
     <View style={styles.container}>
-      <SSText style={styles.messageText}>{message}</SSText>
+      <SSText size="md" style={styles.messageText}>
+        {message}
+      </SSText>
     </View>
   ) : null
 }
@@ -51,3 +53,5 @@ const styles = StyleSheet.create({
     width: 'auto'
   }
 })
+
+export default SSPopupText

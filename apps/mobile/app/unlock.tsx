@@ -9,7 +9,7 @@ import { PIN_SIZE } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { i18n } from '@/locales'
+import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { Layout } from '@/styles'
 
@@ -86,7 +86,7 @@ export default function Unlock() {
       <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
         <SSVStack gap="lg" itemsCenter style={{ marginTop: '25%' }}>
           <SSText uppercase size="lg" color="muted" center>
-            {i18n.t('auth.unlock')}
+            {t('auth.unlock')}
           </SSText>
           <Animated.View style={shakeStyle}>
             <SSPinInput
@@ -99,9 +99,7 @@ export default function Unlock() {
           {triesLeft !== null && (
             <SSText uppercase color="muted" center>
               {triesLeft}{' '}
-              {triesLeft > 1
-                ? i18n.t('auth.triesLeft')
-                : i18n.t('auth.tryLeft')}
+              {triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}
             </SSText>
           )}
         </SSVStack>

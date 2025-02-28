@@ -5,13 +5,19 @@ module.exports = {
   },
   extends: ['universe/native'],
   plugins: ['simple-import-sort'],
-  ignorePatterns: ['expo-env.d.ts'],
+  ignorePatterns: ['expo-env.d.ts', 'shim.js'],
   rules: {
     'no-console': 'error',
     'react-hooks/exhaustive-deps': 'error',
     'simple-import-sort/imports': 'error',
     'simple-import-sort/exports': 'error',
     'import/order': 'off',
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {
+        fixStyle: 'inline-type-imports'
+      }
+    ],
     '@typescript-eslint/no-unused-vars': [
       'error',
       {
