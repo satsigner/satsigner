@@ -1,7 +1,4 @@
-import {
-  Canvas,
-  Group
-} from '@shopify/react-native-skia'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import {
   sankey,
   type SankeyLinkMinimal,
