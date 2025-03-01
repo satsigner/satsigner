@@ -11,7 +11,7 @@ import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 
-export default function SSTxLabel() {
+export default function SSUtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
   const [utxo, setUtxoLabel] = useAccountsStore((state) => [
