@@ -5,6 +5,7 @@ export type Address = {
   address: string
   label: string
   derivationPath?: string
+  index?: number
   keychain?: 'internal' | 'external'
   network?: Network
   scriptVersion?: ScriptVersionType

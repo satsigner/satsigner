@@ -223,6 +223,7 @@ type ChildAccount = {
   address: string
   label: string | undefined
   unspentSats: number | null
+  keychan: 'internal' | 'external'
   txs: number
 }
 
@@ -239,108 +240,43 @@ type ChildAccountsProps = {
 
 function ChildAccounts({
   account,
-  loadWalletFromDescriptor,
   handleOnExpand,
   setChange,
   change,
   expand,
   setSortDirection
 }: ChildAccountsProps) {
-  const getWalletAddress = useGetWalletAddress(account!)
   const [childAccounts, setChildAccounts] = useState<any[]>([])
   const [addressPath, setAddressPath] = useState('')
-  const network = useBlockchainStore((state) => state.network)
+  const [loadAddresses, updateAddressInfo] = useAccountsStore(
+    useShallow((state) => [state.loadAddresses, state.updateAddressInfo])
+  )
 
   const fetchAddresses = useCallback(async () => {
-    if (!account || !account.externalDescriptor || !account.internalDescriptor)
+    if (!account)
       return
-
-    try {
-      const result = await getWalletAddress()
-      if (!result) return
-
-      const changePath = change ? '1' : '0'
-      setAddressPath(`${account.derivationPath}/${changePath}/${result.index}`)
-
-      const [externalDescriptor, internalDescriptor] = await Promise.all([
-        new Descriptor().create(account.externalDescriptor, network as Network),
-        new Descriptor().create(account.internalDescriptor, network as Network)
-      ])
-
-      const wallet = await loadWalletFromDescriptor(
-        externalDescriptor,
-        internalDescriptor
-      )
-
-      const derivedAddresses = await Promise.all(
-        Array.from(
-          { length: account.summary.numberOfAddresses },
-          async (_, i) => {
-            if (change) {
-              const addrInfo = await wallet.getInternalAddress(i)
-              return {
-                index: i,
-                address: await addrInfo.address.asString()
-              }
-            } else {
-              const addrInfo = await wallet.getAddress(i)
-              return {
-                index: i,
-                address: await addrInfo.address.asString()
-              }
-            }
-          }
-        )
-      )
-
-      const newAddresses = derivedAddresses.map(({ index, address }) => {
-        let utxo = 0
-        let txCount = 0
-
-        for (const ux of account.utxos) {
-          if (ux.addressTo && ux.addressTo === address) {
-            utxo += ux.value
-          }
-        }
-
-        for (const tx of account.transactions) {
-          const isInVout = tx.vout.some((output) => output.address === address)
-          let isInVin = false
-
-          for (const input of tx.vin || []) {
-            const prevTx = account.transactions.find(
-              (t) => t.id === input.previousOutput.txid
-            )
-            if (prevTx) {
-              const voutEntry = prevTx.vout[input.previousOutput.vout]
-              if (voutEntry?.address === address) {
-                isInVin = true
-                break
-              }
-            }
-          }
-
-          if (isInVout || isInVin) {
-            txCount++
-          }
-        }
-
-        return {
-          index,
-          address,
-          label: '',
-          unspentSats: utxo,
-          txs: txCount
-        }
-      })
-
-      setChildAccounts(newAddresses)
-    } catch {}
-  }, [account, loadWalletFromDescriptor, getWalletAddress, network, change])
+    await loadAddresses(account, 20)
+    await updateAddressInfo(account)
+    if (account.derivationPath)
+      setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
+  }, [change])
 
   useEffect(() => {
     fetchAddresses()
-  }, [fetchAddresses, change])
+  }, [change])
+
+  useEffect(() => {
+    if (! account) return
+    setChildAccounts(account.addresses.map((address, index) => ({
+      address: address.address,
+      index,
+      // index: address.index !== undefined ? address.index : index,
+      label: address.label,
+      keychain: address.keychain,
+      txs: address.summary.transactions,
+      unspentSats: address.summary.balance
+    })))
+  }, [account])
 
   const renderItem = useCallback(
     ({ item }: { item: ChildAccount }) => (
@@ -442,7 +378,9 @@ function ChildAccounts({
         data={childAccounts}
         renderItem={renderItem}
         estimatedItemSize={150}
-        keyExtractor={(item) => `${item.index}-${item.address}`}
+        keyExtractor={(item) => {
+          return `${item.index}:${item.address}:${item.keychan}`
+        }}
         removeClippedSubviews
       />
     </SSMainLayout>

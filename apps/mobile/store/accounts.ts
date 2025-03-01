@@ -25,6 +25,7 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { Address } from '@/types/models/Address'
 
 type AccountsState = {
   accounts: Account[]
@@ -102,6 +103,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         const { scriptVersion } = account
+        const addrList = [...account.addresses]
 
         for (let i = account.addresses.length; i < count; i += 1) {
           const receiveAddrInfo = await wallet.getAddress(i)
@@ -109,9 +111,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           const receiveAddrPath = account.derivationPath
             ? `${account.derivationPath}/0/${i}`
             : undefined
-          account.addresses.push({
+            addrList.push({
             address: receiveAddr,
             keychain: 'external',
+            index: i,
             derivationPath: receiveAddrPath,
             network,
             scriptVersion,
@@ -126,13 +129,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
           if (!account.internalDescriptor) continue
           const changeAddrInfo = await wallet.getInternalAddress(i)
-          const changeAddr = changeAddrInfo.address.asString()
+          const changeAddr = await changeAddrInfo.address.asString()
           const changeAddrPath = account.derivationPath
             ? `${account.derivationPath}/1/${i}`
             : undefined
-          account.addresses.push({
+            addrList.push({
             address: await changeAddr,
             keychain: 'internal',
+            index: i,
             derivationPath: changeAddrPath,
             network,
             scriptVersion,
@@ -146,6 +150,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         }
 
+        account.addresses = addrList
         get().updateAccount(account)
       },
       updateAddressInfo: async (account) => {
