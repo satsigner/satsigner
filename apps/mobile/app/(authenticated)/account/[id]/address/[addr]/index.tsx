@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
@@ -11,7 +11,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
-import SSAddressDisplay from '@/components/SSAddressDisplay'
 
 function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()

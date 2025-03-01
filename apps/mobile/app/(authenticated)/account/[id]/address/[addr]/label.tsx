@@ -1,31 +1,36 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { ScrollView } from 'react-native'
 
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import SSAddressDisplay from '@/components/SSAddressDisplay'
 
 export default function SSTxLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
-  const [address] = useAccountsStore((state) => [
+  const [address, setAddrLabel] = useAccountsStore((state) => [
     state.accounts
       .find((account: Account) => account.name === accountId)
-      ?.addresses.find((address: Address) => address.address === addr)
+      ?.addresses.find(
+        (address: Address) =>
+          // TODO: remove keychain after fixing the internal address BUG
+          address.address === addr && address.keychain === 'internal'
+      ),
+    state.setAddrLabel
   ])
 
-  if (!address) return <Redirect href="/" />
-
-  function updateLabel() {
+  function updateLabel(label: string) {
+    setAddrLabel(accountId!, addr!, label)
     router.back()
   }
+
+  if (!address) return <Redirect href="/" />
 
   return (
     <ScrollView>
