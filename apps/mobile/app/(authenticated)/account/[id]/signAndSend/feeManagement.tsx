@@ -39,17 +39,17 @@ function FeeManagement() {
         <SSVStack justifyBetween>
           <SSVStack gap="lg">
             <SSText center uppercase size="lg">
-              FEE MANAGEMENT
+              {t('transaction.build.options.feeManagement')}
             </SSText>
             <SSVStack>
               <SSCheckbox
                 selected={localRBF}
-                label="REPLACE BY FEE"
+                label={t('bitcoin.rbf').toUpperCase()}
                 onPress={() => setLocalRBF(!localRBF)}
               />
               <SSCheckbox
                 selected={localCPFP}
-                label="CHILD PAYS FOR PARENTS"
+                label={t('bitcoin.cpfp').toUpperCase()}
                 onPress={() => setLocalCPFP(!localCPFP)}
               />
             </SSVStack>
