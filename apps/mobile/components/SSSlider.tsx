@@ -19,7 +19,7 @@ function SSSlider({ min, max, value, step = 1, onValueChange }: SSSliderProps) {
       step={step}
       minimumTrackTintColor={Colors.gray[800]}
       maximumTrackTintColor={Colors.gray[400]}
-      thumbTintColor={Colors.white}
+      thumbTintColor={Colors.gray[75]}
       onValueChange={(value) => onValueChange(value[0])}
     />
   )
