@@ -38,7 +38,11 @@ type AccountsAction = {
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
-  loadAddresses: (account: Account, count?: number) => Promise<void>
+  loadAddresses: (
+    account: Account,
+    count?: number,
+    forceReload?: boolean
+  ) => Promise<void>
   updateAddressInfo: (account: Account) => Promise<void>
   syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
@@ -80,8 +84,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         return wallet
       },
-      loadAddresses: async (account, count = 10) => {
-        if (account.addresses.length >= count) return
+      loadAddresses: async (account, count = 10, forceReload = false) => {
+        if (account.addresses.length >= count && !forceReload) return
         if (!account.externalDescriptor) return
 
         const { network } = useBlockchainStore.getState()
@@ -103,9 +107,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         const { scriptVersion } = account
-        const addrList = [...account.addresses]
+        const addrList = forceReload ? [] : [...account.addresses]
 
-        for (let i = account.addresses.length; i < count; i += 1) {
+        for (let i = addrList.length; i < count; i += 1) {
           const receiveAddrInfo = await wallet.getAddress(i)
           const receiveAddr = await receiveAddrInfo.address.asString()
           const receiveAddrPath = account.derivationPath
@@ -151,7 +155,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
 
         account.addresses = addrList
-        get().updateAccount(account)
+        await get().updateAddressInfo(account)
       },
       updateAddressInfo: async (account) => {
         const addrDictionary: Record<string, number> = {}

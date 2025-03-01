@@ -48,7 +48,6 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
-import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -223,7 +222,7 @@ type ChildAccount = {
   address: string
   label: string | undefined
   unspentSats: number | null
-  keychan: 'internal' | 'external'
+  keychain: 'internal' | 'external'
   txs: number
 }
 
@@ -248,15 +247,13 @@ function ChildAccounts({
 }: ChildAccountsProps) {
   const [childAccounts, setChildAccounts] = useState<any[]>([])
   const [addressPath, setAddressPath] = useState('')
-  const [loadAddresses, updateAddressInfo] = useAccountsStore(
-    useShallow((state) => [state.loadAddresses, state.updateAddressInfo])
+  const loadAddresses = useAccountsStore(
+    (state) => state.loadAddresses
   )
 
   const fetchAddresses = useCallback(async () => {
-    if (!account)
-      return
-    await loadAddresses(account, 20)
-    await updateAddressInfo(account)
+    if (!account) return
+    await loadAddresses(account, 20, true)
     if (account.derivationPath)
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
   }, [change])
@@ -266,16 +263,23 @@ function ChildAccounts({
   }, [change])
 
   useEffect(() => {
-    if (! account) return
-    setChildAccounts(account.addresses.map((address, index) => ({
-      address: address.address,
-      index,
-      // index: address.index !== undefined ? address.index : index,
-      label: address.label,
-      keychain: address.keychain,
-      txs: address.summary.transactions,
-      unspentSats: address.summary.balance
-    })))
+    if (!account) return
+    setChildAccounts(
+      account.addresses
+        .filter((address) =>
+          change
+            ? address.keychain === 'internal'
+            : address.keychain === 'external'
+        )
+        .map((address, index) => ({
+          address: address.address,
+          index: address.index !== undefined ? address.index : index,
+          label: address.label,
+          keychain: address.keychain,
+          txs: address.summary.transactions,
+          unspentSats: address.summary.balance
+        }))
+    )
   }, [account])
 
   const renderItem = useCallback(
@@ -379,7 +383,7 @@ function ChildAccounts({
         renderItem={renderItem}
         estimatedItemSize={150}
         keyExtractor={(item) => {
-          return `${item.index}:${item.address}:${item.keychan}`
+          return `${item.index}:${item.address}:${item.keychain}`
         }}
         removeClippedSubviews
       />
