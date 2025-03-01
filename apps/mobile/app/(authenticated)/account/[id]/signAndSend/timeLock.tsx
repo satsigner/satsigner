@@ -20,11 +20,18 @@ const SAFE_TIMELOCK_LIMIT = CURRENT_BLOCK_HEIGHT + AVERAGE_BLOCKS_PER_YEAR * 2
 
 const DAYS_BY_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
+type Tab = 'blockHeight' | 'date'
+
 function TimeLock() {
-  const timeLockTypes = ['BLOCK HEIGHT', 'DATE']
+  const timeLockTypes : Tab[] = ['blockHeight', 'date']
   const [timeLockType, setTimeLockType] = useState(timeLockTypes[0])
+
   const tabs = timeLockTypes.map((type) => ({ key: type }))
   const [tabIndex, setTabIndex] = useState(0)
+  const tabLabels : Record<Tab, string> = {
+    blockHeight: t('bitcoin.blockHeight'),
+    date: t('date.date')
+  }
 
   const [day, setDay] = useState('')
   const [year, setYear] = useState('')
@@ -46,7 +53,7 @@ function TimeLock() {
         {timeLockTypes.map((type, index) => (
           <SSButton
             key={type}
-            label={type}
+            label={tabLabels[type]}
             variant="outline"
             onPress={() => {
               setTimeLockType(type)
@@ -67,7 +74,7 @@ function TimeLock() {
     route
   }: SceneRendererProps & { route: { key: string } }) => {
     switch (route.key) {
-      case 'BLOCK HEIGHT':
+      case 'blockHeight':
         return (
           <SSNumberInput
             min={CURRENT_BLOCK_HEIGHT}
@@ -75,11 +82,11 @@ function TimeLock() {
             value={blockHeight}
             onChangeText={setBlockHeight}
             onValidate={setValidBlockHeight}
-            placeholder="BLOCK HEIGHT"
+            placeholder={t('bitcoin.blockHeight').toUpperCase()}
             showFeedback
           />
         )
-      case 'DATE':
+      case 'date':
         return (
           <SSVStack gap="lg">
             <SSHStack>
@@ -87,7 +94,7 @@ function TimeLock() {
                 <SSNumberInput
                   min={2025}
                   max={2050}
-                  placeholder="YEAR"
+                  placeholder={t('date.year').toUpperCase()}
                   value={year}
                   onChangeText={setYear}
                   onValidate={setValidYear}
@@ -97,7 +104,7 @@ function TimeLock() {
                 <SSNumberInput
                   min={1}
                   max={12}
-                  placeholder="MONTH"
+                  placeholder={t('date.month').toUpperCase()}
                   value={month}
                   onChangeText={setMonth}
                   onValidate={setValidMonth}
@@ -107,7 +114,7 @@ function TimeLock() {
                 <SSNumberInput
                   min={1}
                   max={DAYS_BY_MONTH[Number(month) - 1 || 0]}
-                  placeholder="DAY"
+                  placeholder={t('date.day').toUpperCase()}
                   value={day}
                   onChangeText={setDay}
                   onValidate={setValidDay}
@@ -119,7 +126,7 @@ function TimeLock() {
                 <SSNumberInput
                   min={0}
                   max={23}
-                  placeholder="HOUR"
+                  placeholder={t('date.hour').toUpperCase()}
                   value={hour}
                   onChangeText={setHour}
                   onValidate={setValidHour}
@@ -129,7 +136,7 @@ function TimeLock() {
                 <SSNumberInput
                   min={0}
                   max={60}
-                  placeholder="MINUTE"
+                  placeholder={t('date.minute').toUpperCase()}
                   value={minute}
                   onChangeText={setMinute}
                   onValidate={setValidMinute}
@@ -166,7 +173,7 @@ function TimeLock() {
         <SSVStack justifyBetween>
           <SSVStack style={{ height: 300 }}>
             <SSText center uppercase size="lg">
-              TIMELOCK
+              {t('transaction.build.options.timeLock')}
             </SSText>
             <TabView
               swipeEnabled={false}
@@ -177,14 +184,18 @@ function TimeLock() {
             />
           </SSVStack>
           <SSVStack>
-            <SSButton label="REMOVE" onPress={removeTimeLock} />
+            <SSButton
+              uppercase
+              label={t('common.remove')}
+              onPress={removeTimeLock}
+            />
             <SSButton
               variant="secondary"
               label={t('common.save')}
               onPress={saveChanges}
               disabled={
-                (timeLockType === 'BLOCK HEIGHT' && !validBlockHeight) ||
-                (timeLockType === 'DATE' &&
+                (timeLockType === 'blockHeight' && !validBlockHeight) ||
+                (timeLockType === 'date' &&
                   (!validYear ||
                     !validMonth ||
                     !validDay ||
