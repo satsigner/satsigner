@@ -9,13 +9,17 @@ import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
-type SSTextInputProps = {
+import SSText from './SSText'
+import { t } from '@/locales'
+
+type SSNumberInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
   align?: 'center' | 'left'
   min: number
   max: number
-  actionRight?: React.ReactNode
+  onValidate?: (valid: boolean) => void
+  showFeedback?: boolean
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSNumberInput(
@@ -25,12 +29,13 @@ function SSNumberInput(
     align = 'left',
     min,
     max,
-    actionRight,
     value,
     onChangeText,
+    onValidate,
+    showFeedback,
     style,
     ...props
-  }: SSTextInputProps,
+  }: SSNumberInputProps,
   ref: ForwardedRef<TextInput>
 ) {
   const [invalid, setInvalid] = useState(false)
@@ -63,6 +68,21 @@ function SSNumberInput(
     }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (value === undefined || value === '') {
+      return
+    }
+    if (!value.match(/^[0-9]*$/)) {
+      setInvalid(true)
+      if (onValidate) onValidate(false)
+      return
+    }
+    const numericVal = Number(value)
+    const invalid = numericVal < min || numericVal > max
+    setInvalid(invalid)
+    if (onValidate) onValidate(!invalid)
+  }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleTextChange(text: string) {
     if (!text.match(/^[0-9]*$/)) {
       return
@@ -71,14 +91,17 @@ function SSNumberInput(
     if (text === '') {
       setLocalValue('')
       setInvalid(true)
+      if (onValidate) onValidate(false)
       return
     }
 
     const numericVal = Number(text)
     if (numericVal < min || numericVal > max) {
       setInvalid(true)
+      if (onValidate) onValidate(false)
     } else {
       setInvalid(false)
+      if (onValidate) onValidate(true)
       if (onChangeText) onChangeText(numericVal.toString())
     }
 
@@ -91,6 +114,7 @@ function SSNumberInput(
       if (numericVal < min) numericVal = min
       if (numericVal > max) numericVal = max
       setInvalid(false)
+      if (onValidate) onValidate(true)
       if (onChangeText) onChangeText(numericVal.toString())
     }
   }
@@ -107,7 +131,19 @@ function SSNumberInput(
         style={textInputStyle}
         {...props}
       />
-      <View style={styles.actionRightBase}>{actionRight}</View>
+      {showFeedback && invalid && (
+        <SSText>
+          {localValue === ''
+            ? t('validation.required')
+            : !localValue.match(/^[0-9]+$/)
+              ? t('validation.invalid')
+              : Number(localValue) < min
+                ? t('validation.number.greater', { value: min })
+                : Number(localValue) > max
+                ? t('validation.number.smaller', { value: max })
+                  : t('validation.invalid')}
+        </SSText>
+      )}
     </View>
   )
 }

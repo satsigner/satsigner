@@ -765,9 +765,7 @@ export default function AccountView() {
                   {account.summary.numberOfTransactions}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.totalTransactions.0')}
-                  {'\n'}
-                  {t('accounts.totalTransactions.1')}
+                  {t('accounts.totalTransactions')}
                 </SSText>
                 {tabIndex === 0 && (
                   <View
@@ -793,9 +791,7 @@ export default function AccountView() {
                     {account.summary.numberOfAddresses}
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {t('accounts.childAccounts.0')}
-                    {'\n'}
-                    {t('accounts.childAccounts.1')}
+                    {t('accounts.childAccounts')}
                   </SSText>
                   {tabIndex === 1 && (
                     <View
@@ -821,9 +817,7 @@ export default function AccountView() {
                   {account.summary.numberOfUtxos}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.spendableOutputs.0')}
-                  {'\n'}
-                  {t('accounts.spendableOutputs.1')}
+                  {t('accounts.spendableOutputs')}
                 </SSText>
                 {tabIndex === 2 && (
                   <View
@@ -848,9 +842,7 @@ export default function AccountView() {
                   {account.summary.satsInMempool}
                 </SSText>
                 <SSText center color="muted" style={{ lineHeight: 12 }}>
-                  {t('accounts.satsInMempool.0')}
-                  {'\n'}
-                  {t('accounts.satsInMempool.1')}
+                  {t('accounts.satsInMempool')}
                 </SSText>
                 {tabIndex === 3 && (
                   <View

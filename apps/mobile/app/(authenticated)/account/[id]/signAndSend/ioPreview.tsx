@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSFeeInput from '@/components/SSFeeInput'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -57,6 +58,8 @@ export default function IOPreview() {
 
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+
+  const [feeRate, setFeeRate] = useState(1)
 
   const addOutputBottomSheetRef = useRef<BottomSheet>(null)
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
@@ -374,13 +377,46 @@ export default function IOPreview() {
               )}
             </SSText>
           </SSVStack>
+          <SSVStack>
+            <SSHStack>
+              <SSButton
+                label="FEE CONTROL"
+                variant="outline"
+                onPress={() =>
+                  router.navigate(`/account/${id}/signAndSend/feeManagement`)
+                }
+                style={{ width: '45%', flexGrow: 1 }}
+              />
+              <SSButton
+                label="TIMELOCK"
+                variant="outline"
+                onPress={() =>
+                  router.navigate(`/account/${id}/signAndSend/timeLock`)
+                }
+                style={{ width: '45%', flexGrow: 1 }}
+              />
+            </SSHStack>
+            <SSButton
+              label="IMPORT OUTPUTS"
+              variant="outline"
+              onPress={() =>
+                router.navigate(`/account/${id}/signAndSend/importOutputs`)
+              }
+            />
+          </SSVStack>
         </SSVStack>
       </SSBottomSheet>
       <SSBottomSheet
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
-        <SSText>Placeholder</SSText>
+        <SSFeeInput
+          value={feeRate}
+          onValueChange={setFeeRate}
+          vbytes={250}
+          max={40}
+          estimatedBlock={Math.trunc(40 / feeRate)}
+        />
       </SSBottomSheet>
       <SSModal
         visible={addOutputModalVisible}
@@ -419,7 +455,6 @@ export default function IOPreview() {
             max={utxosSelectedValue}
             value={outputAmount}
             step={100}
-            style={{ width: 340 }}
             onValueChange={(value) => setOutputAmount(value)}
           />
           <SSVStack style={{ width: '100%' }}>
