@@ -25,7 +25,6 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
-import { Address } from '@/types/models/Address'
 
 type AccountsState = {
   accounts: Account[]
@@ -52,6 +51,7 @@ type AccountsAction = {
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
+  setAddrLabel: (account: string, addr: string, label: string) => void
   setTxLabel: (account: string, txid: string, label: string) => void
   setUtxoLabel: (
     account: string,
@@ -115,7 +115,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           const receiveAddrPath = account.derivationPath
             ? `${account.derivationPath}/0/${i}`
             : undefined
-            addrList.push({
+          addrList.push({
             address: receiveAddr,
             keychain: 'external',
             index: i,
@@ -137,7 +137,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           const changeAddrPath = account.derivationPath
             ? `${account.derivationPath}/1/${i}`
             : undefined
-            addrList.push({
+          addrList.push({
             address: await changeAddr,
             keychain: 'internal',
             index: i,
@@ -436,6 +436,28 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       setTags: (tags: string[]) => {
         set({ tags })
+      },
+      setAddrLabel: (accountName, addr, label) => {
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
+        if (!account) return
+
+        const addrIndex = account.addresses.findIndex(
+          // TODO: remove the keychan===internal after fixing THAT bug
+          (address) =>
+            address.address === addr && address.keychain === 'internal'
+        )
+        if (addrIndex === -1) return
+
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.name === accountName
+            )
+            state.accounts[index].addresses[addrIndex].label = label
+          })
+        )
       },
       setTxLabel: (accountName, txid, label) => {
         const account = get().accounts.find(
