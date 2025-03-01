@@ -1,4 +1,4 @@
-import { type Descriptor, type Wallet } from 'bdk-rn'
+import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
@@ -37,6 +37,8 @@ type AccountsAction = {
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
+  loadAddresses: (account: Account, count?: number) => Promise<void>
+  updateAddressInfo: (account: Account) => Promise<void>
   syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
@@ -76,6 +78,91 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           network as Network
         )
         return wallet
+      },
+      loadAddresses: async (account, count = 10) => {
+        if (account.addresses.length >= count) return
+        if (!account.externalDescriptor) return
+
+        const { network } = useBlockchainStore.getState()
+
+        const externalDescriptor = await new Descriptor().create(
+          account.externalDescriptor,
+          network as Network
+        )
+        const internalDescriptor = account.internalDescriptor
+          ? await new Descriptor().create(
+              account.externalDescriptor,
+              network as Network
+            )
+          : null
+
+        const wallet = await get().loadWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor
+        )
+
+        for (let i = account.addresses.length; i < count; i += 1) {
+          const receiveAddrInfo = await wallet.getAddress(i)
+          const receiveAddr = await receiveAddrInfo.address.asString()
+          account.addresses.push({
+            address: receiveAddr,
+            keychain: 'external',
+            label: '',
+            summary: {
+              transactions: 0,
+              utxos: 0,
+              balance: 0,
+              satsInMempool: 0
+            }
+          })
+
+          if (!account.internalDescriptor) continue
+          const changeAddrInfo = await wallet.getInternalAddress(i)
+          const changeAddr = changeAddrInfo.address.asString()
+          account.addresses.push({
+            address: await changeAddr,
+            keychain: 'internal',
+            label: '',
+            summary: {
+              transactions: 0,
+              utxos: 0,
+              balance: 0,
+              satsInMempool: 0
+            }
+          })
+        }
+
+        get().updateAccount(account)
+      },
+      updateAddressInfo: async (account) => {
+        const addrDictionary: Record<string, number> = {}
+        const addrList = account.addresses
+
+        for (let i = 0; i < addrList.length; i += 1) {
+          addrDictionary[addrList[i].address] = i
+          addrList[i].summary.utxos = 0
+          addrList[i].summary.balance = 0
+          addrList[i].summary.satsInMempool = 0
+          addrList[i].summary.transactions = 0
+        }
+
+        for (const tx of account.transactions) {
+          for (const output of tx.vout) {
+            if (addrDictionary[output.address] === undefined) continue
+            const index = addrDictionary[output.address]
+            addrList[index].summary.transactions += 1
+          }
+        }
+
+        for (const utxo of account.utxos) {
+          if (!utxo.addressTo || addrDictionary[utxo.addressTo] === undefined)
+            continue
+          const index = addrDictionary[utxo.addressTo]
+          addrList[index].summary.utxos += 1
+          addrList[index].summary.balance += utxo.value
+        }
+
+        get().updateAccount(account)
       },
       syncWallet: async (wallet, account) => {
         // TODO: refactor this HUGE function, break it down

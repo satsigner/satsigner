@@ -1,5 +1,4 @@
-import { type Address } from 'bdk-rn'
-
+import { type Address } from './Address'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
 
