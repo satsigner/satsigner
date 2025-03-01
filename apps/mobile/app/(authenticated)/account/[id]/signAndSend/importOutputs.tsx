@@ -8,8 +8,8 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { Colors } from '@/styles'
 import { t } from '@/locales'
+import { Colors } from '@/styles'
 
 function ImportOuputs() {
   const router = useRouter()
@@ -29,7 +29,7 @@ function ImportOuputs() {
   }
 
   function cancel() {
-   router.back()
+    router.back()
   }
 
   return (

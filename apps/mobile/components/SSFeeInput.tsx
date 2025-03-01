@@ -1,13 +1,13 @@
 import { Slider } from '@miblanchard/react-native-slider'
+import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSText from './SSText'
-import { t } from '@/locales'
-import { useState } from 'react'
 
 type SSFeeInputProps = {
   max: number
@@ -26,7 +26,6 @@ function SSFeeInput({
   value,
   onValueChange
 }: SSFeeInputProps) {
-
   const [localValue, setLocalValue] = useState(value)
 
   return (

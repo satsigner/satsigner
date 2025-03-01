@@ -23,12 +23,12 @@ const DAYS_BY_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 type Tab = 'blockHeight' | 'date'
 
 function TimeLock() {
-  const timeLockTypes : Tab[] = ['blockHeight', 'date']
+  const timeLockTypes: Tab[] = ['blockHeight', 'date']
   const [timeLockType, setTimeLockType] = useState(timeLockTypes[0])
 
   const tabs = timeLockTypes.map((type) => ({ key: type }))
   const [tabIndex, setTabIndex] = useState(0)
-  const tabLabels : Record<Tab, string> = {
+  const tabLabels: Record<Tab, string> = {
     blockHeight: t('bitcoin.blockHeight'),
     date: t('date.date')
   }

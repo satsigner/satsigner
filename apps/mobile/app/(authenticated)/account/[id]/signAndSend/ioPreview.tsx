@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSFeeInput from '@/components/SSFeeInput'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -27,7 +28,6 @@ import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-import SSFeeInput from '@/components/SSFeeInput'
 
 const MINING_FEE_VALUE = 1635
 
@@ -415,7 +415,7 @@ export default function IOPreview() {
           onValueChange={setFeeRate}
           vbytes={250}
           max={40}
-          estimatedBlock={Math.trunc(40/feeRate)}
+          estimatedBlock={Math.trunc(40 / feeRate)}
         />
       </SSBottomSheet>
       <SSModal

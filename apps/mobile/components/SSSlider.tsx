@@ -10,13 +10,7 @@ type SSSliderProps = {
   onValueChange(value: number): void
 }
 
-function SSSlider({
-  min,
-  max,
-  value,
-  step = 1,
-  onValueChange,
-}: SSSliderProps) {
+function SSSlider({ min, max, value, step = 1, onValueChange }: SSSliderProps) {
   return (
     <Slider
       minimumValue={min}
