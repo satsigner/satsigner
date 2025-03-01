@@ -10,6 +10,7 @@ import { StyleSheet, TextInput, View } from 'react-native'
 import { Colors, Sizes } from '@/styles'
 
 import SSText from './SSText'
+import { t } from '@/locales'
 
 type SSNumberInputProps = {
   variant?: 'default' | 'outline'
@@ -133,14 +134,14 @@ function SSNumberInput(
       {showFeedback && invalid && (
         <SSText>
           {localValue === ''
-            ? 'required*'
+            ? t('validation.required')
             : !localValue.match(/^[0-9]+$/)
-              ? 'invalid number'
+              ? t('validation.invalid')
               : Number(localValue) < min
-                ? `value must be greater than ${min}`
+                ? t('validation.number.greater', { value: min })
                 : Number(localValue) > max
-                  ? `value must be smaller than ${max}`
-                  : 'invalid input'}
+                ? t('validation.number.smaller', { value: max })
+                  : t('validation.invalid')}
         </SSText>
       )}
     </View>

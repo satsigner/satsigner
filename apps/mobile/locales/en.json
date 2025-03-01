@@ -532,6 +532,12 @@
     "outputIndex": "Output Index",
     "unlockingScript": "Unlocking script"
   },
+  "validation": {
+    "required": "*required*",
+    "invalid": "Invalid input",
+    "number.greater": "The value must be greather than %{value}",
+    "number.smaller": "The value must be smaller than %{value}"
+  },
   "watchonly": {
     "address.label": "Address",
     "address.text": "A single bitcoin address",
