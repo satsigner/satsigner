@@ -253,7 +253,8 @@ function ChildAccounts({
 
   const fetchAddresses = useCallback(async () => {
     if (!account) return
-    await loadAddresses(account, 20, true)
+    await loadAddresses(account, 20)
+    updateChildAccounts()
     if (account.derivationPath)
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
   }, [change])
@@ -262,7 +263,7 @@ function ChildAccounts({
     fetchAddresses()
   }, [change])
 
-  useEffect(() => {
+  function updateChildAccounts() {
     if (!account) return
     setChildAccounts(
       account.addresses
@@ -280,7 +281,7 @@ function ChildAccounts({
           unspentSats: address.summary.balance
         }))
     )
-  }, [account])
+  }
 
   const renderItem = useCallback(
     ({ item }: { item: ChildAccount }) => (
