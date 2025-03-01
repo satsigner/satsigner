@@ -13,7 +13,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
 
-import { type Node } from './SSSankeyDiagram'
+import { type Node } from './SSMultipleSankeyDiagram'
 
 interface ISSankeyNodes {
   nodes: any[]

@@ -10,7 +10,7 @@ import { SSIconBubbles, SSIconScan } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSSankeyDiagram from '@/components/SSSankeyDiagram'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -201,7 +201,7 @@ export default function IOPreview() {
         inputs.size > 0 &&
         nodes?.length > 0 &&
         links?.length > 0 ? (
-          <SSSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
+          <SSMultipleSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
         ) : null}
       </View>
       <LinearGradient

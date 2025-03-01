@@ -37,12 +37,15 @@ const LINK_MAX_WIDTH = 60
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
-type SSSankeyDiagramProps = {
+type SSMultipleSankeyDiagramProps = {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
 }
 
-function SSSankeyDiagram({ sankeyNodes, sankeyLinks }: SSSankeyDiagramProps) {
+function SSMultipleSankeyDiagram({
+  sankeyNodes,
+  sankeyLinks
+}: SSMultipleSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
@@ -138,4 +141,4 @@ function SSSankeyDiagram({ sankeyNodes, sankeyLinks }: SSSankeyDiagramProps) {
   )
 }
 
-export default SSSankeyDiagram
+export default SSMultipleSankeyDiagram
