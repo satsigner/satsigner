@@ -35,16 +35,16 @@ export default function SSUtxoLabel() {
           headerTitle: () => <SSText>{t('transaction.edit.label.utxo')}</SSText>
         }}
       />
-      <SSVStack style={{ padding: 20 }}>
-        <SSVStack gap="none">
-          <SSHStack style={{ alignItems: 'flex-start' }}>
+      <SSVStack gap="none" style={{ padding: 20 }}>
+        <SSVStack gap="sm">
+          <SSVStack gap="none">
             <SSText uppercase>{t('transaction.txid')}</SSText>
             <SSText color="muted">{txid}</SSText>
-          </SSHStack>
-          <SSHStack>
-            <SSText uppercase>{t('transaction.vout')}</SSText>
+          </SSVStack>
+          <SSVStack gap="none">
+            <SSText uppercase>{t('utxo.vout')}</SSText>
             <SSText color="muted">{vout}</SSText>
-          </SSHStack>
+          </SSVStack>
         </SSVStack>
         <SSLabelInput label={utxo.label || ''} onUpdateLabel={updateLabel} />
       </SSVStack>
