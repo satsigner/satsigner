@@ -6,6 +6,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 
 import SSText from './SSText'
+import { t } from '@/locales'
+import { useState } from 'react'
 
 type SSFeeInputProps = {
   max: number
@@ -24,44 +26,48 @@ function SSFeeInput({
   value,
   onValueChange
 }: SSFeeInputProps) {
+
+  const [localValue, setLocalValue] = useState(value)
+
   return (
     <SSVStack gap="sm">
       <SSHStack style={{ justifyContent: 'center' }} gap="sm">
-        <SSText size="lg">{Math.trunc(value)}</SSText>
+        <SSText size="lg">{Math.round(localValue)}</SSText>
         <SSText size="lg" color="muted">
-          sats/vB
+          {t('bitcoin.satVb')}
         </SSText>
       </SSHStack>
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
           <SSText>1</SSText>
-          <SSText color="muted">sat</SSText>
+          <SSText color="muted">{t('bitcoin.sat')}</SSText>
         </SSHStack>
         <SSHStack>
           {vbytes && (
             <SSHStack style={{ justifyContent: 'center' }} gap="xs">
-              <SSText>{Math.round(vbytes * value)}</SSText>
-              <SSText color="muted">sats</SSText>
+              <SSText>{Math.trunc(vbytes * localValue)}</SSText>
+              <SSText color="muted">{t('bitcoin.sats')}</SSText>
             </SSHStack>
           )}
           {estimatedBlock && (
             <SSHStack style={{ justifyContent: 'center' }} gap="xs">
               <SSText color="muted">~</SSText>
               <SSText>{estimatedBlock}</SSText>
-              <SSText color="muted">sats</SSText>
+              <SSText color="muted">{t('bitcoin.blocks')}</SSText>
             </SSHStack>
           )}
         </SSHStack>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
           <SSText>{max}</SSText>
-          <SSText color="muted">sats</SSText>
+          <SSText color="muted">{t('bitcoin.sats')}</SSText>
         </SSHStack>
       </SSHStack>
       <Slider
         minimumValue={1}
         maximumValue={max}
-        value={value}
-        onValueChange={(value) => onValueChange(value[0])}
+        value={localValue}
+        onValueChange={(value) => setLocalValue(value[0])}
+        onSlidingComplete={() => onValueChange(localValue)}
         trackStyle={styles.track}
         thumbStyle={styles.thumb}
         minimumTrackTintColor="#fff"
