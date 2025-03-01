@@ -101,12 +101,20 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           internalDescriptor
         )
 
+        const { scriptVersion } = account
+
         for (let i = account.addresses.length; i < count; i += 1) {
           const receiveAddrInfo = await wallet.getAddress(i)
           const receiveAddr = await receiveAddrInfo.address.asString()
+          const receiveAddrPath = account.derivationPath
+            ? `${account.derivationPath}/0/${i}`
+            : undefined
           account.addresses.push({
             address: receiveAddr,
             keychain: 'external',
+            derivationPath: receiveAddrPath,
+            network,
+            scriptVersion,
             label: '',
             summary: {
               transactions: 0,
@@ -119,9 +127,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           if (!account.internalDescriptor) continue
           const changeAddrInfo = await wallet.getInternalAddress(i)
           const changeAddr = changeAddrInfo.address.asString()
+          const changeAddrPath = account.derivationPath
+            ? `${account.derivationPath}/1/${i}`
+            : undefined
           account.addresses.push({
             address: await changeAddr,
             keychain: 'internal',
+            derivationPath: changeAddrPath,
+            network,
+            scriptVersion,
             label: '',
             summary: {
               transactions: 0,
