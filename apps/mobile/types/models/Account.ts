@@ -1,3 +1,5 @@
+import { type Address } from 'bdk-rn'
+
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
 
@@ -51,6 +53,7 @@ export type Account = {
   derivationPath?: string
   transactions: Transaction[]
   utxos: Utxo[]
+  addresses: Address[]
   summary: {
     balance: number
     numberOfAddresses: number

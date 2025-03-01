@@ -244,6 +244,7 @@ const useAccountBuilderStore = create<
       watchOnly,
       transactions: [],
       utxos: [],
+      addresses: [],
       summary: {
         balance: 0,
         numberOfAddresses: 0,
