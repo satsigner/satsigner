@@ -20,22 +20,26 @@ export function estimateTransactionSize(
  * Recalculates the depthH value for each transaction based on its dependencies.
  *
  * A transaction's depthH is calculated as follows:
- * 1. If a transaction has no dependencies within the set, it gets a depthH of 1
+ * 1. If a transaction has no dependencies within the set:
+ *    - If its output is directly used as a selected input: set depthH to max calculated depthH
+ *    - Otherwise: set depthH to 1
  * 2. If a transaction has dependencies, it gets a depthH of (max depthH of dependencies + 2)
  *
- * This ensures that if transaction B depends on transaction A (A's output is B's input),
- * then B's depthH will be at least 2 higher than A's.
- *
  * @param transactions Map of transaction IDs to transaction objects
+ * @param selectedInputs Map of selected input UTXOs
  * @returns The updated map of transactions with recalculated depthH values
  */
 export function recalculateDepthH<
   T extends {
     txid: string
     vin: { txid: string; vout: number }[]
+    vout?: { value: number; scriptpubkey_address: string }[]
     depthH: number
   }
->(transactions: Map<string, T>): Map<string, T> {
+>(
+  transactions: Map<string, T>,
+  selectedInputs?: Map<string, { value: number; scriptpubkey_address: string }>
+): Map<string, T> {
   // Create a copy of the transactions map to avoid modifying the original
   const updatedTransactions = new Map(transactions)
 
@@ -60,6 +64,7 @@ export function recalculateDepthH<
 
   // Track which transactions have been processed
   const processed = new Set<string>()
+  let maxCalculatedDepthH = 1 // Track the maximum calculated depthH
 
   // Process transactions in topological order (dependencies first)
   function processTransaction(txid: string, visited = new Set<string>()): void {
@@ -85,7 +90,7 @@ export function recalculateDepthH<
     const tx = updatedTransactions.get(txid)
     if (tx) {
       if (dependencies.size === 0) {
-        // No dependencies, assign minimum depthH of 1
+        // No dependencies, set depthH to 1 for now
         tx.depthH = 1
       } else {
         // Get maximum depthH of dependencies and add 2
@@ -97,6 +102,7 @@ export function recalculateDepthH<
           }
         }
         tx.depthH = maxDepthH + 2
+        maxCalculatedDepthH = Math.max(maxCalculatedDepthH, tx.depthH)
       }
 
       updatedTransactions.set(txid, tx)
@@ -104,9 +110,28 @@ export function recalculateDepthH<
     }
   }
 
-  // Process all transactions
+  // Process all transactions first to establish the dependency chain
   for (const txid of updatedTransactions.keys()) {
     processTransaction(txid)
+  }
+
+  // Now handle the transactions with no dependencies
+  for (const [txid, tx] of updatedTransactions.entries()) {
+    if (dependencyGraph.get(txid)?.size === 0) {
+      const isDirectlyConnectedToSelectedInput =
+        selectedInputs &&
+        tx.vout?.some((output) =>
+          Array.from(selectedInputs.values()).some(
+            (input) =>
+              input.value === output.value &&
+              input.scriptpubkey_address === output.scriptpubkey_address
+          )
+        )
+
+      // Set depthH based on whether it's connected to selected inputs
+      tx.depthH = isDirectlyConnectedToSelectedInput ? maxCalculatedDepthH : 1
+      updatedTransactions.set(txid, tx)
+    }
   }
 
   return updatedTransactions
