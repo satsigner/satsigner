@@ -28,7 +28,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
-const DEEP_LEVEL = 2
+const DEEP_LEVEL = 2 // how deep the tx history
 
 export default function IOPreview() {
   const router = useRouter()
@@ -52,6 +52,8 @@ export default function IOPreview() {
     inputs,
     DEEP_LEVEL
   )
+
+  // console.log('TX', JSON.stringify(Array.from(transactions.values()), null, 2))
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -110,7 +112,7 @@ export default function IOPreview() {
       </SSVStack>
     )
   }
-  console.log('sankeyNodes', nodes)
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack.Screen
@@ -203,11 +205,7 @@ export default function IOPreview() {
         links &&
         Array.isArray(links) &&
         links.length > 0 ? (
-          <SSSankeyDiagram
-            sankeyNodes={nodes}
-            sankeyLinks={links}
-            inputCount={inputs.size}
-          />
+          <SSSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
         ) : inputs.size > 0 ? (
           <SSVStack itemsCenter style={{ width: '100%', padding: 20 }}>
             <SSText>Insufficient data to display transaction diagram.</SSText>

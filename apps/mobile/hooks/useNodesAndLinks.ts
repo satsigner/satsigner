@@ -118,16 +118,13 @@ export const useNodesAndLinks = ({
       }))
   )
 
-  console.log('TX', JSON.stringify(Array.from(transactions.values()), null, 2))
-
   const confirmedNodes: Node[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
       const depthIndices = new Map<number, number>()
       const blockDepthIndices = new Map<number, number>()
       const previousNodes = Array.from(transactions.entries()).flatMap(
-        ([, tx], index) => {
+        ([, tx]) => {
           if (!tx.vin || !tx.vout) return []
-          console.log('tx index->', index)
 
           const allInputNodes = tx.vin.reduce((nodes, input) => {
             // Only process inputs that pass the filter condition
@@ -161,8 +158,6 @@ export const useNodesAndLinks = ({
             nodes.push(node)
             return nodes
           }, [] as any[])
-
-          console.log(`allinputNodes${index}`, allInputNodes)
 
           const vsize = Math.ceil(tx.weight * 0.25)
           const blockDepth = tx.depthH
@@ -296,8 +291,6 @@ export const useNodesAndLinks = ({
           node.depthH !== 0 &&
           node.id.includes('vin')
         ) {
-          console.log('ViN', node)
-
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
             (n: Node) => n.type === 'block' && n.txId === node.txId
@@ -326,8 +319,6 @@ export const useNodesAndLinks = ({
 
     return generateSankeyLinks(confirmedNodes)
   }, [allNodes?.length, confirmedNodes, ingoingNodes, inputs])
-
-  console.log({ node: allNodes, link: links })
 
   return { nodes: allNodes, links }
 }

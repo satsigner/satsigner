@@ -74,8 +74,6 @@ function SSSankeyDiagram({ sankeyNodes, sankeyLinks }: SSSankeyDiagramProps) {
       : 0
   }, [sankeyNodes])
 
-  console.log({ maxNodeCountInDepthH })
-
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(120)
