@@ -14,10 +14,8 @@ type SSFeeInputProps = {
   estimatedBlock?: number
   vbytes?: number
   value: number
-  onValueChange: (val: number) => void
+  onValueChange: (value: number) => void
 }
-
-// TODO: improve performance, extremely slow
 
 function SSFeeInput({
   max,
