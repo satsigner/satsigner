@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
   type Dispatch,
   useCallback,
@@ -16,6 +16,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
@@ -285,37 +286,43 @@ function ChildAccounts({
 
   const renderItem = useCallback(
     ({ item }: { item: ChildAccount }) => (
-      <SSHStack style={styles.row}>
+      <TouchableOpacity
+        onPress={() =>
+          router.navigate(`/account/${account.name}/address/${item.address}`)
+        }
+      >
+        <SSHStack style={styles.row}>
         <SSText style={styles.indexText}>{item.index}</SSText>
-        <SSText style={styles.addressText}>
+          <SSText style={styles.addressText}>
           {formatAddress(item.address, 4)}
-        </SSText>
+          </SSText>
         <SSText
           style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
         >
           {item.label || t('transaction.noLabel')}
         </SSText>
         <SSText
-          style={[
-            styles.unspentSatsText,
-            {
-              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-            }
+        style={[
+          styles.unspentSatsText,
+          {
+            color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+          }
           ]}
         >
           {item.unspentSats}
         </SSText>
         <SSText
-          style={[
-            styles.txsText,
-            {
-              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-            }
+        style={[
+          styles.txsText,
+          {
+            color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+          }
           ]}
         >
           {item.txs}
         </SSText>
-      </SSHStack>
+        </SSHStack>
+        </TouchableOpacity>
     ),
     []
   )
