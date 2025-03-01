@@ -10,6 +10,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 
 export default function SSTxLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -33,15 +34,13 @@ export default function SSTxLabel() {
           headerTitle: () => <SSText uppercase>Adress Label</SSText>
         }}
       />
-      <SSVStack style={{ padding: 20 }}>
+      <SSVStack gap="none" style={{ padding: 20 }}>
         <SSVStack gap="none">
           <SSVStack>
             <SSText uppercase weight="bold">
               Address
             </SSText>
-            <SSText type="mono" color="muted" size="md">
-              {addr}
-            </SSText>
+            <SSAddressDisplay address={addr} />
           </SSVStack>
         </SSVStack>
         <SSLabelInput label={address.label} onUpdateLabel={updateLabel} />

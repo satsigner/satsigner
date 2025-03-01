@@ -11,6 +11,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 
 function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -39,16 +40,12 @@ function AddressDetails() {
       <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
         <ScrollView>
           <SSVStack>
-            <SSClipboardCopy text={address.address || ''}>
-              <SSVStack>
-                <SSText weight="bold" uppercase size="md">
-                  Address
-                </SSText>
-                <SSText type="mono" size="lg">
-                  {address.address}
-                </SSText>
-              </SSVStack>
-            </SSClipboardCopy>
+            <SSVStack>
+              <SSText weight="bold" uppercase size="md">
+                Address
+              </SSText>
+              <SSAddressDisplay address={addr} />
+            </SSVStack>
             <SSSeparator />
             <SSLabelDetails
               label={address.label}
