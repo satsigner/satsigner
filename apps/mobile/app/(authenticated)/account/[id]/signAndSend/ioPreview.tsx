@@ -199,17 +199,9 @@ export default function IOPreview() {
       <View style={{ position: 'absolute', top: 80 }}>
         {transactions.size > 0 &&
         inputs.size > 0 &&
-        nodes &&
-        Array.isArray(nodes) &&
-        nodes.length > 0 &&
-        links &&
-        Array.isArray(links) &&
-        links.length > 0 ? (
+        nodes?.length > 0 &&
+        links?.length > 0 ? (
           <SSSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
-        ) : inputs.size > 0 ? (
-          <SSVStack itemsCenter style={{ width: '100%', padding: 20 }}>
-            <SSText>Insufficient data to display transaction diagram.</SSText>
-          </SSVStack>
         ) : null}
       </View>
       <LinearGradient

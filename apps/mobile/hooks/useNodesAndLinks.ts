@@ -118,11 +118,11 @@ export const useNodesAndLinks = ({
       }))
   )
 
-  const confirmedNodes: Node[] = useMemo(() => {
+  const previousConfirmedNodes: Node[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
       const depthIndices = new Map<number, number>()
       const blockDepthIndices = new Map<number, number>()
-      const previousNodes = Array.from(transactions.entries()).flatMap(
+      const previousConfirmedNodes = Array.from(transactions.entries()).flatMap(
         ([, tx]) => {
           if (!tx.vin || !tx.vout) return []
 
@@ -207,7 +207,7 @@ export const useNodesAndLinks = ({
         }
       )
 
-      return previousNodes
+      return previousConfirmedNodes
     }
     return []
   }, [
@@ -218,7 +218,7 @@ export const useNodesAndLinks = ({
     transactions
   ])
 
-  const allNodes = [...confirmedNodes, ...ingoingNodes].sort(
+  const nodes = [...previousConfirmedNodes, ...ingoingNodes].sort(
     (a, b) => a.depthH - b.depthH
   )
 
@@ -315,10 +315,10 @@ export const useNodesAndLinks = ({
       })
       return links
     }
-    if (allNodes?.length === 0) return []
+    if (nodes?.length === 0) return []
 
-    return generateSankeyLinks(confirmedNodes)
-  }, [allNodes?.length, confirmedNodes, ingoingNodes, inputs])
+    return generateSankeyLinks(previousConfirmedNodes)
+  }, [nodes?.length, previousConfirmedNodes, ingoingNodes, inputs])
 
-  return { nodes: allNodes, links }
+  return { nodes, links }
 }
