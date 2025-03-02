@@ -118,26 +118,8 @@ export default function SSSpiralBlocks() {
       console.error('Block height not found')
       return
     }
-    setLoadingBlockDetails(true)
-    // First, fetch the block hash from the block-height endpoint using block.height
-    fetch(`https://mempool.space/api/block-height/${block.height}`)
-      .then((res) => res.text()) // This returns the hash as plain text
-      .then((hash) => {
-        // Now fetch the full block details using the hash
-        return fetch(`https://mempool.space/api/block/${hash}`)
-      })
-      .then((res) => res.json())
-      .then((data) => {
-        setBlockDetails(data)
-        // Only after the data is fetched, set the selected block
-        setSelectedBlock({ blockIndex: index, fileIndex: currentFileIndex })
-      })
-      .catch((error) => {
-        console.error('Error fetching block details:', error)
-      })
-      .finally(() => {
-        setLoadingBlockDetails(false)
-      })
+    // Navigate to exploreBlock page with the height as parameter.
+    router.push(`/exploreBlock?height=${block.height}` as any)
   }
 
   // State for fetching data
@@ -420,26 +402,23 @@ export default function SSSpiralBlocks() {
       <Animated.View
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       >
-        {spiralBlocks.map((block, index) => {
-          return (
-            <TouchableOpacity
-              key={index}
-              style={{
-                position: 'absolute',
-                top:
-                  canvasTopOffset + canvasHeight / 2 + block.y - blockSize / 2,
-                left: canvasWidth / 2 + block.x - blockSize / 2,
-                width: blockSize + 3,
-                height: blockSize + 3,
-                borderRadius: 25,
-                backgroundColor: 'rgba(255, 255, 255, 0)'
-              }}
-              onPress={() => handleBlockPress(index)}
-              onPressIn={() => handlePressIn(index)}
-              onPressOut={() => handlePressOut(index)}
-            />
-          )
-        })}
+        {spiralBlocks.map((block, index) => (
+          <TouchableOpacity
+            key={index}
+            style={{
+              position: 'absolute',
+              top: canvasTopOffset + canvasHeight / 2 + block.y - blockSize / 2,
+              left: canvasWidth / 2 + block.x - blockSize / 2,
+              width: blockSize + 3,
+              height: blockSize + 3,
+              borderRadius: 25,
+              backgroundColor: 'rgba(255, 255, 255, 0)'
+            }}
+            onPress={() => handleBlockPress(index)}
+            onPressIn={() => handlePressIn(index)}
+            onPressOut={() => handlePressOut(index)}
+          />
+        ))}
       </Animated.View>
 
       {/* Navigation Buttons */}
