@@ -495,7 +495,9 @@
     "noLabel": "No label",
     "outputIndex": "Output Index",
     "unlockingScript": "Unlocking script"
-  },
+
+  } ,
+
   "watchonly": {
     "address.label": "Address",
     "address.text": "A single bitcoin address",
@@ -516,5 +518,9 @@
     "xpub.label": "XPUB / YPUB / ZPUB",
     "xpub.text": "An extended public key is a type of key used in Bitcoin that allows for the generation of multiple public addresses from a single key. It is part of the hierarchical deterministic (HD) wallet structure defined by BIP32. An xpub can generate child public keys, which can be used to receive funds without exposing the corresponding private keys. This feature is useful for managing multiple addresses while maintaining privacy and security, as users can receive payments at different addresses without needing to create new wallets or expose sensitive information.",
     "xpub.title": "Extended Public Key"
+
+  },
+     "explore": {
+     "title": "Explore"
   }
 }
