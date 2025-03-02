@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
     height: Sizes.textInput.height.small
   },
   alignCenter: {
-    textAlign: 'center'
+    textAlign: 'center',
+    paddingHorizontal: 12
   },
   alignLeft: {
     textAlign: 'left',

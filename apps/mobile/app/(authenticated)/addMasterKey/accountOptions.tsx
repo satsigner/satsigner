@@ -2,7 +2,10 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconMultiSignature, SSIconSingleSignature } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
+import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -17,26 +20,46 @@ import { setStateWithLayoutAnimation } from '@/utils/animation'
 
 export default function AccountOptions() {
   const router = useRouter()
-  const [name, type, setScriptVersion, setSeedWordCount, generateMnemonic] =
-    useAccountBuilderStore(
-      useShallow((state) => [
-        state.name,
-        state.type,
-        state.setScriptVersion,
-        state.setSeedWordCount,
-        state.generateMnemonic
-      ])
-    )
+  const [
+    name,
+    type,
+    clearParticipants,
+    setScriptVersion,
+    setSeedWordCount,
+    generateMnemonic,
+    setPolicyType,
+    setParticipantsCount,
+    setRequiredParticipantsCount
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.name,
+      state.type,
+      state.clearParticipants,
+      state.setScriptVersion,
+      state.setSeedWordCount,
+      state.generateMnemonic,
+      state.setPolicyType,
+      state.setParticipantsCount,
+      state.setRequiredParticipantsCount
+    ])
+  )
 
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
   const [localSeedWordCount, setLocalSeedWordCount] =
     useState<NonNullable<Account['seedWordCount']>>(24)
+  const [localPolicyType, setLocalPolicyType] =
+    useState<NonNullable<Account['policyType']>>('single')
+  const [localParticipantsCount, setLocalParticipantsCount] =
+    useState<NonNullable<Account['participantsCount']>>(3)
+  const [localRequiredParticipantsCount, setLocalRequiredParticipantsCount] =
+    useState<NonNullable<Account['requiredParticipantsCount']>>(2)
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [seedWordCountModalVisible, setSeedWordCountModalVisibile] =
     useState(false)
+  const [policyTypeModalVisible, setPolicyTypeModalVisible] = useState(false)
 
   const [loading, setLoading] = useState(false)
 
@@ -51,32 +74,57 @@ export default function AccountOptions() {
       return `21 ${t('bitcoin.words').toLowerCase()}`
     if (localSeedWordCount === 24)
       return `24 ${t('bitcoin.words').toLowerCase()}`
+    return ''
+  }
 
+  function getPolicyTypeButtonLabel() {
+    if (localPolicyType === 'single') return t('account.policy.singleSignature')
+    if (localPolicyType === 'multi') return t('account.policy.multiSignature')
     return ''
   }
 
   function getContinueButtonLabel() {
-    if (type === 'generate') return t('account.generate.title')
-    else if (type === 'import') return t('account.import.title')
-
+    if (localPolicyType === 'single') {
+      if (type === 'generate') return t('account.generate.title')
+      else if (type === 'import')
+        return t('account.import.title').replace(' ', '')
+    } else if (localPolicyType === 'multi') {
+      if (type === 'generate') {
+        return t('account.generate.multi.title')
+      } else if (type === 'import') {
+        return t('account.import.multi.title')
+      }
+    }
     return ''
   }
 
   async function handleOnPressConfirmAccountOptions() {
     setScriptVersion(localScriptVersion)
     setSeedWordCount(localSeedWordCount)
-
-    if (type === 'generate') {
-      setLoading(true)
-      await generateMnemonic(localSeedWordCount)
-      setLoading(false)
-      router.navigate('/addMasterKey/generateSeed')
-    } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
+    setPolicyType(localPolicyType)
+    if (localPolicyType === 'multi') {
+      setParticipantsCount(localParticipantsCount)
+      setRequiredParticipantsCount(localRequiredParticipantsCount)
+      clearParticipants()
+      router.navigate('/addMasterKey/multisigKeyControl')
+    } else {
+      if (type === 'generate') {
+        setLoading(true)
+        await generateMnemonic(localSeedWordCount)
+        setLoading(false)
+        router.navigate('/addMasterKey/generateSeed')
+      } else if (type === 'import') router.navigate('/addMasterKey/importSeed')
+    }
   }
 
   function handleOnSelectSeedWordCount() {
     setLocalSeedWordCount(localSeedWordCount)
     setSeedWordCountModalVisibile(false)
+  }
+
+  function handleOnSelectPolicyType() {
+    setLocalPolicyType(localPolicyType)
+    setPolicyTypeModalVisible(false)
   }
 
   return (
@@ -87,28 +135,48 @@ export default function AccountOptions() {
         }}
       />
       <SSVStack justifyBetween>
-        <SSFormLayout>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.policy.title')} />
-            <SSButton label={t('account.policy.singleSignature')} withSelect />
-          </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.script')} />
-            <SSButton
-              label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
-              withSelect
-              onPress={() => setScriptVersionModalVisible(true)}
+        <SSVStack>
+          <SSFormLayout>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.policy.title')} />
+              <SSButton
+                label={getPolicyTypeButtonLabel()}
+                withSelect
+                onPress={() => setPolicyTypeModalVisible(true)}
+              />
+            </SSFormLayout.Item>
+            {localPolicyType === 'single' && (
+              <>
+                <SSFormLayout.Item>
+                  <SSFormLayout.Label label={t('account.script')} />
+                  <SSButton
+                    label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
+                    withSelect
+                    onPress={() => setScriptVersionModalVisible(true)}
+                  />
+                </SSFormLayout.Item>
+                <SSFormLayout.Item>
+                  <SSFormLayout.Label label={t('account.mnemonic.title')} />
+                  <SSButton
+                    label={getSeedWordCountButtonLabel()}
+                    withSelect
+                    onPress={() => setSeedWordCountModalVisibile(true)}
+                  />
+                </SSFormLayout.Item>
+              </>
+            )}
+          </SSFormLayout>
+          {localPolicyType === 'multi' && (
+            <SSMultisigCountSelector
+              maxCount={12}
+              requiredNumber={localRequiredParticipantsCount}
+              totalNumber={localParticipantsCount}
+              onChangeRequiredNumber={setLocalRequiredParticipantsCount}
+              onChangeTotalNumber={setLocalParticipantsCount}
+              viewOnly={false}
             />
-          </SSFormLayout.Item>
-          <SSFormLayout.Item>
-            <SSFormLayout.Label label={t('account.mnemonic.title')} />
-            <SSButton
-              label={getSeedWordCountButtonLabel()}
-              withSelect
-              onPress={() => setSeedWordCountModalVisibile(true)}
-            />
-          </SSFormLayout.Item>
-        </SSFormLayout>
+          )}
+        </SSVStack>
         <SSVStack>
           <SSButton
             label={getContinueButtonLabel()}
@@ -165,6 +233,31 @@ export default function AccountOptions() {
           selected={localSeedWordCount === 12}
           onPress={() => setStateWithLayoutAnimation(setLocalSeedWordCount, 12)}
         />
+      </SSSelectModal>
+      <SSSelectModal
+        visible={policyTypeModalVisible}
+        title={t('account.policy.title')}
+        onSelect={() => handleOnSelectPolicyType()}
+        onCancel={() => setPolicyTypeModalVisible(false)}
+      >
+        <SSCheckbox
+          label={t('account.policy.singleSignature')}
+          selected={localPolicyType === 'single'}
+          onPress={() => setLocalPolicyType('single')}
+        />
+        <SSText color="muted" size="lg" style={{ alignSelf: 'auto' }}>
+          {t('account.policy.singleSignatureDescription')}
+        </SSText>
+        <SSIconSingleSignature width="100%" height={180} />
+        <SSCheckbox
+          label={t('account.policy.multiSignature')}
+          selected={localPolicyType === 'multi'}
+          onPress={() => setLocalPolicyType('multi')}
+        />
+        <SSText color="muted" size="lg" style={{ alignSelf: 'auto' }}>
+          {t('account.policy.multiSignatureDescription')}
+        </SSText>
+        <SSIconMultiSignature width="100%" height={200} />
       </SSSelectModal>
     </SSMainLayout>
   )

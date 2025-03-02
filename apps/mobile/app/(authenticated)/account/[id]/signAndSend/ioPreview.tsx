@@ -6,8 +6,7 @@ import { View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconBubbles } from '@/components/icons'
-import ScanIcon from '@/components/icons/ScanIcon'
+import { SSIconBubbles, SSIconScan } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
@@ -323,7 +322,7 @@ export default function IOPreview() {
           align="left"
           actionRight={
             <SSIconButton onPress={() => setCameraModalVisible(true)}>
-              <ScanIcon />
+              <SSIconScan />
             </SSIconButton>
           }
           onChangeText={(text) => setOutputTo(text)}
