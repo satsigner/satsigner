@@ -38,6 +38,8 @@ export default function ExploreBlock() {
     <View style={styles.container}>
       <Text style={styles.title}>Block Details</Text>
       <Text style={styles.paramText}>Height: {blockHeight}</Text>
+      {/* White rectangle added above the text details */}
+      <View style={styles.whiteRectangle} />
       {loading ? (
         <Text style={styles.statusText}>Loading block details...</Text>
       ) : blockDetails ? (
@@ -46,21 +48,17 @@ export default function ExploreBlock() {
             Block ID: {String(blockDetails.id)}
           </Text>
           <Text style={styles.statusText}>
-            Height: {String(blockDetails.height)}
-          </Text>
-          <Text style={styles.statusText}>
             Difficulty: {String(blockDetails.difficulty)}
           </Text>
           <Text style={styles.statusText}>
             Timestamp: {String(blockDetails.timestamp)}
           </Text>
-          {/* Display other details as needed */}
         </>
       ) : (
         <Text style={styles.statusText}>No block details available.</Text>
       )}
       <SSButton
-        label="Back to Difficulty View"
+        label="Difficulty Epoch"
         variant="gradient"
         style={{ borderRadius: 0, marginTop: 8 }}
         onPress={() => router.back()}
@@ -68,7 +66,6 @@ export default function ExploreBlock() {
     </View>
   )
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -92,5 +89,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 10,
     textAlign: 'center'
+  },
+  whiteRectangle: {
+    width: 100,
+    height: 100,
+    backgroundColor: 'white',
+    marginVertical: 20
   }
 })
