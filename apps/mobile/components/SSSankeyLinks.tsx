@@ -56,57 +56,72 @@ export function SSSankeyLinks({
         return Math.min(2, maxWidth)
       }
 
-      // Calculate total value of all links in the diagram
-      const totalLinkValue = links.reduce(
-        (sum, link) => sum + (link.value ?? 0),
-        0
-      )
+      // Helper function to get total incoming value for a block node
+      const getTotalIncomingValueForBlock = (blockNode: Node) => {
+        return links
+          .filter((link) => {
+            const targetNode = nodes.find((n) => n.id === link.target)
+            return targetNode?.id === blockNode.id
+          })
+          .reduce((sum, link) => sum + (link.value ?? 0), 0)
+      }
+
+      // Helper function to get total outgoing value from a block node
+      const getTotalOutgoingValueFromBlock = (blockNode: Node) => {
+        return links
+          .filter((link) => {
+            const sourceNode = nodes.find((n) => n.id === link.source)
+            return sourceNode?.id === blockNode.id
+          })
+          .reduce((sum, link) => sum + (link.value ?? 0), 0)
+      }
 
       // Get current node's sats
       const nodeSats = node?.value ?? 0
 
-      // Find links where this node is the target (incoming) or source (outgoing)
-      const incomingLinks = links.filter((link) => {
-        const targetNode = link.target
-        return targetNode === node.id
+      // Determine if this node connects to a block node
+      const connectedBlockNode = nodes.find((n) => {
+        if (n.type !== 'block') return false
+
+        // Check if this node is connected to the block node
+        return links.some(
+          (link) =>
+            (link.source === node.id && link.target === n.id) ||
+            (link.source === n.id && link.target === node.id)
+        )
       })
 
-      const outgoingLinks = links.filter((link) => {
-        const sourceNode = link.source
-        return sourceNode === node.id
-      })
+      if (!connectedBlockNode) {
+        console.log('Warning: Node not connected to any block node', node.id)
+        return 0
+      }
 
-      // Calculate total sats for incoming and outgoing links separately
-      const totalIncomingSats = incomingLinks.reduce(
-        (sum, link) => sum + (link.value ?? 0),
-        0
+      // Calculate width based on whether this node is sending to or receiving from the block
+      const isSourceToBlock = links.some(
+        (link) =>
+          link.source === node.id && link.target === connectedBlockNode.id
       )
 
-      const totalOutgoingSats = outgoingLinks.reduce(
-        (sum, link) => sum + (link.value ?? 0),
-        0
-      )
+      let calculatedWidth
+      if (isSourceToBlock) {
+        // Node is sending to block - use total incoming value of block
+        const totalIncoming = getTotalIncomingValueForBlock(connectedBlockNode)
+        calculatedWidth = (nodeSats / totalIncoming) * maxWidth
 
-      // Determine if this is a source or target node
-      const isSource = outgoingLinks.some(
-        (link) => (link.source as string) === node.id
-      )
-
-      // Calculate width proportional to the node's value relative to total link value
-      // This ensures consistent total width across all nodes
-      const calculatedWidth = (nodeSats / totalLinkValue) * maxWidth
-
-      if (!isSource) {
-        // console.log('start', nodeSats)
-        console.log('XX', { isSource })
-        console.log({ nodeSats, totalOutgoingSats, totalIncomingSats })
-        // console.log('end', nodeSats)
-        console.log({ maxWidth, calculated: calculatedWidth })
+        if (!isSourceToBlock) {
+          console.log('XX', { isSourceToBlock })
+          console.log({ nodeSats, totalIncoming })
+          console.log({ maxWidth, calculated: calculatedWidth })
+        }
+      } else {
+        // Node is receiving from block - use total outgoing value from block
+        const totalOutgoing = getTotalOutgoingValueFromBlock(connectedBlockNode)
+        calculatedWidth = (nodeSats / totalOutgoing) * maxWidth
       }
 
       return calculatedWidth
     },
-    [links]
+    [links, nodes]
   )
 
   if (links.length === 0) return null
