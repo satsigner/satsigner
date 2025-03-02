@@ -42,16 +42,17 @@ function SSNumberInput(
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
     const borderStyle = invalid ? styles.borderInvalid : {}
-    return StyleSheet.compose(
+    const newStyle = StyleSheet.compose(
       {
         ...styles.textInputBase,
         ...variantStyle,
         ...sizeStyle,
-        ...alignStyle,
-        ...borderStyle
+        ...borderStyle,
+        ...alignStyle
       },
       style
     )
+    return newStyle
   }, [variant, size, align, style, invalid])
 
   const [localValue, setLocalValue] = useState(value || '')
@@ -138,7 +139,8 @@ const styles = StyleSheet.create({
     height: Sizes.textInput.height.small
   },
   alignCenter: {
-    textAlign: 'center'
+    textAlign: 'center',
+    paddingHorizontal: 12
   },
   alignLeft: {
     textAlign: 'left',

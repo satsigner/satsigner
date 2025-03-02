@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -13,7 +12,6 @@ import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -37,7 +35,7 @@ export default function WatchOnlyOptions() {
     scriptVersion,
     fingerprint,
     clearAccount,
-    getAccountFromDescriptor,
+    getAccount,
     setFingerprint,
     setDescriptorFromXpub,
     setDescriptorFromAddress,
@@ -50,7 +48,7 @@ export default function WatchOnlyOptions() {
       state.scriptVersion,
       state.fingerprint,
       state.clearAccount,
-      state.getAccountFromDescriptor,
+      state.getAccount,
       state.setFingerprint,
       state.setDescriptorFromXpub,
       state.setDescriptorFromAddress,
@@ -131,7 +129,7 @@ export default function WatchOnlyOptions() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    const account = await getAccountFromDescriptor()
+    const account = getAccount()
 
     try {
       if (account) {
@@ -311,28 +309,6 @@ export default function WatchOnlyOptions() {
                   </>
                 )}
               </SSVStack>
-              {selectedOption === 'address' && (
-                <SSVStack gap="xs">
-                  <SSHStack>
-                    <SSIconWarning height={16} width={16} />
-                    <SSText center style={{ width: '80%' }}>
-                      {t('watchonly.address.warning.text')}
-                    </SSText>
-                    <SSIconWarning height={16} width={16} />
-                  </SSHStack>
-                  <SSText
-                    size="xs"
-                    center
-                    onPress={() => router.navigate('/settings/network')}
-                    style={{
-                      textDecorationStyle: 'solid',
-                      textDecorationLine: 'underline'
-                    }}
-                  >
-                    {t('watchonly.address.warningCallToAction')}
-                  </SSText>
-                </SSVStack>
-              )}
               <SSVStack>
                 <SSButton
                   label={t('watchonly.read.clipboard')}

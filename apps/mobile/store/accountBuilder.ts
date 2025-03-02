@@ -43,7 +43,6 @@ type AccountBuilderState = {
 type AccountBuilderAction = {
   clearAccount: () => void
   clearParticipants: () => void
-  getAccountFromDescriptor: () => Promise<Account>
   getAccount: () => Account
   setName: (name: Account['name']) => void
   setExternalDescriptor: (descriptor: string) => Promise<void>
@@ -122,29 +121,6 @@ const useAccountBuilderStore = create<
     set({
       participants: []
     })
-  },
-  getAccountFromDescriptor: async () => {
-    const { name, externalDescriptor, internalDescriptor, watchOnly, type } =
-      get()
-
-    const account: Account = {
-      name,
-      createdAt: new Date(),
-      accountCreationType: type,
-      watchOnly,
-      utxos: [],
-      transactions: [],
-      externalDescriptor,
-      internalDescriptor,
-      summary: {
-        balance: 0,
-        satsInMempool: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0
-      }
-    }
-    return account
   },
   setDescriptorFromXpub: async (xpub) => {
     const { fingerprint, scriptVersion } = get()
