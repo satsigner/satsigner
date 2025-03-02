@@ -203,6 +203,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           const utxoRef = getUtxoOutpoint(utxo)
           labelsDictionary[utxoRef] = utxo.label
         })
+        // account.addresses.forEach((address) => {
+        //  const addrRef = address.address
+        //   labelsDictionary[addrRef] = address.label
+        // })
+
+        //
+        const addresses = account.addresses
 
         let transactions: Transaction[] = []
         let utxos: Utxo[] = []
@@ -387,7 +394,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           transactions[index].prices = { USD: prices[index] }
         })
 
-        return { ...account, transactions, utxos, summary }
+        return { ...account, addresses, transactions, utxos, summary }
       },
       addAccount: async (account) => {
         set(
