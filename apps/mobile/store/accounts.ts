@@ -513,12 +513,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         const transactionMap: Record<string, number> = {}
         const utxoMap: Record<string, number> = {}
+        const addressMap: Record<string, number> = {}
 
         account.transactions.forEach((tx, index) => {
           transactionMap[tx.id] = index
         })
         account.utxos.forEach((utxo, index) => {
           utxoMap[getUtxoOutpoint(utxo)] = index
+        })
+        account.addresses.forEach((address, index) => {
+          addressMap[address.address] = index
         })
 
         set(
@@ -528,7 +532,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
             labels.forEach((labelObj) => {
               const label = labelObj.label
-
               if (labelObj.type === 'tx') {
                 if (!transactionMap[labelObj.ref]) return
                 const txIndex = transactionMap[labelObj.ref]
@@ -538,6 +541,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 if (!utxoMap[labelObj.ref]) return
                 const utxoIndex = utxoMap[labelObj.ref]
                 state.accounts[index].utxos[utxoIndex].label = label
+              }
+              if (labelObj.type === 'addr') {
+                if (!addressMap[labelObj.ref]) return
+                const addrIndex = addressMap[labelObj.ref]
+                state.accounts[index].addresses[addrIndex].label = label
               }
             })
           })
