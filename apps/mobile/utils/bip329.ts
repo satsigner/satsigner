@@ -3,6 +3,7 @@ import { type Utxo } from '@/types/models/Utxo'
 
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
+import { Address } from '@/types/models/Address'
 
 export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
 
@@ -35,6 +36,19 @@ export const bip329mimes = {
   JSONL: 'text/plain',
   CSV: 'text/csv'
 } as Record<Bip329FileType, PickFileProps['type']>
+
+export function formatAddressLabels(addresses: Address[]): Label[] {
+  return addresses
+    .filter((address) => address.label)
+    .map((address) => {
+      return {
+        label: address.label,
+        type: 'addr',
+        ref: address.address,
+        spendable: true
+      } as Label
+    })
+}
 
 export function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions

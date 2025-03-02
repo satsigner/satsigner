@@ -19,7 +19,8 @@ import {
   bip329mimes,
   formatTransactionLabels,
   formatUtxoLabels,
-  type Label
+  type Label,
+  formatAddressLabels
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 
@@ -55,7 +56,8 @@ export default function ExportLabels() {
 
   const labels = [
     ...formatTransactionLabels(account.transactions),
-    ...formatUtxoLabels(account.utxos)
+    ...formatUtxoLabels(account.utxos),
+    ...formatAddressLabels(account.addresses)
   ] as Label[]
 
   return (
