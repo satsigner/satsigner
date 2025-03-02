@@ -33,7 +33,7 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   nextTx?: string
 }
 
-const LINK_MAX_WIDTH = 60
+const LINK_MAX_WIDTH = 320
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
@@ -47,6 +47,14 @@ function SSMultipleSankeyDiagram({
   sankeyLinks
 }: SSMultipleSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
+
+  // Calculate the maximum depthH value across all nodes
+  const maxDepthH = useMemo(() => {
+    return sankeyNodes.reduce((max, node) => {
+      return Math.max(max, node.depthH)
+    }, 0)
+  }, [sankeyNodes])
+  console.log({ maxDepthH, value: 980 })
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
     height: h,
@@ -58,7 +66,7 @@ function SSMultipleSankeyDiagram({
     minScale: 0.2,
     shouldResetOnInteractionEnd: false,
     initialTranslation: {
-      x: -980,
+      x: -(maxDepthH * 128),
       y: 0
     }
   })
@@ -77,12 +85,13 @@ function SSMultipleSankeyDiagram({
       : 0
   }, [sankeyNodes])
 
+  // console.log({ YYYYY: maxNodeCountInDepthH / 10, maxDepthH })
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(120)
     .extent([
       [0, 160],
-      [2000 * 0.7, 1000 * (maxNodeCountInDepthH / 10)]
+      [2000 * (maxDepthH / 11), 1000 * (maxNodeCountInDepthH / 9)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 

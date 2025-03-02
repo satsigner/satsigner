@@ -56,6 +56,15 @@ export function SSSankeyLinks({
         return Math.min(2, maxWidth)
       }
 
+      // Calculate total value of all links in the diagram
+      const totalLinkValue = links.reduce(
+        (sum, link) => sum + (link.value ?? 0),
+        0
+      )
+
+      // Get current node's sats
+      const nodeSats = node?.value ?? 0
+
       // Find links where this node is the target (incoming) or source (outgoing)
       const incomingLinks = links.filter((link) => {
         const targetNode = link.target
@@ -72,22 +81,30 @@ export function SSSankeyLinks({
         (sum, link) => sum + (link.value ?? 0),
         0
       )
+
       const totalOutgoingSats = outgoingLinks.reduce(
         (sum, link) => sum + (link.value ?? 0),
         0
       )
 
-      // Get current node's sats
-      const nodeSats = node?.value ?? 0
-
-      // Calculate width based on whether this node is source or target in the current context
+      // Determine if this is a source or target node
       const isSource = outgoingLinks.some(
         (link) => (link.source as string) === node.id
       )
-      const totalSats = isSource ? totalOutgoingSats : totalIncomingSats
 
-      // Calculate width (max width proportional to sats percentage)
-      return (nodeSats / totalSats) * maxWidth
+      // Calculate width proportional to the node's value relative to total link value
+      // This ensures consistent total width across all nodes
+      const calculatedWidth = (nodeSats / totalLinkValue) * maxWidth
+
+      if (!isSource) {
+        // console.log('start', nodeSats)
+        console.log('XX', { isSource })
+        console.log({ nodeSats, totalOutgoingSats, totalIncomingSats })
+        // console.log('end', nodeSats)
+        console.log({ maxWidth, calculated: calculatedWidth })
+      }
+
+      return calculatedWidth
     },
     [links]
   )
