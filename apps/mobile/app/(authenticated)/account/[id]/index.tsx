@@ -263,7 +263,7 @@ function ChildAccounts({
 
   async function fetchAddresses() {
     if (!account) return
-    await loadAddresses(account, addressCount)
+    await loadAddresses(account, addressCount, true)
     if (account.derivationPath)
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
   }
@@ -272,7 +272,7 @@ function ChildAccounts({
     const newAddressCount = addressCount + perPage
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
-    const addrList = await loadAddresses(account, newAddressCount)
+    const addrList = await loadAddresses(account, newAddressCount, true)
     setAddresses(addrList.slice(0, newAddressCount))
     setLoadingAddresses(false)
   }

@@ -173,7 +173,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       updateAddressInfo: async (account) => {
         const addrDictionary: Record<string, number> = {}
-        const addrList = account.addresses
+        const addrList = [... account.addresses]
 
         for (let i = 0; i < addrList.length; i += 1) {
           addrDictionary[addrList[i].address] = i
@@ -188,7 +188,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (addrDictionary[output.address] === undefined) continue
             const index = addrDictionary[output.address]
             addrList[index].summary.transactions += 1
-            break
           }
         }
 
@@ -201,6 +200,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         }
 
         account.addresses = addrList
+        console.log(addrList.length)
+        console.log(addrList[0])
         get().updateAccount(account)
       },
       syncWallet: async (wallet, account) => {
