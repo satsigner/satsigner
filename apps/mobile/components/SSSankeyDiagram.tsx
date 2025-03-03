@@ -133,6 +133,10 @@ function SSSankeyDiagram({
     return depthH - 1
   })
 
+  if (sankeyLinks.length === 0) {
+    return null
+  }
+
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
     links: sankeyLinks.map((item) => ({
