@@ -92,7 +92,7 @@
     "spendableOutputs": ["Spendable", "Outputs"],
     "totalTransactions": ["Total", "Transactions"],
     "txs": "Txs",
-    "unspentSats": "Unspent Sats"
+    "unspentSats": "Sats"
   },
   "app": {
     "name": "Sat Signer",

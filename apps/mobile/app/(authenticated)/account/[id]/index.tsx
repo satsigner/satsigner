@@ -18,6 +18,7 @@ import {
 } from 'react'
 import {
   Animated,
+  Dimensions,
   Easing,
   RefreshControl,
   ScrollView,
@@ -74,6 +75,8 @@ import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+
+const SCREEN_WIDTH = Dimensions.get('window').width
 
 type TotalTransactionsProps = {
   account: Account
@@ -231,6 +234,7 @@ type ChildAccount = {
   unspentSats: number | null
   keychain: 'internal' | 'external'
   txs: number
+  utxos: number
 }
 
 type ChildAccountsProps = {
@@ -283,6 +287,7 @@ function ChildAccounts({
           label: address.label,
           keychain: address.keychain,
           txs: address.summary.transactions,
+          utxos: address.summary.utxos,
           unspentSats: address.summary.balance
         }))
     )
@@ -296,41 +301,48 @@ function ChildAccounts({
         }
       >
         <SSHStack style={styles.row}>
-          <SSText style={styles.indexText}>{item.index}</SSText>
-          <SSText style={styles.addressText}>
+          <SSText style={[styles.indexText, styles.columnIndex]}>
+            {item.index}
+          </SSText>
+          <SSText style={[styles.addressText, styles.columnAddress]}>
             {formatAddress(item.address, 4)}
           </SSText>
           <SSText
-            style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
+            style={[
+              styles.columnLabel,
+              { color: item.label ? '#fff' : '#333' }
+            ]}
           >
             {item.label || t('transaction.noLabel')}
           </SSText>
           <SSText
             style={[
-              styles.unspentSatsText,
-              {
-                color:
-                  item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-              }
+              styles.columnSats,
+              { color: item.unspentSats === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.unspentSats}
           </SSText>
           <SSText
             style={[
-              styles.txsText,
-              {
-                color:
-                  item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-              }
+              styles.columnTxs,
+              { color: item.txs === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.txs}
           </SSText>
+          <SSText
+            style={[
+              styles.columnUtxos,
+              { color: item.utxos === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            {item.utxos}
+          </SSText>
         </SSHStack>
       </TouchableOpacity>
     ),
-    []
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   return (
@@ -378,29 +390,39 @@ function ChildAccounts({
         ))}
       </SSHStack>
 
-      <SSHStack style={styles.headerRow}>
-        {[
-          t('accounts.index'),
-          t('accounts.address'),
-          t('accounts.label'),
-          t('accounts.unspentSats'),
-          t('accounts.txs')
-        ].map((title) => (
-          <SSText key={title} style={styles.headerText} uppercase>
-            {title}
-          </SSText>
-        ))}
-      </SSHStack>
-
-      <FlashList
-        data={childAccounts}
-        renderItem={renderItem}
-        estimatedItemSize={150}
-        keyExtractor={(item) => {
-          return `${item.index}:${item.address}:${item.keychain}`
-        }}
-        removeClippedSubviews
-      />
+      <ScrollView horizontal>
+        <SSVStack gap="none" style={{ width: SCREEN_WIDTH * 1.1 }}>
+          <SSHStack style={styles.headerRow}>
+            <SSText style={[styles.headerText, styles.columnIndex]}>
+              {t('accounts.index')}
+            </SSText>
+            <SSText style={[styles.headerText, styles.columnAddress]}>
+              {t('accounts.address')}
+            </SSText>
+            <SSText style={[styles.headerText, styles.columnLabel]}>
+              {t('accounts.label')}
+            </SSText>
+            <SSText style={[styles.headerText, styles.columnSats]}>
+              {t('accounts.unspentSats')}
+            </SSText>
+            <SSText style={[styles.headerText, styles.columnUtxos]}>
+              UTXOs
+            </SSText>
+            <SSText style={[styles.headerText, styles.columnTxs]}>
+              {t('accounts.txs')}
+            </SSText>
+          </SSHStack>
+          <FlashList
+            data={childAccounts}
+            renderItem={renderItem}
+            estimatedItemSize={150}
+            keyExtractor={(item) => {
+              return `${item.index}:${item.address}:${item.keychain}`
+            }}
+            removeClippedSubviews
+          />
+        </SSVStack>
+      </ScrollView>
     </SSMainLayout>
   )
 }
@@ -988,12 +1010,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4
   },
   headerText: {
-    textAlign: 'center',
     color: '#777',
     textTransform: 'uppercase'
   },
+  columnAddress: { width: '20%' },
+  columnLabel: { width: '20%' },
+  columnSats: { width: '10%', textAlign: 'center' },
+  columnTxs: { width: '10%', textAlign: 'center' },
+  columnUtxos: { width: '15%', textAlign: 'center' },
+  columnIndex: { width: '10%', textAlign: 'center' },
   row: {
     paddingVertical: 12,
+    width: SCREEN_WIDTH * 1.1,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
@@ -1003,25 +1031,11 @@ const styles = StyleSheet.create({
   indexText: {
     fontWeight: 'bold',
     color: '#fff',
-    textAlign: 'center',
-    flex: 1
+    textAlign: 'center'
   },
   addressText: {
     color: '#fff',
-    textAlign: 'center',
-    flex: 2
-  },
-  labelText: {
-    textAlign: 'center',
-    flex: 2
-  },
-  unspentSatsText: {
-    textAlign: 'center',
-    flex: 2
-  },
-  txsText: {
-    textAlign: 'center',
-    flex: 1
+    flexWrap: 'nowrap'
   },
   headerRow: {
     paddingVertical: 18,
@@ -1030,7 +1044,8 @@ const styles = StyleSheet.create({
     borderColor: '#333',
     backgroundColor: '#111',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    width: SCREEN_WIDTH * 1.1
   },
   receiveChangeContainer: {
     display: 'flex',
