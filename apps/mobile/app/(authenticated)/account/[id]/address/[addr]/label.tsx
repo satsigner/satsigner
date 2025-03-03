@@ -5,11 +5,11 @@ import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { t } from '@/locales'
 
 export default function SSTxLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -26,15 +26,15 @@ export default function SSTxLabel() {
     router.back()
   }
 
-  if (!address) return <Redirect href="/" />
+  if (!address || !addr) return <Redirect href="/" />
 
   return (
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>
-            {t('address.label.title')}
-          </SSText>
+          headerTitle: () => (
+            <SSText uppercase>{t('address.label.title')}</SSText>
+          )
         }}
       />
       <SSVStack gap="none" style={{ padding: 20 }}>
