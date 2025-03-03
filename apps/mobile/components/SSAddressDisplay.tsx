@@ -14,7 +14,7 @@ function SSAddressDisplay({ address, ...props }: SSAddressDisplayProps) {
   return (
     <SSClipboardCopy text={address}>
       <SSHStack style={styles.box} gap="sm">
-        {(address.match(/(.{4})/g) || []).map((bytes, index) => (
+        {(address.match(/(.{1,4})/g) || []).map((bytes, index) => (
           <SSText type="mono" size="md" {...props} key={index}>
             {bytes}
           </SSText>
