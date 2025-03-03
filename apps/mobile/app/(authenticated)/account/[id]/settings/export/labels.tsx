@@ -17,10 +17,10 @@ import {
   type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
+  formatAddressLabels,
   formatTransactionLabels,
   formatUtxoLabels,
-  type Label,
-  formatAddressLabels
+  type Label
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 

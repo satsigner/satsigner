@@ -1,9 +1,9 @@
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
-import { Address } from '@/types/models/Address'
 
 export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
 

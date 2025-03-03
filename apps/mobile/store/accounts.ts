@@ -13,6 +13,7 @@ import { getBlockchainConfig } from '@/config/servers'
 import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Label } from '@/utils/bip329'
@@ -25,7 +26,6 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
-import { type Address } from '@/types/models/Address'
 
 type AccountsState = {
   accounts: Account[]
@@ -93,7 +93,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         const labelsDictionary: Record<string, string> = {}
         account.addresses.forEach((addr) => {
-          return labelsDictionary[addr.address] = addr.label
+          return (labelsDictionary[addr.address] = addr.label)
         })
 
         const { network } = useBlockchainStore.getState()

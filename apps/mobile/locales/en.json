@@ -491,11 +491,11 @@
     "address": "Address",
     "details.title": "UTXO Details",
     "group": "Group",
-    "vout": "Output index",
     "label": "Label",
     "noLabel": "No label",
     "outputIndex": "Output Index",
-    "unlockingScript": "Unlocking script"
+    "unlockingScript": "Unlocking script",
+    "vout": "Output index"
   },
   "watchonly": {
     "address.label": "Address",

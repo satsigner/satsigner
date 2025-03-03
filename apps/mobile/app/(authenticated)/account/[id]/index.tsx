@@ -257,8 +257,7 @@ function ChildAccounts({
   const loadAddresses = useAccountsStore((state) => state.loadAddresses)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [addressCount, setAddressCount] = useState(
-    Math.max(1, Math.ceil(account.addresses.length / perPage)) *
-      perPage
+    Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
   const [addresses, setAddresses] = useState(account.addresses)
 
@@ -281,9 +280,7 @@ function ChildAccounts({
   async function updateAddressCount() {
     const result = await getLastUsedWallet()
     if (!result) return
-    const totalItems =
-      Math.max(1, Math.ceil(result.index / perPage)) *
-      perPage
+    const totalItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
     setAddressCount(totalItems)
     setAddresses(account.addresses.slice(0, totalItems))
   }
