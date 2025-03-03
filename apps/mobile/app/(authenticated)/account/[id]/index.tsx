@@ -291,6 +291,7 @@ function ChildAccounts({
 
   useEffect(() => {
     updateAddressCount()
+    fetchAddresses()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(

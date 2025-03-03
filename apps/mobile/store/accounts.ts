@@ -43,7 +43,6 @@ type AccountsAction = {
     count?: number,
     forceReload?: boolean
   ) => Promise<Address[]>
-  updateAddressInfo: (account: Account) => Promise<void>
   syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
   updateAccount: (account: Account) => Promise<void>
@@ -167,13 +166,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         }
 
-        account.addresses = addrList
-        await get().updateAddressInfo(account)
-        return addrList
-      },
-      updateAddressInfo: async (account) => {
         const addrDictionary: Record<string, number> = {}
-        const addrList = [... account.addresses]
 
         for (let i = 0; i < addrList.length; i += 1) {
           addrDictionary[addrList[i].address] = i
@@ -199,10 +192,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           addrList[index].summary.balance += utxo.value
         }
 
+        // TODO: a lot of times the addresses are not updated !!
         account.addresses = addrList
-        console.log(addrList.length)
-        console.log(addrList[0])
         get().updateAccount(account)
+        return addrList
       },
       syncWallet: async (wallet, account) => {
         // TODO: refactor this HUGE function, break it down
