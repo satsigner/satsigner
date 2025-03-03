@@ -102,7 +102,6 @@ export default function AuthenticatedLayout() {
           headerBackTitleVisible: false
         }}
       />
-      <StatusBar style="light" />
     </View>
   )
 }
