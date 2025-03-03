@@ -132,7 +132,7 @@ function AddressDetails() {
                 <SSText color="muted" uppercase>
                   SCRIPT (ASM)
                 </SSText>
-                <SSText type='mono' uppercase>
+                <SSText type="mono" uppercase>
                   {script}
                 </SSText>
               </SSVStack>
@@ -172,6 +172,24 @@ function AddressDetails() {
                   <SSText uppercase>{address.keychain || '-'}</SSText>
                 </SSVStack>
               </SSHStack>
+            </SSVStack>
+            <SSSeparator />
+            <SSVStack>
+              <SSText uppercase weight="bold" size="md">
+                KEY INFORMATION
+              </SSText>
+              <SSVStack gap="xs">
+                <SSText uppercase color="muted">
+                  Public Key
+                </SSText>
+                <SSText type="mono">-</SSText>
+              </SSVStack>
+              <SSVStack gap="xs">
+                <SSText uppercase color="muted">
+                  Private Key
+                </SSText>
+                <SSText type="mono">-</SSText>
+              </SSVStack>
             </SSVStack>
           </SSVStack>
         </ScrollView>
