@@ -380,7 +380,7 @@ export default function IOPreview() {
           <SSVStack>
             <SSHStack>
               <SSButton
-                label="FEE CONTROL"
+                label={t('transaction.build.options.feeControl')}
                 variant="outline"
                 onPress={() =>
                   router.navigate(`/account/${id}/signAndSend/feeManagement`)
@@ -388,7 +388,7 @@ export default function IOPreview() {
                 style={{ width: '45%', flexGrow: 1 }}
               />
               <SSButton
-                label="TIMELOCK"
+                label={t('transaction.build.options.timelock')}
                 variant="outline"
                 onPress={() =>
                   router.navigate(`/account/${id}/signAndSend/timeLock`)
@@ -397,7 +397,7 @@ export default function IOPreview() {
               />
             </SSHStack>
             <SSButton
-              label="IMPORT OUTPUTS"
+              label={t('transaction.build.options.importOutputs.title')}
               variant="outline"
               onPress={() =>
                 router.navigate(`/account/${id}/signAndSend/importOutputs`)

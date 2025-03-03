@@ -427,6 +427,7 @@
     "build.options.autoSelect.utxos.privacy.title": "Privacy",
     "build.options.autoSelect.utxos.user.description": "Your user selected inputs",
     "build.options.autoSelect.utxos.user.title": "User",
+    "build.options.feeControl": "Fee Control",
     "build.options.feeManagement": "Fee Management",
     "build.options.importOutputs.button": "Import",
     "build.options.importOutputs.clipboard": "Paste",
@@ -434,6 +435,7 @@
     "build.options.importOutputs.qrcode": "Scan QRCode",
     "build.options.importOutputs.title": "Import Outputs",
     "build.options.timeLock": "Time Lock",
+    "build.options.timelock": "Timelock",
     "build.options.title": "Options",
     "build.select.customAmount": "Custom amount",
     "build.select.spendableOutputs": "Select spendable outputs",
@@ -533,10 +535,10 @@
     "unlockingScript": "Unlocking script"
   },
   "validation": {
-    "required": "*required*",
     "invalid": "Invalid input",
     "number.greater": "The value must be greather than %{value}",
-    "number.smaller": "The value must be smaller than %{value}"
+    "number.smaller": "The value must be smaller than %{value}",
+    "required": "*required*"
   },
   "watchonly": {
     "address.label": "Address",
