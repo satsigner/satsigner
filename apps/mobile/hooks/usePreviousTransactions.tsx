@@ -14,8 +14,8 @@ const BITCOIN_URL = 'https://mempool.space/api'
 
 type ExtendedEsploraTx = EsploraTx & {
   depthH: number
-  vin?: (EsploraTx['vin'][0] & { indexH?: number })[]
-  vout?: (EsploraTx['vout'][0] & { indexH?: number })[]
+  vin?: (EsploraTx['vin'][0] & { indexV?: number })[]
+  vout?: (EsploraTx['vout'][0] & { indexV?: number; vout?: number })[]
 }
 
 export function usePreviousTransactions(
@@ -50,7 +50,7 @@ export function usePreviousTransactions(
     return Math.min((txCount - 1) * 2 + 1, 5)
   }
 
-  const assignIndexH = (transactions: Map<string, ExtendedEsploraTx>) => {
+  const assignIndexV = (transactions: Map<string, ExtendedEsploraTx>) => {
     if (transactions.size === 0) {
       return transactions
     }
@@ -80,13 +80,13 @@ export function usePreviousTransactions(
       }
     }
 
-    // Second pass: assign indexH
+    // Second pass: assign indexV
     for (const [_depthH, vins] of vinsByDepth.entries()) {
       let currentIndex = 0
       vins.forEach(({ txid, index }) => {
         const tx = transactions.get(txid)
         if (tx?.vin?.[index]) {
-          tx.vin[index] = { ...tx.vin[index], indexH: currentIndex }
+          tx.vin[index] = { ...tx.vin[index], indexV: currentIndex }
           currentIndex++
         }
       })
@@ -97,7 +97,11 @@ export function usePreviousTransactions(
       vouts.forEach(({ txid, index }) => {
         const tx = transactions.get(txid)
         if (tx?.vout?.[index]) {
-          tx.vout[index] = { ...tx.vout[index], indexH: currentIndex }
+          tx.vout[index] = {
+            ...tx.vout[index],
+            indexV: currentIndex,
+            vout: index // Set vout to the original array index
+          }
           currentIndex++
         }
       })
@@ -303,20 +307,20 @@ export function usePreviousTransactions(
           mappedInputs
         )
 
-        // Assign indexH to vins and vouts
-        const transactionsWithIndexH = assignIndexH(transactionsWithDepthH)
+        // Assign indexV to vins and vouts
+        const transactionsWithIndexV = assignIndexV(transactionsWithDepthH)
 
         // Cache the filtered transactions
-        if (transactionsWithIndexH.size > 0) {
+        if (transactionsWithIndexV.size > 0) {
           // Convert the array of transactions back to a Map for addTransactions
           const txMap = new Map<string, EsploraTx>()
-          for (const [txid, tx] of transactionsWithIndexH.entries()) {
+          for (const [txid, tx] of transactionsWithIndexV.entries()) {
             txMap.set(txid, tx)
           }
           addTransactions(txMap)
 
           // Update state
-          setTransactions(transactionsWithIndexH)
+          setTransactions(transactionsWithIndexV)
         }
       } else {
         setTransactions(new Map())

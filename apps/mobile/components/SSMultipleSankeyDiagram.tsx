@@ -54,7 +54,6 @@ function SSMultipleSankeyDiagram({
       return Math.max(max, node.depthH)
     }, 0)
   }, [sankeyNodes])
-  console.log({ maxDepthH, value: 980 })
   const { animatedStyle, gestures, transform } = useGestures({
     width: w,
     height: h,
@@ -86,15 +85,14 @@ function SSMultipleSankeyDiagram({
       : 0
   }, [sankeyNodes])
 
-  // console.log({ YYYYY: maxNodeCountInDepthH / 10, maxDepthH })
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
-    .nodePadding(120)
+    .nodePadding(140)
     .extent([
       [0, 160],
       [
-        // 2000 * (maxDepthH / 11),
-        2000 * 0.7,
+        2000 * (maxDepthH / 11),
+        // 2000 * 0.7,
         1000 * (maxNodeCountInDepthH / 9)
       ]
     ])

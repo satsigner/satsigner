@@ -120,7 +120,9 @@ export function recalculateDepthH<
     if (dependencyGraph.get(txid)?.size === 0) {
       const isDirectlyConnectedToSelectedInput =
         selectedInputs &&
-        tx.vout?.some((output) =>
+        tx.vout &&
+        tx.vout.length > 0 &&
+        tx.vout.some((output) =>
           Array.from(selectedInputs.values()).some(
             (input) =>
               input.value === output.value &&
@@ -128,8 +130,16 @@ export function recalculateDepthH<
           )
         )
 
-      // Set depthH based on whether it's connected to selected inputs
-      tx.depthH = isDirectlyConnectedToSelectedInput ? maxCalculatedDepthH : 1
+      // Check if this transaction is not an input to any other transaction in our set
+      const isNotConnectedToOtherTx = Array.from(
+        updatedTransactions.values()
+      ).every((otherTx) => !otherTx.vin.some((input) => input.txid === txid))
+
+      // Set depthH based on whether it's connected to selected inputs and not to other transactions
+      tx.depthH =
+        isDirectlyConnectedToSelectedInput && isNotConnectedToOtherTx
+          ? maxCalculatedDepthH
+          : 1
       updatedTransactions.set(txid, tx)
     }
   }

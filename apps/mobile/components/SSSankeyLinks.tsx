@@ -91,11 +91,6 @@ export function SSSankeyLinks({
         )
       })
 
-      if (!connectedBlockNode) {
-        console.log('Warning: Node not connected to any block node', node.id)
-        return 0
-      }
-
       // Calculate width based on whether this node is sending to or receiving from the block
       const isSourceToBlock = links.some(
         (link) =>
@@ -107,12 +102,6 @@ export function SSSankeyLinks({
         // Node is sending to block - use total incoming value of block
         const totalIncoming = getTotalIncomingValueForBlock(connectedBlockNode)
         calculatedWidth = (nodeSats / totalIncoming) * maxWidth
-
-        if (!isSourceToBlock) {
-          console.log('XX', { isSourceToBlock })
-          console.log({ nodeSats, totalIncoming })
-          console.log({ maxWidth, calculated: calculatedWidth })
-        }
       } else {
         // Node is receiving from block - use total outgoing value from block
         const totalOutgoing = getTotalOutgoingValueFromBlock(connectedBlockNode)

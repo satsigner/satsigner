@@ -53,8 +53,6 @@ export default function IOPreview() {
     DEEP_LEVEL
   )
 
-  // console.log('TX', JSON.stringify(Array.from(transactions.values()), null, 2))
-
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
