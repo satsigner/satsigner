@@ -57,6 +57,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -236,6 +237,7 @@ type ChildAccountsProps = {
   expand: boolean
   setChange: Function
   change: boolean
+  perPage?: number
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -247,13 +249,16 @@ function ChildAccounts({
   setChange,
   change,
   expand,
-  setSortDirection
+  setSortDirection,
+  perPage = 10
 }: ChildAccountsProps) {
+  const getLastUsedWallet = useGetWalletAddress(account!)
   const [addressPath, setAddressPath] = useState('')
   const loadAddresses = useAccountsStore((state) => state.loadAddresses)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [addressCount, setAddressCount] = useState(
-    Math.max(1, Math.ceil(account.addresses.length / 10)) * 10
+    Math.max(1, Math.ceil(account.addresses.length / perPage)) *
+      perPage
   )
   const [addresses, setAddresses] = useState(account.addresses)
 
@@ -265,15 +270,31 @@ function ChildAccounts({
   }
 
   async function loadMoreAddresses() {
-    setAddressCount(addressCount + 10)
+    const newAddressCount = addressCount + perPage
+    setAddressCount(newAddressCount)
     setLoadingAddresses(true)
-    setAddresses(await loadAddresses(account, addressCount + 10))
+    const addrList = await loadAddresses(account, newAddressCount)
+    setAddresses(addrList.slice(0, newAddressCount))
     setLoadingAddresses(false)
+  }
+
+  async function updateAddressCount() {
+    const result = await getLastUsedWallet()
+    if (!result) return
+    const totalItems =
+      Math.max(1, Math.ceil(result.index / perPage)) *
+      perPage
+    setAddressCount(totalItems)
+    setAddresses(account.addresses.slice(0, totalItems))
   }
 
   useEffect(() => {
     fetchAddresses()
   }, [change, account]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    updateAddressCount()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
     ({ item }: { item: Address }) => (

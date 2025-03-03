@@ -86,8 +86,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         return wallet
       },
       loadAddresses: async (account, count = 10, forceReload = false) => {
-        if (account.addresses.length >= count && !forceReload) return
-        if (!account.externalDescriptor) return
+        if (account.addresses.length >= count && !forceReload)
+          return account.addresses
+        if (!account.externalDescriptor)
+          throw new Error('Cannot load addresses: descriptor is missing')
 
         const labelsDictionary: Record<string, string> = {}
         account.addresses.forEach((addr) => {
