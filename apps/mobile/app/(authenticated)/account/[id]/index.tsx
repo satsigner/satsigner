@@ -76,8 +76,6 @@ import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-const SCREEN_WIDTH = Dimensions.get('window').width
-
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
@@ -248,6 +246,9 @@ type ChildAccountsProps = {
   change: boolean
 }
 
+const SCREEN_WIDTH = Dimensions.get('window').width
+const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.1
+
 function ChildAccounts({
   account,
   handleOnExpand,
@@ -303,16 +304,23 @@ function ChildAccounts({
           router.navigate(`/account/${account.name}/address/${item.address}`)
         }
       >
-        <SSHStack style={styles.row}>
-          <SSText style={[styles.indexText, styles.columnIndex]}>
+        <SSHStack style={addressListStyles.row}>
+          <SSText
+            style={[addressListStyles.indexText, addressListStyles.columnIndex]}
+          >
             {item.index}
           </SSText>
-          <SSText style={[styles.addressText, styles.columnAddress]}>
+          <SSText
+            style={[
+              addressListStyles.addressText,
+              addressListStyles.columnAddress
+            ]}
+          >
             {formatAddress(item.address, 4)}
           </SSText>
           <SSText
             style={[
-              styles.columnLabel,
+              addressListStyles.columnLabel,
               { color: item.label ? '#fff' : '#333' }
             ]}
           >
@@ -320,7 +328,7 @@ function ChildAccounts({
           </SSText>
           <SSText
             style={[
-              styles.columnSats,
+              addressListStyles.columnSats,
               { color: item.unspentSats === 0 ? '#333' : '#fff' }
             ]}
           >
@@ -328,7 +336,7 @@ function ChildAccounts({
           </SSText>
           <SSText
             style={[
-              styles.columnUtxos,
+              addressListStyles.columnUtxos,
               { color: item.utxos === 0 ? '#333' : '#fff' }
             ]}
           >
@@ -336,7 +344,7 @@ function ChildAccounts({
           </SSText>
           <SSText
             style={[
-              styles.columnTxs,
+              addressListStyles.columnTxs,
               { color: item.txs === 0 ? '#333' : '#fff' }
             ]}
           >
@@ -349,8 +357,8 @@ function ChildAccounts({
   )
 
   return (
-    <SSMainLayout style={styles.container}>
-      <SSHStack justifyBetween style={styles.header}>
+    <SSMainLayout style={addressListStyles.container}>
+      <SSHStack justifyBetween style={addressListStyles.header}>
         <SSHStack>
           <SSIconButton onPress={fetchAddresses}>
             <SSIconRefresh height={18} width={22} />
@@ -376,12 +384,16 @@ function ChildAccounts({
         </SSHStack>
       </SSHStack>
 
-      <SSHStack gap="md" justifyBetween style={styles.receiveChangeContainer}>
+      <SSHStack
+        gap="md"
+        justifyBetween
+        style={addressListStyles.receiveChangeContainer}
+      >
         {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
           <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
             <SSText
               style={[
-                styles.receiveChangeButton,
+                addressListStyles.receiveChangeButton,
                 { borderColor: change === (index === 1) ? '#fff' : '#333' }
               ]}
               uppercase
@@ -395,23 +407,53 @@ function ChildAccounts({
 
       <ScrollView horizontal>
         <SSVStack gap="none" style={{ width: SCREEN_WIDTH * 1.1 }}>
-          <SSHStack style={styles.headerRow}>
-            <SSText style={[styles.headerText, styles.columnIndex]}>
+          <SSHStack style={addressListStyles.headerRow}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnIndex
+              ]}
+            >
               {t('accounts.index')}
             </SSText>
-            <SSText style={[styles.headerText, styles.columnAddress]}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnAddress
+              ]}
+            >
               {t('accounts.address')}
             </SSText>
-            <SSText style={[styles.headerText, styles.columnLabel]}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnLabel
+              ]}
+            >
               {t('accounts.label')}
             </SSText>
-            <SSText style={[styles.headerText, styles.columnSats]}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnSats
+              ]}
+            >
               {t('accounts.unspentSats')}
             </SSText>
-            <SSText style={[styles.headerText, styles.columnUtxos]}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnUtxos
+              ]}
+            >
               UTXOs
             </SSText>
-            <SSText style={[styles.headerText, styles.columnTxs]}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnTxs
+              ]}
+            >
               {t('accounts.txs')}
             </SSText>
           </SSHStack>
@@ -1005,7 +1047,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#242424',
     borderRadius: 3
-  },
+  }
+})
+
+const addressListStyles = StyleSheet.create({
   container: {
     paddingTop: 20
   },
@@ -1024,7 +1069,7 @@ const styles = StyleSheet.create({
   columnIndex: { width: '10%', textAlign: 'center' },
   row: {
     paddingVertical: 12,
-    width: SCREEN_WIDTH * 1.1,
+    width: ADDRESS_LIST_WIDTH,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
@@ -1048,7 +1093,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: SCREEN_WIDTH * 1.1
+    width: ADDRESS_LIST_WIDTH
   },
   receiveChangeContainer: {
     display: 'flex',
