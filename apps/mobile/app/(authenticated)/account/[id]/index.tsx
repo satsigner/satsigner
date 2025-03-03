@@ -328,19 +328,19 @@ function ChildAccounts({
           </SSText>
           <SSText
             style={[
-              styles.columnTxs,
-              { color: item.txs === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            {item.txs}
-          </SSText>
-          <SSText
-            style={[
               styles.columnUtxos,
               { color: item.utxos === 0 ? '#333' : '#fff' }
             ]}
           >
             {item.utxos}
+          </SSText>
+          <SSText
+            style={[
+              styles.columnTxs,
+              { color: item.txs === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            {item.txs}
           </SSText>
         </SSHStack>
       </TouchableOpacity>
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
   columnLabel: { width: '20%' },
   columnSats: { width: '10%', textAlign: 'center' },
   columnTxs: { width: '10%', textAlign: 'center' },
-  columnUtxos: { width: '15%', textAlign: 'center' },
+  columnUtxos: { width: '10%', textAlign: 'center' },
   columnIndex: { width: '10%', textAlign: 'center' },
   row: {
     paddingVertical: 12,

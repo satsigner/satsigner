@@ -184,6 +184,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (addrDictionary[output.address] === undefined) continue
             const index = addrDictionary[output.address]
             addrList[index].summary.transactions += 1
+            break
           }
         }
 
