@@ -411,7 +411,7 @@ function ChildAccounts({
                   addressListStyles.columnIndex
                 ]}
               >
-                {t('accounts.index')}
+                {t('address.list.table.index')}
               </SSText>
               <SSText
                 style={[
@@ -419,7 +419,7 @@ function ChildAccounts({
                   addressListStyles.columnAddress
                 ]}
               >
-                {t('accounts.address')}
+                {t('bitcoin.address')}
               </SSText>
               <SSText
                 style={[
@@ -427,7 +427,7 @@ function ChildAccounts({
                   addressListStyles.columnLabel
                 ]}
               >
-                {t('accounts.label')}
+                {t('common.label')}
               </SSText>
               <SSText
                 style={[
@@ -435,7 +435,7 @@ function ChildAccounts({
                   addressListStyles.columnSats
                 ]}
               >
-                {t('accounts.unspentSats')}
+                {t('address.list.table.balance')}
               </SSText>
               <SSText
                 style={[
@@ -443,7 +443,7 @@ function ChildAccounts({
                   addressListStyles.columnUtxos
                 ]}
               >
-                UTXOs
+                {t('address.list.table.utxo')}
               </SSText>
               <SSText
                 style={[
@@ -451,7 +451,7 @@ function ChildAccounts({
                   addressListStyles.columnTxs
                 ]}
               >
-                {t('accounts.txs')}
+                {t('address.list.table.tx')}
               </SSText>
             </SSHStack>
 

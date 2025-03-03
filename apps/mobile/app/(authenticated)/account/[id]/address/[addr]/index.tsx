@@ -11,6 +11,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
@@ -50,7 +51,7 @@ function AddressDetails() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText>ADDRESS DETAILS</SSText>
+          headerTitle: () => <SSText>{t('address.details.title')}</SSText>
         }}
       />
       <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
@@ -58,31 +59,31 @@ function AddressDetails() {
           <SSVStack>
             <SSVStack>
               <SSText weight="bold" uppercase size="md">
-                Address
+                {t('bitcoin.address')}
               </SSText>
               <SSAddressDisplay address={addr} />
             </SSVStack>
             <SSSeparator />
             <SSLabelDetails
               label={address.label}
-              header="LABEL"
+              header={t('common.label').toUpperCase()}
               link={`/account/${accountId}/address/${addr}/label`}
             />
             <SSSeparator />
             <SSVStack gap="sm">
               <SSText uppercase weight="bold" size="md">
-                BALANCE
+                {t('address.details.balance.title')}
               </SSText>
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Confirmed
+                    {t('address.details.balance.confirmed')}
                   </SSText>
                   <SSText>{formatNumber(address.summary.balance)}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Unconfirmed
+                    {t('address.details.balance.unconfirmed')}
                   </SSText>
                   <SSText>{formatNumber(address.summary.satsInMempool)}</SSText>
                 </SSVStack>
@@ -91,18 +92,18 @@ function AddressDetails() {
             <SSSeparator />
             <SSVStack gap="sm">
               <SSText uppercase weight="bold" size="md">
-                HISTORY
+                {t('address.details.history.title')}
               </SSText>
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Total transactions
+                    {t('address.details.history.tx')}
                   </SSText>
                   <SSText>{address?.summary.transactions}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Total UTXOs
+                    {t('address.details.history.utxo')}
                   </SSText>
                   <SSText>{address?.summary.utxos}</SSText>
                 </SSVStack>
@@ -111,25 +112,25 @@ function AddressDetails() {
             <SSSeparator />
             <SSVStack gap="sm">
               <SSText uppercase weight="bold" size="md">
-                ENCODING
+                {t('address.details.encoding.title')}
               </SSText>
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Script version
+                    {t('address.details.encoding.scriptVersion')}
                   </SSText>
                   <SSText uppercase>{address.scriptVersion || '-'}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Network
+                    {t('address.details.encoding.network')}
                   </SSText>
                   <SSText uppercase>{address.network || '-'}</SSText>
                 </SSVStack>
               </SSHStack>
               <SSVStack gap="xs">
                 <SSText color="muted" uppercase>
-                  SCRIPT (ASM)
+                  {t('address.details.encoding.script')}
                 </SSText>
                 <SSText type="mono" uppercase>
                   {script}
@@ -139,18 +140,18 @@ function AddressDetails() {
             <SSSeparator />
             <SSVStack gap="sm">
               <SSText uppercase weight="bold" size="md">
-                DERIVATION
+                {t('address.details.derivation.title')}
               </SSText>
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Path
+                    {t('address.details.derivation.path')}
                   </SSText>
                   <SSText uppercase>{address.derivationPath || '-'}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Index
+                    {t('address.details.derivation.index')}
                   </SSText>
                   <SSText uppercase>
                     {address.index !== undefined ? address.index : '-'}
@@ -160,13 +161,13 @@ function AddressDetails() {
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Master Fingerprint
+                    {t('address.details.derivation.fingerprint')}
                   </SSText>
                   <SSText uppercase>{account.fingerprint || '-'}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    KEYCHAIN
+                    {t('address.details.derivation.keychain')}
                   </SSText>
                   <SSText uppercase>{address.keychain || '-'}</SSText>
                 </SSVStack>
@@ -175,17 +176,17 @@ function AddressDetails() {
             <SSSeparator />
             <SSVStack>
               <SSText uppercase weight="bold" size="md">
-                KEY INFORMATION
+                {t('address.details.key.title')}
               </SSText>
               <SSVStack gap="xs">
                 <SSText uppercase color="muted">
-                  Public Key
+                  {t('address.details.key.public')}
                 </SSText>
                 <SSText type="mono">-</SSText>
               </SSVStack>
               <SSVStack gap="xs">
                 <SSText uppercase color="muted">
-                  Private Key
+                  {t('address.details.key.private')}
                 </SSText>
                 <SSText type="mono">-</SSText>
               </SSVStack>

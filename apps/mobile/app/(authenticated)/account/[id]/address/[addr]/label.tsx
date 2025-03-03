@@ -9,6 +9,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import { t } from '@/locales'
 
 export default function SSTxLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -31,14 +32,16 @@ export default function SSTxLabel() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>Adress Label</SSText>
+          headerTitle: () => <SSText uppercase>
+            {t('address.label.title')}
+          </SSText>
         }}
       />
       <SSVStack gap="none" style={{ padding: 20 }}>
         <SSVStack gap="none">
           <SSVStack>
             <SSText uppercase weight="bold">
-              Address
+              {t('bitcoin.address')}
             </SSText>
             <SSAddressDisplay address={addr} />
           </SSVStack>

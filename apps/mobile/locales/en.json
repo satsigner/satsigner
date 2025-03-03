@@ -92,7 +92,35 @@
     "spendableOutputs": ["Spendable", "Outputs"],
     "totalTransactions": ["Total", "Transactions"],
     "txs": "Txs",
-    "unspentSats": "Sats"
+    "unspentSats": "Sats",
+    "utxos": "UTXOs"
+  },
+  "address": {
+    "details.title": "Address details",
+    "details.balance.title": "Balance",
+    "details.balance.confirmed": "Balance",
+    "details.balance.unconfirmed": "Balance",
+    "details.history.title": "History",
+    "details.history.tx": "Total transactions",
+    "details.history.utxo": "Total UTXOs",
+    "details.encoding.title": "Encoding",
+    "details.encoding.network": "Network",
+    "details.encoding.scriptVersion": "Script version",
+    "details.encoding.script": "Script (ASM)",
+    "details.derivation.title": "Derivation",
+    "details.derivation.path": "Path",
+    "details.derivation.index": "Index",
+    "details.derivation.fingerprint": "Master fingerprint",
+    "details.derivation.keychain": "Keychain",
+    "details.key.title": "Key information",
+    "details.key.public": "Public key",
+    "details.key.private": "Private key",
+    "label.title": "Address label",
+    "list.loadMore": "Load more",
+    "list.table.tx": "TXs",
+    "list.table.utxo": "UTXOs",
+    "list.table.index": "index",
+    "list.table.balance": "Sats"
   },
   "app": {
     "name": "Sat Signer",
@@ -111,6 +139,7 @@
     "unlock": "Unlock Satsigner"
   },
   "bitcoin": {
+    "address": "Address",
     "block": "Block",
     "blocks": "Blocks",
     "checksum": "Checksum",
