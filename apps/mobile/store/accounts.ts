@@ -25,6 +25,7 @@ import {
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 import { useBlockchainStore } from './blockchain'
+import { type Address } from '@/types/models/Address'
 
 type AccountsState = {
   accounts: Account[]
@@ -41,7 +42,7 @@ type AccountsAction = {
     account: Account,
     count?: number,
     forceReload?: boolean
-  ) => Promise<void>
+  ) => Promise<Address[]>
   updateAddressInfo: (account: Account) => Promise<void>
   syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
   addAccount: (account: Account) => Promise<void>
@@ -166,6 +167,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
         account.addresses = addrList
         await get().updateAddressInfo(account)
+        return addrList
       },
       updateAddressInfo: async (account) => {
         const addrDictionary: Record<string, number> = {}
@@ -196,6 +198,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           addrList[index].summary.balance += utxo.value
         }
 
+        account.addresses = addrList
         get().updateAccount(account)
       },
       syncWallet: async (wallet, account) => {

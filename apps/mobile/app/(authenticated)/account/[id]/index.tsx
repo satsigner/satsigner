@@ -47,6 +47,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
@@ -68,6 +69,7 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -225,16 +227,6 @@ function TotalTransactions({
   )
 }
 
-type ChildAccount = {
-  index: number
-  address: string
-  label: string | undefined
-  unspentSats: number | null
-  keychain: 'internal' | 'external'
-  txs: number
-  utxos: number
-}
-
 type ChildAccountsProps = {
   account: Account
   loadWalletFromDescriptor: Function
@@ -257,48 +249,34 @@ function ChildAccounts({
   expand,
   setSortDirection
 }: ChildAccountsProps) {
-  const [childAccounts, setChildAccounts] = useState<any[]>([])
   const [addressPath, setAddressPath] = useState('')
   const loadAddresses = useAccountsStore((state) => state.loadAddresses)
+  const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [addressCount, setAddressCount] = useState(
+    Math.max(1, Math.ceil(account.addresses.length / 10)) * 10
+  )
+  const [addresses, setAddresses] = useState(account.addresses)
 
-  function updateChildAccounts() {
+  async function fetchAddresses() {
     if (!account) return
-    const childAccounts = account.addresses
-      .filter((address) =>
-        change
-          ? address.keychain === 'internal'
-          : address.keychain === 'external'
-      )
-      .map((address, index) => {
-        return {
-          address: address.address,
-          index: address.index !== undefined ? address.index : index,
-          label: address.label,
-          keychain: address.keychain,
-          txs: address.summary.transactions,
-          utxos: address.summary.utxos,
-          unspentSats: address.summary.balance
-        }
-      })
-    setChildAccounts(childAccounts)
-  }
-
-  // const fetchAddresses = useCallback(async () => {
-  const fetchAddresses = async () => {
-    if (!account) return
-    await loadAddresses(account, 20)
-    updateChildAccounts()
+    await loadAddresses(account, addressCount)
     if (account.derivationPath)
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
   }
-  // }, [change, account]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadMoreAddresses() {
+    setAddressCount(addressCount + 10)
+    setLoadingAddresses(true)
+    setAddresses(await loadAddresses(account, addressCount + 10))
+    setLoadingAddresses(false)
+}
 
   useEffect(() => {
     fetchAddresses()
   }, [change, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
-    ({ item }: { item: ChildAccount }) => (
+    ({ item }: { item: Address }) => (
       <TouchableOpacity
         onPress={() =>
           router.navigate(`/account/${account.name}/address/${item.address}`)
@@ -329,26 +307,26 @@ function ChildAccounts({
           <SSText
             style={[
               addressListStyles.columnSats,
-              { color: item.unspentSats === 0 ? '#333' : '#fff' }
+              { color: item.summary.balance === 0 ? '#333' : '#fff' }
             ]}
           >
-            {item.unspentSats}
+            {item.summary.balance}
           </SSText>
           <SSText
             style={[
               addressListStyles.columnUtxos,
-              { color: item.utxos === 0 ? '#333' : '#fff' }
+              { color: item.summary.utxos === 0 ? '#333' : '#fff' }
             ]}
           >
-            {item.utxos}
+            {item.summary.utxos}
           </SSText>
           <SSText
             style={[
               addressListStyles.columnTxs,
-              { color: item.txs === 0 ? '#333' : '#fff' }
+              { color: item.summary.transactions === 0 ? '#333' : '#fff' }
             ]}
           >
-            {item.txs}
+            {item.summary.transactions}
           </SSText>
         </SSHStack>
       </TouchableOpacity>
@@ -405,68 +383,81 @@ function ChildAccounts({
         ))}
       </SSHStack>
 
-      <ScrollView horizontal>
-        <SSVStack gap="none" style={{ width: SCREEN_WIDTH * 1.1 }}>
-          <SSHStack style={addressListStyles.headerRow}>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnIndex
-              ]}
-            >
-              {t('accounts.index')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnAddress
-              ]}
-            >
-              {t('accounts.address')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnLabel
-              ]}
-            >
-              {t('accounts.label')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnSats
-              ]}
-            >
-              {t('accounts.unspentSats')}
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnUtxos
-              ]}
-            >
-              UTXOs
-            </SSText>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnTxs
-              ]}
-            >
-              {t('accounts.txs')}
-            </SSText>
-          </SSHStack>
-          <FlashList
-            data={childAccounts}
-            renderItem={renderItem}
-            estimatedItemSize={150}
-            keyExtractor={(item) => {
-              return `${item.index}:${item.address}:${item.keychain}`
-            }}
-            removeClippedSubviews
-          />
-        </SSVStack>
+      <ScrollView style={{ marginTop: 10 }}>
+        <ScrollView horizontal>
+          <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
+            <SSHStack style={addressListStyles.headerRow}>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnIndex
+                ]}
+              >
+                {t('accounts.index')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnAddress
+                ]}
+              >
+                {t('accounts.address')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnLabel
+                ]}
+              >
+                {t('accounts.label')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnSats
+                ]}
+              >
+                {t('accounts.unspentSats')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnUtxos
+                ]}
+              >
+                UTXOs
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnTxs
+                ]}
+              >
+                {t('accounts.txs')}
+              </SSText>
+            </SSHStack>
+
+            <FlashList
+              data={addresses?.filter((address) =>
+                change
+                  ? address.keychain === 'internal'
+                  : address.keychain === 'external'
+              )}
+              renderItem={renderItem}
+              estimatedItemSize={150}
+              keyExtractor={(item) => {
+                return `${item.index}:${item.address}:${item.keychain}`
+              }}
+              removeClippedSubviews
+            />
+          </SSVStack>
+        </ScrollView>
+        <SSButton
+          variant="outline"
+          label="LOAD MORE"
+          disabled={loadingAddresses}
+          onPress={loadMoreAddresses}
+        />
       </ScrollView>
     </SSMainLayout>
   )
@@ -1052,7 +1043,8 @@ const styles = StyleSheet.create({
 
 const addressListStyles = StyleSheet.create({
   container: {
-    paddingTop: 20
+    paddingTop: 20,
+    paddingBottom: 10
   },
   header: {
     paddingVertical: 4
@@ -1086,7 +1078,8 @@ const addressListStyles = StyleSheet.create({
     flexWrap: 'nowrap'
   },
   headerRow: {
-    paddingVertical: 18,
+    paddingBottom: 10,
+    paddingTop: 10,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
