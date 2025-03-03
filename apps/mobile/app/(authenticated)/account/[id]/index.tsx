@@ -269,7 +269,7 @@ function ChildAccounts({
     setLoadingAddresses(true)
     setAddresses(await loadAddresses(account, addressCount + 10))
     setLoadingAddresses(false)
-}
+  }
 
   useEffect(() => {
     fetchAddresses()
@@ -369,16 +369,16 @@ function ChildAccounts({
       >
         {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
           <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-            <SSText
-              style={[
-                addressListStyles.receiveChangeButton,
-                { borderColor: change === (index === 1) ? '#fff' : '#333' }
-              ]}
+            <SSButton
+              style={{
+                borderColor: change === (index === 1) ? '#fff' : '#333'
+              }}
               uppercase
               onPress={() => setChange(index === 1)}
-            >
-              {type}
-            </SSText>
+              disabled={index === 1}
+              label={type}
+              variant="outline"
+            />
           </SSHStack>
         ))}
       </SSHStack>
@@ -1092,11 +1092,5 @@ const addressListStyles = StyleSheet.create({
     display: 'flex',
     width: '100%',
     marginTop: 10
-  },
-  receiveChangeButton: {
-    textAlign: 'center',
-    paddingVertical: 20,
-    borderWidth: 1,
-    width: '100%'
   }
 })
