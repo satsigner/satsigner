@@ -331,7 +331,26 @@ export default function IOPreview() {
           number: outputs.length + 1
         })}
       >
-        <SSText>Placeholder</SSText>
+        <SSVStack gap="xs">
+          <SSText>Placeholder!</SSText>
+          <SSHStack>
+            <SSButton
+              label={t('transaction.build.remove.output.title')}
+              variant="danger"
+              style={{ flex: 1 }}
+            />
+            <SSButton
+              label={t('transaction.build.save.output.title')}
+              variant="secondary"
+              style={{ flex: 1 }}
+            />
+          </SSHStack>
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => addOutputBottomSheetRef.current?.close()}
+          />
+        </SSVStack>
       </SSBottomSheet>
       <SSBottomSheet
         ref={optionsBottomSheetRef}

@@ -437,6 +437,8 @@
     "build.options.timeLock": "Time Lock",
     "build.options.timelock": "Timelock",
     "build.options.title": "Options",
+    "build.remove.output.title": "Remove output",
+    "build.save.output.title": "Save output",
     "build.select.customAmount": "Custom amount",
     "build.select.spendableOutputs": "Select spendable outputs",
     "build.set.fee": "Set fee",
