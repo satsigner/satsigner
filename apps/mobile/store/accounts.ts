@@ -88,6 +88,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         if (account.addresses.length >= count && !forceReload) return
         if (!account.externalDescriptor) return
 
+        const labelsDictionary: Record<string, string> = {}
+        account.addresses.forEach((addr) => {
+          return labelsDictionary[addr.address] = addr.label
+        })
+
         const { network } = useBlockchainStore.getState()
 
         const externalDescriptor = await new Descriptor().create(
@@ -122,7 +127,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             derivationPath: receiveAddrPath,
             network,
             scriptVersion,
-            label: '',
+            label: labelsDictionary[receiveAddr] || '',
             summary: {
               transactions: 0,
               utxos: 0,
@@ -149,7 +154,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             derivationPath: changeAddrPath,
             network,
             scriptVersion,
-            label: '',
+            label: labelsDictionary[changeAddr] || '',
             summary: {
               transactions: 0,
               utxos: 0,
