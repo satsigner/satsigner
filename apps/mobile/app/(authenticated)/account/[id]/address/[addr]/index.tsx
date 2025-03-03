@@ -25,8 +25,7 @@ function AddressDetails() {
     state.accounts
       .find((account) => account.name === accountId)
       ?.addresses.find((address) => {
-        // TODO: remove keychain after fixing the internal address BUG
-        return address.address === addr && address.keychain === 'internal'
+        return address.address === addr
       })
   ])
 

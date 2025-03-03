@@ -17,11 +17,7 @@ export default function SSTxLabel() {
   const [address, setAddrLabel] = useAccountsStore((state) => [
     state.accounts
       .find((account: Account) => account.name === accountId)
-      ?.addresses.find(
-        (address: Address) =>
-          // TODO: remove keychain after fixing the internal address BUG
-          address.address === addr && address.keychain === 'internal'
-      ),
+      ?.addresses.find((address: Address) => address.address === addr),
     state.setAddrLabel
   ])
 

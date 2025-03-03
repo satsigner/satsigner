@@ -1,7 +1,13 @@
 import { FlashList } from '@shopify/flash-list'
 import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Redirect, router, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import {
+  Redirect,
+  router,
+  Stack,
+  useLocalSearchParams,
+  useRouter
+} from 'expo-router'
 import {
   type Dispatch,
   useCallback,
@@ -248,21 +254,19 @@ function ChildAccounts({
 }: ChildAccountsProps) {
   const [childAccounts, setChildAccounts] = useState<any[]>([])
   const [addressPath, setAddressPath] = useState('')
-  const loadAddresses = useAccountsStore(
-    (state) => state.loadAddresses
-  )
+  const loadAddresses = useAccountsStore((state) => state.loadAddresses)
 
   const fetchAddresses = useCallback(async () => {
     if (!account) return
-    await loadAddresses(account, 20)
+    await loadAddresses(account, 20, true)
     updateChildAccounts()
     if (account.derivationPath)
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
-  }, [change])
+  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchAddresses()
-  }, [change])
+  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateChildAccounts() {
     if (!account) return
@@ -292,37 +296,39 @@ function ChildAccounts({
         }
       >
         <SSHStack style={styles.row}>
-        <SSText style={styles.indexText}>{item.index}</SSText>
+          <SSText style={styles.indexText}>{item.index}</SSText>
           <SSText style={styles.addressText}>
-          {formatAddress(item.address, 4)}
+            {formatAddress(item.address, 4)}
           </SSText>
-        <SSText
-          style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
-        >
-          {item.label || t('transaction.noLabel')}
-        </SSText>
-        <SSText
-        style={[
-          styles.unspentSatsText,
-          {
-            color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-          }
-          ]}
-        >
-          {item.unspentSats}
-        </SSText>
-        <SSText
-        style={[
-          styles.txsText,
-          {
-            color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-          }
-          ]}
-        >
-          {item.txs}
-        </SSText>
+          <SSText
+            style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
+          >
+            {item.label || t('transaction.noLabel')}
+          </SSText>
+          <SSText
+            style={[
+              styles.unspentSatsText,
+              {
+                color:
+                  item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+              }
+            ]}
+          >
+            {item.unspentSats}
+          </SSText>
+          <SSText
+            style={[
+              styles.txsText,
+              {
+                color:
+                  item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
+              }
+            ]}
+          >
+            {item.txs}
+          </SSText>
         </SSHStack>
-        </TouchableOpacity>
+      </TouchableOpacity>
     ),
     []
   )

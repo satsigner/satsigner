@@ -132,8 +132,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
 
           if (!account.internalDescriptor) continue
+
           const changeAddrInfo = await wallet.getInternalAddress(i)
           const changeAddr = await changeAddrInfo.address.asString()
+
+          // TODO: fix bug getInternalAddress() is the same as getAddress()
+          if (changeAddr === receiveAddr) continue
+
           const changeAddrPath = account.derivationPath
             ? `${account.derivationPath}/1/${i}`
             : undefined
@@ -451,9 +456,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         if (!account) return
 
         const addrIndex = account.addresses.findIndex(
-          // TODO: remove the keychan===internal after fixing THAT bug
-          (address) =>
-            address.address === addr && address.keychain === 'internal'
+          (address) => address.address === addr
         )
         if (addrIndex === -1) return
 
