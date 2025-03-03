@@ -54,22 +54,6 @@ function SSMultipleSankeyDiagram({
       return Math.max(max, node.depthH)
     }, 0)
   }, [sankeyNodes])
-  const { animatedStyle, gestures, transform } = useGestures({
-    width: w,
-    height: h,
-    center,
-    isDoubleTapEnabled: true,
-    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
-    minPanPointers: 1,
-    maxScale: 10,
-    minScale: 0.2,
-    shouldResetOnInteractionEnd: false,
-    initialTranslation: {
-      // x: -(maxDepthH * 128),
-      x: -980,
-      y: 0
-    }
-  })
 
   // Calculate the maximum number of nodes at any depthH level
   const maxNodeCountInDepthH = useMemo(() => {
@@ -114,6 +98,86 @@ function SSMultipleSankeyDiagram({
     target: (link.target as Node).id,
     value: link.value
   }))
+
+  // Calculate the optimal initial x translation to show the last 3 depthH levels
+  const initialXTranslation = useMemo(() => {
+    // If we have fewer than 3 depthH levels or no nodes, show from the beginning
+    if (maxDepthH < 2 || !nodes.length) {
+      return 0
+    }
+
+    // Find the x position of nodes in the last 3 depthH levels
+    const lastThreeLevels = [maxDepthH, maxDepthH - 1, maxDepthH - 2].filter(
+      (level) => level >= 0
+    )
+
+    // Find the minimum and maximum x positions among nodes in the last three levels
+    let minX = Infinity
+    let maxX = -Infinity
+    let nodesFound = false
+
+    nodes.forEach((node) => {
+      const typedNode = node as Node
+      if (
+        lastThreeLevels.includes(typedNode.depthH) &&
+        (node as any).x !== undefined
+      ) {
+        minX = Math.min(minX, (node as any).x)
+        maxX = Math.max(maxX, (node as any).x)
+        nodesFound = true
+      }
+    })
+
+    // If we couldn't find any nodes in the last three levels, use a fallback
+    if (!nodesFound) {
+      // Fallback to a calculation based on the diagram's expected layout
+      const diagramWidth = 2000 * (maxDepthH / 11)
+      const lastThreeDepthsWidth = diagramWidth * (3 / maxDepthH)
+      const fallbackTranslation = -(
+        diagramWidth -
+        lastThreeDepthsWidth -
+        w / 10
+      )
+
+      // Ensure the translation is within reasonable bounds
+      return Math.max(fallbackTranslation, -(diagramWidth - w / 2))
+    }
+
+    // Calculate the width of the last three levels
+    const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH
+
+    // If the width of the last three levels is less than the viewport width,
+    // center them in the viewport
+    if (lastThreeLevelsWidth < w) {
+      return -(minX - (w - lastThreeLevelsWidth) / 2)
+    }
+
+    // Otherwise, show from the minimum x position with a small offset
+    const translation = -(minX - w / 10)
+
+    // Calculate the total diagram width (approximation)
+    const diagramWidth = 2000 * (maxDepthH / 11)
+
+    // Ensure the translation doesn't move the diagram too far off-screen
+    // This prevents extreme translations that might make the diagram invisible
+    return Math.max(translation, -(diagramWidth - w / 2))
+  }, [maxDepthH, nodes, w])
+
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    maxScale: 10,
+    minScale: 0.2,
+    shouldResetOnInteractionEnd: false,
+    initialTranslation: {
+      x: initialXTranslation,
+      y: 0
+    }
+  })
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null
