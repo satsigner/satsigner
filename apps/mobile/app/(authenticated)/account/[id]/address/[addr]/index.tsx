@@ -1,4 +1,7 @@
+import { toOutputScript } from 'bitcoinjs-lib/src/address'
+import { toASM } from 'bitcoinjs-lib/src/script'
 import { Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
@@ -10,10 +13,12 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 
 function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
+  const [script, setScript] = useState('')
 
   const [account, address] = useAccountsStore((state) => [
     state.accounts.find((account) => account.name === accountId),
@@ -24,6 +29,19 @@ function AddressDetails() {
         return address.address === addr && address.keychain === 'internal'
       })
   ])
+
+  useEffect(() => {
+    if (!address) return
+    try {
+      const rawScript = toOutputScript(
+        address.address,
+        bitcoinjsNetwork(address.network || 'signet')
+      )
+      setScript(toASM(rawScript))
+    } catch {
+      setScript('')
+    }
+  }, [address])
 
   if (!account || !addr || !address) {
     return <SSText>NOT FOUND</SSText>
@@ -99,17 +117,25 @@ function AddressDetails() {
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
-                    Network
-                  </SSText>
-                  <SSText uppercase>{address.network || '-'}</SSText>
-                </SSVStack>
-                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
                     Script version
                   </SSText>
                   <SSText uppercase>{address.scriptVersion || '-'}</SSText>
                 </SSVStack>
+                <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
+                  <SSText color="muted" uppercase>
+                    Network
+                  </SSText>
+                  <SSText uppercase>{address.network || '-'}</SSText>
+                </SSVStack>
               </SSHStack>
+              <SSVStack gap="xs">
+                <SSText color="muted" uppercase>
+                  SCRIPT (ASM)
+                </SSText>
+                <SSText type='mono' uppercase>
+                  {script}
+                </SSText>
+              </SSVStack>
             </SSVStack>
             <SSSeparator />
             <SSVStack gap="sm">
