@@ -260,28 +260,16 @@ function ChildAccounts({
   const [addressPath, setAddressPath] = useState('')
   const loadAddresses = useAccountsStore((state) => state.loadAddresses)
 
-  const fetchAddresses = useCallback(async () => {
-    if (!account) return
-    await loadAddresses(account, 20, true)
-    updateChildAccounts()
-    if (account.derivationPath)
-      setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
-  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    fetchAddresses()
-  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
-
   function updateChildAccounts() {
     if (!account) return
-    setChildAccounts(
-      account.addresses
-        .filter((address) =>
-          change
-            ? address.keychain === 'internal'
-            : address.keychain === 'external'
-        )
-        .map((address, index) => ({
+    const childAccounts = account.addresses
+      .filter((address) =>
+        change
+          ? address.keychain === 'internal'
+          : address.keychain === 'external'
+      )
+      .map((address, index) => {
+        return {
           address: address.address,
           index: address.index !== undefined ? address.index : index,
           label: address.label,
@@ -289,9 +277,24 @@ function ChildAccounts({
           txs: address.summary.transactions,
           utxos: address.summary.utxos,
           unspentSats: address.summary.balance
-        }))
-    )
+        }
+      })
+    setChildAccounts(childAccounts)
   }
+
+  // const fetchAddresses = useCallback(async () => {
+  const fetchAddresses = async () => {
+    if (!account) return
+    await loadAddresses(account, 20)
+    updateChildAccounts()
+    if (account.derivationPath)
+      setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
+  }
+  // }, [change, account]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    fetchAddresses()
+  }, [change, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
     ({ item }: { item: ChildAccount }) => (
