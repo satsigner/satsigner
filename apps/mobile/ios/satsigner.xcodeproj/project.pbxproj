@@ -10,20 +10,20 @@
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		17674EFE6C9E4E978EF5DAD7 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 91C2448D4A354145A1B37736 /* SF-Pro-Text-Regular.otf */; };
-		31FEC6E77E664D37B8C306AB /* SF-Pro-Text-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 96BA31CD3A06493194EF3837 /* SF-Pro-Text-Ultralight.otf */; };
-		3B90CABAD2C24269924CC4C6 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CDFA7047FD7744368BCEEC55 /* TerminessNerdFontMono-BoldItalic.ttf */; };
+		1EE3C2FE7544436F85BECCDB /* SF-Pro-Text-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */; };
+		3287CB60CE374E18BBDCD00C /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		53693AFFD1BF496CA9E0BBBC /* TerminessNerdFontMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2106D13A360748DDA9205EC2 /* TerminessNerdFontMono-Regular.ttf */; };
-		60B3D1993B564C65810E41A6 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DB8CD9954214A218FA5DFCF /* noop-file.swift */; };
+		4A1C481B90EF4E78B9644441 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */; };
+		58116C5C05B141E5A0D2DFA2 /* TerminessNerdFontMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */; };
+		8767DE58AE9F48F19165763D /* TerminessNerdFontMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */; };
 		96905EF65AED1B983A6B3ABC /* libPods-satsigner.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */; };
+		A0A89277A0424EA6B1ADE9AA /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */; };
+		A19D5E6F85FE4C829122D839 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		BFC5E6DD0C9C4B469FF194A6 /* TerminessNerdFontMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 512A84BD52804A37900207C4 /* TerminessNerdFontMono-Bold.ttf */; };
-		DA4C396E5EF1454F85BB0A29 /* TerminessNerdFontMono-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EC27316698B1455D862CFC53 /* TerminessNerdFontMono-Italic.ttf */; };
-		DC1B71D8B25A438B98F67252 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = B632D9D8B3A041EF92928C18 /* SF-Pro-Text-Medium.otf */; };
-		E45CD6DB5DF6496E95E78905 /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = CE2183B180EF4998B19D1FAF /* SF-Pro-Text-Light.otf */; };
-		EC81AA8061FF49C8980B6C58 /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = EF9E311D1F274A31B624C230 /* SF-Pro-Text-Bold.otf */; };
+		BE220C0B73884F5ABFE25654 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E79BB301024D3FB20BCD8E /* noop-file.swift */; };
+		DAD416CF7EED45F6B1796191 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */; };
+		E44F63DD51FD4825A7E24C15 /* TerminessNerdFontMono-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,23 +33,23 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = satsigner/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = satsigner/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = satsigner/main.m; sourceTree = "<group>"; };
-		2106D13A360748DDA9205EC2 /* TerminessNerdFontMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Regular.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Regular.ttf"; sourceTree = "<group>"; };
-		2682476036124F2A877647F0 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
-		512A84BD52804A37900207C4 /* TerminessNerdFontMono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Bold.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Bold.ttf"; sourceTree = "<group>"; };
 		58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-satsigner.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		5DB8CD9954214A218FA5DFCF /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "satsigner/noop-file.swift"; sourceTree = "<group>"; };
+		59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
 		6C2E3173556A471DD304B334 /* Pods-satsigner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-satsigner.debug.xcconfig"; path = "Target Support Files/Pods-satsigner/Pods-satsigner.debug.xcconfig"; sourceTree = "<group>"; };
+		72E79BB301024D3FB20BCD8E /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "satsigner/noop-file.swift"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-satsigner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-satsigner.release.xcconfig"; path = "Target Support Files/Pods-satsigner/Pods-satsigner.release.xcconfig"; sourceTree = "<group>"; };
-		91C2448D4A354145A1B37736 /* SF-Pro-Text-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Regular.otf"; path = "../assets/fonts/SF-Pro-Text-Regular.otf"; sourceTree = "<group>"; };
-		96BA31CD3A06493194EF3837 /* SF-Pro-Text-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Ultralight.otf"; path = "../assets/fonts/SF-Pro-Text-Ultralight.otf"; sourceTree = "<group>"; };
+		7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Regular.otf"; path = "../assets/fonts/SF-Pro-Text-Regular.otf"; sourceTree = "<group>"; };
+		8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Ultralight.otf"; path = "../assets/fonts/SF-Pro-Text-Ultralight.otf"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = satsigner/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B632D9D8B3A041EF92928C18 /* SF-Pro-Text-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Medium.otf"; path = "../assets/fonts/SF-Pro-Text-Medium.otf"; sourceTree = "<group>"; };
+		B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-BoldItalic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-BoldItalic.ttf"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		CDFA7047FD7744368BCEEC55 /* TerminessNerdFontMono-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-BoldItalic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-BoldItalic.ttf"; sourceTree = "<group>"; };
-		CE2183B180EF4998B19D1FAF /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
-		EC27316698B1455D862CFC53 /* TerminessNerdFontMono-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Italic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Italic.ttf"; sourceTree = "<group>"; };
+		C9F6F00DEDC4410492711928 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
+		E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Regular.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Regular.ttf"; sourceTree = "<group>"; };
+		E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Medium.otf"; path = "../assets/fonts/SF-Pro-Text-Medium.otf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		EF9E311D1F274A31B624C230 /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
+		F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Bold.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Bold.ttf"; sourceTree = "<group>"; };
+		F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Italic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Italic.ttf"; sourceTree = "<group>"; };
+		FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-satsigner/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -75,8 +75,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				5DB8CD9954214A218FA5DFCF /* noop-file.swift */,
-				2682476036124F2A877647F0 /* satsigner-Bridging-Header.h */,
+				72E79BB301024D3FB20BCD8E /* noop-file.swift */,
+				C9F6F00DEDC4410492711928 /* satsigner-Bridging-Header.h */,
 			);
 			name = satsigner;
 			sourceTree = "<group>";
@@ -88,23 +88,6 @@
 				58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		7BE82BE4F9B947DEB07CC7A1 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				96BA31CD3A06493194EF3837 /* SF-Pro-Text-Ultralight.otf */,
-				CE2183B180EF4998B19D1FAF /* SF-Pro-Text-Light.otf */,
-				91C2448D4A354145A1B37736 /* SF-Pro-Text-Regular.otf */,
-				B632D9D8B3A041EF92928C18 /* SF-Pro-Text-Medium.otf */,
-				EF9E311D1F274A31B624C230 /* SF-Pro-Text-Bold.otf */,
-				2106D13A360748DDA9205EC2 /* TerminessNerdFontMono-Regular.ttf */,
-				512A84BD52804A37900207C4 /* TerminessNerdFontMono-Bold.ttf */,
-				CDFA7047FD7744368BCEEC55 /* TerminessNerdFontMono-BoldItalic.ttf */,
-				EC27316698B1455D862CFC53 /* TerminessNerdFontMono-Italic.ttf */,
-			);
-			name = Resources;
-			path = "";
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -123,7 +106,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
-				7BE82BE4F9B947DEB07CC7A1 /* Resources */,
+				93297A90DE2C49A9AF6248BF /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -144,6 +127,23 @@
 				FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */,
 			);
 			name = satsigner;
+			sourceTree = "<group>";
+		};
+		93297A90DE2C49A9AF6248BF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */,
+				FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */,
+				7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */,
+				E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */,
+				59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */,
+				E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */,
+				F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */,
+				B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */,
+				F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */,
+			);
+			name = Resources;
+			path = "";
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -180,13 +180,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "satsigner" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				416E99C54E09BBD5CDCDF8E0 /* [Expo] Configure project */,
+				100BF8E2E10420984C2E9F21 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				81FE3CA56F667523D228B9DC /* [CP] Embed Pods Frameworks */,
+				D52950050DCD5FD9D8FFEC27 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -236,15 +236,15 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				31FEC6E77E664D37B8C306AB /* SF-Pro-Text-Ultralight.otf in Resources */,
-				E45CD6DB5DF6496E95E78905 /* SF-Pro-Text-Light.otf in Resources */,
-				17674EFE6C9E4E978EF5DAD7 /* SF-Pro-Text-Regular.otf in Resources */,
-				DC1B71D8B25A438B98F67252 /* SF-Pro-Text-Medium.otf in Resources */,
-				EC81AA8061FF49C8980B6C58 /* SF-Pro-Text-Bold.otf in Resources */,
-				53693AFFD1BF496CA9E0BBBC /* TerminessNerdFontMono-Regular.ttf in Resources */,
-				BFC5E6DD0C9C4B469FF194A6 /* TerminessNerdFontMono-Bold.ttf in Resources */,
-				3B90CABAD2C24269924CC4C6 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */,
-				DA4C396E5EF1454F85BB0A29 /* TerminessNerdFontMono-Italic.ttf in Resources */,
+				1EE3C2FE7544436F85BECCDB /* SF-Pro-Text-Ultralight.otf in Resources */,
+				A0A89277A0424EA6B1ADE9AA /* SF-Pro-Text-Light.otf in Resources */,
+				A19D5E6F85FE4C829122D839 /* SF-Pro-Text-Regular.otf in Resources */,
+				4A1C481B90EF4E78B9644441 /* SF-Pro-Text-Medium.otf in Resources */,
+				3287CB60CE374E18BBDCD00C /* SF-Pro-Text-Bold.otf in Resources */,
+				8767DE58AE9F48F19165763D /* TerminessNerdFontMono-Regular.ttf in Resources */,
+				58116C5C05B141E5A0D2DFA2 /* TerminessNerdFontMono-Bold.ttf in Resources */,
+				DAD416CF7EED45F6B1796191 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */,
+				E44F63DD51FD4825A7E24C15 /* TerminessNerdFontMono-Italic.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,7 +288,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		416E99C54E09BBD5CDCDF8E0 /* [Expo] Configure project */ = {
+		100BF8E2E10420984C2E9F21 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -331,7 +331,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		81FE3CA56F667523D228B9DC /* [CP] Embed Pods Frameworks */ = {
+		D52950050DCD5FD9D8FFEC27 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -359,7 +359,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				60B3D1993B564C65810E41A6 /* noop-file.swift in Sources */,
+				BE220C0B73884F5ABFE25654 /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
