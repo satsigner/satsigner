@@ -48,7 +48,7 @@ function AddressDetails() {
   }
 
   return (
-    <ScrollView>
+    <>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText>{t('address.details.title')}</SSText>
@@ -194,7 +194,7 @@ function AddressDetails() {
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
-    </ScrollView>
+    </>
   )
 }
 
