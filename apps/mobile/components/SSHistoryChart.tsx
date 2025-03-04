@@ -72,7 +72,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
 
-  const [walletAddresses] = useMemo(() => {
+  const walletAddresses = useMemo(() => {
     const addresses = new Set<string>()
     const transactionsMap = new Map<string, Transaction>()
     utxos.forEach((val) => {
@@ -93,11 +93,12 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         })
       })
     addresses.delete('')
-    return [addresses]
+    return addresses
   }, [transactions, utxos])
 
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
+    const pendingDeleteBalances = new Set<string>()
     transactions.forEach((t, index) => {
       const currentBalances = new Map<string, Utxo>()
       if (index > 0) {
@@ -125,6 +126,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             input.previousOutput.txid + '::' + input.previousOutput.vout
           if (currentBalances.has(inputName)) {
             currentBalances.delete(inputName)
+          } else {
+            pendingDeleteBalances.add(inputName)
           }
         })
         t.vout?.forEach((out, index) => {
@@ -142,6 +145,14 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         })
       }
       history.set(index, currentBalances)
+    })
+    pendingDeleteBalances.forEach((value) => {
+      Array.from(history.entries()).forEach(([, historyBalance]) => {
+        if (historyBalance.has(value)) {
+          historyBalance.delete(value)
+        }
+      })
+      pendingDeleteBalances.delete(value)
     })
     return history
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -179,11 +190,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
     )
   )
-  const [prevEndDate, setPrevEndDate] = useState<Date>(
-    new Date(currentDate.current)
+  const endDateRef = useRef<Date>(
+    new Date(
+      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+    )
   )
+  const prevEndDate = useRef<Date>(new Date(currentDate.current))
   const [startY, setStartY] = useState<number>(0)
-  const [prevStartY, setPrevStartY] = useState<number>(0)
+  const startYRef = useRef<number>(0)
+  const prevStartY = useRef<number>(0)
 
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
@@ -256,11 +271,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   }[] = useMemo(() => {
     return Array.from(balanceHistory.entries())
       .flatMap(([index, balances]) => {
-        const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+        const x1 = xScale(
+          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+        )
         const x2 = xScale(
           index === transactions.length - 1
             ? currentDate.current
-            : new Date(transactions.at(index + 1)?.timestamp!)
+            : new Date(
+                transactions.at(index + 1)?.timestamp ?? currentDate.current
+              )
         )
         if (x2 < 0 && x1 >= chartWidth) {
           return []
@@ -322,11 +341,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       utxo: Utxo
     }[] = []
     Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
-      const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+      const x1 = xScale(
+        new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+      )
       const x2 = xScale(
         index === transactions.length - 1
           ? currentDate.current
-          : new Date(transactions.at(index + 1)?.timestamp!)
+          : new Date(
+              transactions.at(index + 1)?.timestamp ?? currentDate.current
+            )
       )
       if (x2 < 0 && x1 >= chartWidth) {
         return
@@ -365,47 +388,54 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     .minDistance(1)
     .maxPointers(1)
     .onStart(() => {
-      setPrevEndDate(endDate)
-      setPrevStartY(startY)
+      prevEndDate.current = endDate
+      prevStartY.current = startY
     })
     .onUpdate((event) => {
-      setEndDate(
-        new Date(
-          Math.max(
-            Math.min(
-              prevEndDate.getTime() -
-                ((timeOffset / scale) * event.translationX) / chartWidth,
-              new Date(currentDate.current).setDate(
-                new Date(currentDate.current).getDate() + 5
-              )
-            ),
-            new Date(transactions[0].timestamp!).getTime()
-          )
+      endDateRef.current = new Date(
+        Math.max(
+          Math.min(
+            prevEndDate.current.getTime() -
+              ((timeOffset / scale) * event.translationX) / chartWidth,
+            new Date(
+              currentDate.current.getTime() + timeOffset / scale
+            ).getTime()
+          ),
+          new Date(transactions[0].timestamp!).getTime()
         )
       )
       if (!lockZoomToXAxis) {
-        setStartY(
-          Math.max(
-            Math.min(
-              prevStartY +
-                (((maxBalance * 1.2) / scale) * event.translationY) /
-                  chartHeight,
-              maxBalance * 1.2 - (maxBalance * 1.2) / scale
-            ),
-            0
-          )
+        startYRef.current = Math.max(
+          Math.min(
+            prevStartY.current +
+              (((maxBalance * 1.2) / scale) * event.translationY) / chartHeight,
+            maxBalance * 1.2 - (maxBalance * 1.2) / scale
+          ),
+          0
         )
       }
     })
     .onEnd(() => {
-      setPrevEndDate(endDate)
-      setPrevStartY(startY)
+      prevEndDate.current = endDate
+      prevStartY.current = startY
     })
     .runOnJS(true)
 
+  useEffect(() => {
+    const timerId = setInterval(() => {
+      setEndDate(endDateRef.current)
+      setStartY(startYRef.current)
+    }, 100)
+    return () => clearInterval(timerId)
+  }, [])
+
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
-      setScale(Math.max(prevScale.current * event.scale, 1))
+      const pScale = scale
+      const cScale = Math.max(prevScale.current * event.scale, 1)
+      const middleDate = endDateRef.current.getTime() - timeOffset / pScale / 2
+      endDateRef.current = new Date(middleDate + timeOffset / 2 / cScale)
+      setScale(cScale)
     })
     .onEnd(() => {
       prevScale.current = scale
@@ -613,7 +643,13 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     })
     setTxXAxisLabels(result)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddresses, xScaleTransactions, txXBoundbox, xScale])
+  }, [
+    walletAddresses,
+    xScaleTransactions,
+    txXBoundbox,
+    xScale,
+    showTransactionInfo
+  ])
 
   const [txInfoLabels, setTxInfoLabels] = useState<
     {
@@ -623,6 +659,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       amount?: number
       type: string
       boundBox?: Rectangle
+      index: string
     }[]
   >([])
 
@@ -630,9 +667,11 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     [key: string]: Rectangle
   }>({})
 
+  const txInfoBoundBoxRef = useRef<{ [key: string]: Rectangle }>({})
+
   const handleTxInfoLayout = (
     event: LayoutChangeEvent,
-    index: number,
+    index: string,
     x: number,
     y: number,
     type: string
@@ -661,20 +700,33 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       width: Math.round(event.nativeEvent.layout.width),
       height: Math.round(event.nativeEvent.layout.height)
     }
+    if (rect.height === 0 || rect.width === 0) {
+      return
+    }
     if (
-      txInfoBoundBox[index] !== undefined &&
-      txInfoBoundBox[index].width === rect.width &&
-      txInfoBoundBox[index].height === rect.height
+      txInfoBoundBoxRef.current[index] !== undefined &&
+      txInfoBoundBoxRef.current[index].width === rect.width &&
+      txInfoBoundBoxRef.current[index].height === rect.height
     ) {
       return
     }
-    setTxInfoBoundBox((prev) => ({
-      ...prev,
+    txInfoBoundBoxRef.current = {
+      ...txInfoBoundBoxRef.current,
       [index]: rect
-    }))
+    }
   }
 
   useEffect(() => {
+    const timerId = setInterval(() => {
+      setTxInfoBoundBox(txInfoBoundBoxRef.current)
+    }, 100)
+    return () => clearTimeout(timerId)
+  }, [])
+
+  useEffect(() => {
+    if (!showAmount && !showLabel) {
+      return
+    }
     const initialLabels: {
       x: number
       y: number
@@ -682,87 +734,83 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       amount?: number
       type: string
       boundBox?: Rectangle
+      index: string
     }[] = []
-    if (
-      validChartData.findIndex(
-        (d, index) => d.type !== 'end' && txInfoBoundBox[index] === undefined
-      ) !== -1
-    ) {
-      validChartData.forEach((d) => {
-        if (d.type === 'end') return
-        const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
-        const y = yScale(d.balance) - 5
-        if (showLabel && d.memo) {
-          initialLabels.push({
-            x,
-            y: y + (showAmount ? -15 : 0),
-            memo: d.memo,
-            type: d.type
-          })
-        }
-        if (showAmount) {
-          initialLabels.push({
-            x,
-            y,
-            amount: d.amount,
-            type: d.type
-          })
-        }
-      })
-    } else {
-      validChartData.forEach((d, index) => {
-        if (d.type === 'end') return
-        const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
-        const y = Math.round(yScale(d.balance) - 5)
-        const width = Math.round(txInfoBoundBox[index].width!)
-        const height = Math.round(txInfoBoundBox[index].height!)
+
+    validChartData.forEach((d) => {
+      if (d.type === 'end') return
+      const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
+      const y = Math.round(yScale(d.balance) - 5)
+      if (showLabel && d.memo) {
+        const index = d.date.getTime().toString() + d.balance.toString() + 'L'
+        const width = Math.round(
+          txInfoBoundBox[index] !== undefined ? txInfoBoundBox[index].width! : 0
+        )
+        const height = Math.round(
+          txInfoBoundBox[index] !== undefined
+            ? txInfoBoundBox[index].height!
+            : 0
+        )
         const left = Math.round(d.type === 'receive' ? x - width : x)
         const right = Math.round(d.type === 'receive' ? x : x + width)
         const bottom = y
         const top = y - height
-        if (showLabel && d.memo) {
-          initialLabels.push({
-            x,
-            y: y + (showAmount ? -15 : 0),
-            memo: d.memo,
-            type: d.type,
-            boundBox: {
-              left,
-              right,
-              top: top + (showAmount ? -15 : 0),
-              bottom: bottom + (showAmount ? -15 : 0),
-              width,
-              height
-            }
-          })
-        }
-        if (showAmount) {
-          initialLabels.push({
-            x,
-            y,
-            amount: d.amount,
-            type: d.type,
-            boundBox: {
-              left,
-              right,
-              top,
-              bottom,
-              width,
-              height
-            }
-          })
-        }
-      })
-    }
+        initialLabels.push({
+          x,
+          y: y + (showAmount ? -15 : 0),
+          memo: d.memo,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top: top + (showAmount ? -15 : 0),
+            bottom: bottom + (showAmount ? -15 : 0),
+            width,
+            height
+          },
+          index
+        })
+      }
+      if (showAmount) {
+        const index = d.date.getTime().toString() + d.balance.toString() + 'A'
+        const width = Math.round(
+          txInfoBoundBox[index] !== undefined ? txInfoBoundBox[index].width! : 0
+        )
+        const height = Math.round(
+          txInfoBoundBox[index] !== undefined
+            ? txInfoBoundBox[index].height!
+            : 0
+        )
+        const left = Math.round(d.type === 'receive' ? x - width : x)
+        const right = Math.round(d.type === 'receive' ? x : x + width)
+        const bottom = y
+        const top = y - height
+        initialLabels.push({
+          x,
+          y,
+          amount: d.amount,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top,
+            bottom,
+            width,
+            height
+          },
+          index
+        })
+      }
+    })
     for (let i = 0; i < initialLabels.length - 1; i++) {
       const boundBoxA = initialLabels[i].boundBox
       for (let j = i + 1; j < initialLabels.length; j++) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxA !== undefined && boundBoxB !== undefined) {
           if (isOverlapping(boundBoxA!, boundBoxB!)) {
-            initialLabels[j].y -= 20
-            initialLabels[j].boundBox!.top -= 20
-            initialLabels[j].boundBox!.bottom -= 20
+            initialLabels[j].y -= 30
+            initialLabels[j].boundBox!.top -= 30
+            initialLabels[j].boundBox!.bottom -= 30
           }
         }
       }
@@ -1030,7 +1078,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
                         onLayout={(e) =>
                           handleTxInfoLayout(
                             e,
-                            index,
+                            label.index,
                             label.x,
                             label.y,
                             label.type
