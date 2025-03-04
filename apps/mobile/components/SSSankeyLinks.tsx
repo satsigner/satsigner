@@ -157,6 +157,7 @@ export function SSSankeyLinks({
               path={path1}
               style="fill"
               color={gray[700]}
+              opacity={0.5}
               paint={
                 isUnspent
                   ? (() => {
@@ -170,6 +171,7 @@ export function SSSankeyLinks({
                           TileMode.Clamp
                         )
                       )
+                      paint.setAlphaf(0.8)
                       return paint
                     })()
                   : undefined
