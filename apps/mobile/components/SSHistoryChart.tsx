@@ -98,6 +98,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
 
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
+    const pendingDeleteBalances = new Set<string>()
     transactions.forEach((t, index) => {
       const currentBalances = new Map<string, Utxo>()
       if (index > 0) {
@@ -125,6 +126,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             input.previousOutput.txid + '::' + input.previousOutput.vout
           if (currentBalances.has(inputName)) {
             currentBalances.delete(inputName)
+          } else {
+            pendingDeleteBalances.add(inputName)
           }
         })
         t.vout?.forEach((out, index) => {
@@ -142,6 +145,14 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         })
       }
       history.set(index, currentBalances)
+    })
+    pendingDeleteBalances.forEach((value) => {
+      Array.from(history.entries()).forEach(([, historyBalance]) => {
+        if (historyBalance.has(value)) {
+          historyBalance.delete(value)
+        }
+      })
+      pendingDeleteBalances.delete(value)
     })
     return history
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -260,11 +271,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   }[] = useMemo(() => {
     return Array.from(balanceHistory.entries())
       .flatMap(([index, balances]) => {
-        const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+        const x1 = xScale(
+          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+        )
         const x2 = xScale(
           index === transactions.length - 1
             ? currentDate.current
-            : new Date(transactions.at(index + 1)?.timestamp!)
+            : new Date(
+                transactions.at(index + 1)?.timestamp ?? currentDate.current
+              )
         )
         if (x2 < 0 && x1 >= chartWidth) {
           return []
@@ -326,11 +341,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       utxo: Utxo
     }[] = []
     Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
-      const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+      const x1 = xScale(
+        new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+      )
       const x2 = xScale(
         index === transactions.length - 1
           ? currentDate.current
-          : new Date(transactions.at(index + 1)?.timestamp!)
+          : new Date(
+              transactions.at(index + 1)?.timestamp ?? currentDate.current
+            )
       )
       if (x2 < 0 && x1 >= chartWidth) {
         return

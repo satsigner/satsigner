@@ -106,10 +106,7 @@ function TotalTransactions({
   }, [account.transactions, sortDirection])
 
   const chartTransactions = useMemo(() => {
-    return sortTransactions(
-      [...account.transactions].filter((t) => t.timestamp !== undefined),
-      'desc'
-    )
+    return sortTransactions([...account.transactions], 'desc')
   }, [account.transactions])
 
   const transactionBalances = useMemo(() => {
