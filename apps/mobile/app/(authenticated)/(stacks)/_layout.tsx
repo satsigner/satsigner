@@ -5,7 +5,6 @@ import {
   useRoute
 } from '@react-navigation/native'
 import { Redirect, Stack, useGlobalSearchParams, useRouter } from 'expo-router'
-import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -118,7 +117,6 @@ export default function AuthenticatedLayout() {
           }}
         />
       </Stack>
-      <StatusBar style="light" />
     </View>
   )
 }
