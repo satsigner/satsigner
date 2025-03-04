@@ -163,7 +163,7 @@ function SSTransactionCard({
               </SSText>
             </SSHStack>
           </SSVStack>
-          {walletBalance && (
+          {walletBalance !== undefined && (
             <SSText color="muted" style={[{ textAlign: 'right' }]}>
               <SSStyledSatText
                 amount={walletBalance}

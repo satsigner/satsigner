@@ -272,7 +272,7 @@ function ChildAccounts({
     const newAddressCount = addressCount + perPage
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
-    const addrList = await loadAddresses(account, newAddressCount, false)
+    const addrList = await loadAddresses(account, newAddressCount, true)
     setAddresses(addrList.slice(0, newAddressCount))
     setLoadingAddresses(false)
   }

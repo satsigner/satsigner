@@ -110,10 +110,18 @@ function AddressDetails() {
                   </TouchableOpacity>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.history.utxo')}
-                  </SSText>
-                  <SSText>{address?.summary.utxos}</SSText>
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.navigate(
+                        `/account/${accountId}/address/${addr}/utxos`
+                      )
+                    }
+                  >
+                    <SSText color="muted" uppercase>
+                      {t('address.details.history.utxo')}
+                    </SSText>
+                    <SSText>{address?.summary.utxos}</SSText>
+                  </TouchableOpacity>
                 </SSVStack>
               </SSHStack>
             </SSVStack>
