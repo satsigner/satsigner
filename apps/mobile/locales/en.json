@@ -114,15 +114,15 @@
     "details.key.private": "Private key",
     "details.key.public": "Public key",
     "details.key.title": "Key information",
-    "transactions": "Address transactions",
-    "utxos": "Address UTXOs",
     "details.title": "Address details",
     "label.title": "Address label",
     "list.loadMore": "Load more",
     "list.table.balance": "Sats",
     "list.table.index": "index",
     "list.table.tx": "TXs",
-    "list.table.utxo": "UTXOs"
+    "list.table.utxo": "UTXOs",
+    "transactions": "Address transactions",
+    "utxos": "Address UTXOs"
   },
   "app": {
     "name": "Sat Signer",

@@ -230,7 +230,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         // })
 
         //
-        const addresses = [... account.addresses]
+        const addresses = [...account.addresses]
 
         let transactions: Transaction[] = []
         let utxos: Utxo[] = []

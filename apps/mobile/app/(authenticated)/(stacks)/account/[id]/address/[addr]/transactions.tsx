@@ -36,7 +36,6 @@ function SSAddressTransactions() {
 
   async function refreshBlockchainHeight() {
     const height = await getBlockchainHeight()
-    console.log(height)
     setBlockchainHeight(height)
   }
 
