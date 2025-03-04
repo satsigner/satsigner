@@ -3,8 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { StyleSheet, View } from 'react-native'
 
 import { navMenuGroups } from '@/constants/navItems'
+import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSNavMenuGroup from './SSNavMenuGroup'
@@ -21,7 +21,7 @@ function SSNavMenu(props: any) {
         pointerEvents="none"
       />
       <SSText size="sm" color="muted" style={styles.versionText}>
-        {t('navigation.label.version')}
+        {`v${APP_VERSION} (${BUILD_NUMBER})`}
       </SSText>
       <DrawerContentScrollView
         {...props}
