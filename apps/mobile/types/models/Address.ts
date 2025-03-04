@@ -4,6 +4,8 @@ import type { ScriptVersionType } from './Account'
 export type Address = {
   address: string
   label: string
+  utxos: string[]
+  transactions: string[]
   derivationPath?: string
   index?: number
   keychain?: 'internal' | 'external'

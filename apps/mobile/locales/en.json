@@ -114,6 +114,8 @@
     "details.key.private": "Private key",
     "details.key.public": "Public key",
     "details.key.title": "Key information",
+    "transactions": "Address transactions",
+    "utxos": "Address UTXOs",
     "details.title": "Address details",
     "label.title": "Address label",
     "list.loadMore": "Load more",

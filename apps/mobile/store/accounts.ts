@@ -125,6 +125,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           addrList.push({
             address: receiveAddr,
             keychain: 'external',
+            transactions: [],
+            utxos: [],
             index: i,
             derivationPath: receiveAddrPath,
             network,
@@ -152,6 +154,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           addrList.push({
             address: changeAddr,
             keychain: 'internal',
+            transactions: [],
+            utxos: [],
             index: i,
             derivationPath: changeAddrPath,
             network,
@@ -181,6 +185,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (addrDictionary[output.address] === undefined) continue
             const index = addrDictionary[output.address]
             addrList[index].summary.transactions += 1
+            addrList[index].transactions.push(tx.id)
           }
         }
 
@@ -190,6 +195,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           const index = addrDictionary[utxo.addressTo]
           addrList[index].summary.utxos += 1
           addrList[index].summary.balance += utxo.value
+          addrList[index].utxos.push(getUtxoOutpoint(utxo))
         }
 
         set(

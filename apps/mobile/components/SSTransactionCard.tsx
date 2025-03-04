@@ -26,7 +26,7 @@ type SSTransactionCardProps = {
   blockHeight: number
   fiatCurrency: Currency
   btcPrice: number
-  walletBalance: number
+  walletBalance?: number
   link: string
   expand: boolean
 }
@@ -163,15 +163,17 @@ function SSTransactionCard({
               </SSText>
             </SSHStack>
           </SSVStack>
-          <SSText color="muted" style={[{ textAlign: 'right' }]}>
-            <SSStyledSatText
-              amount={walletBalance}
-              decimals={0}
-              useZeroPadding={useZeroPadding}
-              type={transaction.type}
-              textSize={expand ? 'xs' : 'sm'}
-            />
-          </SSText>
+          {walletBalance && (
+            <SSText color="muted" style={[{ textAlign: 'right' }]}>
+              <SSStyledSatText
+                amount={walletBalance}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                type={transaction.type}
+                textSize={expand ? 'xs' : 'sm'}
+              />
+            </SSText>
+          )}
         </SSHStack>
         <SSHStack justifyBetween>
           <SSText

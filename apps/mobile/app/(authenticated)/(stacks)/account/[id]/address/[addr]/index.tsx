@@ -1,8 +1,8 @@
 import { toOutputScript } from 'bitcoinjs-lib/src/address'
 import { toASM } from 'bitcoinjs-lib/src/script'
-import { Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelDetails from '@/components/SSLabelDetails'
@@ -96,10 +96,18 @@ function AddressDetails() {
               </SSText>
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <SSText color="muted" uppercase>
-                    {t('address.details.history.tx')}
-                  </SSText>
-                  <SSText>{address?.summary.transactions}</SSText>
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.navigate(
+                        `/account/${accountId}/address/${addr}/transactions`
+                      )
+                    }
+                  >
+                    <SSText color="muted" uppercase>
+                      {t('address.details.history.tx')}
+                    </SSText>
+                    <SSText>{address?.summary.transactions}</SSText>
+                  </TouchableOpacity>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>
