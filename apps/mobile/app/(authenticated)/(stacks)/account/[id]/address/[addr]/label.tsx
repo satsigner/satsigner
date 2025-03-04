@@ -11,7 +11,7 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 
-export default function SSTxLabel() {
+function SSAddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
   const [address, setAddrLabel] = useAccountsStore((state) => [
@@ -51,3 +51,5 @@ export default function SSTxLabel() {
     </ScrollView>
   )
 }
+
+export default SSAddressLabel
