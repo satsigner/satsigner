@@ -150,7 +150,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             ? `${account.derivationPath}/1/${i}`
             : undefined
           addrList.push({
-            address: await changeAddr,
+            address: changeAddr,
             keychain: 'internal',
             index: i,
             derivationPath: changeAddrPath,
@@ -192,9 +192,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           addrList[index].summary.balance += utxo.value
         }
 
-        // TODO: a lot of times the addresses are not updated !!
-        account.addresses = addrList
-        get().updateAccount(account)
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (_account) => _account.name === account.name
+            )
+            if (index !== -1) state.accounts[index].addresses = addrList
+          })
+        )
         return addrList
       },
       syncWallet: async (wallet, account) => {
@@ -219,7 +224,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         // })
 
         //
-        const addresses = account.addresses
+        const addresses = [... account.addresses]
 
         let transactions: Transaction[] = []
         let utxos: Utxo[] = []

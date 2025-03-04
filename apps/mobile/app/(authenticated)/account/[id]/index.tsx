@@ -272,7 +272,7 @@ function ChildAccounts({
     const newAddressCount = addressCount + perPage
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
-    const addrList = await loadAddresses(account, newAddressCount, true)
+    const addrList = await loadAddresses(account, newAddressCount, false)
     setAddresses(addrList.slice(0, newAddressCount))
     setLoadingAddresses(false)
   }
@@ -287,11 +287,14 @@ function ChildAccounts({
 
   useEffect(() => {
     fetchAddresses()
-  }, [change, account]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setAddresses(account.addresses.slice(0, addressCount))
+  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     updateAddressCount()
-    fetchAddresses()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
