@@ -217,8 +217,7 @@
     "item.time": "Time",
     "label.converter": "Converter",
     "label.explorer": "Explorer",
-    "label.signer": "Signer",
-    "label.version": "v0.0.3"
+    "label.signer": "Signer"
   },
   "opcode": {
     "DATA": "Data which can be hash, pubkey, address, signature, etc.",

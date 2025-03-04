@@ -44,7 +44,7 @@ function SSNavMenu(props: any) {
         pointerEvents="none"
       />
       <SSText size="sm" color="muted" style={styles.versionText}>
-        {`${APP_VERSION} (${BUILD_NUMBER})`}
+        {`v${APP_VERSION} (${BUILD_NUMBER})`}
       </SSText>
       <DrawerContentScrollView
         {...props}
