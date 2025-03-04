@@ -397,9 +397,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           Math.min(
             prevEndDate.current.getTime() -
               ((timeOffset / scale) * event.translationX) / chartWidth,
-            new Date(currentDate.current).setDate(
-              new Date(currentDate.current).getDate() + 5
-            )
+            new Date(
+              currentDate.current.getTime() + timeOffset / scale
+            ).getTime()
           ),
           new Date(transactions[0].timestamp!).getTime()
         )
@@ -431,7 +431,11 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
-      setScale(Math.max(prevScale.current * event.scale, 1))
+      const pScale = scale
+      const cScale = Math.max(prevScale.current * event.scale, 1)
+      const middleDate = endDateRef.current.getTime() - timeOffset / pScale / 2
+      endDateRef.current = new Date(middleDate + timeOffset / 2 / cScale)
+      setScale(cScale)
     })
     .onEnd(() => {
       prevScale.current = scale
