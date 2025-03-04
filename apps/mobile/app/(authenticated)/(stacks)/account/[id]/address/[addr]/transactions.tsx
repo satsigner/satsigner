@@ -14,7 +14,7 @@ import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { t } from '@/locales'
 
-export default function SSTxLabel() {
+function SSAddressTransaction() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
   const address = useAccountsStore((state) =>
@@ -80,3 +80,5 @@ export default function SSTxLabel() {
     </ScrollView>
   )
 }
+
+export default SSAddressTransaction
