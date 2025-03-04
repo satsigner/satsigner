@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+import coinSelect from 'coinselect'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -27,7 +29,9 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
+import { createTransactionNodes } from '@/utils/transaction'
+import { type getUtxoOutpoint } from '@/utils/utxo'
 
 const MINING_FEE_VALUE = 1635
 
@@ -35,19 +39,26 @@ export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const [permission, requestPermission] = useCameraPermissions()
+  const [outputTo, setOutputTo] = useState('')
+  const [outputAmount, setOutputAmount] = useState(1)
+  const [outputLabel, setOutputLabel] = useState('')
+  const [showBottomSheet, setShowBottomSheet] = useState(false)
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.name === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.outputs,
-      state.getInputs,
-      state.addOutput
-    ])
-  )
+  const [inputs, outputs, getInputs, addOutput, feeRate, getInititalFeeRate] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.inputs,
+        state.outputs,
+        state.getInputs,
+        state.addOutput,
+        state.feeRate,
+        state.getInitialFeeRate
+      ])
+    )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -63,13 +74,16 @@ export default function IOPreview() {
     [account.utxos]
   )
   const utxosSelectedValue = utxosValue(getInputs())
+  getInititalFeeRate()
 
-  // console.log('utxosSelectedValue', JSON.stringify(getInputs(), null, 4))
+  function getUtxoArray(
+    inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
+  ): Utxo[] {
+    return [...inputs.values()]
+  }
+  const utxos = getUtxoArray(inputs)
 
-  const [outputTo, setOutputTo] = useState('')
-  const [outputAmount, setOutputAmount] = useState(1)
-  const [outputLabel, setOutputLabel] = useState('')
-  const [showBottomSheet, setShowBottomSheet] = useState(false)
+  const { fee: transactionFee } = coinSelect(utxos, outputs, feeRate)
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -84,60 +98,17 @@ export default function IOPreview() {
 
   const sankeyNodes = useMemo(() => {
     if (inputs.size > 0) {
-      const inputNodes = Array.from(inputs.entries()).map(
-        ([, input], index) => ({
-          id: String(index + 1),
-          indexC: index + 1,
-          type: 'text',
-          depthH: 1,
-          textInfo: [
-            `${input.value}`,
-            `${formatAddress(input.txid, 3)}`,
-            input.label ?? ''
-          ],
-          value: input.value
-        })
+      return createTransactionNodes(
+        inputs,
+        utxosSelectedValue,
+        transactionFee,
+        feeRate,
+        outputTo
       )
-
-      const blockNode = [
-        {
-          id: String(inputs.size + 1),
-          indexC: inputs.size + 1,
-          type: 'block',
-          depthH: 2,
-          textInfo: ['', '', '1533 B', '1509 vB']
-        }
-      ]
-
-      const miningFee = `${MINING_FEE_VALUE}`
-      const priority = '42 sats/vB'
-      const outputNodes = [
-        {
-          id: String(inputs.size + 2),
-          indexC: inputs.size + 2,
-          type: 'text',
-          depthH: 3,
-          textInfo: [
-            'Unspent',
-            `${utxosSelectedValue - MINING_FEE_VALUE}`,
-            'to'
-          ],
-          value: utxosSelectedValue - MINING_FEE_VALUE
-        },
-        {
-          id: String(inputs.size + 3),
-          indexC: inputs.size + 3,
-          type: 'text',
-          depthH: 3,
-          textInfo: [priority, miningFee, 'mining fee'],
-          value: MINING_FEE_VALUE
-        }
-      ]
-      return [...inputNodes, ...blockNode, ...outputNodes]
     } else {
       return []
     }
-  }, [inputs, utxosSelectedValue])
+  }, [feeRate, inputs, outputTo, transactionFee, utxosSelectedValue])
 
   const sankeyLinks = useMemo(() => {
     if (inputs.size === 0) return []
@@ -275,12 +246,6 @@ export default function IOPreview() {
               width: '92%'
             }}
           >
-            <SSTextInput
-              variant="outline"
-              size="small"
-              align="left"
-              placeholder={t('transaction.build.type.label')}
-            />
             <SSHStack>
               <SSButton
                 variant="outline"
@@ -301,6 +266,7 @@ export default function IOPreview() {
               <SSButton
                 variant="outline"
                 label={t('common.options')}
+                disabled={outputs.length < 1}
                 style={{ flex: 1 }}
                 onPress={() => setShowBottomSheet(true)}
               />

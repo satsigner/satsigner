@@ -4,7 +4,7 @@ import BottomSheetModal, {
   BottomSheetModalProvider,
   BottomSheetView
 } from '@gorhom/bottom-sheet'
-import React, { useCallback, useRef } from 'react'
+import React, { useRef } from 'react'
 import { StyleSheet } from 'react-native'
 
 import { Colors } from '@/styles'

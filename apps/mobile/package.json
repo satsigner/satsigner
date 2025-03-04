@@ -30,6 +30,7 @@
     "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
     "buffer": "6.0.3",
+    "coinselect": "^3.1.13",
     "d3": "^7.9.0",
     "d3-sankey": "^0.12.3",
     "electrum-client": "https://github.com/BlueWallet/rn-electrum-client#1bfe3cc4249d5440b816baac942b0cfa921eebf9",
