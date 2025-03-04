@@ -7,7 +7,7 @@ export default function ExploreBlock() {
   const { height } = useLocalSearchParams<{ height?: string }>()
   const router = useRouter()
 
-  const blockHeight = height ? height : 'defaultHeightValue' // Replace defaultHeightValue as needed
+  const blockHeight = height ? height : 999
 
   const [blockDetails, setBlockDetails] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(false)
@@ -57,12 +57,6 @@ export default function ExploreBlock() {
       ) : (
         <Text style={styles.statusText}>No block details available.</Text>
       )}
-      <SSButton
-        label="Difficulty Epoch"
-        variant="gradient"
-        style={{ borderRadius: 0, marginTop: 8 }}
-        onPress={() => router.back()}
-      />
     </View>
   )
 }

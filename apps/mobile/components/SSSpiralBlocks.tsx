@@ -112,14 +112,32 @@ export default function SSSpiralBlocks() {
     }))
   }
 
+  /* const handleBlockPress = (index: number) => {
+    const block = spiralBlocks[index]
+    const height = block?.height || 675
+
+    if (!height) {
+      console.error('Block height not found, using fallback height of 675')
+    }
+    console.log(1111)
+    // Navigate to exploreBlock page with the height as parameter.
+    router.push(`explorer/block?height=${height}` as any)
+  }*/
+
   const handleBlockPress = (index: number) => {
     const block = spiralBlocks[index]
-    if (!block || !block.height) {
-      console.error('Block height not found')
-      return
+    const height = block?.height || 675
+
+    if (!height) {
+      console.error('Block height not found, using fallback height of 675')
     }
-    // Navigate to exploreBlock page with the height as parameter.
-    router.push(`/exploreBlock?height=${block.height}` as any)
+
+    console.log('Navigating to SSExploreBlock with height:', height)
+
+    router.push({
+      pathname: 'explorer/explorerViews',
+      params: { view: 'block', height }
+    } as any)
   }
 
   // State for fetching data
@@ -408,7 +426,7 @@ export default function SSSpiralBlocks() {
             style={{
               position: 'absolute',
               top: canvasTopOffset + canvasHeight / 2 + block.y - blockSize / 2,
-              left: canvasWidth / 2 + block.x - blockSize / 2,
+              left: block.x - blockSize / 2,
               width: blockSize + 3,
               height: blockSize + 3,
               borderRadius: 25,
@@ -540,7 +558,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     position: 'absolute',
-    bottom: 20,
+    bottom: -200,
     left: 0,
     right: 0
   },

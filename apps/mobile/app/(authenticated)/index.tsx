@@ -234,7 +234,7 @@ export default function AccountList() {
         label={t('explore.title')}
         variant="gradient"
         style={{ borderRadius: 0, marginTop: 8 }}
-        onPress={() => router.push('/explore')}
+        onPress={() => router.push('explorer' as any)}
       />
     </>
   )
