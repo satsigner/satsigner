@@ -94,23 +94,27 @@ export function SSSankeyLinks({
       // Calculate width based on whether this node is sending to or receiving from the block
       const isSourceToBlock = links.some(
         (link) =>
-          link.source === node.id && link.target === connectedBlockNode.id
+          link.source === node.id && link.target === connectedBlockNode?.id
       )
 
       let calculatedWidth
       if (isSourceToBlock) {
         // Node is sending to block - use total incoming value of block
-        const totalIncoming = getTotalIncomingValueForBlock(connectedBlockNode)
-        calculatedWidth = (nodeSats / totalIncoming) * maxWidth
+        const totalIncoming = connectedBlockNode
+          ? getTotalIncomingValueForBlock(connectedBlockNode)
+          : LINK_MAX_WIDTH
+        calculatedWidth = (nodeSats / totalIncoming) * LINK_MAX_WIDTH
       } else {
         // Node is receiving from block - use total outgoing value from block
-        const totalOutgoing = getTotalOutgoingValueFromBlock(connectedBlockNode)
-        calculatedWidth = (nodeSats / totalOutgoing) * maxWidth
+        const totalOutgoing = connectedBlockNode
+          ? getTotalOutgoingValueFromBlock(connectedBlockNode)
+          : LINK_MAX_WIDTH
+        calculatedWidth = (nodeSats / totalOutgoing) * LINK_MAX_WIDTH
       }
 
       return calculatedWidth
     },
-    [links, nodes]
+    [links, nodes, LINK_MAX_WIDTH]
   )
 
   if (links.length === 0) return null
