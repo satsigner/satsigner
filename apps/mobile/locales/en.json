@@ -119,6 +119,7 @@
     "list.loadMore": "Load more",
     "list.table.balance": "Sats",
     "list.table.index": "index",
+    "list.table.loadMore": "Load more",
     "list.table.tx": "TXs",
     "list.table.utxo": "UTXOs",
     "transactions": "Address transactions",

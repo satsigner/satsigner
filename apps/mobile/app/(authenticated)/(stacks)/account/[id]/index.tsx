@@ -328,6 +328,14 @@ function ChildAccounts({
           </SSText>
           <SSText
             style={[
+              addressListStyles.columnTxs,
+              { color: item.summary.transactions === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            {item.summary.transactions}
+          </SSText>
+          <SSText
+            style={[
               addressListStyles.columnSats,
               { color: item.summary.balance === 0 ? '#333' : '#fff' }
             ]}
@@ -341,14 +349,6 @@ function ChildAccounts({
             ]}
           >
             {item.summary.utxos}
-          </SSText>
-          <SSText
-            style={[
-              addressListStyles.columnTxs,
-              { color: item.summary.transactions === 0 ? '#333' : '#fff' }
-            ]}
-          >
-            {item.summary.transactions}
           </SSText>
         </SSHStack>
       </TouchableOpacity>
@@ -436,6 +436,14 @@ function ChildAccounts({
               <SSText
                 style={[
                   addressListStyles.headerText,
+                  addressListStyles.columnTxs
+                ]}
+              >
+                {t('address.list.table.tx')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
                   addressListStyles.columnSats
                 ]}
               >
@@ -448,14 +456,6 @@ function ChildAccounts({
                 ]}
               >
                 {t('address.list.table.utxo')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnTxs
-                ]}
-              >
-                {t('address.list.table.tx')}
               </SSText>
             </SSHStack>
 
@@ -476,7 +476,8 @@ function ChildAccounts({
         </ScrollView>
         <SSButton
           variant="outline"
-          label="LOAD MORE"
+          uppercase
+          label={t('address.list.table.loadMore')}
           disabled={loadingAddresses}
           onPress={loadMoreAddresses}
         />
@@ -1076,7 +1077,7 @@ const addressListStyles = StyleSheet.create({
     textTransform: 'uppercase'
   },
   columnAddress: { width: '20%' },
-  columnLabel: { width: '20%' },
+  columnLabel: { width: '15%' },
   columnSats: { width: '10%', textAlign: 'center' },
   columnTxs: { width: '10%', textAlign: 'center' },
   columnUtxos: { width: '10%', textAlign: 'center' },
