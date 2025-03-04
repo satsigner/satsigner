@@ -192,7 +192,7 @@ export default function AccountList() {
               borderBottomColor: '#222222',
               borderRadius: 0
             }}
-            onPress={() => router.navigate('/addMasterKey/')}
+            onPress={() => router.navigate('/account/add')}
             variant="gradient"
             gradientType="special"
           />

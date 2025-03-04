@@ -83,14 +83,14 @@ async function extractPubKeyFromDescriptor(descriptor: Descriptor) {
 }
 
 async function getFingerprint(
-  seedWords: NonNullable<Account['seedWords']>,
+  mnemonic: NonNullable<Account['mnemonic']>,
   passphrase: Account['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords)
+  const bdkMnemonic = await new Mnemonic().fromString(mnemonic)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
-    mnemonic,
+    bdkMnemonic,
     passphrase
   )
   const descriptor = await new Descriptor().newBip84(

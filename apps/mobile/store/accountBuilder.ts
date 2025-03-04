@@ -4,7 +4,6 @@ import { create } from 'zustand'
 
 import {
   extractPubKeyFromDescriptor,
-  generateMnemonic,
   getFingerprint,
   getMultiSigWalletFromMnemonic,
   getParticipantInfo,
@@ -13,26 +12,31 @@ import {
 } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
-import { type Account, type MultisigParticipant } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
 
 import { useBlockchainStore } from './blockchain'
 
 type AccountBuilderState = {
+  id: Account['id']
   name: Account['name']
-  type: Account['accountCreationType']
-  scriptVersion: NonNullable<Account['scriptVersion']>
-  seedWordCount: NonNullable<Account['seedWordCount']>
-  seedWords: NonNullable<Account['seedWords']>
-  passphrase?: Account['passphrase']
-  fingerprint?: Account['fingerprint']
+  policyType: Account['policyType']
+  mnemonic: NonNullable<Key['mnemonic']>
+  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
+  scriptVersion: NonNullable<Key['scriptVersion']>
+  passphrase: Key['passphrase']
+  fingerprint: Account['fingerprint']
+  keys: Account['keys']
+  keyCount: Account['keyCount']
+  keysRequired: Account['keysRequired']
+  creationType: Key['creationType']
+  // Below deprecated
   derivationPath?: Account['derivationPath']
   externalDescriptor?: Account['externalDescriptor']
   internalDescriptor?: Account['internalDescriptor']
   watchOnly?: Account['watchOnly']
   wallet?: Wallet
-  policyType?: Account['policyType']
-  participants?: Account['participants']
+  participants?: Account['keys']
   participantsCount?: Account['participantsCount']
   requiredParticipantsCount?: Account['requiredParticipantsCount']
   participantName?: MultisigParticipant['keyName']
@@ -41,24 +45,35 @@ type AccountBuilderState = {
 }
 
 type AccountBuilderAction = {
+  setName: (name: AccountBuilderState['name']) => void
+  setPolicyType: (policyType: AccountBuilderState['policyType']) => void
+  setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
+  setMnemonicWordCount: (
+    mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
+  ) => void
+  setFingerprint: (fingerprint: AccountBuilderState['fingerprint']) => void
+  setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
+  setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
+  setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
+  // Below is deprecated
   clearAccount: () => void
   clearParticipants: () => void
   getAccount: () => Account
-  setName: (name: Account['name']) => void
   setExternalDescriptor: (descriptor: string) => Promise<void>
   setInternalDescriptor: (descriptor: string) => Promise<void>
   setDescriptorFromXpub: (xpub: string) => Promise<void>
   setDescriptorFromAddress: (address: string) => void
-  setFingerprint: (fingerprint: string) => void
   setWatchOnly: (watchOnlyType: Account['watchOnly']) => void
-  setType: (type: Account['accountCreationType']) => void
+  setType: (type: AccountBuilderState['creationType']) => void // TODO: Delete
   setScriptVersion: (
-    scriptVersion: NonNullable<Account['scriptVersion']>
+    scriptVersion: NonNullable<AccountBuilderState['scriptVersion']>
   ) => void
   setSeedWordCount: (
-    seedWordCount: NonNullable<Account['seedWordCount']>
+    seedWordCount: NonNullable<AccountBuilderState['mnemonicWordCount']>
   ) => void
-  setSeedWords: (seedWords: NonNullable<Account['seedWords']>) => void
+  setSeedWords: (
+    seedWords: NonNullable<AccountBuilderState['mnemonic']>
+  ) => void
   setParticipant: (participants: string) => Promise<void>
   setParticipantWithSeedWord: () => Promise<void>
   setParticipantWithDescriptor: (descriptor: string) => Promise<void>
@@ -68,15 +83,11 @@ type AccountBuilderAction = {
   setRequiredParticipantsCount: (
     requiredParticipantsCount: Account['requiredParticipantsCount']
   ) => void
-  setParticipantCreationType: (
-    type: MultisigParticipant['creationType']
-  ) => void
-  setParticipantName: (name: MultisigParticipant['keyName']) => void
-  generateMnemonic: (
-    seedWordCount: NonNullable<Account['seedWordCount']>
-  ) => Promise<void>
-  setPassphrase: (passphrase: Account['passphrase']) => void
-  setPolicyType: (policyType: Account['policyType']) => void
+  setParticipantCreationType: (type: Key['creationType']) => void
+  setParticipantName: (name: Key['keyName']) => void
+  // generateMnemonic: (
+  //   seedWordCount: NonNullable<Account['mnemonic']>
+  // ) => Promise<void>
   setCurrentParticipantIndex: (index: number) => void
   updateFingerprint: () => Promise<void>
   loadWallet: () => Promise<Wallet>
@@ -86,16 +97,47 @@ type AccountBuilderAction = {
 const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()((set, get) => ({
+  id: '',
   name: '',
-  type: null,
+  policyType: 'singlesig',
+  mnemonic: '',
+  mnemonicWordCount: 24,
   scriptVersion: 'P2WPKH',
-  seedWordCount: 24,
-  policyType: 'single',
-  seedWords: '',
+  creationType: 'importSeed',
+  keys: [],
+  keysCount: 0,
+  keyRequired: 0,
+  // Bellow deprecated
   participants: [],
   participantsCount: 0,
   requiredParticipantsCount: 0,
   currentParticipantIndex: -1,
+  // End deprecated
+  setName: (name) => {
+    set({ name })
+  },
+  setPolicyType: (policyType) => {
+    set({ policyType })
+  },
+  setMnemonic: (mnemonic) => {
+    set({ mnemonic })
+  },
+  setMnemonicWordCount: (mnemonicWordCount) => {
+    set({ mnemonicWordCount })
+  },
+  setFingerprint: (fingerprint) => {
+    set({ fingerprint })
+  },
+  setPassphrase: (passphrase) => {
+    set({ passphrase })
+  },
+  setKeyCount: (keyCount) => {
+    set({ keyCount })
+  },
+  setKeysRequired: (keysRequired) => {
+    set({ keysRequired })
+  },
+  // Below is deprecated,
   clearAccount: () => {
     set({
       name: '',
@@ -208,11 +250,9 @@ const useAccountBuilderStore = create<
       externalDescriptor: `addr(${address})`
     })
   },
-  setFingerprint: (fingerprint) => {
-    set({ fingerprint })
-  },
   getAccount: () => {
     const {
+      id,
       name,
       type,
       scriptVersion,
@@ -231,6 +271,7 @@ const useAccountBuilderStore = create<
     } = get()
 
     return {
+      id,
       name,
       accountCreationType: type,
       scriptVersion,
@@ -257,9 +298,6 @@ const useAccountBuilderStore = create<
       participantsCount,
       requiredParticipantsCount
     }
-  },
-  setName: (name) => {
-    set({ name })
   },
   setType: (type) => {
     set({ type })
@@ -309,17 +347,11 @@ const useAccountBuilderStore = create<
   setCurrentParticipantIndex: (index) => {
     set({ currentParticipantIndex: index })
   },
-  generateMnemonic: async (seedWordCount) => {
-    const mnemonic = await generateMnemonic(seedWordCount)
-    set({ seedWords: mnemonic })
-    await get().updateFingerprint()
-  },
-  setPassphrase: (passphrase) => {
-    set({ passphrase })
-  },
-  setPolicyType: (policyType) => {
-    set({ policyType })
-  },
+  // generateMnemonic: async (mnemonic) => {
+  //   const mnemonic = await generateMnemonic(seedWordCount)
+  //   set({ seedWords: mnemonic })
+  //   await get().updateFingerprint()
+  // },
   setParticipant: async (participantSeedWords) => {
     const {
       participants,

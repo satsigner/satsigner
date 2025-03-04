@@ -1,3 +1,7 @@
+export type ConfirmSearchParams = {
+  index: string
+}
+
 export type AccountSearchParams = {
   id: string
 }
