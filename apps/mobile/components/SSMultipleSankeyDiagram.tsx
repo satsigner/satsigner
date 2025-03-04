@@ -114,34 +114,17 @@ function SSMultipleSankeyDiagram({
     // Find the minimum and maximum x positions among nodes in the last three levels
     let minX = Infinity
     let maxX = -Infinity
-    let nodesFound = false
 
     nodes.forEach((node) => {
       const typedNode = node as Node
       if (
         lastThreeLevels.includes(typedNode.depthH) &&
-        (node as any).x !== undefined
+        typeof typedNode.x0 === 'number'
       ) {
-        minX = Math.min(minX, (node as any).x)
-        maxX = Math.max(maxX, (node as any).x)
-        nodesFound = true
+        minX = Math.min(minX, typedNode.x0)
+        maxX = Math.max(maxX, typedNode.x0)
       }
     })
-
-    // If we couldn't find any nodes in the last three levels, use a fallback
-    if (!nodesFound) {
-      // Fallback to a calculation based on the diagram's expected layout
-      const diagramWidth = 2000 * (maxDepthH / 11)
-      const lastThreeDepthsWidth = diagramWidth * (3 / maxDepthH)
-      const fallbackTranslation = -(
-        diagramWidth -
-        lastThreeDepthsWidth -
-        w / 10
-      )
-
-      // Ensure the translation is within reasonable bounds
-      return Math.max(fallbackTranslation, -(diagramWidth - w / 2))
-    }
 
     // Calculate the width of the last three levels
     const lastThreeLevelsWidth = maxX - minX + NODE_WIDTH
@@ -160,6 +143,7 @@ function SSMultipleSankeyDiagram({
 
     // Ensure the translation doesn't move the diagram too far off-screen
     // This prevents extreme translations that might make the diagram invisible
+
     return Math.max(translation, -(diagramWidth - w / 2))
   }, [maxDepthH, nodes, w])
 
