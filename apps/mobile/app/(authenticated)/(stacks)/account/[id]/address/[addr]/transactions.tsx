@@ -2,19 +2,18 @@ import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
-import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { t } from '@/locales'
 
-function SSAddressTransaction() {
+function SSAddressTransactions() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
   const address = useAccountsStore((state) =>
@@ -51,9 +50,9 @@ function SSAddressTransaction() {
     <ScrollView>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>
-            {t('address.transactions')}
-          </SSText>
+          headerTitle: () => (
+            <SSText uppercase>{t('address.transactions')}</SSText>
+          )
         }}
       />
 
@@ -75,10 +74,9 @@ function SSAddressTransaction() {
             <SSSeparator />
           </>
         ))}
-
       </SSVStack>
     </ScrollView>
   )
 }
 
-export default SSAddressTransaction
+export default SSAddressTransactions
