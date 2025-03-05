@@ -2,6 +2,10 @@ export type MultiSigKeySettingsSearchParams = {
   index: string
 }
 
+export type GenerateMnemonicSearchParams = {
+  index: string
+}
+
 export type ConfirmWordSearchParams = {
   keyIndex: string
   index: string
