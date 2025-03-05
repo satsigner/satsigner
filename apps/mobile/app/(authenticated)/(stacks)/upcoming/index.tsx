@@ -21,6 +21,7 @@ export default function UpComing() {
   const data = useMemo(() => {
     return slides.find((item) => item.page === params.title)?.items ?? []
   }, [params.title])
+
   useEffect(() => {
     if (!data.length) {
       router.navigate('/')
@@ -171,14 +172,16 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: '100%',
     overflow: 'hidden',
+    alignItems: 'center',
+    padding: 2
+  },
+  image: {
+    height: '100%',
+    aspectRatio: '6 / 13',
+    resizeMode: 'contain',
     borderColor: white,
     borderWidth: 1,
     borderRadius: 16
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'stretch'
   },
   dotContainer: {
     flexDirection: 'row',
