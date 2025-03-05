@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -16,12 +17,16 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Key } from '@/types/models/Account'
+import { type MultiSigKeySettingsSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
-export default function SingleSig() {
+export default function MultiSigKeySettings() {
+  const { index } = useLocalSearchParams<MultiSigKeySettingsSearchParams>()
   const router = useRouter()
   const [
     name,
+    setKeyName,
+    keyCount,
     setScriptVersion,
     setMnemonicWordCount,
     setMnemonic,
@@ -29,6 +34,8 @@ export default function SingleSig() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
+      state.setKeyName,
+      state.keyCount,
       state.setScriptVersion,
       state.setMnemonicWordCount,
       state.setMnemonic,
@@ -37,6 +44,7 @@ export default function SingleSig() {
   )
   const network = useBlockchainStore((state) => state.network)
 
+  const [localKeyName, setLocalKeyName] = useState('')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
@@ -49,7 +57,10 @@ export default function SingleSig() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(type: 'generateMnemonic' | 'importMnemonic') {
+  async function handleOnPress(
+    type: 'generateMnemonic' | 'importMnemonic' | 'importDescriptor'
+  ) {
+    setKeyName(localKeyName)
     setScriptVersion(localScriptVersion)
     setMnemonicWordCount(localMnemonicWordCount)
 
@@ -67,9 +78,10 @@ export default function SingleSig() {
       setFingerprint(fingerprint)
 
       setLoading(false)
-      router.navigate('/account/add/generate/mnemonic/0')
+      router.navigate(`/account/add/generate/mnemonic/${index}`)
     } else if (type === 'importMnemonic')
-      router.navigate('/account/add/import/mnemonic/0')
+      router.navigate(`/account/add/import/mnemonic/${index}`)
+    else if (type === 'importDescriptor') router.navigate('') // TODO
   }
 
   function handleOnSelectMnemonicWordCount() {
@@ -92,8 +104,21 @@ export default function SingleSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.policy.title')} />
               <SSText center weight="bold">
-                {t('account.policy.singleSignature.title').toUpperCase()}
+                {t('account.policy.multiSignature.title').toUpperCase()}
               </SSText>
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.key.number')} />
+              <SSText center weight="bold">
+                {Number(index) + 1} {t('common.of').toLowerCase()} {keyCount}
+              </SSText>
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.name')} />
+              <SSTextInput
+                value={localKeyName}
+                onChangeText={(text) => setLocalKeyName(text)}
+              />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
@@ -114,6 +139,10 @@ export default function SingleSig() {
           </SSFormLayout>
         </SSVStack>
         <SSVStack>
+          <SSButton
+            label={t('account.import.descriptor')}
+            onPress={() => handleOnPress('importDescriptor')}
+          />
           <SSButton
             label={t('account.import.title2')}
             onPress={() => handleOnPress('importMnemonic')}

@@ -8,16 +8,18 @@ export type MnemonicCount = 12 | 15 | 18 | 21 | 24
 export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
 
 export type CreationType =
-  | 'generateSeed'
-  | 'importSeed'
+  | 'generateMnemonic'
+  | 'importMnemonic'
   | 'importDescriptor'
   | 'importExtendedPub'
   | 'importAddress'
 
 export type Key = {
-  // Below deprecated
-  keyName?: string // name
+  name?: string
+  /** Key position for multisig. Set to 0 if singlesig */
+  index?: number
   createdAt?: Date
+  // Below deprecated
   mnemonicWordCount?: MnemonicCount
   mnemonic?: string
   passphrase?: string
@@ -34,9 +36,12 @@ export type Account = {
   id: string
   name: string
   policyType: PolicyType
-  keys?: Key[]
-  keyCount?: number
-  keysRequired?: number
+  /** Account keys. Default: [] */
+  keys: Key[]
+  /** Total account keys. Default: 1 */
+  keyCount: number
+  /** Keys required to sign. Default: 1 */
+  keysRequired: number
   // Below deprecated
   watchOnly?: 'public-key' | 'address' // TODO: To remove
   createdAt: Date

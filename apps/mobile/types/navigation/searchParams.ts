@@ -1,4 +1,9 @@
-export type ConfirmSearchParams = {
+export type MultiSigKeySettingsSearchParams = {
+  index: string
+}
+
+export type ConfirmWordSearchParams = {
+  keyIndex: string
   index: string
 }
 

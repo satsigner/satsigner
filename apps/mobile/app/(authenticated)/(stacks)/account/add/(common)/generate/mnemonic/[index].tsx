@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Redirect, Stack, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -19,8 +19,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 
 export default function GenerateMnemonic() {
+  const { index } = useLocalSearchParams<GenerateMnemonicSearchParams>()
   const router = useRouter()
   const [
     name,
@@ -113,7 +115,9 @@ export default function GenerateMnemonic() {
               label={t('account.confirmSeed.title')}
               variant="secondary"
               disabled={!checksumValid}
-              onPress={() => router.navigate('/account/add/confirm/0')}
+              onPress={() =>
+                router.navigate(`/account/add/confirm/${index}/word/0`)
+              }
             />
             <SSButton
               label={t('common.cancel')}

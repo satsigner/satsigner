@@ -5,13 +5,18 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSText from '@/components/SSText'
+import {
+  DEFAULT_MULTISIG_KEY_COUNT,
+  DEFAULT_MULTISIG_KEYS_REQUIRED,
+  MAX_MULTISIG_KEYS
+} from '@/config/keys'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 
-export default function SingleSig() {
+export default function MultiSig() {
   const router = useRouter()
   const [name, setKeyCount, setKeysRequired] = useAccountBuilderStore(
     useShallow((state) => [
@@ -21,13 +26,15 @@ export default function SingleSig() {
     ])
   )
 
-  const [localKeysCount, setLocalKeysCount] = useState(3)
-  const [localKeysRequired, setLocalKeysRequired] = useState(2)
+  const [localKeyCount, setLocalKeyCount] = useState(DEFAULT_MULTISIG_KEY_COUNT)
+  const [localKeysRequired, setLocalKeysRequired] = useState(
+    DEFAULT_MULTISIG_KEYS_REQUIRED
+  )
 
   function handleOnPressContinue() {
-    setKeyCount(localKeysCount)
+    setKeyCount(localKeyCount)
     setKeysRequired(localKeysRequired)
-    router.navigate('/') // TODO: change
+    router.navigate('/account/add/multiSig/manager')
   }
 
   if (!name) return <Redirect href="/" />
@@ -50,11 +57,11 @@ export default function SingleSig() {
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSMultisigCountSelector
-                maxCount={12}
+                maxCount={MAX_MULTISIG_KEYS}
                 requiredNumber={localKeysRequired}
-                totalNumber={localKeysCount}
+                totalNumber={localKeyCount}
                 onChangeRequiredNumber={setLocalKeysRequired}
-                onChangeTotalNumber={setLocalKeysCount}
+                onChangeTotalNumber={setLocalKeyCount}
                 viewOnly={false}
               />
             </SSFormLayout.Item>

@@ -30,6 +30,7 @@ type AccountBuilderState = {
   keyCount: Account['keyCount']
   keysRequired: Account['keysRequired']
   creationType: Key['creationType']
+  keyName: NonNullable<Key['name']>
   // Below deprecated
   derivationPath?: Account['derivationPath']
   externalDescriptor?: Account['externalDescriptor']
@@ -55,6 +56,7 @@ type AccountBuilderAction = {
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
   setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
   setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
+  setKeyName: (keyName: AccountBuilderState['keyName']) => void
   // Below is deprecated
   clearAccount: () => void
   clearParticipants: () => void
@@ -136,6 +138,9 @@ const useAccountBuilderStore = create<
   },
   setKeysRequired: (keysRequired) => {
     set({ keysRequired })
+  },
+  setKeyName: (keyName) => {
+    set({ keyName })
   },
   // Below is deprecated,
   clearAccount: () => {

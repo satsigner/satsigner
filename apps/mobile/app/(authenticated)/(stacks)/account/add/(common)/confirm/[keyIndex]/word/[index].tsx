@@ -18,12 +18,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
-import { type ConfirmSearchParams } from '@/types/navigation/searchParams'
+import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
-export default function ConfirmSeed() {
+export default function Confirm() {
   const router = useRouter()
-  const { index } = useLocalSearchParams<ConfirmSearchParams>()
+  const { keyIndex, index } = useLocalSearchParams<ConfirmWordSearchParams>()
 
   const [syncWallet, addAccount, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -72,11 +72,11 @@ export default function ConfirmSeed() {
   async function handleNavigateNextWord() {
     if (!mnemonicWordCount || !selectedCheckbox) return
 
-    if (candidateWords[selectedCheckbox - 1] !== mnemonic[+index!])
+    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)])
       return setIncorrectWordModalVisible(true)
 
     if (+index! + 1 < mnemonicWordCount)
-      router.push(`/addMasterKey/confirmSeed/${+index! + 1}`)
+      router.push(`/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`)
     else return handleFinishWordsConfirmation()
   }
 
