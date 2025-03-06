@@ -1,4 +1,10 @@
-import { Group, Path, Skia, TileMode, vec } from '@shopify/react-native-skia'
+import {
+  Group,
+  LinearGradient,
+  Paint,
+  Path,
+  vec
+} from '@shopify/react-native-skia'
 import { useCallback } from 'react'
 
 import { gray } from '@/styles/colors'
@@ -158,25 +164,70 @@ export function SSSankeyLinks({
               style="fill"
               color={gray[700]}
               opacity={0.4}
-              paint={
-                isUnspent
-                  ? (() => {
-                      const paint = Skia.Paint()
-                      paint.setShader(
-                        Skia.Shader.MakeLinearGradient(
-                          vec(points.x1, points.y1),
-                          vec(points.x2, points.y2),
-                          [Skia.Color(gray[700]), Skia.Color('#fdfdfd')],
-                          [0, 0.9],
-                          TileMode.Clamp
-                        )
-                      )
-                      paint.setAlphaf(0.8)
-                      return paint
-                    })()
-                  : undefined
-              }
-            />
+            >
+              {isUnspent && (
+                <>
+                  {/* Base layer - dark gray */}
+                  <Paint>
+                    <LinearGradient
+                      start={vec(points.x1, points.y1)}
+                      end={vec(points.x2, points.y2)}
+                      colors={['#363636', '#363636']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+
+                  {/* White to gray gradient */}
+                  <Paint>
+                    <LinearGradient
+                      start={vec(points.x2, points.y1)}
+                      end={vec(
+                        points.x1 + (points.x2 - points.x1) * 0.58,
+                        points.y1
+                      )}
+                      colors={['#FFFFFF', '#5B5B5B']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+
+                  {/* Another dark gray layer */}
+                  <Paint>
+                    <LinearGradient
+                      start={vec(points.x1, points.y1)}
+                      end={vec(points.x2, points.y2)}
+                      colors={['#363636', '#363636']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+
+                  {/* White overlay */}
+                  <Paint opacity={0.7}>
+                    <LinearGradient
+                      start={vec(points.x1, points.y1)}
+                      end={vec(points.x2, points.y2)}
+                      colors={['#FFFFFF', '#FFFFFF']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+
+                  {/* Final gradient - dark to white */}
+                  <Paint>
+                    <LinearGradient
+                      start={vec(
+                        points.x2 + (points.x2 - points.x1) * 0.03,
+                        points.y1
+                      )}
+                      end={vec(
+                        points.x1 + (points.x2 - points.x1) * 0.7,
+                        points.y1
+                      )}
+                      colors={['#2C2C2C', '#FFFFFF']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+                </>
+              )}
+            </Path>
           </Group>
         )
       })}
