@@ -1,3 +1,4 @@
+import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group } from '@shopify/react-native-skia'
 import {
   sankey,
@@ -5,7 +6,7 @@ import {
   type SankeyNodeMinimal
 } from 'd3-sankey'
 import { useMemo } from 'react'
-import { Platform, View } from 'react-native'
+import { Platform, useWindowDimensions, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -159,16 +160,24 @@ function SSMultipleSankeyDiagram({
     shouldResetOnInteractionEnd: false,
     initialTranslation: {
       x: initialXTranslation,
+      // x: 0,
       y: 0
     }
   })
+  const topHeaderHeight = useHeaderHeight()
+  const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height - topHeaderHeight
+  const GRAPH_WIDTH = width
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null
   }
   return (
     <View style={{ flex: 1 }}>
-      <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>
+      <Canvas
+        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        onLayout={onCanvasLayout}
+      >
         <Group transform={transform} origin={{ x: w / 2, y: h / 2 }}>
           <SSSankeyLinks
             links={transformedLinks}
@@ -188,11 +197,16 @@ function SSMultipleSankeyDiagram({
             top: 0,
             right: 0,
             bottom: 0,
-            left: 0
+            left: 0,
+            borderColor: 'red',
+            borderWidth: 2
           }}
         >
           <Animated.View
-            style={[{ width: 2000, height: 2000 }, animatedStyle]}
+            style={[
+              { width: GRAPH_WIDTH, height: GRAPH_HEIGHT },
+              animatedStyle
+            ]}
             onLayout={onCanvasLayout}
           />
         </View>

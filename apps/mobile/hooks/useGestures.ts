@@ -73,34 +73,37 @@ export const useGestures = ({
   const moveIntoView = () => {
     'worklet'
     if (scale.value > 1) {
-      const rightLimit = limits.right(width, scale)
-      const leftLimit = -rightLimit
-      const bottomLimit = limits.bottom(height, scale)
-      const topLimit = -bottomLimit
-      const totalTranslateX = sum(translate.x, focal.x)
-      const totalTranslateY = sum(translate.y, focal.y)
+      // Only apply boundary constraints if shouldResetOnInteractionEnd is true
+      if (shouldResetOnInteractionEnd) {
+        const rightLimit = limits.right(width, scale)
+        const leftLimit = -rightLimit
+        const bottomLimit = limits.bottom(height, scale)
+        const topLimit = -bottomLimit
+        const totalTranslateX = sum(translate.x, focal.x)
+        const totalTranslateY = sum(translate.y, focal.y)
 
-      if (totalTranslateX > rightLimit) {
-        translate.x.value = withTiming(rightLimit)
-        focal.x.value = withTiming(0)
-      } else if (totalTranslateX < leftLimit) {
-        translate.x.value = withTiming(leftLimit)
-        focal.x.value = withTiming(0)
-      }
+        if (totalTranslateX > rightLimit) {
+          translate.x.value = withTiming(rightLimit)
+          focal.x.value = withTiming(0)
+        } else if (totalTranslateX < leftLimit) {
+          translate.x.value = withTiming(leftLimit)
+          focal.x.value = withTiming(0)
+        }
 
-      if (totalTranslateY > bottomLimit) {
-        translate.y.value = withTiming(bottomLimit)
-        focal.y.value = withTiming(0)
-      } else if (totalTranslateY < topLimit) {
-        translate.y.value = withTiming(topLimit)
-        focal.y.value = withTiming(0)
+        if (totalTranslateY > bottomLimit) {
+          translate.y.value = withTiming(bottomLimit)
+          focal.y.value = withTiming(0)
+        } else if (totalTranslateY < topLimit) {
+          translate.y.value = withTiming(topLimit)
+          focal.y.value = withTiming(0)
+        }
       }
     } else if (shouldResetOnInteractionEnd) {
       reset()
     }
   }
 
-  const reset = useCallback(() => {
+  const resetScale = useCallback(() => {
     'worklet'
     const interactionId = getInteractionId()
 
@@ -118,14 +121,6 @@ export const useGestures = ({
     focal.y.value = withTiming(0, undefined, (...args) =>
       onAnimationEnd(interactionId, ANIMATION_VALUE.FOCAL_Y, ...args)
     )
-    savedTranslate.x.value = 0
-    savedTranslate.y.value = 0
-    translate.x.value = withTiming(0, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_X, ...args)
-    )
-    translate.y.value = withTiming(0, undefined, (...args) =>
-      onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_Y, ...args)
-    )
   }, [
     savedScale,
     scale,
@@ -135,10 +130,31 @@ export const useGestures = ({
     savedFocal.y,
     focal.x,
     focal.y,
+    getInteractionId,
+    onAnimationEnd
+  ])
+
+  const reset = useCallback(() => {
+    'worklet'
+    const interactionId = getInteractionId()
+
+    resetScale()
+    savedTranslate.x.value = initialTranslation.x
+    savedTranslate.y.value = initialTranslation.y
+    translate.x.value = withTiming(initialTranslation.x, undefined, (...args) =>
+      onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_X, ...args)
+    )
+    translate.y.value = withTiming(initialTranslation.y, undefined, (...args) =>
+      onAnimationEnd(interactionId, ANIMATION_VALUE.TRANSLATE_Y, ...args)
+    )
+  }, [
+    resetScale,
     savedTranslate.x,
     savedTranslate.y,
     translate.x,
     translate.y,
+    initialTranslation.x,
+    initialTranslation.y,
     getInteractionId,
     onAnimationEnd
   ])
@@ -211,38 +227,69 @@ export const useGestures = ({
       const bottomLimit = limits.bottom(height, scale)
       const topLimit = -bottomLimit
 
-      // Apply decay to the translation values if the scale is greater than 1
-      if (scale.value > 1) {
-        translate.x.value = withDecay(
-          {
-            velocity: event.velocityX * 0.6, // Apply decay based on the x velocity
-            rubberBandEffect: true, // Enable rubber band effect
-            rubberBandFactor: 0.9, // Set rubber band factor
-            clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value] // Clamp values to prevent excessive movement
-          },
-          () => {
-            // End the pan gesture if the x velocity is greater than or equal to the y velocity
-            if (event.velocityX >= event.velocityY) {
-              runOnJS(onPanEnded)(event, success)
+      // When shouldResetOnInteractionEnd is false, apply decay regardless of scale
+      if (!shouldResetOnInteractionEnd || scale.value > 1) {
+        // For X translation
+        if (shouldResetOnInteractionEnd && scale.value > 1) {
+          // With boundaries when scale > 1
+          translate.x.value = withDecay(
+            {
+              velocity: event.velocityX * 0.6,
+              rubberBandEffect: true,
+              rubberBandFactor: 0.9,
+              clamp: [leftLimit - focal.x.value, rightLimit - focal.x.value]
+            },
+            () => {
+              if (event.velocityX >= event.velocityY) {
+                runOnJS(onPanEnded)(event, success)
+              }
             }
-          }
-        )
-        translate.y.value = withDecay(
-          {
-            velocity: event.velocityY * 0.6, // Apply decay based on the y velocity
-            rubberBandEffect: true, // Enable rubber band effect
-            rubberBandFactor: 0.9, // Set rubber band factor
-            clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value] // Clamp values to prevent excessive movement
-          },
-          () => {
-            // End the pan gesture if the y velocity is greater than the x velocity
-            if (event.velocityY > event.velocityX) {
-              runOnJS(onPanEnded)(event, success)
+          )
+        } else {
+          // Without boundaries
+          translate.x.value = withDecay(
+            {
+              velocity: event.velocityX * 0.6
+            },
+            () => {
+              if (event.velocityX >= event.velocityY) {
+                runOnJS(onPanEnded)(event, success)
+              }
             }
-          }
-        )
+          )
+        }
+
+        // For Y translation
+        if (shouldResetOnInteractionEnd && scale.value > 1) {
+          // With boundaries when scale > 1
+          translate.y.value = withDecay(
+            {
+              velocity: event.velocityY * 0.6,
+              rubberBandEffect: true,
+              rubberBandFactor: 0.9,
+              clamp: [topLimit - focal.y.value, bottomLimit - focal.y.value]
+            },
+            () => {
+              if (event.velocityY > event.velocityX) {
+                runOnJS(onPanEnded)(event, success)
+              }
+            }
+          )
+        } else {
+          // Without boundaries
+          translate.y.value = withDecay(
+            {
+              velocity: event.velocityY * 0.6
+            },
+            () => {
+              if (event.velocityY > event.velocityX) {
+                runOnJS(onPanEnded)(event, success)
+              }
+            }
+          )
+        }
       } else {
-        // End the pan gesture immediately if the scale is not greater than 1
+        // End the pan gesture immediately if the scale is not greater than 1 and shouldResetOnInteractionEnd is true
         runOnJS(onPanEnded)(event, success)
       }
     })
@@ -289,11 +336,26 @@ export const useGestures = ({
         isZoomedIn.value = true
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_IN)
         scale.value = withTiming(doubleTapScale)
-        focal.x.value = withTiming((center.x - event.x) * (doubleTapScale - 1))
-        focal.y.value = withTiming((center.y - event.y) * (doubleTapScale - 1))
+        // Always calculate focal point based on tap location
+        const focalX = (center.x - event.x) * (doubleTapScale - 1)
+        const focalY = (center.y - event.y) * (doubleTapScale - 1)
+
+        if (shouldResetOnInteractionEnd) {
+          focal.x.value = withTiming(focalX)
+          focal.y.value = withTiming(focalY)
+        } else {
+          // Adjust focal point based on current position
+          focal.x.value = withTiming(
+            focalX + translate.x.value * (doubleTapScale - 1)
+          )
+          focal.y.value = withTiming(
+            focalY + translate.y.value * (doubleTapScale - 1)
+          )
+        }
       } else {
         isZoomedIn.value = false
         runOnJS(onDoubleTap)(ZOOM_TYPE.ZOOM_OUT)
+        // Always reset to initialTranslation when zooming out
         reset()
       }
     })
