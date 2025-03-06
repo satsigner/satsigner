@@ -75,11 +75,7 @@ function SSMultipleSankeyDiagram({
     .nodePadding(140)
     .extent([
       [0, 160],
-      [
-        2000 * (maxDepthH / 11),
-        // 2000 * 0.7,
-        1000 * (maxNodeCountInDepthH / 9)
-      ]
+      [2000 * (maxDepthH / 11), 1000 * (maxNodeCountInDepthH / 9)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -160,7 +156,6 @@ function SSMultipleSankeyDiagram({
     shouldResetOnInteractionEnd: false,
     initialTranslation: {
       x: initialXTranslation,
-      // x: 0,
       y: 0
     }
   })
