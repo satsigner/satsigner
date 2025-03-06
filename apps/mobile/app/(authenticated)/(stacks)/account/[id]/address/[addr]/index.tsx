@@ -1,10 +1,12 @@
 import { toOutputScript } from 'bitcoinjs-lib/src/address'
 import { toASM } from 'bitcoinjs-lib/src/script'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, TouchableOpacity, View } from 'react-native'
+import { ScrollView, useWindowDimensions } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
+import SSBubbleChart from '@/components/SSBubbleChart'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
@@ -17,9 +19,11 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
+import { type Utxo } from '@/types/models/Utxo'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 function AddressDetails() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -40,11 +44,22 @@ function AddressDetails() {
       ?.transactions.filter((tx) => address?.transactions.includes(tx.id))
   )
 
+  const utxos = useAccountsStore((state) =>
+    state.accounts
+      .find((account: Account) => account.name === accountId)
+      ?.utxos.filter((utxo) => address?.utxos.includes(getUtxoOutpoint(utxo)))
+  )
+
   const getBlockchainHeight = useBlockchainStore(
     (state) => state.getBlockchainHeight
   )
 
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
+
+  const { width, height } = useWindowDimensions()
+
+  const GRAPH_HEIGHT = height * 0.4
+  const GRAPH_WIDTH = width * 0.8
 
   async function refreshBlockchainHeight() {
     const height = await getBlockchainHeight()
@@ -69,7 +84,7 @@ function AddressDetails() {
   }, [address])
 
   if (!account || !addr || !address) {
-    return <SSText>NOT FOUND</SSText>
+    return <Redirect href="/" />
   }
 
   return (
@@ -127,44 +142,55 @@ function AddressDetails() {
                   <SSText>{address?.summary.transactions}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.navigate(
-                        `/account/${accountId}/address/${addr}/utxos`
-                      )
-                    }
-                  >
-                    <SSText color="muted" uppercase>
-                      {t('address.details.history.utxo')}
-                    </SSText>
-                    <SSText>{address?.summary.utxos}</SSText>
-                  </TouchableOpacity>
+                  <SSText color="muted" uppercase>
+                    {t('address.details.history.utxo')}
+                  </SSText>
+                  <SSText>{address?.summary.utxos}</SSText>
                 </SSVStack>
               </SSHStack>
               {transactions && transactions.length > 0 && (
-                <SSVStack style={{ width: '100%' }}>
+                <SSVStack>
                   <SSText uppercase color="muted">
-                    Transactions
+                    {t('bitcoin.transactions')}
                   </SSText>
                   <SSVStack gap="none">
-                  {transactions.map((tx) => (
-                    <SSTransactionCard
-                      style={{
-                        paddingHorizontal: 0,
-                        paddingBottom: 8,
-                        borderTopWidth: 1,
-                        borderColor: Colors.gray[700]
-                      }}
-                      transaction={tx}
-                      key={tx.id}
-                      blockHeight={blockchainHeight}
-                      fiatCurrency="USD"
-                      btcPrice={0}
-                      link={`/account/${accountId}/transaction/${tx.id}`}
-                      expand
-                    />
-                  ))}
+                    {transactions.map((tx) => (
+                      <SSTransactionCard
+                        style={{
+                          paddingHorizontal: 0,
+                          paddingBottom: 8,
+                          borderTopWidth: 1,
+                          borderColor: Colors.gray[700]
+                        }}
+                        transaction={tx}
+                        key={tx.id}
+                        blockHeight={blockchainHeight}
+                        fiatCurrency="USD"
+                        btcPrice={0}
+                        link={`/account/${accountId}/transaction/${tx.id}`}
+                        expand
+                      />
+                    ))}
                   </SSVStack>
+                </SSVStack>
+              )}
+              {utxos && utxos.length > 0 && (
+                <SSVStack>
+                  <SSText uppercase color="muted">
+                    {t('bitcoin.utxos')}
+                  </SSText>
+                  <GestureHandlerRootView style={{ flex: 1 }}>
+                    <SSBubbleChart
+                      utxos={utxos}
+                      canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+                      inputs={[]}
+                      onPress={({ txid, vout }: Utxo) =>
+                        router.navigate(
+                          `/account/${accountId}/transaction/${txid}/utxo/${vout}`
+                        )
+                      }
+                    />
+                  </GestureHandlerRootView>
                 </SSVStack>
               )}
             </SSVStack>

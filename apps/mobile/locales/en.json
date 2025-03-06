@@ -160,6 +160,10 @@
     "satVb": "sat/vB",
     "sats": "sats",
     "satsVb": "sats/vB",
+    "transaction": "transaction",
+    "transactions": "transactions",
+    "utxo": "UTXO",
+    "utxos": "UTXOs",
     "word": "Word",
     "words": "Words"
   },
