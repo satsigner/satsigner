@@ -148,18 +148,21 @@ function AddressDetails() {
                   <SSText>{address?.summary.utxos}</SSText>
                 </SSVStack>
               </SSHStack>
-              {transactions && transactions.length > 0 && (
+            </SSVStack>
+            <SSSeparator />
+            {transactions && transactions.length > 0 && (
+              <>
                 <SSVStack>
-                  <SSText uppercase color="muted">
+                  <SSText uppercase size="md" weight="bold">
                     {t('bitcoin.transactions')}
                   </SSText>
                   <SSVStack gap="none">
-                    {transactions.map((tx) => (
+                    {transactions.map((tx, index) => (
                       <SSTransactionCard
                         style={{
                           paddingHorizontal: 0,
                           paddingBottom: 8,
-                          borderTopWidth: 1,
+                          borderTopWidth: index > 0 ? 1 : 0,
                           borderColor: Colors.gray[700]
                         }}
                         transaction={tx}
@@ -173,10 +176,13 @@ function AddressDetails() {
                     ))}
                   </SSVStack>
                 </SSVStack>
-              )}
-              {utxos && utxos.length > 0 && (
+                <SSSeparator />
+              </>
+            )}
+            {utxos && utxos.length > 0 && (
+              <>
                 <SSVStack>
-                  <SSText uppercase color="muted">
+                  <SSText uppercase size="md" weight="bold">
                     {t('bitcoin.utxos')}
                   </SSText>
                   <GestureHandlerRootView style={{ flex: 1 }}>
@@ -192,9 +198,9 @@ function AddressDetails() {
                     />
                   </GestureHandlerRootView>
                 </SSVStack>
-              )}
-            </SSVStack>
-            <SSSeparator />
+                <SSSeparator />
+              </>
+            )}
             <SSVStack gap="sm">
               <SSText uppercase weight="bold" size="md">
                 {t('address.details.encoding.title')}
