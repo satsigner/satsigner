@@ -155,7 +155,7 @@ export default function AccountList() {
               {isDrawerOpen ? (
                 <SSIconCloseThin height={20} width={20} />
               ) : (
-                <SSIconHamburger height={18} width={20} />
+                <SSIconHamburger height={18} width={18} />
               )}
             </SSIconButton>
           )

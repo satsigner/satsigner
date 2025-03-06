@@ -1,16 +1,39 @@
 import { DrawerContentScrollView } from '@react-navigation/drawer'
 import { LinearGradient } from 'expo-linear-gradient'
-import { StyleSheet, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 
 import { navMenuGroups } from '@/constants/navItems'
 import { APP_VERSION, BUILD_NUMBER } from '@/constants/version'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
+import { PLATFORM } from '@/types/navigation/navMenu'
 
 import SSNavMenuGroup from './SSNavMenuGroup'
 import SSText from './SSText'
 
 function SSNavMenu(props: any) {
+  const currentPlatform: PLATFORM = Platform.OS as PLATFORM
+  const filteredNavMenuGroups = navMenuGroups.reduce(
+    (acc, group) => {
+      if (group.items && Array.isArray(group.items)) {
+        const filteredItems = group.items.filter((item) => {
+          if (
+            item.platform === PLATFORM.HYBRID ||
+            item.platform === currentPlatform
+          ) {
+            return true
+          }
+          return false
+        })
+        if (filteredItems.length > 0) {
+          acc.push({ ...group, items: filteredItems })
+        }
+      }
+      return acc
+    },
+    [] as typeof navMenuGroups
+  )
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -27,8 +50,8 @@ function SSNavMenu(props: any) {
         {...props}
         contentContainerStyle={styles.contentContainer}
       >
-        <SSVStack style={styles.vStackWrapper} justifyBetween>
-          {navMenuGroups.map((group, index) => (
+        <SSVStack style={styles.vStackWrapper}>
+          {filteredNavMenuGroups.map((group, index) => (
             <SSNavMenuGroup key={`${index} - ${group.title}`} group={group} />
           ))}
         </SSVStack>
@@ -66,6 +89,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   vStackWrapper: {
+    gap: 60,
     padding: 12,
     paddingRight: 22,
     paddingTop: 40
