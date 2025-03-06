@@ -48,7 +48,7 @@ export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
       if (dataNode.type === 'block') {
         const sizeStr = dataNode.textInfo[2]
         const size = parseInt(sizeStr.split(' ')[0], 10)
-        const height = Math.min(100, Math.max(40, (size / 2000) * 100))
+        const height = size * 0.1
 
         return (
           <Group>
