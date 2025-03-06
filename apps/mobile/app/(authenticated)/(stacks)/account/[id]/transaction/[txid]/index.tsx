@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -31,6 +32,7 @@ import {
   formatNumber
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 // TODO: Refactor page
 
@@ -364,17 +366,31 @@ type SSTxDetailsOutputsProps = {
 }
 
 function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === accountId)
+  )
+
+  const utxoDict: Record<string, boolean> = {}
+  const addressDict: Record<string, boolean> = {}
+
+  if (account) {
+    account.utxos.forEach((utxo) => (utxoDict[getUtxoOutpoint(utxo)] = true))
+    account.addresses.forEach((addr) => (addressDict[addr.address] = true))
+  }
+
   return (
     <SSVStack>
       {tx &&
-        (tx?.vout || []).map((vout, index) => (
+        (tx?.vout || []).map((output, index) => (
           <TouchableOpacity
             key={index}
-            onPress={() =>
-              router.navigate(
-                `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
-              )
-            }
+            onPress={() => {
+              if (utxoDict[`${tx.id}:${index}`]) {
+                router.navigate(
+                  `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
+                )
+              }
+            }}
           >
             <SSVStack key={`${tx.id}:${index}`}>
               <SSSeparator color="gradient" />
@@ -383,17 +399,27 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
               </SSText>
               <SSTxDetailsBox
                 header={t('transaction.value')}
-                text={vout.value}
+                text={output.value}
               />
-              <SSTxDetailsBox
-                header={t('transaction.address')}
-                text={vout.address}
-              />
+              <TouchableOpacity
+                onPress={() => {
+                  if (addressDict[output.address]) {
+                    router.navigate(
+                      `/account/${accountId}/address/${output.address}`
+                    )
+                  }
+                }}
+              >
+                <SSTxDetailsBox
+                  header={t('transaction.address')}
+                  text={output.address}
+                />
+              </TouchableOpacity>
               <SSVStack>
                 <SSText weight="bold">
                   {t('transaction.unlockingScript')}
                 </SSText>
-                <SSScriptDecoded script={vout.script || []} />
+                <SSScriptDecoded script={output.script || []} />
               </SSVStack>
             </SSVStack>
           </TouchableOpacity>

@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
@@ -30,7 +30,7 @@ export default function UtxoDetails() {
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [amount, setAmount] = useState(placeholder)
-  const [utxoAddress, setUtxoAddress] = useState(placeholder)
+  const [addressDisplay, setAddressDisplay] = useState(placeholder)
 
   const updateInfo = () => {
     if (tx) {
@@ -42,7 +42,7 @@ export default function UtxoDetails() {
     if (utxo) {
       const { addressTo, value } = utxo
       if (value) setAmount(formatNumber(value))
-      if (addressTo) setUtxoAddress(addressTo)
+      if (addressTo) setAddressDisplay(addressTo)
     }
   }
 
@@ -108,23 +108,35 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSHStack>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={utxoAddress}>
+          <TouchableOpacity
+            onPress={() => {
+              if (utxo?.addressTo) {
+                router.navigate(
+                  `/account/${accountId}/address/${utxo.addressTo}`
+                )
+              }
+            }}
+          >
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {t('utxo.address')}
               </SSText>
-              <SSText color="muted">{utxoAddress}</SSText>
+              <SSText color="muted">{addressDisplay}</SSText>
             </SSVStack>
-          </SSClipboardCopy>
+          </TouchableOpacity>
           <SSSeparator color="gradient" />
-          <SSClipboardCopy text={txid || ''}>
+          <TouchableOpacity
+            onPress={() => router.navigate(
+              `/account/${accountId}/transaction/${txid}`
+            )}
+          >
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-                {t('transaction.id')}
+              {t('transaction.id')}
               </SSText>
-              <SSText color="muted">{txid}</SSText>
+            <SSText color="muted">{txid}</SSText>
             </SSVStack>
-          </SSClipboardCopy>
+          </TouchableOpacity>
           <SSSeparator color="gradient" />
           <SSClipboardCopy text={vout || ''}>
             <SSVStack gap="none">
