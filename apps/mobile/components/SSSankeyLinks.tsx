@@ -157,7 +157,7 @@ export function SSSankeyLinks({
               path={path1}
               style="fill"
               color={gray[700]}
-              opacity={0.5}
+              opacity={0.4}
               paint={
                 isUnspent
                   ? (() => {
