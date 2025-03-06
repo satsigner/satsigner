@@ -14,22 +14,31 @@ export type CreationType =
   | 'importExtendedPub'
   | 'importAddress'
 
-export type Key = {
-  name?: string
-  /** Key position for multisig. Set to 0 if singlesig */
-  index?: number
-  createdAt?: Date
-  // Below deprecated
-  mnemonicWordCount?: MnemonicCount
+export type Secret = {
+  /** Mnemonic words separated with a space */
   mnemonic?: string
   passphrase?: string
-  scriptVersion?: ScriptVersionType
+  /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
   externalDescriptor?: string
+  /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
   internalDescriptor?: string
-  fingerprint?: string
-  derivationPath?: string
+  /** Only for watch-only */
   publicKey?: string
+}
+
+export type Key = {
+  /** Key position for multisig. Set to 0 if singlesig */
+  index: number
+  name?: string
   creationType?: CreationType
+  mnemonicWordCount?: MnemonicCount
+  /** Sensitive information that can be encrypted with PIN */
+  secret: Secret | string
+  /** Initialization vector for AES encryption */
+  iv: string
+  fingerprint?: string
+  scriptVersion?: ScriptVersionType
+  derivationPath?: string
 }
 
 export type Account = {
@@ -42,16 +51,6 @@ export type Account = {
   keyCount: number
   /** Keys required to sign. Default: 1 */
   keysRequired: number
-  // Below deprecated
-  watchOnly?: 'public-key' | 'address' // TODO: To remove
-  createdAt: Date
-  /** Seed phrase with seed words separated with space */
-  externalDescriptor?: string
-  internalDescriptor?: string
-  fingerprint?: string
-  derivationPath?: string
-  transactions: Transaction[]
-  utxos: Utxo[]
   summary: {
     balance: number
     numberOfAddresses: number
@@ -59,6 +58,17 @@ export type Account = {
     numberOfUtxos: number
     satsInMempool: number
   }
+  transactions: Transaction[]
+  utxos: Utxo[]
+  addresses: [] // TODO: Add types
+  createdAt: Date
+
+  // Below deprecated
+  watchOnly?: 'public-key' | 'address' // TODO: To remove
+  externalDescriptor?: string
+  internalDescriptor?: string
+  fingerprint?: string
+  derivationPath?: string
   participantsCount?: number
   requiredParticipantsCount?: number
 }

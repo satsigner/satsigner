@@ -1,7 +1,9 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getWallet } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
@@ -18,8 +20,10 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
+import { useWalletsStore } from '@/store/wallets'
 
 export default function Confirm() {
   const router = useRouter()
@@ -41,7 +45,11 @@ export default function Confirm() {
     getAccount,
     loadWallet,
     encryptSeed,
-    setParticipantWithSeedWord
+    setParticipantWithSeedWord,
+    setKeyCount,
+    setKeysRequired,
+    getAccountData,
+    appendKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -52,12 +60,18 @@ export default function Confirm() {
       state.getAccount,
       state.loadWallet,
       state.encryptSeed,
-      state.setParticipantWithSeedWord
+      state.setParticipantWithSeedWord,
+      state.setKeyCount,
+      state.setKeysRequired,
+      state.getAccountData,
+      state.appendKey
     ])
   )
+  const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
+  const network = useBlockchainStore((state) => state.network)
 
   const candidateWords = useMemo(() => {
-    return getConfirmWordCandidates(mnemonic[+index!], mnemonic.join(' '))
+    return getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
   }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
@@ -67,27 +81,44 @@ export default function Confirm() {
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
+
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
 
   async function handleNavigateNextWord() {
-    if (!mnemonicWordCount || !selectedCheckbox) return
+    if (!selectedCheckbox) return
 
     if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)])
       return setIncorrectWordModalVisible(true)
 
-    if (+index! + 1 < mnemonicWordCount)
+    if (Number(index) + 1 < mnemonicWordCount)
       router.push(`/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`)
     else return handleFinishWordsConfirmation()
   }
 
   async function handleFinishWordsConfirmation() {
+    appendKey(Number(index))
+
     if (policyType === 'singlesig') {
       setLoadingAccount(true)
+      setKeyCount(1)
+      setKeysRequired(1)
 
-      const wallet = await loadWallet()
+      const account = getAccountData()
+
+      const walletData = await getWallet(account, network as Network)
+      if (!walletData) return // TODO: handle error
+
+      account.derivationPath = walletData.derivationPath
+      console.log(account.fingerprint, walletData.fingerprint, '< FINGERPRINT')
+      account.fingerprint = walletData.fingerprint
+
+      addAccountWallet(account.id, walletData.wallet)
+
+      // Para adicioanr account a accountsStore temos que encriptar porque contas dentro de accountstore estão todas encryptiadas
+
       await encryptSeed()
 
-      const account = getAccount()
+      // const account = getAccount()
       await addAccount(account)
 
       try {
@@ -101,7 +132,7 @@ export default function Confirm() {
       }
     } else if (policyType === 'multisig') {
       setParticipantWithSeedWord()
-      router.dismiss(Number.parseInt(index!, 10) + 2)
+      router.dismiss(Number(index) + 2)
     }
   }
 
@@ -113,7 +144,7 @@ export default function Confirm() {
 
   function handleOnPressCancel() {
     if (policyType === 'multisig') {
-      router.dismiss(Number.parseInt(index!, 10) + 1)
+      router.dismiss(Number(index) + 1)
     } else if (policyType === 'singlesig') {
       router.replace('/')
     }
@@ -129,7 +160,7 @@ export default function Confirm() {
       <SSVStack justifyBetween>
         <SSVStack gap="lg">
           <SSText color="white" uppercase style={{ alignSelf: 'center' }}>
-            {`${t('common.confirm')} ${t('bitcoin.word')} ${+index! + 1}`}
+            {`${t('common.confirm')} ${t('bitcoin.word')} ${Number(index) + 1}`}
           </SSText>
           <SSVStack gap="lg">
             <SSCheckbox
@@ -155,7 +186,7 @@ export default function Confirm() {
             variant="secondary"
             loading={loadingAccount}
             disabled={!selectedCheckbox}
-            onPress={() => handleNavigateNextWord()}
+            onPress={handleNavigateNextWord}
           />
           <SSButton
             label={t('common.cancel')}
@@ -178,7 +209,7 @@ export default function Confirm() {
       </SSGradientModal>
       <SSWarningModal
         visible={warningModalVisible}
-        onClose={() => handleCloseWordsWarning()}
+        onClose={handleCloseWordsWarning}
       >
         <SSVStack itemsCenter>
           <SSHStack>

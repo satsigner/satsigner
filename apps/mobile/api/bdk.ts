@@ -23,37 +23,113 @@ import {
   type Network
 } from 'bdk-rn/lib/lib/enums'
 
-import { type Account, type MultisigParticipant } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Backend } from '@/types/settings/blockchain'
 
-async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
-  const mnemonic = await new Mnemonic().create(count)
+async function generateMnemonic(
+  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
+) {
+  const mnemonic = await new Mnemonic().create(mnemonicWordCount)
   return mnemonic.asString()
 }
 
-async function validateMnemonic(seedWords: NonNullable<Account['seedWords']>) {
+async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   try {
-    await new Mnemonic().fromString(seedWords)
+    await new Mnemonic().fromString(mnemonic)
   } catch (_) {
     return false
   }
   return true
 }
 
-async function getDescriptor(
-  seedWords: NonNullable<Account['seedWords']>,
-  scriptVersion: NonNullable<Account['scriptVersion']>,
-  kind: KeychainKind,
-  passphrase: Account['passphrase'],
+// TODO: Rename to getWalletData
+// TODO: Rename the other to getWalletSummary
+async function getWallet(account: Account, network: Network) {
+  switch (account.policyType) {
+    case 'singlesig': {
+      if (account.keys.length !== 1)
+        throw new Error('Invalid key count for singlesig')
+
+      const key = account.keys[0]
+
+      if (
+        key.creationType === 'generateMnemonic' ||
+        key.creationType === 'importMnemonic'
+      ) {
+        if (!key.secret.mnemonic || !key.scriptVersion)
+          throw new Error('Invalid secret')
+
+        const walletData = await getWalletFromMnemonic(
+          key.secret.mnemonic,
+          key.scriptVersion,
+          key.secret.passphrase,
+          network
+        )
+
+        return walletData
+      } else if (key.creationType === 'importDescriptor') {
+        //
+      }
+      break
+    }
+    case 'multisig':
+      break
+    case 'watchonly':
+      break
+  }
+}
+
+async function getWalletFromMnemonic(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  scriptVersion: NonNullable<Key['scriptVersion']>,
+  passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords)
+  const [externalDescriptor, internalDescriptor] = await Promise.all([
+    getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.External,
+      passphrase,
+      network
+    ),
+    getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.Internal,
+      passphrase,
+      network
+    )
+  ])
+
+  const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
+    parseDescriptor(externalDescriptor),
+    getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
+  ])
+
+  return {
+    fingerprint,
+    derivationPath,
+    externalDescriptor: await externalDescriptor.asString(),
+    internalDescriptor: await internalDescriptor.asString(),
+    wallet
+  }
+}
+
+async function getDescriptor(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  scriptVersion: NonNullable<Key['scriptVersion']>,
+  kind: KeychainKind,
+  passphrase: Secret['passphrase'],
+  network: Network
+) {
+  const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
-    mnemonic,
+    parsedMnemonic,
     passphrase
   )
   switch (scriptVersion) {
@@ -75,6 +151,24 @@ async function parseDescriptor(descriptor: Descriptor) {
     ? { fingerprint: match[1], derivationPath: `m${match[2]}` }
     : { fingerprint: '', derivationPath: '' }
 }
+
+async function getWalletFromDescriptor(
+  externalDescriptor: Descriptor,
+  internalDescriptor: Descriptor | null | undefined,
+  network: Network
+) {
+  const dbConfig = await new DatabaseConfig().memory()
+  const wallet = await new Wallet().create(
+    externalDescriptor,
+    internalDescriptor,
+    network,
+    dbConfig
+  )
+
+  return wallet
+}
+
+// Below deprecated
 
 async function extractPubKeyFromDescriptor(descriptor: Descriptor) {
   const descriptorString = await descriptor.asString()
@@ -101,43 +195,6 @@ async function getFingerprint(
 
   const { fingerprint } = await parseDescriptor(descriptor)
   return fingerprint
-}
-
-async function getWalletFromMnemonic(
-  seedWords: NonNullable<Account['seedWords']>,
-  scriptVersion: NonNullable<Account['scriptVersion']>,
-  passphrase: Account['passphrase'],
-  network: Network
-) {
-  const [externalDescriptor, internalDescriptor] = await Promise.all([
-    getDescriptor(
-      seedWords,
-      scriptVersion,
-      KeychainKind.External,
-      passphrase,
-      network
-    ),
-    getDescriptor(
-      seedWords,
-      scriptVersion,
-      KeychainKind.Internal,
-      passphrase,
-      network
-    )
-  ])
-
-  const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
-    parseDescriptor(externalDescriptor),
-    getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
-  ])
-
-  return {
-    fingerprint,
-    derivationPath,
-    externalDescriptor: await externalDescriptor.asString(),
-    internalDescriptor: await internalDescriptor.asString(),
-    wallet
-  }
 }
 
 async function getParticipantInfo(
@@ -247,22 +304,6 @@ async function getMultiSigWalletFromMnemonic(
   } catch {
     return null
   }
-}
-
-async function getWalletFromDescriptor(
-  externalDescriptor: Descriptor,
-  internalDescriptor: Descriptor | null | undefined,
-  network: Network
-) {
-  const dbConfig = await new DatabaseConfig().memory()
-  const wallet = await new Wallet().create(
-    externalDescriptor,
-    internalDescriptor,
-    network,
-    dbConfig
-  )
-
-  return wallet
 }
 
 async function getBlockchain(
@@ -522,6 +563,7 @@ export {
   getLastUnusedWalletAddress,
   getMultiSigWalletFromMnemonic,
   getParticipantInfo,
+  getWallet,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,

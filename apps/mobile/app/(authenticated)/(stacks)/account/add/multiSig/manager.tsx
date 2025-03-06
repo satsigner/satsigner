@@ -31,7 +31,7 @@ export default function MultiSigManager() {
   )
 
   async function handleOnPressConfirm() {
-    router.navigate('/addMasterKey/confirmScreen')
+    router.navigate('/addMasterKey/confirmScreen') // TODO
   }
 
   if (!keyCount || !keysRequired) return <Redirect href="/" />

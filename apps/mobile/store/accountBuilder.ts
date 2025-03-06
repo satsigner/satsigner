@@ -1,5 +1,7 @@
 import { Descriptor, DescriptorPublicKey, type Wallet } from 'bdk-rn'
 import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
+import { produce } from 'immer'
+import { v4 as uuid } from 'uuid'
 import { create } from 'zustand'
 
 import {
@@ -12,19 +14,18 @@ import {
 } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
-import { type Account, type Key } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
 
 import { useBlockchainStore } from './blockchain'
 
 type AccountBuilderState = {
-  id: Account['id']
   name: Account['name']
   policyType: Account['policyType']
-  mnemonic: NonNullable<Key['mnemonic']>
+  mnemonic: NonNullable<Secret['mnemonic']>
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   scriptVersion: NonNullable<Key['scriptVersion']>
-  passphrase: Key['passphrase']
+  passphrase: Secret['passphrase']
   fingerprint: Account['fingerprint']
   keys: Account['keys']
   keyCount: Account['keyCount']
@@ -32,9 +33,9 @@ type AccountBuilderState = {
   creationType: Key['creationType']
   keyName: NonNullable<Key['name']>
   // Below deprecated
-  derivationPath?: Account['derivationPath']
   externalDescriptor?: Account['externalDescriptor']
   internalDescriptor?: Account['internalDescriptor']
+  derivationPath?: Account['derivationPath'] // TODO: remove
   watchOnly?: Account['watchOnly']
   wallet?: Wallet
   participants?: Account['keys']
@@ -57,10 +58,13 @@ type AccountBuilderAction = {
   setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
   setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
+  getAccountData: () => Account
+  appendKey: (index: NonNullable<Key['index']>) => void
+  clearKeyState: () => void
   // Below is deprecated
+  getAccount: () => Account
   clearAccount: () => void
   clearParticipants: () => void
-  getAccount: () => Account
   setExternalDescriptor: (descriptor: string) => Promise<void>
   setInternalDescriptor: (descriptor: string) => Promise<void>
   setDescriptorFromXpub: (xpub: string) => Promise<void>
@@ -105,7 +109,8 @@ const useAccountBuilderStore = create<
   mnemonic: '',
   mnemonicWordCount: 24,
   scriptVersion: 'P2WPKH',
-  creationType: 'importSeed',
+  creationType: 'importMnemonic',
+  keyName: '',
   keys: [],
   keysCount: 0,
   keyRequired: 0,
@@ -141,6 +146,77 @@ const useAccountBuilderStore = create<
   },
   setKeyName: (keyName) => {
     set({ keyName })
+  },
+  getAccountData: () => {
+    const { name, policyType, keys, keyCount, keysRequired } = get()
+
+    const account: Account = {
+      id: uuid(),
+      name,
+      policyType,
+      keys,
+      keyCount,
+      keysRequired,
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      transactions: [],
+      utxos: [],
+      addresses: [],
+      createdAt: new Date()
+    }
+
+    return account
+  },
+  appendKey: (index) => {
+    const {
+      keyName,
+      creationType,
+      mnemonicWordCount,
+      mnemonic,
+      passphrase,
+      fingerprint,
+      scriptVersion
+    } = get()
+    // TODO: change above to include descriptors and pubkey
+
+    const key: Key = {
+      index,
+      name: keyName,
+      creationType,
+      mnemonicWordCount,
+      secret: {
+        mnemonic,
+        passphrase
+      },
+      iv: uuid(),
+      fingerprint,
+      scriptVersion
+    }
+
+    set(
+      produce((state) => {
+        state.keys.push(key)
+      })
+    )
+
+    get().clearKeyState()
+  },
+  clearKeyState: () => {
+    set({
+      keyName: '',
+      creationType: 'importMnemonic',
+      mnemonicWordCount: 24,
+      mnemonic: '',
+      passphrase: undefined,
+      fingerprint: undefined,
+      scriptVersion: 'P2WPKH'
+      // TODO: Add descriptors and pubkey clear
+    })
   },
   // Below is deprecated,
   clearAccount: () => {
