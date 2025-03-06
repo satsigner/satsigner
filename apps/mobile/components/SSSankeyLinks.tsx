@@ -137,6 +137,61 @@ export function SSSankeyLinks({
     [links, nodes, LINK_MAX_WIDTH]
   )
 
+  // Add new helper functions to track cumulative heights
+  const getStackedYPosition = useCallback(
+    (node: Node, isSource: boolean, currentLink: Link) => {
+      let cumulativeHeight = 0
+
+      // Sort links by their target/source y-position
+      const relevantLinks = links
+        .filter((link) => {
+          if (isSource) {
+            return link.source === node.id
+          } else {
+            return link.target === node.id
+          }
+        })
+        .sort((a, b) => {
+          const aNode = isSource
+            ? nodes.find((n) => n.id === a.target)
+            : nodes.find((n) => n.id === a.source)
+          const bNode = isSource
+            ? nodes.find((n) => n.id === b.target)
+            : nodes.find((n) => n.id === b.source)
+
+          // Sort by y0 for incoming links, y1 for outgoing links
+          const aY = isSource ? aNode?.y0 ?? 0 : aNode?.y1 ?? 0
+          const bY = isSource ? bNode?.y0 ?? 0 : bNode?.y1 ?? 0
+
+          return aY - bY // Sort from top to bottom
+        })
+
+      // Find index of current link in sorted links
+      const currentLinkIndex = relevantLinks.findIndex((link) =>
+        isSource
+          ? link.target === currentLink.target
+          : link.source === currentLink.source
+      )
+
+      // Only accumulate heights for links that come before the current link
+      for (let i = 0; i < currentLinkIndex; i++) {
+        const link = relevantLinks[i]
+        const sourceNode = nodes.find((n) => n.id === link.source) as Node
+        const targetNode = nodes.find((n) => n.id === link.target) as Node
+        const width = getLinkWidth(
+          sourceNode,
+          targetNode,
+          isSource ? 'source' : 'target'
+        )
+        cumulativeHeight += width
+      }
+
+      const baseY = isSource ? node.y1 ?? 0 : node.y0 ?? 0
+      return baseY + cumulativeHeight
+    },
+    [links, nodes, getLinkWidth]
+  )
+
   if (links.length === 0) return null
 
   return (
@@ -146,6 +201,16 @@ export function SSSankeyLinks({
         const targetNode = nodes.find((n) => n.id === link.target) as Node
         const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
+        const y1 =
+          sourceNode.type === 'block'
+            ? getStackedYPosition(sourceNode, true, link)
+            : sourceNode.y1 ?? 0
+
+        const y2 =
+          targetNode.type === 'block'
+            ? getStackedYPosition(targetNode, false, link)
+            : targetNode.y0 ?? 0
+
         const points: LinkPoints = {
           souceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
           targetWidth: getLinkWidth(sourceNode, targetNode, 'target'),
@@ -154,13 +219,13 @@ export function SSSankeyLinks({
               ? (sourceNode.x1 ?? 0) -
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
               : sourceNode.x1 ?? 0,
-          y1: sourceNode.y1 ?? 0,
+          y1,
           x2:
             targetNode.type === 'block'
               ? (targetNode.x0 ?? 0) +
                 (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
               : targetNode.x0 ?? 0,
-          y2: targetNode.y0 ?? 0
+          y2
         }
         const path1 = generateCustomLink(points)
 
@@ -171,7 +236,7 @@ export function SSSankeyLinks({
               path={path1}
               style="fill"
               color={gray[700]}
-              opacity={0.4}
+              opacity={0.8}
             >
               {isUnspent && (
                 <>
@@ -247,17 +312,17 @@ const generateCustomLink = (points: LinkPoints) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
   // Define the coordinates of the four points
-  const A = [x1, y1 - souceWidth / 2] // Point A
-  const B = [x1, y1 + souceWidth / 2] // Point B
-  const C = [x2, y2 - targetWidth / 2] // Point C
-  const D = [x2, y2 + targetWidth / 2] // Point D
+  const A = [x1, y1] // Point A
+  const B = [x1, y1 + souceWidth] // Point B
+  const C = [x2, y2] // Point C
+  const D = [x2, y2 + targetWidth] // Point D
 
   // Curve control point percentages - adjust these to experiment with curve shapes
   const firstCurveFirstControlX = 0 // 0 means same as source point
-  const firstCurveSecondControlX = 0.3 // 1/3 of the way from source to target
+  const firstCurveSecondControlX = 0.3 // 0.3 of the way from source to target
   const midpointX = 1 / 2 // Halfway between source and target
   const midpointY = 1 / 2 // Halfway between source and target heights
-  const secondCurveSecondControlX = 0.7 // 2/3 of the way from source to target
+  const secondCurveSecondControlX = 0.7 // 0.7 of the way from source to target
 
   // Solid line path
   const moveToA = `M ${A[0]} ${A[1]}`
