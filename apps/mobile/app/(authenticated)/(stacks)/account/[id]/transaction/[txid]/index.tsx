@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'

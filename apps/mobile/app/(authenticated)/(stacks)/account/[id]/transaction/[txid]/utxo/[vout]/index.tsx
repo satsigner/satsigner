@@ -126,15 +126,15 @@ export default function UtxoDetails() {
           </TouchableOpacity>
           <SSSeparator color="gradient" />
           <TouchableOpacity
-            onPress={() => router.navigate(
-              `/account/${accountId}/transaction/${txid}`
-            )}
+            onPress={() =>
+              router.navigate(`/account/${accountId}/transaction/${txid}`)
+            }
           >
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
-              {t('transaction.id')}
+                {t('transaction.id')}
               </SSText>
-            <SSText color="muted">{txid}</SSText>
+              <SSText color="muted">{txid}</SSText>
             </SSVStack>
           </TouchableOpacity>
           <SSSeparator color="gradient" />
