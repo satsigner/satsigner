@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { StyleProp, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,6 +29,7 @@ type SSTransactionCardProps = {
   walletBalance?: number
   link: string
   expand: boolean
+  style?: StyleProp<ViewStyle>
 }
 
 function SSTransactionCard({
@@ -38,7 +39,8 @@ function SSTransactionCard({
   btcPrice,
   walletBalance,
   link,
-  expand
+  expand,
+  style = {}
 }: SSTransactionCardProps) {
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
@@ -84,10 +86,10 @@ function SSTransactionCard({
   return (
     <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSVStack
-        style={{
+        style={[{
           paddingHorizontal: 16,
           paddingTop: expand ? 4 : 8
-        }}
+        }, style]}
         gap="none"
       >
         <SSHStack justifyBetween style={{ height: expand ? 18 : 22 }}>

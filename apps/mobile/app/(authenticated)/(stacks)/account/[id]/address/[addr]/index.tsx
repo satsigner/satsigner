@@ -2,17 +2,21 @@ import { toOutputScript } from 'bitcoinjs-lib/src/address'
 import { toASM } from 'bitcoinjs-lib/src/script'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { ScrollView, TouchableOpacity, View } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSTransactionCard from '@/components/SSTransactionCard'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import { type Account } from '@/types/models/Account'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
@@ -29,6 +33,27 @@ function AddressDetails() {
         return address.address === addr
       })
   ])
+
+  const transactions = useAccountsStore((state) =>
+    state.accounts
+      .find((account: Account) => account.name === accountId)
+      ?.transactions.filter((tx) => address?.transactions.includes(tx.id))
+  )
+
+  const getBlockchainHeight = useBlockchainStore(
+    (state) => state.getBlockchainHeight
+  )
+
+  const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
+
+  async function refreshBlockchainHeight() {
+    const height = await getBlockchainHeight()
+    setBlockchainHeight(height)
+  }
+
+  useEffect(() => {
+    refreshBlockchainHeight()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!address) return
@@ -96,18 +121,10 @@ function AddressDetails() {
               </SSText>
               <SSHStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
-                  <TouchableOpacity
-                    onPress={() =>
-                      router.navigate(
-                        `/account/${accountId}/address/${addr}/transactions`
-                      )
-                    }
-                  >
-                    <SSText color="muted" uppercase>
-                      {t('address.details.history.tx')}
-                    </SSText>
-                    <SSText>{address?.summary.transactions}</SSText>
-                  </TouchableOpacity>
+                  <SSText color="muted" uppercase>
+                    {t('address.details.history.tx')}
+                  </SSText>
+                  <SSText>{address?.summary.transactions}</SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <TouchableOpacity
@@ -124,6 +141,32 @@ function AddressDetails() {
                   </TouchableOpacity>
                 </SSVStack>
               </SSHStack>
+              {transactions && transactions.length > 0 && (
+                <SSVStack style={{ width: '100%' }}>
+                  <SSText uppercase color="muted">
+                    Transactions
+                  </SSText>
+                  <SSVStack gap="none">
+                  {transactions.map((tx) => (
+                    <SSTransactionCard
+                      style={{
+                        paddingHorizontal: 0,
+                        paddingBottom: 8,
+                        borderTopWidth: 1,
+                        borderColor: Colors.gray[700]
+                      }}
+                      transaction={tx}
+                      key={tx.id}
+                      blockHeight={blockchainHeight}
+                      fiatCurrency="USD"
+                      btcPrice={0}
+                      link={`/account/${accountId}/transaction/${tx.id}`}
+                      expand
+                    />
+                  ))}
+                  </SSVStack>
+                </SSVStack>
+              )}
             </SSVStack>
             <SSSeparator />
             <SSVStack gap="sm">
