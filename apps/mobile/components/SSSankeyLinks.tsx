@@ -48,6 +48,8 @@ interface SSSankeyLinksProps {
   BLOCK_WIDTH: number
 }
 
+const LINK_BLOCK_MAX_WIDTH = 16
+
 export function SSSankeyLinks({
   links,
   nodes,
@@ -56,12 +58,7 @@ export function SSSankeyLinks({
   BLOCK_WIDTH
 }: SSSankeyLinksProps) {
   const getLinkWidth = useCallback(
-    (node: Node, maxWidth: number) => {
-      // For block nodes, return a fixed small width
-      if (node.type === 'block') {
-        return Math.min(2, maxWidth)
-      }
-
+    (sourceNode: Node, targetNode: Node, type: string) => {
       // Helper function to get total incoming value for a block node
       const getTotalIncomingValueForBlock = (blockNode: Node) => {
         return links
@@ -80,6 +77,23 @@ export function SSSankeyLinks({
             return sourceNode?.id === blockNode.id
           })
           .reduce((sum, link) => sum + (link.value ?? 0), 0)
+      }
+      const node = type === 'source' ? sourceNode : targetNode
+
+      if (node.type === 'block' && type === 'source') {
+        // For incoming connections to block, get value from the source node
+        const targetNodeSats = targetNode.value ?? 0
+
+        const totalOutgoing = getTotalOutgoingValueFromBlock(node)
+
+        return (targetNodeSats / totalOutgoing) * LINK_BLOCK_MAX_WIDTH
+        // return (targetNodeSats / totalOutgoing) * LINK_BLOCK_MAX_WIDTH
+      } else if (node.type === 'block' && type === 'target') {
+        const sourceNodeSats = sourceNode.value ?? 0
+
+        const totalIncoming = getTotalIncomingValueForBlock(node)
+
+        return (sourceNodeSats / totalIncoming) * LINK_BLOCK_MAX_WIDTH
       }
 
       // Get current node's sats
@@ -133,14 +147,8 @@ export function SSSankeyLinks({
         const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
         const points: LinkPoints = {
-          souceWidth:
-            sourceNode.type === 'block'
-              ? Math.min(2, getLinkWidth(sourceNode, LINK_MAX_WIDTH))
-              : getLinkWidth(sourceNode, LINK_MAX_WIDTH),
-          targetWidth:
-            targetNode.type === 'block'
-              ? Math.min(2, getLinkWidth(targetNode, LINK_MAX_WIDTH))
-              : getLinkWidth(targetNode, LINK_MAX_WIDTH),
+          souceWidth: getLinkWidth(sourceNode, targetNode, 'source'),
+          targetWidth: getLinkWidth(sourceNode, targetNode, 'target'),
           x1:
             sourceNode.type === 'block'
               ? (sourceNode.x1 ?? 0) -
