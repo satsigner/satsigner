@@ -187,36 +187,41 @@ export function SSSankeyLinks({
 const generateCustomLink = (points: LinkPoints) => {
   const { x1, y1, x2, y2, souceWidth, targetWidth } = points
 
-  const adjustedY1 = y1
-  const adjustedY2 = y2
-
   // Define the coordinates of the four points
-  const A = [x1, adjustedY1 - souceWidth / 2] // Point A (adjusted)
-  const B = [x1, adjustedY1 + souceWidth / 2] // Point B (adjusted)
-  const C = [x2, adjustedY2 - targetWidth / 2] // Point C (adjusted)
-  const D = [x2, adjustedY2 + targetWidth / 2] // Point D (adjusted)
+  const A = [x1, y1 - souceWidth / 2] // Point A
+  const B = [x1, y1 + souceWidth / 2] // Point B
+  const C = [x2, y2 - targetWidth / 2] // Point C
+  const D = [x2, y2 + targetWidth / 2] // Point D
+
+  // Curve control point percentages - adjust these to experiment with curve shapes
+  const firstCurveFirstControlX = 0 // 0 means same as source point
+  const firstCurveSecondControlX = 0.3 // 1/3 of the way from source to target
+  const midpointX = 1 / 2 // Halfway between source and target
+  const midpointY = 1 / 2 // Halfway between source and target heights
+  const secondCurveSecondControlX = 0.7 // 2/3 of the way from source to target
 
   // Solid line path
   const moveToA = `M ${A[0]} ${A[1]}`
   const lineToB = `L ${B[0]} ${B[1]}`
 
-  let curveToCenterD = `C ${B[0]} ${B[1]}`
-  curveToCenterD += ` ${B[0] + (D[0] - B[0]) / 3} ${B[1]}`
-  curveToCenterD += ` ${B[0] + (D[0] - B[0]) / 2} ${B[1] + (D[1] - B[1]) / 2}`
+  let curveToCenterD = `C ${B[0] + (D[0] - B[0]) * firstCurveFirstControlX} ${B[1]}`
+  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * firstCurveSecondControlX} ${B[1]}`
+  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * midpointX} ${B[1] + (D[1] - B[1]) * midpointY}`
 
-  let curveToD = `C ${B[0] + (D[0] - B[0]) / 2} ${B[1] + (D[1] - B[1]) / 2}`
-  curveToD += ` ${B[0] + ((D[0] - B[0]) / 3) * 2} ${D[1]}`
+  let curveToD = `C ${B[0] + (D[0] - B[0]) * midpointX} ${B[1] + (D[1] - B[1]) * midpointY}`
+  curveToD += ` ${B[0] + (D[0] - B[0]) * secondCurveSecondControlX} ${D[1]}`
   curveToD += ` ${D[0]} ${D[1]}`
 
   const lineToC = `L ${C[0]} ${C[1]}`
 
-  let curveToCenterA = `C ${C[0]} ${C[1]}`
-  curveToCenterA += ` ${C[0] + (A[0] - C[0]) / 3} ${C[1]}`
-  curveToCenterA += ` ${C[0] + (A[0] - C[0]) / 2} ${C[1] + (A[1] - C[1]) / 2}`
+  let curveToCenterA = `C ${C[0] + (A[0] - C[0]) * firstCurveFirstControlX} ${C[1]}`
+  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * firstCurveSecondControlX} ${C[1]}`
+  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * midpointX} ${C[1] + (A[1] - C[1]) * midpointY}`
 
-  let curveToA = `C ${C[0] + (A[0] - C[0]) / 2} ${C[1] + (A[1] - C[1]) / 2}`
-  curveToA += ` ${C[0] + ((A[0] - C[0]) / 3) * 2} ${A[1]}`
+  let curveToA = `C ${C[0] + (A[0] - C[0]) * midpointX} ${C[1] + (A[1] - C[1]) * midpointY}`
+  curveToA += ` ${C[0] + (A[0] - C[0]) * secondCurveSecondControlX} ${A[1]}`
   curveToA += ` ${A[0]} ${A[1]}`
+
   return [
     moveToA,
     lineToB,
