@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import SSButton from '@/components/SSButton'
 import {
   Canvas,
   Rect,
@@ -14,6 +15,7 @@ import {
 import {
   StyleSheet,
   View,
+  TextInput,
   Text,
   TouchableOpacity,
   Dimensions,
@@ -34,7 +36,7 @@ import { Colors } from '@/styles'
 // Constants
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 console.log(`Screenwidth: ${screenWidth} Screenheight: ${screenHeight}`)
-const maxBlocksPerSpiral: number = 2016
+const maxBlocksPerSpiral: number = 216 // 2016
 const factorBlockDistance: number = 0.04
 const radiusSpiralStart: number = 1
 const factorSpiralGrowth: number = 0.8
@@ -144,6 +146,8 @@ export default function SSSpiralBlocks() {
   const [spiralDataRaw, setSpiralDataRaw] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentFileIndex, setCurrentFileIndex] = useState(0)
+  const [inputValue, setInputValue] = useState(String(currentFileIndex)) // Sync input with state
+
   const router = useRouter()
 
   // State for the overlay view when a block is clicked.
@@ -299,6 +303,10 @@ export default function SSSpiralBlocks() {
     }
   }, [selectedBlock, spiralBlocks])
 
+  useEffect(() => {
+    setInputValue(String(currentFileIndex)) // Sync input field when index changes
+  }, [currentFileIndex])
+
   // If still loading data, show a loading spinner (an outlined circle)
   if (loading) {
     return (
@@ -439,6 +447,42 @@ export default function SSSpiralBlocks() {
         ))}
       </Animated.View>
 
+      <TextInput
+        style={{
+          position: 'absolute',
+          bottom: 100,
+          backgroundColor: '#222',
+          color: 'white',
+          borderWidth: 1,
+          borderColor: '#555',
+          paddingHorizontal: 10,
+          paddingVertical: 8,
+          borderRadius: 5,
+          width: 100,
+          height: 40,
+          textAlign: 'center', // Centers text inside the input field
+          fontSize: 18
+        }}
+        value={inputValue}
+        onChangeText={setInputValue} // Allows typing freely
+        keyboardType="numeric"
+        placeholder="Enter ID"
+        placeholderTextColor="#888"
+        textAlign="center"
+      />
+
+      <SSButton
+        style={{ height: 20, width: 100, position: 'absolute', bottom: 80 }}
+        label="Fetch"
+        variant="gradient"
+        onPress={() => {
+          const parsed = parseInt(inputValue, 10)
+          if (!isNaN(parsed)) {
+            setCurrentFileIndex(parsed) // Only update state if input is valid
+          }
+        }}
+      />
+
       {/* Navigation Buttons */}
       <View style={styles.buttonContainer}>
         <SSIconButton
@@ -451,17 +495,7 @@ export default function SSSpiralBlocks() {
           <SSIconChevronLeft height={22} width={24} />
         </SSIconButton>
 
-        <View style={{ alignItems: 'center', marginHorizontal: 16 }}>
-          <Text
-            style={{
-              color: 'white',
-              fontSize: 20,
-              fontWeight: 'bold',
-              fontFamily: 'SF Pro Text'
-            }}
-          >
-            000
-          </Text>
+        <View style={styles.bottomText}>
           <Text
             style={{ color: 'white', fontSize: 14, fontFamily: 'SF Pro Text' }}
           >
@@ -558,10 +592,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
     position: 'absolute',
-    bottom: -200,
+    bottom: 20,
     left: 0,
     right: 0
   },
+  bottomText: {
+    alignItems: 'center',
+    marginHorizontal: 16,
+    minWidth: 150,
+    borderWidth: 1
+  },
+
   chevronButton: {
     height: 80,
     width: 80,
@@ -605,5 +646,17 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'black',
     fontSize: 14
+  },
+  input: {
+    backgroundColor: '#222',
+    color: 'white',
+    borderWidth: 1,
+    borderColor: '#555',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 5,
+    width: 100,
+    textAlign: 'center', // Centers text inside the input field
+    fontSize: 18
   }
 })
