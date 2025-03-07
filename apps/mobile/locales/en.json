@@ -96,9 +96,9 @@
     "utxos": "UTXOs"
   },
   "address": {
-    "details.balance.confirmed": "Balance",
+    "details.balance.confirmed": "Confirmed",
     "details.balance.title": "Balance",
-    "details.balance.unconfirmed": "Balance",
+    "details.balance.unconfirmed": "Unconfirmed",
     "details.derivation.fingerprint": "Master fingerprint",
     "details.derivation.index": "Index",
     "details.derivation.keychain": "Keychain",

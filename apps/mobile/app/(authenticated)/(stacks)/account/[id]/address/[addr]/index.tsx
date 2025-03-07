@@ -58,8 +58,9 @@ function AddressDetails() {
 
   const { width, height } = useWindowDimensions()
 
-  const GRAPH_HEIGHT = height * 0.4
-  const GRAPH_WIDTH = width * 0.8
+  const mainLayoutHorizontalPadding = 12
+  const GRAPH_HEIGHT = height * 0.44
+  const GRAPH_WIDTH = width * ((100 - mainLayoutHorizontalPadding) / 100)
 
   async function refreshBlockchainHeight() {
     const height = await getBlockchainHeight()
@@ -94,8 +95,8 @@ function AddressDetails() {
           headerTitle: () => <SSText>{t('address.details.title')}</SSText>
         }}
       />
-      <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
-        <ScrollView>
+      <ScrollView>
+        <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
           <SSVStack>
             <SSVStack>
               <SSText weight="bold" uppercase size="md">
@@ -283,8 +284,8 @@ function AddressDetails() {
               </SSVStack>
             </SSVStack>
           </SSVStack>
-        </ScrollView>
-      </SSMainLayout>
+        </SSMainLayout>
+      </ScrollView>
     </>
   )
 }
