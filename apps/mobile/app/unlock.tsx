@@ -20,7 +20,6 @@ export default function Unlock() {
   const [
     pinTries,
     pinMaxTries,
-    validatePin,
     setLockTriggered,
     resetPinTries,
     incrementPinTries,
@@ -32,7 +31,6 @@ export default function Unlock() {
     useShallow((state) => [
       state.pinTries,
       state.pinMaxTries,
-      state.validatePin,
       state.setLockTriggered,
       state.resetPinTries,
       state.incrementPinTries,

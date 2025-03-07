@@ -25,8 +25,8 @@ type AccountBuilderState = {
   mnemonic: NonNullable<Secret['mnemonic']>
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   scriptVersion: NonNullable<Key['scriptVersion']>
-  passphrase: Secret['passphrase']
-  fingerprint: Account['fingerprint']
+  passphrase?: Secret['passphrase']
+  fingerprint?: Account['fingerprint']
   keys: Account['keys']
   keyCount: Account['keyCount']
   keysRequired: Account['keysRequired']
@@ -62,6 +62,18 @@ type AccountBuilderAction = {
   appendKey: (index: NonNullable<Key['index']>) => void
   clearKeyState: () => void
   clearAccount: () => void
+  updateKeySecret: (
+    index: NonNullable<Key['index']>,
+    newSecret: Key['secret']
+  ) => void
+  updateKeyFingerprint: (
+    index: NonNullable<Key['index']>,
+    fingerprint: NonNullable<Key['fingerprint']>
+  ) => void
+  setKeyDerivationPath: (
+    index: NonNullable<Key['index']>,
+    derivationPath: NonNullable<Key['derivationPath']>
+  ) => void
   // Below is deprecated
   getAccount: () => Account
   clearParticipants: () => void
@@ -106,11 +118,11 @@ const initialState: AccountBuilderState = {
   mnemonic: '',
   mnemonicWordCount: 24,
   scriptVersion: 'P2WPKH',
-  creationType: 'importMnemonic',
   keyName: '',
   keys: [],
   keyCount: 0,
-  keysRequired: 0
+  keysRequired: 0,
+  creationType: 'importMnemonic'
 }
 
 const useAccountBuilderStore = create<
@@ -193,16 +205,16 @@ const useAccountBuilderStore = create<
       creationType,
       mnemonicWordCount,
       secret: {
-        mnemonic,
-        passphrase
+        ...(mnemonic && { mnemonic }),
+        ...(passphrase && { passphrase })
       },
-      iv: uuid.v4(),
+      iv: uuid.v4().replace(/-/g, ''),
       fingerprint,
       scriptVersion
     }
 
     set(
-      produce((state) => {
+      produce((state: AccountBuilderState) => {
         state.keys.push(key)
       })
     )
@@ -223,6 +235,33 @@ const useAccountBuilderStore = create<
   },
   clearAccount: () => {
     set({ ...initialState })
+  },
+  updateKeySecret: (index, newSecret) => {
+    set(
+      produce((state: AccountBuilderState) => {
+        if (state.keys[index]) {
+          state.keys[index].secret = newSecret
+        }
+      })
+    )
+  },
+  updateKeyFingerprint: (index, fingerprint) => {
+    set(
+      produce((state: AccountBuilderState) => {
+        if (state.keys[index]) {
+          state.keys[index].fingerprint = fingerprint
+        }
+      })
+    )
+  },
+  setKeyDerivationPath: (index, derivationPath) => {
+    set(
+      produce((state: AccountBuilderState) => {
+        if (state.keys[index]) {
+          state.keys[index].derivationPath = derivationPath
+        }
+      })
+    )
   },
   // Below is deprecated,
   clearParticipants: () => {

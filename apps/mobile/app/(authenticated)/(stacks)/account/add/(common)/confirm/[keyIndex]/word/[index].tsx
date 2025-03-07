@@ -52,7 +52,10 @@ export default function Confirm() {
     setKeyCount,
     setKeysRequired,
     getAccountData,
-    appendKey
+    appendKey,
+    updateKeySecret,
+    updateKeyFingerprint,
+    setKeyDerivationPath
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -67,7 +70,10 @@ export default function Confirm() {
       state.setKeyCount,
       state.setKeysRequired,
       state.getAccountData,
-      state.appendKey
+      state.appendKey,
+      state.updateKeySecret,
+      state.updateKeyFingerprint,
+      state.setKeyDerivationPath
     ])
   )
   const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
@@ -99,7 +105,7 @@ export default function Confirm() {
   }
 
   async function handleFinishWordsConfirmation() {
-    appendKey(Number(index))
+    appendKey(Number(keyIndex))
 
     if (policyType === 'singlesig') {
       setLoadingAccount(true)
@@ -110,10 +116,6 @@ export default function Confirm() {
 
       const walletData = await getWallet(account, network as Network)
       if (!walletData) return // TODO: handle error
-
-      account.derivationPath = walletData.derivationPath
-      console.log(account.fingerprint, walletData.fingerprint, '< FINGERPRINT')
-      account.fingerprint = walletData.fingerprint
 
       addAccountWallet(account.id, walletData.wallet)
 
@@ -127,10 +129,13 @@ export default function Confirm() {
         account.keys[0].iv
       )
 
-      account.keys[0].secret = encryptedSecret
-      console.log({ account })
+      updateKeyFingerprint(0, walletData.fingerprint)
+      setKeyDerivationPath(0, walletData.derivationPath)
+      updateKeySecret(0, encryptedSecret)
 
-      addAccount(account)
+      const accountWithEncryptedSecret = getAccountData()
+
+      addAccount(accountWithEncryptedSecret)
 
       // await walletData.wallet.sync()
 

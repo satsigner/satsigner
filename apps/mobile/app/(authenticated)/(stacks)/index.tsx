@@ -241,7 +241,7 @@ export default function AccountList() {
           )}
           <SSVStack>
             {accounts.map((account) => (
-              <SSVStack key={account.name}>
+              <SSVStack key={account.id}>
                 <SSAccountCard
                   account={account}
                   onPress={() => router.navigate(`/account/${account.name}`)}
