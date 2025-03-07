@@ -6,7 +6,7 @@ import {
   type SankeyNodeMinimal
 } from 'd3-sankey'
 import { useMemo } from 'react'
-import { Platform, useWindowDimensions, View } from 'react-native'
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -164,6 +164,15 @@ function SSMultipleSankeyDiagram({
   const GRAPH_HEIGHT = height - topHeaderHeight
   const GRAPH_WIDTH = width
 
+  const nodeStyles = useMemo(() => {
+    return nodes.map((node) => ({
+      x: node.x0 ?? 0,
+      y: node.y0 ?? 0,
+      width: (node.x1 ?? 0) - (node.x0 ?? 0),
+      height: (node.y1 ?? 0) - (node.y0 ?? 0)
+    }))
+  }, [nodes])
+
   if (!nodes?.length || !transformedLinks?.length) {
     return null
   }
@@ -185,29 +194,56 @@ function SSMultipleSankeyDiagram({
         </Group>
       </Canvas>
       <GestureDetector gesture={gestures}>
-        <View
-          style={{
-            flex: 1,
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            borderColor: 'red',
-            borderWidth: 2
-          }}
-        >
+        <View style={styles.gestureContainer}>
           <Animated.View
             style={[
+              styles.sankeyOverlay,
               { width: GRAPH_WIDTH, height: GRAPH_HEIGHT },
               animatedStyle
             ]}
             onLayout={onCanvasLayout}
-          />
+          >
+            {/* Add transparent nodes that match the canvas diagram */}
+            {nodeStyles.map((style, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.node,
+                  {
+                    position: 'absolute',
+                    left: style.x,
+                    top: style.y,
+                    width: style.width,
+                    height: style.height
+                  }
+                ]}
+              />
+            ))}
+          </Animated.View>
         </View>
       </GestureDetector>
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  gestureContainer: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
+  },
+  sankeyOverlay: {
+    position: 'relative'
+  },
+  node: {
+    backgroundColor: 'transparent',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)'
+  }
+})
 
 export default SSMultipleSankeyDiagram
