@@ -33,8 +33,6 @@ import {
 import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
-// TODO: Refactor page
-
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
@@ -243,8 +241,8 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
 
     if (tx.prices) {
+      setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
     }
-    setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
 
     if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
 
