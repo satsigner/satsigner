@@ -48,7 +48,7 @@ interface SSSankeyLinksProps {
   BLOCK_WIDTH: number
 }
 
-const LINK_BLOCK_MAX_WIDTH = 16
+export const LINK_BLOCK_MAX_WIDTH = 16
 
 export function SSSankeyLinks({
   links,
@@ -238,7 +238,7 @@ export function SSSankeyLinks({
               color={gray[700]}
               opacity={0.8}
             >
-              {isUnspent && (
+              {isUnspent ? (
                 <>
                   {/* Base layer - dark gray */}
                   <Paint>
@@ -295,6 +295,32 @@ export function SSSankeyLinks({
                         points.y1
                       )}
                       colors={['#2C2C2C', '#FFFFFF']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+                </>
+              ) : (
+                <>
+                  <Paint opacity={0.2}>
+                    <LinearGradient
+                      start={vec(points.x1, points.y1)}
+                      end={vec(points.x2, points.y2)}
+                      colors={['#363636', '#363636']}
+                      positions={[0, 1]}
+                    />
+                  </Paint>
+
+                  <Paint opacity={0.2}>
+                    <LinearGradient
+                      start={vec(
+                        targetNode.type === 'block' ? points.x1 : points.x2,
+                        (points.y1 + points.y2) / 2
+                      )}
+                      end={vec(
+                        targetNode.type === 'block' ? points.x2 : points.x1,
+                        (points.y1 + points.y2) / 2
+                      )}
+                      colors={['#FFFFFF', '#2C2C2C']}
                       positions={[0, 1]}
                     />
                   </Paint>

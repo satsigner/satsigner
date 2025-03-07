@@ -151,7 +151,7 @@ function SSMultipleSankeyDiagram({
     isDoubleTapEnabled: true,
     maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
     minPanPointers: 1,
-    maxScale: 10,
+    maxScale: 20,
     minScale: 0.2,
     shouldResetOnInteractionEnd: false,
     initialTranslation: {

@@ -14,6 +14,7 @@ import { Colors } from '@/styles'
 import { gray } from '@/styles/colors'
 
 import { type Node } from './SSMultipleSankeyDiagram'
+import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
 
 interface ISSankeyNodes {
   nodes: any[]
@@ -25,7 +26,7 @@ const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 const BLOCK_WIDTH = 50
-const VERTICAL_OFFSET_NODE = 22
+const Y_OFFSET_BLOCK_NODE_TEXT = 10
 
 export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
@@ -44,19 +45,33 @@ export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
       y0?: number
     }
 
-    const blockNode = () => {
-      if (dataNode.type === 'block') {
+    // Calculate dynamic height for block nodes
+    const getBlockHeight = () => {
+      if (dataNode.textInfo[2]) {
         const sizeStr = dataNode.textInfo[2]
         const size = parseInt(sizeStr.split(' ')[0], 10)
-        const height = size * 0.1
+        return size * 0.1
+      }
+      return 0
+    }
 
+    const blockNode = () => {
+      if (dataNode.type === 'block') {
         return (
           <Group>
             <Rect
               x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
-              y={(node.y0 ?? 0) - 0.5 * VERTICAL_OFFSET_NODE}
+              y={node.y0 ?? 0}
               width={BLOCK_WIDTH}
-              height={height}
+              height={getBlockHeight()}
+              opacity={0.9}
+              color="#787878"
+            />
+            <Rect
+              x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
+              y={node.y0 ?? 0}
+              width={BLOCK_WIDTH}
+              height={LINK_BLOCK_MAX_WIDTH}
               color="#FFFFFF"
             />
           </Group>
@@ -70,9 +85,10 @@ export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
         <NodeText
           width={sankeyGenerator.nodeWidth()}
           x={node.x0 ?? 0}
-          y={(node.y0 ?? 0) - 1.6 * VERTICAL_OFFSET_NODE}
+          y={(node.y0 ?? 0) - 1.6}
           textInfo={dataNode.textInfo}
           customFontManager={customFontManager}
+          blockHeight={getBlockHeight()}
         />
         {blockNode()}
       </Group>
@@ -89,25 +105,17 @@ function NodeText({
   x,
   y,
   textInfo,
-  customFontManager
+  customFontManager,
+  blockHeight
 }: {
   width: number
   x: number
   y: number
   textInfo: string[]
   customFontManager: SkTypefaceFontProvider | null
+  blockHeight: number
 }) {
   const isBlock = textInfo[0] === '' && textInfo[1] === ''
-
-  // Calculate dynamic height for block nodes
-  const getBlockHeight = () => {
-    if (isBlock && textInfo[2]) {
-      const sizeStr = textInfo[2]
-      const size = parseInt(sizeStr.split(' ')[0], 10)
-      return Math.min(100, Math.max(40, (size / 2000) * 100))
-    }
-    return 0
-  }
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
@@ -209,7 +217,7 @@ function NodeText({
     <Paragraph
       width={isBlock ? width * 0.6 : width}
       x={isBlock ? x + width * 0.2 : x + PADDING_LEFT}
-      y={isBlock ? y + getBlockHeight() + 10 : y}
+      y={isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y}
       paragraph={mainParagraph}
     />
   )
