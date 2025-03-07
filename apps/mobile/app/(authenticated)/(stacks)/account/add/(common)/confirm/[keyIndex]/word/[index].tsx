@@ -14,16 +14,19 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
+import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
-import { getConfirmWordCandidates } from '@/utils/seed'
 import { useWalletsStore } from '@/store/wallets'
+import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
+import { aesEncrypt } from '@/utils/crypto'
+import { getConfirmWordCandidates } from '@/utils/seed'
 
 export default function Confirm() {
   const router = useRouter()
@@ -114,16 +117,26 @@ export default function Confirm() {
 
       addAccountWallet(account.id, walletData.wallet)
 
-      // Para adicioanr account a accountsStore temos que encriptar porque contas dentro de accountstore estão todas encryptiadas
+      const stringifiedSecret = JSON.stringify(account.keys[0].secret)
+      const pin = await getItem(PIN_KEY)
+      if (!pin) return // TODO: handle error
 
-      await encryptSeed()
+      const encryptedSecret = await aesEncrypt(
+        stringifiedSecret,
+        pin,
+        account.keys[0].iv
+      )
 
-      // const account = getAccount()
-      await addAccount(account)
+      account.keys[0].secret = encryptedSecret
+      console.log({ account })
+
+      addAccount(account)
+
+      // await walletData.wallet.sync()
 
       try {
-        const syncedAccount = await syncWallet(wallet, account)
-        await updateAccount(syncedAccount)
+        // const syncedAccount = await syncWallet(wallet, account)
+        // await updateAccount(syncedAccount)
       } catch {
         setWalletSyncFailed(true)
       } finally {

@@ -1,7 +1,7 @@
 import { Descriptor, DescriptorPublicKey, type Wallet } from 'bdk-rn'
 import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
-import { v4 as uuid } from 'uuid'
+import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import {
@@ -61,9 +61,9 @@ type AccountBuilderAction = {
   getAccountData: () => Account
   appendKey: (index: NonNullable<Key['index']>) => void
   clearKeyState: () => void
+  clearAccount: () => void
   // Below is deprecated
   getAccount: () => Account
-  clearAccount: () => void
   clearParticipants: () => void
   setExternalDescriptor: (descriptor: string) => Promise<void>
   setInternalDescriptor: (descriptor: string) => Promise<void>
@@ -100,10 +100,7 @@ type AccountBuilderAction = {
   encryptSeed: () => Promise<void>
 }
 
-const useAccountBuilderStore = create<
-  AccountBuilderState & AccountBuilderAction
->()((set, get) => ({
-  id: '',
+const initialState: AccountBuilderState = {
   name: '',
   policyType: 'singlesig',
   mnemonic: '',
@@ -112,8 +109,14 @@ const useAccountBuilderStore = create<
   creationType: 'importMnemonic',
   keyName: '',
   keys: [],
-  keysCount: 0,
-  keyRequired: 0,
+  keyCount: 0,
+  keysRequired: 0
+}
+
+const useAccountBuilderStore = create<
+  AccountBuilderState & AccountBuilderAction
+>()((set, get) => ({
+  ...initialState,
   // Bellow deprecated
   participants: [],
   participantsCount: 0,
@@ -151,7 +154,7 @@ const useAccountBuilderStore = create<
     const { name, policyType, keys, keyCount, keysRequired } = get()
 
     const account: Account = {
-      id: uuid(),
+      id: uuid.v4(),
       name,
       policyType,
       keys,
@@ -193,7 +196,7 @@ const useAccountBuilderStore = create<
         mnemonic,
         passphrase
       },
-      iv: uuid(),
+      iv: uuid.v4(),
       fingerprint,
       scriptVersion
     }
@@ -218,28 +221,10 @@ const useAccountBuilderStore = create<
       // TODO: Add descriptors and pubkey clear
     })
   },
-  // Below is deprecated,
   clearAccount: () => {
-    set({
-      name: '',
-      type: null,
-      scriptVersion: 'P2PKH',
-      seedWordCount: 24,
-      seedWords: '',
-      passphrase: undefined,
-      fingerprint: undefined,
-      derivationPath: undefined,
-      externalDescriptor: undefined,
-      internalDescriptor: undefined,
-      watchOnly: undefined,
-      wallet: undefined,
-      participants: [],
-      policyType: 'single',
-      participantsCount: 0,
-      requiredParticipantsCount: 0,
-      currentParticipantIndex: -1
-    })
+    set({ ...initialState })
   },
+  // Below is deprecated,
   clearParticipants: () => {
     set({
       participants: []

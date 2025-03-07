@@ -73,9 +73,9 @@
     "react-native-svg": "14.1.0",
     "react-native-tab-view": "^3.5.2",
     "react-native-tcp-socket": "^6.2.0",
+    "react-native-uuid": "^2.0.3",
     "react-timeago": "^7.2.0",
     "sonner-native": "^0.17.0",
-    "uuid": "^11.1.0",
     "varuint-bitcoin": "1.1.2",
     "victory-native": "^41.16.0",
     "zustand": "^4.5.2"

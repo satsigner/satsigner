@@ -21,7 +21,7 @@ type SSPinInputProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   autoFocus?: boolean
-  onFillEnded?: (pin?: string) => void
+  onFillEnded?: (pin: string) => void
 }
 
 function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {

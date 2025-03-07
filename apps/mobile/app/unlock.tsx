@@ -5,17 +5,21 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { PIN_SIZE } from '@/config/auth'
+import { PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { Layout } from '@/styles'
+import { pbkdf2Encrypt } from '@/utils/crypto'
 
 export default function Unlock() {
   const router = useRouter()
   const [
+    pinTries,
+    pinMaxTries,
     validatePin,
     setLockTriggered,
     resetPinTries,
@@ -26,6 +30,8 @@ export default function Unlock() {
     clearPageHistory
   ] = useAuthStore(
     useShallow((state) => [
+      state.pinTries,
+      state.pinMaxTries,
       state.validatePin,
       state.setLockTriggered,
       state.resetPinTries,
@@ -39,24 +45,34 @@ export default function Unlock() {
   const { shake, shakeStyle } = useAnimatedShake()
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
-  const [triesLeft, setTriesLeft] = useState<number | null>(null)
+  const [triesLeft, setTriesLeft] = useState<number>(pinMaxTries - pinTries)
 
   function clearPin() {
     setPin(Array(PIN_SIZE).fill(''))
   }
 
-  async function handleOnFillEnded(pinString?: string) {
-    const isPinValid = await validatePin(pinString || pin.join(''))
+  async function handleOnFillEnded(pin: string) {
+    const salt = await getItem(SALT_KEY)
+    const storedEncryptedPin = await getItem(PIN_KEY)
+    if (!salt || !storedEncryptedPin) return // TODO: handle error
+
+    const encryptedPin = await pbkdf2Encrypt(pin, salt)
+    const isPinValid = encryptedPin === storedEncryptedPin
+
     if (isPinValid) {
       setLockTriggered(false)
       resetPinTries()
 
-      // this pushes the previous page history (before screen was unlocked)
-      const pages = getPagesHistory()
-      clearPageHistory()
-      for (const page of pages) {
-        router.push(page as any)
-      }
+      // TODO: Fix this
+      // Note: Take into account that we don't persist account build
+      // We had a problem with pages = ["/", "/account/add/", "/account/add/(common)/confirm/0/word/11"]
+      // This pushes the previous page history (before screen was unlocked)
+      // const pages = getPagesHistory()
+      // clearPageHistory()
+      // for (const page of pages) {
+      //   router.push(page as any)
+      // }
+      router.push('/')
     } else {
       shake()
       clearPin()
@@ -96,7 +112,7 @@ export default function Unlock() {
               onFillEnded={handleOnFillEnded}
             />
           </Animated.View>
-          {triesLeft !== null && (
+          {triesLeft !== pinMaxTries && (
             <SSText uppercase color="muted" center>
               {triesLeft}{' '}
               {triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}
