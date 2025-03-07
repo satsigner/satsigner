@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 
+import { t } from '@/locales'
 import { formatAddress } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
@@ -88,9 +89,9 @@ export const useNodesAndLinks = ({
           type: 'text',
           depthH: blockDepth + 1,
           textInfo: [
-            'Unspent',
+            t('transaction.build.unspent'),
             `${utxosSelectedValue - MINING_FEE_VALUE}`,
-            'to'
+            t('common.to')
           ],
           value: utxosSelectedValue - MINING_FEE_VALUE,
           indexV: 0,
@@ -100,7 +101,7 @@ export const useNodesAndLinks = ({
           id: `vout-${blockDepth + 1}-1`,
           type: 'text',
           depthH: blockDepth + 1,
-          textInfo: [priority, miningFee, 'mining fee'],
+          textInfo: [priority, miningFee, t('transaction.build.miningFee')],
           value: MINING_FEE_VALUE,
           indexV: 1,
           vout: 1
