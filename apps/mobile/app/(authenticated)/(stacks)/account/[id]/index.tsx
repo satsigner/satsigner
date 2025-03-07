@@ -259,17 +259,20 @@ function ChildAccounts({
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
-  const [addresses, setAddresses] = useState(account.addresses)
+  const [addresses, setAddresses] = useState(
+    account.addresses.slice(0, addressCount)
+  )
+  const [hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
 
-  async function fetchAddresses() {
-    if (!account) return
-    await loadAddresses(account, addressCount, true)
+  async function updateDerivationPath() {
     if (account.derivationPath)
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
   }
 
   async function loadMoreAddresses() {
-    const newAddressCount = addressCount + perPage
+    setHasLoadMoreAddresses(true)
+    const newAddressCount =
+      addresses.length < addressCount ? addressCount : addressCount + perPage
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
     const addrList = await loadAddresses(account, newAddressCount, true)
@@ -277,25 +280,23 @@ function ChildAccounts({
     setLoadingAddresses(false)
   }
 
-  async function updateAddressCount() {
+  async function updateAddresses() {
+    if (hasLoadMoreAddresses) return
     const result = await getLastUsedWallet()
     if (!result) return
-    const totalItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
-    setAddressCount(totalItems)
-    setAddresses(account.addresses.slice(0, totalItems))
+    const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
+    const newAddresses = await loadAddresses(account, minItems, true)
+    setAddressCount(minItems)
+    setAddresses(newAddresses.slice(0, minItems))
   }
 
   useEffect(() => {
-    fetchAddresses()
+    updateDerivationPath()
   }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    setAddresses(account.addresses.slice(0, addressCount))
+    updateAddresses()
   }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    updateAddressCount()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
     ({ item }: { item: Address }) => (
@@ -360,7 +361,7 @@ function ChildAccounts({
     <SSMainLayout style={addressListStyles.container}>
       <SSHStack justifyBetween style={addressListStyles.header}>
         <SSHStack>
-          <SSIconButton onPress={fetchAddresses}>
+          <SSIconButton onPress={updateAddresses}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
@@ -477,6 +478,7 @@ function ChildAccounts({
         <SSButton
           variant="outline"
           uppercase
+          style={{ marginTop: 10 }}
           label={t('address.list.table.loadMore')}
           disabled={loadingAddresses}
           onPress={loadMoreAddresses}
