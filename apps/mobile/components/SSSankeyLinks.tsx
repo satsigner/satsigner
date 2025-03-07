@@ -201,6 +201,11 @@ export function SSSankeyLinks({
         const targetNode = nodes.find((n) => n.id === link.target) as Node
         const isUnspent = targetNode.textInfo[0] === 'Unspent'
 
+        const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
+        const isCurrentInput =
+          targetNode.depthH === maxDepthH - 1 ||
+          sourceNode.depthH === maxDepthH - 1
+
         const y1 =
           sourceNode.type === 'block'
             ? getStackedYPosition(sourceNode, true, link)
@@ -235,13 +240,12 @@ export function SSSankeyLinks({
               key={index}
               path={path1}
               style="fill"
-              color={gray[700]}
-              opacity={0.8}
+              color={isCurrentInput || isUnspent ? 'white' : gray[700]}
+              opacity={isCurrentInput || isUnspent ? 1 : 0.8}
             >
-              {isUnspent ? (
+              {isCurrentInput && !isUnspent ? (
                 <>
-                  {/* Base layer - dark gray */}
-                  <Paint>
+                  <Paint opacity={0.6}>
                     <LinearGradient
                       start={vec(points.x1, points.y1)}
                       end={vec(points.x2, points.y2)}
@@ -250,56 +254,22 @@ export function SSSankeyLinks({
                     />
                   </Paint>
 
-                  {/* White to gray gradient */}
-                  <Paint>
-                    <LinearGradient
-                      start={vec(points.x2, points.y1)}
-                      end={vec(
-                        points.x1 + (points.x2 - points.x1) * 0.58,
-                        points.y1
-                      )}
-                      colors={['#FFFFFF', '#5B5B5B']}
-                      positions={[0, 1]}
-                    />
-                  </Paint>
-
-                  {/* Another dark gray layer */}
-                  <Paint>
-                    <LinearGradient
-                      start={vec(points.x1, points.y1)}
-                      end={vec(points.x2, points.y2)}
-                      colors={['#363636', '#363636']}
-                      positions={[0, 1]}
-                    />
-                  </Paint>
-
-                  {/* White overlay */}
-                  <Paint opacity={0.7}>
-                    <LinearGradient
-                      start={vec(points.x1, points.y1)}
-                      end={vec(points.x2, points.y2)}
-                      colors={['#FFFFFF', '#FFFFFF']}
-                      positions={[0, 1]}
-                    />
-                  </Paint>
-
-                  {/* Final gradient - dark to white */}
-                  <Paint>
+                  <Paint opacity={1}>
                     <LinearGradient
                       start={vec(
-                        points.x2 + (points.x2 - points.x1) * 0.03,
-                        points.y1
+                        targetNode.type === 'block' ? points.x1 : points.x2,
+                        (points.y1 + points.y2) / 2
                       )}
                       end={vec(
-                        points.x1 + (points.x2 - points.x1) * 0.7,
-                        points.y1
+                        targetNode.type === 'block' ? points.x2 : points.x1,
+                        (points.y1 + points.y2) / 2
                       )}
                       colors={['#2C2C2C', '#FFFFFF']}
-                      positions={[0, 1]}
+                      positions={[0, 0.7]}
                     />
                   </Paint>
                 </>
-              ) : (
+              ) : !isUnspent ? (
                 <>
                   <Paint opacity={0.2}>
                     <LinearGradient
@@ -325,7 +295,7 @@ export function SSSankeyLinks({
                     />
                   </Paint>
                 </>
-              )}
+              ) : null}
             </Path>
           </Group>
         )
