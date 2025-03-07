@@ -164,13 +164,24 @@ function SSMultipleSankeyDiagram({
   const GRAPH_HEIGHT = height - topHeaderHeight
   const GRAPH_WIDTH = width
 
+  // calculating the sankey node styles to match in skia
   const nodeStyles = useMemo(() => {
-    return nodes.map((node) => ({
-      x: node.x0 ?? 0,
-      y: node.y0 ?? 0,
-      width: (node.x1 ?? 0) - (node.x0 ?? 0),
-      height: (node.y1 ?? 0) - (node.y0 ?? 0)
-    }))
+    return nodes.map((node) => {
+      const isBlock = (node as Node).type === 'block'
+      const blockHeight =
+        isBlock && (node as Node).textInfo[2]
+          ? parseInt((node as Node).textInfo[2].split(' ')[0], 10) * 0.1
+          : 0
+
+      return {
+        x: isBlock
+          ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
+          : node.x0 ?? 0,
+        y: node.y0 ?? 0,
+        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+        height: isBlock ? Math.max(blockHeight, LINK_MAX_WIDTH) : 80
+      }
+    })
   }, [nodes])
 
   if (!nodes?.length || !transformedLinks?.length) {
@@ -240,9 +251,9 @@ const styles = StyleSheet.create({
   },
   node: {
     backgroundColor: 'transparent',
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)'
+    borderRadius: 0,
+    width: '100%',
+    height: '100%'
   }
 })
 

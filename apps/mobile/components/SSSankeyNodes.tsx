@@ -177,7 +177,7 @@ function NodeText({
         fontSize: XS_FONT_SIZE,
         color: Skia.Color(gray[300])
       })
-      .addText(isAddress ? `from ` : '')
+      .addText(isAddress ? `${t('common.from')} ` : '')
       .pushStyle({
         ...textStyle,
         fontSize: isUnspentOrMiningFee ? BASE_FONT_SIZE : XS_FONT_SIZE,
