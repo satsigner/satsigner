@@ -36,7 +36,7 @@ import { Colors } from '@/styles'
 // Constants
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 console.log(`Screenwidth: ${screenWidth} Screenheight: ${screenHeight}`)
-const maxBlocksPerSpiral: number = 216 // 2016
+const maxBlocksPerSpiral: number = 2016 // 2016
 const factorBlockDistance: number = 0.04
 const radiusSpiralStart: number = 1
 const factorSpiralGrowth: number = 0.8
