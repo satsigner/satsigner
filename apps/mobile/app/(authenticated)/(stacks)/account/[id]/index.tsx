@@ -269,6 +269,12 @@ function ChildAccounts({
       setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
   }
 
+  async function refreshAddresses() {
+    setAddresses(
+      (await loadAddresses(account, addressCount, true)).slice(0, addressCount)
+    )
+  }
+
   async function loadMoreAddresses() {
     setHasLoadMoreAddresses(true)
     const newAddressCount =
@@ -361,7 +367,7 @@ function ChildAccounts({
     <SSMainLayout style={addressListStyles.container}>
       <SSHStack justifyBetween style={addressListStyles.header}>
         <SSHStack>
-          <SSIconButton onPress={updateAddresses}>
+          <SSIconButton onPress={refreshAddresses}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
