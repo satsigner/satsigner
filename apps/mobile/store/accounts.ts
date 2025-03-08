@@ -1,5 +1,6 @@
 import { Descriptor, type Wallet } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import { Transaction as TransactionParser } from 'bitcoinjs-lib'
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
@@ -51,6 +52,7 @@ type AccountsAction = {
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
+  fetchTxInputs: (account: string, txid: string) => Promise<void>
   setAddrLabel: (account: string, addr: string, label: string) => void
   setTxLabel: (account: string, txid: string, label: string) => void
   setUtxoLabel: (
@@ -443,6 +445,69 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       setTags: (tags: string[]) => {
         set({ tags })
+      },
+      fetchTxInputs: async (accountName, txid) => {
+        const accounts = get().accounts
+        const accountIndex = accounts.findIndex(
+          (account) => account.name === accountName
+        )
+
+        if (accountIndex === -1) return
+
+        const account = accounts[accountIndex]
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+
+        if (txIndex === -1) return
+
+        const tx = account.transactions[txIndex]
+        let mustFetchData = false
+        for (const input of tx.vin) {
+          if (input.value === undefined) {
+            mustFetchData = true
+            break
+          }
+        }
+        if (!mustFetchData) return
+
+        const { url, backend, network } = useBlockchainStore.getState()
+        const vin: Transaction['vin'] = []
+
+        if (backend === 'electrum') {
+          const electrumClient = await ElectrumClient.fromUrl(url, network)
+          const txIds = tx.vin.map((input) => input.previousOutput.txid)
+          const vouts = tx.vin.map((input) => input.previousOutput.vout)
+          const previousTxsRaw = await electrumClient.getTransactions(txIds)
+          electrumClient.close()
+          for (let i = 0; i < tx.vin.length; i += 1) {
+            const vout = vouts[i]
+            const prevTx = TransactionParser.fromHex(previousTxsRaw[i])
+            const value = prevTx.outs[vout].value
+            vin.push({ ...tx.vin[i], value })
+          }
+        }
+
+        if (backend === 'esplora') {
+          const esploraClient = new Esplora(url)
+          const txData = await esploraClient.getTxInfo(txid)
+          for (const input of txData.vin) {
+            vin.push({
+              previousOutput: {
+                txid: input.txid,
+                vout: input.vout
+              },
+              sequence: input.sequence,
+              scriptSig: hexToBytes(input.scriptsig),
+              value: input.prevout.value,
+              witness: input.witness.map(hexToBytes)
+            })
+          }
+        }
+
+        set(
+          produce((state) => {
+            state.accounts[accountIndex].transactions[txIndex].vin = vin
+          })
+        )
       },
       setAddrLabel: (accountName, addr, label) => {
         const account = get().accounts.find(

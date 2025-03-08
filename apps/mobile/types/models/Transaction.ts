@@ -17,7 +17,7 @@ export type Transaction = {
   lockTime?: number
   lockTimeEnabled: boolean
   raw?: number[]
-  vin?: {
+  vin: {
     previousOutput: {
       txid: string
       vout: number
@@ -25,6 +25,7 @@ export type Transaction = {
     sequence: number
     scriptSig: number[]
     witness: number[][]
+    value?: number
   }[]
   vout: {
     value: number
