@@ -10,10 +10,12 @@ import { SSIconBubbles, SSIconScan } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSSankeyDiagram from '@/components/SSSankeyDiagram'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
+import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -24,9 +26,9 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 
-const MINING_FEE_VALUE = 1635
+const DEEP_LEVEL = 2 // how deep the tx history
 
 export default function IOPreview() {
   const router = useRouter()
@@ -45,6 +47,12 @@ export default function IOPreview() {
       state.addOutput
     ])
   )
+
+  const { transactions, loading, error } = usePreviousTransactions(
+    inputs,
+    DEEP_LEVEL
+  )
+
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -76,89 +84,32 @@ export default function IOPreview() {
     setAddOutputModalVisible(false)
   }
 
-  const sankeyNodes = useMemo(() => {
-    if (inputs.size > 0) {
-      const inputNodes = Array.from(inputs.entries()).map(
-        ([, input], index) => ({
-          id: String(index + 1),
-          indexC: index + 1,
-          type: 'text',
-          depthH: 1,
-          textInfo: [
-            `${input.value}`,
-            `${formatAddress(input.txid, 3)}`,
-            input.label ?? ''
-          ],
-          value: input.value
-        })
-      )
+  const { nodes, links } = useNodesAndLinks({
+    transactions,
+    inputs,
+    outputs,
+    utxosSelectedValue
+  })
 
-      const blockNode = [
-        {
-          id: String(inputs.size + 1),
-          indexC: inputs.size + 1,
-          type: 'block',
-          depthH: 2,
-          textInfo: ['', '', '1533 B', '1509 vB']
-        }
-      ]
-
-      const miningFee = `${MINING_FEE_VALUE}`
-      const priority = '42 sats/vB'
-      const outputNodes = [
-        {
-          id: String(inputs.size + 2),
-          indexC: inputs.size + 2,
-          type: 'text',
-          depthH: 3,
-          textInfo: [
-            'Unspent',
-            `${utxosSelectedValue - MINING_FEE_VALUE}`,
-            'to'
-          ],
-          value: utxosSelectedValue - MINING_FEE_VALUE
-        },
-        {
-          id: String(inputs.size + 3),
-          indexC: inputs.size + 3,
-          type: 'text',
-          depthH: 3,
-          textInfo: [priority, miningFee, 'mining fee'],
-          value: MINING_FEE_VALUE
-        }
-      ]
-      return [...inputNodes, ...blockNode, ...outputNodes]
-    } else {
-      return []
-    }
-  }, [inputs, utxosSelectedValue])
-
-  const sankeyLinks = useMemo(() => {
-    if (inputs.size === 0) return []
-
-    const inputToBlockLinks = Array.from(inputs.entries()).map(
-      ([, input], index) => ({
-        source: String(index + 1),
-        target: String(inputs.size + 1),
-        value: input.value
-      })
+  // Show loading state
+  if (loading && inputs.size > 0) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText>Loading transaction details...</SSText>
+      </SSVStack>
     )
+  }
 
-    const blockToOutputLinks = [
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 2),
-        value: utxosSelectedValue - MINING_FEE_VALUE
-      },
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 3),
-        value: MINING_FEE_VALUE
-      }
-    ]
-
-    return [...inputToBlockLinks, ...blockToOutputLinks]
-  }, [inputs, utxosSelectedValue])
+  // Show error state
+  if (error) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText color="muted">
+          Error loading transaction details: {error.message}
+        </SSText>
+      </SSVStack>
+    )
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -244,20 +195,12 @@ export default function IOPreview() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 80 }}>
-        {/* <GestureDetector gesture={gestures}>
-          <Animated.View
-            style={[
-              { width: sankeyWidth, height: sankeyHeight },
-              animatedStyle
-            ]}
-          > */}
-        <SSSankeyDiagram
-          sankeyNodes={sankeyNodes}
-          sankeyLinks={sankeyLinks}
-          inputCount={inputs.size ?? 0}
-        />
-        {/* </Animated.View>
-        </GestureDetector> */}
+        {transactions.size > 0 &&
+        inputs.size > 0 &&
+        nodes?.length > 0 &&
+        links?.length > 0 ? (
+          <SSMultipleSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
+        ) : null}
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}

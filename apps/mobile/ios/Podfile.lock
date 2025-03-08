@@ -1162,6 +1162,10 @@ PODS:
     - React-perflogger (= 0.73.6)
   - RNDeviceInfo (11.1.0):
     - React-Core
+  - RNFlashList (1.7.3):
+    - glog
+    - RCT-Folly (= 2022.05.16.00)
+    - React-Core
   - RNFS (2.20.0):
     - React-Core
   - RNGestureHandler (2.14.1):
@@ -1277,6 +1281,7 @@ DEPENDENCIES:
   - React-utils (from `../../../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
   - RNDeviceInfo (from `../../../node_modules/react-native-device-info`)
+  - "RNFlashList (from `../../../node_modules/@shopify/flash-list`)"
   - RNFS (from `../../../node_modules/react-native-fs`)
   - RNGestureHandler (from `../../../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../../../node_modules/react-native-reanimated`)
@@ -1454,6 +1459,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon"
   RNDeviceInfo:
     :path: "../../../node_modules/react-native-device-info"
+  RNFlashList:
+    :path: "../../../node_modules/@shopify/flash-list"
   RNFS:
     :path: "../../../node_modules/react-native-fs"
   RNGestureHandler:
@@ -1552,6 +1559,7 @@ SPEC CHECKSUMS:
   React-utils: d16c1d2251c088ad817996621947d0ac8167b46c
   ReactCommon: 2aa35648354bd4c4665b9a5084a7d37097b89c10
   RNDeviceInfo: b899ce37a403a4dea52b7cb85e16e49c04a5b88e
+  RNFlashList: 445061c7da2ff509b80cb1990470b37a8bc37cb4
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688
   RNGestureHandler: 15c6ef51acba34c49ff03003806cf5dd6098f383
   RNReanimated: 7a53dcc0efe717a3cca44cd23d72135b8fca3950
