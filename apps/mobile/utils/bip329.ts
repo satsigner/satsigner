@@ -1,3 +1,4 @@
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
@@ -35,6 +36,19 @@ export const bip329mimes = {
   JSONL: 'text/plain',
   CSV: 'text/csv'
 } as Record<Bip329FileType, PickFileProps['type']>
+
+export function formatAddressLabels(addresses: Address[]): Label[] {
+  return addresses
+    .filter((address) => address.label)
+    .map((address) => {
+      return {
+        label: address.label,
+        type: 'addr',
+        ref: address.address,
+        spendable: true
+      } as Label
+    })
+}
 
 export function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions

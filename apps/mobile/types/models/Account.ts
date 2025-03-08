@@ -1,3 +1,4 @@
+import { type Address } from './Address'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
 
@@ -51,6 +52,7 @@ export type Account = {
   derivationPath?: string
   transactions: Transaction[]
   utxos: Utxo[]
+  addresses: Address[]
   summary: {
     balance: number
     numberOfAddresses: number

@@ -1,6 +1,11 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import {
+  type StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  type ViewStyle
+} from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -26,9 +31,10 @@ type SSTransactionCardProps = {
   blockHeight: number
   fiatCurrency: Currency
   btcPrice: number
-  walletBalance: number
+  walletBalance?: number
   link: string
   expand: boolean
+  style?: StyleProp<ViewStyle>
 }
 
 function SSTransactionCard({
@@ -38,7 +44,8 @@ function SSTransactionCard({
   btcPrice,
   walletBalance,
   link,
-  expand
+  expand,
+  style = {}
 }: SSTransactionCardProps) {
   const confirmations = transaction.blockHeight
     ? blockHeight - transaction.blockHeight + 1
@@ -84,10 +91,13 @@ function SSTransactionCard({
   return (
     <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSVStack
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: expand ? 4 : 8
-        }}
+        style={[
+          {
+            paddingHorizontal: 16,
+            paddingTop: expand ? 4 : 8
+          },
+          style
+        ]}
         gap="none"
       >
         <SSHStack justifyBetween style={{ height: expand ? 18 : 22 }}>
@@ -163,15 +173,17 @@ function SSTransactionCard({
               </SSText>
             </SSHStack>
           </SSVStack>
-          <SSText color="muted" style={[{ textAlign: 'right' }]}>
-            <SSStyledSatText
-              amount={walletBalance}
-              decimals={0}
-              useZeroPadding={useZeroPadding}
-              type={transaction.type}
-              textSize={expand ? 'xs' : 'sm'}
-            />
-          </SSText>
+          {walletBalance !== undefined && (
+            <SSText color="muted" style={[{ textAlign: 'right' }]}>
+              <SSStyledSatText
+                amount={walletBalance}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                type={transaction.type}
+                textSize={expand ? 'xs' : 'sm'}
+              />
+            </SSText>
+          )}
         </SSHStack>
         <SSHStack justifyBetween>
           <SSText

@@ -102,6 +102,24 @@ class BaseElectrumClient {
     this.network = bitcoinjsNetwork(network)
   }
 
+  static async fromUrl(url: string, network: Network): Promise<ElectrumClient> {
+    const port = url.replace(/.*:/, '')
+    const protocol = url.replace(/:\/\/.*/, '')
+    const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
+
+    if (
+      !host.match(/^[a-z][a-z.]+$/i) ||
+      !port.match(/^[0-9]+$/) ||
+      (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+    ) {
+      throw new Error('Invalid backend URL')
+    }
+
+    const client = new ElectrumClient({ host, port: Number(port), protocol, network })
+    await client.init()
+    return client
+  }
+
   async init() {
     await this.client.initElectrum({
       client: 'satsigner',

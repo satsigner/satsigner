@@ -4,7 +4,7 @@ import { StyleSheet, Text } from 'react-native'
 import { Colors, Sizes, Typography } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 
-type SSTextProps = {
+export type SSTextProps = {
   color?: 'white' | 'black' | 'muted'
   size?: TextFontSize
   type?: 'sans-serif' | 'mono'
