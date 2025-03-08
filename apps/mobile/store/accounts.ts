@@ -338,28 +338,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               }
             })
           } else {
-            const port = url.replace(/.*:/, '')
-            const protocol = url.replace(/:\/\/.*/, '')
-            const host = url
-              .replace(`${protocol}://`, '')
-              .replace(`:${port}`, '')
-
-            if (
-              !host.match(/^[a-z][a-z.]+$/i) ||
-              !port.match(/^[0-9]+$/) ||
-              (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
-            ) {
-              throw new Error('Invalid backend URL')
-            }
-
-            const electrumClient = new ElectrumClient({
-              host,
-              port: Number(port),
-              protocol,
-              network
-            })
-
-            await electrumClient.init()
+            const electrumClient = await ElectrumClient.fromUrl(url, network)
             const addrInfo = await electrumClient.getAddressInfo(address)
             electrumClient.close()
             transactions = addrInfo.transactions
