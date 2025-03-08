@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -32,14 +33,18 @@ import {
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import SSTxChart from '@/components/SSTxChart'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const tx = useAccountsStore((state) =>
-    state.accounts
-      .find((account) => account.name === accountId)
-      ?.transactions.find((tx) => tx.id === txid)
+  const [tx, fetchTxInputs] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts
+        .find((account) => account.name === accountId)
+        ?.transactions.find((tx) => tx.id === txid),
+      state.fetchTxInputs
+    ])
   )
   const placeholder = '-'
 
@@ -89,6 +94,10 @@ export default function TxDetails() {
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    fetchTxInputs(accountId!, txid!)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!accountId || !txid || !tx) return <Redirect href="/" />
 
   return (
@@ -106,6 +115,8 @@ export default function TxDetails() {
           link={`/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
         />
+        <SSSeparator color="gradient" />
+        <SSTxChart transaction={tx} />
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('transaction.block')} text={height} />
