@@ -132,7 +132,7 @@ export default function SignMessage() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label={t('signMessage.broadcastTxMessage')}
+            label={t('broadcast.transaction')}
             disabled={!signed || !psbt}
             loading={broadcasting}
             onPress={() => handleBroadcastTransaction()}

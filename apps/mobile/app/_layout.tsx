@@ -7,8 +7,11 @@ import {
   AppState,
   type AppStateStatus,
   Platform,
+  StyleSheet,
   UIManager
 } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -78,7 +81,26 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Slot />
+      <GestureHandlerRootView style={styles.container}>
+        <Slot />
+        <Toaster
+          theme="dark"
+          position="top-center"
+          style={{
+            borderRadius: 8,
+            backgroundColor: Colors.gray[900],
+            borderWidth: 1,
+            borderColor: Colors.gray[800]
+          }}
+        />
+      </GestureHandlerRootView>
     </QueryClientProvider>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.gray[900]
+  }
+})

@@ -84,13 +84,8 @@ export default function SetPin() {
           <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
             <SSText uppercase size="lg" color="muted" center>
               {stage === 'set'
-                ? t('auth.setPinTitle.0')
-                : t('auth.reenterPinTitle.0')}
-            </SSText>
-            <SSText uppercase size="lg" color="muted" center>
-              {stage === 'set'
-                ? t('auth.setPinTitle.1')
-                : t('auth.reenterPinTitle.1')}
+                ? t('auth.setPinTitle')
+                : t('auth.reenterPinTitle')}
             </SSText>
           </SSVStack>
           {stage === 'set' && (

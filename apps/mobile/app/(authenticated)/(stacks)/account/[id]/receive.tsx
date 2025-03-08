@@ -45,7 +45,7 @@ export default function Receive() {
       setAddressQR(addressQRResult)
 
       if (account?.derivationPath)
-        setAddressPath(`${account.derivationPath}/0/${addressNumber}`)
+        setAddressPath(`${account.derivationPath}/0/${result.index}`)
     }
 
     callGetWalletAddress()

@@ -17,7 +17,13 @@ import SSText from './SSText'
 
 type SSButtonProps = {
   label: string
-  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'gradient'
+  variant?:
+    | 'default'
+    | 'secondary'
+    | 'outline'
+    | 'ghost'
+    | 'gradient'
+    | 'danger'
   loading?: boolean
   withSelect?: boolean
   uppercase?: boolean
@@ -44,6 +50,7 @@ function SSButton({
     if (variant === 'ghost') buttonVariantStyles = styles.buttonGhost
     if (variant === 'default' && withSelect)
       buttonVariantStyles = styles.buttonWithSelect
+    if (variant === 'danger') buttonVariantStyles = styles.buttonDanger
 
     return StyleSheet.compose(
       {
@@ -138,6 +145,9 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  buttonDanger: {
+    backgroundColor: Colors.error
   },
   buttonWithSelect: {
     backgroundColor: Colors.gray[850]

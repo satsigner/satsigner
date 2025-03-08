@@ -67,9 +67,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 {formatNumber(account.summary.numberOfAddresses)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.childAccounts.0')}
-                {'\n'}
-                {t('accounts.childAccounts.1')}
+                {t('accounts.childAccounts')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -77,9 +75,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 {formatNumber(account.summary.numberOfTransactions)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.totalTransactions.0')}
-                {'\n'}
-                {t('accounts.totalTransactions.1')}
+                {t('accounts.totalTransactions')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -87,9 +83,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 {formatNumber(account.summary.numberOfUtxos)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.spendableOutputs.0')}
-                {'\n'}
-                {t('accounts.spendableOutputs.1')}
+                {t('accounts.spendableOutputs')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -97,9 +91,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 {formatNumber(account.summary.satsInMempool)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.satsInMempool.0')}
-                {'\n'}
-                {t('accounts.satsInMempool.1')}
+                {t('accounts.satsInMempool')}
               </SSText>
             </SSVStack>
           </SSHStack>
