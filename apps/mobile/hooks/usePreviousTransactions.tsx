@@ -265,7 +265,7 @@ export function usePreviousTransactions(
         }
       }
 
-      // Now calculate depthH based on dependencies - NEW IMPLEMENTATION
+      // Now calculate depthH based on dependencies
       if (filteredTransactions.size > 0) {
         // Initialize depthH to 0 for all transactions
         for (const [txid, tx] of filteredTransactions.entries()) {

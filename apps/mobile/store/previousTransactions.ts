@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { EsploraTx } from '@/api/esplora'
+import { type EsploraTx } from '@/api/esplora'
 import mmkvStorage from '@/storage/mmkv'
 
 interface PreviousTransactionsState {
