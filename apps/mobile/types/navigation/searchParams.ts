@@ -11,6 +11,10 @@ export type ConfirmWordSearchParams = {
   index: string
 }
 
+export type ImportMnemonicSearchParams = {
+  keyIndex: string
+}
+
 export type AccountSearchParams = {
   id: string
 }

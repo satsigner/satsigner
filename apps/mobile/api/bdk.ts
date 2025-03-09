@@ -59,7 +59,11 @@ async function getWallet(account: Account, network: Network) {
         key.creationType === 'generateMnemonic' ||
         key.creationType === 'importMnemonic'
       ) {
-        if (!key.secret.mnemonic || !key.scriptVersion)
+        if (
+          typeof key.secret === 'string' ||
+          !key.secret.mnemonic ||
+          !key.scriptVersion
+        )
           throw new Error('Invalid secret')
 
         const walletData = await getWalletFromMnemonic(
