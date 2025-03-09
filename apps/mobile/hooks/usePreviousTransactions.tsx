@@ -23,16 +23,7 @@ export function usePreviousTransactions(
   levelDeep: number = 2,
   skipCache: boolean = false
 ) {
-  const [, network] = useBlockchainStore(
-    useShallow((state) => [
-      state.backend,
-      state.network,
-      state.retries,
-      state.stopGap,
-      state.timeout,
-      state.url
-    ])
-  )
+  const [network] = useBlockchainStore(useShallow((state) => [state.network]))
 
   const [transactions, setTransactions] = useState<
     Map<string, ExtendedEsploraTx>
@@ -40,15 +31,6 @@ export function usePreviousTransactions(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const { addTransactions, getTransaction } = usePreviousTransactionsStore()
-
-  // Deprecated - kept for reference
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _getInitialDepthH = (txCount: number) => {
-    // For single transaction, use depth of 1
-    // For two transactions, use depths of 3 and 1
-    // For three or more, spread them out with max depth of 5
-    return Math.min((txCount - 1) * 2 + 1, 5)
-  }
 
   const assignIndexV = (transactions: Map<string, ExtendedEsploraTx>) => {
     if (transactions.size === 0) {
