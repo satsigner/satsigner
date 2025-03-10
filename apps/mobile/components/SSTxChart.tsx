@@ -40,11 +40,7 @@ function SSTxChart({ transaction }: SSTxChartProps) {
       indexC: vinCount + 2 + index,
       depthH: 3,
       type: 'text',
-      textInfo: [
-        String(output.value),
-        output.address,
-        '',
-      ],
+      textInfo: [String(output.value), output.address, ''],
       value: output.value
     }))
 

@@ -115,7 +115,12 @@ class BaseElectrumClient {
       throw new Error('Invalid backend URL')
     }
 
-    const client = new ElectrumClient({ host, port: Number(port), protocol, network })
+    const client = new ElectrumClient({
+      host,
+      port: Number(port),
+      protocol,
+      network
+    })
     await client.init()
     return client
   }

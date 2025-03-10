@@ -15,6 +15,7 @@ import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import SSTxChart from '@/components/SSTxChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -33,7 +34,6 @@ import {
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import SSTxChart from '@/components/SSTxChart'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()

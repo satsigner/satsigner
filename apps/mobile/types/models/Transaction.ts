@@ -1,4 +1,4 @@
-import { Prices, type Currency } from './Blockchain'
+import { type Prices } from './Blockchain'
 
 export type Transaction = {
   id: string
