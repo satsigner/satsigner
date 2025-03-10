@@ -23,7 +23,7 @@ export type Secret = {
   /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
   internalDescriptor?: string
   /** Only for watch-only */
-  publicKey?: string
+  extendedPublicKey?: string
 }
 
 export type Key = {

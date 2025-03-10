@@ -172,13 +172,30 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
-// Below deprecated
-
-async function extractPubKeyFromDescriptor(descriptor: Descriptor) {
+async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
   const descriptorString = await descriptor.asString()
   const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
   return match ? match[0] : ''
 }
+
+async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
+  console.log('bdk key:', key)
+  if (typeof key.secret === 'string') return
+  if (!key.secret.mnemonic || !key.scriptVersion) return
+
+  const externalDescriptor = await getDescriptor(
+    key.secret.mnemonic,
+    key.scriptVersion,
+    KeychainKind.External,
+    key.secret.passphrase,
+    network
+  )
+  const extendedKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
+
+  return extendedKey
+}
+
+// Below deprecated
 
 async function getFingerprint(
   mnemonic: NonNullable<Account['mnemonic']>,
@@ -232,7 +249,7 @@ async function getParticipantInfo(
       await parseDescriptor(externalDescriptor)
     const externalDescriptorString = await externalDescriptor.asString()
     const internalDescriptorString = await internalDescriptor.asString()
-    const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
+    const pubKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
     return {
       fingerprint,
       derivationPath,
@@ -282,7 +299,7 @@ async function getMultiSigWalletFromMnemonic(
         ])
         externalDescriptors.push(externalDescriptor)
         internalDescriptors.push(internalDescriptor)
-        const key = await extractPubKeyFromDescriptor(externalDescriptor)
+        const key = await extractExtendedKeyFromDescriptor(externalDescriptor)
         keys.push(key)
       } else {
         const match = participant.externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
@@ -559,10 +576,11 @@ async function broadcastTransaction(
 export {
   broadcastTransaction,
   buildTransaction,
-  extractPubKeyFromDescriptor,
+  extractExtendedKeyFromDescriptor,
   generateMnemonic,
   getBlockchain,
   getDescriptor,
+  getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   getLastUnusedWalletAddress,
   getMultiSigWalletFromMnemonic,

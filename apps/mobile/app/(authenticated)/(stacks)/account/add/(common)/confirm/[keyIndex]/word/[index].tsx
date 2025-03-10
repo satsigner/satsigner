@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWallet } from '@/api/bdk'
+import { getExtendedPublicKeyFromAccountKey, getWallet } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
@@ -41,6 +41,7 @@ export default function Confirm() {
   )
   const [
     name,
+    keys,
     mnemonicWordCount,
     mnemonic,
     policyType,
@@ -49,16 +50,15 @@ export default function Confirm() {
     loadWallet,
     encryptSeed,
     setParticipantWithSeedWord,
-    setKeyCount,
-    setKeysRequired,
     getAccountData,
-    appendKey,
+    setKey,
     updateKeySecret,
     updateKeyFingerprint,
     setKeyDerivationPath
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
+      state.keys,
       state.mnemonicWordCount,
       state.mnemonic.split(' '),
       state.policyType,
@@ -67,10 +67,8 @@ export default function Confirm() {
       state.loadWallet,
       state.encryptSeed,
       state.setParticipantWithSeedWord,
-      state.setKeyCount,
-      state.setKeysRequired,
       state.getAccountData,
-      state.appendKey,
+      state.setKey,
       state.updateKeySecret,
       state.updateKeyFingerprint,
       state.setKeyDerivationPath
@@ -105,13 +103,10 @@ export default function Confirm() {
   }
 
   async function handleFinishWordsConfirmation() {
-    appendKey(Number(keyIndex))
+    setLoadingAccount(true)
+    const currentKey = setKey(Number(keyIndex))
 
     if (policyType === 'singlesig') {
-      setLoadingAccount(true)
-      setKeyCount(1)
-      setKeysRequired(1)
-
       const account = getAccountData()
 
       const walletData = await getWallet(account, network as Network)
@@ -149,8 +144,17 @@ export default function Confirm() {
         setWarningModalVisible(true)
       }
     } else if (policyType === 'multisig') {
-      setParticipantWithSeedWord()
-      router.dismiss(Number(index) + 2)
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        currentKey,
+        network as Network
+      )
+      updateKeySecret(Number(keyIndex), {
+        ...(currentKey.secret as object),
+        extendedPublicKey
+      })
+
+      setLoadingAccount(false)
+      router.dismiss(Number(index) + 3)
     }
   }
 

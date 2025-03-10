@@ -30,7 +30,8 @@ export default function MultiSigKeySettings() {
     setScriptVersion,
     setMnemonicWordCount,
     setMnemonic,
-    setFingerprint
+    setFingerprint,
+    setCreationType
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -39,7 +40,8 @@ export default function MultiSigKeySettings() {
       state.setScriptVersion,
       state.setMnemonicWordCount,
       state.setMnemonic,
-      state.setFingerprint
+      state.setFingerprint,
+      state.setCreationType
     ])
   )
   const network = useBlockchainStore((state) => state.network)
@@ -57,9 +59,8 @@ export default function MultiSigKeySettings() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(
-    type: 'generateMnemonic' | 'importMnemonic' | 'importDescriptor'
-  ) {
+  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+    setCreationType(type)
     setKeyName(localKeyName)
     setScriptVersion(localScriptVersion)
     setMnemonicWordCount(localMnemonicWordCount)

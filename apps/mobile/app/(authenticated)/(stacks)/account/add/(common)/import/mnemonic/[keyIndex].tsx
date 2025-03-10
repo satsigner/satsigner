@@ -5,7 +5,12 @@ import { useEffect, useRef, useState } from 'react'
 import { AppState, ScrollView, type TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getFingerprint, getWallet, validateMnemonic } from '@/api/bdk'
+import {
+  getExtendedPublicKeyFromAccountKey,
+  getFingerprint,
+  getWallet,
+  validateMnemonic
+} from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
@@ -66,13 +71,12 @@ export default function ImportSeed() {
     setFingerprint,
     loadWallet,
     encryptSeed,
-    appendKey,
-    setKeyCount,
-    setKeysRequired,
+    setKey,
     getAccountData,
     updateKeyFingerprint,
     setKeyDerivationPath,
-    updateKeySecret
+    updateKeySecret,
+    clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -91,13 +95,12 @@ export default function ImportSeed() {
       state.setFingerprint,
       state.loadWallet,
       state.encryptSeed,
-      state.appendKey,
-      state.setKeyCount,
-      state.setKeysRequired,
+      state.setKey,
       state.getAccountData,
       state.updateKeyFingerprint,
       state.setKeyDerivationPath,
-      state.updateKeySecret
+      state.updateKeySecret,
+      state.clearKeyState
     ])
   )
   const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
@@ -343,15 +346,14 @@ export default function ImportSeed() {
   }
 
   async function handleOnPressImportSeed() {
+    setLoadingAccount(true)
+
     const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
     setMnemonic(mnemonic)
-    appendKey(Number(keyIndex))
+
+    const currentKey = setKey(Number(keyIndex))
 
     if (policyType === 'singlesig') {
-      setLoadingAccount(true)
-      setKeyCount(1)
-      setKeysRequired(1)
-
       const account = getAccountData()
 
       const walletData = await getWallet(account, network as Network)
@@ -389,8 +391,17 @@ export default function ImportSeed() {
         setLoadingAccount(false)
       }
     } else if (policyType === 'multisig') {
-      setParticipant(mnemonic)
-      router.back()
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        currentKey,
+        network as Network
+      )
+      updateKeySecret(Number(keyIndex), {
+        ...(currentKey.secret as object),
+        extendedPublicKey
+      })
+
+      setLoadingAccount(false)
+      router.dismiss(2)
     }
   }
 

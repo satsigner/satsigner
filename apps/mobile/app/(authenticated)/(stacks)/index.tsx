@@ -78,6 +78,11 @@ export default function AccountList() {
 
   const [loadingWallet, setLoadingWallet] = useState('')
 
+  function handleOnNavigateToAddAccount() {
+    clearAccount()
+    router.navigate('/account/add')
+  }
+
   async function loadSampleLegacyWallet() {
     setScriptVersion('P2PKH')
     await loadSampleSigningWallet('legacy')
@@ -124,7 +129,7 @@ export default function AccountList() {
   async function loadSampleWallet() {
     if (loadingWallet !== '') return
     const account = getAccount()
-    await addAccount(account)
+    addAccount(account)
     setLoadingWallet('')
     clearAccount()
     // try {
@@ -192,7 +197,7 @@ export default function AccountList() {
               borderBottomColor: '#222222',
               borderRadius: 0
             }}
-            onPress={() => router.navigate('/account/add')}
+            onPress={handleOnNavigateToAddAccount}
             variant="gradient"
             gradientType="special"
           />

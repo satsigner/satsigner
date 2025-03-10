@@ -59,6 +59,8 @@ function SSMultisigKeyControl({
     }
   }
 
+  if (typeof keyDetails?.secret === 'string') return null
+
   return (
     <TouchableOpacity
       onPress={() =>
@@ -90,7 +92,7 @@ function SSMultisigKeyControl({
             </SSText>
             <SSVStack gap="none">
               <SSText>{getSourceLabel()}</SSText>
-              <SSText color={keyDetails?.publicKey ? 'white' : 'muted'}>
+              <SSText color={keyDetails?.name ? 'white' : 'muted'}>
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
             </SSVStack>
@@ -99,9 +101,11 @@ function SSMultisigKeyControl({
             <SSText color={keyDetails?.fingerprint ? 'white' : 'muted'}>
               {keyDetails?.fingerprint ?? t('account.fingerprint')}
             </SSText>
-            <SSText color={keyDetails?.publicKey ? 'white' : 'muted'}>
-              {keyDetails?.publicKey
-                ? formatAddress(keyDetails?.publicKey, 6)
+            <SSText
+              color={keyDetails?.secret.extendedPublicKey ? 'white' : 'muted'}
+            >
+              {keyDetails?.secret.extendedPublicKey
+                ? formatAddress(keyDetails.secret.extendedPublicKey, 6)
                 : t('account.seed.publicKey')}
             </SSText>
           </SSVStack>

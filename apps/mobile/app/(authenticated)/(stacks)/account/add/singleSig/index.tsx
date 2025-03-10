@@ -25,14 +25,20 @@ export default function SingleSig() {
     setScriptVersion,
     setMnemonicWordCount,
     setMnemonic,
-    setFingerprint
+    setFingerprint,
+    setKeyCount,
+    setKeysRequired,
+    setCreationType
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
       state.setScriptVersion,
       state.setMnemonicWordCount,
       state.setMnemonic,
-      state.setFingerprint
+      state.setFingerprint,
+      state.setKeyCount,
+      state.setKeysRequired,
+      state.setCreationType
     ])
   )
   const network = useBlockchainStore((state) => state.network)
@@ -49,9 +55,12 @@ export default function SingleSig() {
 
   const [loading, setLoading] = useState(false)
 
-  async function handleOnPress(type: 'generateMnemonic' | 'importMnemonic') {
+  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+    setCreationType(type)
     setScriptVersion(localScriptVersion)
     setMnemonicWordCount(localMnemonicWordCount)
+    setKeyCount(1)
+    setKeysRequired(1)
 
     if (type === 'generateMnemonic') {
       setLoading(true)

@@ -5,7 +5,7 @@ import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import {
-  extractPubKeyFromDescriptor,
+  extractExtendedKeyFromDescriptor,
   getFingerprint,
   getMultiSigWalletFromMnemonic,
   getParticipantInfo,
@@ -59,7 +59,7 @@ type AccountBuilderAction = {
   setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   getAccountData: () => Account
-  appendKey: (index: NonNullable<Key['index']>) => void
+  setKey: (index: NonNullable<Key['index']>) => Key
   clearKeyState: () => void
   clearAccount: () => void
   updateKeySecret: (
@@ -74,6 +74,7 @@ type AccountBuilderAction = {
     index: NonNullable<Key['index']>,
     derivationPath: NonNullable<Key['derivationPath']>
   ) => void
+  setCreationType: (creationType: NonNullable<Key['creationType']>) => void
   // Below is deprecated
   getAccount: () => Account
   clearParticipants: () => void
@@ -187,7 +188,7 @@ const useAccountBuilderStore = create<
 
     return account
   },
-  appendKey: (index) => {
+  setKey: (index) => {
     const {
       keyName,
       creationType,
@@ -215,11 +216,11 @@ const useAccountBuilderStore = create<
 
     set(
       produce((state: AccountBuilderState) => {
-        state.keys.push(key)
+        state.keys[index] = key
       })
     )
 
-    get().clearKeyState()
+    return key
   },
   clearKeyState: () => {
     set({
@@ -262,6 +263,9 @@ const useAccountBuilderStore = create<
         }
       })
     )
+  },
+  setCreationType: (creationType) => {
+    set({ creationType })
   },
   // Below is deprecated,
   clearParticipants: () => {
@@ -543,7 +547,7 @@ const useAccountBuilderStore = create<
       const { participants, currentParticipantIndex: index } = get()
       const { fingerprint, derivationPath } =
         await parseDescriptor(externalDescriptor)
-      const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
+      const pubKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
       const p: MultisigParticipant = {
         externalDescriptor: descriptor,
         derivationPath,
