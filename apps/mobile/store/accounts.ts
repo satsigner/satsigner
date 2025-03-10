@@ -33,6 +33,7 @@ type AccountsState = {
 
 type AccountsAction = {
   addAccount: (account: Account) => void
+  updateAccount: (account: Account) => Promise<void>
   // Below deprecated
   hasAccountWithName: (name: string) => boolean
   loadWalletFromDescriptor: (
@@ -40,7 +41,6 @@ type AccountsAction = {
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
   syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
-  updateAccount: (account: Account) => Promise<void>
   updateAccountName: (name: string, newName: string) => void
   deleteAccount: (name: string) => void
   deleteAccounts: () => void
@@ -69,6 +69,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
+      updateAccount: async (account) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (_account) => _account.id === account.id
+            )
+            if (index !== -1) state.accounts[index] = account
+          })
+        )
+      },
+      // BELOW DEPRECATED
       hasAccountWithName: (name) => {
         return !!get().accounts.find((account) => account.name === name)
       },
@@ -286,16 +297,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         })
 
         return { ...account, transactions, utxos, summary }
-      },
-      updateAccount: async (account) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (_account) => _account.name === account.name
-            )
-            if (index !== -1) state.accounts[index] = account
-          })
-        )
       },
       updateAccountName: (name, newName) => {
         set(

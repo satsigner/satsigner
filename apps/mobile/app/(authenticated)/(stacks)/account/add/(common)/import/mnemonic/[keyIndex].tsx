@@ -22,6 +22,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import { PIN_KEY } from '@/config/auth'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -105,6 +106,7 @@ export default function ImportSeed() {
   )
   const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
   const network = useBlockchainStore((state) => state.network)
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   const [mnemonicWordsInfo, setMnemonicWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(mnemonicWordCount)].map((_, index) => ({
@@ -382,9 +384,12 @@ export default function ImportSeed() {
       setAccountAddedModalVisible(true)
 
       try {
-        // const syncedAccount = await syncWallet(wallet, account)
-        // setSyncedAccount(syncedAccount)
-        // await updateAccount(syncedAccount)
+        const updatedAccount = await syncAccountWithWallet(
+          accountWithEncryptedSecret,
+          walletData.wallet
+        )
+        updateAccount(updatedAccount)
+        setSyncedAccount(updatedAccount)
       } catch {
         setWalletSyncFailed(true)
       } finally {
@@ -536,7 +541,7 @@ export default function ImportSeed() {
                 {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
-                {derivationPath}
+                {syncedAccount?.keys[Number(keyIndex)].derivationPath}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>

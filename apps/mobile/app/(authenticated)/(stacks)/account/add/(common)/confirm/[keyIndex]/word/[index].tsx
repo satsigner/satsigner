@@ -27,6 +27,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { aesEncrypt } from '@/utils/crypto'
 import { getConfirmWordCandidates } from '@/utils/seed'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 
 export default function Confirm() {
   const router = useRouter()
@@ -76,6 +77,7 @@ export default function Confirm() {
   )
   const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
   const network = useBlockchainStore((state) => state.network)
+  // const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   const candidateWords = useMemo(() => {
     return getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
@@ -132,11 +134,8 @@ export default function Confirm() {
 
       addAccount(accountWithEncryptedSecret)
 
-      // await walletData.wallet.sync()
-
       try {
-        // const syncedAccount = await syncWallet(wallet, account)
-        // await updateAccount(syncedAccount)
+        // await syncAccountWithWallet(account.id)
       } catch {
         setWalletSyncFailed(true)
       } finally {

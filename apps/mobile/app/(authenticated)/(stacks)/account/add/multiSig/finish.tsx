@@ -87,25 +87,6 @@ export default function ConfirmScreen() {
     setCompleted(true)
 
     // TODO: wrap around try catch and show error notification with sonner
-
-    console.log(JSON.stringify(accountWithEncryptedSecret))
-
-    // try {
-    //   setTimeout(() => {
-    //     setCompleted(true)
-    //   }, 30000)
-    //   const wallet = await loadWallet()
-    //   const account = getAccount()
-    //   accountName.current = account.name
-    //   await addAccount(account)
-    //   const syncedAccount = await syncWallet(wallet, account)
-    //   await updateAccount(syncedAccount)
-    //   setTimeout(() => {
-    //     setCompleted(true)
-    //   }, 2000)
-    // } catch {
-    //   //
-    // }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function rotate() {

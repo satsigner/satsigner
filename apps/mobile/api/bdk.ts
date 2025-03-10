@@ -208,7 +208,6 @@ async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
 }
 
 async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
-  console.log('bdk key:', key)
   if (typeof key.secret === 'string') return
   if (!key.secret.mnemonic || !key.scriptVersion) return
 
@@ -222,6 +221,193 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   const extendedKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
 
   return extendedKey
+}
+
+async function syncWallet(
+  wallet: Wallet,
+  backend: Backend,
+  blockchainConfig: BlockchainElectrumConfig | BlockchainEsploraConfig
+) {
+  const blockchain = await getBlockchain(backend, blockchainConfig)
+  await wallet.sync(blockchain)
+}
+
+async function getBlockchain(
+  backend: Backend,
+  config: BlockchainElectrumConfig | BlockchainEsploraConfig
+) {
+  let blockchainName: BlockChainNames = BlockChainNames.Electrum
+  if (backend === 'esplora') blockchainName = BlockChainNames.Esplora
+
+  const blockchain = await new Blockchain().create(config, blockchainName)
+  return blockchain
+}
+
+// Rename to getWalletSummary
+async function getWalletData(
+  wallet: Wallet,
+  netWork: Network
+): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
+  if (wallet) {
+    const [balance, addressInfo, transactionsDetails, localUtxos] =
+      await Promise.all([
+        wallet.getBalance(),
+        wallet.getAddress(AddressIndex.New),
+        wallet.listTransactions(true),
+        wallet.listUnspent()
+      ])
+
+    const transactions = await Promise.all(
+      (transactionsDetails || []).map((transactionDetails) =>
+        parseTransactionDetailsToTransaction(
+          transactionDetails,
+          localUtxos,
+          netWork
+        )
+      )
+    )
+
+    const utxos = await Promise.all(
+      (localUtxos || []).map((localUtxo) =>
+        parseLocalUtxoToUtxo(localUtxo, transactionsDetails, netWork)
+      )
+    )
+
+    return {
+      transactions,
+      utxos,
+      summary: {
+        balance: balance.confirmed,
+        numberOfAddresses: addressInfo.index + 1,
+        numberOfTransactions: transactionsDetails.length,
+        numberOfUtxos: localUtxos.length,
+        satsInMempool: balance.trustedPending + balance.untrustedPending
+      }
+    }
+  } else {
+    return {
+      transactions: [],
+      utxos: [],
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      }
+    }
+  }
+}
+
+async function parseTransactionDetailsToTransaction(
+  transactionDetails: TransactionDetails,
+  utxos: LocalUtxo[],
+  network: Network
+): Promise<Transaction> {
+  const transactionUtxos = utxos.filter(
+    (utxo) => utxo?.outpoint?.txid === transactionDetails.txid
+  )
+
+  let address = ''
+  const utxo = transactionUtxos?.[0]
+  if (utxo) address = await getAddress(utxo, network)
+
+  const { confirmationTime, fee, received, sent, transaction, txid } =
+    transactionDetails
+
+  let lockTimeEnabled = false
+  let lockTime = 0
+  let size = 0
+  let version = 0
+  let vsize = 0
+  let weight = 0
+  let raw: number[] = []
+  const vin: Transaction['vin'] = []
+  const vout: Transaction['vout'] = []
+
+  if (transaction) {
+    size = await transaction.size()
+    vsize = await transaction.vsize()
+    weight = await transaction.weight()
+    version = await transaction.version()
+    lockTime = await transaction.lockTime()
+    lockTimeEnabled = await transaction.isLockTimeEnabled()
+    raw = await transaction.serialize()
+
+    const inputs = await transaction.input()
+    const outputs = await transaction.output()
+
+    for (const index in inputs) {
+      const input = inputs[index]
+      const script = await input.scriptSig.toBytes()
+      input.scriptSig = script
+      vin.push(input)
+    }
+
+    for (const index in outputs) {
+      const { value, script: scriptObj } = outputs[index]
+      const script = await scriptObj.toBytes()
+      const addressObj = await new Address().fromScript(scriptObj, network)
+      const address = await addressObj.asString()
+      vout.push({ value, address, script })
+    }
+  }
+
+  return {
+    id: txid,
+    type: sent ? 'send' : 'receive',
+    sent,
+    received,
+    label: '',
+    fee,
+    prices: {},
+    timestamp: confirmationTime?.timestamp
+      ? new Date(confirmationTime.timestamp * 1000)
+      : undefined,
+    blockHeight: confirmationTime?.height,
+    address,
+    size,
+    vsize,
+    vout,
+    version,
+    weight,
+    lockTime,
+    lockTimeEnabled,
+    raw,
+    vin
+  }
+}
+
+async function parseLocalUtxoToUtxo(
+  localUtxo: LocalUtxo,
+  transactionsDetails: TransactionDetails[],
+  network: Network
+): Promise<Utxo> {
+  const addressTo = await getAddress(localUtxo, network)
+  const transactionId = localUtxo?.outpoint.txid
+  const transactionDetails = transactionsDetails.find(
+    (transactionDetails) => transactionDetails.txid === transactionId
+  )
+  const script = await localUtxo.txout.script.toBytes()
+
+  return {
+    txid: transactionId,
+    vout: localUtxo?.outpoint.vout,
+    value: localUtxo?.txout.value,
+    timestamp: transactionDetails?.confirmationTime?.timestamp
+      ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
+      : undefined,
+    label: '',
+    addressTo,
+    script,
+    keychain: 'external'
+  }
+}
+
+async function getAddress(utxo: LocalUtxo, network: Network) {
+  const script = utxo.txout.script
+  const address = await new Address().fromScript(script, network)
+  return address.asString()
 }
 
 // Below deprecated
@@ -353,192 +539,6 @@ async function getMultiSigWalletFromMnemonic(
     }
   } catch {
     return null
-  }
-}
-
-async function getBlockchain(
-  backend: Backend,
-  config: BlockchainElectrumConfig | BlockchainEsploraConfig
-) {
-  const blockchainName: BlockChainNames =
-    backend === 'electrum' ? BlockChainNames.Electrum : BlockChainNames.Esplora
-
-  const blockchain = await new Blockchain().create(config, blockchainName)
-  return blockchain
-}
-
-async function syncWallet(
-  wallet: Wallet,
-  backend: Backend,
-  blockchainConfig: BlockchainElectrumConfig | BlockchainEsploraConfig
-) {
-  const blockchain = await getBlockchain(backend, blockchainConfig)
-  await wallet.sync(blockchain)
-}
-
-async function getAddress(utxo: LocalUtxo, network: Network) {
-  const script = utxo.txout.script
-  const address = await new Address().fromScript(script, network)
-  return address.asString()
-}
-
-async function parseTransactionDetailsToTransaction(
-  transactionDetails: TransactionDetails,
-  utxos: LocalUtxo[],
-  network: Network
-): Promise<Transaction> {
-  const transactionUtxos = utxos.filter(
-    (utxo) => utxo?.outpoint?.txid === transactionDetails.txid
-  )
-
-  let address = ''
-  const utxo = transactionUtxos?.[0]
-  if (utxo) address = await getAddress(utxo, network)
-
-  const { confirmationTime, fee, received, sent, transaction, txid } =
-    transactionDetails
-
-  let lockTimeEnabled = false
-  let lockTime = 0
-  let size = 0
-  let version = 0
-  let vsize = 0
-  let weight = 0
-  let raw: number[] = []
-  const vin: Transaction['vin'] = []
-  const vout: Transaction['vout'] = []
-
-  if (transaction) {
-    size = await transaction.size()
-    vsize = await transaction.vsize()
-    weight = await transaction.weight()
-    version = await transaction.version()
-    lockTime = await transaction.lockTime()
-    lockTimeEnabled = await transaction.isLockTimeEnabled()
-    raw = await transaction.serialize()
-
-    const inputs = await transaction.input()
-    const outputs = await transaction.output()
-
-    for (const index in inputs) {
-      const input = inputs[index]
-      const script = await input.scriptSig.toBytes()
-      input.scriptSig = script
-      vin.push(input)
-    }
-
-    for (const index in outputs) {
-      const { value, script: scriptObj } = outputs[index]
-      const script = await scriptObj.toBytes()
-      const addressObj = await new Address().fromScript(scriptObj, network)
-      const address = await addressObj.asString()
-      vout.push({ value, address, script })
-    }
-  }
-
-  return {
-    id: txid,
-    type: sent ? 'send' : 'receive',
-    sent,
-    received,
-    label: '',
-    fee,
-    prices: {},
-    timestamp: confirmationTime?.timestamp
-      ? new Date(confirmationTime.timestamp * 1000)
-      : undefined,
-    blockHeight: confirmationTime?.height,
-    address,
-    size,
-    vsize,
-    vout,
-    version,
-    weight,
-    lockTime,
-    lockTimeEnabled,
-    raw,
-    vin
-  }
-}
-
-async function parseLocalUtxoToUtxo(
-  localUtxo: LocalUtxo,
-  transactionsDetails: TransactionDetails[],
-  network: Network
-): Promise<Utxo> {
-  const addressTo = await getAddress(localUtxo, network)
-  const transactionId = localUtxo?.outpoint.txid
-  const transactionDetails = transactionsDetails.find(
-    (transactionDetails) => transactionDetails.txid === transactionId
-  )
-  const script = await localUtxo.txout.script.toBytes()
-
-  return {
-    txid: transactionId,
-    vout: localUtxo?.outpoint.vout,
-    value: localUtxo?.txout.value,
-    timestamp: transactionDetails?.confirmationTime?.timestamp
-      ? new Date(transactionDetails.confirmationTime.timestamp * 1000)
-      : undefined,
-    label: '',
-    addressTo,
-    script,
-    keychain: 'external'
-  }
-}
-
-async function getWalletData(
-  wallet: Wallet,
-  netWork: Network
-): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
-  if (wallet) {
-    const [balance, addressInfo, transactionsDetails, localUtxos] =
-      await Promise.all([
-        wallet.getBalance(),
-        wallet.getAddress(AddressIndex.New),
-        wallet.listTransactions(true),
-        wallet.listUnspent()
-      ])
-
-    const transactions = await Promise.all(
-      (transactionsDetails || []).map((transactionDetails) =>
-        parseTransactionDetailsToTransaction(
-          transactionDetails,
-          localUtxos,
-          netWork
-        )
-      )
-    )
-
-    const utxos = await Promise.all(
-      (localUtxos || []).map((localUtxo) =>
-        parseLocalUtxoToUtxo(localUtxo, transactionsDetails, netWork)
-      )
-    )
-
-    return {
-      transactions,
-      utxos,
-      summary: {
-        balance: balance.confirmed,
-        numberOfAddresses: addressInfo.index + 1,
-        numberOfTransactions: transactionsDetails.length,
-        numberOfUtxos: localUtxos.length,
-        satsInMempool: balance.trustedPending + balance.untrustedPending
-      }
-    }
-  } else {
-    return {
-      transactions: [],
-      utxos: [],
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      }
-    }
   }
 }
 

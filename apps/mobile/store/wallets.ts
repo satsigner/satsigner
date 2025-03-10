@@ -5,12 +5,13 @@ import { create } from 'zustand'
 import { type Account } from '@/types/models/Account'
 
 type WalletsState = {
-  wallets: Record<Account['id'], Wallet>
+  wallets: Record<Account['id'], Wallet | undefined>
 }
 
 type WalletsAction = {
   addAccountWallet: (accountId: Account['id'], wallet: Wallet) => void
   removeAccountWallet: (accountId: Account['id']) => void
+  deleteWallets: () => void
 }
 
 const useWalletsStore = create<WalletsState & WalletsAction>((set) => ({
@@ -26,7 +27,8 @@ const useWalletsStore = create<WalletsState & WalletsAction>((set) => ({
       produce((state) => {
         delete state.wallets[accountId]
       })
-    )
+    ),
+  deleteWallets: () => set({ wallets: {} })
 }))
 
 export { useWalletsStore }
