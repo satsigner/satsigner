@@ -1,3 +1,4 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -15,26 +16,25 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
+import { PIN_KEY } from '@/config/auth'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
+import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getWordList } from '@/utils/bip39'
-import { seedWordsPrefixOfAnother } from '@/utils/seed'
-import { useBlockchainStore } from '@/store/blockchain'
-import { Network } from 'bdk-rn/lib/lib/enums'
-import { useWalletsStore } from '@/store/wallets'
-import { getItem } from '@/storage/encrypted'
-import { PIN_KEY } from '@/config/auth'
 import { aesEncrypt } from '@/utils/crypto'
+import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
@@ -51,6 +51,7 @@ export default function ImportSeed() {
   )
   const [
     name,
+    keys,
     scriptVersion,
     mnemonicWordCount,
     fingerprint,
@@ -75,6 +76,7 @@ export default function ImportSeed() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
+      state.keys,
       state.scriptVersion,
       state.mnemonicWordCount,
       state.fingerprint,
@@ -112,16 +114,18 @@ export default function ImportSeed() {
   const [checksumValid, setChecksumValid] = useState(false)
   const [currentWordText, setCurrentWordText] = useState('')
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
+  const [loadingAccount, setLoadingAccount] = useState(false)
+  const [syncedAccount, setSyncedAccount] = useState<Account>()
+  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
+
+  const inputRefs = useRef<TextInput[]>([])
+  const passphraseRef = useRef<TextInput>()
+  const appState = useRef(AppState.currentState)
+
   const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
     useState(false)
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
-  const [loadingAccount, setLoadingAccount] = useState(false)
-  const [syncedAccount, setSyncedAccount] = useState<Account>()
-  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
-  const inputRefs = useRef<TextInput[]>([])
-  const passphraseRef = useRef<TextInput>()
-  const appState = useRef(AppState.currentState)
 
   async function checkTextHasSeed(text: string): Promise<string[]> {
     if (text === null || text === '') return []
@@ -139,15 +143,29 @@ export default function ImportSeed() {
   }
 
   async function fillOutSeedWords(seed: string[]) {
-    setMnemonic(seed.join(' '))
+    const mnemonic = seed.join(' ')
+
     setMnemonicWordsInfo(
       seed.map((value, index) => {
         return { value, index, dirty: false, valid: true }
       })
     )
-    setChecksumValid(true)
+
     if (passphraseRef.current) passphraseRef.current.focus()
-    await updateFingerprint()
+
+    const checksumValid = await validateMnemonic(mnemonic)
+    setChecksumValid(checksumValid)
+
+    if (checksumValid) {
+      setMnemonic(mnemonic)
+      const fingerprint = await getFingerprint(
+        mnemonic,
+        passphrase,
+        network as Network
+      )
+
+      setFingerprint(fingerprint)
+    }
   }
 
   async function readSeedFromClipboard() {
@@ -496,7 +514,7 @@ export default function ImportSeed() {
                 {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {fingerprint}
+                {keys[Number(keyIndex)]?.fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
