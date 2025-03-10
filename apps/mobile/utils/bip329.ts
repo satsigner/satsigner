@@ -48,9 +48,11 @@ export const bip329mimes = {
   CSV: 'text/csv'
 } as Record<Bip329FileType, PickFileProps['type']>
 
+// These aliases is to handle importing from wallets which do not respect the
+// standard names defined in BIP329 but define their own nonsense
 const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
   type: ['type'],
-  ref: ['ref', 'txid', 'address'],
+  ref: ['ref', 'txid', 'address', 'Payment Address'],
   label: ['label'],
   spendable: ['spendable'],
 
@@ -58,9 +60,9 @@ const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
   fmv: ['fmv'],
   height: ['height', 'Block height', 'Blockheight'],
   heights: ['heights', 'Block heights'],
-  keypath: ['keypath'],
-  origin: ['origin'],
-  rate: ['rate', 'Prices'],
+  keypath: ['keypath', 'index'],
+  origin: ['origin', 'derivation'],
+  rate: ['rate', 'Prices', 'Value (USD)'],
   time: ['date', 'Date (UTC)', 'time', 'timestamp'],
   value: ['value', 'sats', 'satoshis', 'amount']
 }
@@ -130,11 +132,15 @@ export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
   if (lines.length < 0) throw new Error('Empty CSV text')
   const header = lines[0]
-  if (!header.match(/^([a-z]+,?)+/)) throw new Error('Invalid CSV header')
+  if (!header.match(/^([a-zA-Z()]+,?)+/)) throw new Error('Invalid CSV header')
   const rows = lines.slice(1)
   const labels: Label[] = []
   const columns = header.split(',')
   for (const row of rows) {
+    // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
+    // comment lines. The if statement below ignores those lines in order to
+    // correctly parse their non-standard weird CSV export.
+    if (row === '' || row.startsWith('#')) continue
     if (!row.match(/^([^,]*,?)+$/)) throw new Error('Invalid CSV line')
     const rowItems = row.split(',')
     const label = {} as Label
@@ -162,8 +168,11 @@ export function labelsToJSONL(labels: Label[]): string {
 }
 
 export function JSONLtoLabels(JSONLines: string): Label[] {
-  return JSONLines.split('\n').map((line) => {
-    if (!line.match(/^{[^}]+}$/)) throw new Error('Invalid line (JSONL)')
+  const lines = JSONLines.split('\n')
+  const labels: Label[] = []
+  for (const line of lines) {
+    if (line === '') continue
+    if (!line.match(/^{.+}$/)) throw new Error('Invalid line (JSONL)')
     const obj = JSON.parse(line)
     for (const key in obj) {
       const aliasKey = key.toLowerCase()
@@ -177,6 +186,7 @@ export function JSONLtoLabels(JSONLines: string): Label[] {
       }
       delete obj[key]
     }
-    return obj as Label
-  })
+    labels.push(obj as Label)
+  }
+  return labels
 }
