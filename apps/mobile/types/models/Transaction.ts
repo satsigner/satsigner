@@ -1,4 +1,4 @@
-import { type Currency } from './Blockchain'
+import { Prices, type Currency } from './Blockchain'
 
 export type Transaction = {
   id: string
@@ -32,7 +32,5 @@ export type Transaction = {
     address: string
     script: number[]
   }[]
-  prices: Partial<{
-    [key in Currency]: number
-  }>
+  prices: Prices
 }

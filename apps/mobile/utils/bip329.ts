@@ -1,4 +1,5 @@
 import { type Address } from '@/types/models/Address'
+import { type Prices } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
@@ -11,8 +12,18 @@ export type Label = {
   type: LabelType
   ref: string
   label: string
-  origin?: string
   spendable: boolean
+
+  // optional
+  fee?: number
+  fmv?: Prices
+  height?: number
+  heights?: number[]
+  keypath?: string
+  origin?: string
+  rate?: Prices
+  time?: Date
+  value?: number
 }
 
 export type Bip329FileType = 'JSONL' | 'JSON' | 'CSV'
@@ -36,6 +47,30 @@ export const bip329mimes = {
   JSONL: 'text/plain',
   CSV: 'text/csv'
 } as Record<Bip329FileType, PickFileProps['type']>
+
+const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
+  type: ['type'],
+  ref: ['ref', 'txid', 'address'],
+  label: ['label'],
+  spendable: ['spendable'],
+
+  fee: ['fee', 'Fee sat/vbyte'],
+  fmv: ['fmv'],
+  height: ['height', 'Block height', 'Blockheight'],
+  heights: ['heights', 'Block heights'],
+  keypath: ['keypath'],
+  origin: ['origin'],
+  rate: ['rate', 'Prices'],
+  time: ['date', 'Date (UTC)', 'time', 'timestamp'],
+  value: ['value', 'sats', 'satoshis', 'amount']
+}
+
+const bip329Alias: Record<string, keyof Label> = {}
+for (const key in bip329Aliases) {
+  for (const value in bip329Aliases) {
+    bip329Alias[value.toLowerCase()] = key as keyof Label
+  }
+}
 
 export function formatAddressLabels(addresses: Address[]): Label[] {
   return addresses
@@ -104,8 +139,10 @@ export function CSVtoLabels(CsvText: string): Label[] {
     const rowItems = row.split(',')
     const label = {} as Label
     for (const index in columns) {
-      const column = columns[index] as keyof Label
-      label[column] = rowItems[index] as never
+      const column = columns[index].toLowerCase()
+      if (bip329Alias[column] === undefined) continue
+      const field = bip329Alias[column]
+      label[field] = rowItems[index] as never
     }
     labels.push(label)
   }
@@ -127,6 +164,19 @@ export function labelsToJSONL(labels: Label[]): string {
 export function JSONLtoLabels(JSONLines: string): Label[] {
   return JSONLines.split('\n').map((line) => {
     if (!line.match(/^{[^}]+}$/)) throw new Error('Invalid line (JSONL)')
-    return JSON.parse(line) as Label
+    const obj = JSON.parse(line)
+    for (const key in obj) {
+      const aliasKey = key.toLowerCase()
+      if (bip329Alias[aliasKey] !== undefined) {
+        const field = bip329Alias[aliasKey]
+        if (field === key) {
+          continue
+        }
+        const value = obj[key]
+        obj[field] = value
+      }
+      delete obj[key]
+    }
+    return obj as Label
   })
 }

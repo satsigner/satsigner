@@ -47,9 +47,9 @@ export type Currency =
   | 'AUD'
   | 'JPY'
 
-export type Prices = {
+export type Prices = Partial<{
   [key in Currency]: number
-}
+}>
 
 export type BlockStatus = {
   height: number
