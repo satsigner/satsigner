@@ -48,7 +48,7 @@
     "multisig.created": "Multisig Wallet Created",
     "multisig.creating": "Creating MultiSig Wallet",
     "multisig.gotoWallet": "Go to Wallet",
-    "multisig.viewAllWallet": "View ALl Wallets",
+    "multisig.viewAllWallets": "View All Wallets",
     "name": "Name",
     "network.description": "Use the %{network} network",
     "network.title": "Network",

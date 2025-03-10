@@ -30,10 +30,6 @@ export default function MultiSigManager() {
     [keys, keyCount]
   )
 
-  async function handleOnPressConfirm() {
-    router.navigate('/addMasterKey/confirmScreen') // TODO
-  }
-
   if (!keyCount || !keysRequired) return <Redirect href="/" />
 
   return (
@@ -74,7 +70,7 @@ export default function MultiSigManager() {
               label={t('common.confirm')}
               variant="secondary"
               disabled={!allKeysFilled}
-              onPress={handleOnPressConfirm}
+              onPress={() => router.navigate('/account/add/multiSig/finish')}
             />
             <SSButton
               label={t('common.cancel')}

@@ -142,15 +142,18 @@ export default function MultiSigKeySettings() {
         <SSVStack>
           <SSButton
             label={t('account.import.descriptor')}
+            disabled={!localKeyName}
             onPress={() => handleOnPress('importDescriptor')}
           />
           <SSButton
             label={t('account.import.title2')}
+            disabled={!localKeyName}
             onPress={() => handleOnPress('importMnemonic')}
           />
           <SSButton
             label={t('account.generate.title')}
             variant="secondary"
+            disabled={!localKeyName}
             loading={loading}
             onPress={() => handleOnPress('generateMnemonic')}
           />

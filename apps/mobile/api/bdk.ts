@@ -79,8 +79,37 @@ async function getWallet(account: Account, network: Network) {
       }
       break
     }
-    case 'multisig':
-      break
+    case 'multisig': {
+      const extendedPublicKeys = account.keys
+        .map((key) => {
+          if (typeof key.secret === 'object' && key.secret?.extendedPublicKey) {
+            return key.secret.extendedPublicKey
+          }
+          return null
+        })
+        .filter((x): x is string => x !== null)
+
+      const multisigDescriptorString = `wsh(multi(${account.keysRequired},${extendedPublicKeys.join(',')}))`
+      const multisigDescriptor = await new Descriptor().create(
+        multisigDescriptorString,
+        network
+      )
+
+      const parsedDescriptor = await parseDescriptor(multisigDescriptor)
+      const wallet = await getWalletFromDescriptor(
+        multisigDescriptor,
+        null,
+        network
+      )
+
+      return {
+        fingerprint: parsedDescriptor.fingerprint,
+        derivationPath: parsedDescriptor.derivationPath,
+        externalDescriptor: multisigDescriptorString,
+        internalDescriptor: '',
+        wallet
+      }
+    }
     case 'watchonly':
       break
   }
