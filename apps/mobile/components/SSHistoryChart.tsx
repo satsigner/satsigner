@@ -180,15 +180,25 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   const margin = { top: 30, right: 10, bottom: 80, left: 40 }
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
-  const [scale, setScale] = useState<number>(1)
+  //const [scale, setScale] = useState<number>(1)
   const prevScale = useRef<number>(1)
+  const scaleRef = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
-  const [endDate, setEndDate] = useState<Date>(
-    new Date(
+  const [{ endDate, scale }, setLocationState] = useState<{
+    endDate: Date
+    scale: number
+  }>({
+    endDate: new Date(
       new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
-    )
-  )
+    ),
+    scale: 1
+  })
+  // const [endDate, setEndDate] = useState<Date>(
+  //   new Date(
+  //     new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+  //   )
+  // )
   const endDateRef = useRef<Date>(
     new Date(
       new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
@@ -406,7 +416,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
           new Date(transactions[0].timestamp!).getTime()
         )
       )
-      setEndDate(endDateRef.current)
+      setLocationState((prev) => ({ ...prev, endDate: endDateRef.current }))
       if (!lockZoomToXAxis) {
         startYRef.current = Math.max(
           Math.min(
@@ -427,11 +437,16 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
-      const pScale = scale
       const cScale = Math.max(prevScale.current * event.scale, 1)
-      const middleDate = endDateRef.current.getTime() - timeOffset / pScale / 2
-      endDateRef.current = new Date(middleDate + timeOffset / 2 / cScale)
-      setScale(cScale)
+      const middleDate =
+        endDateRef.current.getTime() - timeOffset / scaleRef.current / 2
+      endDateRef.current = new Date(middleDate + timeOffset / cScale / 2)
+      scaleRef.current = cScale
+      setLocationState((prev) => ({
+        ...prev,
+        endDate: endDateRef.current,
+        scale: cScale
+      }))
     })
     .onEnd(() => {
       prevScale.current = scale
@@ -471,7 +486,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             (value) =>
               x >= value.x1 && x <= value.x2 && y >= value.y2 && y <= value.y1
           )
-          if (tappedRect !== undefined) {
+          if (tappedRect !== undefined && showOutputField) {
             router.navigate(
               `/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
             )
@@ -484,7 +499,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               y <= rect.bottom &&
               y >= rect.top
           )
-          if (tapLabelRect !== undefined) {
+          if (tapLabelRect !== undefined && showTransactionInfo) {
             router.navigate(`/account/${id}/transaction/${tapLabelRect.id}`)
           }
         }
@@ -1057,8 +1072,12 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
               <XScaleRenderer />
               <XAxisRenderer />
               <Group clip={clipPathRect}>
-                <UtxoRectRenderer />
-                <UtxoLabelRenderer />
+                {showOutputField && (
+                  <>
+                    <UtxoRectRenderer />
+                    <UtxoLabelRenderer />
+                  </>
+                )}
                 <TransactionInfoRenderer />
                 <Path
                   path={linePath ?? ''}
