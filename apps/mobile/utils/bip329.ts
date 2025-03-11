@@ -53,7 +53,7 @@ export const bip329mimes = {
 const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
   type: ['type'],
   ref: ['ref', 'txid', 'address', 'Payment Address'],
-  label: ['label'],
+  label: ['label', 'memo'],
   spendable: ['spendable'],
 
   fee: ['fee', 'Fee sat/vbyte'],
@@ -128,6 +128,10 @@ export function labelsToCSV(labels: Label[]) {
   return Csv
 }
 
+function removeQuotes(str: string) {
+  return str.replace(/^['"]/, '').replace(/['"]$/, '')
+}
+
 export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
   if (lines.length < 0) throw new Error('Empty CSV text')
@@ -141,14 +145,29 @@ export function CSVtoLabels(CsvText: string): Label[] {
     // comment lines. The if statement below ignores those lines in order to
     // correctly parse their non-standard weird CSV export.
     if (row === '' || row.startsWith('#')) continue
+
     if (!row.match(/^([^,]*,?)+$/)) throw new Error('Invalid CSV line')
+
     const rowItems = row.split(',')
     const label = {} as Label
     for (const index in columns) {
       const column = columns[index].toLowerCase()
+      const value = removeQuotes(rowItems[index]) as never
+
+      // INFO: the following is meant to parse CSV from nunchuk.
+      // It assumes the txid was already added to the label ref field.
+      if (column === 'vout') {
+        label.type = 'addr'
+        const txid = label.ref
+        const vout = value
+        label.ref = `${txid}:${vout}`
+        continue
+      }
+
       if (bip329Alias[column] === undefined) continue
+
       const field = bip329Alias[column]
-      label[field] = rowItems[index] as never
+      label[field] = value
     }
     labels.push(label)
   }
