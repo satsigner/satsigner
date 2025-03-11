@@ -22,8 +22,8 @@ import { useBlockchainStore } from './blockchain'
 type AccountBuilderState = {
   name: Account['name']
   policyType: Account['policyType']
-  mnemonic: NonNullable<Secret['mnemonic']>
-  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
+  mnemonic?: NonNullable<Secret['mnemonic']>
+  mnemonicWordCount?: NonNullable<Key['mnemonicWordCount']>
   scriptVersion: NonNullable<Key['scriptVersion']>
   passphrase?: Secret['passphrase']
   fingerprint?: Account['fingerprint']
@@ -32,9 +32,10 @@ type AccountBuilderState = {
   keysRequired: Account['keysRequired']
   creationType: Key['creationType']
   keyName: NonNullable<Key['name']>
+  externalDescriptor?: Secret['externalDescriptor']
+  extendedPublicKey?: Secret['extendedPublicKey']
   // Below deprecated
-  externalDescriptor?: Account['externalDescriptor']
-  internalDescriptor?: Account['internalDescriptor']
+  internalDescriptor?: Secret['internalDescriptor']
   derivationPath?: Account['derivationPath'] // TODO: remove
   watchOnly?: Account['watchOnly']
   wallet?: Wallet
@@ -75,10 +76,16 @@ type AccountBuilderAction = {
     derivationPath: NonNullable<Key['derivationPath']>
   ) => void
   setCreationType: (creationType: NonNullable<Key['creationType']>) => void
+  setExternalDescriptor: (
+    externalDescriptor: NonNullable<Secret['externalDescriptor']>
+  ) => void
+  setExtendedPublicKey: (
+    extendedPublicKey: NonNullable<Secret['extendedPublicKey']>
+  ) => void
   // Below is deprecated
+  // setExternalDescriptor: (descriptor: string) => Promise<void>
   getAccount: () => Account
   clearParticipants: () => void
-  setExternalDescriptor: (descriptor: string) => Promise<void>
   setInternalDescriptor: (descriptor: string) => Promise<void>
   setDescriptorFromXpub: (xpub: string) => Promise<void>
   setDescriptorFromAddress: (address: string) => void
@@ -116,8 +123,6 @@ type AccountBuilderAction = {
 const initialState: AccountBuilderState = {
   name: '',
   policyType: 'singlesig',
-  mnemonic: '',
-  mnemonicWordCount: 24,
   scriptVersion: 'P2WPKH',
   keyName: '',
   keys: [],
@@ -196,7 +201,9 @@ const useAccountBuilderStore = create<
       mnemonic,
       passphrase,
       fingerprint,
-      scriptVersion
+      scriptVersion,
+      externalDescriptor,
+      extendedPublicKey
     } = get()
     // TODO: change above to include descriptors and pubkey
 
@@ -207,7 +214,9 @@ const useAccountBuilderStore = create<
       mnemonicWordCount,
       secret: {
         ...(mnemonic && { mnemonic }),
-        ...(passphrase && { passphrase })
+        ...(passphrase && { passphrase }),
+        ...(externalDescriptor && { externalDescriptor }),
+        ...(extendedPublicKey && { extendedPublicKey })
       },
       iv: uuid.v4().replace(/-/g, ''),
       fingerprint,
@@ -227,10 +236,11 @@ const useAccountBuilderStore = create<
       keyName: '',
       creationType: 'importMnemonic',
       mnemonicWordCount: 24,
-      mnemonic: '',
+      mnemonic: undefined,
       passphrase: undefined,
       fingerprint: undefined,
-      scriptVersion: 'P2WPKH'
+      scriptVersion: 'P2WPKH',
+      externalDescriptor: undefined
       // TODO: Add descriptors and pubkey clear
     })
   },
@@ -266,6 +276,12 @@ const useAccountBuilderStore = create<
   },
   setCreationType: (creationType) => {
     set({ creationType })
+  },
+  setExternalDescriptor: (externalDescriptor) => {
+    set({ externalDescriptor })
+  },
+  setExtendedPublicKey: (extendedPublicKey) => {
+    set({ extendedPublicKey })
   },
   // Below is deprecated,
   clearParticipants: () => {
@@ -411,21 +427,21 @@ const useAccountBuilderStore = create<
   setType: (type) => {
     set({ type })
   },
-  setExternalDescriptor: async (externalDescriptor) => {
-    const { network } = useBlockchainStore.getState()
-    const externalDescriptorObj = await new Descriptor().create(
-      externalDescriptor,
-      network as Network
-    )
-    const externalDescriptorWithChecksum =
-      await externalDescriptorObj.asString()
-    set({
-      // TODO: allow creation of signing wallets from descriptors
-      // currently only watch-only wallets are created from descriptors
-      watchOnly: 'public-key',
-      externalDescriptor: externalDescriptorWithChecksum
-    })
-  },
+  // setExternalDescriptor: async (externalDescriptor) => {
+  //   const { network } = useBlockchainStore.getState()
+  //   const externalDescriptorObj = await new Descriptor().create(
+  //     externalDescriptor,
+  //     network as Network
+  //   )
+  //   const externalDescriptorWithChecksum =
+  //     await externalDescriptorObj.asString()
+  //   set({
+  //     // TODO: allow creation of signing wallets from descriptors
+  //     // currently only watch-only wallets are created from descriptors
+  //     watchOnly: 'public-key',
+  //     externalDescriptor: externalDescriptorWithChecksum
+  //   })
+  // },
   setInternalDescriptor: async (internalDescriptor) => {
     const { network } = useBlockchainStore.getState()
     const internalDescriptorObj = await new Descriptor().create(

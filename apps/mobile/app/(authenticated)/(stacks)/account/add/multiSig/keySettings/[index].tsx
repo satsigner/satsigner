@@ -82,7 +82,8 @@ export default function MultiSigKeySettings() {
       router.navigate(`/account/add/generate/mnemonic/${index}`)
     } else if (type === 'importMnemonic')
       router.navigate(`/account/add/import/mnemonic/${index}`)
-    else if (type === 'importDescriptor') router.navigate('') // TODO
+    else if (type === 'importDescriptor')
+      router.navigate(`/account/add/import/descriptor/${index}`)
   }
 
   function handleOnSelectMnemonicWordCount() {

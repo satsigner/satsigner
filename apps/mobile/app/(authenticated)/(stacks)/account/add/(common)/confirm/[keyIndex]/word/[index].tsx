@@ -135,7 +135,7 @@ export default function Confirm() {
       addAccount(accountWithEncryptedSecret)
 
       try {
-        // await syncAccountWithWallet(account.id)
+        // await syncAccountWithWallet(account.id) // TODO: remove
       } catch {
         setWalletSyncFailed(true)
       } finally {

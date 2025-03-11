@@ -45,7 +45,7 @@ import { seedWordsPrefixOfAnother } from '@/utils/seed'
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
 
-export default function ImportSeed() {
+export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
   const [syncWallet, addAccount, updateAccount] = useAccountsStore(

@@ -15,6 +15,10 @@ export type ImportMnemonicSearchParams = {
   keyIndex: string
 }
 
+export type ImportDescriptorSearchParams = {
+  keyIndex: string
+}
+
 export type AccountSearchParams = {
   id: string
 }

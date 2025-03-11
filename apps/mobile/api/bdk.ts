@@ -143,6 +143,8 @@ async function getWalletFromMnemonic(
     getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
   ])
 
+  console.log('External: ', await externalDescriptor.asString())
+
   return {
     fingerprint,
     derivationPath,

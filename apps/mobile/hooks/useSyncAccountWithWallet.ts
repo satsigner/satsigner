@@ -5,9 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData, syncWallet } from '@/api/bdk'
 import { getBlockchainConfig } from '@/config/servers'
-import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 
 function useSyncAccountWithWallet() {
