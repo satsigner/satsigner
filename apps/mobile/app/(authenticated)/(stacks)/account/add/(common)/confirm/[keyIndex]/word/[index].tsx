@@ -14,70 +14,44 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
-import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useWalletsStore } from '@/store/wallets'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
-import { aesEncrypt } from '@/utils/crypto'
 import { getConfirmWordCandidates } from '@/utils/seed'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 
 export default function Confirm() {
   const router = useRouter()
   const { keyIndex, index } = useLocalSearchParams<ConfirmWordSearchParams>()
-
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
   const [
     name,
-    keys,
     mnemonicWordCount,
     mnemonic,
     policyType,
     clearAccount,
-    getAccount,
-    loadWallet,
-    encryptSeed,
-    setParticipantWithSeedWord,
     getAccountData,
     setKey,
     updateKeySecret,
-    updateKeyFingerprint,
-    setKeyDerivationPath
+    clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.keys,
       state.mnemonicWordCount,
       state.mnemonic.split(' '),
       state.policyType,
       state.clearAccount,
-      state.getAccount,
-      state.loadWallet,
-      state.encryptSeed,
-      state.setParticipantWithSeedWord,
       state.getAccountData,
       state.setKey,
       state.updateKeySecret,
-      state.updateKeyFingerprint,
-      state.setKeyDerivationPath
+      state.clearKeyState
     ])
   )
-  const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
   const network = useBlockchainStore((state) => state.network)
-  // const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const candidateWords = useMemo(() => {
     return getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
@@ -90,8 +64,6 @@ export default function Confirm() {
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
-
-  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
 
   async function handleNavigateNextWord() {
     if (!selectedCheckbox) return
@@ -111,37 +83,10 @@ export default function Confirm() {
     if (policyType === 'singlesig') {
       const account = getAccountData()
 
-      const walletData = await getWallet(account, network as Network)
-      if (!walletData) return // TODO: handle error
+      await accountBuilderFinish(account)
 
-      addAccountWallet(account.id, walletData.wallet)
-
-      const stringifiedSecret = JSON.stringify(account.keys[0].secret)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return // TODO: handle error
-
-      const encryptedSecret = await aesEncrypt(
-        stringifiedSecret,
-        pin,
-        account.keys[0].iv
-      )
-
-      updateKeyFingerprint(0, walletData.fingerprint)
-      setKeyDerivationPath(0, walletData.derivationPath)
-      updateKeySecret(0, encryptedSecret)
-
-      const accountWithEncryptedSecret = getAccountData()
-
-      addAccount(accountWithEncryptedSecret)
-
-      try {
-        // await syncAccountWithWallet(account.id) // TODO: remove
-      } catch {
-        setWalletSyncFailed(true)
-      } finally {
-        setLoadingAccount(false)
-        setWarningModalVisible(true)
-      }
+      setLoadingAccount(false)
+      setWarningModalVisible(true)
     } else if (policyType === 'multisig') {
       const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
         currentKey,
@@ -155,6 +100,7 @@ export default function Confirm() {
       setLoadingAccount(false)
       router.dismiss(Number(index) + 3)
     }
+    clearKeyState()
   }
 
   function handleCloseWordsWarning() {
@@ -259,11 +205,6 @@ export default function Confirm() {
           <SSText size="xl" color="muted" center>
             {t('account.generate.disclaimer.3')}
           </SSText>
-          {walletSyncFailed && (
-            <SSText size="3xl" color="muted" center>
-              {t('account.syncFailed')}
-            </SSText>
-          )}
         </SSVStack>
       </SSWarningModal>
     </SSMainLayout>

@@ -8,7 +8,6 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
-  getWallet,
   validateMnemonic
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
@@ -21,7 +20,6 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
-import { PIN_KEY } from '@/config/auth'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -29,18 +27,16 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getWordList } from '@/utils/bip39'
-import { aesEncrypt } from '@/utils/crypto'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
@@ -48,34 +44,21 @@ const wordList = getWordList()
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
     keys,
     scriptVersion,
     mnemonicWordCount,
     fingerprint,
-    derivationPath,
     policyType,
-    setParticipant,
     clearAccount,
-    getAccount,
     setMnemonic,
     passphrase,
     setPassphrase,
     setFingerprint,
-    loadWallet,
-    encryptSeed,
     setKey,
     getAccountData,
-    updateKeyFingerprint,
-    setKeyDerivationPath,
     updateKeySecret,
     clearKeyState
   ] = useAccountBuilderStore(
@@ -85,28 +68,21 @@ export default function ImportMnemonic() {
       state.scriptVersion,
       state.mnemonicWordCount,
       state.fingerprint,
-      state.derivationPath,
       state.policyType,
-      state.setParticipant,
       state.clearAccount,
-      state.getAccount,
       state.setMnemonic,
       state.passphrase,
       state.setPassphrase,
       state.setFingerprint,
-      state.loadWallet,
-      state.encryptSeed,
       state.setKey,
       state.getAccountData,
-      state.updateKeyFingerprint,
-      state.setKeyDerivationPath,
       state.updateKeySecret,
       state.clearKeyState
     ])
   )
-  const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
   const network = useBlockchainStore((state) => state.network)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const [mnemonicWordsInfo, setMnemonicWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(mnemonicWordCount)].map((_, index) => ({
@@ -358,35 +334,15 @@ export default function ImportMnemonic() {
     if (policyType === 'singlesig') {
       const account = getAccountData()
 
-      const walletData = await getWallet(account, network as Network)
-      if (!walletData) return // TODO: handle error
-
-      addAccountWallet(account.id, walletData.wallet)
-
-      const stringifiedSecret = JSON.stringify(account.keys[0].secret)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return // TODO: handle error
-
-      const encryptedSecret = await aesEncrypt(
-        stringifiedSecret,
-        pin,
-        account.keys[0].iv
-      )
-
-      updateKeyFingerprint(0, walletData.fingerprint)
-      setKeyDerivationPath(0, walletData.derivationPath)
-      updateKeySecret(0, encryptedSecret)
-
-      const accountWithEncryptedSecret = getAccountData()
-
-      addAccount(accountWithEncryptedSecret)
+      const data = await accountBuilderFinish(account)
+      if (!data) return
 
       setAccountAddedModalVisible(true)
 
       try {
         const updatedAccount = await syncAccountWithWallet(
-          accountWithEncryptedSecret,
-          walletData.wallet
+          data.accountWithEncryptedSecret,
+          data.wallet
         )
         updateAccount(updatedAccount)
         setSyncedAccount(updatedAccount)
@@ -408,6 +364,7 @@ export default function ImportMnemonic() {
       setLoadingAccount(false)
       router.dismiss(2)
     }
+    clearKeyState()
   }
 
   async function handleOnCloseAccountAddedModal() {

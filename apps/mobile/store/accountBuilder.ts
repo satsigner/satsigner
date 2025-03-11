@@ -22,20 +22,20 @@ import { useBlockchainStore } from './blockchain'
 type AccountBuilderState = {
   name: Account['name']
   policyType: Account['policyType']
-  mnemonic?: NonNullable<Secret['mnemonic']>
-  mnemonicWordCount?: NonNullable<Key['mnemonicWordCount']>
+  mnemonic: NonNullable<Secret['mnemonic']>
+  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   scriptVersion: NonNullable<Key['scriptVersion']>
   passphrase?: Secret['passphrase']
   fingerprint?: Account['fingerprint']
   keys: Account['keys']
   keyCount: Account['keyCount']
   keysRequired: Account['keysRequired']
-  creationType: Key['creationType']
   keyName: NonNullable<Key['name']>
+  creationType: Key['creationType']
   externalDescriptor?: Secret['externalDescriptor']
+  internalDescriptor?: Secret['internalDescriptor']
   extendedPublicKey?: Secret['extendedPublicKey']
   // Below deprecated
-  internalDescriptor?: Secret['internalDescriptor']
   derivationPath?: Account['derivationPath'] // TODO: remove
   watchOnly?: Account['watchOnly']
   wallet?: Wallet
@@ -123,12 +123,19 @@ type AccountBuilderAction = {
 const initialState: AccountBuilderState = {
   name: '',
   policyType: 'singlesig',
+  mnemonic: '',
+  mnemonicWordCount: 24,
   scriptVersion: 'P2WPKH',
-  keyName: '',
+  passphrase: undefined,
+  fingerprint: undefined,
   keys: [],
   keyCount: 0,
   keysRequired: 0,
-  creationType: 'importMnemonic'
+  keyName: '',
+  creationType: 'importMnemonic',
+  externalDescriptor: undefined,
+  internalDescriptor: undefined,
+  extendedPublicKey: undefined
 }
 
 const useAccountBuilderStore = create<
@@ -203,6 +210,7 @@ const useAccountBuilderStore = create<
       fingerprint,
       scriptVersion,
       externalDescriptor,
+      internalDescriptor,
       extendedPublicKey
     } = get()
     // TODO: change above to include descriptors and pubkey
@@ -216,6 +224,7 @@ const useAccountBuilderStore = create<
         ...(mnemonic && { mnemonic }),
         ...(passphrase && { passphrase }),
         ...(externalDescriptor && { externalDescriptor }),
+        ...(internalDescriptor && { internalDescriptor }),
         ...(extendedPublicKey && { extendedPublicKey })
       },
       iv: uuid.v4().replace(/-/g, ''),
@@ -236,12 +245,12 @@ const useAccountBuilderStore = create<
       keyName: '',
       creationType: 'importMnemonic',
       mnemonicWordCount: 24,
-      mnemonic: undefined,
+      mnemonic: '',
       passphrase: undefined,
       fingerprint: undefined,
       scriptVersion: 'P2WPKH',
-      externalDescriptor: undefined
-      // TODO: Add descriptors and pubkey clear
+      externalDescriptor: undefined,
+      extendedPublicKey: undefined
     })
   },
   clearAccount: () => {

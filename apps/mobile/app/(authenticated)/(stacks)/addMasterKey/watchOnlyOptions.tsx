@@ -35,26 +35,28 @@ export default function WatchOnlyOptions() {
     scriptVersion,
     fingerprint,
     clearAccount,
-    getAccount,
+    getAccountData,
     setFingerprint,
     setDescriptorFromXpub,
     setDescriptorFromAddress,
     setExternalDescriptor,
     setInternalDescriptor,
-    setScriptVersion
+    setScriptVersion,
+    setKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
       state.scriptVersion,
       state.fingerprint,
       state.clearAccount,
-      state.getAccount,
+      state.getAccountData,
       state.setFingerprint,
       state.setDescriptorFromXpub,
       state.setDescriptorFromAddress,
       state.setExternalDescriptor,
       state.setInternalDescriptor,
-      state.setScriptVersion
+      state.setScriptVersion,
+      state.setKey
     ])
   )
 
@@ -129,17 +131,15 @@ export default function WatchOnlyOptions() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    const account = getAccount()
 
-    try {
-      if (account) {
-        await addAccount(account)
-        clearAccount()
-        router.navigate('/')
-      }
-    } finally {
-      setLoadingWallet(false)
-    }
+    setKey(0)
+    const account = getAccountData()
+
+    addAccount(account)
+    clearAccount()
+
+    setLoadingWallet(false)
+    router.navigate('/')
   }
 
   async function pasteFromClipboard() {

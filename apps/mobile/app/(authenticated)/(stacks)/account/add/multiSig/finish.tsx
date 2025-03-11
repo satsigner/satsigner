@@ -1,11 +1,8 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
-import { useShallow } from 'zustand/react/shallow'
 
-import { getWallet } from '@/api/bdk'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -13,45 +10,20 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
-import { useWalletsStore } from '@/store/wallets'
-import { PIN_KEY } from '@/config/auth'
-import { aesEncrypt } from '@/utils/crypto'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 
 export default function ConfirmScreen() {
   const router = useRouter()
-  const [
-    loadWallet,
-    getAccount,
-    getAccountData,
-    updateKeyFingerprint,
-    setKeyDerivationPath,
-    updateKeySecret
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.loadWallet,
-      state.getAccount,
-      state.getAccountData,
-      state.updateKeyFingerprint,
-      state.setKeyDerivationPath,
-      state.updateKeySecret
-    ])
-  )
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
-  const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
-  const network = useBlockchainStore((state) => state.network)
+  const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const [rotation, setRotation] = useState<number>(0)
-  const [completed, setCompleted] = useState<boolean>(false)
+  const [rotation, setRotation] = useState(0)
+  const [completed, setCompleted] = useState(false)
 
   const [accountId, setAccountId] = useState<string>()
 
@@ -59,31 +31,14 @@ export default function ConfirmScreen() {
     const account = getAccountData()
     setAccountId(account.id)
 
-    const walletData = await getWallet(account, network as Network)
-    if (!walletData) return // TODO: handle error
+    const data = await accountBuilderFinish(account)
+    if (!data) return
 
-    addAccountWallet(account.id, walletData.wallet)
-
-    for (const key of account.keys) {
-      const stringifiedSecret = JSON.stringify(key.secret)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return // TODO: handle error
-
-      const encryptedSecret = await aesEncrypt(
-        stringifiedSecret,
-        pin,
-        account.keys[key.index].iv
-      )
-
-      updateKeyFingerprint(key.index, walletData.fingerprint)
-      setKeyDerivationPath(key.index, walletData.derivationPath)
-      updateKeySecret(key.index, encryptedSecret)
-    }
-
-    const accountWithEncryptedSecret = getAccountData()
-
-    addAccount(accountWithEncryptedSecret)
-
+    const updatedAccount = await syncAccountWithWallet(
+      data.accountWithEncryptedSecret,
+      data.wallet
+    )
+    updateAccount(updatedAccount)
     setCompleted(true)
 
     // TODO: wrap around try catch and show error notification with sonner

@@ -75,7 +75,7 @@ async function getWallet(account: Account, network: Network) {
 
         return walletData
       } else if (key.creationType === 'importDescriptor') {
-        //
+        // TODO:
       }
       break
     }
@@ -110,8 +110,51 @@ async function getWallet(account: Account, network: Network) {
         wallet
       }
     }
-    case 'watchonly':
+    case 'watchonly': {
+      if (account.keys.length !== 1)
+        throw new Error('Invalid key count for singlesig')
+
+      const key = account.keys[0]
+
+      if (key.creationType === 'importDescriptor') {
+        if (typeof key.secret === 'string' || !key.secret.externalDescriptor)
+          throw new Error('Invalid secret')
+
+        const externalDescriptor = await new Descriptor().create(
+          key.secret.externalDescriptor,
+          network
+        )
+        const internalDescriptor = key.secret.internalDescriptor
+          ? await new Descriptor().create(
+              key.secret.internalDescriptor,
+              network
+            )
+          : null
+
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        const wallet = await getWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor,
+          network
+        )
+
+        return {
+          fingerprint: parsedDescriptor.fingerprint,
+          derivationPath: parsedDescriptor.derivationPath,
+          externalDescriptor: await externalDescriptor.asString(),
+          internalDescriptor: internalDescriptor
+            ? await internalDescriptor.asString()
+            : '',
+          wallet
+        }
+      } else if (key.creationType === 'importExtendedPub') {
+        // TODO
+      } else if (key.creationType === 'importAddress') {
+        // TODO
+      }
+
       break
+    }
   }
 }
 

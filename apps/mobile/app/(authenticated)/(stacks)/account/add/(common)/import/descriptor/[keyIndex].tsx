@@ -1,9 +1,12 @@
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { extractExtendedKeyFromDescriptor, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -12,11 +15,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
-import { Descriptor } from 'bdk-rn'
 import { useBlockchainStore } from '@/store/blockchain'
-import { Network } from 'bdk-rn/lib/lib/enums'
-import { extractExtendedKeyFromDescriptor, parseDescriptor } from '@/api/bdk'
+import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 
 export default function ImportDescriptor() {
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()

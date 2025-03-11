@@ -18,13 +18,13 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { type CreationType } from '@/types/models/Account'
 import {
   validateAddress,
   validateDescriptor,
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import { type CreationType } from '@/types/models/Account'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',
@@ -139,7 +139,7 @@ export default function WatchOnly() {
 
     try {
       if (account) {
-        await addAccount(account)
+        addAccount(account)
         clearAccount()
         router.navigate('/')
       }
