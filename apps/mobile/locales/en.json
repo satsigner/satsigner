@@ -234,7 +234,8 @@
     "json": "JSON"
   },
   "import": {
-    "from": "Import from %{name}"
+    "from": "Import from %{name}",
+    "success": "Imported %{importCount} from a total of %{total} labels matching your wallet"
   },
   "navigation": {
     "item.bitcoin": "Bitcoin",

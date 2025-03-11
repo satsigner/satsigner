@@ -61,7 +61,7 @@ type AccountsAction = {
     vout: number,
     label: string
   ) => void
-  importLabels: (account: string, labels: Label[]) => void
+  importLabels: (account: string, labels: Label[]) => number
   decryptSeed: (account: string) => Promise<string>
 }
 
@@ -588,6 +588,8 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           addressMap[address.address] = index
         })
 
+        let labelsAdded = 0
+
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
@@ -599,20 +601,25 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
                 if (!transactionMap[labelObj.ref]) return
                 const txIndex = transactionMap[labelObj.ref]
                 state.accounts[index].transactions[txIndex].label = label
+                labelsAdded += 1
               }
               if (labelObj.type === 'output') {
                 if (!utxoMap[labelObj.ref]) return
                 const utxoIndex = utxoMap[labelObj.ref]
                 state.accounts[index].utxos[utxoIndex].label = label
+                labelsAdded += 1
               }
               if (labelObj.type === 'addr') {
                 if (!addressMap[labelObj.ref]) return
                 const addrIndex = addressMap[labelObj.ref]
                 state.accounts[index].addresses[addrIndex].label = label
+                labelsAdded += 1
               }
             })
           })
         )
+
+        return labelsAdded
       },
       async decryptSeed(accountName) {
         const account = get().accounts.find(

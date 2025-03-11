@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -35,21 +36,28 @@ export default function ImportLabels() {
   const [importType, setImportType] = useState<Bip329FileType>('JSONL')
   const [importContent, setImportContent] = useState('')
   const [invalidContent, setInvalidContent] = useState(false)
+  const [successMsgVisible, setSuccessMsgVisible] = useState(false)
 
-  function importLabelsFromClipboard() {
-    const labels: Label[] = bip329parser[importType](importContent)
-    importLabelsToAccount(accountId!, labels)
-    router.back()
+  const [importCount, setImportCount] = useState(0)
+  const [importCountTotal, setImportCountTotal] = useState(0)
+
+  function importLabels(content: string) {
+    const labels = bip329parser[importType](content)
+    const importCount = importLabelsToAccount(accountId!, labels)
+    setImportCount(importCount)
+    setImportCountTotal(labels.length)
+    setSuccessMsgVisible(true)
   }
 
-  async function importLabels() {
+  function importLabelsFromClipboard() {
+    importLabels(importContent)
+  }
+
+  async function importLabelsFromFile() {
     const type = bip329mimes[importType]
     const fileContent = await pickFile({ type })
     if (!fileContent) return
-
-    const labels: Label[] = bip329parser[importType](fileContent)
-    importLabelsToAccount(accountId!, labels)
-    router.back()
+    importLabels(fileContent)
   }
 
   async function pasteFromClipboard() {
@@ -133,7 +141,7 @@ export default function ImportLabels() {
         <SSButton
           label={t('import.from', { name: importType })}
           variant="secondary"
-          onPress={importLabels}
+          onPress={importLabelsFromFile}
         />
         <SSButton
           label={t('common.cancel')}
@@ -141,6 +149,17 @@ export default function ImportLabels() {
           onPress={() => router.back()}
         />
       </SSVStack>
+      <SSModal visible={successMsgVisible} onClose={router.back}>
+        <SSVStack
+          gap="lg"
+          style={{ justifyContent: 'center', height: '100%', width: '100%' }}
+        >
+          <SSText uppercase size="md" center weight="bold">
+            {t('import.success', { importCount, total: importCountTotal })}
+          </SSText>
+          <SSButton label={t('common.close')} onPress={router.back} />
+        </SSVStack>
+      </SSModal>
     </ScrollView>
   )
 }
