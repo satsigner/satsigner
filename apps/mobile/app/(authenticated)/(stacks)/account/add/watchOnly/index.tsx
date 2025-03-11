@@ -25,6 +25,8 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',
@@ -33,34 +35,42 @@ const watchOnlyOptions: CreationType[] = [
 ]
 
 export default function WatchOnly() {
-  const addAccount = useAccountsStore((state) => state.addAccount)
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
     scriptVersion,
     fingerprint,
+    setCreationType,
     clearAccount,
-    getAccount,
+    getAccountData,
     setFingerprint,
     setDescriptorFromXpub,
     setDescriptorFromAddress,
     setExternalDescriptor,
     setInternalDescriptor,
-    setScriptVersion
+    setExtendedPublicKey,
+    setScriptVersion,
+    setKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
       state.scriptVersion,
       state.fingerprint,
+      state.setCreationType,
       state.clearAccount,
-      state.getAccount,
+      state.getAccountData,
       state.setFingerprint,
       state.setDescriptorFromXpub,
       state.setDescriptorFromAddress,
       state.setExternalDescriptor,
       state.setInternalDescriptor,
-      state.setScriptVersion
+      state.setExtendedPublicKey,
+      state.setScriptVersion,
+      state.setKey
     ])
   )
+  const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
@@ -95,7 +105,7 @@ export default function WatchOnly() {
   function updateMasterFingerprint(fingerprint: string) {
     const validFingerprint = validateFingerprint(fingerprint)
     setValidMasterFingerprint(!fingerprint || validFingerprint)
-    setDisabled(!validFingerprint)
+    setDisabled(!validXpub || !validFingerprint)
     setLocalFingerprint(fingerprint)
     if (validFingerprint) {
       setFingerprint(fingerprint)
@@ -109,7 +119,7 @@ export default function WatchOnly() {
   function updateXpub(xpub: string) {
     const validXpub = validateExtendedKey(xpub)
     setValidXpub(!xpub || validXpub)
-    setDisabled(!validXpub)
+    setDisabled(!validXpub || !localFingerprint)
     setXpub(xpub)
     if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
     if (xpub.match(/^y(pub|priv)/)) setScriptVersion('P2SH-P2WPKH')
@@ -135,17 +145,28 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    const account = getAccount()
+    if (xpub) setExtendedPublicKey(xpub)
+
+    setKey(0)
+    const account = getAccountData()
+
+    const data = await accountBuilderFinish(account)
+    if (!data) return
 
     try {
-      if (account) {
-        addAccount(account)
-        clearAccount()
-        router.navigate('/')
-      }
+      const updatedAccount = await syncAccountWithWallet(
+        data.accountWithEncryptedSecret,
+        data.wallet
+      )
+      updateAccount(updatedAccount)
+    } catch {
+      //
     } finally {
+      clearAccount()
       setLoadingWallet(false)
     }
+
+    router.navigate('/')
   }
 
   async function pasteFromClipboard() {
@@ -200,7 +221,10 @@ export default function WatchOnly() {
               </SSText>
             </SSCollapsible>
           }
-          onSelect={() => setModalOptionsVisible(false)}
+          onSelect={() => {
+            setModalOptionsVisible(false)
+            setCreationType(selectedOption)
+          }}
           onCancel={() => router.back()}
         >
           {watchOnlyOptions.map((type) => (

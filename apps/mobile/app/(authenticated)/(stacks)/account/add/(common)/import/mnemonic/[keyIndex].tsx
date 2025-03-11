@@ -81,8 +81,8 @@ export default function ImportMnemonic() {
     ])
   )
   const network = useBlockchainStore((state) => state.network)
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   const [mnemonicWordsInfo, setMnemonicWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(mnemonicWordCount)].map((_, index) => ({

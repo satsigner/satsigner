@@ -3,6 +3,7 @@ import {
   Blockchain,
   DatabaseConfig,
   Descriptor,
+  DescriptorPublicKey,
   DescriptorSecretKey,
   Mnemonic,
   type PartiallySignedTransaction,
@@ -148,7 +149,94 @@ async function getWallet(account: Account, network: Network) {
           wallet
         }
       } else if (key.creationType === 'importExtendedPub') {
-        // TODO
+        if (
+          !key.scriptVersion ||
+          !key.fingerprint ||
+          typeof key.secret === 'string' ||
+          !key.secret.extendedPublicKey
+        )
+          throw new Error('Invalid account information')
+
+        const extendedPublicKey = await new DescriptorPublicKey().fromString(
+          key.secret.extendedPublicKey
+        )
+
+        let externalDescriptor: Descriptor
+        let internalDescriptor: Descriptor
+
+        switch (key.scriptVersion) {
+          case 'P2PKH':
+            externalDescriptor = await new Descriptor().newBip44Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip44Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+          case 'P2SH-P2WPKH':
+            externalDescriptor = await new Descriptor().newBip49Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip49Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+          case 'P2WPKH':
+            externalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+          case 'P2TR':
+            externalDescriptor = await new Descriptor().newBip86Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip86Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+        }
+
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        const wallet = await getWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor,
+          network
+        )
+
+        return {
+          fingerprint: parsedDescriptor.fingerprint,
+          derivationPath: parsedDescriptor.derivationPath,
+          externalDescriptor: await externalDescriptor.asString(),
+          internalDescriptor: await internalDescriptor.asString(),
+          wallet
+        }
       } else if (key.creationType === 'importAddress') {
         // TODO
       }
@@ -185,8 +273,6 @@ async function getWalletFromMnemonic(
     parseDescriptor(externalDescriptor),
     getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
   ])
-
-  console.log('External: ', await externalDescriptor.asString())
 
   return {
     fingerprint,
