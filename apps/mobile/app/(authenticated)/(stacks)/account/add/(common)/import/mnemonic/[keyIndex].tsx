@@ -335,7 +335,7 @@ export default function ImportMnemonic() {
       const account = getAccountData()
 
       const data = await accountBuilderFinish(account)
-      if (!data) return
+      if (!data || !data.wallet) return
 
       setAccountAddedModalVisible(true)
 

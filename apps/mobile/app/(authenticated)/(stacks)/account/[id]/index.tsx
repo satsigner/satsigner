@@ -67,6 +67,9 @@ import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { useWalletsStore } from '@/store/wallets'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 
 type TotalTransactionsProps = {
   account: Account
@@ -561,26 +564,33 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((account) => account.name === id),
-        state.loadWalletFromDescriptor,
-        state.syncWallet,
-        state.updateAccount
-      ])
-    )
-
+  const [account, loadWalletFromDescriptor, updateAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((account) => account.id === id),
+      state.loadWalletFromDescriptor,
+      state.updateAccount
+    ])
+  )
+  const [wallet, watchOnlyWalletAddress, addresses] = useWalletsStore(
+    useShallow((state) => [
+      state.wallets[id],
+      state.addresses[id],
+      state.addresses
+    ])
+  )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
-  const [network, getBlockchainHeight] = useBlockchainStore(
-    useShallow((state) => [state.network as Network, state.getBlockchainHeight])
+  const getBlockchainHeight = useBlockchainStore(
+    (state) => state.getBlockchainHeight
   )
+
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
   )
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -700,28 +710,17 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account || !account.externalDescriptor) return
+    if (!account) return
 
-    let wallet: Wallet | null
+    const isImportAddress = account.keys[0].creationType !== 'importAddress'
+    if (isImportAddress && !watchOnlyWalletAddress) return
+    else if (!isImportAddress && !wallet) return
 
-    if (account.watchOnly === 'address') {
-      wallet = null
-    } else {
-      const [externalDescriptor, internalDescriptor] = await Promise.all([
-        new Descriptor().create(account.externalDescriptor, network),
-        account.internalDescriptor
-          ? new Descriptor().create(account.internalDescriptor, network)
-          : null
-      ])
-      wallet = await loadWalletFromDescriptor(
-        externalDescriptor,
-        internalDescriptor
-      )
-    }
-
-    const syncedAccount = await syncWallet(wallet, account)
-
-    await updateAccount(syncedAccount)
+    const updatedAccount =
+      account.keys[0].creationType !== 'importAddress'
+        ? await syncAccountWithWallet(account, wallet!)
+        : await syncAccountWithAddress(account, watchOnlyWalletAddress!)
+    updateAccount(updatedAccount)
   }
 
   async function refresh() {
@@ -747,7 +746,8 @@ export default function AccountView() {
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
-    const tabWidth = account.watchOnly === 'address' ? '33.33%' : '25%'
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const tabWidth = isImportAddress ? '33.33%' : '25%'
 
     return (
       <>
@@ -781,7 +781,7 @@ export default function AccountView() {
                 )}
               </SSVStack>
             </SSActionButton>
-            {account.watchOnly !== 'address' && (
+            {!isImportAddress && (
               <SSActionButton
                 style={{ width: tabWidth }}
                 onPress={() => setTabIndex(1)}
@@ -864,19 +864,14 @@ export default function AccountView() {
     )
   }
 
-  const watchOnlyAddress =
-    account.watchOnly === 'address' && account.externalDescriptor
-      ? parseAddressDescriptorToAddress(account.externalDescriptor)
-      : ''
-
   return (
     <>
       <Stack.Screen
         options={{
           headerTitle: () => (
             <SSHStack gap="sm">
-              <SSText uppercase>{id}</SSText>
-              {account.watchOnly && (
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
@@ -933,7 +928,7 @@ export default function AccountView() {
               gap="none"
               style={{ paddingHorizontal: '5%' }}
             >
-              {!account.watchOnly && (
+              {account.policyType !== 'watchonly' && (
                 <>
                   <SSActionButton
                     onPress={() => navigateToSignAndSend()}
@@ -964,7 +959,7 @@ export default function AccountView() {
                   </SSActionButton>
                 </>
               )}
-              {account.watchOnly === 'public-key' && (
+              {account.keys[0].creationType === 'importExtendedPub' && (
                 <SSActionButton
                   onPress={() => router.navigate(`/account/${id}/receive`)}
                   style={{
@@ -975,8 +970,8 @@ export default function AccountView() {
                   <SSText uppercase>{t('account.receive')}</SSText>
                 </SSActionButton>
               )}
-              {account.watchOnly === 'address' && (
-                <SSClipboardCopy text={watchOnlyAddress}>
+              {account.keys[0].creationType === 'importAddress' && (
+                <SSClipboardCopy text={watchOnlyWalletAddress || ''}>
                   <SSActionButton
                     style={{
                       ...styles.actionButton,
@@ -987,7 +982,7 @@ export default function AccountView() {
                       <SSText center color="muted">
                         {t('receive.address').toUpperCase()}
                       </SSText>
-                      <SSText center>{watchOnlyAddress}</SSText>
+                      <SSText center>{watchOnlyWalletAddress}!!!</SSText>
                     </SSVStack>
                   </SSActionButton>
                 </SSClipboardCopy>

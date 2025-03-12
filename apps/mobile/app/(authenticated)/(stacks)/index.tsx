@@ -256,7 +256,7 @@ export default function AccountList() {
               <SSVStack key={account.id}>
                 <SSAccountCard
                   account={account}
-                  onPress={() => router.navigate(`/account/${account.name}`)}
+                  onPress={() => router.navigate(`/account/${account.id}`)}
                 />
                 <SSSeparator color="gradient" />
               </SSVStack>

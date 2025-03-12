@@ -11,6 +11,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
+import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
 function useAccountBuilderFinish() {
   const [
@@ -27,7 +28,9 @@ function useAccountBuilderFinish() {
     ])
   )
   const addAccount = useAccountsStore((state) => state.addAccount)
-  const addAccountWallet = useWalletsStore((state) => state.addAccountWallet)
+  const [addAccountWallet, addAccountAddress] = useWalletsStore(
+    useShallow((state) => [state.addAccountWallet, state.addAccountAddress])
+  )
   const network = useBlockchainStore((state) => state.network)
 
   const [loading, setLoading] = useState(false)
@@ -41,8 +44,6 @@ function useAccountBuilderFinish() {
       ? await getWallet(account, network as Network)
       : undefined
     if (!isImportAddress && !walletData) return // TODO: handle error
-
-    if (walletData) addAccountWallet(account.id, walletData.wallet)
 
     for (const key of account.keys) {
       const stringifiedSecret = JSON.stringify(key.secret)
@@ -65,6 +66,15 @@ function useAccountBuilderFinish() {
     const accountWithEncryptedSecret = getAccountData()
 
     addAccount(accountWithEncryptedSecret)
+    if (walletData)
+      addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
+    if (isImportAddress && typeof account.keys[0].secret === 'object')
+      addAccountAddress(
+        accountWithEncryptedSecret.id,
+        parseAddressDescriptorToAddress(
+          account.keys[0].secret.externalDescriptor!
+        )
+      )
 
     setLoading(false)
 
