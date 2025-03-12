@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import { Esplora } from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
+import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { formatTimestamp } from '@/utils/format'
-import { MempoolOracle } from '@/api/blockchain'
 
 function useSyncAccountWithAddress() {
   const [backend, network, url] = useBlockchainStore(

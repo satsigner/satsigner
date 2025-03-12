@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData, syncWallet } from '@/api/bdk'
+import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
-import { getUtxoOutpoint } from '@/utils/utxo'
 import { formatTimestamp } from '@/utils/format'
-import { MempoolOracle } from '@/api/blockchain'
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 function useSyncAccountWithWallet() {
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(

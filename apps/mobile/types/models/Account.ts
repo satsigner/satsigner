@@ -30,7 +30,7 @@ export type Key = {
   /** Key position for multisig. Set to 0 if singlesig */
   index: number
   name?: string
-  creationType?: CreationType
+  creationType: CreationType
   mnemonicWordCount?: MnemonicCount
   /** Sensitive information that can be encrypted with PIN */
   secret: Secret | string

@@ -26,7 +26,8 @@ export default function Unlock() {
     setFirstTime,
     setRequiresAuth,
     getPagesHistory,
-    clearPageHistory
+    clearPageHistory,
+    setJustUnlocked
   ] = useAuthStore(
     useShallow((state) => [
       state.pinTries,
@@ -37,7 +38,8 @@ export default function Unlock() {
       state.setFirstTime,
       state.setRequiresAuth,
       state.getPagesHistory,
-      state.clearPageHistory
+      state.clearPageHistory,
+      state.setJustUnlocked
     ])
   )
   const { shake, shakeStyle } = useAnimatedShake()
@@ -59,6 +61,7 @@ export default function Unlock() {
 
     if (isPinValid) {
       setLockTriggered(false)
+      setJustUnlocked(true)
       resetPinTries()
 
       // TODO: Fix this

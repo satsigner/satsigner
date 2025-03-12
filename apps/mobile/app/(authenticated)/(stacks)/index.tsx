@@ -19,6 +19,9 @@ import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -26,6 +29,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import {
   sampleSignetAddress,
@@ -33,10 +37,6 @@ import {
   sampleSignetXpub,
   sampleSignetXpubFingerprint
 } from '@/utils/samples'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
-import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
-import { usePriceStore } from '@/store/price'
 
 export default function AccountList() {
   const router = useRouter()

@@ -26,7 +26,7 @@ type AccountBuilderAction = {
   setName: (name: AccountBuilderState['name']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
-  setCreationType: (creationType: NonNullable<Key['creationType']>) => void
+  setCreationType: (creationType: Key['creationType']) => void
   setMnemonicWordCount: (
     mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
   ) => void
