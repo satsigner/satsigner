@@ -30,13 +30,15 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
       <SSHStack justifyBetween>
         <SSVStack gap="none">
           <SSText size="xs" style={{ color: Colors.gray[500], lineHeight: 10 }}>
-            {account.fingerprint}
+            {account.keys[0].fingerprint}
           </SSText>
           <SSHStack gap="sm">
             <SSText size="lg" color="muted">
               {account.name}
             </SSText>
-            {account.watchOnly && <SSIconEyeOn height={16} width={16} />}
+            {account.policyType === 'watchonly' && (
+              <SSIconEyeOn height={16} width={16} />
+            )}
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>

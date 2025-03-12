@@ -34,20 +34,27 @@ import {
   sampleSignetXpub,
   sampleSignetXpubFingerprint
 } from '@/utils/samples'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 
 export default function AccountList() {
   const router = useRouter()
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
-  const [accounts, addAccount] = useAccountsStore(
-    useShallow((state) => [state.accounts, state.addAccount])
+  const [accounts, addAccount, updateAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts,
+      state.addAccount,
+      state.updateAccount
+    ])
   )
 
   const [
     clearAccount,
     encryptSeed,
-    getAccount,
+    getAccountData,
     loadWallet,
     setDescriptorFromAddress,
     setDescriptorFromXpub,
@@ -57,12 +64,21 @@ export default function AccountList() {
     setScriptVersion,
     setSeedWordCount,
     setSeedWords,
-    setWatchOnly
+    setWatchOnly,
+    setExternalDescriptor,
+    setExtendedPublicKey,
+    setCreationType,
+    setMnemonic,
+    setMnemonicWordCount,
+    setKeyCount,
+    setKeysRequired,
+    setPolicyType,
+    setKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.clearAccount,
       state.encryptSeed,
-      state.getAccount,
+      state.getAccountData,
       state.loadWallet,
       state.setDescriptorFromAddress,
       state.setDescriptorFromXpub,
@@ -72,72 +88,89 @@ export default function AccountList() {
       state.setScriptVersion,
       state.setSeedWordCount,
       state.setSeedWords,
-      state.setWatchOnly
+      state.setWatchOnly,
+      state.setExternalDescriptor,
+      state.setExtendedPublicKey,
+      state.setCreationType,
+      state.setMnemonic,
+      state.setMnemonicWordCount,
+      state.setKeyCount,
+      state.setKeysRequired,
+      state.setPolicyType,
+      state.setKey
     ])
   )
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithAddress } = useSyncAccountWithAddress()
+  const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  const [loadingWallet, setLoadingWallet] = useState('')
+  type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
+  const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
     router.navigate('/account/add')
   }
 
-  async function loadSampleLegacyWallet() {
-    setScriptVersion('P2PKH')
-    await loadSampleSigningWallet('legacy')
-  }
+  async function loadSampleWallet(type: SampleWallet) {
+    setLoadingWallet(type)
+    setName(`My Wallet (${type})`)
+    setKeyCount(1)
+    setKeysRequired(1)
 
-  async function loadSampleSegwitWallet() {
-    setScriptVersion('P2WPKH')
-    await loadSampleSigningWallet('segwit')
-  }
+    switch (type) {
+      case 'segwit':
+        setScriptVersion('P2WPKH')
+        setPolicyType('singlesig')
+        setCreationType('importMnemonic')
+        setMnemonicWordCount(12)
+        setMnemonic(sampleSignetWalletSeed)
+        break
+      case 'legacy':
+        setScriptVersion('P2PKH')
+        setPolicyType('singlesig')
+        setCreationType('importMnemonic')
+        setMnemonicWordCount(12)
+        setMnemonic(sampleSignetWalletSeed)
+        break
+      case 'watchonlyXpub':
+        setScriptVersion('P2PKH')
+        setPolicyType('watchonly')
+        setCreationType('importExtendedPub')
+        setExtendedPublicKey(sampleSignetXpub)
+        setFingerprint(sampleSignetXpubFingerprint)
+        break
+      case 'watchonlyAddress':
+        setPolicyType('watchonly')
+        setCreationType('importAddress')
+        setExternalDescriptor(`addr(${sampleSignetAddress})`)
+        break
+    }
 
-  async function loadSampleWatchOnlyWallet() {
-    setScriptVersion('P2PKH')
-    setFingerprint(sampleSignetXpubFingerprint)
-    await setDescriptorFromXpub(sampleSignetXpub)
-    await loadSampleWatchOnly('public-key')
-  }
+    setKey(0)
+    const account = getAccountData()
 
-  async function loadSampleWatchOnlyAddressWallet() {
-    setDescriptorFromAddress(sampleSignetAddress)
-    await loadSampleWatchOnly('address')
-  }
+    const data = await accountBuilderFinish(account)
+    if (!data) return
 
-  async function loadSampleWatchOnly(
-    walletType: NonNullable<Account['watchOnly']>
-  ) {
-    setLoadingWallet(walletType)
-    setName(`My Wallet (watch-only ${walletType})`)
-    setWatchOnly(walletType)
-    await loadSampleWallet()
-  }
-
-  async function loadSampleSigningWallet(walletType: string) {
-    setLoadingWallet(walletType)
-    setName(`My Wallet (${walletType})`)
-    setPassphrase('')
-    setSeedWordCount(12)
-    setSeedWords(sampleSignetWalletSeed)
-    setWatchOnly(undefined)
-    await loadWallet()
-    await encryptSeed()
-    await loadSampleWallet()
-  }
-
-  async function loadSampleWallet() {
-    if (loadingWallet !== '') return
-    const account = getAccount()
-    addAccount(account)
-    setLoadingWallet('')
-    clearAccount()
-    // try {
-    //   const syncedAccount = await syncWallet(wallet, account)
-    //   await updateAccount(syncedAccount)
-    // } catch {
-    //   //
-    // }
+    try {
+      const updatedAccount =
+        type !== 'watchonlyAddress'
+          ? await syncAccountWithWallet(
+              data.accountWithEncryptedSecret,
+              data.wallet!
+            )
+          : await syncAccountWithAddress(
+              data.accountWithEncryptedSecret,
+              `addr(${sampleSignetAddress})`
+            )
+      updateAccount(updatedAccount)
+    } catch {
+      // TODO
+    } finally {
+      clearAccount()
+      setLoadingWallet(undefined)
+    }
   }
 
   const [connectionState, connectionString, isPrivateConnection] =
@@ -213,34 +246,26 @@ export default function AccountList() {
               <SSButton
                 label={t('account.load.sample.segwit')}
                 variant="ghost"
-                style={{ borderRadius: 0 }}
-                onPress={loadSampleSegwitWallet}
-                disabled={loadingWallet !== ''}
+                onPress={() => loadSampleWallet('segwit')}
                 loading={loadingWallet === 'segwit'}
               />
               <SSButton
                 label={t('account.load.sample.legacy')}
                 variant="ghost"
-                style={{ borderRadius: 0 }}
-                onPress={loadSampleLegacyWallet}
-                disabled={loadingWallet !== ''}
+                onPress={() => loadSampleWallet('legacy')}
                 loading={loadingWallet === 'legacy'}
               />
               <SSButton
                 label={t('account.load.sample.xpub')}
                 variant="ghost"
-                style={{ borderRadius: 0 }}
-                onPress={loadSampleWatchOnlyWallet}
-                disabled={loadingWallet !== ''}
-                loading={loadingWallet === 'xpub'}
+                onPress={() => loadSampleWallet('watchonlyXpub')}
+                loading={loadingWallet === 'watchonlyXpub'}
               />
               <SSButton
                 label={t('account.load.sample.address')}
                 variant="ghost"
-                style={{ borderRadius: 0 }}
-                onPress={loadSampleWatchOnlyAddressWallet}
-                disabled={loadingWallet !== ''}
-                loading={loadingWallet === 'address'}
+                onPress={() => loadSampleWallet('watchonlyAddress')}
+                loading={loadingWallet === 'watchonlyAddress'}
               />
             </SSVStack>
           )}
