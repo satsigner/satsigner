@@ -43,28 +43,15 @@ export default function AccountList() {
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
-  const [accounts, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts,
-      state.addAccount,
-      state.updateAccount
-    ])
+  const [accounts, updateAccount] = useAccountsStore(
+    useShallow((state) => [state.accounts, state.updateAccount])
   )
-
   const [
     clearAccount,
-    encryptSeed,
     getAccountData,
-    loadWallet,
-    setDescriptorFromAddress,
-    setDescriptorFromXpub,
     setFingerprint,
     setName,
-    setPassphrase,
     setScriptVersion,
-    setSeedWordCount,
-    setSeedWords,
-    setWatchOnly,
     setExternalDescriptor,
     setExtendedPublicKey,
     setCreationType,
@@ -77,18 +64,10 @@ export default function AccountList() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.clearAccount,
-      state.encryptSeed,
       state.getAccountData,
-      state.loadWallet,
-      state.setDescriptorFromAddress,
-      state.setDescriptorFromXpub,
       state.setFingerprint,
       state.setName,
-      state.setPassphrase,
       state.setScriptVersion,
-      state.setSeedWordCount,
-      state.setSeedWords,
-      state.setWatchOnly,
       state.setExternalDescriptor,
       state.setExtendedPublicKey,
       state.setCreationType,
