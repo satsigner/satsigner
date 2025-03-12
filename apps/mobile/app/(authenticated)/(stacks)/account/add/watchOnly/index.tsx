@@ -27,6 +27,7 @@ import {
 } from '@/utils/validation'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',
@@ -71,6 +72,7 @@ export default function WatchOnly() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
@@ -145,7 +147,9 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    if (xpub) setExtendedPublicKey(xpub)
+    if (selectedOption === 'importExtendedPub') setExtendedPublicKey(xpub)
+    else if (selectedOption === 'importAddress')
+      setExternalDescriptor(`addr(${address})`)
 
     setKey(0)
     const account = getAccountData()
@@ -154,13 +158,19 @@ export default function WatchOnly() {
     if (!data) return
 
     try {
-      const updatedAccount = await syncAccountWithWallet(
-        data.accountWithEncryptedSecret,
-        data.wallet
-      )
+      const updatedAccount =
+        selectedOption !== 'importAddress'
+          ? await syncAccountWithWallet(
+              data.accountWithEncryptedSecret,
+              data.wallet!
+            )
+          : await syncAccountWithAddress(
+              data.accountWithEncryptedSecret,
+              `addr(${address})`
+            )
       updateAccount(updatedAccount)
     } catch {
-      //
+      // TODO
     } finally {
       clearAccount()
       setLoadingWallet(false)

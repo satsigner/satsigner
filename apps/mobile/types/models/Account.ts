@@ -62,13 +62,4 @@ export type Account = {
   utxos: Utxo[]
   addresses: [] // TODO: Add types
   createdAt: Date
-
-  // Below deprecated
-  watchOnly?: 'public-key' | 'address' // TODO: To remove
-  externalDescriptor?: string
-  internalDescriptor?: string
-  fingerprint?: string
-  derivationPath?: string
-  participantsCount?: number
-  requiredParticipantsCount?: number
 }

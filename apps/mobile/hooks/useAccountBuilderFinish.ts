@@ -35,10 +35,14 @@ function useAccountBuilderFinish() {
   async function accountBuilderFinish(account: Account) {
     setLoading(true)
 
-    const walletData = await getWallet(account, network as Network)
-    if (!walletData) return // TODO: handle error
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
 
-    addAccountWallet(account.id, walletData.wallet)
+    const walletData = !isImportAddress
+      ? await getWallet(account, network as Network)
+      : undefined
+    if (!isImportAddress && !walletData) return // TODO: handle error
+
+    if (walletData) addAccountWallet(account.id, walletData.wallet)
 
     for (const key of account.keys) {
       const stringifiedSecret = JSON.stringify(key.secret)
@@ -51,8 +55,10 @@ function useAccountBuilderFinish() {
         account.keys[key.index].iv
       )
 
-      updateKeyFingerprint(key.index, walletData.fingerprint)
-      setKeyDerivationPath(key.index, walletData.derivationPath)
+      if (walletData) {
+        updateKeyFingerprint(key.index, walletData.fingerprint)
+        setKeyDerivationPath(key.index, walletData.derivationPath)
+      }
       updateKeySecret(key.index, encryptedSecret)
     }
 
@@ -62,7 +68,7 @@ function useAccountBuilderFinish() {
 
     setLoading(false)
 
-    return { wallet: walletData.wallet, accountWithEncryptedSecret }
+    return { wallet: walletData?.wallet, accountWithEncryptedSecret }
   }
 
   return { accountBuilderFinish, loading }
