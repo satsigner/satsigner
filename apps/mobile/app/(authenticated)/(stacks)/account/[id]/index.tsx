@@ -719,7 +719,6 @@ export default function AccountView() {
           account,
           `addr(${watchOnlyWalletAddress!})`
         )
-    console.log(updatedAccount, '<<<')
     updateAccount(updatedAccount)
   }
 
