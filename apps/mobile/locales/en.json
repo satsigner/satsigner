@@ -22,7 +22,6 @@
     "generate.multi.title": "Generate Keys",
     "generate.title": "Generate seed",
     "generate.warning": "Keep this information secret and backed up.",
-    "hasAccountWithName": "Account with that name already exists",
     "import.descriptor": "Import Descriptor",
     "import.existingSingleWallet": "Exisiting Single Key Wallets",
     "import.fromOtherWallet": "Select From Other Wallets",

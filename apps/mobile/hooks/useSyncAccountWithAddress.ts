@@ -7,6 +7,9 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
+import { getUtxoOutpoint } from '@/utils/utxo'
+import { formatTimestamp } from '@/utils/format'
+import { MempoolOracle } from '@/api/blockchain'
 
 function useSyncAccountWithAddress() {
   const [backend, network, url] = useBlockchainStore(
@@ -20,6 +23,15 @@ function useSyncAccountWithAddress() {
     addressDescriptor: string
   ) {
     setLoading(true)
+
+    // Labels backup
+    const labelsBackup: Record<string, string> = {}
+    for (const transaction of account.transactions) {
+      labelsBackup[transaction.id] = transaction.label || ''
+    }
+    for (const utxo of account.utxos) {
+      labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
+    }
 
     const address = parseAddressDescriptorToAddress(addressDescriptor)
 
@@ -161,6 +173,31 @@ function useSyncAccountWithAddress() {
     updatedAccount.transactions = transactions
     updatedAccount.utxos = utxos
     updatedAccount.summary = summary
+
+    //Labels update
+    for (const index in updatedAccount.utxos) {
+      const utxoRef = getUtxoOutpoint(updatedAccount.utxos[index])
+      updatedAccount.utxos[index].label = labelsBackup[utxoRef] || ''
+    }
+    for (const index in updatedAccount.transactions) {
+      const transactionRef = updatedAccount.transactions[index].id
+      updatedAccount.transactions[index].label =
+        labelsBackup[transactionRef] || ''
+    }
+
+    //Extract timestamps
+    const timestamps = updatedAccount.transactions
+      .filter((transaction) => transaction.timestamp)
+      .map((transaction) => formatTimestamp(transaction.timestamp!))
+
+    //Fetch Prices
+    const oracle = new MempoolOracle()
+    const prices = await oracle.getPricesAt('USD', timestamps)
+
+    //Transaction prices update
+    for (const index in updatedAccount.transactions) {
+      updatedAccount.transactions[index].prices = { USD: prices[index] }
+    }
 
     setLoading(false)
 

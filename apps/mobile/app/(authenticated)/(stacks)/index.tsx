@@ -27,7 +27,6 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
 import {
   sampleSignetAddress,
   sampleSignetWalletSeed,
@@ -37,6 +36,7 @@ import {
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { usePriceStore } from '@/store/price'
 
 export default function AccountList() {
   const router = useRouter()
@@ -79,9 +79,12 @@ export default function AccountList() {
       state.setKey
     ])
   )
+  const fetchPrices = usePriceStore((state) => state.fetchPrices)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
+
+  fetchPrices()
 
   type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()

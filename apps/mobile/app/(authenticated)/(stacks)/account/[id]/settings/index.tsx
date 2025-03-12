@@ -31,12 +31,12 @@ import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { formatDate } from '@/utils/format'
 
 export default function AccountSettings() {
-  const { id: currentAccount } = useLocalSearchParams<AccountSearchParams>()
+  const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, updateAccountName, deleteAccount, decryptSeed] =
     useAccountsStore(
       useShallow((state) => [
-        state.accounts.find((_account) => _account.name === currentAccount),
+        state.accounts.find((_account) => _account.id === currentAccountId),
         state.updateAccountName,
         state.deleteAccount,
         state.decryptSeed
@@ -47,7 +47,7 @@ export default function AccountSettings() {
     useState<Account['scriptVersion']>('P2WPKH') // TODO: use current account script
   const [network, setNetwork] = useState<NonNullable<string>>('signet')
   const [accountName, setAccountName] = useState<Account['name']>(
-    currentAccount!
+    currentAccountId!
   )
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
@@ -73,7 +73,7 @@ export default function AccountSettings() {
   }
 
   async function saveChanges() {
-    updateAccountName(currentAccount!, accountName)
+    updateAccountName(currentAccountId!, accountName)
     router.replace(`/account/${accountName}/`)
   }
 
@@ -84,15 +84,15 @@ export default function AccountSettings() {
 
   useEffect(() => {
     async function updateSeed() {
-      const seed = await decryptSeed(currentAccount!)
+      const seed = await decryptSeed(currentAccountId!)
       if (seed) setSeed(seed)
     }
     updateSeed()
-  }, [currentAccount, decryptSeed])
+  }, [currentAccountId, decryptSeed])
 
   const [collapsedIndex, setCollapsedIndex] = useState<number>(0)
 
-  if (!currentAccount || !account || !scriptVersion)
+  if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
 
   return (
@@ -101,7 +101,7 @@ export default function AccountSettings() {
         options={{
           headerTitle: () => (
             <SSHStack gap="sm">
-              <SSText uppercase>{currentAccount}</SSText>
+              <SSText uppercase>{account.name}</SSText>
               {account.watchOnly && (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
