@@ -11,6 +11,9 @@ import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -25,9 +28,6 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',

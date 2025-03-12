@@ -60,7 +60,6 @@ export default function MultiSigManager() {
                 isBlackBackground={index % 2 === 0}
                 index={index}
                 keyCount={keyCount}
-                creating
                 keyDetails={keys[index]}
               />
             ))}

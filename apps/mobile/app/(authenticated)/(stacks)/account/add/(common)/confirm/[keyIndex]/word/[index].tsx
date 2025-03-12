@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedPublicKeyFromAccountKey, getWallet } from '@/api/bdk'
+import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
@@ -14,6 +14,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -22,7 +23,6 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
-import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 
 export default function Confirm() {
   const router = useRouter()

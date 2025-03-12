@@ -1,11 +1,12 @@
+import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
+
 import ElectrumClient from '@/api/electrum'
 import { Esplora } from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
-import { Transaction } from '@/types/models/Transaction'
+import { type Transaction } from '@/types/models/Transaction'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
-import { useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 
 function useSyncAccountWithAddress() {
   const [backend, network, url] = useBlockchainStore(
@@ -26,7 +27,6 @@ function useSyncAccountWithAddress() {
 
     let transactions: Account['transactions'] = []
     let utxos: Account['utxos'] = []
-    let summary: Account['summary']
 
     let confirmed = 0
     let unconfirmed = 0
@@ -150,7 +150,7 @@ function useSyncAccountWithAddress() {
       unconfirmed = addrInfo.balance.unconfirmed
     }
 
-    summary = {
+    const summary = {
       numberOfAddresses: 1,
       numberOfTransactions: transactions.length,
       numberOfUtxos: utxos.length,

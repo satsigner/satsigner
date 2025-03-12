@@ -8,9 +8,9 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useWalletsStore } from '@/store/wallets'
 import { type Account } from '@/types/models/Account'
 import { aesEncrypt } from '@/utils/crypto'
-import { useWalletsStore } from '@/store/wallets'
 
 function useAccountBuilderFinish() {
   const [

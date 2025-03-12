@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router'
 import { TouchableOpacity } from 'react-native'
 
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
-import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -14,7 +13,6 @@ type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
   index: number
   keyCount: number
-  creating: boolean
   keyDetails?: Key
 }
 
@@ -22,28 +20,9 @@ function SSMultisigKeyControl({
   isBlackBackground,
   index,
   keyCount,
-  creating,
   keyDetails
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
-
-  // async function handleOnClickGenerate() {
-  //   setCurrentParticipantIndex(index)
-  //   setParticipantCreationType('generateMnemonic')
-  //   router.navigate('/addMasterKey/participantOptions')
-  // }
-
-  // function handleOnClickImport() {
-  //   setCurrentParticipantIndex(index)
-  //   setParticipantCreationType('importMnemonic')
-  //   router.navigate('/addMasterKey/participantOptions')
-  // }
-
-  // function handleOnClickImportDescriptor() {
-  //   setCurrentParticipantIndex(index)
-  //   setParticipantCreationType('importDescriptor')
-  //   router.navigate('/addMasterKey/importDescriptor')
-  // }
 
   function getSourceLabel() {
     if (!keyDetails) {
@@ -110,20 +89,6 @@ function SSMultisigKeyControl({
             </SSText>
           </SSVStack>
         </SSHStack>
-        {/* {collapsed &&
-          (!creating || (creating && keyDetails) ? (
-            <>
-              <SSButton
-                uppercase
-                label={t('account.seed.dropAndKeep')}
-                variant="outline"
-              />
-              <SSButton uppercase label={t('account.seed.sharePub')} />
-              <SSButton uppercase label={t('account.seed.shareDescriptor')} />
-            </>
-          ) : (
-            <></>
-          ))} */}
       </SSVStack>
     </TouchableOpacity>
   )

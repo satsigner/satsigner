@@ -1,19 +1,19 @@
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
-import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 
 export default function ConfirmScreen() {
   const router = useRouter()
@@ -36,7 +36,7 @@ export default function ConfirmScreen() {
 
     const updatedAccount = await syncAccountWithWallet(
       data.accountWithEncryptedSecret,
-      data.wallet
+      data.wallet!
     )
     updateAccount(updatedAccount)
     setCompleted(true)
