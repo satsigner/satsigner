@@ -93,15 +93,9 @@ function TotalTransactions({
 }: TotalTransactionsProps) {
   const router = useRouter()
 
-  const [btcPrice, fiatCurrency, fetchPrices] = usePriceStore(
-    useShallow((state) => [
-      state.btcPrice,
-      state.fiatCurrency,
-      state.fetchPrices
-    ])
+  const [btcPrice, fiatCurrency] = usePriceStore(
+    useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
-
-  fetchPrices()
 
   const sortedTransactions = useMemo(() => {
     return [...account.transactions].sort((transaction1, transaction2) =>
@@ -579,13 +573,16 @@ export default function AccountView() {
     ])
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [fiatCurrency, satsToFiat] = usePriceStore(
-    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
+    useShallow((state) => [
+      state.fiatCurrency,
+      state.satsToFiat,
+      state.fetchPrices
+    ])
   )
   const getBlockchainHeight = useBlockchainStore(
     (state) => state.getBlockchainHeight
   )
-
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
   )
@@ -712,18 +709,22 @@ export default function AccountView() {
   async function refreshAccount() {
     if (!account) return
 
-    const isImportAddress = account.keys[0].creationType !== 'importAddress'
+    const isImportAddress = account.keys[0].creationType === 'importAddress'
     if (isImportAddress && !watchOnlyWalletAddress) return
     else if (!isImportAddress && !wallet) return
 
-    const updatedAccount =
-      account.keys[0].creationType !== 'importAddress'
-        ? await syncAccountWithWallet(account, wallet!)
-        : await syncAccountWithAddress(account, watchOnlyWalletAddress!)
+    const updatedAccount = !isImportAddress
+      ? await syncAccountWithWallet(account, wallet!)
+      : await syncAccountWithAddress(
+          account,
+          `addr(${watchOnlyWalletAddress!})`
+        )
+    console.log(updatedAccount, '<<<')
     updateAccount(updatedAccount)
   }
 
   async function refresh() {
+    await fetchPrices()
     await refreshBlockchainHeight()
     await refreshAccount()
   }
@@ -743,6 +744,10 @@ export default function AccountView() {
     clearTransaction()
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
+
+  useEffect(() => {
+    handleOnRefresh()
+  }, [])
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
