@@ -25,35 +25,13 @@ type AccountBuilderState = {
 type AccountBuilderAction = {
   setName: (name: AccountBuilderState['name']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
-  setScriptVersion: (
-    scriptVersion: NonNullable<AccountBuilderState['scriptVersion']>
-  ) => void
-  setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
+  setKeyName: (keyName: AccountBuilderState['keyName']) => void
+  setCreationType: (creationType: NonNullable<Key['creationType']>) => void
   setMnemonicWordCount: (
     mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
   ) => void
-  setFingerprint: (fingerprint: AccountBuilderState['fingerprint']) => void
+  setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
-  setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
-  setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
-  setKeyName: (keyName: AccountBuilderState['keyName']) => void
-  getAccountData: () => Account
-  setKey: (index: NonNullable<Key['index']>) => Key
-  clearKeyState: () => void
-  clearAccount: () => void
-  updateKeySecret: (
-    index: NonNullable<Key['index']>,
-    newSecret: Key['secret']
-  ) => void
-  updateKeyFingerprint: (
-    index: NonNullable<Key['index']>,
-    fingerprint: NonNullable<Key['fingerprint']>
-  ) => void
-  setKeyDerivationPath: (
-    index: NonNullable<Key['index']>,
-    derivationPath: NonNullable<Key['derivationPath']>
-  ) => void
-  setCreationType: (creationType: NonNullable<Key['creationType']>) => void
   setExternalDescriptor: (
     externalDescriptor: NonNullable<Secret['externalDescriptor']>
   ) => void
@@ -63,6 +41,27 @@ type AccountBuilderAction = {
   setExtendedPublicKey: (
     extendedPublicKey: NonNullable<Secret['extendedPublicKey']>
   ) => void
+  setFingerprint: (
+    fingerprint: NonNullable<AccountBuilderState['fingerprint']>
+  ) => void
+  setScriptVersion: (
+    scriptVersion: AccountBuilderState['scriptVersion']
+  ) => void
+  setKey: (index: Key['index']) => Key
+  updateKeySecret: (index: Key['index'], newSecret: Key['secret']) => void
+  updateKeyFingerprint: (
+    index: Key['index'],
+    fingerprint: NonNullable<Key['fingerprint']>
+  ) => void
+  setKeyDerivationPath: (
+    index: Key['index'],
+    derivationPath: NonNullable<Key['derivationPath']>
+  ) => void
+  setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
+  setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
+  getAccountData: () => Account
+  clearKeyState: () => void
+  clearAccount: () => void
 }
 
 const initialState: AccountBuilderState = {
