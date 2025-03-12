@@ -45,8 +45,6 @@ export default function WatchOnly() {
     clearAccount,
     getAccountData,
     setFingerprint,
-    setDescriptorFromXpub,
-    setDescriptorFromAddress,
     setExternalDescriptor,
     setInternalDescriptor,
     setExtendedPublicKey,
@@ -61,8 +59,6 @@ export default function WatchOnly() {
       state.clearAccount,
       state.getAccountData,
       state.setFingerprint,
-      state.setDescriptorFromXpub,
-      state.setDescriptorFromAddress,
       state.setExternalDescriptor,
       state.setInternalDescriptor,
       state.setExtendedPublicKey,
@@ -101,7 +97,6 @@ export default function WatchOnly() {
     setValidAddress(!address || validAddress)
     setDisabled(!validAddress)
     setAddress(address)
-    if (validAddress) setDescriptorFromAddress(address)
   }
 
   function updateMasterFingerprint(fingerprint: string) {
@@ -112,9 +107,6 @@ export default function WatchOnly() {
     if (validFingerprint) {
       setFingerprint(fingerprint)
       Keyboard.dismiss()
-      // force update xpub again because it depends upon the fingerprint
-      if (selectedOption === 'importExtendedPub' && validXpub)
-        setDescriptorFromXpub(xpub)
     }
   }
 

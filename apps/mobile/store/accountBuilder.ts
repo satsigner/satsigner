@@ -57,6 +57,9 @@ type AccountBuilderAction = {
   setExternalDescriptor: (
     externalDescriptor: NonNullable<Secret['externalDescriptor']>
   ) => void
+  setInternalDescriptor: (
+    internalDescriptor: NonNullable<Secret['internalDescriptor']>
+  ) => void
   setExtendedPublicKey: (
     extendedPublicKey: NonNullable<Secret['extendedPublicKey']>
   ) => void
@@ -90,54 +93,35 @@ const useAccountBuilderStore = create<
   setPolicyType: (policyType) => {
     set({ policyType })
   },
-  setScriptVersion: (scriptVersion) => {
-    set({ scriptVersion })
+  setKeyName: (keyName) => {
+    set({ keyName })
   },
-  setMnemonic: (mnemonic) => {
-    set({ mnemonic })
+  setCreationType: (creationType) => {
+    set({ creationType })
   },
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
   },
-  setFingerprint: (fingerprint) => {
-    set({ fingerprint })
+  setMnemonic: (mnemonic) => {
+    set({ mnemonic })
   },
   setPassphrase: (passphrase) => {
     set({ passphrase })
   },
-  setKeyCount: (keyCount) => {
-    set({ keyCount })
+  setExternalDescriptor: (externalDescriptor) => {
+    set({ externalDescriptor })
   },
-  setKeysRequired: (keysRequired) => {
-    set({ keysRequired })
+  setInternalDescriptor: (internalDescriptor) => {
+    set({ internalDescriptor })
   },
-  setKeyName: (keyName) => {
-    set({ keyName })
+  setExtendedPublicKey: (extendedPublicKey) => {
+    set({ extendedPublicKey })
   },
-  getAccountData: () => {
-    const { name, policyType, keys, keyCount, keysRequired } = get()
-
-    const account: Account = {
-      id: uuid.v4(),
-      name,
-      policyType,
-      keys,
-      keyCount,
-      keysRequired,
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      },
-      transactions: [],
-      utxos: [],
-      addresses: [],
-      createdAt: new Date()
-    }
-
-    return account
+  setFingerprint: (fingerprint) => {
+    set({ fingerprint })
+  },
+  setScriptVersion: (scriptVersion) => {
+    set({ scriptVersion })
   },
   setKey: (index) => {
     const {
@@ -177,22 +161,6 @@ const useAccountBuilderStore = create<
 
     return key
   },
-  clearKeyState: () => {
-    set({
-      keyName: '',
-      creationType: 'importMnemonic',
-      mnemonicWordCount: 24,
-      mnemonic: '',
-      passphrase: undefined,
-      fingerprint: undefined,
-      scriptVersion: 'P2WPKH',
-      externalDescriptor: undefined,
-      extendedPublicKey: undefined
-    })
-  },
-  clearAccount: () => {
-    set({ ...initialState })
-  },
   updateKeySecret: (index, newSecret) => {
     set(
       produce((state: AccountBuilderState) => {
@@ -220,14 +188,52 @@ const useAccountBuilderStore = create<
       })
     )
   },
-  setCreationType: (creationType) => {
-    set({ creationType })
+  setKeyCount: (keyCount) => {
+    set({ keyCount })
   },
-  setExternalDescriptor: (externalDescriptor) => {
-    set({ externalDescriptor })
+  setKeysRequired: (keysRequired) => {
+    set({ keysRequired })
   },
-  setExtendedPublicKey: (extendedPublicKey) => {
-    set({ extendedPublicKey })
+  getAccountData: () => {
+    const { name, policyType, keys, keyCount, keysRequired } = get()
+
+    const account: Account = {
+      id: uuid.v4(),
+      name,
+      policyType,
+      keys,
+      keyCount,
+      keysRequired,
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      },
+      transactions: [],
+      utxos: [],
+      addresses: [],
+      createdAt: new Date()
+    }
+
+    return account
+  },
+  clearKeyState: () => {
+    set({
+      keyName: '',
+      creationType: 'importMnemonic',
+      mnemonicWordCount: 24,
+      mnemonic: '',
+      passphrase: undefined,
+      fingerprint: undefined,
+      scriptVersion: 'P2WPKH',
+      externalDescriptor: undefined,
+      extendedPublicKey: undefined
+    })
+  },
+  clearAccount: () => {
+    set({ ...initialState })
   }
 }))
 
