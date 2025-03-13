@@ -24,13 +24,13 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
+  deleteAccount: (id: Account['id']) => void
+  deleteAccounts: () => void
   // Below deprecated
   loadWalletFromDescriptor: (
     externalDescriptor: Descriptor,
     internalDescriptor: Descriptor | null | undefined
   ) => Promise<Wallet>
-  deleteAccount: (name: string) => void
-  deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
   setTxLabel: (account: string, txid: string, label: string) => void
@@ -76,6 +76,21 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
+      deleteAccount: (id) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) {
+              state.accounts.splice(index, 1)
+            }
+          })
+        )
+      },
+      deleteAccounts: () => {
+        set(() => ({ accounts: [] }))
+      },
       // BELOW DEPRECATED
       loadWalletFromDescriptor: async (
         externalDescriptor,
@@ -89,21 +104,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           network as Network
         )
         return wallet
-      },
-      deleteAccount: (name: string) => {
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (account) => account.name === name
-            )
-            if (index !== -1) {
-              state.accounts.splice(index, 1)
-            }
-          })
-        )
-      },
-      deleteAccounts: () => {
-        set(() => ({ accounts: [] }))
       },
       getTags: () => {
         return get().tags

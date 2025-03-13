@@ -252,20 +252,11 @@ export default function IOPreview() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 80 }}>
-        {/* <GestureDetector gesture={gestures}>
-          <Animated.View
-            style={[
-              { width: sankeyWidth, height: sankeyHeight },
-              animatedStyle
-            ]}
-          > */}
         <SSSankeyDiagram
           sankeyNodes={sankeyNodes}
           sankeyLinks={sankeyLinks}
           inputCount={inputs.size ?? 0}
         />
-        {/* </Animated.View>
-        </GestureDetector> */}
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}

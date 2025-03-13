@@ -111,7 +111,7 @@ export default function SelectUtxoList() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
       <SSMainLayout style={{ flex: 0 }}>

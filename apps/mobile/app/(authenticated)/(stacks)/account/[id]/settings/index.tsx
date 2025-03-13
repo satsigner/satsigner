@@ -25,10 +25,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
+import { type Key, type Account } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { formatDate } from '@/utils/format'
+import { useWalletsStore } from '@/store/wallets'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -42,28 +43,34 @@ export default function AccountSettings() {
         state.decryptSeed
       ])
     )
+  const removeAccountWallet = useWalletsStore(
+    (state) => state.removeAccountWallet
+  )
 
   const [scriptVersion, setScriptVersion] =
-    useState<Account['scriptVersion']>('P2WPKH') // TODO: use current account script
+    useState<Key['scriptVersion']>('P2WPKH') // TODO: use current account script
   const [network, setNetwork] = useState<NonNullable<string>>('signet')
   const [accountName, setAccountName] = useState<Account['name']>(
-    currentAccountId!
+    account?.name || ''
   )
+  const [seed, setSeed] = useState('')
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [seedModalVisible, setSeedModalVisible] = useState(false)
-  const [seed, setSeed] = useState('')
 
   function getPolicyTypeButtonLabel() {
-    if (account?.policyType === 'single') {
-      return t('account.policy.singleSignature')
-    } else if (account?.policyType === 'multi') {
-      return t('account.policy.multiSignature')
-    } else {
-      return ''
+    switch (account?.policyType) {
+      case 'singlesig':
+        return t('account.policy.singleSignature.title')
+      case 'multisig':
+        return t('account.policy.multiSignature.title')
+      case 'watchonly':
+        return t('account.policy.watchOnly.title')
+      default:
+        return ''
     }
   }
 
@@ -74,11 +81,12 @@ export default function AccountSettings() {
 
   async function saveChanges() {
     updateAccountName(currentAccountId!, accountName)
-    router.replace(`/account/${accountName}/`)
+    router.replace(`/account/${currentAccountId}/`)
   }
 
   function deleteThisAccount() {
-    deleteAccount(accountName)
+    deleteAccount(currentAccountId)
+    removeAccountWallet(currentAccountId)
     router.replace('/')
   }
 
@@ -90,8 +98,6 @@ export default function AccountSettings() {
     updateSeed()
   }, [currentAccountId, decryptSeed])
 
-  const [collapsedIndex, setCollapsedIndex] = useState<number>(0)
-
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
 
@@ -102,7 +108,7 @@ export default function AccountSettings() {
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
-              {account.watchOnly && (
+              {account.policyType === 'watchonly' && (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
@@ -118,7 +124,7 @@ export default function AccountSettings() {
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
             <SSText style={{ color: Colors.success }}>
-              {account?.fingerprint}
+              {account.keys[0].fingerprint}
             </SSText>
           </SSHStack>
           <SSHStack gap="sm">
@@ -129,7 +135,7 @@ export default function AccountSettings() {
           </SSHStack>
         </SSVStack>
         <SSVStack>
-          {account.seedWords && (
+          {account.keys[0].creationType === 'generateMnemonic' && (
             <SSHStack>
               <SSButton
                 style={{ flex: 1 }}
@@ -145,7 +151,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccount}/settings/export/labels`
+                  `/account/${currentAccountId}/settings/export/labels`
                 )
               }
             />
@@ -155,7 +161,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccount}/settings/import/labels`
+                  `/account/${currentAccountId}/settings/import/labels`
                 )
               }
             />
@@ -172,7 +178,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccount}/settings/export/descriptors`
+                  `/account/${currentAccountId}/settings/export/descriptors`
                 )
               }
             />
@@ -195,7 +201,7 @@ export default function AccountSettings() {
             <SSFormLayout.Label label={t('account.policy.title')} />
             <SSButton label={getPolicyTypeButtonLabel()} withSelect />
           </SSFormLayout.Item>
-          {account.policyType === 'single' && (
+          {account.policyType === 'singlesig' && (
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
@@ -206,7 +212,7 @@ export default function AccountSettings() {
             </SSFormLayout.Item>
           )}
         </SSFormLayout>
-        {account.policyType === 'multi' && (
+        {account.policyType === 'multisig' && (
           <>
             <SSVStack
               style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
@@ -214,22 +220,20 @@ export default function AccountSettings() {
             >
               <SSMultisigCountSelector
                 maxCount={12}
-                requiredNumber={account.requiredParticipantsCount!}
-                totalNumber={account.participantsCount!}
+                requiredNumber={account.keysRequired!}
+                totalNumber={account.keyCount!}
                 viewOnly
               />
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>
             <SSVStack gap="none" style={{ marginHorizontal: -20 }}>
-              {account.participants!.map((p, index) => (
+              {account.keys.map((key, index) => (
                 <SSMultisigKeyControl
                   key={index}
                   isBlackBackground={index % 2 === 1}
-                  collapsed={collapsedIndex === index}
-                  collapseChanged={(value) => value && setCollapsedIndex(index)}
                   index={index}
-                  creating={false}
-                  participant={p}
+                  keyCount={account.keyCount}
+                  keyDetails={key}
                 />
               ))}
             </SSVStack>
@@ -365,7 +369,7 @@ export default function AccountSettings() {
         {seed && (
           <SSVStack gap="lg">
             <SSText center size="xl" weight="bold" uppercase>
-              {account.seedWordCount} {t('bitcoin.words')}
+              {account.keys[0].mnemonicWordCount} {t('bitcoin.words')}
             </SSText>
             <SSHStack style={{ justifyContent: 'center' }}>
               <SSIconWarning
