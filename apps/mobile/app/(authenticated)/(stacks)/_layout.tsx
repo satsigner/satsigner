@@ -10,7 +10,7 @@ import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWallet } from '@/api/bdk'
+import { getWalletData } from '@/api/bdk'
 import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
@@ -119,7 +119,7 @@ export default function AuthenticatedLayout() {
             }
 
             const walletData = !isImportAddress
-              ? await getWallet(temporaryAccount, network as Network)
+              ? await getWalletData(temporaryAccount, network as Network)
               : undefined
 
             if (walletData) addAccountWallet(account.id, walletData.wallet)

@@ -46,9 +46,7 @@ async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   return true
 }
 
-// TODO: Rename to getWalletData
-// TODO: Rename the other to getWalletSummary
-async function getWallet(account: Account, network: Network) {
+async function getWalletData(account: Account, network: Network) {
   switch (account.policyType) {
     case 'singlesig': {
       if (account.keys.length !== 1)
@@ -76,7 +74,7 @@ async function getWallet(account: Account, network: Network) {
 
         return walletData
       } else if (key.creationType === 'importDescriptor') {
-        // TODO:
+        // TODO
       }
       break
     }
@@ -238,7 +236,7 @@ async function getWallet(account: Account, network: Network) {
           wallet
         }
       } else if (key.creationType === 'importAddress') {
-        // TODO
+        // BDK does not support address descriptor
       }
 
       break
@@ -374,8 +372,7 @@ async function getBlockchain(
   return blockchain
 }
 
-// Rename to getWalletSummary
-async function getWalletData(
+async function getWalletOverview(
   wallet: Wallet,
   netWork: Network
 ): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
@@ -541,11 +538,9 @@ async function getAddress(utxo: LocalUtxo, network: Network) {
   return address.asString()
 }
 
-// Below deprecated
-
 async function getFingerprint(
-  mnemonic: NonNullable<Account['mnemonic']>,
-  passphrase: Account['passphrase'],
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  passphrase: Secret['passphrase'],
   network: Network
 ) {
   const bdkMnemonic = await new Mnemonic().fromString(mnemonic)
@@ -562,115 +557,6 @@ async function getFingerprint(
 
   const { fingerprint } = await parseDescriptor(descriptor)
   return fingerprint
-}
-
-async function getParticipantInfo(
-  participant: MultisigParticipant,
-  network: Network
-) {
-  try {
-    if (!participant.seedWords || !participant.scriptVersion) {
-      return null
-    }
-    const seedWords = participant.seedWords
-    const scriptVersion = participant.scriptVersion
-    const passphrase = participant.passphrase
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      getDescriptor(
-        seedWords,
-        scriptVersion,
-        KeychainKind.External,
-        passphrase,
-        network
-      ),
-      getDescriptor(
-        seedWords,
-        scriptVersion,
-        KeychainKind.Internal,
-        passphrase,
-        network
-      )
-    ])
-    const { fingerprint, derivationPath } =
-      await parseDescriptor(externalDescriptor)
-    const externalDescriptorString = await externalDescriptor.asString()
-    const internalDescriptorString = await internalDescriptor.asString()
-    const pubKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
-    return {
-      fingerprint,
-      derivationPath,
-      externalDescriptorString,
-      internalDescriptorString,
-      pubKey
-    }
-  } catch {
-    return null
-  }
-}
-
-async function getMultiSigWalletFromMnemonic(
-  participants: NonNullable<Account['participants']>,
-  network: Network,
-  totalParticipants: number,
-  requiredParticipants: number
-) {
-  try {
-    const externalDescriptors: Descriptor[] = []
-    const internalDescriptors: Descriptor[] = []
-    const keys = []
-    for (let i = 0; i < totalParticipants; i++) {
-      const participant = participants[i]
-      if (participant.creationType !== 'importdescriptor') {
-        if (!participant.seedWords || !participant.scriptVersion) {
-          return null
-        }
-        const seedWords = participant.seedWords
-        const scriptVersion = participant.scriptVersion
-        const passphrase = participant.passphrase
-        const [externalDescriptor, internalDescriptor] = await Promise.all([
-          getDescriptor(
-            seedWords,
-            scriptVersion,
-            KeychainKind.External,
-            passphrase,
-            network
-          ),
-          getDescriptor(
-            seedWords,
-            scriptVersion,
-            KeychainKind.Internal,
-            passphrase,
-            network
-          )
-        ])
-        externalDescriptors.push(externalDescriptor)
-        internalDescriptors.push(internalDescriptor)
-        const key = await extractExtendedKeyFromDescriptor(externalDescriptor)
-        keys.push(key)
-      } else {
-        const match = participant.externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
-        const key = match ? match[0] : ''
-        keys.push(key)
-      }
-    }
-    const multisigDescriptorString = `wsh(multi(${requiredParticipants},${keys.join(',')}))`
-    const multisigDescriptor = await new Descriptor().create(
-      multisigDescriptorString,
-      network
-    )
-    const dbConfig = await new DatabaseConfig().memory()
-    const wallet = await new Wallet().create(
-      multisigDescriptor,
-      null,
-      network,
-      dbConfig
-    )
-    return {
-      wallet
-    }
-  } catch {
-    return null
-  }
 }
 
 async function getLastUnusedWalletAddress(
@@ -743,10 +629,8 @@ export {
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   getLastUnusedWalletAddress,
-  getMultiSigWalletFromMnemonic,
-  getParticipantInfo,
-  getWallet,
   getWalletData,
+  getWalletOverview,
   getWalletFromDescriptor,
   getWalletFromMnemonic,
   parseDescriptor,

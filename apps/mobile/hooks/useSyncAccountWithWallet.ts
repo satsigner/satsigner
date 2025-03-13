@@ -3,7 +3,7 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWalletData, syncWallet } from '@/api/bdk'
+import { getWalletOverview, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -43,7 +43,7 @@ function useSyncAccountWithWallet() {
       getBlockchainConfig(backend, url, { retries, stopGap, timeout })
     )
 
-    const walletSummary = await getWalletData(wallet, network as Network)
+    const walletSummary = await getWalletOverview(wallet, network as Network)
 
     const updatedAccount: Account = { ...account }
 

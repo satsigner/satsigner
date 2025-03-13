@@ -1,19 +1,11 @@
-import { type Descriptor, type Wallet } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { getWalletFromDescriptor } from '@/api/bdk'
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 import { type Label } from '@/utils/bip329'
-import { aesDecrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
-
-import { useBlockchainStore } from './blockchain'
 
 type AccountsState = {
   accounts: Account[]
@@ -26,22 +18,16 @@ type AccountsAction = {
   updateAccountName: (id: Account['id'], newName: string) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
-  // Below deprecated
-  loadWalletFromDescriptor: (
-    externalDescriptor: Descriptor,
-    internalDescriptor: Descriptor | null | undefined
-  ) => Promise<Wallet>
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  setTxLabel: (account: string, txid: string, label: string) => void
+  setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
   setUtxoLabel: (
-    account: string,
+    accountId: Account['id'],
     txid: string,
     vout: number,
     label: string
   ) => void
-  importLabels: (account: string, labels: Label[]) => void
-  decryptSeed: (account: string) => Promise<string>
+  importLabels: (accountId: Account['id'], labels: Label[]) => void
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -91,29 +77,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       deleteAccounts: () => {
         set(() => ({ accounts: [] }))
       },
-      // BELOW DEPRECATED
-      loadWalletFromDescriptor: async (
-        externalDescriptor,
-        internalDescriptor
-      ) => {
-        const { network } = useBlockchainStore.getState()
-
-        const wallet = getWalletFromDescriptor(
-          externalDescriptor,
-          internalDescriptor,
-          network as Network
-        )
-        return wallet
-      },
       getTags: () => {
         return get().tags
       },
       setTags: (tags: string[]) => {
         set({ tags })
       },
-      setTxLabel: (accountName, txid, label) => {
+      setTxLabel: (accountId, txid, label) => {
         const account = get().accounts.find(
-          (account) => account.name === accountName
+          (account) => account.id === accountId
         )
         if (!account) return
 
@@ -123,15 +95,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
-              (account: Account) => account.name === accountName
+              (account: Account) => account.id === accountId
             )
             state.accounts[index].transactions[txIndex].label = label
           })
         )
       },
-      setUtxoLabel: (accountName, txid, vout, label) => {
+      setUtxoLabel: (accountId, txid, vout, label) => {
         const account = get().accounts.find(
-          (account) => account.name === accountName
+          (account) => account.id === accountId
         )
         if (!account) return
 
@@ -143,15 +115,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
-              (account: Account) => account.name === accountName
+              (account: Account) => account.id === accountId
             )
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
       },
-      importLabels: (accountName: string, labels: Label[]) => {
+      importLabels: (accountId: string, labels: Label[]) => {
         const account = get().accounts.find(
-          (account) => account.name === accountName
+          (account) => account.id === accountId
         )
 
         if (!account) return
@@ -169,7 +141,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
-              (account: Account) => account.name === accountName
+              (account: Account) => account.id === accountId
             )
             labels.forEach((labelObj) => {
               const label = labelObj.label
@@ -187,15 +159,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             })
           })
         )
-      },
-      async decryptSeed(accountName) {
-        const account = get().accounts.find(
-          (_account) => _account.name === accountName
-        )
-        if (!account || !account.seedWords) return ''
-        const savedPin = await getItem(PIN_KEY)
-        if (!savedPin) return ''
-        return aesDecrypt(account.seedWords, savedPin)
       }
     }),
     {

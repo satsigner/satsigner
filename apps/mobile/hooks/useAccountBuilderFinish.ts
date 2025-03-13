@@ -2,7 +2,7 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getWallet } from '@/api/bdk'
+import { getWalletData } from '@/api/bdk'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
@@ -41,7 +41,7 @@ function useAccountBuilderFinish() {
     const isImportAddress = account.keys[0].creationType === 'importAddress'
 
     const walletData = !isImportAddress
-      ? await getWallet(account, network as Network)
+      ? await getWalletData(account, network as Network)
       : undefined
     if (!isImportAddress && !walletData) return // TODO: handle error
 
