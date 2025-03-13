@@ -559,11 +559,8 @@ async function getFingerprint(
   return fingerprint
 }
 
-async function getLastUnusedWalletAddress(
-  wallet: Wallet,
-  addressIndex: number
-) {
-  const newAddress = await wallet.getAddress(addressIndex)
+async function getLastUnusedAddressFromWallet(wallet: Wallet) {
+  const newAddress = await wallet.getAddress(AddressIndex.New)
 
   return newAddress
 }
@@ -628,7 +625,7 @@ export {
   getDescriptor,
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
-  getLastUnusedWalletAddress,
+  getLastUnusedAddressFromWallet,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,

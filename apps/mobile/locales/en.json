@@ -206,6 +206,9 @@
     "year": "year",
     "years": "years"
   },
+  "error": {
+    "notFound.wallet": "Wallet not found"
+  },
   "export": {
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",

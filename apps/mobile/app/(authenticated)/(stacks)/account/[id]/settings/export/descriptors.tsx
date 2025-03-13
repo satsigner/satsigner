@@ -29,8 +29,6 @@ export default function ExportDescriptors() {
     )
   }, [account])
 
-  if (!account) return <Redirect href="/" />
-
   async function exportDescriptors() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
@@ -43,6 +41,8 @@ export default function ExportDescriptors() {
       mimeType: `text/plain`
     })
   }
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <ScrollView style={{ width: '100%' }}>

@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { Descriptor, type Wallet } from 'bdk-rn'
+import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
@@ -47,7 +47,6 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
-import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSHStack from '@/layouts/SSHStack'
@@ -67,7 +66,6 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
-import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -242,7 +240,6 @@ function ChildAccounts({
   expand,
   setSortDirection
 }: ChildAccountsProps) {
-  const getWalletAddress = useGetWalletAddress(account!)
   const [childAccounts, setChildAccounts] = useState<any[]>([])
   const [addressPath, setAddressPath] = useState('')
   const network = useBlockchainStore((state) => state.network)
@@ -252,11 +249,8 @@ function ChildAccounts({
       return
 
     try {
-      const result = await getWalletAddress()
-      if (!result) return
-
       const changePath = change ? '1' : '0'
-      setAddressPath(`${account.derivationPath}/${changePath}/${result.index}`)
+      setAddressPath(`${account.derivationPath}/${changePath}/${'...'}`)
 
       const [externalDescriptor, internalDescriptor] = await Promise.all([
         new Descriptor().create(account.externalDescriptor, network as Network),
@@ -332,7 +326,7 @@ function ChildAccounts({
 
       setChildAccounts(newAddresses)
     } catch {}
-  }, [account, loadWalletFromDescriptor, getWalletAddress, network, change])
+  }, [account, loadWalletFromDescriptor, network, change])
 
   useEffect(() => {
     fetchAddresses()
