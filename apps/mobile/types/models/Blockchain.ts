@@ -37,15 +37,7 @@ export type PriceValue = {
   value: number
 }
 
-export type Currency =
-  | 'USD'
-  | 'EUR'
-  | 'GBP'
-  | 'CAD'
-  | 'BRL'
-  | 'CHN'
-  | 'AUD'
-  | 'JPY'
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'AUD' | 'JPY'
 
 export type Prices = {
   [key in Currency]: number
