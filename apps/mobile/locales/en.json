@@ -188,6 +188,17 @@
     "warning": "Warning",
     "yes": "Yes"
   },
+  "converter": {
+    "currency.bitcoin": "Bitcoin",
+    "currency.cad": "CAD",
+    "currency.chf": "CHF",
+    "currency.eur": "EUR",
+    "currency.gbp": "GBP",
+    "currency.jpy": "JPY",
+    "currency.sats": "sats",
+    "currency.usd": "USD",
+    "title": "Converter"
+  },
   "export": {
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",
