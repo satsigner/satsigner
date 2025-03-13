@@ -124,26 +124,12 @@ export function SSSankeyLinks({
           ? getTotalIncomingValueForBlock(connectedBlockNode)
           : LINK_MAX_WIDTH
         calculatedWidth = (nodeSats / totalIncoming) * LINK_MAX_WIDTH
-
-        // Calculate target node width for comparison
-        const targetNodeWidth =
-          type === 'source' ? getLinkWidth(sourceNode, targetNode, 'target') : 0
-
-        // Ensure source width is at least as large as target width
-        calculatedWidth = Math.max(calculatedWidth, targetNodeWidth)
       } else {
         // Node is receiving from block - use total outgoing value from block
         const totalOutgoing = connectedBlockNode
           ? getTotalOutgoingValueFromBlock(connectedBlockNode)
           : LINK_MAX_WIDTH
         calculatedWidth = (nodeSats / totalOutgoing) * LINK_MAX_WIDTH
-
-        // Calculate target node width for comparison
-        const targetNodeWidth =
-          type === 'source' ? getLinkWidth(sourceNode, targetNode, 'target') : 0
-
-        // Ensure source width is at least as large as target width
-        calculatedWidth = Math.max(calculatedWidth, targetNodeWidth)
       }
 
       return calculatedWidth
