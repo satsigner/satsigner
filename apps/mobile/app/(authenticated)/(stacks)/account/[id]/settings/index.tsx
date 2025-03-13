@@ -158,6 +158,18 @@ export default function AccountSettings() {
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
+              label={t('account.export.descriptors')}
+              variant="gradient"
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/export/descriptors`
+                )
+              }
+            />
+          </SSHStack>
+          <SSHStack>
+            <SSButton
+              style={{ flex: 1 }}
               label={t('account.export.labels')}
               variant="gradient"
               onPress={() =>
@@ -173,23 +185,6 @@ export default function AccountSettings() {
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/import/labels`
-                )
-              }
-            />
-          </SSHStack>
-          <SSHStack>
-            <SSButton
-              style={{ flex: 1 }}
-              label={t('account.replace.key')}
-              variant="gradient"
-            />
-            <SSButton
-              style={{ flex: 1 }}
-              label={t('account.export.config')}
-              variant="gradient"
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccountId}/settings/export/descriptors`
                 )
               }
             />
