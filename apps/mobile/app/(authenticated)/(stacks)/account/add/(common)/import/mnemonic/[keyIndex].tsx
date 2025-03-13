@@ -96,6 +96,7 @@ export default function ImportMnemonic() {
   const [currentWordText, setCurrentWordText] = useState('')
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
   const [loadingAccount, setLoadingAccount] = useState(false)
+  const [accountImported, setAccountImported] = useState(false)
   const [syncedAccount, setSyncedAccount] = useState<Account>()
   const [walletSyncFailed, setWalletSyncFailed] = useState(false)
 
@@ -345,6 +346,7 @@ export default function ImportMnemonic() {
       } catch {
         setWalletSyncFailed(true)
       } finally {
+        setAccountImported(true)
         setLoadingAccount(false)
       }
     } else if (policyType === 'multisig') {
@@ -358,13 +360,14 @@ export default function ImportMnemonic() {
       })
 
       setLoadingAccount(false)
+      clearKeyState()
       router.dismiss(2)
     }
-    clearKeyState()
   }
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
+    clearKeyState()
     clearAccount()
     router.navigate('/')
   }
@@ -442,7 +445,7 @@ export default function ImportMnemonic() {
               label={t('account.import.title2')}
               variant="secondary"
               loading={loadingAccount}
-              disabled={!checksumValid}
+              disabled={!checksumValid || accountImported}
               onPress={() => handleOnPressImportSeed()}
             />
             <SSButton

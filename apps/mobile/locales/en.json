@@ -7,9 +7,9 @@
     "confirmSeed.tryAgain": "Selected word doesn't match the original seed",
     "confirmSeed.warning": "Review and try again",
     "createdOn": "Created on",
-    "delete.masterKey": "Delete master key",
+    "delete.title": "Delete account",
     "derivationPath": "Derivation path",
-    "duplicate.masterKey": "Duplicate master key",
+    "duplicate.title": "Duplicate account",
     "export.config": "Export config",
     "export.descriptors": "Export descriptors",
     "export.labels": "Export labels",
@@ -79,7 +79,7 @@
     "signatureRequired": "Signatures Required",
     "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
     "utxos": "UTXOs",
-    "viewSeed": "View seed"
+    "viewMnemonic": "View mnemonic"
   },
   "accounts": {
     "address": "Address",

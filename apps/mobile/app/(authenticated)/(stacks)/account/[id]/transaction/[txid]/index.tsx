@@ -39,7 +39,7 @@ export default function TxDetails() {
 
   const tx = useAccountsStore((state) =>
     state.accounts
-      .find((account) => account.name === accountId)
+      .find((account) => account.id === accountId)
       ?.transactions.find((tx) => tx.id === txid)
   )
   const placeholder = '-'

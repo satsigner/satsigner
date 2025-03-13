@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -19,30 +19,32 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { PIN_KEY } from '@/config/auth'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Account, type Key } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { aesDecrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account, updateAccountName, deleteAccount, decryptSeed] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((_account) => _account.id === currentAccountId),
-        state.updateAccountName,
-        state.deleteAccount,
-        state.decryptSeed
-      ])
-    )
+  const [account, updateAccountName, deleteAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.id === currentAccountId),
+      state.updateAccountName,
+      state.deleteAccount
+    ])
+  )
   const removeAccountWallet = useWalletsStore(
     (state) => state.removeAccountWallet
   )
@@ -53,13 +55,13 @@ export default function AccountSettings() {
   const [accountName, setAccountName] = useState<Account['name']>(
     account?.name || ''
   )
-  const [seed, setSeed] = useState('')
+  const [localMnemonic, setLocalMnemonic] = useState('')
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
-  const [seedModalVisible, setSeedModalVisible] = useState(false)
+  const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
@@ -91,12 +93,20 @@ export default function AccountSettings() {
   }
 
   useEffect(() => {
-    async function updateSeed() {
-      const seed = await decryptSeed(currentAccountId!)
-      if (seed) setSeed(seed)
+    async function getMnemonic() {
+      const pin = await getItem(PIN_KEY)
+      if (!account || !pin) return
+
+      const iv = account.keys[0].iv
+      const encryptedSecret = account.keys[0].secret as string
+
+      const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+      const accountSecret = JSON.parse(accountSecretString) as Secret
+
+      setLocalMnemonic(accountSecret.mnemonic || '')
     }
-    updateSeed()
-  }, [currentAccountId, decryptSeed])
+    getMnemonic()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
@@ -135,12 +145,13 @@ export default function AccountSettings() {
           </SSHStack>
         </SSVStack>
         <SSVStack>
-          {account.keys[0].creationType === 'generateMnemonic' && (
+          {(account.keys[0].creationType === 'generateMnemonic' ||
+            account.keys[0].creationType === 'importMnemonic') && (
             <SSHStack>
               <SSButton
                 style={{ flex: 1 }}
-                label={t('account.viewSeed')}
-                onPress={() => setSeedModalVisible(true)}
+                label={t('account.viewMnemonic')}
+                onPress={() => setMnemonicModalVisible(true)}
               />
             </SSHStack>
           )}
@@ -240,9 +251,9 @@ export default function AccountSettings() {
           </>
         )}
         <SSVStack style={{ marginTop: 60 }}>
-          <SSButton label={t('account.duplicate.masterKey')} />
+          <SSButton label={t('account.duplicate.title')} />
           <SSButton
-            label={t('account.delete.masterKey')}
+            label={t('account.delete.title')}
             style={{
               backgroundColor: Colors.error
             }}
@@ -363,11 +374,11 @@ export default function AccountSettings() {
         </SSVStack>
       </SSModal>
       <SSModal
-        visible={seedModalVisible}
-        onClose={() => setSeedModalVisible(false)}
+        visible={mnemonicModalVisible}
+        onClose={() => setMnemonicModalVisible(false)}
       >
-        {seed && (
-          <SSVStack gap="lg">
+        {localMnemonic && (
+          <SSVStack gap="lg" itemsCenter>
             <SSText center size="xl" weight="bold" uppercase>
               {account.keys[0].mnemonicWordCount} {t('bitcoin.words')}
             </SSText>
@@ -388,24 +399,33 @@ export default function AccountSettings() {
                 stroke="yellow"
               />
             </SSHStack>
-            <SSHStack style={{ flexWrap: 'wrap' }}>
-              {seed.split(',').map((word, index) => (
-                <SSText
-                  key={word}
-                  style={{ width: '30%' }}
-                  type="mono"
-                  size="lg"
-                >
-                  {(index + 1).toString().padStart(2, '0')}. {word}
-                </SSText>
-              ))}
+            <SSHStack>
+              {account.keys[0].mnemonicWordCount && (
+                <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
+                  {localMnemonic.split(' ').map((word, index) => (
+                    <View
+                      key={index}
+                      style={{
+                        height: 44,
+                        width: '32%',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <SSText type="mono" size="lg">
+                        {(index + 1).toString().padStart(2, '0')}. {word}
+                      </SSText>
+                    </View>
+                  ))}
+                </SSSeedLayout>
+              )}
             </SSHStack>
-            <SSTextClipboard text={seed.replaceAll(',', ' ')}>
+            <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
               <SSButton label={t('common.copy')} />
             </SSTextClipboard>
           </SSVStack>
         )}
-        {!seed && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
+        {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
     </ScrollView>
   )
