@@ -61,7 +61,8 @@ export default function Receive() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>,
+          headerRight: undefined
         }}
       />
       <ScrollView>
