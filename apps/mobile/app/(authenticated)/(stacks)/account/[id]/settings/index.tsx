@@ -24,12 +24,12 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Key, type Account } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { formatDate } from '@/utils/format'
-import { useWalletsStore } from '@/store/wallets'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()

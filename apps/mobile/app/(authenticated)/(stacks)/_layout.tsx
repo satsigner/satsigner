@@ -152,7 +152,7 @@ export default function AuthenticatedLayout() {
     }
 
     loadWallets()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (firstTime) return <Redirect href="/setPin" />
 

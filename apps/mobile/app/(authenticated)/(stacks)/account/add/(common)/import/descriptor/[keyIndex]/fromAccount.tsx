@@ -1,33 +1,31 @@
+import { Descriptor } from 'bdk-rn'
+import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { extractExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
+import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account, type Secret } from '@/types/models/Account'
-import { useWalletsStore } from '@/store/wallets'
-import { getItem } from '@/storage/encrypted'
-import { PIN_KEY } from '@/config/auth'
-import { aesDecrypt } from '@/utils/crypto'
-import { extractExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
-import { KeychainKind, Network } from 'bdk-rn/lib/lib/enums'
 import { useBlockchainStore } from '@/store/blockchain'
-import { ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
-import { Descriptor } from 'bdk-rn'
+import { type Account, type Secret } from '@/types/models/Account'
+import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import { aesDecrypt } from '@/utils/crypto'
 
 function ImportDescriptorFromAccount() {
   const router = useRouter()
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
   const accounts = useAccountsStore((state) => state.accounts)
-  const wallets = useWalletsStore((state) => state.wallets)
   const [
     setKey,
     setExternalDescriptor,
