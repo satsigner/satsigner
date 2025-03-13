@@ -5,7 +5,7 @@ We use [expo-router](https://docs.expo.dev/router/introduction/).
 The `app` folder serves as the file-base routing root folder for the **satsigner** mobile app.
 Quickly create new pages by simply adding a file (or a folder and a file).
 
-For example, the file `app/addMasterKey/index.ts` will match the url `/addMasterKey/`
+For example, the file `app/account/add/index.ts` will match the url `/account/add`
 and `app/account/[id]/index.ts` will match the url `/account/{id}`, where `{id}` is the account id.
 
 To navigate between pages, use the `useRouter` hook:
@@ -21,9 +21,7 @@ You can easily configure the Stack Screen on each page:
 ```tsx
 <Stack.Screen
   options={{
-    headerTitle: () => (
-      <SSText uppercase>{accountStore.currentAccount.name}</SSText>
-    )
+    headerTitle: () => <SSText uppercase>{account.name}</SSText>
   }}
 />
 ```
