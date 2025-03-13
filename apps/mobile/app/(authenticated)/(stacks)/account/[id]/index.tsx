@@ -1,6 +1,4 @@
 import { FlashList } from '@shopify/flash-list'
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import {
   type Dispatch,
@@ -222,7 +220,6 @@ type ChildAccount = {
 
 type ChildAccountsProps = {
   account: Account
-  loadWalletFromDescriptor: Function
   setSortDirection: Function
   sortDirection: Direction
   handleOnExpand: (state: boolean) => Promise<void>
@@ -233,7 +230,6 @@ type ChildAccountsProps = {
 
 function ChildAccounts({
   account,
-  loadWalletFromDescriptor,
   handleOnExpand,
   setChange,
   change,
@@ -243,41 +239,25 @@ function ChildAccounts({
   const [childAccounts, setChildAccounts] = useState<any[]>([])
   const [addressPath, setAddressPath] = useState('')
   const network = useBlockchainStore((state) => state.network)
+  const wallet = useWalletsStore((state) => state.wallets[account.id])
 
   const fetchAddresses = useCallback(async () => {
-    if (!account || !account.externalDescriptor || !account.internalDescriptor)
-      return
+    if (!wallet) return
 
     try {
       const changePath = change ? '1' : '0'
-      setAddressPath(`${account.derivationPath}/${changePath}/${'...'}`)
-
-      const [externalDescriptor, internalDescriptor] = await Promise.all([
-        new Descriptor().create(account.externalDescriptor, network as Network),
-        new Descriptor().create(account.internalDescriptor, network as Network)
-      ])
-
-      const wallet = await loadWalletFromDescriptor(
-        externalDescriptor,
-        internalDescriptor
-      )
+      setAddressPath(`${account.keys[0].derivationPath}/${changePath}/${'...'}`)
 
       const derivedAddresses = await Promise.all(
         Array.from(
           { length: account.summary.numberOfAddresses },
           async (_, i) => {
-            if (change) {
-              const addrInfo = await wallet.getInternalAddress(i)
-              return {
-                index: i,
-                address: await addrInfo.address.asString()
-              }
-            } else {
-              const addrInfo = await wallet.getAddress(i)
-              return {
-                index: i,
-                address: await addrInfo.address.asString()
-              }
+            const addressInfo = change
+              ? await wallet.getInternalAddress(i)
+              : await wallet.getAddress(i)
+            return {
+              index: i,
+              address: await addressInfo.address.asString()
             }
           }
         )
@@ -326,7 +306,7 @@ function ChildAccounts({
 
       setChildAccounts(newAddresses)
     } catch {}
-  }, [account, loadWalletFromDescriptor, network, change])
+  }, [account, network, change]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchAddresses()
@@ -552,19 +532,14 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, loadWalletFromDescriptor, updateAccount] = useAccountsStore(
+  const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((account) => account.id === id),
-      state.loadWalletFromDescriptor,
       state.updateAccount
     ])
   )
-  const [wallet, watchOnlyWalletAddress, addresses] = useWalletsStore(
-    useShallow((state) => [
-      state.wallets[id],
-      state.addresses[id],
-      state.addresses
-    ])
+  const [wallet, watchOnlyWalletAddress] = useWalletsStore(
+    useShallow((state) => [state.wallets[id], state.addresses[id]])
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
@@ -608,15 +583,7 @@ export default function AccountView() {
   })
 
   useEffect(() => {
-    ;(async () => {
-      try {
-        if (account) await refresh()
-      } catch (_err) {
-        //
-      }
-    })()
-
-    return () => {}
+    if (wallet) handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) return <Redirect href="/" />
@@ -646,7 +613,6 @@ export default function AccountView() {
             setChange={setChange}
             expand={expand}
             change={change}
-            loadWalletFromDescriptor={loadWalletFromDescriptor}
             setSortDirection={setSortDirectionChildAccounts}
             sortDirection={sortDirectionChildAccounts}
           />
@@ -716,15 +682,11 @@ export default function AccountView() {
     updateAccount(updatedAccount)
   }
 
-  async function refresh() {
+  async function handleOnRefresh() {
+    setRefreshing(true)
     await fetchPrices()
     await refreshBlockchainHeight()
     await refreshAccount()
-  }
-
-  async function handleOnRefresh() {
-    setRefreshing(true)
-    await refresh()
     setRefreshing(false)
   }
 
@@ -738,9 +700,7 @@ export default function AccountView() {
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
-  useEffect(() => {
-    handleOnRefresh()
-  }, [])
+  if (!account) return <Redirect href="/" />
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
@@ -980,7 +940,7 @@ export default function AccountView() {
                       <SSText center color="muted">
                         {t('receive.address').toUpperCase()}
                       </SSText>
-                      <SSText center>{watchOnlyWalletAddress}!!!</SSText>
+                      <SSText center>{watchOnlyWalletAddress}</SSText>
                     </SSVStack>
                   </SSActionButton>
                 </SSClipboardCopy>
