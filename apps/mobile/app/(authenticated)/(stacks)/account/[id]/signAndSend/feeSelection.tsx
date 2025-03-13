@@ -27,7 +27,7 @@ export default function FeeSelection() {
   const isFocused = useIsFocused()
 
   const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === id)
+    state.accounts.find((account) => account.id === id)
   )
   const setFeeRate = useTransactionBuilderStore((state) => state.setFeeRate)
 

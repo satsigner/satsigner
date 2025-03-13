@@ -36,7 +36,7 @@ export default function PreviewMessage() {
   const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
     useAccountsStore(
       useShallow((state) => [
-        state.accounts.find((account) => account.name === id),
+        state.accounts.find((account) => account.id === id),
         state.loadWalletFromDescriptor,
         state.syncWallet,
         state.updateAccount

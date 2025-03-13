@@ -184,15 +184,11 @@ export default function ImportMnemonic() {
     const seedWords = [...mnemonicWordsInfo]
     const seedWord = seedWords[index]
 
-    // We do not allow special chars in text field input
     if (!word.match(/^[a-z]*$/)) {
       seedWord.valid = false
       seedWord.dirty = true
 
-      // We will only open an exception in the edge case the user attempts to
-      // paste all seed words at once in the first text field input.
-      // This happens if the user switches to another app, copy the seed,
-      // switches back to SatSigner, then attempts to paste the seed.
+      // Paste all seed words at once
       if (index === 0) {
         const seed = await checkTextHasSeed(word)
         if (seed.length > 0) {

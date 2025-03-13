@@ -202,7 +202,7 @@ function TotalTransactions({
                       expand={expand}
                       walletBalance={transactionBalances[index]}
                       blockHeight={blockchainHeight}
-                      link={`/account/${account.name}/transaction/${transaction.id}`}
+                      link={`/account/${account.id}/transaction/${transaction.id}`}
                     />
                   </SSVStack>
                 )
@@ -535,7 +535,7 @@ function SpendableOutputs({
             inputs={[]}
             onPress={({ txid, vout }: Utxo) =>
               router.navigate(
-                `/account/${account.name}/transaction/${txid}/utxo/${vout}`
+                `/account/${account.id}/transaction/${txid}/utxo/${vout}`
               )
             }
           />

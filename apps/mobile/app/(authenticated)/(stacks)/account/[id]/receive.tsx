@@ -21,7 +21,7 @@ export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === id)
+    state.accounts.find((account) => account.id === id)
   )
   const getWalletAddress = useGetWalletAddress(account!)
 

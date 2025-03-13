@@ -16,7 +16,7 @@ export default function SSTxLabel() {
 
   const [utxo, setUtxoLabel] = useAccountsStore((state) => [
     state.accounts
-      .find((account: Account) => account.name === accountId)
+      .find((account: Account) => account.id === accountId)
       ?.utxos.find((u: Utxo) => u.txid === txid && u.vout === Number(vout)),
     state.setUtxoLabel
   ])

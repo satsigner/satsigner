@@ -28,7 +28,7 @@ function SelectUtxoBubbles() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore(
-    (state) => state.accounts.find((account) => account.name === id)!
+    (state) => state.accounts.find((account) => account.id === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
