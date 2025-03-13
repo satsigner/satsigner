@@ -91,7 +91,6 @@ export default function AuthenticatedLayout() {
   useEffect(() => {
     async function loadWallets() {
       if (justUnlocked || skipPin) {
-        console.log(Object.keys(wallets).length, '<<<')
         const pin = await getItem(PIN_KEY)
         if (!pin) return
         try {

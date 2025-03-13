@@ -11,6 +11,7 @@ import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
+// Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
   const [backend, network, url] = useBlockchainStore(
     useShallow((state) => [state.backend, state.network, state.url])
