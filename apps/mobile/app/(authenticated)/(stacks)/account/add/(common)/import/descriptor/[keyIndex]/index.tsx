@@ -69,10 +69,6 @@ export default function ImportDescriptor() {
     router.dismiss(2)
   }
 
-  function handleSelectFromOtherWallet() {
-    router.push('/addMasterKey/selectFromOtherWallet')
-  }
-
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -106,7 +102,11 @@ export default function ImportDescriptor() {
           <SSButton
             variant="outline"
             label={t('account.import.fromOtherWallet')}
-            onPress={handleSelectFromOtherWallet}
+            onPress={() =>
+              router.push(
+                `/account/add/import/descriptor/${keyIndex}/fromAccount`
+              )
+            }
           />
           <SSButton
             label={t('common.confirm')}
