@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 
@@ -51,11 +51,13 @@ export default function Receive() {
     callGetWalletAddress()
   }, [getWalletAddress, account?.derivationPath]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (!account) return <Redirect href="/" />
+
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
       <ScrollView>
