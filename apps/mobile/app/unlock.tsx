@@ -25,8 +25,6 @@ export default function Unlock() {
     incrementPinTries,
     setFirstTime,
     setRequiresAuth,
-    getPagesHistory,
-    clearPageHistory,
     setJustUnlocked
   ] = useAuthStore(
     useShallow((state) => [
@@ -37,8 +35,6 @@ export default function Unlock() {
       state.incrementPinTries,
       state.setFirstTime,
       state.setRequiresAuth,
-      state.getPagesHistory,
-      state.clearPageHistory,
       state.setJustUnlocked
     ])
   )
@@ -64,7 +60,7 @@ export default function Unlock() {
       setJustUnlocked(true)
       resetPinTries()
 
-      // TODO: Fix this
+      // TODO: Deactivated this for now
       // Note: Take into account that we don't persist account build
       // We had a problem with pages = ["/", "/account/add/", "/account/add/(common)/confirm/0/word/11"]
       // This pushes the previous page history (before screen was unlocked)
