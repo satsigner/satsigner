@@ -42,7 +42,7 @@ export default function TxDetails() {
   const [tx, _loadTx] = useAccountsStore(
     useShallow((state) => [
       state.accounts
-        .find((account) => account.name === accountId)
+        .find((account) => account.id === accountId)
         ?.transactions.find((tx) => tx.id === txid),
       state.loadTx
     ])

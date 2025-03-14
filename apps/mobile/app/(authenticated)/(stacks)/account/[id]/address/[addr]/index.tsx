@@ -30,7 +30,7 @@ function AddressDetails() {
   const [script, setScript] = useState('')
 
   const [account, address] = useAccountsStore((state) => [
-    state.accounts.find((account) => account.name === accountId),
+    state.accounts.find((account) => account.id === accountId),
     state.accounts
       .find((account) => account.name === accountId)
       ?.addresses.find((address) => {
@@ -40,13 +40,13 @@ function AddressDetails() {
 
   const transactions = useAccountsStore((state) =>
     state.accounts
-      .find((account: Account) => account.name === accountId)
+      .find((account: Account) => account.id === accountId)
       ?.transactions.filter((tx) => address?.transactions.includes(tx.id))
   )
 
   const utxos = useAccountsStore((state) =>
     state.accounts
-      .find((account: Account) => account.name === accountId)
+      .find((account: Account) => account.id === accountId)
       ?.utxos.filter((utxo) => address?.utxos.includes(getUtxoOutpoint(utxo)))
   )
 

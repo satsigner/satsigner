@@ -16,25 +16,47 @@ function parseAccountAddressesDetails({
     labelsBackup[addr.address] = addr.label
   })
 
-  const addressesWithDetails = [...addresses]
+  const addressesDetailed = [...addresses]
 
   const addrDictionary: Record<string, number> = {}
 
-  for (let i = 0; i < addressesWithDetails.length; i += 1) {
-    addrDictionary[addressesWithDetails[i].address] = i
-    addressesWithDetails[i].summary.utxos = 0
-    addressesWithDetails[i].summary.balance = 0
-    addressesWithDetails[i].summary.satsInMempool = 0
-    addressesWithDetails[i].summary.transactions = 0
-    addressesWithDetails[i].scriptVersion = scriptVersion
+  const txDictionary: Record<string, number> = {}
+
+  for (let i = 0; i < addressesDetailed.length; i += 1) {
+    addrDictionary[addressesDetailed[i].address] = i
+    addressesDetailed[i].summary.utxos = 0
+    addressesDetailed[i].summary.balance = 0
+    addressesDetailed[i].summary.satsInMempool = 0
+    addressesDetailed[i].summary.transactions = 0
+    addressesDetailed[i].scriptVersion = scriptVersion
+  }
+
+  for (let i = 0; i < transactions.length; i += 1) {
+    txDictionary[transactions[i].id] = i
   }
 
   for (const tx of transactions) {
     for (const output of tx.vout) {
       if (addrDictionary[output.address] === undefined) continue
       const index = addrDictionary[output.address]
-      addressesWithDetails[index].summary.transactions += 1
-      addressesWithDetails[index].transactions.push(tx.id)
+      if (addressesDetailed[index].transactions.includes(tx.id)) continue
+      addressesDetailed[index].summary.transactions += 1
+      addressesDetailed[index].transactions.push(tx.id)
+    }
+
+    for (const input of tx.vin) {
+      const prevTxId = input.previousOutput.txid
+      if (txDictionary[prevTxId] === undefined) continue
+      const prevTxIndex = txDictionary[prevTxId]
+      const vout = input.previousOutput.vout
+      const prevTx = transactions[prevTxIndex]
+      if (prevTx.vout[vout] === undefined) continue
+      const prevTxAddr = prevTx.vout[vout].address
+      if (addrDictionary[prevTxAddr] === undefined) continue
+      const index = addrDictionary[prevTxAddr]
+      if (addressesDetailed[index].transactions.includes(tx.id)) continue
+      addressesDetailed[index].summary.transactions += 1
+      addressesDetailed[index].transactions.push(tx.id)
     }
   }
 
@@ -42,12 +64,12 @@ function parseAccountAddressesDetails({
     if (!utxo.addressTo || addrDictionary[utxo.addressTo] === undefined)
       continue
     const index = addrDictionary[utxo.addressTo]
-    addressesWithDetails[index].summary.utxos += 1
-    addressesWithDetails[index].summary.balance += utxo.value
-    addressesWithDetails[index].utxos.push(getUtxoOutpoint(utxo))
+    addressesDetailed[index].summary.utxos += 1
+    addressesDetailed[index].summary.balance += utxo.value
+    addressesDetailed[index].utxos.push(getUtxoOutpoint(utxo))
   }
 
-  return addressesWithDetails
+  return addressesDetailed
 }
 
 function parseAddressDescriptorToAddress(descriptor: string) {

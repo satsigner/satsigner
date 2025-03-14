@@ -32,6 +32,7 @@ import type {
   Backend,
   Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import ElectrumClient from './electrum'
 import { Esplora } from './esplora'
@@ -472,7 +473,17 @@ async function getWalletOverview(
     )
   )
 
-  const addresses = await getWalletAddresses(wallet, network)
+  let addresses = await getWalletAddresses(wallet, network)
+  addresses = parseAccountAddressesDetails({
+    transactions,
+    utxos,
+    addresses,
+    keys: [
+      {
+        scriptVersion: undefined
+      }
+    ]
+  } as Account)
 
   return {
     addresses,

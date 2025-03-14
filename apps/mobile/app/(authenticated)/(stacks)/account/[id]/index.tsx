@@ -76,6 +76,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -259,13 +260,14 @@ function ChildAccounts({
   )
   const [hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
 
-  async function updateDerivationPath() {
+  function updateDerivationPath() {
     if (account.keys[0].derivationPath)
       setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
   }
 
   async function refreshAddresses() {
-    const addresses = await getWalletAddresses(wallet!, network!, addressCount)
+    let addresses = await getWalletAddresses(wallet!, network!, addressCount)
+    addresses = parseAccountAddressesDetails({ ...account, addresses })
     setAddresses(addresses.slice(0, addressCount))
     updateAccount({ ...account, addresses })
   }
@@ -277,15 +279,14 @@ function ChildAccounts({
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
 
-    const addrList = await getWalletAddresses(
-      wallet!,
-      network!,
-      newAddressCount
-    )
-
-    updateAccount({ ...account, addresses: addrList })
+    let addrList = await getWalletAddresses(wallet!, network!, newAddressCount)
+    addrList = parseAccountAddressesDetails({
+      ...account,
+      addresses: addrList
+    })
     setAddresses(addrList)
     setLoadingAddresses(false)
+    updateAccount({ ...account, addresses: addrList })
   }
 
   async function updateAddresses() {
@@ -302,7 +303,11 @@ function ChildAccounts({
       return
     }
 
-    const newAddresses = await getWalletAddresses(wallet!, network!, minItems)
+    let newAddresses = await getWalletAddresses(wallet!, network!, minItems)
+    newAddresses = parseAccountAddressesDetails({
+      ...account,
+      addresses: newAddresses
+    })
     setAddressCount(minItems)
     setAddresses(newAddresses)
     updateAccount({ ...account, addresses: newAddresses })
