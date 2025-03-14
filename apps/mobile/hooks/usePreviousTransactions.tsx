@@ -23,14 +23,16 @@ export function usePreviousTransactions(
   levelDeep: number = 2,
   skipCache: boolean = false
 ) {
-  const [network] = useBlockchainStore(useShallow((state) => [state.network]))
+  const [previousTransactions, addTransactions] = usePreviousTransactionsStore(
+    useShallow((state) => [state.transactions, state.addTransactions])
+  )
+  const network = useBlockchainStore((state) => state.network)
 
   const [transactions, setTransactions] = useState<
     Map<string, ExtendedEsploraTx>
   >(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
-  const { addTransactions, getTransaction } = usePreviousTransactionsStore()
 
   const assignIndexV = (transactions: Map<string, ExtendedEsploraTx>) => {
     if (transactions.size === 0) {
@@ -140,7 +142,7 @@ export function usePreviousTransactions(
 
             // Check cache first if skipCache is false
             if (!skipCache) {
-              const cachedTx = getTransaction(txid)
+              const cachedTx = previousTransactions[txid]
               if (cachedTx) {
                 newTransactions.set(txid, { ...cachedTx, depthH: 0 })
 
@@ -313,7 +315,14 @@ export function usePreviousTransactions(
       setError(err instanceof Error ? err : new Error(String(err)))
       setLoading(false)
     }
-  }, [inputs, network, levelDeep, skipCache, getTransaction, addTransactions])
+  }, [
+    inputs,
+    network,
+    levelDeep,
+    skipCache,
+    previousTransactions,
+    addTransactions
+  ])
 
   useEffect(() => {
     fetchInputTransactions()

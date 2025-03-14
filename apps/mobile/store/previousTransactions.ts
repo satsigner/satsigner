@@ -4,16 +4,20 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { type EsploraTx } from '@/api/esplora'
 import mmkvStorage from '@/storage/mmkv'
 
-interface PreviousTransactionsState {
+type PreviousTransactionsState = {
   transactions: Record<string, EsploraTx>
-  addTransactions: (newTransactions: Map<string, EsploraTx>) => void
-  getTransaction: (txid: string) => EsploraTx | undefined
-  clear: () => void
 }
 
-export const usePreviousTransactionsStore = create<PreviousTransactionsState>()(
+type PreviousTransactionsAction = {
+  addTransactions: (newTransactions: Map<string, EsploraTx>) => void
+  clearTransactions: () => void
+}
+
+const usePreviousTransactionsStore = create<
+  PreviousTransactionsState & PreviousTransactionsAction
+>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       transactions: {},
       addTransactions: (newTransactions: Map<string, EsploraTx>) => {
         set((state) => ({
@@ -23,16 +27,15 @@ export const usePreviousTransactionsStore = create<PreviousTransactionsState>()(
           }
         }))
       },
-      getTransaction: (txid: string) => {
-        return get().transactions[txid]
-      },
-      clear: () => {
+      clearTransactions: () => {
         set({ transactions: {} })
       }
     }),
     {
-      name: 'previous-transactions',
+      name: 'satsigner-previous-transactions',
       storage: createJSONStorage(() => mmkvStorage)
     }
   )
 )
+
+export { usePreviousTransactionsStore }
