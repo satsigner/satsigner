@@ -18,11 +18,7 @@ import * as d3 from 'd3'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView
-} from 'react-native-gesture-handler'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useChartSettingStore } from '@/store/chartSettings'
@@ -1051,48 +1047,46 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <GestureDetector gesture={combinedGesture}>
-        <View style={styles.container} onLayout={handleLayout}>
-          <Canvas
-            style={{
-              width: containerSize.width,
-              height: containerSize.height,
-              flex: 1
-            }}
-            pointerEvents="box-none"
+    <GestureDetector gesture={combinedGesture}>
+      <View style={styles.container} onLayout={handleLayout}>
+        <Canvas
+          style={{
+            width: containerSize.width,
+            height: containerSize.height,
+            flex: 1
+          }}
+          pointerEvents="box-none"
+        >
+          <Group
+            transform={[
+              { translateX: margin.left },
+              { translateY: margin.top }
+            ]}
           >
-            <Group
-              transform={[
-                { translateX: margin.left },
-                { translateY: margin.top }
-              ]}
-            >
-              <YScaleRendrer />
-              <XScaleRenderer />
-              <XAxisRenderer />
-              <Group clip={clipPathRect}>
-                {showOutputField && (
-                  <>
-                    <UtxoRectRenderer />
-                    <UtxoLabelRenderer />
-                  </>
-                )}
-                <TransactionInfoRenderer />
-                <Path
-                  path={linePath ?? ''}
-                  color="white"
-                  strokeWidth={2}
-                  style="stroke"
-                />
-                {!showOutputField && <AreaPathRenderer />}
-                <CursorRenderer />
-              </Group>
+            <YScaleRendrer />
+            <XScaleRenderer />
+            <XAxisRenderer />
+            <Group clip={clipPathRect}>
+              {showOutputField && (
+                <>
+                  <UtxoRectRenderer />
+                  <UtxoLabelRenderer />
+                </>
+              )}
+              <TransactionInfoRenderer />
+              <Path
+                path={linePath ?? ''}
+                color="white"
+                strokeWidth={2}
+                style="stroke"
+              />
+              {!showOutputField && <AreaPathRenderer />}
+              <CursorRenderer />
             </Group>
-          </Canvas>
-        </View>
-      </GestureDetector>
-    </GestureHandlerRootView>
+          </Group>
+        </Canvas>
+      </View>
+    </GestureDetector>
   )
 }
 
