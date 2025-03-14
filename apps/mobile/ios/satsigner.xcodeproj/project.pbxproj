@@ -7,19 +7,23 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0886199558CE4D15BB5DD831 /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = DA6A9EED88AC4CE98DF90173 /* SF-Pro-Text-Light.otf */; };
 		13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB01A68108700A75B9A /* AppDelegate.mm */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
-		35DCDAD4B55341A4BE011D41 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 939EAF451178469583884655 /* noop-file.swift */; };
-		36E89FB7F8F547B19039BFF3 /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = F5DB7DA7EC5E4AAC98B021A6 /* SF-Pro-Text-Bold.otf */; };
+		1EE3C2FE7544436F85BECCDB /* SF-Pro-Text-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */; };
+		3287CB60CE374E18BBDCD00C /* SF-Pro-Text-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		6EF6B23489214F7D9CF0CF4E /* SF-Pro-Text-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 4ED4517BA3234828A5B7B3AC /* SF-Pro-Text-Ultralight.otf */; };
+		4A1C481B90EF4E78B9644441 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */; };
+		58116C5C05B141E5A0D2DFA2 /* TerminessNerdFontMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */; };
+		8767DE58AE9F48F19165763D /* TerminessNerdFontMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */; };
 		96905EF65AED1B983A6B3ABC /* libPods-satsigner.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */; };
+		A0A89277A0424EA6B1ADE9AA /* SF-Pro-Text-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */; };
+		A19D5E6F85FE4C829122D839 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D42C54E83DE74DBF9E62CD94 /* SF-Pro-Text-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = E31DCB9B690049C0A5CC73C9 /* SF-Pro-Text-Regular.otf */; };
-		EC54A2FA2BEF454FAAD8A235 /* SF-Pro-Text-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 5247A6C53D114C319183D9A2 /* SF-Pro-Text-Medium.otf */; };
+		BE220C0B73884F5ABFE25654 /* noop-file.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72E79BB301024D3FB20BCD8E /* noop-file.swift */; };
+		DAD416CF7EED45F6B1796191 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */; };
+		E44F63DD51FD4825A7E24C15 /* TerminessNerdFontMono-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,19 +33,23 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = satsigner/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = satsigner/Info.plist; sourceTree = "<group>"; };
 		13B07FB71A68108700A75B9A /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = satsigner/main.m; sourceTree = "<group>"; };
-		4ED4517BA3234828A5B7B3AC /* SF-Pro-Text-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Ultralight.otf"; path = "../assets/fonts/SF-Pro-Text-Ultralight.otf"; sourceTree = "<group>"; };
-		5247A6C53D114C319183D9A2 /* SF-Pro-Text-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Medium.otf"; path = "../assets/fonts/SF-Pro-Text-Medium.otf"; sourceTree = "<group>"; };
 		58EEBF8E8E6FB1BC6CAF49B5 /* libPods-satsigner.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-satsigner.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
 		6C2E3173556A471DD304B334 /* Pods-satsigner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-satsigner.debug.xcconfig"; path = "Target Support Files/Pods-satsigner/Pods-satsigner.debug.xcconfig"; sourceTree = "<group>"; };
+		72E79BB301024D3FB20BCD8E /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "satsigner/noop-file.swift"; sourceTree = "<group>"; };
 		7A4D352CD337FB3A3BF06240 /* Pods-satsigner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-satsigner.release.xcconfig"; path = "Target Support Files/Pods-satsigner/Pods-satsigner.release.xcconfig"; sourceTree = "<group>"; };
-		939EAF451178469583884655 /* noop-file.swift */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.swift; name = "noop-file.swift"; path = "satsigner/noop-file.swift"; sourceTree = "<group>"; };
+		7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Regular.otf"; path = "../assets/fonts/SF-Pro-Text-Regular.otf"; sourceTree = "<group>"; };
+		8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Ultralight.otf"; path = "../assets/fonts/SF-Pro-Text-Ultralight.otf"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = satsigner/SplashScreen.storyboard; sourceTree = "<group>"; };
+		B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-BoldItalic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-BoldItalic.ttf"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		DA6A9EED88AC4CE98DF90173 /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
-		E31DCB9B690049C0A5CC73C9 /* SF-Pro-Text-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Regular.otf"; path = "../assets/fonts/SF-Pro-Text-Regular.otf"; sourceTree = "<group>"; };
+		C9F6F00DEDC4410492711928 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
+		E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Regular.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Regular.ttf"; sourceTree = "<group>"; };
+		E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Medium.otf"; path = "../assets/fonts/SF-Pro-Text-Medium.otf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F5DB7DA7EC5E4AAC98B021A6 /* SF-Pro-Text-Bold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Bold.otf"; path = "../assets/fonts/SF-Pro-Text-Bold.otf"; sourceTree = "<group>"; };
-		F62974FC52094B50BDF4C889 /* satsigner-Bridging-Header.h */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = sourcecode.c.h; name = "satsigner-Bridging-Header.h"; path = "satsigner/satsigner-Bridging-Header.h"; sourceTree = "<group>"; };
+		F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Bold.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Bold.ttf"; sourceTree = "<group>"; };
+		F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "TerminessNerdFontMono-Italic.ttf"; path = "../assets/fonts/TerminessNerdFontMono-Italic.ttf"; sourceTree = "<group>"; };
+		FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "SF-Pro-Text-Light.otf"; path = "../assets/fonts/SF-Pro-Text-Light.otf"; sourceTree = "<group>"; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-satsigner/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -67,8 +75,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				13B07FB71A68108700A75B9A /* main.m */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				939EAF451178469583884655 /* noop-file.swift */,
-				F62974FC52094B50BDF4C889 /* satsigner-Bridging-Header.h */,
+				72E79BB301024D3FB20BCD8E /* noop-file.swift */,
+				C9F6F00DEDC4410492711928 /* satsigner-Bridging-Header.h */,
 			);
 			name = satsigner;
 			sourceTree = "<group>";
@@ -98,7 +106,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
-				D392D9FC69EA40359E6C9C9F /* Resources */,
+				93297A90DE2C49A9AF6248BF /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -121,6 +129,23 @@
 			name = satsigner;
 			sourceTree = "<group>";
 		};
+		93297A90DE2C49A9AF6248BF /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8D9D641AB93142DA9A8533F9 /* SF-Pro-Text-Ultralight.otf */,
+				FA57B479E3ED4F74A6A50EB8 /* SF-Pro-Text-Light.otf */,
+				7F9E62BA36F9426BB3A193EE /* SF-Pro-Text-Regular.otf */,
+				E8DF4726DB25414E9DBD29E6 /* SF-Pro-Text-Medium.otf */,
+				59C9D363776743079D185AFD /* SF-Pro-Text-Bold.otf */,
+				E2227F02E77047C288DC475B /* TerminessNerdFontMono-Regular.ttf */,
+				F38F74582DE24838ABEDEE3B /* TerminessNerdFontMono-Bold.ttf */,
+				B3424114C00B48EA993A6AA6 /* TerminessNerdFontMono-BoldItalic.ttf */,
+				F906F9A9311B4424BCC6EC36 /* TerminessNerdFontMono-Italic.ttf */,
+			);
+			name = Resources;
+			path = "";
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -128,19 +153,6 @@
 			);
 			name = Supporting;
 			path = satsigner/Supporting;
-			sourceTree = "<group>";
-		};
-		D392D9FC69EA40359E6C9C9F /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				4ED4517BA3234828A5B7B3AC /* SF-Pro-Text-Ultralight.otf */,
-				DA6A9EED88AC4CE98DF90173 /* SF-Pro-Text-Light.otf */,
-				E31DCB9B690049C0A5CC73C9 /* SF-Pro-Text-Regular.otf */,
-				5247A6C53D114C319183D9A2 /* SF-Pro-Text-Medium.otf */,
-				F5DB7DA7EC5E4AAC98B021A6 /* SF-Pro-Text-Bold.otf */,
-			);
-			name = Resources;
-			path = "";
 			sourceTree = "<group>";
 		};
 		D65327D7A22EEC0BE12398D9 /* Pods */ = {
@@ -168,13 +180,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "satsigner" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				C62B123FFF64741E8742960E /* [Expo] Configure project */,
+				100BF8E2E10420984C2E9F21 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				438FE1D36EA095A459BDAE6D /* [CP] Embed Pods Frameworks */,
+				D52950050DCD5FD9D8FFEC27 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -224,11 +236,15 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				6EF6B23489214F7D9CF0CF4E /* SF-Pro-Text-Ultralight.otf in Resources */,
-				0886199558CE4D15BB5DD831 /* SF-Pro-Text-Light.otf in Resources */,
-				D42C54E83DE74DBF9E62CD94 /* SF-Pro-Text-Regular.otf in Resources */,
-				EC54A2FA2BEF454FAAD8A235 /* SF-Pro-Text-Medium.otf in Resources */,
-				36E89FB7F8F547B19039BFF3 /* SF-Pro-Text-Bold.otf in Resources */,
+				1EE3C2FE7544436F85BECCDB /* SF-Pro-Text-Ultralight.otf in Resources */,
+				A0A89277A0424EA6B1ADE9AA /* SF-Pro-Text-Light.otf in Resources */,
+				A19D5E6F85FE4C829122D839 /* SF-Pro-Text-Regular.otf in Resources */,
+				4A1C481B90EF4E78B9644441 /* SF-Pro-Text-Medium.otf in Resources */,
+				3287CB60CE374E18BBDCD00C /* SF-Pro-Text-Bold.otf in Resources */,
+				8767DE58AE9F48F19165763D /* TerminessNerdFontMono-Regular.ttf in Resources */,
+				58116C5C05B141E5A0D2DFA2 /* TerminessNerdFontMono-Bold.ttf in Resources */,
+				DAD416CF7EED45F6B1796191 /* TerminessNerdFontMono-BoldItalic.ttf in Resources */,
+				E44F63DD51FD4825A7E24C15 /* TerminessNerdFontMono-Italic.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -272,23 +288,24 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		438FE1D36EA095A459BDAE6D /* [CP] Embed Pods Frameworks */ = {
+		100BF8E2E10420984C2E9F21 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			inputFileListPaths = (
 			);
-			name = "[CP] Embed Pods Frameworks";
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
 			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-satsigner/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -314,24 +331,23 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C62B123FFF64741E8742960E /* [Expo] Configure project */ = {
+		D52950050DCD5FD9D8FFEC27 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputFileListPaths = (
-			);
 			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
 			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
+			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-satsigner/expo-configure-project.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-satsigner/Pods-satsigner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -343,7 +359,7 @@
 				13B07FBC1A68108700A75B9A /* AppDelegate.mm in Sources */,
 				13B07FC11A68108700A75B9A /* main.m in Sources */,
 				B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */,
-				35DCDAD4B55341A4BE011D41 /* noop-file.swift in Sources */,
+				BE220C0B73884F5ABFE25654 /* noop-file.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
