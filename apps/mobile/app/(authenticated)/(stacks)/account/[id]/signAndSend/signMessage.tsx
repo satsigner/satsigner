@@ -28,7 +28,7 @@ export default function SignMessage() {
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
-  const wallet = useWalletsStore((state) => state.wallets[id])
+  const wallet = useWalletsStore((state) => state.wallets[id!])
   const [backend, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
       state.backend,

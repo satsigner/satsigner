@@ -539,7 +539,7 @@ export default function AccountView() {
     ])
   )
   const [wallet, watchOnlyWalletAddress] = useWalletsStore(
-    useShallow((state) => [state.wallets[id], state.addresses[id]])
+    useShallow((state) => [state.wallets[id!], state.addresses[id!]])
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(

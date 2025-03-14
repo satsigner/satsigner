@@ -34,7 +34,7 @@ export default function PreviewMessage() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
-  const wallet = useWalletsStore((state) => state.wallets[id])
+  const wallet = useWalletsStore((state) => state.wallets[id!])
 
   const [messageId, setMessageId] = useState('')
 

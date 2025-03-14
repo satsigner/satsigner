@@ -87,8 +87,8 @@ export default function AccountSettings() {
   }
 
   function deleteThisAccount() {
-    deleteAccount(currentAccountId)
-    removeAccountWallet(currentAccountId)
+    deleteAccount(currentAccountId!)
+    removeAccountWallet(currentAccountId!)
     router.replace('/')
   }
 
