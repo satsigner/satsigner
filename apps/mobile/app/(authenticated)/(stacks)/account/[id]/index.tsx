@@ -223,7 +223,7 @@ function TotalTransactions({
   )
 }
 
-type ChildAccountsProps = {
+type DerivedAddressesProps = {
   account: Account
   setSortDirection: Function
   sortDirection: Direction
@@ -237,7 +237,7 @@ type ChildAccountsProps = {
 const SCREEN_WIDTH = Dimensions.get('window').width
 const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.1
 
-function ChildAccounts({
+function DerivedAddresses({
   account,
   handleOnExpand,
   setChange,
@@ -245,7 +245,7 @@ function ChildAccounts({
   expand,
   setSortDirection,
   perPage = 10
-}: ChildAccountsProps) {
+}: DerivedAddressesProps) {
   const wallet = useWalletsStore((state) => state.wallets[account.id])
   const network = useBlockchainStore((state) => state.network) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
@@ -657,13 +657,13 @@ export default function AccountView() {
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
     useState<Direction>('desc')
-  const [sortDirectionChildAccounts, setSortDirectionChildAccounts] =
+  const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
   const tabs = [
     { key: 'totalTransactions' },
-    { key: 'childAccounts' },
+    { key: 'derivedAddresses' },
     { key: 'spendableOutputs' },
     { key: 'satsInMempool' }
   ]
@@ -697,16 +697,16 @@ export default function AccountView() {
             blockchainHeight={blockchainHeight}
           />
         )
-      case 'childAccounts':
+      case 'derivedAddresses':
         return (
-          <ChildAccounts
+          <DerivedAddresses
             account={account}
             handleOnExpand={handleOnExpand}
             setChange={setChange}
             expand={expand}
             change={change}
-            setSortDirection={setSortDirectionChildAccounts}
-            sortDirection={sortDirectionChildAccounts}
+            setSortDirection={setSortDirectionDerivedAddresses}
+            sortDirection={sortDirectionDerivedAddresses}
           />
         )
       case 'spendableOutputs':
@@ -841,7 +841,7 @@ export default function AccountView() {
                     {account.summary.numberOfAddresses}
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {t('accounts.childAccounts')}
+                    {t('accounts.derivedAddresses')}
                   </SSText>
                   {tabIndex === 1 && (
                     <View

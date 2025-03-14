@@ -84,7 +84,7 @@
   "accounts": {
     "address": "Address",
     "change": "Change",
-    "childAccounts": "Child\nAccounts",
+    "derivedAddresses": "Derived\nAddresses",
     "empty": "No keys yet",
     "index": "Index",
     "label": "Label",
