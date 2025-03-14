@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     right: 50
   },
   contentContainer: {
-    flex: 1
+    flexGrow: 1
   },
   vStackWrapper: {
     gap: 60,
