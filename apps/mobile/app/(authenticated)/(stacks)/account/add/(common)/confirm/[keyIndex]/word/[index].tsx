@@ -1,7 +1,9 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
@@ -12,55 +14,47 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
+import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
-type ConfirmSeedSearchParams = {
-  index: string
-}
-
-export default function ConfirmSeed() {
+export default function Confirm() {
   const router = useRouter()
-  const { index } = useLocalSearchParams<ConfirmSeedSearchParams>()
-
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
+  const { keyIndex, index } = useLocalSearchParams<ConfirmWordSearchParams>()
   const [
     name,
-    seedWordCount,
-    seedWords,
+    mnemonicWordCount,
+    mnemonic,
     policyType,
     clearAccount,
-    getAccount,
-    loadWallet,
-    encryptSeed,
-    setParticipantWithSeedWord
+    getAccountData,
+    setKey,
+    updateKeySecret,
+    clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.seedWordCount,
-      state.seedWords.split(' '),
+      state.mnemonicWordCount,
+      state.mnemonic.split(' '),
       state.policyType,
       state.clearAccount,
-      state.getAccount,
-      state.loadWallet,
-      state.encryptSeed,
-      state.setParticipantWithSeedWord
+      state.getAccountData,
+      state.setKey,
+      state.updateKeySecret,
+      state.clearKeyState
     ])
   )
+  const network = useBlockchainStore((state) => state.network)
+  const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const candidateWords = useMemo(() => {
-    return getConfirmWordCandidates(seedWords[+index!], seedWords.join(' '))
+    return getConfirmWordCandidates(mnemonic[Number(index)], mnemonic.join(' '))
   }, [index]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [selectedCheckbox, setSelectedCheckbox] = useState<1 | 2 | 3>()
@@ -70,42 +64,43 @@ export default function ConfirmSeed() {
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
-  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
 
   async function handleNavigateNextWord() {
-    if (!seedWordCount || !selectedCheckbox) return
+    if (!selectedCheckbox) return
 
-    if (candidateWords[selectedCheckbox - 1] !== seedWords[+index!])
+    if (candidateWords[selectedCheckbox - 1] !== mnemonic[Number(index)])
       return setIncorrectWordModalVisible(true)
 
-    if (+index! + 1 < seedWordCount)
-      router.push(`/addMasterKey/confirmSeed/${+index! + 1}`)
+    if (Number(index) + 1 < mnemonicWordCount)
+      router.push(`/account/add/confirm/${keyIndex}/word/${Number(index) + 1}`)
     else return handleFinishWordsConfirmation()
   }
 
   async function handleFinishWordsConfirmation() {
-    if (policyType === 'single') {
-      setLoadingAccount(true)
+    setLoadingAccount(true)
+    const currentKey = setKey(Number(keyIndex))
 
-      const wallet = await loadWallet()
-      await encryptSeed()
+    if (policyType === 'singlesig') {
+      const account = getAccountData()
 
-      const account = getAccount()
-      await addAccount(account)
+      await accountBuilderFinish(account)
 
-      try {
-        const syncedAccount = await syncWallet(wallet, account)
-        await updateAccount(syncedAccount)
-      } catch {
-        setWalletSyncFailed(true)
-      } finally {
-        setLoadingAccount(false)
-        setWarningModalVisible(true)
-      }
-    } else if (policyType === 'multi') {
-      setParticipantWithSeedWord()
-      router.dismiss(Number.parseInt(index!, 10) + 2)
+      setLoadingAccount(false)
+      setWarningModalVisible(true)
+    } else if (policyType === 'multisig') {
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        currentKey,
+        network as Network
+      )
+      updateKeySecret(Number(keyIndex), {
+        ...(currentKey.secret as object),
+        extendedPublicKey
+      })
+
+      setLoadingAccount(false)
+      router.dismiss(Number(index) + 3)
     }
+    clearKeyState()
   }
 
   function handleCloseWordsWarning() {
@@ -115,9 +110,9 @@ export default function ConfirmSeed() {
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multi') {
-      router.dismiss(Number.parseInt(index!, 10) + 1)
-    } else if (policyType === 'single') {
+    if (policyType === 'multisig') {
+      router.dismiss(Number(index) + 1)
+    } else if (policyType === 'singlesig') {
       router.replace('/')
     }
   }
@@ -132,7 +127,7 @@ export default function ConfirmSeed() {
       <SSVStack justifyBetween>
         <SSVStack gap="lg">
           <SSText color="white" uppercase style={{ alignSelf: 'center' }}>
-            {`${t('common.confirm')} ${t('bitcoin.word')} ${+index! + 1}`}
+            {`${t('common.confirm')} ${t('bitcoin.word')} ${Number(index) + 1}`}
           </SSText>
           <SSVStack gap="lg">
             <SSCheckbox
@@ -158,7 +153,7 @@ export default function ConfirmSeed() {
             variant="secondary"
             loading={loadingAccount}
             disabled={!selectedCheckbox}
-            onPress={() => handleNavigateNextWord()}
+            onPress={handleNavigateNextWord}
           />
           <SSButton
             label={t('common.cancel')}
@@ -181,13 +176,14 @@ export default function ConfirmSeed() {
       </SSGradientModal>
       <SSWarningModal
         visible={warningModalVisible}
-        onClose={() => handleCloseWordsWarning()}
+        onClose={handleCloseWordsWarning}
       >
         <SSVStack itemsCenter>
           <SSHStack>
             <SSIconCheckCircle height={30} width={30} />
             <SSText size="3xl">
-              {seedWordCount} {t('common.of').toLowerCase()} {seedWordCount}
+              {mnemonicWordCount} {t('common.of').toLowerCase()}{' '}
+              {mnemonicWordCount}
             </SSText>
           </SSHStack>
           <SSText uppercase center>
@@ -209,11 +205,6 @@ export default function ConfirmSeed() {
           <SSText size="xl" color="muted" center>
             {t('account.generate.disclaimer.3')}
           </SSText>
-          {walletSyncFailed && (
-            <SSText size="3xl" color="muted" center>
-              {t('account.syncFailed')}
-            </SSText>
-          )}
         </SSVStack>
       </SSWarningModal>
     </SSMainLayout>

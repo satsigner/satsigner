@@ -3,6 +3,7 @@ import {
   Blockchain,
   DatabaseConfig,
   Descriptor,
+  DescriptorPublicKey,
   DescriptorSecretKey,
   Mnemonic,
   type PartiallySignedTransaction,
@@ -23,36 +24,281 @@ import {
   type Network
 } from 'bdk-rn/lib/lib/enums'
 
-import { type Account, type MultisigParticipant } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
+import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type Backend } from '@/types/settings/blockchain'
+import {
+  type Backend,
+  type Network as BlockchainNetwork
+} from '@/types/settings/blockchain'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 
-async function generateMnemonic(count: NonNullable<Account['seedWordCount']>) {
-  const mnemonic = await new Mnemonic().create(count)
+import ElectrumClient from './electrum'
+import { Esplora } from './esplora'
+
+async function generateMnemonic(
+  mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
+) {
+  const mnemonic = await new Mnemonic().create(mnemonicWordCount)
   return mnemonic.asString()
 }
 
-async function validateMnemonic(seedWords: NonNullable<Account['seedWords']>) {
+async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   try {
-    await new Mnemonic().fromString(seedWords)
+    await new Mnemonic().fromString(mnemonic)
   } catch (_) {
     return false
   }
   return true
 }
 
-async function getDescriptor(
-  seedWords: NonNullable<Account['seedWords']>,
-  scriptVersion: NonNullable<Account['scriptVersion']>,
-  kind: KeychainKind,
-  passphrase: Account['passphrase'],
+async function getWalletData(account: Account, network: Network) {
+  switch (account.policyType) {
+    case 'singlesig': {
+      if (account.keys.length !== 1)
+        throw new Error('Invalid key count for singlesig')
+
+      const key = account.keys[0]
+
+      if (
+        key.creationType === 'generateMnemonic' ||
+        key.creationType === 'importMnemonic'
+      ) {
+        if (
+          typeof key.secret === 'string' ||
+          !key.secret.mnemonic ||
+          !key.scriptVersion
+        )
+          throw new Error('Invalid secret')
+
+        const walletData = await getWalletFromMnemonic(
+          key.secret.mnemonic,
+          key.scriptVersion,
+          key.secret.passphrase,
+          network
+        )
+
+        return walletData
+      } else if (key.creationType === 'importDescriptor') {
+        // TODO
+      }
+      break
+    }
+    case 'multisig': {
+      const extendedPublicKeys = account.keys
+        .map((key) => {
+          if (typeof key.secret === 'object' && key.secret?.extendedPublicKey) {
+            return key.secret.extendedPublicKey
+          }
+          return null
+        })
+        .filter((x): x is string => x !== null)
+
+      const multisigDescriptorString = `wsh(multi(${account.keysRequired},${extendedPublicKeys.join(',')}))`
+      const multisigDescriptor = await new Descriptor().create(
+        multisigDescriptorString,
+        network
+      )
+
+      const parsedDescriptor = await parseDescriptor(multisigDescriptor)
+      const wallet = await getWalletFromDescriptor(
+        multisigDescriptor,
+        null,
+        network
+      )
+
+      return {
+        fingerprint: parsedDescriptor.fingerprint,
+        derivationPath: parsedDescriptor.derivationPath,
+        externalDescriptor: multisigDescriptorString,
+        internalDescriptor: '',
+        wallet
+      }
+    }
+    case 'watchonly': {
+      if (account.keys.length !== 1)
+        throw new Error('Invalid key count for singlesig')
+
+      const key = account.keys[0]
+
+      if (key.creationType === 'importDescriptor') {
+        if (typeof key.secret === 'string' || !key.secret.externalDescriptor)
+          throw new Error('Invalid secret')
+
+        const externalDescriptor = await new Descriptor().create(
+          key.secret.externalDescriptor,
+          network
+        )
+        const internalDescriptor = key.secret.internalDescriptor
+          ? await new Descriptor().create(
+              key.secret.internalDescriptor,
+              network
+            )
+          : null
+
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        const wallet = await getWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor,
+          network
+        )
+
+        return {
+          fingerprint: parsedDescriptor.fingerprint,
+          derivationPath: parsedDescriptor.derivationPath,
+          externalDescriptor: await externalDescriptor.asString(),
+          internalDescriptor: internalDescriptor
+            ? await internalDescriptor.asString()
+            : '',
+          wallet
+        }
+      } else if (key.creationType === 'importExtendedPub') {
+        if (
+          !key.scriptVersion ||
+          !key.fingerprint ||
+          typeof key.secret === 'string' ||
+          !key.secret.extendedPublicKey
+        )
+          throw new Error('Invalid account information')
+
+        const extendedPublicKey = await new DescriptorPublicKey().fromString(
+          key.secret.extendedPublicKey
+        )
+
+        let externalDescriptor: Descriptor
+        let internalDescriptor: Descriptor
+
+        switch (key.scriptVersion) {
+          case 'P2PKH':
+            externalDescriptor = await new Descriptor().newBip44Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip44Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+          case 'P2SH-P2WPKH':
+            externalDescriptor = await new Descriptor().newBip49Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip49Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+          case 'P2WPKH':
+            externalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+          case 'P2TR':
+            externalDescriptor = await new Descriptor().newBip86Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip86Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
+        }
+
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        const wallet = await getWalletFromDescriptor(
+          externalDescriptor,
+          internalDescriptor,
+          network
+        )
+
+        return {
+          fingerprint: parsedDescriptor.fingerprint,
+          derivationPath: parsedDescriptor.derivationPath,
+          externalDescriptor: await externalDescriptor.asString(),
+          internalDescriptor: await internalDescriptor.asString(),
+          wallet
+        }
+      } else if (key.creationType === 'importAddress') {
+        // BDK does not support address descriptor
+      }
+
+      break
+    }
+  }
+}
+
+async function getWalletFromMnemonic(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  scriptVersion: NonNullable<Key['scriptVersion']>,
+  passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const mnemonic = await new Mnemonic().fromString(seedWords)
+  const [externalDescriptor, internalDescriptor] = await Promise.all([
+    getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.External,
+      passphrase,
+      network
+    ),
+    getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.Internal,
+      passphrase,
+      network
+    )
+  ])
+
+  const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
+    parseDescriptor(externalDescriptor),
+    getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
+  ])
+
+  return {
+    fingerprint,
+    derivationPath,
+    externalDescriptor: await externalDescriptor.asString(),
+    internalDescriptor: await internalDescriptor.asString(),
+    wallet
+  }
+}
+
+async function getDescriptor(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  scriptVersion: NonNullable<Key['scriptVersion']>,
+  kind: KeychainKind,
+  passphrase: Secret['passphrase'],
+  network: Network
+) {
+  const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
-    mnemonic,
+    parsedMnemonic,
     passphrase
   )
   switch (scriptVersion) {
@@ -75,179 +321,6 @@ async function parseDescriptor(descriptor: Descriptor) {
     : { fingerprint: '', derivationPath: '' }
 }
 
-async function extractPubKeyFromDescriptor(descriptor: Descriptor) {
-  const descriptorString = await descriptor.asString()
-  const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
-  return match ? match[0] : ''
-}
-
-async function getFingerprint(
-  seedWords: NonNullable<Account['seedWords']>,
-  passphrase: Account['passphrase'],
-  network: Network
-) {
-  const mnemonic = await new Mnemonic().fromString(seedWords)
-  const descriptorSecretKey = await new DescriptorSecretKey().create(
-    network,
-    mnemonic,
-    passphrase
-  )
-  const descriptor = await new Descriptor().newBip84(
-    descriptorSecretKey,
-    KeychainKind.External,
-    network
-  )
-
-  const { fingerprint } = await parseDescriptor(descriptor)
-  return fingerprint
-}
-
-async function getWalletFromMnemonic(
-  seedWords: NonNullable<Account['seedWords']>,
-  scriptVersion: NonNullable<Account['scriptVersion']>,
-  passphrase: Account['passphrase'],
-  network: Network
-) {
-  const [externalDescriptor, internalDescriptor] = await Promise.all([
-    getDescriptor(
-      seedWords,
-      scriptVersion,
-      KeychainKind.External,
-      passphrase,
-      network
-    ),
-    getDescriptor(
-      seedWords,
-      scriptVersion,
-      KeychainKind.Internal,
-      passphrase,
-      network
-    )
-  ])
-
-  const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
-    parseDescriptor(externalDescriptor),
-    getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
-  ])
-
-  return {
-    fingerprint,
-    derivationPath,
-    externalDescriptor: await externalDescriptor.asString(),
-    internalDescriptor: await internalDescriptor.asString(),
-    wallet
-  }
-}
-
-async function getParticipantInfo(
-  participant: MultisigParticipant,
-  network: Network
-) {
-  try {
-    if (!participant.seedWords || !participant.scriptVersion) {
-      return null
-    }
-    const seedWords = participant.seedWords
-    const scriptVersion = participant.scriptVersion
-    const passphrase = participant.passphrase
-    const [externalDescriptor, internalDescriptor] = await Promise.all([
-      getDescriptor(
-        seedWords,
-        scriptVersion,
-        KeychainKind.External,
-        passphrase,
-        network
-      ),
-      getDescriptor(
-        seedWords,
-        scriptVersion,
-        KeychainKind.Internal,
-        passphrase,
-        network
-      )
-    ])
-    const { fingerprint, derivationPath } =
-      await parseDescriptor(externalDescriptor)
-    const externalDescriptorString = await externalDescriptor.asString()
-    const internalDescriptorString = await internalDescriptor.asString()
-    const pubKey = await extractPubKeyFromDescriptor(externalDescriptor)
-    return {
-      fingerprint,
-      derivationPath,
-      externalDescriptorString,
-      internalDescriptorString,
-      pubKey
-    }
-  } catch {
-    return null
-  }
-}
-
-async function getMultiSigWalletFromMnemonic(
-  participants: NonNullable<Account['participants']>,
-  network: Network,
-  totalParticipants: number,
-  requiredParticipants: number
-) {
-  try {
-    const externalDescriptors: Descriptor[] = []
-    const internalDescriptors: Descriptor[] = []
-    const keys = []
-    for (let i = 0; i < totalParticipants; i++) {
-      const participant = participants[i]
-      if (participant.creationType !== 'importdescriptor') {
-        if (!participant.seedWords || !participant.scriptVersion) {
-          return null
-        }
-        const seedWords = participant.seedWords
-        const scriptVersion = participant.scriptVersion
-        const passphrase = participant.passphrase
-        const [externalDescriptor, internalDescriptor] = await Promise.all([
-          getDescriptor(
-            seedWords,
-            scriptVersion,
-            KeychainKind.External,
-            passphrase,
-            network
-          ),
-          getDescriptor(
-            seedWords,
-            scriptVersion,
-            KeychainKind.Internal,
-            passphrase,
-            network
-          )
-        ])
-        externalDescriptors.push(externalDescriptor)
-        internalDescriptors.push(internalDescriptor)
-        const key = await extractPubKeyFromDescriptor(externalDescriptor)
-        keys.push(key)
-      } else {
-        const match = participant.externalDescriptor!.match(/tpub[A-Za-z0-9]+/)
-        const key = match ? match[0] : ''
-        keys.push(key)
-      }
-    }
-    const multisigDescriptorString = `wsh(multi(${requiredParticipants},${keys.join(',')}))`
-    const multisigDescriptor = await new Descriptor().create(
-      multisigDescriptorString,
-      network
-    )
-    const dbConfig = await new DatabaseConfig().memory()
-    const wallet = await new Wallet().create(
-      multisigDescriptor,
-      null,
-      network,
-      dbConfig
-    )
-    return {
-      wallet
-    }
-  } catch {
-    return null
-  }
-}
-
 async function getWalletFromDescriptor(
   externalDescriptor: Descriptor,
   internalDescriptor: Descriptor | null | undefined,
@@ -264,15 +337,26 @@ async function getWalletFromDescriptor(
   return wallet
 }
 
-async function getBlockchain(
-  backend: Backend,
-  config: BlockchainElectrumConfig | BlockchainEsploraConfig
-) {
-  const blockchainName: BlockChainNames =
-    backend === 'electrum' ? BlockChainNames.Electrum : BlockChainNames.Esplora
+async function extractExtendedKeyFromDescriptor(descriptor: Descriptor) {
+  const descriptorString = await descriptor.asString()
+  const match = descriptorString.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
+  return match ? match[0] : ''
+}
 
-  const blockchain = await new Blockchain().create(config, blockchainName)
-  return blockchain
+async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
+  if (typeof key.secret === 'string') return
+  if (!key.secret.mnemonic || !key.scriptVersion) return
+
+  const externalDescriptor = await getDescriptor(
+    key.secret.mnemonic,
+    key.scriptVersion,
+    KeychainKind.External,
+    key.secret.passphrase,
+    network
+  )
+  const extendedKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
+
+  return extendedKey
 }
 
 async function syncWallet(
@@ -284,10 +368,135 @@ async function syncWallet(
   await wallet.sync(blockchain)
 }
 
-async function getAddress(utxo: LocalUtxo, network: Network) {
-  const script = utxo.txout.script
-  const address = await new Address().fromScript(script, network)
-  return address.asString()
+async function getBlockchain(
+  backend: Backend,
+  config: BlockchainElectrumConfig | BlockchainEsploraConfig
+) {
+  let blockchainName: BlockChainNames = BlockChainNames.Electrum
+  if (backend === 'esplora') blockchainName = BlockChainNames.Esplora
+
+  const blockchain = await new Blockchain().create(config, blockchainName)
+  return blockchain
+}
+
+async function getWalletAddresses(
+  wallet: Wallet,
+  network: Network,
+  count = 10
+): Promise<Account['addresses']> {
+  const addresses: Account['addresses'] = []
+
+  for (let i = 0; i < count; i += 1) {
+    const receiveAddrInfo = await wallet.getAddress(i)
+    const receiveAddr = await receiveAddrInfo.address.asString()
+    addresses.push({
+      address: receiveAddr,
+      keychain: 'external',
+      transactions: [],
+      utxos: [],
+      index: i,
+      network: network as BlockchainNetwork,
+      label: '',
+      summary: {
+        transactions: 0,
+        utxos: 0,
+        balance: 0,
+        satsInMempool: 0
+      }
+    })
+
+    const changeAddrInfo = await wallet.getInternalAddress(i)
+    const changeAddr = await changeAddrInfo.address.asString()
+
+    if (changeAddr === receiveAddr) continue // Because bdk not returning correct internal addresses?
+
+    addresses.push({
+      address: changeAddr,
+      keychain: 'internal',
+      transactions: [],
+      utxos: [],
+      index: i,
+      network: network as BlockchainNetwork,
+      label: '',
+      summary: {
+        transactions: 0,
+        utxos: 0,
+        balance: 0,
+        satsInMempool: 0
+      }
+    })
+  }
+
+  return addresses
+}
+
+async function getWalletOverview(
+  wallet: Wallet,
+  network: Network
+): Promise<Pick<Account, 'transactions' | 'utxos' | 'addresses' | 'summary'>> {
+  if (!wallet) {
+    return {
+      transactions: [],
+      utxos: [],
+      addresses: [],
+      summary: {
+        balance: 0,
+        numberOfAddresses: 0,
+        numberOfTransactions: 0,
+        numberOfUtxos: 0,
+        satsInMempool: 0
+      }
+    }
+  }
+
+  const [balance, addressInfo, transactionsDetails, localUtxos] =
+    await Promise.all([
+      wallet.getBalance(),
+      wallet.getAddress(AddressIndex.New),
+      wallet.listTransactions(true),
+      wallet.listUnspent()
+    ])
+
+  const transactions = await Promise.all(
+    (transactionsDetails || []).map((transactionDetails) =>
+      parseTransactionDetailsToTransaction(
+        transactionDetails,
+        localUtxos,
+        network
+      )
+    )
+  )
+
+  const utxos = await Promise.all(
+    (localUtxos || []).map((localUtxo) =>
+      parseLocalUtxoToUtxo(localUtxo, transactionsDetails, network)
+    )
+  )
+
+  let addresses = await getWalletAddresses(wallet, network)
+  addresses = parseAccountAddressesDetails({
+    transactions,
+    utxos,
+    addresses,
+    keys: [
+      {
+        scriptVersion: undefined
+      }
+    ]
+  } as Account)
+
+  return {
+    addresses,
+    transactions,
+    utxos,
+    summary: {
+      balance: balance.confirmed,
+      numberOfAddresses: addressInfo.index + 1,
+      numberOfTransactions: transactionsDetails.length,
+      numberOfUtxos: localUtxos.length,
+      satsInMempool: balance.trustedPending + balance.untrustedPending
+    }
+  }
 }
 
 async function parseTransactionDetailsToTransaction(
@@ -395,88 +604,94 @@ async function parseLocalUtxoToUtxo(
   }
 }
 
-async function getWalletData(
-  wallet: Wallet,
-  netWork: Network
-): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
-  if (wallet) {
-    const [balance, addressInfo, transactionsDetails, localUtxos] =
-      await Promise.all([
-        wallet.getBalance(),
-        wallet.getAddress(AddressIndex.New),
-        wallet.listTransactions(true),
-        wallet.listUnspent()
-      ])
-
-    const transactions = await Promise.all(
-      (transactionsDetails || []).map((transactionDetails) =>
-        parseTransactionDetailsToTransaction(
-          transactionDetails,
-          localUtxos,
-          netWork
-        )
-      )
-    )
-
-    const utxos = await Promise.all(
-      (localUtxos || []).map((localUtxo) =>
-        parseLocalUtxoToUtxo(localUtxo, transactionsDetails, netWork)
-      )
-    )
-
-    return {
-      transactions,
-      utxos,
-      summary: {
-        balance: balance.confirmed,
-        numberOfAddresses: addressInfo.index + 1,
-        numberOfTransactions: transactionsDetails.length,
-        numberOfUtxos: localUtxos.length,
-        satsInMempool: balance.trustedPending + balance.untrustedPending
-      }
-    }
-  } else {
-    return {
-      transactions: [],
-      utxos: [],
-      summary: {
-        balance: 0,
-        numberOfAddresses: 0,
-        numberOfTransactions: 0,
-        numberOfUtxos: 0,
-        satsInMempool: 0
-      }
-    }
-  }
+async function getAddress(utxo: LocalUtxo, network: Network) {
+  const script = utxo.txout.script
+  const address = await new Address().fromScript(script, network)
+  return address.asString()
 }
 
-async function getLastUnusedWalletAddress(
-  wallet: Wallet,
-  addressIndex: number
+async function getTransactionInputValues(
+  tx: Transaction,
+  backend: Backend,
+  network: BlockchainNetwork,
+  url: string
+): Promise<Transaction['vin']> {
+  if (!tx.vin.some((input) => input.value === undefined)) return tx.vin
+
+  let vin: Transaction['vin'] = []
+
+  if (backend === 'electrum') {
+    const electrumClient = await ElectrumClient.fromUrl(url, network)
+    vin = await electrumClient.getTxInputValues(tx)
+    electrumClient.close()
+  }
+
+  if (backend === 'esplora') {
+    const esploraClient = new Esplora(url)
+    vin = await esploraClient.getTxInputValues(tx.id)
+  }
+
+  return vin
+}
+
+async function getFingerprint(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  passphrase: Secret['passphrase'],
+  network: Network
 ) {
-  const newAddress = await wallet.getAddress(addressIndex)
+  const bdkMnemonic = await new Mnemonic().fromString(mnemonic)
+  const descriptorSecretKey = await new DescriptorSecretKey().create(
+    network,
+    bdkMnemonic,
+    passphrase
+  )
+  const descriptor = await new Descriptor().newBip84(
+    descriptorSecretKey,
+    KeychainKind.External,
+    network
+  )
+
+  const { fingerprint } = await parseDescriptor(descriptor)
+  return fingerprint
+}
+
+async function getLastUnusedAddressFromWallet(wallet: Wallet) {
+  const newAddress = await wallet.getAddress(AddressIndex.New)
 
   return newAddress
 }
 
+async function getScriptPubKeyFromAddress(address: string) {
+  const recipientAddress = await new Address().create(address)
+  return recipientAddress.scriptPubKey()
+}
+
 async function buildTransaction(
   wallet: Wallet,
-  utxos: Utxo[],
-  recipient: string,
-  amount: number,
-  fee: number
+  data: {
+    inputs: Utxo[]
+    outputs: Output[]
+    feeRate: number
+    options: {
+      rbf: boolean
+    }
+  }
 ) {
-  const address = await new Address().create(recipient)
-  const script = await address.scriptPubKey()
-
   const transactionBuilder = await new TxBuilder().create()
 
-  await transactionBuilder.feeAbsolute(fee)
   await transactionBuilder.addUtxos(
-    utxos.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
+    data.inputs.map((utxo) => ({ txid: utxo.txid, vout: utxo.vout }))
   )
   await transactionBuilder.manuallySelectedOnly()
-  await transactionBuilder.addRecipient(script, amount)
+
+  for (const output of data.outputs) {
+    const recipient = await getScriptPubKeyFromAddress(output.to)
+    await transactionBuilder.addRecipient(recipient, output.amount)
+  }
+
+  await transactionBuilder.feeRate(data.feeRate)
+
+  if (data.options.rbf) await transactionBuilder.enableRbf()
 
   const transactionBuilderResult = await transactionBuilder.finish(wallet)
   return transactionBuilderResult
@@ -500,17 +715,19 @@ async function broadcastTransaction(
 export {
   broadcastTransaction,
   buildTransaction,
-  extractPubKeyFromDescriptor,
+  extractExtendedKeyFromDescriptor,
   generateMnemonic,
   getBlockchain,
   getDescriptor,
+  getExtendedPublicKeyFromAccountKey,
   getFingerprint,
-  getLastUnusedWalletAddress,
-  getMultiSigWalletFromMnemonic,
-  getParticipantInfo,
+  getLastUnusedAddressFromWallet,
+  getTransactionInputValues,
+  getWalletAddresses,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,
+  getWalletOverview,
   parseDescriptor,
   signTransaction,
   syncWallet,

@@ -136,7 +136,7 @@ export class MempoolOracle implements BlockchainOracle {
 
   async getPrice(currency: Currency): Promise<number> {
     const data = await this.getPrices()
-    return data[currency]
+    return data[currency] as number
   }
 
   async getPriceAt(currency: string, timestamp: number): Promise<number> {

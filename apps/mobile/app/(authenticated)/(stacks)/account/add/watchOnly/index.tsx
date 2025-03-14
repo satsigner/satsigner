@@ -11,6 +11,9 @@ import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -18,6 +21,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
+import { type CreationType } from '@/types/models/Account'
 import {
   validateAddress,
   validateDescriptor,
@@ -25,40 +29,49 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-type WatchOnlyOption = 'xpub' | 'descriptor' | 'address'
-const watchOnlyOptions: WatchOnlyOption[] = ['xpub', 'descriptor', 'address']
+const watchOnlyOptions: CreationType[] = [
+  'importExtendedPub',
+  'importDescriptor',
+  'importAddress'
+]
 
-export default function WatchOnlyOptions() {
-  const addAccount = useAccountsStore((state) => state.addAccount)
+export default function WatchOnly() {
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
     scriptVersion,
     fingerprint,
+    setCreationType,
     clearAccount,
-    getAccount,
+    getAccountData,
     setFingerprint,
-    setDescriptorFromXpub,
-    setDescriptorFromAddress,
     setExternalDescriptor,
     setInternalDescriptor,
-    setScriptVersion
+    setExtendedPublicKey,
+    setScriptVersion,
+    setKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
       state.scriptVersion,
       state.fingerprint,
+      state.setCreationType,
       state.clearAccount,
-      state.getAccount,
+      state.getAccountData,
       state.setFingerprint,
-      state.setDescriptorFromXpub,
-      state.setDescriptorFromAddress,
       state.setExternalDescriptor,
       state.setInternalDescriptor,
-      state.setScriptVersion
+      state.setExtendedPublicKey,
+      state.setScriptVersion,
+      state.setKey
     ])
   )
+  const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
-  const [selectedOption, setSelectedOption] = useState<WatchOnlyOption>('xpub')
+  const [selectedOption, setSelectedOption] =
+    useState<CreationType>('importExtendedPub')
 
   const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
@@ -84,26 +97,23 @@ export default function WatchOnlyOptions() {
     setValidAddress(!address || validAddress)
     setDisabled(!validAddress)
     setAddress(address)
-    if (validAddress) setDescriptorFromAddress(address)
   }
 
   function updateMasterFingerprint(fingerprint: string) {
     const validFingerprint = validateFingerprint(fingerprint)
     setValidMasterFingerprint(!fingerprint || validFingerprint)
-    setDisabled(!validFingerprint)
+    setDisabled(!validXpub || !validFingerprint)
     setLocalFingerprint(fingerprint)
     if (validFingerprint) {
       setFingerprint(fingerprint)
       Keyboard.dismiss()
-      // force update xpub again because it depends upon the fingerprint
-      if (selectedOption === 'xpub' && validXpub) setDescriptorFromXpub(xpub)
     }
   }
 
   function updateXpub(xpub: string) {
     const validXpub = validateExtendedKey(xpub)
     setValidXpub(!xpub || validXpub)
-    setDisabled(!validXpub)
+    setDisabled(!validXpub || !localFingerprint)
     setXpub(xpub)
     if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
     if (xpub.match(/^y(pub|priv)/)) setScriptVersion('P2SH-P2WPKH')
@@ -129,24 +139,43 @@ export default function WatchOnlyOptions() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    const account = getAccount()
+    if (selectedOption === 'importExtendedPub') setExtendedPublicKey(xpub)
+    else if (selectedOption === 'importAddress')
+      setExternalDescriptor(`addr(${address})`)
+
+    setKey(0)
+    const account = getAccountData()
+
+    const data = await accountBuilderFinish(account)
+    if (!data) return
 
     try {
-      if (account) {
-        await addAccount(account)
-        clearAccount()
-        router.navigate('/')
-      }
+      const updatedAccount =
+        selectedOption !== 'importAddress'
+          ? await syncAccountWithWallet(
+              data.accountWithEncryptedSecret,
+              data.wallet!
+            )
+          : await syncAccountWithAddress(
+              data.accountWithEncryptedSecret,
+              `addr(${address})`
+            )
+      updateAccount(updatedAccount)
+    } catch {
+      // TODO
     } finally {
+      clearAccount()
       setLoadingWallet(false)
     }
+
+    router.navigate('/')
   }
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
     if (!text) return
 
-    if (selectedOption === 'descriptor') {
+    if (selectedOption === 'importDescriptor') {
       let externalDescriptor = text
       let internalDescriptor = ''
       if (text.match(/<0[,;]1>/)) {
@@ -166,11 +195,11 @@ export default function WatchOnlyOptions() {
       if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
     }
 
-    if (selectedOption === 'xpub') {
+    if (selectedOption === 'importExtendedPub') {
       updateXpub(text)
     }
 
-    if (selectedOption === 'address') {
+    if (selectedOption === 'importAddress') {
       updateAddress(text)
     }
   }
@@ -194,7 +223,10 @@ export default function WatchOnlyOptions() {
               </SSText>
             </SSCollapsible>
           }
-          onSelect={() => setModalOptionsVisible(false)}
+          onSelect={() => {
+            setModalOptionsVisible(false)
+            setCreationType(selectedOption)
+          }}
           onCancel={() => router.back()}
         >
           {watchOnlyOptions.map((type) => (
@@ -223,43 +255,34 @@ export default function WatchOnlyOptions() {
                   <SSText center>
                     {t(`watchonly.${selectedOption}.label`)}
                   </SSText>
-                  {selectedOption === 'xpub' && (
+                  {selectedOption === 'importExtendedPub' && (
                     <SSTextInput
                       value={xpub}
                       style={validXpub ? styles.valid : styles.invalid}
-                      placeholder={t('watchonly.inputPlaceholder', {
-                        option: t('watchonly.xpub.label')
-                      }).toUpperCase()}
                       onChangeText={updateXpub}
                       multiline
                     />
                   )}
-                  {selectedOption === 'descriptor' && (
+                  {selectedOption === 'importDescriptor' && (
                     <SSTextInput
                       value={externalDescriptor}
                       style={
                         validExternalDescriptor ? styles.valid : styles.invalid
                       }
-                      placeholder={t('watchonly.inputPlaceholder', {
-                        option: t('watchonly.descriptor.label')
-                      }).toUpperCase()}
                       onChangeText={updateExternalDescriptor}
                       multiline
                     />
                   )}
-                  {selectedOption === 'address' && (
+                  {selectedOption === 'importAddress' && (
                     <SSTextInput
                       value={address}
                       style={validAddress ? styles.valid : styles.invalid}
-                      placeholder={t('watchonly.inputPlaceholder', {
-                        option: t('watchonly.address.label')
-                      }).toUpperCase()}
                       onChangeText={updateAddress}
                       multiline
                     />
                   )}
                 </SSVStack>
-                {selectedOption === 'xpub' && (
+                {selectedOption === 'importExtendedPub' && (
                   <>
                     <SSVStack gap="xxs">
                       <SSFormLayout.Label
@@ -279,18 +302,15 @@ export default function WatchOnlyOptions() {
                         style={
                           validMasterFingerprint ? styles.valid : styles.invalid
                         }
-                        placeholder={t('watchonly.inputPlaceholder', {
-                          option: t('watchonly.fingerprint.text')
-                        }).toUpperCase()}
                       />
                     </SSVStack>
                   </>
                 )}
-                {selectedOption === 'descriptor' && (
+                {selectedOption === 'importDescriptor' && (
                   <>
                     <SSVStack gap="xxs">
                       <SSText center>
-                        {t('watchonly.descriptor.internal')}
+                        {t('watchonly.importDescriptor.internal')}
                       </SSText>
                       <SSTextInput
                         value={internalDescriptor}
@@ -301,9 +321,6 @@ export default function WatchOnlyOptions() {
                         }
                         multiline
                         onChangeText={updateInternalDescriptor}
-                        placeholder={t('watchonly.inputPlaceholder', {
-                          option: t('common.descriptor')
-                        }).toUpperCase()}
                       />
                     </SSVStack>
                   </>

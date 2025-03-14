@@ -1,9 +1,10 @@
-import { Stack, useRouter } from 'expo-router'
+import { type Network } from 'bdk-rn/lib/lib/enums'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { validateMnemonic } from '@/api/bdk'
+import { getFingerprint, validateMnemonic } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -17,47 +18,58 @@ import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
+import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 
-export default function GenerateSeed() {
+export default function GenerateMnemonic() {
+  const { index } = useLocalSearchParams<GenerateMnemonicSearchParams>()
   const router = useRouter()
   const [
     name,
-    seedWordCount,
-    seedWords,
+    mnemonicWordCount,
+    mnemonic,
     fingerprint,
     policyType,
     setPassphrase,
-    updateFingerprint
+    setFingerprint
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.seedWordCount,
-      state.seedWords.split(' '),
+      state.mnemonicWordCount,
+      state.mnemonic.split(' '),
       state.fingerprint,
       state.policyType,
       state.setPassphrase,
-      state.updateFingerprint
+      state.setFingerprint
     ])
   )
+  const network = useBlockchainStore((state) => state.network)
 
   const [checksumValid, setChecksumValid] = useState(true)
 
+  // TODO: Debounce this
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const checksumValid = await validateMnemonic(seedWords.join(' '))
-    setChecksumValid(checksumValid)
+    const validMnemonic = await validateMnemonic(mnemonic.join(' '))
+    setChecksumValid(validMnemonic)
 
-    if (checksumValid) await updateFingerprint()
+    if (checksumValid) {
+      const fingerprint = await getFingerprint(
+        mnemonic.join(' '),
+        passphrase,
+        network as Network
+      )
+      setFingerprint(fingerprint)
+    }
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multi') {
-      router.back()
-    } else if (policyType === 'single') {
-      router.replace('/')
-    }
+    if (policyType === 'multisig') router.back()
+    else if (policyType === 'singlesig') router.dismissAll()
   }
+
+  if (mnemonic.length !== mnemonicWordCount) return <Redirect href="/" />
 
   return (
     <SSMainLayout>
@@ -71,19 +83,17 @@ export default function GenerateSeed() {
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
-              {seedWordCount && (
-                <SSSeedLayout count={seedWordCount}>
-                  {[...Array(seedWordCount)].map((_, index) => (
-                    <SSWordInput
-                      key={index}
-                      position={index + 1}
-                      value={seedWords ? seedWords[index] : ''}
-                      editable={false}
-                      index={index}
-                    />
-                  ))}
-                </SSSeedLayout>
-              )}
+              <SSSeedLayout count={mnemonicWordCount}>
+                {[...Array(mnemonicWordCount)].map((_, index) => (
+                  <SSWordInput
+                    key={index}
+                    position={index + 1}
+                    value={mnemonic ? mnemonic[index] : ''}
+                    editable={false}
+                    index={index}
+                  />
+                ))}
+              </SSSeedLayout>
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label
@@ -105,7 +115,9 @@ export default function GenerateSeed() {
               label={t('account.confirmSeed.title')}
               variant="secondary"
               disabled={!checksumValid}
-              onPress={() => router.navigate('/addMasterKey/confirmSeed/0')}
+              onPress={() =>
+                router.navigate(`/account/add/confirm/${index}/word/0`)
+              }
             />
             <SSButton
               label={t('common.cancel')}

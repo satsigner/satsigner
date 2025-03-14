@@ -11,7 +11,7 @@ const DEFAULT_TIME_OUT = 6
 const DEFAULT_RETRIES = 5
 const DEFAULT_STOP_GAP = 20
 
-type customBlockchainConfig = {
+type CustomBlockchainConfig = {
   retries?: number
   timeout?: number
   stopGap?: number
@@ -20,7 +20,7 @@ type customBlockchainConfig = {
 function getBlockchainConfig(
   backend: Backend,
   url: string,
-  options: customBlockchainConfig = {}
+  options: CustomBlockchainConfig = {}
 ): BlockchainElectrumConfig | BlockchainEsploraConfig {
   switch (backend) {
     case 'electrum':
