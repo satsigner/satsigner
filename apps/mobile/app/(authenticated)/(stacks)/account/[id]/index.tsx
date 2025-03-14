@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import {
   Redirect,
   router,
@@ -77,7 +78,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { Network } from 'bdk-rn/lib/lib/enums'
 
 type TotalTransactionsProps = {
   account: Account
@@ -283,7 +283,7 @@ function ChildAccounts({
       newAddressCount
     )
 
-    updateAccount({...account, addresses: addrList })
+    updateAccount({ ...account, addresses: addrList })
     setAddresses(addrList)
     setLoadingAddresses(false)
   }
@@ -305,7 +305,7 @@ function ChildAccounts({
     const newAddresses = await getWalletAddresses(wallet!, network!, minItems)
     setAddressCount(minItems)
     setAddresses(newAddresses)
-    updateAccount({...account, addresses: newAddresses })
+    updateAccount({ ...account, addresses: newAddresses })
   }
 
   useEffect(() => {

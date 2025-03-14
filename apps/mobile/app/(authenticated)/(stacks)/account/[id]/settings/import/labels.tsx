@@ -18,8 +18,7 @@ import {
   type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
-  bip329parser,
-  type Label
+  bip329parser
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 

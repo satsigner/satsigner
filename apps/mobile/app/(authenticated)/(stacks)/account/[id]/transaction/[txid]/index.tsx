@@ -8,6 +8,7 @@ import {
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
@@ -38,7 +39,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [tx, fetchTxInputs] = useAccountsStore(
+  const [tx, loadTx] = useAccountsStore(
     useShallow((state) => [
       state.accounts
         .find((account) => account.name === accountId)
@@ -46,6 +47,11 @@ export default function TxDetails() {
       state.loadTx
     ])
   )
+
+  const [backend, network, url] = useBlockchainStore(
+    useShallow((state) => [state.backend, state.network, state.url])
+  )
+
   const placeholder = '-'
 
   const [fee, setFee] = useState(placeholder)
@@ -84,6 +90,11 @@ export default function TxDetails() {
     if (tx.vout) setOutputsCount(tx.vout.length.toString())
 
     if (tx.raw) setRaw(bytesToHex(tx.raw))
+
+    if (tx.vin.some((input) => input.value === undefined)) {
+      tx.vin = await getTransactionInputValues(tx, backend, network, url)
+      loadTx(accountId!, tx)
+    }
   }
 
   useEffect(() => {
@@ -93,10 +104,6 @@ export default function TxDetails() {
       router.back()
     }
   }, [tx]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    fetchTxInputs(accountId!, txid!)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!accountId || !txid || !tx) return <Redirect href="/" />
 

@@ -255,7 +255,9 @@ function AddressDetails() {
                   <SSText color="muted" uppercase>
                     {t('address.details.derivation.fingerprint')}
                   </SSText>
-                  <SSText uppercase>{account.fingerprint || '-'}</SSText>
+                  <SSText uppercase>
+                    {account.keys[0].fingerprint || '-'}
+                  </SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
                   <SSText color="muted" uppercase>

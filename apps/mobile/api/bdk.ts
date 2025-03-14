@@ -32,6 +32,7 @@ import type {
   Backend,
   Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
+
 import ElectrumClient from './electrum'
 import { Esplora } from './esplora'
 
