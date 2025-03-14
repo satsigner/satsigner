@@ -4,7 +4,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 bitcoinjs.initEccLib(ecc)
 
 export function validateExtendedKey(key: string) {
-  // TODO: validate string length
+  // TODO: validate string length: 111 characters?
   // TODO: validate checksum
   return key.match(new RegExp('^[txyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
