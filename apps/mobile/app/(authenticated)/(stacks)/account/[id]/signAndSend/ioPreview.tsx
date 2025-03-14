@@ -66,7 +66,6 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithms>('user')
 
-  const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
