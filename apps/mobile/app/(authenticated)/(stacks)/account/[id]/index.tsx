@@ -1,6 +1,4 @@
 import { FlashList } from '@shopify/flash-list'
-import { Descriptor, type Wallet } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import {
   Redirect,
   router,
@@ -78,6 +76,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { getLastUnusedAddressFromWallet } from '@/api/bdk'
 
 type TotalTransactionsProps = {
   account: Account
@@ -245,7 +244,7 @@ function ChildAccounts({
   setSortDirection,
   perPage = 10
 }: ChildAccountsProps) {
-  const getLastUsedWallet = useGetWalletAddress(account!)
+  const getLastUsedWallet = getLastUnusedAddressFromWallet
   const [addressPath, setAddressPath] = useState('')
   const loadAddresses = useAccountsStore((state) => state.loadAddresses)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
@@ -258,8 +257,8 @@ function ChildAccounts({
   const [hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
 
   async function updateDerivationPath() {
-    if (account.derivationPath)
-      setAddressPath(`${account.derivationPath}/${change ? 1 : 0}`)
+    if (account.keys[0].derivationPath)
+      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
   }
 
   async function refreshAddresses() {
@@ -281,7 +280,7 @@ function ChildAccounts({
 
   async function updateAddresses() {
     if (hasLoadMoreAddresses) return
-    const result = await getLastUsedWallet()
+    const result = await getLastUsedWallet(wallet)
     if (!result) return
     const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
     const newAddresses = await loadAddresses(account, minItems, true)

@@ -9,7 +9,6 @@ import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -19,17 +18,12 @@ type AccountsState = {
 }
 
 type AccountsAction = {
-  hasAccountWithName: (name: string) => boolean
-  loadWalletFromDescriptor: (
-    externalDescriptor: Descriptor,
-    internalDescriptor: Descriptor | null | undefined
-  ) => Promise<Wallet>
   loadAddresses: (
     account: Account,
     count?: number,
     forceReload?: boolean
   ) => Promise<Address[]>
-  syncWallet: (wallet: Wallet | null, account: Account) => Promise<Account>
+  fetchTxInputs: (account: string, txid: string) => Promise<void>
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
@@ -37,7 +31,6 @@ type AccountsAction = {
   deleteAccounts: () => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  fetchTxInputs: (account: string, txid: string) => Promise<void>
   setAddrLabel: (account: string, addr: string, label: string) => void
   setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
   setUtxoLabel: (
@@ -352,7 +345,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return
+        if (!account) return 0
 
         const transactionMap: Record<string, number> = {}
         const utxoMap: Record<string, number> = {}
