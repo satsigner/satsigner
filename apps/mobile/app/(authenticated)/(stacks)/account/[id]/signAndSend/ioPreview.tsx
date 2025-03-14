@@ -109,11 +109,6 @@ export default function IOPreview() {
     setOutputLabel('')
   }
 
-  function handleAddOutputAndClose() {
-    addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
-    setAddOutputModalVisible(false)
-  }
-
   function handleSetFeeRate() {
     setFeeRate(localFeeRate)
     changeFeeBottomSheetRef.current?.close()
@@ -464,78 +459,24 @@ export default function IOPreview() {
         />
       </SSBottomSheet>
       <SSModal
-        visible={addOutputModalVisible}
+        visible={cameraModalVisible}
         fullOpacity
-        onClose={() => setAddOutputModalVisible(false)}
+        onClose={() => setCameraModalVisible(false)}
       >
         <SSText color="muted" uppercase>
-          {t('transaction.build.add.output.title')}
+          {t('camera.scanQRCode')}
         </SSText>
-        <SSTextInput
-          value={outputTo}
-          placeholder={t('transaction.address')}
-          align="left"
-          actionRight={
-            <SSIconButton onPress={() => setCameraModalVisible(true)}>
-              <SSIconScan />
-            </SSIconButton>
-          }
-          onChangeText={(text) => setOutputTo(text)}
+        <CameraView
+          onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          style={{ width: 340, height: 340 }}
         />
-        <SSVStack gap="none" itemsCenter style={{ width: '100%' }}>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="2xl" weight="medium">
-              {formatNumber(outputAmount)}
-            </SSText>
-            <SSText color="muted" size="lg">
-              {t('bitcoin.sats')}
-            </SSText>
-          </SSHStack>
-          <SSText style={{ color: Colors.gray[600] }}>
-            {t('common.max')} {formatNumber(utxosSelectedValue)}{' '}
-            {t('bitcoin.sats')}
-          </SSText>
-          <SSSlider
-            min={1}
-            max={utxosSelectedValue}
-            value={outputAmount}
-            step={100}
-            onValueChange={(value) => setOutputAmount(value)}
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
           />
-          <SSVStack style={{ width: '100%' }}>
-            <SSTextInput
-              placeholder={t('transaction.build.add.label.title')}
-              align="left"
-              onChangeText={(text) => setOutputLabel(text)}
-            />
-            <SSButton
-              label={t('common.continue')}
-              variant="secondary"
-              disabled={!outputTo || !outputAmount || !outputLabel}
-              onPress={() => handleAddOutputAndClose()}
-            />
-          </SSVStack>
-        </SSVStack>
-        <SSModal
-          visible={cameraModalVisible}
-          fullOpacity
-          onClose={() => setCameraModalVisible(false)}
-        >
-          <SSText color="muted" uppercase>
-            {t('camera.scanQRCode')}
-          </SSText>
-          <CameraView
-            onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
-          />
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
-            />
-          )}
-        </SSModal>
+        )}
       </SSModal>
     </View>
   )

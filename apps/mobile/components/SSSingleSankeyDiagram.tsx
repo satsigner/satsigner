@@ -36,15 +36,11 @@ const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
 type SSSingleSankeyDiagramProps = {
-  // sankeyNodes: Node[]
-  // sankeyLinks: Link[]
   utxosSelectedValue: number
   inputs: Map<string, { value: number; txid: string; label?: string }>
 }
 
 function SSSingleSankeyDiagram({
-  // sankeyNodes,
-  // sankeyLinks
   utxosSelectedValue,
   inputs
 }: SSSingleSankeyDiagramProps) {
