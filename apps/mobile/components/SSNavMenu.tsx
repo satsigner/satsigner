@@ -1,4 +1,7 @@
-import { DrawerContentScrollView } from '@react-navigation/drawer'
+import {
+  type DrawerContentComponentProps,
+  DrawerContentScrollView
+} from '@react-navigation/drawer'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Platform, StyleSheet, View } from 'react-native'
 
@@ -11,19 +14,18 @@ import { PLATFORM } from '@/types/navigation/navMenu'
 import SSNavMenuGroup from './SSNavMenuGroup'
 import SSText from './SSText'
 
-function SSNavMenu(props: any) {
+type SSNavMenuProps = DrawerContentComponentProps
+
+function SSNavMenu(props: SSNavMenuProps) {
   const currentPlatform: PLATFORM = Platform.OS as PLATFORM
   const filteredNavMenuGroups = navMenuGroups.reduce(
     (acc, group) => {
       if (group.items && Array.isArray(group.items)) {
         const filteredItems = group.items.filter((item) => {
-          if (
+          return (
             item.platform === PLATFORM.HYBRID ||
             item.platform === currentPlatform
-          ) {
-            return true
-          }
-          return false
+          )
         })
         if (filteredItems.length > 0) {
           acc.push({ ...group, items: filteredItems })
