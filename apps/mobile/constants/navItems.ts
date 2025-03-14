@@ -12,7 +12,7 @@ import {
   SSIconTime
 } from '@/components/icons'
 import { t } from '@/locales'
-import { type NavMenuGroup } from '@/types/navigation/navMenu'
+import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
 
 export const navMenuGroups: NavMenuGroup[] = [
   {
@@ -22,31 +22,36 @@ export const navMenuGroups: NavMenuGroup[] = [
         title: t('navigation.item.bitcoin'),
         icon: SSIconBitcoin,
         url: '/',
-        isSoon: false
+        isSoon: false,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.lightning'),
         icon: SSIconLightning,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.liquid'),
         icon: SSIconLiquid,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.ecash'),
         icon: SSIconECash,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.ANDROID
       },
       {
         title: t('navigation.item.nostr'),
         icon: SSIconLightning,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       }
     ]
   },
@@ -57,31 +62,36 @@ export const navMenuGroups: NavMenuGroup[] = [
         title: t('navigation.item.chaintip'),
         icon: SSIconChainTip,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.mempool'),
         icon: SSIconMempool,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.difficult'),
         icon: SSIconDifficult,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.halving'),
         icon: SSIconHalving,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.chain'),
         icon: SSIconChain,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       }
     ]
   },
@@ -92,19 +102,22 @@ export const navMenuGroups: NavMenuGroup[] = [
         title: t('navigation.item.currency'),
         icon: SSIconCurrency,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.time'),
         icon: SSIconTime,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.energy'),
         icon: SSIconLightning,
         url: '',
-        isSoon: true
+        isSoon: true,
+        platform: PLATFORM.ANDROID
       }
     ]
   }
