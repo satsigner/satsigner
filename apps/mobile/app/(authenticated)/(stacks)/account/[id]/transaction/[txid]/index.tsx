@@ -43,7 +43,7 @@ export default function TxDetails() {
       state.accounts
         .find((account) => account.name === accountId)
         ?.transactions.find((tx) => tx.id === txid),
-      state.fetchTxInputs
+      state.loadTx
     ])
   )
   const placeholder = '-'

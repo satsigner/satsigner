@@ -24,11 +24,16 @@ import {
   type Network
 } from 'bdk-rn/lib/lib/enums'
 
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import type { Account, Key, Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import { type Backend } from '@/types/settings/blockchain'
+import type {
+  Backend,
+  Network as BlockchainNetwork
+} from '@/types/settings/blockchain'
+import ElectrumClient from './electrum'
+import { Esplora } from './esplora'
 
 async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
@@ -372,50 +377,66 @@ async function getBlockchain(
   return blockchain
 }
 
+export async function getWalletAddresses(
+  wallet: Wallet,
+  network: Network,
+  count = 10
+): Promise<Account['addresses']> {
+  const addresses: Account['addresses'] = []
+
+  for (let i = 0; i < count; i += 1) {
+    const receiveAddrInfo = await wallet.getAddress(i)
+    const receiveAddr = await receiveAddrInfo.address.asString()
+    addresses.push({
+      address: receiveAddr,
+      keychain: 'external',
+      transactions: [],
+      utxos: [],
+      index: i,
+      network: network as BlockchainNetwork,
+      label: '',
+      summary: {
+        transactions: 0,
+        utxos: 0,
+        balance: 0,
+        satsInMempool: 0
+      }
+    })
+
+    const changeAddrInfo = await wallet.getInternalAddress(i)
+    const changeAddr = await changeAddrInfo.address.asString()
+
+    if (changeAddr === receiveAddr) continue
+
+    addresses.push({
+      address: changeAddr,
+      keychain: 'internal',
+      transactions: [],
+      utxos: [],
+      index: i,
+      network: network as BlockchainNetwork,
+      label: '',
+      summary: {
+        transactions: 0,
+        utxos: 0,
+        balance: 0,
+        satsInMempool: 0
+      }
+    })
+  }
+
+  return addresses
+}
+
 async function getWalletOverview(
   wallet: Wallet,
-  netWork: Network
-): Promise<Pick<Account, 'transactions' | 'utxos' | 'summary'>> {
-  if (wallet) {
-    const [balance, addressInfo, transactionsDetails, localUtxos] =
-      await Promise.all([
-        wallet.getBalance(),
-        wallet.getAddress(AddressIndex.New),
-        wallet.listTransactions(true),
-        wallet.listUnspent()
-      ])
-
-    const transactions = await Promise.all(
-      (transactionsDetails || []).map((transactionDetails) =>
-        parseTransactionDetailsToTransaction(
-          transactionDetails,
-          localUtxos,
-          netWork
-        )
-      )
-    )
-
-    const utxos = await Promise.all(
-      (localUtxos || []).map((localUtxo) =>
-        parseLocalUtxoToUtxo(localUtxo, transactionsDetails, netWork)
-      )
-    )
-
-    return {
-      transactions,
-      utxos,
-      summary: {
-        balance: balance.confirmed,
-        numberOfAddresses: addressInfo.index + 1,
-        numberOfTransactions: transactionsDetails.length,
-        numberOfUtxos: localUtxos.length,
-        satsInMempool: balance.trustedPending + balance.untrustedPending
-      }
-    }
-  } else {
+  network: Network
+): Promise<Pick<Account, 'addresses' | 'transactions' | 'utxos' | 'summary'>> {
+  if (!wallet) {
     return {
       transactions: [],
       utxos: [],
+      addresses: [],
       summary: {
         balance: 0,
         numberOfAddresses: 0,
@@ -423,6 +444,45 @@ async function getWalletOverview(
         numberOfUtxos: 0,
         satsInMempool: 0
       }
+    }
+  }
+
+  const [balance, addressInfo, transactionsDetails, localUtxos] =
+    await Promise.all([
+      wallet.getBalance(),
+      wallet.getAddress(AddressIndex.New),
+      wallet.listTransactions(true),
+      wallet.listUnspent()
+    ])
+
+  const transactions = await Promise.all(
+    (transactionsDetails || []).map((transactionDetails) =>
+      parseTransactionDetailsToTransaction(
+        transactionDetails,
+        localUtxos,
+        network
+      )
+    )
+  )
+
+  const utxos = await Promise.all(
+    (localUtxos || []).map((localUtxo) =>
+      parseLocalUtxoToUtxo(localUtxo, transactionsDetails, network)
+    )
+  )
+
+  const addresses = await getWalletAddresses(wallet, network)
+
+  return {
+    addresses,
+    transactions,
+    utxos,
+    summary: {
+      balance: balance.confirmed,
+      numberOfAddresses: addressInfo.index + 1,
+      numberOfTransactions: transactionsDetails.length,
+      numberOfUtxos: localUtxos.length,
+      satsInMempool: balance.trustedPending + balance.untrustedPending
     }
   }
 }
@@ -536,6 +596,41 @@ async function getAddress(utxo: LocalUtxo, network: Network) {
   const script = utxo.txout.script
   const address = await new Address().fromScript(script, network)
   return address.asString()
+}
+
+export async function getTransactionInputValues(
+  tx: Transaction,
+  backend: Backend,
+  network: BlockchainNetwork,
+  url: string
+): Promise<Transaction['vin']> {
+  let mustFetchData = false
+
+  for (const input of tx.vin) {
+    if (input.value === undefined) {
+      mustFetchData = true
+      break
+    }
+  }
+
+  if (!mustFetchData) {
+    return tx.vin
+  }
+
+  let vin: Transaction['vin'] = []
+
+  if (backend === 'electrum') {
+    const electrumClient = await ElectrumClient.fromUrl(url, network)
+    vin = await electrumClient.getTxInputValues(tx)
+    electrumClient.close()
+  }
+
+  if (backend === 'esplora') {
+    const esploraClient = new Esplora(url)
+    vin = await esploraClient.getTxInputValues(tx.id)
+  }
+
+  return vin
 }
 
 async function getFingerprint(
