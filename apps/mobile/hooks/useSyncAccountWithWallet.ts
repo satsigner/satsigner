@@ -9,6 +9,7 @@ import { getBlockchainConfig } from '@/config/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { formatTimestamp } from '@/utils/format'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function useSyncAccountWithWallet() {
@@ -36,6 +37,9 @@ function useSyncAccountWithWallet() {
     for (const utxo of account.utxos) {
       labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
     }
+    for (const address of account.addresses) {
+      labelsBackup[address.address] = address.label || ''
+    }
 
     await syncWallet(
       wallet,
@@ -47,9 +51,13 @@ function useSyncAccountWithWallet() {
 
     const updatedAccount: Account = { ...account }
 
+    updatedAccount.addresses = walletSummary.addresses
+    updatedAccount.summary = walletSummary.summary
     updatedAccount.transactions = walletSummary.transactions
     updatedAccount.utxos = walletSummary.utxos
-    updatedAccount.summary = walletSummary.summary
+
+    // attach additional information to the account addresses
+    updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
 
     //Labels update
     for (const index in updatedAccount.utxos) {
@@ -60,6 +68,10 @@ function useSyncAccountWithWallet() {
       const transactionRef = updatedAccount.transactions[index].id
       updatedAccount.transactions[index].label =
         labelsBackup[transactionRef] || ''
+    }
+    for (const index in updatedAccount.addresses) {
+      const addressRef = updatedAccount.addresses[index].address
+      updatedAccount.addresses[index].label = labelsBackup[addressRef] || ''
     }
 
     //Extract timestamps

@@ -377,7 +377,7 @@ async function getBlockchain(
   return blockchain
 }
 
-export async function getWalletAddresses(
+async function getWalletAddresses(
   wallet: Wallet,
   network: Network,
   count = 10
@@ -598,7 +598,7 @@ async function getAddress(utxo: LocalUtxo, network: Network) {
   return address.asString()
 }
 
-export async function getTransactionInputValues(
+async function getTransactionInputValues(
   tx: Transaction,
   backend: Backend,
   network: BlockchainNetwork,
@@ -721,6 +721,8 @@ export {
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   getLastUnusedAddressFromWallet,
+  getTransactionInputValues,
+  getWalletAddresses,
   getWalletData,
   getWalletFromDescriptor,
   getWalletFromMnemonic,

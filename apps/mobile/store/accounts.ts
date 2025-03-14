@@ -19,7 +19,6 @@ type AccountsAction = {
   updateAccountName: (id: Account['id'], newName: string) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
-  loadAddresses: (account: Account, addresses: Account['addresses']) => void
   loadTx: (accountId: Account['id'], tx: Transaction) => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
@@ -80,55 +79,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       deleteAccounts: () => {
         set(() => ({ accounts: [] }))
-      },
-      loadAddresses: (account, addresses) => {
-        const labelsDictionary: Record<string, string> = {}
-
-        account.addresses.forEach((addr) => {
-          return (labelsDictionary[addr.address] = addr.label)
-        })
-
-        const { scriptVersion } = account.keys[0]
-        const addrList = [...addresses]
-
-        const addrDictionary: Record<string, number> = {}
-
-        for (let i = 0; i < addrList.length; i += 1) {
-          addrDictionary[addrList[i].address] = i
-          addrList[i].scriptVersion = scriptVersion
-          addrList[i].summary.utxos = 0
-          addrList[i].summary.balance = 0
-          addrList[i].summary.satsInMempool = 0
-          addrList[i].summary.transactions = 0
-        }
-
-        for (const tx of account.transactions) {
-          for (const output of tx.vout) {
-            if (addrDictionary[output.address] === undefined) continue
-            const index = addrDictionary[output.address]
-            addrList[index].summary.transactions += 1
-            addrList[index].transactions.push(tx.id)
-          }
-        }
-
-        for (const utxo of account.utxos) {
-          if (!utxo.addressTo || addrDictionary[utxo.addressTo] === undefined)
-            continue
-          const index = addrDictionary[utxo.addressTo]
-          addrList[index].summary.utxos += 1
-          addrList[index].summary.balance += utxo.value
-          addrList[index].utxos.push(getUtxoOutpoint(utxo))
-        }
-
-        set(
-          produce((state: AccountsState) => {
-            const index = state.accounts.findIndex(
-              (_account) => _account.name === account.name
-            )
-            if (index !== -1) state.accounts[index].addresses = addrList
-          })
-        )
-        return addrList
       },
       loadTx: async (accountId, tx) => {
         const txid = tx.id

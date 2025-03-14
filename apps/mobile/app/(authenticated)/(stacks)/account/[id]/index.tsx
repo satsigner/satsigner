@@ -28,6 +28,7 @@ import {
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import {
   SSIconBubbles,
   SSIconCamera,
@@ -76,7 +77,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { getLastUnusedAddressFromWallet } from '@/api/bdk'
+import { Network } from 'bdk-rn/lib/lib/enums'
 
 type TotalTransactionsProps = {
   account: Account
@@ -244,9 +245,11 @@ function ChildAccounts({
   setSortDirection,
   perPage = 10
 }: ChildAccountsProps) {
-  const getLastUsedWallet = getLastUnusedAddressFromWallet
+  const wallet = useWalletsStore((state) => state.wallets[account.id])
+  const network = useBlockchainStore((state) => state.network) as Network
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
+
   const [addressPath, setAddressPath] = useState('')
-  const loadAddresses = useAccountsStore((state) => state.loadAddresses)
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
@@ -262,9 +265,9 @@ function ChildAccounts({
   }
 
   async function refreshAddresses() {
-    setAddresses(
-      (await loadAddresses(account, addressCount, true)).slice(0, addressCount)
-    )
+    const addresses = await getWalletAddresses(wallet!, network!, addressCount)
+    setAddresses(addresses.slice(0, addressCount))
+    updateAccount({ ...account, addresses })
   }
 
   async function loadMoreAddresses() {
@@ -273,19 +276,36 @@ function ChildAccounts({
       addresses.length < addressCount ? addressCount : addressCount + perPage
     setAddressCount(newAddressCount)
     setLoadingAddresses(true)
-    const addrList = await loadAddresses(account, newAddressCount, true)
-    setAddresses(addrList.slice(0, newAddressCount))
+
+    const addrList = await getWalletAddresses(
+      wallet!,
+      network!,
+      newAddressCount
+    )
+
+    updateAccount({...account, addresses: addrList })
+    setAddresses(addrList)
     setLoadingAddresses(false)
   }
 
   async function updateAddresses() {
     if (hasLoadMoreAddresses) return
-    const result = await getLastUsedWallet(wallet)
+    const result = await getLastUnusedAddressFromWallet(wallet!)
+
     if (!result) return
     const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
-    const newAddresses = await loadAddresses(account, minItems, true)
+
+    if (minItems <= addressCount) return
+
+    if (account.addresses.length >= addressCount) {
+      setAddresses(account.addresses.slice(0, addressCount))
+      return
+    }
+
+    const newAddresses = await getWalletAddresses(wallet!, network!, minItems)
     setAddressCount(minItems)
-    setAddresses(newAddresses.slice(0, minItems))
+    setAddresses(newAddresses)
+    updateAccount({...account, addresses: newAddresses })
   }
 
   useEffect(() => {
