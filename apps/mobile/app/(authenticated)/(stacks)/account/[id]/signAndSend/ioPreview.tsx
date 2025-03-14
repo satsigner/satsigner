@@ -12,11 +12,13 @@ import SSButton from '@/components/SSButton'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
-import SSSankeyDiagram from '@/components/SSSankeyDiagram'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
+import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -27,9 +29,9 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 
-const MINING_FEE_VALUE = 1635
+const DEEP_LEVEL = 2 // how deep the tx history
 
 export default function IOPreview() {
   const router = useRouter()
@@ -50,6 +52,12 @@ export default function IOPreview() {
         state.setFeeRate
       ])
     )
+
+  const { transactions, loading, error } = usePreviousTransactions(
+    inputs,
+    DEEP_LEVEL
+  )
+
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -58,7 +66,6 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithms>('user')
 
-  const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
@@ -101,109 +108,37 @@ export default function IOPreview() {
     setOutputLabel('')
   }
 
-  function handleAddOutputAndClose() {
-    addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
-    setAddOutputModalVisible(false)
-  }
-
   function handleSetFeeRate() {
     setFeeRate(localFeeRate)
     changeFeeBottomSheetRef.current?.close()
   }
 
-  const sankeyNodes = useMemo(() => {
-    if (inputs.size > 0) {
-      const inputNodes = Array.from(inputs.entries()).map(
-        ([, input], index) => ({
-          id: String(index + 1),
-          indexC: index + 1,
-          type: 'text',
-          depthH: 1,
-          textInfo: [
-            `${input.value}`,
-            `${formatAddress(input.txid, 3)}`,
-            input.label ?? ''
-          ],
-          value: input.value
-        })
-      )
+  const { nodes, links } = useNodesAndLinks({
+    transactions,
+    inputs,
+    outputs,
+    utxosSelectedValue
+  })
 
-      const blockNode = [
-        {
-          id: String(inputs.size + 1),
-          indexC: inputs.size + 1,
-          type: 'block',
-          depthH: 2,
-          textInfo: ['', '', '1533 B', '1509 vB']
-        }
-      ]
-
-      const miningFee = `${MINING_FEE_VALUE}`
-      const priority = '42 sats/vB'
-      const outputNodes = [
-        {
-          id: String(inputs.size + 2),
-          indexC: inputs.size + 2,
-          type: 'text',
-          depthH: 3,
-          textInfo: [
-            'Unspent',
-            `${utxosSelectedValue - MINING_FEE_VALUE - 5000}`,
-            'to'
-          ],
-          value: utxosSelectedValue - MINING_FEE_VALUE - 5000
-        },
-        {
-          id: String(inputs.size + 2),
-          indexC: inputs.size + 2,
-          type: 'text',
-          depthH: 3,
-          textInfo: [`5000`, 'to test'],
-          value: 5000
-        },
-        {
-          id: String(inputs.size + 3),
-          indexC: inputs.size + 3,
-          type: 'text',
-          depthH: 3,
-          textInfo: [priority, miningFee, 'mining fee'],
-          value: MINING_FEE_VALUE
-        }
-      ]
-      return [...inputNodes, ...blockNode, ...outputNodes]
-    } else {
-      return []
-    }
-  }, [inputs, utxosSelectedValue])
-
-  const sankeyLinks = useMemo(() => {
-    if (inputs.size === 0) return []
-
-    const inputToBlockLinks = Array.from(inputs.entries()).map(
-      ([, input], index) => ({
-        source: String(index + 1),
-        target: String(inputs.size + 1),
-        value: input.value
-      })
+  if (loading && inputs.size > 0) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText>Loading transaction details...</SSText>
+      </SSVStack>
     )
+  }
 
-    const blockToOutputLinks = [
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 2),
-        value: utxosSelectedValue - MINING_FEE_VALUE
-      },
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 3),
-        value: MINING_FEE_VALUE
-      }
-    ]
+  if (error) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText color="muted">
+          Error loading transaction details: {error.message}
+        </SSText>
+      </SSVStack>
+    )
+  }
 
-    return [...inputToBlockLinks, ...blockToOutputLinks]
-  }, [inputs, utxosSelectedValue])
-
-  if (!sankeyNodes.length || !sankeyLinks.length) return <Redirect href="/" />
+  if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
     <View style={{ flex: 1 }}>
@@ -274,11 +209,12 @@ export default function IOPreview() {
         </SSVStack>
       </LinearGradient>
       <View style={{ position: 'absolute', top: 80 }}>
-        <SSSankeyDiagram
-          sankeyNodes={sankeyNodes}
-          sankeyLinks={sankeyLinks}
-          inputCount={inputs.size ?? 0}
-        />
+        {transactions.size > 0 &&
+        inputs.size > 0 &&
+        nodes?.length > 0 &&
+        links?.length > 0 ? (
+          <SSMultipleSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
+        ) : null}
       </View>
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
@@ -374,7 +310,7 @@ export default function IOPreview() {
                 gap="xs"
                 style={{ alignItems: 'baseline', justifyContent: 'center' }}
               >
-                <SSText weight="medium">{formatNumber(outputAmount)}</SSText>
+                <SSText weight="medium">{formatNumber(remainingSats)}</SSText>
                 <SSText color="muted" size="sm">
                   {t('bitcoin.sats')}
                 </SSText>
@@ -522,78 +458,24 @@ export default function IOPreview() {
         />
       </SSBottomSheet>
       <SSModal
-        visible={addOutputModalVisible}
+        visible={cameraModalVisible}
         fullOpacity
-        onClose={() => setAddOutputModalVisible(false)}
+        onClose={() => setCameraModalVisible(false)}
       >
         <SSText color="muted" uppercase>
-          {t('transaction.build.add.output.title')}
+          {t('camera.scanQRCode')}
         </SSText>
-        <SSTextInput
-          value={outputTo}
-          placeholder={t('transaction.address')}
-          align="left"
-          actionRight={
-            <SSIconButton onPress={() => setCameraModalVisible(true)}>
-              <SSIconScan />
-            </SSIconButton>
-          }
-          onChangeText={(text) => setOutputTo(text)}
+        <CameraView
+          onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          style={{ width: 340, height: 340 }}
         />
-        <SSVStack gap="none" itemsCenter style={{ width: '100%' }}>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="2xl" weight="medium">
-              {formatNumber(outputAmount)}
-            </SSText>
-            <SSText color="muted" size="lg">
-              {t('bitcoin.sats')}
-            </SSText>
-          </SSHStack>
-          <SSText style={{ color: Colors.gray[600] }}>
-            {t('common.max')} {formatNumber(utxosSelectedValue)}{' '}
-            {t('bitcoin.sats')}
-          </SSText>
-          <SSSlider
-            min={1}
-            max={utxosSelectedValue}
-            value={outputAmount}
-            step={100}
-            onValueChange={(value) => setOutputAmount(value)}
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
           />
-          <SSVStack style={{ width: '100%' }}>
-            <SSTextInput
-              placeholder={t('transaction.build.add.label.title')}
-              align="left"
-              onChangeText={(text) => setOutputLabel(text)}
-            />
-            <SSButton
-              label={t('common.continue')}
-              variant="secondary"
-              disabled={!outputTo || !outputAmount || !outputLabel}
-              onPress={() => handleAddOutputAndClose()}
-            />
-          </SSVStack>
-        </SSVStack>
-        <SSModal
-          visible={cameraModalVisible}
-          fullOpacity
-          onClose={() => setCameraModalVisible(false)}
-        >
-          <SSText color="muted" uppercase>
-            {t('camera.scanQRCode')}
-          </SSText>
-          <CameraView
-            onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
-          />
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
-            />
-          )}
-        </SSModal>
+        )}
       </SSModal>
     </View>
   )

@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletOverview, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { formatTimestamp } from '@/utils/format'
@@ -13,6 +14,7 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function useSyncAccountWithWallet() {
+  const setIsSyncing = useAccountsStore((state) => state.setIsSyncing)
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
       state.backend,
@@ -28,6 +30,7 @@ function useSyncAccountWithWallet() {
 
   async function syncAccountWithWallet(account: Account, wallet: Wallet) {
     setLoading(true)
+    setIsSyncing(account.id, true)
 
     // Labels backup
     const labelsBackup: Record<string, string> = {}
@@ -89,6 +92,7 @@ function useSyncAccountWithWallet() {
     }
 
     setLoading(false)
+    setIsSyncing(account.id, false)
 
     return updatedAccount
   }
