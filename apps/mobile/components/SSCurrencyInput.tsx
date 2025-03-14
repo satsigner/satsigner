@@ -99,6 +99,7 @@ function SSCurrencyInput(
   function handleTextChange(text: string) {
     if (text === '') {
       setLocalValue('0')
+      if (onChangeValue) onChangeValue(0)
       return
     }
 
