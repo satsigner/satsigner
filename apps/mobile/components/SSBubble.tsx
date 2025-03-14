@@ -180,7 +180,7 @@ function SSBubble({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
       })
-      .addText(`${t('common.memo').toLowerCase()}`)
+      .addText(`${t('common.label').toLowerCase()}`)
       .pushStyle({
         ...textStyle,
         fontStyle: {

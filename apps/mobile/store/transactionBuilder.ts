@@ -14,6 +14,9 @@ type TransactionBuilderState = {
   inputs: Map<ReturnType<typeof getUtxoOutpoint>, Utxo>
   outputs: Output[]
   feeRate: number
+  timeLock: number
+  rbf: boolean
+  cpfp: boolean
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
 }
@@ -25,9 +28,13 @@ type TransactionBuilderAction = {
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
   addOutput: (output: Omit<Output, 'localId'>) => void
-  setFeeRate: (feeRate: number) => void
-  setTxBuilderResult: (txBuilderResult: TxBuilderResult) => void
-  setPsbt: (pbst: PartiallySignedTransaction) => void
+  setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
+  setRbf: (rbf: TransactionBuilderState['rbf']) => void
+  setCpfp: (rbf: TransactionBuilderState['cpfp']) => void
+  setTxBuilderResult: (
+    txBuilderResult: NonNullable<TransactionBuilderState['txBuilderResult']>
+  ) => void
+  setPsbt: (pbst: NonNullable<TransactionBuilderState['psbt']>) => void
 }
 
 const useTransactionBuilderStore = create<
@@ -36,6 +43,9 @@ const useTransactionBuilderStore = create<
   inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
   outputs: [],
   feeRate: 0,
+  timeLock: 0,
+  rbf: true,
+  cpfp: true,
   clearTransaction: () => {
     set({
       inputs: new Map<ReturnType<typeof getUtxoOutpoint>, Utxo>(),
@@ -74,6 +84,12 @@ const useTransactionBuilderStore = create<
   },
   setFeeRate: (feeRate) => {
     set({ feeRate })
+  },
+  setRbf: (rbf) => {
+    set({ rbf })
+  },
+  setCpfp: (cpfp) => {
+    set({ cpfp })
   },
   setTxBuilderResult: (txBuilderResult) => {
     set({ txBuilderResult })

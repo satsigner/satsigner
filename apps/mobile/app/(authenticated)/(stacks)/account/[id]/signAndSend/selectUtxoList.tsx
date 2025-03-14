@@ -34,7 +34,7 @@ export default function SelectUtxoList() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore(
-    (state) => state.accounts.find((account) => account.name === id)!
+    (state) => state.accounts.find((account) => account.id === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
   const [inputs, getInputs, hasInput, addInput, removeInput] =
@@ -111,7 +111,7 @@ export default function SelectUtxoList() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
       <SSMainLayout style={{ flex: 0 }}>

@@ -1,88 +1,92 @@
-import { Stack, useRouter } from 'expo-router'
+import { type Network } from 'bdk-rn/lib/lib/enums'
+import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { generateMnemonic, getFingerprint } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import {
-  type Account,
-  type MultisigParticipant,
-  type SeedWordCountType
-} from '@/types/models/Account'
+import { useBlockchainStore } from '@/store/blockchain'
+import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
-export default function ParticipantOptions() {
+export default function SingleSig() {
   const router = useRouter()
   const [
     name,
-    participantCreationType,
     setScriptVersion,
-    setSeedWordCount,
-    generateMnemonic,
-    setParticipantName
+    setMnemonicWordCount,
+    setMnemonic,
+    setFingerprint,
+    setKeyCount,
+    setKeysRequired,
+    setCreationType
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.participantCreationType,
       state.setScriptVersion,
-      state.setSeedWordCount,
-      state.generateMnemonic,
-      state.setParticipantName
+      state.setMnemonicWordCount,
+      state.setMnemonic,
+      state.setFingerprint,
+      state.setKeyCount,
+      state.setKeysRequired,
+      state.setCreationType
     ])
   )
+  const network = useBlockchainStore((state) => state.network)
 
   const [localScriptVersion, setLocalScriptVersion] =
-    useState<NonNullable<Account['scriptVersion']>>('P2WPKH')
-  const [localSeedWordCount, setLocalSeedWordCount] =
-    useState<NonNullable<Account['seedWordCount']>>(24)
-  const [localKeyName, setLocalKeyName] =
-    useState<NonNullable<MultisigParticipant['keyName']>>('')
+    useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
+  const [localMnemonicWordCount, setLocalMnemonicWordCount] =
+    useState<NonNullable<Key['mnemonicWordCount']>>(24)
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
-  const [seedWordCountModalVisible, setSeedWordCountModalVisibile] =
+  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
     useState(false)
 
   const [loading, setLoading] = useState(false)
 
-  function getSeedWordCountButtonLabel() {
-    return `${localSeedWordCount} ${t('bitcoin.words').toLowerCase()}`
-  }
-
-  function getContinueButtonLabel() {
-    if (participantCreationType === 'generate')
-      return t('account.generate.title')
-    else if (participantCreationType === 'importseed')
-      return t('account.import.title').replace(' ', '')
-    return ''
-  }
-
-  async function handleOnPressConfirmAccountOptions() {
+  async function handleOnPress(type: NonNullable<Key['creationType']>) {
+    setCreationType(type)
     setScriptVersion(localScriptVersion)
-    setSeedWordCount(localSeedWordCount)
-    setParticipantName(localKeyName)
-    if (participantCreationType === 'generate') {
+    setMnemonicWordCount(localMnemonicWordCount)
+    setKeyCount(1)
+    setKeysRequired(1)
+
+    if (type === 'generateMnemonic') {
       setLoading(true)
-      await generateMnemonic(localSeedWordCount)
+
+      const mnemonic = await generateMnemonic(localMnemonicWordCount)
+      setMnemonic(mnemonic)
+
+      const fingerprint = await getFingerprint(
+        mnemonic,
+        undefined,
+        network as Network
+      )
+      setFingerprint(fingerprint)
+
       setLoading(false)
-      router.replace('/addMasterKey/generateSeed')
-    } else if (participantCreationType === 'importseed')
-      router.replace('/addMasterKey/importSeed')
+      router.navigate('/account/add/generate/mnemonic/0')
+    } else if (type === 'importMnemonic')
+      router.navigate('/account/add/import/mnemonic/0')
   }
 
-  function handleOnSelectSeedWordCount() {
-    setLocalSeedWordCount(localSeedWordCount)
-    setSeedWordCountModalVisibile(false)
+  function handleOnSelectMnemonicWordCount() {
+    setLocalMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordCountModalVisibile(false)
   }
+
+  if (!name) return <Redirect href="/" />
 
   return (
     <SSMainLayout>
@@ -95,11 +99,10 @@ export default function ParticipantOptions() {
         <SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.participant.keyName')} />
-              <SSTextInput
-                value={localKeyName}
-                onChangeText={setLocalKeyName}
-              />
+              <SSFormLayout.Label label={t('account.policy.title')} />
+              <SSText center weight="bold">
+                {t('account.policy.singleSignature.title').toUpperCase()}
+              </SSText>
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
@@ -112,25 +115,27 @@ export default function ParticipantOptions() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSButton
-                label={getSeedWordCountButtonLabel()}
+                label={`${localMnemonicWordCount} ${t('bitcoin.words').toLowerCase()}`}
                 withSelect
-                onPress={() => setSeedWordCountModalVisibile(true)}
+                onPress={() => setMnemonicWordCountModalVisibile(true)}
               />
             </SSFormLayout.Item>
           </SSFormLayout>
         </SSVStack>
         <SSVStack>
           <SSButton
-            label={getContinueButtonLabel()}
+            label={t('account.import.title2')}
+            onPress={() => handleOnPress('importMnemonic')}
+          />
+          <SSButton
+            label={t('account.generate.title')}
             variant="secondary"
             loading={loading}
-            disabled={!localKeyName.length}
-            onPress={() => handleOnPressConfirmAccountOptions()}
+            onPress={() => handleOnPress('generateMnemonic')}
           />
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            disabled={!localKeyName.length}
             onPress={() => router.navigate('/')}
           />
         </SSVStack>
@@ -138,30 +143,27 @@ export default function ParticipantOptions() {
       <SSScriptVersionModal
         visible={scriptVersionModalVisible}
         scriptVersion={localScriptVersion}
-        onCancel={() => setScriptVersionModalVisible(false)}
         onSelect={(scriptVersion) => {
           setLocalScriptVersion(scriptVersion)
           setScriptVersionModalVisible(false)
         }}
+        onCancel={() => setScriptVersionModalVisible(false)}
       />
       <SSSelectModal
-        visible={seedWordCountModalVisible}
+        visible={mnemonicWordCountModalVisible}
         title={t('account.mnemonic.title')}
-        selectedText={`${localSeedWordCount} ${t('bitcoin.words')}`}
-        selectedDescription={t(`account.mnemonic.${localSeedWordCount}`)}
-        onSelect={() => handleOnSelectSeedWordCount()}
-        onCancel={() => setSeedWordCountModalVisibile(false)}
+        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
+        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        onSelect={handleOnSelectMnemonicWordCount}
+        onCancel={() => setMnemonicWordCountModalVisibile(false)}
       >
-        {[24, 21, 18, 15, 12].map((count) => (
+        {([24, 21, 18, 15, 12] as const).map((count) => (
           <SSRadioButton
             key={count}
             label={`${count} ${t('bitcoin.words').toLowerCase()}`}
-            selected={localSeedWordCount === count}
+            selected={localMnemonicWordCount === count}
             onPress={() =>
-              setStateWithLayoutAnimation(
-                setLocalSeedWordCount,
-                count as SeedWordCountType
-              )
+              setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
             }
           />
         ))}

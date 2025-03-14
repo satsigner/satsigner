@@ -27,7 +27,7 @@ export default function ExportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.name === accountId)
+    state.accounts.find((_account) => _account.id === accountId)
   )
 
   const [exportType, setExportType] = useState<Bip329FileType>('JSONL')

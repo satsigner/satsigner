@@ -19,10 +19,10 @@ export default function UtxoDetails() {
 
   const [tx, utxo] = useAccountsStore((state) => [
     state.accounts
-      .find((account) => account.name === accountId)
+      .find((account) => account.id === accountId)
       ?.transactions.find((tx) => tx.id === txid),
     state.accounts
-      .find((account) => account.name === accountId)
+      .find((account) => account.id === accountId)
       ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout))
   ])
 
