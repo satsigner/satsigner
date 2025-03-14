@@ -1,12 +1,13 @@
 import { Stack, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
-import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -15,40 +16,33 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 
 export default function ConfirmScreen() {
-  const [rotation, setRotation] = useState<number>(0)
-  const [completed, setCompleted] = useState<boolean>(false)
-  const accountName = useRef<string>('')
   const router = useRouter()
-  const [loadWallet, getAccount] = useAccountBuilderStore(
-    useShallow((state) => [state.loadWallet, state.getAccount])
-  )
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
+  const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { accountBuilderFinish } = useAccountBuilderFinish()
+
+  const [rotation, setRotation] = useState(0)
+  const [completed, setCompleted] = useState(false)
+
+  const [accountId, setAccountId] = useState<string>()
 
   const createMultisigWallet = useCallback(async () => {
-    try {
-      setTimeout(() => {
-        setCompleted(true)
-      }, 30000)
-      const wallet = await loadWallet()
-      const account = getAccount()
-      accountName.current = account.name
-      await addAccount(account)
-      const syncedAccount = await syncWallet(wallet, account)
-      await updateAccount(syncedAccount)
-      setTimeout(() => {
-        setCompleted(true)
-      }, 2000)
-    } catch {
-      //
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const account = getAccountData()
+    setAccountId(account.id)
+
+    const data = await accountBuilderFinish(account)
+    if (!data) return
+
+    const updatedAccount = await syncAccountWithWallet(
+      data.accountWithEncryptedSecret,
+      data.wallet!
+    )
+    updateAccount(updatedAccount)
+    setCompleted(true)
+
+    // TODO: wrap around try catch and show error notification with sonner
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function rotate() {
     if (completed) return
@@ -58,20 +52,15 @@ export default function ConfirmScreen() {
     }, 50)
   }
 
+  function handleGoToWallet() {
+    router.dismissAll()
+    if (accountId) router.navigate(`/account/${accountId}`)
+  }
+
   useEffect(() => {
     rotate()
     createMultisigWallet()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  function handleViewAllWallet() {
-    router.dismissAll()
-  }
-
-  function handleGoToWallet() {
-    router.dismissAll()
-    router.navigate(`/account/${accountName.current}`)
-  }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSMainLayout style={{ paddingHorizontal: 0 }}>
@@ -124,10 +113,10 @@ export default function ConfirmScreen() {
         {completed && (
           <SSVStack>
             <SSButton
-              label={t('account.multisig.viewAllWallet')}
+              label={t('account.multisig.viewAllWallets')}
               variant="outline"
               uppercase
-              onPress={handleViewAllWallet}
+              onPress={() => router.dismissAll()}
             />
             <SSButton
               label={t('account.multisig.gotoWallet')}

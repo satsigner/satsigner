@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
+import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
 import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
@@ -11,7 +11,7 @@ import SSRadioButton from './SSRadioButton'
 import SSSelectModal from './SSSelectModal'
 import SSText from './SSText'
 
-type ScriptVersion = NonNullable<Account['scriptVersion']>
+type ScriptVersion = NonNullable<Key['scriptVersion']>
 
 const scriptVersions: ScriptVersion[] = [
   'P2PKH',

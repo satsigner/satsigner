@@ -21,6 +21,7 @@ type AuthState = {
   pinMaxTries: number
   pageHistory: string[]
   skipPin: boolean
+  justUnlocked: boolean
 }
 
 type AuthAction = {
@@ -37,6 +38,7 @@ type AuthAction = {
   markPageVisited: (page: PageRoute) => void
   getPagesHistory: () => string[]
   clearPageHistory: () => void
+  setJustUnlocked: (justUnlocked: AuthState['justUnlocked']) => void
 }
 
 const useAuthStore = create<AuthState & AuthAction>()(
@@ -50,6 +52,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
       pageHistory: [],
       skipPin: false,
+      justUnlocked: false,
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
       },
@@ -109,6 +112,9 @@ const useAuthStore = create<AuthState & AuthAction>()(
       },
       clearPageHistory() {
         set({ pageHistory: [] })
+      },
+      setJustUnlocked(justUnlocked) {
+        set({ justUnlocked })
       }
     }),
     {
