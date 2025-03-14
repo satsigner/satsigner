@@ -40,14 +40,16 @@ export default function IOPreview() {
     (state) => state.accounts.find((account) => account.id === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [inputs, outputs, getInputs, addOutput] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.inputs,
-      state.outputs,
-      state.getInputs,
-      state.addOutput
-    ])
-  )
+  const [inputs, outputs, getInputs, addOutput, setFeeRate] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.inputs,
+        state.outputs,
+        state.getInputs,
+        state.addOutput,
+        state.setFeeRate
+      ])
+    )
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -59,7 +61,7 @@ export default function IOPreview() {
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
 
-  const [feeRate, setFeeRate] = useState(1)
+  const [localFeeRate, setLocalFeeRate] = useState(1)
 
   const addOutputBottomSheetRef = useRef<BottomSheet>(null)
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
@@ -78,15 +80,35 @@ export default function IOPreview() {
   const [outputAmount, setOutputAmount] = useState(1)
   const [outputLabel, setOutputLabel] = useState('')
 
+  const remainingSats = useMemo(
+    () =>
+      utxosSelectedValue -
+      outputs.reduce((acc, output) => acc + output.amount, 0),
+    [utxosSelectedValue, outputs]
+  )
+
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
     setOutputTo(address)
     setCameraModalVisible(false)
   }
 
+  function handleAddOutput() {
+    addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
+    addOutputBottomSheetRef.current?.close()
+    setOutputTo('')
+    setOutputAmount(1)
+    setOutputLabel('')
+  }
+
   function handleAddOutputAndClose() {
     addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
     setAddOutputModalVisible(false)
+  }
+
+  function handleSetFeeRate() {
+    setFeeRate(localFeeRate)
+    changeFeeBottomSheetRef.current?.close()
   }
 
   const sankeyNodes = useMemo(() => {
@@ -312,7 +334,10 @@ export default function IOPreview() {
           <SSButton
             variant="secondary"
             label={t('sign.transaction')}
-            onPress={() => {}}
+            disabled={outputs.length === 0}
+            onPress={() =>
+              router.navigate(`/account/${id}/signAndSend/previewMessage`)
+            }
           />
         </SSVStack>
       </LinearGradient>
@@ -322,8 +347,63 @@ export default function IOPreview() {
           number: outputs.length + 1
         })}
       >
-        <SSVStack gap="xs">
-          <SSText>Placeholder!</SSText>
+        <SSVStack>
+          <SSHStack
+            gap="xs"
+            style={{ alignItems: 'baseline', justifyContent: 'center' }}
+          >
+            <SSText size="3xl" weight="medium">
+              {formatNumber(outputAmount)}
+            </SSText>
+            <SSText color="muted" size="lg">
+              {t('bitcoin.sats')}
+            </SSText>
+          </SSHStack>
+          <SSVStack gap="none">
+            <SSHStack justifyBetween>
+              <SSHStack
+                gap="xs"
+                style={{ alignItems: 'baseline', justifyContent: 'center' }}
+              >
+                <SSText weight="medium">1</SSText>
+                <SSText color="muted" size="sm">
+                  {t('bitcoin.sats')}
+                </SSText>
+              </SSHStack>
+              <SSHStack
+                gap="xs"
+                style={{ alignItems: 'baseline', justifyContent: 'center' }}
+              >
+                <SSText weight="medium">{formatNumber(outputAmount)}</SSText>
+                <SSText color="muted" size="sm">
+                  {t('bitcoin.sats')}
+                </SSText>
+              </SSHStack>
+            </SSHStack>
+            <SSSlider
+              min={1}
+              max={remainingSats}
+              value={outputAmount}
+              step={100}
+              onValueChange={(value) => setOutputAmount(value)}
+            />
+          </SSVStack>
+          <SSTextInput
+            value={outputTo}
+            placeholder={t('transaction.address')}
+            align="left"
+            actionRight={
+              <SSIconButton onPress={() => setCameraModalVisible(true)}>
+                <SSIconScan />
+              </SSIconButton>
+            }
+            onChangeText={(text) => setOutputTo(text)}
+          />
+          <SSTextInput
+            placeholder={t('transaction.build.add.label.title')}
+            align="left"
+            onChangeText={(text) => setOutputLabel(text)}
+          />
           <SSHStack>
             <SSButton
               label={t('transaction.build.remove.output.title')}
@@ -334,6 +414,8 @@ export default function IOPreview() {
               label={t('transaction.build.save.output.title')}
               variant="secondary"
               style={{ flex: 1 }}
+              disabled={!outputTo || !outputAmount || !outputLabel}
+              onPress={handleAddOutput}
             />
           </SSHStack>
           <SSButton
@@ -421,11 +503,22 @@ export default function IOPreview() {
         title={t('transaction.build.update.fee.title')}
       >
         <SSFeeInput
-          value={feeRate}
-          onValueChange={setFeeRate}
+          value={localFeeRate}
+          onValueChange={setLocalFeeRate}
           vbytes={250}
           max={40}
-          estimatedBlock={Math.trunc(40 / feeRate)}
+          estimatedBlock={Math.trunc(40 / localFeeRate)}
+        />
+        <SSButton
+          label={t('transaction.build.set.fee')}
+          variant="secondary"
+          style={{ flex: 1 }}
+          onPress={handleSetFeeRate}
+        />
+        <SSButton
+          label={t('common.cancel')}
+          variant="ghost"
+          onPress={() => changeFeeBottomSheetRef.current?.close()}
         />
       </SSBottomSheet>
       <SSModal

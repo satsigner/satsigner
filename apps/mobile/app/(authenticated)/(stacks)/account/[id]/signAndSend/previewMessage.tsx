@@ -1,5 +1,3 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -13,8 +11,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -33,16 +31,10 @@ export default function PreviewMessage() {
         state.setTxBuilderResult
       ])
     )
-  const [account, loadWalletFromDescriptor, syncWallet, updateAccount] =
-    useAccountsStore(
-      useShallow((state) => [
-        state.accounts.find((account) => account.id === id),
-        state.loadWalletFromDescriptor,
-        state.syncWallet,
-        state.updateAccount
-      ])
-    )
-  const network = useBlockchainStore((state) => state.network)
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.id === id)
+  )
+  const wallet = useWalletsStore((state) => state.wallets[id])
 
   const [messageId, setMessageId] = useState('')
 
@@ -50,25 +42,7 @@ export default function PreviewMessage() {
 
   useEffect(() => {
     async function getTransactionMessage() {
-      if (
-        !account ||
-        !account.externalDescriptor ||
-        !account.internalDescriptor
-      )
-        return
-
-      const [externalDescriptor, internalDescriptor] = await Promise.all([
-        new Descriptor().create(account.externalDescriptor, network as Network),
-        new Descriptor().create(account.internalDescriptor, network as Network)
-      ])
-
-      const wallet = await loadWalletFromDescriptor(
-        externalDescriptor,
-        internalDescriptor
-      )
-
-      const syncedAccount = await syncWallet(wallet, account)
-      await updateAccount(syncedAccount)
+      if (!wallet) return
 
       const transactionMessage = await buildTransaction(wallet, {
         inputs: Array.from(inputs.values()),

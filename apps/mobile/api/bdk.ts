@@ -593,7 +593,7 @@ async function buildTransaction(
     await transactionBuilder.addRecipient(recipient, output.amount)
   }
 
-  await transactionBuilder.feeAbsolute(data.feeRate)
+  await transactionBuilder.feeRate(data.feeRate)
 
   if (data.options.rbf) await transactionBuilder.enableRbf()
 

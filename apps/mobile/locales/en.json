@@ -376,11 +376,13 @@
     "p2wpkh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
     "p2wpkh.name": "Native Segwit"
   },
-  "send": {},
+  "send": {
+    "broadcast": "Broadcast transaction"
+  },
   "sent": {
-    "broadcasted": "Message broadcasted",
+    "broadcasted": "Transaction broadcasted",
     "copyTransactionId": "Copy transaction id",
-    "trackOnChain": "trackOnChain"
+    "trackOnChain": "Track on chain"
   },
   "settings": {
     "about.description": "App version and other versioning information",

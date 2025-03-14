@@ -1,14 +1,10 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  broadcastTransaction,
-  getBlockchain,
-  getWalletFromMnemonic,
-  signTransaction
-} from '@/api/bdk'
+import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
+import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import { getBlockchainConfig } from '@/config/servers'
@@ -18,6 +14,8 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useWalletsStore } from '@/store/wallets'
+import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 
@@ -28,16 +26,13 @@ export default function SignMessage() {
   const [txBuilderResult, psbt, setPsbt] = useTransactionBuilderStore(
     useShallow((state) => [state.txBuilderResult, state.psbt, state.setPsbt])
   )
-  const [account, decryptSeed] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.name === id),
-      state.decryptSeed
-    ])
+  const account = useAccountsStore(
+    useShallow((state) => state.accounts.find((account) => account.id === id))
   )
-  const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
+  const wallet = useWalletsStore((state) => state.wallets[id])
+  const [backend, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
       state.backend,
-      state.network,
       state.retries,
       state.stopGap,
       state.timeout,
@@ -61,8 +56,8 @@ export default function SignMessage() {
 
       if (broadcasted)
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
-    } catch (_err) {
-      // TODO: Handle not broadcasted
+    } catch (err) {
+      toast(String(err))
     } finally {
       setBroadcasting(false)
     }
@@ -70,21 +65,11 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
-      const seed = await decryptSeed(id!)
-
-      if (!seed || !account || !account.scriptVersion || !txBuilderResult)
-        return
-
-      const result = await getWalletFromMnemonic(
-        seed.replace(/,/g, ' '),
-        account.scriptVersion,
-        account.passphrase,
-        network as Network
-      )
+      if (!wallet || !txBuilderResult) return
 
       const partiallySignedTransaction = await signTransaction(
         txBuilderResult,
-        result.wallet
+        wallet
       )
 
       setSigned(true)
@@ -115,6 +100,9 @@ export default function SignMessage() {
             <SSText size="lg">
               {formatAddress(txBuilderResult.txDetails.txid)}
             </SSText>
+            {signed && (
+              <SSIconSuccess width={159} height={159} variant="outline" />
+            )}
           </SSVStack>
           <SSVStack>
             <SSVStack gap="xxs">
@@ -132,7 +120,7 @@ export default function SignMessage() {
           </SSVStack>
           <SSButton
             variant="secondary"
-            label={t('broadcast.transaction')}
+            label={t('send.broadcast')}
             disabled={!signed || !psbt}
             loading={broadcasting}
             onPress={() => handleBroadcastTransaction()}
