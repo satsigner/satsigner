@@ -315,14 +315,7 @@ export function usePreviousTransactions(
       setError(err instanceof Error ? err : new Error(String(err)))
       setLoading(false)
     }
-  }, [
-    inputs,
-    network,
-    levelDeep,
-    skipCache,
-    previousTransactions,
-    addTransactions
-  ])
+  }, [inputs, network, levelDeep, skipCache, addTransactions]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchInputTransactions()

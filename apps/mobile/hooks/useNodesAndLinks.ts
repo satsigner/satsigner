@@ -7,7 +7,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 
 const MINING_FEE_VALUE = 1635
 
-interface Node {
+type Node = {
   id: string
   type: string
   depthH: number
@@ -20,7 +20,7 @@ interface Node {
   prevout?: any
 }
 
-interface Transaction {
+type Transaction = {
   txid: string
   size: number
   weight: number
@@ -42,7 +42,7 @@ interface Transaction {
   depthH: number
 }
 
-interface UseNodesAndLinksProps {
+type UseNodesAndLinksProps = {
   transactions: Map<string, Transaction>
   inputs: Map<string, Utxo>
   outputs: any[]
