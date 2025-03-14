@@ -33,9 +33,7 @@ export default function Converter() {
     useShallow((state) => [state.prices, state.fetchPrices])
   )
 
-  useEffect(() => {
-    fetchPrices()
-  })
+  fetchPrices()
 
   return (
     <>
@@ -77,7 +75,7 @@ export default function Converter() {
           <SSHStack gap="none" style={styles.rowSeparator}>
             <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
               <SSText size="md">
-                {formatNumber(prices.USD * bitcoin, 2, false, ',')}
+                {formatNumber(prices.USD || 0 * bitcoin, 2, false, ',')}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('converter.currency.usd')}
@@ -89,7 +87,7 @@ export default function Converter() {
               style={styles.currencyBlockNoBorder}
             >
               <SSText size="md">
-                {formatNumber(prices.EUR * bitcoin, 2, false, ',')}
+                {formatNumber(prices.EUR || 0 * bitcoin, 2, false, ',')}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('converter.currency.eur')}
@@ -99,7 +97,7 @@ export default function Converter() {
           <SSHStack gap="none" style={styles.rowSeparator}>
             <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
               <SSText size="md">
-                {formatNumber(prices.GBP * bitcoin, 2, false, ',')}
+                {formatNumber(prices.GBP || 0 * bitcoin, 2, false, ',')}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('converter.currency.gbp')}
@@ -111,7 +109,7 @@ export default function Converter() {
               style={styles.currencyBlockNoBorder}
             >
               <SSText size="md">
-                {formatNumber(prices.CAD * bitcoin, 2, false, ',')}
+                {formatNumber(prices.CAD || 0 * bitcoin, 2, false, ',')}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('converter.currency.cad')}
@@ -121,7 +119,7 @@ export default function Converter() {
           <SSHStack gap="none" style={styles.rowSeparator}>
             <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
               <SSText size="md">
-                {formatNumber(prices.CHF * bitcoin, 2, false, ',')}
+                {formatNumber(prices.CHF || 0 * bitcoin, 2, false, ',')}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('converter.currency.chf')}
@@ -133,7 +131,7 @@ export default function Converter() {
               style={styles.currencyBlockNoBorder}
             >
               <SSText size="md">
-                {formatNumber(prices.JPY * bitcoin, 2, false, ',')}
+                {formatNumber(prices.JPY || 0 * bitcoin, 2, false, ',')}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('converter.currency.jpy')}

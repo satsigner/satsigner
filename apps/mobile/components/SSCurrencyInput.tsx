@@ -9,14 +9,6 @@ import { StyleSheet, TextInput, View } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 
-type SSTextInputProps = {
-  variant?: 'default' | 'outline'
-  size?: 'default' | 'small' | 'large'
-  align?: 'center' | 'left'
-  actionRight?: React.ReactNode
-  onChangeValue: any
-} & React.ComponentPropsWithoutRef<typeof TextInput>
-
 const formatNumberWithCommas = (numStr: string) => {
   let rawText = ''
   if (numStr.indexOf('e') !== -1) {
@@ -51,6 +43,14 @@ const formatNumberWithCommas = (numStr: string) => {
   return cleanNum.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
+type SSCurrencyInputProps = {
+  variant?: 'default' | 'outline'
+  size?: 'default' | 'small' | 'large'
+  align?: 'center' | 'left'
+  actionRight?: React.ReactNode
+  onChangeValue: (value: number) => void
+} & React.ComponentPropsWithoutRef<typeof TextInput>
+
 function SSCurrencyInput(
   {
     variant = 'default',
@@ -61,9 +61,30 @@ function SSCurrencyInput(
     onChangeValue,
     style,
     ...props
-  }: SSTextInputProps,
+  }: SSCurrencyInputProps,
   ref: ForwardedRef<TextInput>
 ) {
+  const [localValue, setLocalValue] = useState(value || '')
+
+  function handleTextChange(text: string) {
+    if (text === '') {
+      setLocalValue('0')
+      if (onChangeValue) onChangeValue(0)
+      return
+    }
+
+    const rawValue = text.replace(/,/g, '')
+    if (/^(\d*\.?\d*)$/.test(rawValue)) {
+      const formattedValue = formatNumberWithCommas(rawValue)
+      setLocalValue(formattedValue)
+
+      if (onChangeValue) {
+        const cleanNum = formattedValue.replace(/,/g, '')
+        onChangeValue(parseFloat(cleanNum))
+      }
+    }
+  }
+
   const textInputStyle = useMemo(() => {
     const variantStyle =
       variant === 'default' ? styles.variantDefault : styles.variantOutline
@@ -87,8 +108,6 @@ function SSCurrencyInput(
     return newStyle
   }, [variant, size, align, style])
 
-  const [localValue, setLocalValue] = useState(value || '')
-
   useEffect(() => {
     if (value !== localValue && value !== undefined) {
       const rawValue = value?.replace(/,/g, '')
@@ -96,32 +115,12 @@ function SSCurrencyInput(
     }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleTextChange(text: string) {
-    if (text === '') {
-      setLocalValue('0')
-      if (onChangeValue) onChangeValue(0)
-      return
-    }
-
-    const rawValue = text.replace(/,/g, '')
-    if (/^(\d*\.?\d*)$/.test(rawValue)) {
-      const formattedValue = formatNumberWithCommas(rawValue)
-      setLocalValue(formattedValue)
-
-      if (onChangeValue) {
-        const cleanNum = formattedValue.replace(/,/g, '')
-        onChangeValue(parseFloat(cleanNum))
-      }
-    }
-  }
-
   return (
     <View style={styles.containerBase}>
       <TextInput
         ref={ref}
         value={localValue}
         onChangeText={handleTextChange}
-        // onSubmitEditing={handleSubmitText}
         keyboardType="numeric"
         placeholderTextColor={Colors.gray[400]}
         style={textInputStyle}
