@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
+import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -16,10 +17,16 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
+  setIsSyncing: (
+    id: Account['id'],
+    isSyncing: NonNullable<Account['isSyncing']>
+  ) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
+  loadTx: (accountId: Account['id'], tx: Transaction) => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
+  setAddrLabel: (account: string, addr: string, label: string) => void
   setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
   setUtxoLabel: (
     accountId: Account['id'],
@@ -27,7 +34,7 @@ type AccountsAction = {
     vout: number,
     label: string
   ) => void
-  importLabels: (accountId: Account['id'], labels: Label[]) => void
+  importLabels: (account: string, labels: Label[]) => number
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -62,6 +69,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
+      setIsSyncing: (id, isSyncing) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) state.accounts[index].isSyncing = isSyncing
+          })
+        )
+      },
       deleteAccount: (id) => {
         set(
           produce((state: AccountsState) => {
@@ -77,11 +94,51 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       deleteAccounts: () => {
         set(() => ({ accounts: [] }))
       },
+      loadTx: async (accountId, tx) => {
+        const txid = tx.id
+        const accounts = get().accounts
+        const accountIndex = accounts.findIndex(
+          (account) => account.name === accountId
+        )
+
+        if (accountIndex === -1) return
+
+        const account = accounts[accountIndex]
+        const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
+
+        if (txIndex === -1) return
+
+        set(
+          produce((state) => {
+            state.accounts[accountIndex].transactions[txIndex] = tx
+          })
+        )
+      },
       getTags: () => {
         return get().tags
       },
       setTags: (tags: string[]) => {
         set({ tags })
+      },
+      setAddrLabel: (accountName, addr, label) => {
+        const account = get().accounts.find(
+          (account) => account.name === accountName
+        )
+        if (!account) return
+
+        const addrIndex = account.addresses.findIndex(
+          (address) => address.address === addr
+        )
+        if (addrIndex === -1) return
+
+        set(
+          produce((state) => {
+            const index = state.accounts.findIndex(
+              (account: Account) => account.name === accountName
+            )
+            state.accounts[index].addresses[addrIndex].label = label
+          })
+        )
       },
       setTxLabel: (accountId, txid, label) => {
         const account = get().accounts.find(
@@ -126,10 +183,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
 
-        if (!account) return
+        if (!account) return 0
 
         const transactionMap: Record<string, number> = {}
         const utxoMap: Record<string, number> = {}
+        const addressMap: Record<string, number> = {}
 
         account.transactions.forEach((tx, index) => {
           transactionMap[tx.id] = index
@@ -137,6 +195,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         account.utxos.forEach((utxo, index) => {
           utxoMap[getUtxoOutpoint(utxo)] = index
         })
+        account.addresses.forEach((address, index) => {
+          addressMap[address.address] = index
+        })
+
+        let labelsAdded = 0
 
         set(
           produce((state) => {
@@ -145,20 +208,28 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             )
             labels.forEach((labelObj) => {
               const label = labelObj.label
-
               if (labelObj.type === 'tx') {
                 if (!transactionMap[labelObj.ref]) return
                 const txIndex = transactionMap[labelObj.ref]
                 state.accounts[index].transactions[txIndex].label = label
+                labelsAdded += 1
               }
               if (labelObj.type === 'output') {
                 if (!utxoMap[labelObj.ref]) return
                 const utxoIndex = utxoMap[labelObj.ref]
                 state.accounts[index].utxos[utxoIndex].label = label
+                labelsAdded += 1
+              }
+              if (labelObj.type === 'addr') {
+                if (!addressMap[labelObj.ref]) return
+                const addrIndex = addressMap[labelObj.ref]
+                state.accounts[index].addresses[addrIndex].label = label
+                labelsAdded += 1
               }
             })
           })
         )
+        return labelsAdded
       }
     }),
     {

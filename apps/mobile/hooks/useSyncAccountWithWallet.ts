@@ -6,12 +6,15 @@ import { useShallow } from 'zustand/react/shallow'
 import { getWalletOverview, syncWallet } from '@/api/bdk'
 import { MempoolOracle } from '@/api/blockchain'
 import { getBlockchainConfig } from '@/config/servers'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { formatTimestamp } from '@/utils/format'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function useSyncAccountWithWallet() {
+  const setIsSyncing = useAccountsStore((state) => state.setIsSyncing)
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => [
       state.backend,
@@ -27,6 +30,7 @@ function useSyncAccountWithWallet() {
 
   async function syncAccountWithWallet(account: Account, wallet: Wallet) {
     setLoading(true)
+    setIsSyncing(account.id, true)
 
     // Labels backup
     const labelsBackup: Record<string, string> = {}
@@ -35,6 +39,9 @@ function useSyncAccountWithWallet() {
     }
     for (const utxo of account.utxos) {
       labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
+    }
+    for (const address of account.addresses) {
+      labelsBackup[address.address] = address.label || ''
     }
 
     await syncWallet(
@@ -49,7 +56,11 @@ function useSyncAccountWithWallet() {
 
     updatedAccount.transactions = walletSummary.transactions
     updatedAccount.utxos = walletSummary.utxos
+    updatedAccount.addresses = walletSummary.addresses
     updatedAccount.summary = walletSummary.summary
+
+    //Attach additional information to the account addresses
+    updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
 
     //Labels update
     for (const index in updatedAccount.utxos) {
@@ -60,6 +71,10 @@ function useSyncAccountWithWallet() {
       const transactionRef = updatedAccount.transactions[index].id
       updatedAccount.transactions[index].label =
         labelsBackup[transactionRef] || ''
+    }
+    for (const index in updatedAccount.addresses) {
+      const addressRef = updatedAccount.addresses[index].address
+      updatedAccount.addresses[index].label = labelsBackup[addressRef] || ''
     }
 
     //Extract timestamps
@@ -77,6 +92,7 @@ function useSyncAccountWithWallet() {
     }
 
     setLoading(false)
+    setIsSyncing(account.id, false)
 
     return updatedAccount
   }

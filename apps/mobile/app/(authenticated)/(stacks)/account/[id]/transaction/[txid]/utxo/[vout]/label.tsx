@@ -3,13 +3,12 @@ import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
-import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 
-export default function SSTxLabel() {
+export default function SSUtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
   const [utxo, setUtxoLabel] = useAccountsStore((state) => [
@@ -33,16 +32,16 @@ export default function SSTxLabel() {
           headerTitle: () => <SSText>{t('transaction.edit.label.utxo')}</SSText>
         }}
       />
-      <SSVStack style={{ padding: 20 }}>
-        <SSVStack gap="none">
-          <SSHStack style={{ alignItems: 'flex-start' }}>
+      <SSVStack gap="none" style={{ padding: 20 }}>
+        <SSVStack gap="sm">
+          <SSVStack gap="none">
             <SSText uppercase>{t('transaction.txid')}</SSText>
             <SSText color="muted">{txid}</SSText>
-          </SSHStack>
-          <SSHStack>
-            <SSText uppercase>{t('transaction.vout')}</SSText>
+          </SSVStack>
+          <SSVStack gap="none">
+            <SSText uppercase>{t('utxo.vout')}</SSText>
             <SSText color="muted">{vout}</SSText>
-          </SSHStack>
+          </SSVStack>
         </SSVStack>
         <SSLabelInput label={utxo.label || ''} onUpdateLabel={updateLabel} />
       </SSVStack>

@@ -84,7 +84,7 @@
   "accounts": {
     "address": "Address",
     "change": "Change",
-    "childAccounts": "Child\nAccounts",
+    "derivedAddresses": "Derived\nAddresses",
     "empty": "No keys yet",
     "index": "Index",
     "label": "Label",
@@ -93,7 +93,38 @@
     "spendableOutputs": "Spendable\nOutputs",
     "totalTransactions": "Total\nTransactions",
     "txs": "Txs",
-    "unspentSats": "Unspent Sats"
+    "unspentSats": "Sats",
+    "utxos": "UTXOs"
+  },
+  "address": {
+    "details.balance.confirmed": "Confirmed",
+    "details.balance.title": "Balance",
+    "details.balance.unconfirmed": "Unconfirmed",
+    "details.derivation.fingerprint": "Master fingerprint",
+    "details.derivation.index": "Index",
+    "details.derivation.keychain": "Keychain",
+    "details.derivation.path": "Path",
+    "details.derivation.title": "Derivation",
+    "details.encoding.network": "Network",
+    "details.encoding.script": "Script (ASM)",
+    "details.encoding.scriptVersion": "Script version",
+    "details.encoding.title": "Encoding",
+    "details.history.title": "History",
+    "details.history.tx": "Total transactions",
+    "details.history.utxo": "Total UTXOs",
+    "details.key.private": "Private key",
+    "details.key.public": "Public key",
+    "details.key.title": "Key information",
+    "details.title": "Address details",
+    "label.title": "Address label",
+    "list.loadMore": "Load more",
+    "list.table.balance": "Sats",
+    "list.table.index": "index",
+    "list.table.loadMore": "Load more",
+    "list.table.tx": "TXs",
+    "list.table.utxo": "UTXOs",
+    "transactions": "Address transactions",
+    "utxos": "Address UTXOs"
   },
   "app": {
     "name": "Sat Signer",
@@ -112,6 +143,7 @@
     "unlock": "Unlock Satsigner"
   },
   "bitcoin": {
+    "address": "Address",
     "block": "Block",
     "blockHeight": "Block Height",
     "blocks": "Blocks",
@@ -132,6 +164,10 @@
     "satVb": "sat/vB",
     "sats": "sats",
     "satsVb": "sats/vB",
+    "transaction": "transaction",
+    "transactions": "transactions",
+    "utxo": "UTXO",
+    "utxos": "UTXOs",
     "word": "Word",
     "words": "Words"
   },
@@ -187,6 +223,7 @@
     "selectAll": "Select All",
     "selected": "Selected",
     "tags": "Tags",
+    "to": "To",
     "total": "Total",
     "valid": "Valid",
     "version": "Version",
@@ -230,7 +267,8 @@
     "json": "JSON"
   },
   "import": {
-    "from": "Import from %{name}"
+    "from": "Import from %{name}",
+    "success": "Imported %{importCount} from a total of %{total} labels matching your wallet"
   },
   "navigation": {
     "item.bitcoin": "Bitcoin",
@@ -456,6 +494,7 @@
     "build.add.output.title": "Add output",
     "build.insufficientSats": "Insufficient sats",
     "build.minerFee": "Miner fee",
+    "build.miningFee": "Mining fee",
     "build.options.autoSelect.utxos.efficiency.description": "Selection of inputs that won't produce dust change and will occupy the least amount of space.",
     "build.options.autoSelect.utxos.efficiency.title": "Efficiency",
     "build.options.autoSelect.utxos.label": "Auto select utxos for",
@@ -482,6 +521,7 @@
     "build.set.minimumAutomaticFee": "Set Minimum Automatic Fee",
     "build.type.customAmount": "Type custom amount for automatic selection",
     "build.type.label": "Type label",
+    "build.unspent": "Unspent",
     "build.update.fee.title": "Change fee",
     "build.update.outputs": "Remove or decrease outputs",
     "decoded.description.flag": "This is a 1-byte flag that follows the marker in transactions with witness data. It must be non-zero. It can be interpreted as a bitvector, with the unused bits available for future extensibility for other types of witness data.",
@@ -611,7 +651,8 @@
     "label": "Label",
     "noLabel": "No label",
     "outputIndex": "Output Index",
-    "unlockingScript": "Unlocking script"
+    "unlockingScript": "Unlocking script",
+    "vout": "Output index"
   },
   "validation": {
     "invalid": "Invalid input",

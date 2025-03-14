@@ -17,6 +17,7 @@ function SSSlider({ min, max, value, step = 1, onValueChange }: SSSliderProps) {
       maximumValue={max}
       value={value}
       step={step}
+      containerStyle={{ width: '100%', flex: 1 }}
       minimumTrackTintColor={Colors.white}
       maximumTrackTintColor={Colors.gray[800]}
       thumbTintColor={Colors.gray[75]}

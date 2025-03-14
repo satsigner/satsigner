@@ -39,9 +39,9 @@ export type PriceValue = {
 
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'AUD' | 'JPY'
 
-export type Prices = {
+export type Prices = Partial<{
   [key in Currency]: number
-}
+}>
 
 export type BlockStatus = {
   height: number

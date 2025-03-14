@@ -1,5 +1,12 @@
 import { FlashList } from '@shopify/flash-list'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { type Network } from 'bdk-rn/lib/lib/enums'
+import {
+  Redirect,
+  router,
+  Stack,
+  useLocalSearchParams,
+  useRouter
+} from 'expo-router'
 import {
   type Dispatch,
   useCallback,
@@ -10,16 +17,19 @@ import {
 } from 'react'
 import {
   Animated,
+  Dimensions,
   Easing,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   useWindowDimensions,
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import {
   SSIconBubbles,
   SSIconCamera,
@@ -36,6 +46,7 @@ import {
 import SSActionButton from '@/components/SSActionButton'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
+import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
@@ -60,10 +71,12 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
+import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
@@ -210,15 +223,7 @@ function TotalTransactions({
   )
 }
 
-type ChildAccount = {
-  index: number
-  address: string
-  label: string | undefined
-  unspentSats: number | null
-  txs: number
-}
-
-type ChildAccountsProps = {
+type DerivedAddressesProps = {
   account: Account
   setSortDirection: Function
   sortDirection: Direction
@@ -226,134 +231,160 @@ type ChildAccountsProps = {
   expand: boolean
   setChange: Function
   change: boolean
+  perPage?: number
 }
 
-function ChildAccounts({
+const SCREEN_WIDTH = Dimensions.get('window').width
+const ADDRESS_LIST_WIDTH = SCREEN_WIDTH * 1.1
+
+function DerivedAddresses({
   account,
   handleOnExpand,
   setChange,
   change,
   expand,
-  setSortDirection
-}: ChildAccountsProps) {
-  const [childAccounts, setChildAccounts] = useState<any[]>([])
-  const [addressPath, setAddressPath] = useState('')
-  const network = useBlockchainStore((state) => state.network)
+  setSortDirection,
+  perPage = 10
+}: DerivedAddressesProps) {
   const wallet = useWalletsStore((state) => state.wallets[account.id])
+  const network = useBlockchainStore((state) => state.network) as Network
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  const fetchAddresses = useCallback(async () => {
-    if (!wallet) return
+  const [addressPath, setAddressPath] = useState('')
+  const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [addressCount, setAddressCount] = useState(
+    Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
+  )
+  const [addresses, setAddresses] = useState(
+    account.addresses.slice(0, addressCount)
+  )
+  const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
 
-    try {
-      const changePath = change ? '1' : '0'
-      setAddressPath(`${account.keys[0].derivationPath}/${changePath}/${'...'}`)
+  function updateDerivationPath() {
+    if (account.keys[0].derivationPath)
+      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
+  }
 
-      const derivedAddresses = await Promise.all(
-        Array.from(
-          { length: account.summary.numberOfAddresses },
-          async (_, i) => {
-            const addressInfo = change
-              ? await wallet.getInternalAddress(i)
-              : await wallet.getAddress(i)
-            return {
-              index: i,
-              address: await addressInfo.address.asString()
-            }
-          }
-        )
-      )
+  async function refreshAddresses() {
+    let addresses = await getWalletAddresses(wallet!, network!, addressCount)
+    addresses = parseAccountAddressesDetails({ ...account, addresses })
+    setAddresses(addresses.slice(0, addressCount))
+    updateAccount({ ...account, addresses })
+  }
 
-      const newAddresses = derivedAddresses.map(({ index, address }) => {
-        let utxo = 0
-        let txCount = 0
+  async function loadMoreAddresses() {
+    setHasLoadMoreAddresses(true)
+    const newAddressCount =
+      addresses.length < addressCount ? addressCount : addressCount + perPage
+    setAddressCount(newAddressCount)
+    setLoadingAddresses(true)
 
-        for (const ux of account.utxos) {
-          if (ux.addressTo && ux.addressTo === address) {
-            utxo += ux.value
-          }
-        }
+    let addrList = await getWalletAddresses(wallet!, network!, newAddressCount)
+    addrList = parseAccountAddressesDetails({
+      ...account,
+      addresses: addrList
+    })
+    setAddresses(addrList)
+    setLoadingAddresses(false)
+    updateAccount({ ...account, addresses: addrList })
+  }
 
-        for (const tx of account.transactions) {
-          const isInVout = tx.vout.some((output) => output.address === address)
-          let isInVin = false
+  async function updateAddresses() {
+    // if (hasLoadMoreAddresses) return
+    const result = await getLastUnusedAddressFromWallet(wallet!)
 
-          for (const input of tx.vin || []) {
-            const prevTx = account.transactions.find(
-              (t) => t.id === input.previousOutput.txid
-            )
-            if (prevTx) {
-              const voutEntry = prevTx.vout[input.previousOutput.vout]
-              if (voutEntry?.address === address) {
-                isInVin = true
-                break
-              }
-            }
-          }
+    if (!result) return
+    const minItems = Math.max(1, Math.ceil(result.index / perPage)) * perPage
 
-          if (isInVout || isInVin) {
-            txCount++
-          }
-        }
+    if (minItems <= addressCount) return
 
-        return {
-          index,
-          address,
-          label: '',
-          unspentSats: utxo,
-          txs: txCount
-        }
-      })
+    if (account.addresses.length >= addressCount) {
+      setAddresses(account.addresses.slice(0, addressCount))
+      return
+    }
 
-      setChildAccounts(newAddresses)
-    } catch {}
-  }, [account, network, change]) // eslint-disable-line react-hooks/exhaustive-deps
+    let newAddresses = await getWalletAddresses(wallet!, network!, minItems)
+    newAddresses = parseAccountAddressesDetails({
+      ...account,
+      addresses: newAddresses
+    })
+    setAddressCount(minItems)
+    setAddresses(newAddresses)
+    updateAccount({ ...account, addresses: newAddresses })
+  }
 
   useEffect(() => {
-    fetchAddresses()
-  }, [fetchAddresses, change])
+    updateDerivationPath()
+  }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    updateAddresses()
+  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderItem = useCallback(
-    ({ item }: { item: ChildAccount }) => (
-      <SSHStack style={styles.row}>
-        <SSText style={styles.indexText}>{item.index}</SSText>
-        <SSText style={styles.addressText}>
-          {formatAddress(item.address, 4)}
-        </SSText>
-        <SSText
-          style={[styles.labelText, { color: item.label ? '#fff' : '#333' }]}
-        >
-          {item.label || t('transaction.noLabel')}
-        </SSText>
-        <SSText
-          style={[
-            styles.unspentSatsText,
-            {
-              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-            }
-          ]}
-        >
-          {item.unspentSats}
-        </SSText>
-        <SSText
-          style={[
-            styles.txsText,
-            {
-              color: item.unspentSats === 0 && item.txs === 0 ? '#333' : '#fff'
-            }
-          ]}
-        >
-          {item.txs}
-        </SSText>
-      </SSHStack>
+    ({ item }: { item: Address }) => (
+      <TouchableOpacity
+        onPress={() =>
+          router.navigate(`/account/${account.id}/address/${item.address}`)
+        }
+      >
+        <SSHStack style={addressListStyles.row}>
+          <SSText
+            style={[addressListStyles.indexText, addressListStyles.columnIndex]}
+          >
+            {item.index}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.addressText,
+              addressListStyles.columnAddress
+            ]}
+          >
+            {formatAddress(item.address, 4)}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.columnLabel,
+              { color: item.label ? '#fff' : '#333' }
+            ]}
+          >
+            {item.label || t('transaction.noLabel')}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.columnTxs,
+              { color: item.summary.transactions === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            {item.summary.transactions}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.columnSats,
+              { color: item.summary.balance === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            {item.summary.balance}
+          </SSText>
+          <SSText
+            style={[
+              addressListStyles.columnUtxos,
+              { color: item.summary.utxos === 0 ? '#333' : '#fff' }
+            ]}
+          >
+            {item.summary.utxos}
+          </SSText>
+        </SSHStack>
+      </TouchableOpacity>
     ),
-    []
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   return (
-    <SSMainLayout style={styles.container}>
-      <SSHStack justifyBetween style={styles.header}>
+    <SSMainLayout style={addressListStyles.container}>
+      <SSHStack justifyBetween style={addressListStyles.header}>
         <SSHStack>
-          <SSIconButton onPress={fetchAddresses}>
+          <SSIconButton onPress={refreshAddresses}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
           <SSIconButton onPress={() => handleOnExpand(!expand)}>
@@ -377,44 +408,105 @@ function ChildAccounts({
         </SSHStack>
       </SSHStack>
 
-      <SSHStack gap="md" justifyBetween style={styles.receiveChangeContainer}>
+      <SSHStack
+        gap="md"
+        justifyBetween
+        style={addressListStyles.receiveChangeContainer}
+      >
         {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
           <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-            <SSText
-              style={[
-                styles.receiveChangeButton,
-                { borderColor: change === (index === 1) ? '#fff' : '#333' }
-              ]}
+            <SSButton
+              style={{
+                borderColor: change === (index === 1) ? '#fff' : '#333'
+              }}
               uppercase
               onPress={() => setChange(index === 1)}
-            >
-              {type}
-            </SSText>
+              disabled={index === 1}
+              label={type}
+              variant="outline"
+            />
           </SSHStack>
         ))}
       </SSHStack>
 
-      <SSHStack style={styles.headerRow}>
-        {[
-          t('accounts.index'),
-          t('accounts.address'),
-          t('accounts.label'),
-          t('accounts.unspentSats'),
-          t('accounts.txs')
-        ].map((title) => (
-          <SSText key={title} style={styles.headerText} uppercase>
-            {title}
-          </SSText>
-        ))}
-      </SSHStack>
+      <ScrollView style={{ marginTop: 10 }}>
+        <ScrollView horizontal>
+          <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
+            <SSHStack style={addressListStyles.headerRow}>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnIndex
+                ]}
+              >
+                {t('address.list.table.index')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnAddress
+                ]}
+              >
+                {t('bitcoin.address')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnLabel
+                ]}
+              >
+                {t('common.label')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnTxs
+                ]}
+              >
+                {t('address.list.table.tx')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnSats
+                ]}
+              >
+                {t('address.list.table.balance')}
+              </SSText>
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnUtxos
+                ]}
+              >
+                {t('address.list.table.utxo')}
+              </SSText>
+            </SSHStack>
 
-      <FlashList
-        data={childAccounts}
-        renderItem={renderItem}
-        estimatedItemSize={150}
-        keyExtractor={(item) => `${item.index}-${item.address}`}
-        removeClippedSubviews
-      />
+            <FlashList
+              data={addresses?.filter((address) =>
+                change
+                  ? address.keychain === 'internal'
+                  : address.keychain === 'external'
+              )}
+              renderItem={renderItem}
+              estimatedItemSize={150}
+              keyExtractor={(item) => {
+                return `${item.index}:${item.address}:${item.keychain}`
+              }}
+              removeClippedSubviews
+            />
+          </SSVStack>
+        </ScrollView>
+        <SSButton
+          variant="outline"
+          uppercase
+          style={{ marginTop: 10 }}
+          label={t('address.list.table.loadMore')}
+          disabled={loadingAddresses}
+          onPress={loadMoreAddresses}
+        />
+      </ScrollView>
     </SSMainLayout>
   )
 }
@@ -565,13 +657,13 @@ export default function AccountView() {
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
     useState<Direction>('desc')
-  const [sortDirectionChildAccounts, setSortDirectionChildAccounts] =
+  const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
   const tabs = [
     { key: 'totalTransactions' },
-    { key: 'childAccounts' },
+    { key: 'derivedAddresses' },
     { key: 'spendableOutputs' },
     { key: 'satsInMempool' }
   ]
@@ -605,16 +697,16 @@ export default function AccountView() {
             blockchainHeight={blockchainHeight}
           />
         )
-      case 'childAccounts':
+      case 'derivedAddresses':
         return (
-          <ChildAccounts
+          <DerivedAddresses
             account={account}
             handleOnExpand={handleOnExpand}
             setChange={setChange}
             expand={expand}
             change={change}
-            setSortDirection={setSortDirectionChildAccounts}
-            sortDirection={sortDirectionChildAccounts}
+            setSortDirection={setSortDirectionDerivedAddresses}
+            sortDirection={sortDirectionDerivedAddresses}
           />
         )
       case 'spendableOutputs':
@@ -749,7 +841,7 @@ export default function AccountView() {
                     {account.summary.numberOfAddresses}
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {t('accounts.childAccounts')}
+                    {t('accounts.derivedAddresses')}
                   </SSText>
                   {tabIndex === 1 && (
                     <View
@@ -968,20 +1060,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#242424',
     borderRadius: 3
-  },
+  }
+})
+
+const addressListStyles = StyleSheet.create({
   container: {
-    paddingTop: 20
+    paddingTop: 20,
+    paddingBottom: 10
   },
   header: {
     paddingVertical: 4
   },
   headerText: {
-    textAlign: 'center',
     color: '#777',
     textTransform: 'uppercase'
   },
+  columnAddress: { width: '20%' },
+  columnLabel: { width: '15%' },
+  columnSats: { width: '10%', textAlign: 'center' },
+  columnTxs: { width: '10%', textAlign: 'center' },
+  columnUtxos: { width: '10%', textAlign: 'center' },
+  columnIndex: { width: '10%', textAlign: 'center' },
   row: {
     paddingVertical: 12,
+    width: ADDRESS_LIST_WIDTH,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
@@ -991,44 +1093,26 @@ const styles = StyleSheet.create({
   indexText: {
     fontWeight: 'bold',
     color: '#fff',
-    textAlign: 'center',
-    flex: 1
+    textAlign: 'center'
   },
   addressText: {
     color: '#fff',
-    textAlign: 'center',
-    flex: 2
-  },
-  labelText: {
-    textAlign: 'center',
-    flex: 2
-  },
-  unspentSatsText: {
-    textAlign: 'center',
-    flex: 2
-  },
-  txsText: {
-    textAlign: 'center',
-    flex: 1
+    flexWrap: 'nowrap'
   },
   headerRow: {
-    paddingVertical: 18,
+    paddingBottom: 10,
+    paddingTop: 10,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderColor: '#333',
     backgroundColor: '#111',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    width: ADDRESS_LIST_WIDTH
   },
   receiveChangeContainer: {
     display: 'flex',
     width: '100%',
     marginTop: 10
-  },
-  receiveChangeButton: {
-    textAlign: 'center',
-    paddingVertical: 20,
-    borderWidth: 1,
-    width: '100%'
   }
 })
