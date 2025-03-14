@@ -1,10 +1,15 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { AppState, ScrollView, type TextInput } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { validateMnemonic } from '@/api/bdk'
+import {
+  getExtendedPublicKeyFromAccountKey,
+  getFingerprint,
+  validateMnemonic
+} from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
@@ -15,6 +20,8 @@ import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
+import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -23,60 +30,62 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
+import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getWordList } from '@/utils/bip39'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
 
-export default function ImportSeed() {
+export default function ImportMnemonic() {
+  const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
-  const [syncWallet, addAccount, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.syncWallet,
-      state.addAccount,
-      state.updateAccount
-    ])
-  )
+  const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
+    keys,
     scriptVersion,
-    seedWordCount,
+    mnemonicWordCount,
     fingerprint,
-    derivationPath,
     policyType,
-    setParticipant,
     clearAccount,
-    getAccount,
-    setSeedWords,
+    setMnemonic,
+    passphrase,
     setPassphrase,
-    updateFingerprint,
-    loadWallet,
-    encryptSeed
+    setFingerprint,
+    setKey,
+    getAccountData,
+    updateKeySecret,
+    clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
+      state.keys,
       state.scriptVersion,
-      state.seedWordCount,
+      state.mnemonicWordCount,
       state.fingerprint,
-      state.derivationPath,
       state.policyType,
-      state.setParticipant,
       state.clearAccount,
-      state.getAccount,
-      state.setSeedWords,
+      state.setMnemonic,
+      state.passphrase,
       state.setPassphrase,
-      state.updateFingerprint,
-      state.loadWallet,
-      state.encryptSeed
+      state.setFingerprint,
+      state.setKey,
+      state.getAccountData,
+      state.updateKeySecret,
+      state.clearKeyState
     ])
   )
+  const network = useBlockchainStore((state) => state.network)
+  const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
-  const [seedWordsInfo, setSeedWordsInfo] = useState<SeedWordInfo[]>(
-    [...Array(seedWordCount)].map((_, index) => ({
+  const [mnemonicWordsInfo, setMnemonicWordsInfo] = useState<SeedWordInfo[]>(
+    [...Array(mnemonicWordCount)].map((_, index) => ({
       value: '',
       index,
       dirty: false,
@@ -86,23 +95,26 @@ export default function ImportSeed() {
   const [checksumValid, setChecksumValid] = useState(false)
   const [currentWordText, setCurrentWordText] = useState('')
   const [currentWordIndex, setCurrentWordIndex] = useState(0)
+  const [loadingAccount, setLoadingAccount] = useState(false)
+  const [accountImported, setAccountImported] = useState(false)
+  const [syncedAccount, setSyncedAccount] = useState<Account>()
+  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
+
+  const inputRefs = useRef<TextInput[]>([])
+  const passphraseRef = useRef<TextInput>()
+  const appState = useRef(AppState.currentState)
+
   const [keyboardWordSelectorVisible, setKeyboardWordSelectorVisible] =
     useState(false)
   const [accountAddedModalVisible, setAccountAddedModalVisible] =
     useState(false)
-  const [loadingAccount, setLoadingAccount] = useState(false)
-  const [syncedAccount, setSyncedAccount] = useState<Account>()
-  const [walletSyncFailed, setWalletSyncFailed] = useState(false)
-  const inputRefs = useRef<TextInput[]>([])
-  const passphraseRef = useRef<TextInput>()
-  const appState = useRef(AppState.currentState)
 
   async function checkTextHasSeed(text: string): Promise<string[]> {
     if (text === null || text === '') return []
     const delimiters = [' ', '\n']
     for (const delimiter of delimiters) {
       const seedCandidate = text.split(delimiter)
-      if (seedCandidate.length !== seedWordCount) continue
+      if (seedCandidate.length !== mnemonicWordCount) continue
       const validWords = seedCandidate.every((x) => wordList.includes(x))
       if (!validWords) continue
       const checksum = await validateMnemonic(seedCandidate.join(' '))
@@ -113,15 +125,29 @@ export default function ImportSeed() {
   }
 
   async function fillOutSeedWords(seed: string[]) {
-    setSeedWords(seed.join(' '))
-    setSeedWordsInfo(
+    const mnemonic = seed.join(' ')
+
+    setMnemonicWordsInfo(
       seed.map((value, index) => {
         return { value, index, dirty: false, valid: true }
       })
     )
-    setChecksumValid(true)
+
     if (passphraseRef.current) passphraseRef.current.focus()
-    await updateFingerprint()
+
+    const checksumValid = await validateMnemonic(mnemonic)
+    setChecksumValid(checksumValid)
+
+    if (checksumValid) {
+      setMnemonic(mnemonic)
+      const fingerprint = await getFingerprint(
+        mnemonic,
+        passphrase,
+        network as Network
+      )
+
+      setFingerprint(fingerprint)
+    }
   }
 
   async function readSeedFromClipboard() {
@@ -156,18 +182,14 @@ export default function ImportSeed() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleOnChangeTextWord(word: string, index: number) {
-    const seedWords = [...seedWordsInfo]
+    const seedWords = [...mnemonicWordsInfo]
     const seedWord = seedWords[index]
 
-    // We do not allow special chars in text field input
     if (!word.match(/^[a-z]*$/)) {
       seedWord.valid = false
       seedWord.dirty = true
 
-      // We will only open an exception in the edge case the user attempts to
-      // paste all seed words at once in the first text field input.
-      // This happens if the user switches to another app, copy the seed,
-      // switches back to SatSigner, then attempts to paste the seed.
+      // Paste all seed words at once
       if (index === 0) {
         const seed = await checkTextHasSeed(word)
         if (seed.length > 0) {
@@ -189,18 +211,24 @@ export default function ImportSeed() {
     }
 
     setCurrentWordText(word)
-    setSeedWordsInfo(seedWords)
+    setMnemonicWordsInfo(seedWords)
 
-    const mnemonicSeedWords = seedWordsInfo
-      .map((seedWord) => seedWord.value)
+    const mnemonic = mnemonicWordsInfo
+      .map((mnemonicWord) => mnemonicWord.value)
       .join(' ')
 
-    const checksumValid = await validateMnemonic(mnemonicSeedWords)
+    const checksumValid = await validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      setSeedWords(mnemonicSeedWords)
-      await updateFingerprint()
+      setMnemonic(mnemonic)
+      const fingerprint = await getFingerprint(
+        mnemonic,
+        passphrase,
+        network as Network
+      )
+
+      setFingerprint(fingerprint)
     }
 
     if (seedWord.valid && !seedWordsPrefixOfAnother[word]) {
@@ -210,7 +238,7 @@ export default function ImportSeed() {
 
   function focusNextWord(currentIndex: number) {
     const nextIndex = currentIndex + 1
-    if (nextIndex < seedWordCount) {
+    if (nextIndex < mnemonicWordCount) {
       inputRefs.current[nextIndex]?.focus()
     } else if (passphraseRef.current) {
       passphraseRef.current.focus()
@@ -218,19 +246,19 @@ export default function ImportSeed() {
   }
 
   function handleOnEndEditingWord(word: string, index: number) {
-    const seedWords = [...seedWordsInfo]
-    const seedWord = seedWords[index]
+    const mnemonic = [...mnemonicWordsInfo]
+    const mnemonicWord = mnemonic[index]
 
-    seedWord.value = word
-    seedWord.valid = wordList.includes(word)
-    seedWord.dirty ||= word.length > 0
+    mnemonicWord.value = word
+    mnemonicWord.valid = wordList.includes(word)
+    mnemonicWord.dirty ||= word.length > 0
 
-    setSeedWordsInfo(seedWords)
+    setMnemonicWordsInfo(mnemonic)
     setCurrentWordText(word)
   }
 
   function handleOnFocusWord(word: string | undefined, index: number) {
-    const seedWords = [...seedWordsInfo]
+    const seedWords = [...mnemonicWordsInfo]
     const seedWord = seedWords[index]
 
     setCurrentWordText(word || '')
@@ -242,7 +270,7 @@ export default function ImportSeed() {
   }
 
   async function handleOnWordSelected(word: string) {
-    const seedWords = [...seedWordsInfo]
+    const seedWords = [...mnemonicWordsInfo]
     seedWords[currentWordIndex].value = word
 
     if (wordList.includes(word)) {
@@ -250,7 +278,7 @@ export default function ImportSeed() {
       setKeyboardWordSelectorVisible(false)
     }
 
-    setSeedWordsInfo(seedWords)
+    setMnemonicWordsInfo(seedWords)
 
     const mnemonicSeedWords = seedWords
       .map((seedWord) => seedWord.value)
@@ -260,8 +288,14 @@ export default function ImportSeed() {
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      setSeedWords(mnemonicSeedWords)
-      await updateFingerprint()
+      setMnemonic(mnemonicSeedWords)
+      const fingerprint = await getFingerprint(
+        mnemonicSeedWords,
+        passphrase,
+        network as Network
+      )
+
+      setFingerprint(fingerprint)
     }
     focusNextWord(currentWordIndex)
   }
@@ -269,59 +303,79 @@ export default function ImportSeed() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const mnemonicSeedWords = seedWordsInfo
-      .map((seedWord) => seedWord.value)
-      .join(' ')
+    const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
 
-    const checksumValid = await validateMnemonic(mnemonicSeedWords)
+    const checksumValid = await validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      setSeedWords(mnemonicSeedWords)
-      await updateFingerprint()
+      setMnemonic(mnemonic)
+      const fingerprint = await getFingerprint(
+        mnemonic,
+        passphrase,
+        network as Network
+      )
+
+      setFingerprint(fingerprint)
     }
   }
 
   async function handleOnPressImportSeed() {
-    const seedWords = seedWordsInfo.map((seedWord) => seedWord.value).join(' ')
-    setSeedWords(seedWords)
+    setLoadingAccount(true)
 
-    if (policyType === 'single') {
-      setLoadingAccount(true)
+    const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
+    setMnemonic(mnemonic)
 
-      const wallet = await loadWallet()
-      await encryptSeed()
+    const currentKey = setKey(Number(keyIndex))
+
+    if (policyType === 'singlesig') {
+      const account = getAccountData()
+
+      const data = await accountBuilderFinish(account)
+      if (!data || !data.wallet) return
 
       setAccountAddedModalVisible(true)
 
-      const account = getAccount()
-      await addAccount(account)
-
       try {
-        const syncedAccount = await syncWallet(wallet, account)
-        setSyncedAccount(syncedAccount)
-        await updateAccount(syncedAccount)
+        const updatedAccount = await syncAccountWithWallet(
+          data.accountWithEncryptedSecret,
+          data.wallet
+        )
+        updateAccount(updatedAccount)
+        setSyncedAccount(updatedAccount)
       } catch {
         setWalletSyncFailed(true)
       } finally {
+        setAccountImported(true)
         setLoadingAccount(false)
       }
-    } else if (policyType === 'multi') {
-      setParticipant(seedWords)
-      router.back()
+    } else if (policyType === 'multisig') {
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        currentKey,
+        network as Network
+      )
+      updateKeySecret(Number(keyIndex), {
+        ...(currentKey.secret as object),
+        extendedPublicKey
+      })
+
+      setLoadingAccount(false)
+      clearKeyState()
+      router.dismiss(2)
     }
   }
 
   async function handleOnCloseAccountAddedModal() {
     setAccountAddedModalVisible(false)
+    clearKeyState()
     clearAccount()
     router.navigate('/')
   }
 
   function handleOnPressCancel() {
-    if (policyType === 'multi') {
+    if (policyType === 'multisig') {
       router.back()
-    } else if (policyType === 'single') {
+    } else if (policyType === 'singlesig') {
       router.replace('/')
     }
   }
@@ -344,33 +398,29 @@ export default function ImportSeed() {
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
-              {seedWordCount && (
-                <SSSeedLayout count={seedWordCount}>
-                  {[...Array(seedWordsInfo.length)].map((_, index) => (
-                    <SSWordInput
-                      value={seedWordsInfo[index].value}
-                      invalid={
-                        !seedWordsInfo[index].valid &&
-                        seedWordsInfo[index].dirty
-                      }
-                      key={index}
-                      index={index}
-                      ref={(input: TextInput) => inputRefs.current.push(input)}
-                      position={index + 1}
-                      onSubmitEditing={() => focusNextWord(index)}
-                      onChangeText={(text) =>
-                        handleOnChangeTextWord(text, index)
-                      }
-                      onEndEditing={(event) =>
-                        handleOnEndEditingWord(event.nativeEvent.text, index)
-                      }
-                      onFocus={(event) =>
-                        handleOnFocusWord(event.nativeEvent.text, index)
-                      }
-                    />
-                  ))}
-                </SSSeedLayout>
-              )}
+              <SSSeedLayout count={mnemonicWordCount}>
+                {[...Array(mnemonicWordsInfo.length)].map((_, index) => (
+                  <SSWordInput
+                    value={mnemonicWordsInfo[index].value}
+                    invalid={
+                      !mnemonicWordsInfo[index].valid &&
+                      mnemonicWordsInfo[index].dirty
+                    }
+                    key={index}
+                    index={index}
+                    ref={(input: TextInput) => inputRefs.current.push(input)}
+                    position={index + 1}
+                    onSubmitEditing={() => focusNextWord(index)}
+                    onChangeText={(text) => handleOnChangeTextWord(text, index)}
+                    onEndEditing={(event) =>
+                      handleOnEndEditingWord(event.nativeEvent.text, index)
+                    }
+                    onFocus={(event) =>
+                      handleOnFocusWord(event.nativeEvent.text, index)
+                    }
+                  />
+                ))}
+              </SSSeedLayout>
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label
@@ -395,7 +445,7 @@ export default function ImportSeed() {
               label={t('account.import.title2')}
               variant="secondary"
               loading={loadingAccount}
-              disabled={!checksumValid}
+              disabled={!checksumValid || accountImported}
               onPress={() => handleOnPressImportSeed()}
             />
             <SSButton
@@ -436,7 +486,7 @@ export default function ImportSeed() {
                 {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {fingerprint}
+                {keys[Number(keyIndex)]?.fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -447,7 +497,7 @@ export default function ImportSeed() {
                 {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
-                {derivationPath}
+                {syncedAccount?.keys[Number(keyIndex)].derivationPath}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>

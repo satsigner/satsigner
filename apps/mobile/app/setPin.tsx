@@ -7,23 +7,21 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { PIN_SIZE } from '@/config/auth'
+import { DEFAULT_PIN, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { Layout } from '@/styles'
+import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
 type Stage = 'set' | 're-enter'
 
 export default function SetPin() {
   const router = useRouter()
-  const [setFirstTime, setPin, setRequiresAuth] = useAuthStore(
-    useShallow((state) => [
-      state.setFirstTime,
-      state.setPin,
-      state.setRequiresAuth
-    ])
+  const [setFirstTime, setRequiresAuth] = useAuthStore(
+    useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
   )
 
   const [loading, setLoading] = useState(false)
@@ -39,8 +37,16 @@ export default function SetPin() {
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  function handleSetPinLater() {
+  async function setPin(pin: string) {
+    const salt = await generateSalt()
+    const encryptedPin = await pbkdf2Encrypt(pin, salt)
+    await setItem(PIN_KEY, encryptedPin)
+    await setItem(SALT_KEY, salt)
+  }
+
+  async function handleSetPinLater() {
     setFirstTime(false)
+    await setPin(DEFAULT_PIN)
     router.replace('/')
   }
 
@@ -84,13 +90,8 @@ export default function SetPin() {
           <SSVStack style={{ gap: Platform.OS === 'android' ? -8 : 0 }}>
             <SSText uppercase size="lg" color="muted" center>
               {stage === 'set'
-                ? t('auth.setPinTitle.0')
-                : t('auth.reenterPinTitle.0')}
-            </SSText>
-            <SSText uppercase size="lg" color="muted" center>
-              {stage === 'set'
-                ? t('auth.setPinTitle.1')
-                : t('auth.reenterPinTitle.1')}
+                ? t('auth.setPinTitle')
+                : t('auth.reenterPinTitle')}
             </SSText>
           </SSVStack>
           {stage === 'set' && (

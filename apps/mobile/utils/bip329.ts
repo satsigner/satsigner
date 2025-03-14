@@ -105,7 +105,7 @@ export function formatUtxoLabels(utxos: Utxo[]): Label[] {
     .filter((utxo) => utxo.label)
     .map((utxo) => {
       return {
-        label: utxo.label,
+        label: utxo.label!,
         type: 'output',
         ref: getUtxoOutpoint(utxo),
         spendable: true // TODO: allow the user to mark utxo as not spendable

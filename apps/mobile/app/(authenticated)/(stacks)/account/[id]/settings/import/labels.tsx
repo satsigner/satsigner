@@ -28,7 +28,7 @@ export default function ImportLabels() {
 
   const [account, importLabelsToAccount] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account) => _account.name === accountId),
+      state.accounts.find((_account) => _account.id === accountId),
       state.importLabels
     ])
   )
