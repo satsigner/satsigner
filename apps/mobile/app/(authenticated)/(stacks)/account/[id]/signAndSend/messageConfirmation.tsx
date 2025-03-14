@@ -3,6 +3,7 @@ import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -21,11 +22,12 @@ export default function MessageConfirmation() {
     useShallow((state) => [state.clearTransaction, state.txBuilderResult])
   )
   const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === id)
+    state.accounts.find((account) => account.id === id)
   )
 
   function handleBackToHome() {
     clearTransaction()
+    router.dismissAll()
     router.navigate(`/account/${id}`)
   }
 
@@ -50,6 +52,7 @@ export default function MessageConfirmation() {
               </SSText>
               <SSText>{formatAddress(txBuilderResult.txDetails.txid)}</SSText>
             </SSVStack>
+            <SSIconSuccess width={159} height={159} />
           </SSVStack>
           <SSVStack>
             <SSButton

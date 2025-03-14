@@ -7,8 +7,6 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 
 export default function SSTxLabel() {
@@ -16,8 +14,8 @@ export default function SSTxLabel() {
 
   const [utxo, setUtxoLabel] = useAccountsStore((state) => [
     state.accounts
-      .find((account: Account) => account.name === accountId)
-      ?.utxos.find((u: Utxo) => u.txid === txid && u.vout === Number(vout)),
+      .find((account) => account.id === accountId)
+      ?.utxos.find((utxo) => utxo.txid === txid && utxo.vout === Number(vout)),
     state.setUtxoLabel
   ])
 

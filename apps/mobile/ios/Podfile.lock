@@ -986,10 +986,6 @@ PODS:
     - React
     - React-callinvoker
     - React-Core
-  - react-native-slider (4.5.2):
-    - glog
-    - RCT-Folly (= 2022.05.16.00)
-    - React-Core
   - react-native-tcp-socket (6.2.0):
     - CocoaAsyncSocket
     - React-Core
@@ -1258,7 +1254,6 @@ DEPENDENCIES:
   - react-native-pager-view (from `../../../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../../../node_modules/@shopify/react-native-skia`)"
-  - "react-native-slider (from `../../../node_modules/@react-native-community/slider`)"
   - react-native-tcp-socket (from `../../../node_modules/react-native-tcp-socket`)
   - React-nativeconfig (from `../../../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -1413,8 +1408,6 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-skia:
     :path: "../../../node_modules/@shopify/react-native-skia"
-  react-native-slider:
-    :path: "../../../node_modules/@react-native-community/slider"
   react-native-tcp-socket:
     :path: "../../../node_modules/react-native-tcp-socket"
   React-nativeconfig:
@@ -1536,7 +1529,6 @@ SPEC CHECKSUMS:
   react-native-pager-view: d5f3adb58a4e6e0d200055e9a4afdcda9b9022ce
   react-native-safe-area-context: 0ee144a6170530ccc37a0fd9388e28d06f516a89
   react-native-skia: e84b4767fa97af573f7b52d71d7e785ec643fef1
-  react-native-slider: 7a39874fc1fcdfee48e448fa72cce0a8f2c7c5d6
   react-native-tcp-socket: 8c3e8bef909ab06c557eeb95363fe029391ff09d
   React-nativeconfig: b4d4e9901d4cabb57be63053fd2aa6086eb3c85f
   React-NativeModulesApple: cd26e56d56350e123da0c1e3e4c76cb58a05e1ee

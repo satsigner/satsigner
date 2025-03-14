@@ -1,4 +1,4 @@
-import { type Account } from '@/types/models/Account'
+import { type Secret } from '@/types/models/Account'
 
 /**
  * Returns a shuffled 3 word list that contains the correct seed word
@@ -9,7 +9,7 @@ import { type Account } from '@/types/models/Account'
  */
 function getConfirmWordCandidates(
   currentWord: string,
-  seedWords: NonNullable<Account['seedWords']>
+  seedWords: NonNullable<Secret['mnemonic']>
 ) {
   const candidates: string[] = []
   candidates.push(currentWord)
