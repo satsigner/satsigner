@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import { Esplora } from '@/api/esplora'
+import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
@@ -13,6 +14,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
+  const setIsSyncing = useAccountsStore((state) => state.setIsSyncing)
   const [backend, network, url] = useBlockchainStore(
     useShallow((state) => [state.backend, state.network, state.url])
   )
@@ -24,6 +26,7 @@ function useSyncAccountWithAddress() {
     addressDescriptor: string
   ) {
     setLoading(true)
+    setIsSyncing(account.id, true)
 
     // Labels backup
     const labelsBackup: Record<string, string> = {}
@@ -201,6 +204,7 @@ function useSyncAccountWithAddress() {
     }
 
     setLoading(false)
+    setIsSyncing(account.id, false)
 
     return updatedAccount
   }
