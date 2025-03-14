@@ -16,6 +16,10 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
+  setIsSyncing: (
+    id: Account['id'],
+    isSyncing: NonNullable<Account['isSyncing']>
+  ) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
   getTags: () => string[]
@@ -59,6 +63,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.id === id
             )
             if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      setIsSyncing: (id, isSyncing) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) state.accounts[index].isSyncing = isSyncing
           })
         )
       },

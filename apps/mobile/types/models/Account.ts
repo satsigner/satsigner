@@ -62,4 +62,5 @@ export type Account = {
   utxos: Utxo[]
   addresses: [] // TODO: Add types
   createdAt: Date
+  isSyncing?: boolean
 }

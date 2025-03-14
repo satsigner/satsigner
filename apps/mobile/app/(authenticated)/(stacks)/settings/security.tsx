@@ -22,10 +22,10 @@ export default function Security() {
     useShallow((state) => [state.pinMaxTries, state.setPinMaxTries])
   )
 
-  const [currentPinMaxTries, setCurrentPinMaxTries] = useState(pinMaxTries)
+  const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
 
   function handleOnSave() {
-    setPinMaxTries(currentPinMaxTries)
+    setPinMaxTries(localPinMaxTries)
     router.back()
   }
 
@@ -46,7 +46,7 @@ export default function Security() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSText uppercase>
-                {t('settings.security.maxPinTries')}: {pinMaxTries}
+                {t('settings.security.maxPinTries')}: {localPinMaxTries}
               </SSText>
               <SSHStack justifyBetween gap="none">
                 <SSText center style={{ width: '5%' }}>
@@ -57,7 +57,7 @@ export default function Security() {
                   max={SETTINGS_PIN_MAX_POSSIBLE_TRIES}
                   value={pinMaxTries}
                   step={1}
-                  onValueChange={(value) => setCurrentPinMaxTries(value)}
+                  onValueChange={(value) => setLocalPinMaxTries(value)}
                 />
                 <SSText center style={{ width: '5%' }}>
                   {SETTINGS_PIN_MAX_POSSIBLE_TRIES}
