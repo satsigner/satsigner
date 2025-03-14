@@ -19,7 +19,7 @@ const usePreviousTransactionsStore = create<
   persist(
     (set) => ({
       transactions: {},
-      addTransactions: (newTransactions: Map<string, EsploraTx>) => {
+      addTransactions: (newTransactions) => {
         set((state) => ({
           transactions: {
             ...state.transactions,
