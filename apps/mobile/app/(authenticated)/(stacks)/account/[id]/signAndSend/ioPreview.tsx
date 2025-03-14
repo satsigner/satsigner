@@ -310,7 +310,7 @@ export default function IOPreview() {
                 gap="xs"
                 style={{ alignItems: 'baseline', justifyContent: 'center' }}
               >
-                <SSText weight="medium">{formatNumber(outputAmount)}</SSText>
+                <SSText weight="medium">{formatNumber(remainingSats)}</SSText>
                 <SSText color="muted" size="sm">
                   {t('bitcoin.sats')}
                 </SSText>
