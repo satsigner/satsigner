@@ -1,5 +1,9 @@
 import { type Utxo } from '@/types/models/Utxo'
 
+type _Utxo = Utxo & {
+  effectiveValue: number
+  scriptType?: 'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'
+}
 type ChangeOutput = {
   type: string
   value: number
@@ -19,7 +23,7 @@ function getUtxoOutpoint(utxo: Utxo) {
  * @returns {Object} Selected UTXOs and change
  */
 function selectUtxos(
-  utxos: Utxo[],
+  utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
   options = {}
@@ -126,7 +130,7 @@ function selectUtxos(
  * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
  */
 function branchAndBoundUtxoSelection(
-  utxos: Utxo[],
+  utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
   opts: any
@@ -161,11 +165,6 @@ function branchAndBoundUtxoSelection(
   const exactMatchSet = findExactMatch(effectiveUtxos, targetAmount)
   if (exactMatchSet) {
     const fee = exactMatchSet.length * inputCost
-    const actualValue = exactMatchSet.reduce(
-      (sum: any, utxo: { value: any }) => sum + utxo.value,
-      0
-    )
-
     return {
       inputs: exactMatchSet,
       fee,
@@ -174,12 +173,12 @@ function branchAndBoundUtxoSelection(
   }
 
   // Apply Branch and Bound algorithm
-  let bestSelection: Utxo[] = []
+  let bestSelection: _Utxo[] = []
   let bestWaste = Infinity
 
   // Function to search recursively
   function search(
-    selection: Utxo[],
+    selection: _Utxo[],
     effectiveValue: number,
     depth: number,
     tries: number
@@ -227,11 +226,10 @@ function branchAndBoundUtxoSelection(
   // If we found a selection
   if (bestSelection) {
     const fee = bestSelection.length * inputCost
-    const actualValue = bestSelection.reduce(
-      (sum: number, utxo: Utxo) => sum + utxo.value,
-      0
-    )
-    const change = actualValue - targetAmount - fee
+    const change =
+      bestSelection.reduce((sum: number, utxo: Utxo) => sum + utxo.value, 0) -
+      targetAmount -
+      fee
 
     // If change is less than dust, add it to fee
     if (change > 0 && change < opts.dustThreshold) {
@@ -255,7 +253,7 @@ function branchAndBoundUtxoSelection(
 /**
  * Find a subset of UTXOs that exactly match the target amount
  */
-function findExactMatch(utxos: Utxo[], targetValue: number) {
+function findExactMatch(utxos: _Utxo[], targetValue: number) {
   // This uses dynamic programming to find subset sum
   const n = utxos.length
 
@@ -317,7 +315,7 @@ type StonewallOptions = {
  * @returns {Object} Selected UTXOs, change outputs and metadata
  */
 function selectStonewallUtxos(
-  utxos: any[],
+  utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
   options: StonewallOptions = {}
@@ -350,7 +348,7 @@ function selectStonewallUtxos(
   let eligibleUtxos = [...utxos]
 
   // Get input size based on script type
-  function getInputSize(utxo: { scriptType: any }) {
+  function getInputSize(utxo: Partial<Pick<_Utxo, 'scriptType'>>) {
     if (!utxo.scriptType) return opts.sizeP2PKH // Default to P2PKH
 
     switch (utxo.scriptType) {
@@ -370,7 +368,7 @@ function selectStonewallUtxos(
   }
 
   // Group UTXOs by script type to help with fingerprinting avoidance
-  const utxosByType = {}
+  const utxosByType: { [key: string]: _Utxo[] } = {}
   eligibleUtxos.forEach((utxo) => {
     const type = utxo.scriptType || 'p2pkh'
     if (!utxosByType[type]) {
@@ -611,7 +609,7 @@ function calculateStonewallEntropy(solution: { inputs: any; outputs: any }) {
     ...inputs.map((i: { value: any }) => i.value),
     ...outputs.map((o: { value: any }) => o.value)
   ]
-  const valueDistribution = {}
+  const valueDistribution: { [key: number]: number } = {}
 
   allValues.forEach((value) => {
     valueDistribution[value] = (valueDistribution[value] || 0) + 1
