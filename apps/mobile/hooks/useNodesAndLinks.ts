@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
+import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
@@ -43,7 +44,7 @@ interface Transaction {
 
 interface UseNodesAndLinksProps {
   transactions: Map<string, Transaction>
-  inputs: Map<string, { value: number }>
+  inputs: Map<string, Utxo>
   outputs: any[]
   utxosSelectedValue: number
 }
@@ -312,7 +313,10 @@ export const useNodesAndLinks = ({
           node.id.includes('vout') &&
           Array.from(inputs.values())
             .map((input) => input.value)
-            .includes(node?.value ?? 0)
+            .includes(node?.value ?? 0) &&
+          Array.from(inputs.values())
+            .map((input) => input.vout)
+            .includes(node?.vout ?? 0)
         ) {
           // vout node that has input selected by users
           const targetBlock = ingoingNodes[0].id
