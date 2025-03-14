@@ -26,7 +26,7 @@ export default function Converter() {
 
   const handleBitcoinChange = useCallback((bitcoin: number) => {
     setBitcoin(bitcoin)
-    setSats(bitcoin * SATS_PER_BITCOIN)
+    setSats(Math.round(bitcoin * SATS_PER_BITCOIN))
   }, [])
 
   const [prices, fetchPrices] = usePriceStore(

@@ -104,11 +104,14 @@ function SSCurrencyInput(
     }
 
     const rawValue = text.replace(/,/g, '')
-    if (/^(\d*\.?\d*)$/.test(rawValue) || rawValue === '') {
+    if (/^(\d*\.?\d*)$/.test(rawValue)) {
       const formattedValue = formatNumberWithCommas(rawValue)
-
       setLocalValue(formattedValue)
-      if (onChangeValue) onChangeValue(parseFloat(rawValue))
+
+      if (onChangeValue) {
+        const cleanNum = formattedValue.replace(/,/g, '')
+        onChangeValue(parseFloat(cleanNum))
+      }
     }
   }
 
