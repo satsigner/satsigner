@@ -13,10 +13,11 @@ function FormItem({ children }: SSFormItemProps) {
 
 type SSFormLabelProps = {
   label: string
+  center?: boolean
 }
 
-function FormLabel({ label }: SSFormLabelProps) {
-  return <SSText style={styles.textFormLabel}>{label}</SSText>
+function FormLabel({ label, center = true }: SSFormLabelProps) {
+  return <SSText style={[center && styles.textFormLabelCenter]}>{label}</SSText>
 }
 
 type SSFormLayoutProps = {
@@ -37,7 +38,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: Layout.formItem.gap
   },
-  textFormLabel: {
+  textFormLabelCenter: {
     alignSelf: 'center'
   }
 })

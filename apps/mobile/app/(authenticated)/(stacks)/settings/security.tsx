@@ -56,8 +56,8 @@ export default function Security() {
                   min={SETTINGS_PIN_MIN_POSSIBLE_TRIES}
                   max={SETTINGS_PIN_MAX_POSSIBLE_TRIES}
                   value={pinMaxTries}
+                  step={1}
                   onValueChange={(value) => setCurrentPinMaxTries(value)}
-                  style={{ width: '90%' }}
                 />
                 <SSText center style={{ width: '5%' }}>
                   {SETTINGS_PIN_MAX_POSSIBLE_TRIES}

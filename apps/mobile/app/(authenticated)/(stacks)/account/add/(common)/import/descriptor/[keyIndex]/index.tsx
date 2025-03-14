@@ -1,9 +1,12 @@
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Clipboard from 'expo-clipboard'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { extractExtendedKeyFromDescriptor, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -12,13 +15,33 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useBlockchainStore } from '@/store/blockchain'
+import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 
-function ImportDescriptor() {
-  const [localDescriptor, setLocalDescriptor] = useState<string>('')
+export default function ImportDescriptor() {
+  const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
   const router = useRouter()
+  const network = useBlockchainStore((state) => state.network)
 
-  const [setParticipantWithDescriptor] = useAccountBuilderStore(
-    useShallow((state) => [state.setParticipantWithDescriptor])
+  const [loading, setLoading] = useState(false)
+  const [localDescriptor, setLocalDescriptor] = useState('')
+
+  const [
+    setKey,
+    setExternalDescriptor,
+    updateKeyFingerprint,
+    setKeyDerivationPath,
+    setExtendedPublicKey,
+    clearKeyState
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.setKey,
+      state.setExternalDescriptor,
+      state.updateKeyFingerprint,
+      state.setKeyDerivationPath,
+      state.setExtendedPublicKey,
+      state.clearKeyState
+    ])
   )
 
   async function handleOnPressPaste() {
@@ -26,17 +49,24 @@ function ImportDescriptor() {
     setLocalDescriptor(text)
   }
 
-  function handlePressCancel() {
-    router.back()
-  }
+  async function handleOnPressConfirm() {
+    setLoading(true)
+    const descriptor = await new Descriptor().create(
+      localDescriptor,
+      network as Network
+    )
+    const { fingerprint, derivationPath } = await parseDescriptor(descriptor)
+    const extendedKey = await extractExtendedKeyFromDescriptor(descriptor)
 
-  function handlePressConfirm() {
-    setParticipantWithDescriptor(localDescriptor)
-    router.back()
-  }
+    setExternalDescriptor(localDescriptor)
+    setExtendedPublicKey(extendedKey)
+    setKey(Number(keyIndex))
+    updateKeyFingerprint(Number(keyIndex), fingerprint)
+    setKeyDerivationPath(Number(keyIndex), derivationPath)
+    clearKeyState()
 
-  function handleSelectFromOtherWallet() {
-    router.push('/addMasterKey/selectFromOtherWallet')
+    setLoading(false)
+    router.dismiss(2)
   }
 
   return (
@@ -72,22 +102,25 @@ function ImportDescriptor() {
           <SSButton
             variant="outline"
             label={t('account.import.fromOtherWallet')}
-            onPress={handleSelectFromOtherWallet}
+            onPress={() =>
+              router.push(
+                `/account/add/import/descriptor/${keyIndex}/fromAccount`
+              )
+            }
           />
           <SSButton
             label={t('common.confirm')}
             variant="secondary"
-            onPress={handlePressConfirm}
+            loading={loading}
+            onPress={handleOnPressConfirm}
           />
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            onPress={handlePressCancel}
+            onPress={() => router.back()}
           />
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
   )
 }
-
-export default ImportDescriptor

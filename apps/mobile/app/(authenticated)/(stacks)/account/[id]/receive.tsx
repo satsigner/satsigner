@@ -1,61 +1,68 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
+import { toast } from 'sonner-native'
 
+import { getLastUnusedAddressFromWallet } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import useGetWalletAddress from '@/hooks/useGetWalletAddress'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function Receive() {
-  const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
+  const router = useRouter()
 
   const account = useAccountsStore((state) =>
-    state.accounts.find((account) => account.name === id)
+    state.accounts.find((account) => account.id === id)
   )
-  const getWalletAddress = useGetWalletAddress(account!)
+  const wallet = useWalletsStore((state) => state.wallets[id!])
 
-  const [address, setAddress] = useState('')
-  const [addressNumber, setAddressNumber] = useState(0)
-  const [addressQR, setAddressQR] = useState('')
-  const [addressPath, setAddressPath] = useState('')
+  const [localAddress, setLocalAddress] = useState<string>()
+  const [localAddressNumber, setLocalAddressNumber] = useState<number>()
+  const [localAddressQR, setLocalAddressQR] = useState<string>()
+  const [localAddressPath, setLocalAddressPath] = useState<string>()
 
   useEffect(() => {
-    async function callGetWalletAddress() {
-      const result = await getWalletAddress()
+    async function loadAddress() {
+      if (!wallet) {
+        toast(t('error.notFound.wallet'))
+        return
+      }
+      const addressInfo = await getLastUnusedAddressFromWallet(wallet)
 
-      if (!result) return
-
-      const addressResult = await result.address.asString()
-      setAddress(addressResult)
-
-      setAddressNumber(result.index)
-
-      const addressQRResult = await result.address.toQrUri()
-      setAddressQR(addressQRResult)
-
-      if (account?.derivationPath)
-        setAddressPath(`${account.derivationPath}/0/${addressNumber}`)
+      const [address, qrUri] = await Promise.all([
+        addressInfo.address.asString(),
+        addressInfo.address.toQrUri()
+      ])
+      setLocalAddress(address)
+      setLocalAddressNumber(addressInfo.index)
+      setLocalAddressQR(qrUri)
+      setLocalAddressPath(
+        `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
+      )
     }
 
-    callGetWalletAddress()
-  }, [getWalletAddress, account?.derivationPath]) // eslint-disable-line react-hooks/exhaustive-deps
+    loadAddress()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>{id}</SSText>
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>,
+          headerRight: undefined
         }}
       />
       <ScrollView>
@@ -64,25 +71,27 @@ export default function Receive() {
             <SSText color="muted" uppercase>
               {t('receive.address')} #
             </SSText>
-            <SSText size="3xl">{addressNumber}</SSText>
+            <SSText size="3xl">{localAddressNumber}</SSText>
           </SSVStack>
           <SSVStack gap="none" itemsCenter>
             <SSHStack gap="sm">
               <SSText color="muted" uppercase>
                 {t('receive.path')}
               </SSText>
-              <SSText>{addressPath}</SSText>
+              <SSText>{localAddressPath}</SSText>
             </SSHStack>
             <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
-          {addressQR && <SSQRCode value={addressQR} />}
+          {localAddressQR && <SSQRCode value={localAddressQR} />}
           <SSVStack gap="none" itemsCenter>
             <SSText color="muted" uppercase>
               {t('receive.address')}
             </SSText>
-            <SSClipboardCopy text={address} withPopup={false}>
-              <SSText size="sm">{address}</SSText>
-            </SSClipboardCopy>
+            {localAddress && (
+              <SSClipboardCopy text={localAddress} withPopup={false}>
+                <SSText size="sm">{localAddress}</SSText>
+              </SSClipboardCopy>
+            )}
           </SSVStack>
           <SSFormLayout>
             <SSFormLayout.Item>

@@ -4,16 +4,23 @@ import BouncyCheckbox, {
   type BouncyCheckboxProps
 } from 'react-native-bouncy-checkbox'
 
+import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
 import SSText from './SSText'
 
 type SSCheckboxProps = {
   label?: string
+  description?: string
   selected: boolean
 } & BouncyCheckboxProps
 
-function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
+function SSCheckbox({
+  label,
+  description,
+  selected,
+  ...props
+}: SSCheckboxProps) {
   const innerIconStyle = useMemo(() => {
     return StyleSheet.compose(styles.innerIconStyleBase, {
       borderColor: selected ? Colors.white : Colors.transparent
@@ -34,9 +41,12 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
         {...props}
       />
       {label && (
-        <SSText color="white" size="lg">
-          {label}
-        </SSText>
+        <SSVStack gap="none" style={{ flex: 1 }}>
+          <SSText color="white" size="lg">
+            {label}
+          </SSText>
+          {description && <SSText color="muted">{description}</SSText>}
+        </SSVStack>
       )}
     </View>
   )
@@ -45,7 +55,7 @@ function SSCheckbox({ label, selected, ...props }: SSCheckboxProps) {
 const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Sizes.checkbox.height / 2
   },
   iconStyleBase: {
