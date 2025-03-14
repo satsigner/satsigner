@@ -54,12 +54,12 @@ function useSyncAccountWithWallet() {
 
     const updatedAccount: Account = { ...account }
 
-    updatedAccount.addresses = walletSummary.addresses
-    updatedAccount.summary = walletSummary.summary
     updatedAccount.transactions = walletSummary.transactions
     updatedAccount.utxos = walletSummary.utxos
+    updatedAccount.addresses = walletSummary.addresses
+    updatedAccount.summary = walletSummary.summary
 
-    // attach additional information to the account addresses
+    //Attach additional information to the account addresses
     updatedAccount.addresses = parseAccountAddressesDetails(updatedAccount)
 
     //Labels update

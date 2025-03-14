@@ -11,12 +11,12 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 
-function SSAddressLabel() {
+function AddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
   const [address, setAddrLabel] = useAccountsStore((state) => [
     state.accounts
-      .find((account: Account) => account.name === accountId)
+      .find((account: Account) => account.id === accountId)
       ?.addresses.find((address: Address) => address.address === addr),
     state.setAddrLabel
   ])
@@ -52,4 +52,4 @@ function SSAddressLabel() {
   )
 }
 
-export default SSAddressLabel
+export default AddressLabel

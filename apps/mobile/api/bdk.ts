@@ -24,13 +24,13 @@ import {
   type Network
 } from 'bdk-rn/lib/lib/enums'
 
-import type { Account, Key, Secret } from '@/types/models/Account'
+import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
-import type {
-  Backend,
-  Network as BlockchainNetwork
+import {
+  type Backend,
+  type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
@@ -408,7 +408,7 @@ async function getWalletAddresses(
     const changeAddrInfo = await wallet.getInternalAddress(i)
     const changeAddr = await changeAddrInfo.address.asString()
 
-    if (changeAddr === receiveAddr) continue
+    if (changeAddr === receiveAddr) continue // Because bdk not returning correct internal addresses?
 
     addresses.push({
       address: changeAddr,
@@ -433,7 +433,7 @@ async function getWalletAddresses(
 async function getWalletOverview(
   wallet: Wallet,
   network: Network
-): Promise<Pick<Account, 'addresses' | 'transactions' | 'utxos' | 'summary'>> {
+): Promise<Pick<Account, 'transactions' | 'utxos' | 'addresses' | 'summary'>> {
   if (!wallet) {
     return {
       transactions: [],
@@ -616,18 +616,7 @@ async function getTransactionInputValues(
   network: BlockchainNetwork,
   url: string
 ): Promise<Transaction['vin']> {
-  let mustFetchData = false
-
-  for (const input of tx.vin) {
-    if (input.value === undefined) {
-      mustFetchData = true
-      break
-    }
-  }
-
-  if (!mustFetchData) {
-    return tx.vin
-  }
+  if (!tx.vin.some((input) => input.value === undefined)) return tx.vin
 
   let vin: Transaction['vin'] = []
 
