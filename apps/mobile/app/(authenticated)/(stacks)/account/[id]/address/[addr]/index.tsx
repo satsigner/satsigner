@@ -32,7 +32,7 @@ function AddressDetails() {
   const [account, address] = useAccountsStore((state) => [
     state.accounts.find((account) => account.id === accountId),
     state.accounts
-      .find((account) => account.name === accountId)
+      .find((account) => account.id === accountId)
       ?.addresses.find((address) => {
         return address.address === addr
       })

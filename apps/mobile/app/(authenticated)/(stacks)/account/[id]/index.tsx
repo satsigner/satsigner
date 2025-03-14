@@ -258,7 +258,7 @@ function ChildAccounts({
   const [addresses, setAddresses] = useState(
     account.addresses.slice(0, addressCount)
   )
-  const [hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
+  const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
 
   function updateDerivationPath() {
     if (account.keys[0].derivationPath)
@@ -290,7 +290,7 @@ function ChildAccounts({
   }
 
   async function updateAddresses() {
-    if (hasLoadMoreAddresses) return
+    // if (hasLoadMoreAddresses) return
     const result = await getLastUnusedAddressFromWallet(wallet!)
 
     if (!result) return
@@ -325,7 +325,7 @@ function ChildAccounts({
     ({ item }: { item: Address }) => (
       <TouchableOpacity
         onPress={() =>
-          router.navigate(`/account/${account.name}/address/${item.address}`)
+          router.navigate(`/account/${account.id}/address/${item.address}`)
         }
       >
         <SSHStack style={addressListStyles.row}>
