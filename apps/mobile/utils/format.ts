@@ -31,8 +31,6 @@ function formatNumber(
   return decimalPart !== undefined
     ? `${formattedInteger}.${decimalPart}`
     : formattedInteger
-
-  // return formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1' + separator)
 }
 
 function formatTime(date: Date) {

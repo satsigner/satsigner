@@ -111,16 +111,6 @@ function SSCurrencyInput(
     }
   }
 
-  //   function handleSubmitText() {
-  //     if (localValue.match(/^[0-9]+$/)) {
-  //       let numericVal = Number(localValue)
-  //       if (numericVal < min) numericVal = min
-  //       if (numericVal > max) numericVal = max
-  //       setInvalid(false)
-  //       if (onChangeValue) onChangeValue(numericVal.toString())
-  //     }
-  //   }
-
   return (
     <View style={styles.containerBase}>
       <TextInput
