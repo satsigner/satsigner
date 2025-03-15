@@ -38,10 +38,7 @@ export default function AuthenticatedLayout() {
     lockTriggered,
     skipPin,
     justUnlocked,
-    setLockTriggered,
     markPageVisited,
-    getPagesHistory,
-    clearPageHistory,
     setJustUnlocked
   ] = useAuthStore(
     useShallow((state) => [
@@ -50,10 +47,7 @@ export default function AuthenticatedLayout() {
       state.lockTriggered,
       state.skipPin,
       state.justUnlocked,
-      state.setLockTriggered,
       state.markPageVisited,
-      state.getPagesHistory,
-      state.clearPageHistory,
       state.setJustUnlocked
     ])
   )
@@ -75,18 +69,18 @@ export default function AuthenticatedLayout() {
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 
-  useEffect(() => {
-    if (lockTriggered && skipPin) {
-      setLockTriggered(false)
-      const pages = getPagesHistory()
-      clearPageHistory()
-      setImmediate(() => {
-        for (const page of pages) {
-          router.push(page as any)
-        }
-      })
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // useEffect(() => {
+  //   if (lockTriggered && skipPin) {
+  //     setLockTriggered(false)
+  //     const pages = getPagesHistory()
+  //     clearPageHistory()
+  //     setImmediate(() => {
+  //       for (const page of pages) {
+  //         router.push(page as any)
+  //       }
+  //     })
+  //   }
+  // }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function loadWallets() {
