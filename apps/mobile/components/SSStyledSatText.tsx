@@ -26,10 +26,7 @@ function SSStyledSatText({
   letterSpacing = -0.5
 }: SSStyledSatTextProps) {
   const formatted = formatNumber(amount, decimals, useZeroPadding)
-  const spacedFormatted = formatted.replace(
-    /(\d)(?=(\d{3})+(?!\d))/g,
-    '$1\u2001'
-  )
+  const spacedFormatted = formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1  ')
 
   const firstNonZeroIndex =
     spacedFormatted.search(/[1-9]/) === -1
