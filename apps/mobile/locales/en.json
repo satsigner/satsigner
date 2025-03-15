@@ -230,6 +230,9 @@
     "warning": "Warning",
     "yes": "Yes"
   },
+  "explore": {
+    "title": "Explore"
+  },
   "converter": {
     "currency.bitcoin": "Bitcoin",
     "currency.cad": "CAD",
