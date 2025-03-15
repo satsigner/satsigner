@@ -71,7 +71,8 @@ function SSNavMenuItem({ item, focused = false }: SSNavMenuItemProps) {
 
 const styles = StyleSheet.create({
   touchable: {
-    width: '100%'
+    width: '100%',
+    height: 46
   },
   container: {
     alignItems: 'center',
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   },
   shadow: {
     width: '100%',
-    height: 48
+    height: 46
   },
   gradient: {
     width: '100%',

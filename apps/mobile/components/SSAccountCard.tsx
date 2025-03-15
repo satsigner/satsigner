@@ -1,4 +1,4 @@
-import { TouchableOpacity } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -11,6 +11,7 @@ import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
+import SSEllipsisAnimation from './SSEllipsisAnimation'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
@@ -27,16 +28,18 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
-      <SSHStack justifyBetween>
+      <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap="none">
           <SSText size="xs" style={{ color: Colors.gray[500], lineHeight: 10 }}>
-            {account.fingerprint}
+            {account.keys[0].fingerprint}
           </SSText>
           <SSHStack gap="sm">
             <SSText size="lg" color="muted">
               {account.name}
             </SSText>
-            {account.watchOnly && <SSIconEyeOn height={16} width={16} />}
+            {account.policyType === 'watchonly' && (
+              <SSIconEyeOn height={16} width={16} />
+            )}
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
             <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>
@@ -64,22 +67,18 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           <SSHStack style={{ marginTop: 8 }}>
             <SSVStack gap="none">
               <SSText color="white" size="md">
-                {formatNumber(account.summary.numberOfAddresses)}
+                {formatNumber(account.summary.numberOfTransactions)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.childAccounts.0')}
-                {'\n'}
-                {t('accounts.childAccounts.1')}
+                {t('accounts.totalTransactions')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
               <SSText color="white" size="md">
-                {formatNumber(account.summary.numberOfTransactions)}
+                {formatNumber(account.summary.numberOfAddresses)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.totalTransactions.0')}
-                {'\n'}
-                {t('accounts.totalTransactions.1')}
+                {t('accounts.derivedAddresses')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -87,9 +86,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 {formatNumber(account.summary.numberOfUtxos)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.spendableOutputs.0')}
-                {'\n'}
-                {t('accounts.spendableOutputs.1')}
+                {t('accounts.spendableOutputs')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">
@@ -97,14 +94,17 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
                 {formatNumber(account.summary.satsInMempool)}
               </SSText>
               <SSText size="xs" color="muted">
-                {t('accounts.satsInMempool.0')}
-                {'\n'}
-                {t('accounts.satsInMempool.1')}
+                {t('accounts.satsInMempool')}
               </SSText>
             </SSVStack>
           </SSHStack>
         </SSVStack>
         <SSIconChevronRight height={11.6} width={6} />
+        {account.isSyncing && (
+          <View style={{ position: 'absolute', top: 0, right: 6 }}>
+            <SSEllipsisAnimation size={2.8} />
+          </View>
+        )}
       </SSHStack>
     </TouchableOpacity>
   )

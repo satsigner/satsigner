@@ -6,7 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity
 } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
+// import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
@@ -14,6 +16,7 @@ import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+// import SSTxChart from '@/components/SSTxChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -31,17 +34,24 @@ import {
   formatNumber
 } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
-
-// TODO: Refactor page
+import { getUtxoOutpoint } from '@/utils/utxo'
 
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const tx = useAccountsStore((state) =>
-    state.accounts
-      .find((account) => account.name === accountId)
-      ?.transactions.find((tx) => tx.id === txid)
+  const [tx, _loadTx] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts
+        .find((account) => account.id === accountId)
+        ?.transactions.find((tx) => tx.id === txid),
+      state.loadTx
+    ])
   )
+
+  // const [backend, network, url] = useBlockchainStore(
+  //   useShallow((state) => [state.backend, state.network, state.url])
+  // )
+
   const placeholder = '-'
 
   const [fee, setFee] = useState(placeholder)
@@ -80,6 +90,11 @@ export default function TxDetails() {
     if (tx.vout) setOutputsCount(tx.vout.length.toString())
 
     if (tx.raw) setRaw(bytesToHex(tx.raw))
+
+    // if (tx.vin.some((input) => input.value === undefined)) {
+    //   tx.vin = await getTransactionInputValues(tx, backend, network, url)
+    //   loadTx(accountId!, tx)
+    // }
   }
 
   useEffect(() => {
@@ -107,6 +122,10 @@ export default function TxDetails() {
           link={`/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
         />
+        {/* TODO: finish it
+            <SSSeparator color="gradient" />
+            <SSTxChart transaction={tx} />
+        */}
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('transaction.block')} text={height} />
@@ -242,8 +261,8 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
 
     if (tx.prices) {
+      setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
     }
-    setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
 
     if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
 
@@ -364,17 +383,31 @@ type SSTxDetailsOutputsProps = {
 }
 
 function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
+  const account = useAccountsStore((state) =>
+    state.accounts.find((account) => account.name === accountId)
+  )
+
+  const utxoDict: Record<string, boolean> = {}
+  const addressDict: Record<string, boolean> = {}
+
+  if (account) {
+    account.utxos.forEach((utxo) => (utxoDict[getUtxoOutpoint(utxo)] = true))
+    account.addresses.forEach((addr) => (addressDict[addr.address] = true))
+  }
+
   return (
     <SSVStack>
       {tx &&
-        (tx?.vout || []).map((vout, index) => (
+        (tx?.vout || []).map((output, index) => (
           <TouchableOpacity
             key={index}
-            onPress={() =>
-              router.navigate(
-                `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
-              )
-            }
+            onPress={() => {
+              if (utxoDict[`${tx.id}:${index}`]) {
+                router.navigate(
+                  `/account/${accountId}/transaction/${tx.id}/utxo/${index}`
+                )
+              }
+            }}
           >
             <SSVStack key={`${tx.id}:${index}`}>
               <SSSeparator color="gradient" />
@@ -383,17 +416,27 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
               </SSText>
               <SSTxDetailsBox
                 header={t('transaction.value')}
-                text={vout.value}
+                text={output.value}
               />
-              <SSTxDetailsBox
-                header={t('transaction.address')}
-                text={vout.address}
-              />
+              <TouchableOpacity
+                onPress={() => {
+                  if (addressDict[output.address]) {
+                    router.navigate(
+                      `/account/${accountId}/address/${output.address}`
+                    )
+                  }
+                }}
+              >
+                <SSTxDetailsBox
+                  header={t('transaction.address')}
+                  text={output.address}
+                />
+              </TouchableOpacity>
               <SSVStack>
                 <SSText weight="bold">
                   {t('transaction.unlockingScript')}
                 </SSText>
-                <SSScriptDecoded script={vout.script || []} />
+                <SSScriptDecoded script={output.script || []} />
               </SSVStack>
             </SSVStack>
           </TouchableOpacity>

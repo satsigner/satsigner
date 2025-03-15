@@ -11,15 +11,18 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useWalletsStore } from '@/store/wallets'
 
 export default function Developer() {
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
+  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
   const [setFirstTime, skipPin, setSkipPin] = useAuthStore(
     useShallow((state) => [state.setFirstTime, state.skipPin, state.setSkipPin])
   )
 
   async function handleDeleteAccount() {
     deleteAccounts()
+    deleteWallets()
     Alert.alert(t('settings.developer.accountsDeleted'))
   }
 

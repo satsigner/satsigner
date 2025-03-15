@@ -1,35 +1,72 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
+import { getWalletData } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
+import { PIN_KEY } from '@/config/auth'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
 export default function ExportDescriptors() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.name === accountId)
+    state.accounts.find((_account) => _account.id === accountId)
   )
+  const network = useBlockchainStore((state) => state.network)
 
   const [exportContent, setExportContent] = useState('')
 
   useEffect(() => {
-    setExportContent(
-      [account?.externalDescriptor, account?.internalDescriptor]
-        .filter((item) => item)
-        .join('\n')
-    )
-  }, [account])
+    async function getDescriptors() {
+      if (!account) return
+      const pin = await getItem(PIN_KEY)
+      if (!pin) return
+      try {
+        const isImportAddress = account.keys[0].creationType === 'importAddress'
 
-  if (!account) return <Redirect href="/" />
+        const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
+
+        for (const key of temporaryAccount.keys) {
+          const decryptedSecretString = await aesDecrypt(
+            key.secret as string,
+            pin,
+            key.iv
+          )
+          const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+          key.secret = decryptedSecret
+        }
+
+        const walletData = !isImportAddress
+          ? await getWalletData(temporaryAccount, network as Network)
+          : undefined
+
+        const descriptors = !isImportAddress
+          ? [walletData?.externalDescriptor!, walletData?.internalDescriptor!]
+          : [
+              (typeof temporaryAccount.keys[0].secret === 'object' &&
+                temporaryAccount.keys[0].secret.externalDescriptor!) as string
+            ]
+
+        setExportContent(descriptors.join('\n'))
+      } catch {
+        // TODO
+      }
+    }
+    getDescriptors()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function exportDescriptors() {
     if (!account) return
@@ -43,6 +80,8 @@ export default function ExportDescriptors() {
       mimeType: `text/plain`
     })
   }
+
+  if (!account) return <Redirect href="/" />
 
   return (
     <ScrollView style={{ width: '100%' }}>
