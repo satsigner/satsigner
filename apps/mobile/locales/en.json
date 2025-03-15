@@ -230,6 +230,17 @@
     "warning": "Warning",
     "yes": "Yes"
   },
+  "converter": {
+    "currency.bitcoin": "Bitcoin",
+    "currency.cad": "CAD",
+    "currency.chf": "CHF",
+    "currency.eur": "EUR",
+    "currency.gbp": "GBP",
+    "currency.jpy": "JPY",
+    "currency.sats": "sats",
+    "currency.usd": "USD",
+    "title": "Converter"
+  },
   "date": {
     "date": "Date",
     "day": "day",

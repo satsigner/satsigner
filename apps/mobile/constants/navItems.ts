@@ -101,8 +101,8 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.currency'),
         icon: SSIconCurrency,
-        url: '',
-        isSoon: true,
+        url: '/currency',
+        isSoon: false,
         platform: PLATFORM.HYBRID
       },
       {
