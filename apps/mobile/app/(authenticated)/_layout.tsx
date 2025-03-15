@@ -12,7 +12,7 @@ export default function DrawerLayout() {
           drawerPosition: 'left',
           headerShown: false,
           drawerType: 'slide',
-          drawerStyle: { width: '75%' }
+          drawerStyle: { width: 300 }
         }}
       >
         <Drawer.Screen name="(stacks)" />
