@@ -1,4 +1,4 @@
-import { type Currency } from './Blockchain'
+import { type Prices } from './Blockchain'
 
 export type Transaction = {
   id: string
@@ -17,7 +17,7 @@ export type Transaction = {
   lockTime?: number
   lockTimeEnabled: boolean
   raw?: number[]
-  vin?: {
+  vin: {
     previousOutput: {
       txid: string
       vout: number
@@ -25,13 +25,12 @@ export type Transaction = {
     sequence: number
     scriptSig: number[]
     witness: number[][]
+    value?: number
   }[]
   vout: {
     value: number
     address: string
     script: number[]
   }[]
-  prices: Partial<{
-    [key in Currency]: number
-  }>
+  prices: Prices
 }

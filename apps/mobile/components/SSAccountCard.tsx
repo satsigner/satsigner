@@ -67,18 +67,18 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           <SSHStack style={{ marginTop: 8 }}>
             <SSVStack gap="none">
               <SSText color="white" size="md">
-                {formatNumber(account.summary.numberOfAddresses)}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('accounts.childAccounts')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText color="white" size="md">
                 {formatNumber(account.summary.numberOfTransactions)}
               </SSText>
               <SSText size="xs" color="muted">
                 {t('accounts.totalTransactions')}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSText color="white" size="md">
+                {formatNumber(account.summary.numberOfAddresses)}
+              </SSText>
+              <SSText size="xs" color="muted">
+                {t('accounts.derivedAddresses')}
               </SSText>
             </SSVStack>
             <SSVStack gap="none">

@@ -9,7 +9,12 @@ function formatAddress(address: string, character: number = 8) {
   return `${beginning}...${end}`
 }
 
-function formatNumber(n: number, decimals = 0, padding = false) {
+function formatNumber(
+  n: number,
+  decimals = 0,
+  padding = false,
+  separator = ' '
+) {
   const formatted = padding
     ? (n / 10 ** 8).toFixed(8)
     : n.toLocaleString(undefined, {
@@ -17,7 +22,15 @@ function formatNumber(n: number, decimals = 0, padding = false) {
         maximumFractionDigits: decimals
       })
 
-  return formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+  const [integerPart, decimalPart] = formatted.split('.')
+  const formattedInteger = integerPart.replace(
+    /(\d)(?=(\d{3})+(?!\d))/g,
+    '$1' + separator
+  )
+
+  return decimalPart !== undefined
+    ? `${formattedInteger}.${decimalPart}`
+    : formattedInteger
 }
 
 function formatTime(date: Date) {
