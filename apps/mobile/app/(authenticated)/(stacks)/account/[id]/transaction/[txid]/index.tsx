@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-// import { getTransactionInputValues } from '@/api/bdk'
+import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
@@ -16,7 +16,7 @@ import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-// import SSTxChart from '@/components/SSTxChart'
+import SSTxChart from '@/components/SSTxChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -39,7 +39,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [tx, _loadTx] = useAccountsStore(
+  const [tx, loadTx] = useAccountsStore(
     useShallow((state) => [
       state.accounts
         .find((account) => account.id === accountId)
@@ -48,9 +48,9 @@ export default function TxDetails() {
     ])
   )
 
-  // const [backend, network, url] = useBlockchainStore(
-  //   useShallow((state) => [state.backend, state.network, state.url])
-  // )
+  const [backend, network, url] = useBlockchainStore(
+    useShallow((state) => [state.backend, state.network, state.url])
+  )
 
   const placeholder = '-'
 
@@ -91,10 +91,10 @@ export default function TxDetails() {
 
     if (tx.raw) setRaw(bytesToHex(tx.raw))
 
-    // if (tx.vin.some((input) => input.value === undefined)) {
-    //   tx.vin = await getTransactionInputValues(tx, backend, network, url)
-    //   loadTx(accountId!, tx)
-    // }
+    if (tx.vin.some((input) => input.value === undefined)) {
+      const vin = await getTransactionInputValues(tx, backend, network, url)
+      loadTx(accountId!, { ...tx, vin })
+    }
   }
 
   useEffect(() => {
@@ -122,10 +122,8 @@ export default function TxDetails() {
           link={`/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
         />
-        {/* TODO: finish it
-            <SSSeparator color="gradient" />
-            <SSTxChart transaction={tx} />
-        */}
+        <SSSeparator color="gradient" />
+        <SSTxChart transaction={tx} />
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('transaction.block')} text={height} />
