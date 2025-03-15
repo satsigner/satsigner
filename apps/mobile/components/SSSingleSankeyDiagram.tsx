@@ -36,24 +36,23 @@ const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
 type SSSingleSankeyDiagramProps = {
-  utxosSelectedValue: number
-  inputs: Map<string, { value: number; txid: string; label?: string }>
+  inputs: { value: number; txid: string; label?: string }[]
+  outputs: { value: number; address: string; label?: string }[]
 }
 
 function SSSingleSankeyDiagram({
-  utxosSelectedValue,
-  inputs
+  inputs,
+  outputs
 }: SSSingleSankeyDiagramProps) {
   const { width: w, height: h, onCanvasLayout } = useLayout()
 
   // Calculate the maximum number of nodes at any depthH level
-  const MINING_FEE_VALUE = 1635
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(100)
     .extent([
       [0, 160],
-      [1000 * 0.4, 1000 * (Math.max(2.4, inputs.size) / 10)]
+      [1000 * 0.4, 1000 * (Math.max(2.4, inputs.length) / 10)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -63,96 +62,63 @@ function SSSingleSankeyDiagram({
   })
 
   const sankeyNodes = useMemo(() => {
-    if (inputs.size > 0) {
-      const inputNodes = Array.from(
-        inputs.entries() as Iterable<
-          [string, { value: number; txid: string; label?: string }]
-        >
-      ).map(([, input], index) => ({
-        id: String(index + 1),
-        type: 'text',
-        depthH: 0,
-        textInfo: [
-          `${input.value}`,
-          `${formatAddress(input.txid, 3)}`,
-          input.label ?? ''
-        ],
-        value: input.value,
-        index: 0
-      }))
-
-      const blockNode = [
-        {
-          id: String(inputs.size + 1),
-          type: 'block',
-          depthH: 1,
-          textInfo: ['', '', '1533 B', '1509 vB'],
-          index: 0
-        }
-      ]
-
-      const miningFee = `${MINING_FEE_VALUE}`
-      const priority = '42 sats/vB'
-      const outputNodes = [
-        {
-          id: String(inputs.size + 2),
-          type: 'text',
-          depthH: 2,
-          textInfo: [
-            'Unspent',
-            `${utxosSelectedValue - MINING_FEE_VALUE}`,
-            'to'
-          ],
-          value: utxosSelectedValue - MINING_FEE_VALUE,
-          index: 0
-        },
-        {
-          id: String(inputs.size + 3),
-          indexC: inputs.size + 3,
-          type: 'text',
-          depthH: 3,
-          textInfo: [priority, miningFee, 'mining fee'],
-          value: MINING_FEE_VALUE,
-          index: 0
-        }
-      ]
-      return [...inputNodes, ...blockNode, ...outputNodes] as SankeyNodeMinimal<
-        object,
-        object
-      >[]
-    } else {
-      return []
-    }
-  }, [inputs, utxosSelectedValue])
-
-  const sankeyLinks = useMemo(() => {
-    if (inputs.size === 0) return []
-
-    const inputToBlockLinks = Array.from(
-      inputs.entries() as Iterable<
-        [string, { value: number; txid: string; label?: string }]
-      >
-    ).map(([, input], index) => ({
-      source: String(index + 1),
-      target: String(inputs.size + 1),
-      value: input.value
+    const inputNodes = inputs.map((input, index) => ({
+      id: String(index + 1),
+      type: 'text',
+      depthH: 0,
+      textInfo: [
+        `${input.value}`,
+        `${formatAddress(input.txid, 3)}`,
+        input.label ?? ''
+      ],
+      value: input.value,
+      index: 0
     }))
 
-    const blockToOutputLinks = [
+    const blockNode = [
       {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 2),
-        value: utxosSelectedValue - MINING_FEE_VALUE
-      },
-      {
-        source: String(inputs.size + 1),
-        target: String(inputs.size + 3),
-        value: MINING_FEE_VALUE
+        id: String(inputs.length + 1),
+        type: 'block',
+        depthH: 1,
+        textInfo: ['', '', '1533 B', '1509 vB'],
+        index: 0
       }
     ]
 
+    const outputNodes = outputs.map((output, index) => ({
+      id: String(index + 2 + inputs.length),
+      type: 'text',
+      depthH: 0,
+      textInfo: [
+        `${output.value}`,
+        `${formatAddress(output.address, 3)}`,
+        output.label ?? ''
+      ],
+      value: output.value,
+      index: 0
+    }))
+
+    return [...inputNodes, ...blockNode, ...outputNodes] as SankeyNodeMinimal<
+      object,
+      object
+    >[]
+  }, [inputs, outputs])
+
+  const sankeyLinks = useMemo(() => {
+    const inputToBlockLinks = inputs.map((input, index) => ({
+      source: String(index + 1),
+      target: String(inputs.length + 1),
+      value: input.value
+    }))
+
+    const blockToOutputLinks = outputs.map((output, index) => ({
+      source: String(inputs.length + 1),
+      target: String(index + inputs.length + 2),
+      value: output.value
+    }))
+
     return [...inputToBlockLinks, ...blockToOutputLinks]
-  }, [inputs, utxosSelectedValue])
+  }, [inputs, outputs])
 
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
@@ -169,6 +135,7 @@ function SSSingleSankeyDiagram({
   if (!nodes?.length || !transformedLinks?.length) {
     return null
   }
+
   return (
     <View style={{ flex: 1 }}>
       <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>
