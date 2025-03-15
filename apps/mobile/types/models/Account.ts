@@ -1,3 +1,4 @@
+import { type Address } from './Address'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
 
@@ -60,7 +61,7 @@ export type Account = {
   }
   transactions: Transaction[]
   utxos: Utxo[]
-  addresses: [] // TODO: Add types
+  addresses: Address[]
   createdAt: Date
   isSyncing?: boolean
 }

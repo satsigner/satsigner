@@ -102,6 +102,29 @@ class BaseElectrumClient {
     this.network = bitcoinjsNetwork(network)
   }
 
+  static async fromUrl(url: string, network: Network): Promise<ElectrumClient> {
+    const port = url.replace(/.*:/, '')
+    const protocol = url.replace(/:\/\/.*/, '')
+    const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
+
+    if (
+      !host.match(/^[a-z][a-z.]+$/i) ||
+      !port.match(/^[0-9]+$/) ||
+      (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+    ) {
+      throw new Error('Invalid backend URL')
+    }
+
+    const client = new ElectrumClient({
+      host,
+      port: Number(port),
+      protocol,
+      network
+    })
+    await client.init()
+    return client
+  }
+
   async init() {
     await this.client.initElectrum({
       client: 'satsigner',
@@ -219,6 +242,24 @@ class ElectrumClient extends BaseElectrumClient {
       timestamps.push(heightTimestampDict[height])
     }
     return timestamps
+  }
+
+  // Refactor to use only the TXID instead of the transaction?
+  async getTxInputValues(tx: Transaction): Promise<Transaction['vin']> {
+    const vin: Transaction['vin'] = []
+    const txIds = tx.vin.map((input) => input.previousOutput.txid)
+    const vouts = tx.vin.map((input) => input.previousOutput.vout)
+    const previousTxsRaw = await this.getTransactions(txIds)
+    for (let i = 0; i < tx.vin.length; i += 1) {
+      const vout = vouts[i]
+      const prevTx = bitcoinjs.Transaction.fromHex(previousTxsRaw[i])
+      const value = prevTx.outs[vout].value
+      vin.push({
+        ...tx.vin[i],
+        value
+      })
+    }
+    return vin
   }
 
   parseAddressUtxos(
