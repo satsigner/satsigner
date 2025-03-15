@@ -559,7 +559,6 @@
     "outputIndex": "Output Index",
     "unlockingScript": "Unlocking script"
   },
-
   "watchonly": {
     "address.label": "Address",
     "address.text": "A single bitcoin address",
