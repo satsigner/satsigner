@@ -62,6 +62,8 @@ function SSSingleSankeyDiagram({
   })
 
   const sankeyNodes = useMemo(() => {
+    if (inputs.length === 0 || outputs.length === 0) return []
+
     const inputNodes = inputs.map((input, index) => ({
       id: String(index + 1),
       type: 'text',
@@ -105,6 +107,8 @@ function SSSingleSankeyDiagram({
   }, [inputs, outputs])
 
   const sankeyLinks = useMemo(() => {
+    if (inputs.length === 0 || outputs.length === 0) return []
+
     const inputToBlockLinks = inputs.map((input, index) => ({
       source: String(index + 1),
       target: String(inputs.length + 1),
