@@ -28,6 +28,7 @@ function SSTxChart({ transaction }: SSTxChartProps) {
           address: output.address,
           value: output.value
         }))}
+        size={transaction.size ?? 0}
       />
     </View>
   )

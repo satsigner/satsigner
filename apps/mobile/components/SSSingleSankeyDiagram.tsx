@@ -1,3 +1,4 @@
+import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group } from '@shopify/react-native-skia'
 import {
   sankey,
@@ -5,7 +6,7 @@ import {
   type SankeyNodeMinimal
 } from 'd3-sankey'
 import { useMemo } from 'react'
-import { View } from 'react-native'
+import { useWindowDimensions, View } from 'react-native'
 
 import { useLayout } from '@/hooks/useLayout'
 import { formatAddress } from '@/utils/format'
@@ -38,21 +39,27 @@ const NODE_WIDTH = 98
 type SSSingleSankeyDiagramProps = {
   inputs: { value: number; txid: string; label?: string }[]
   outputs: { value: number; address: string; label?: string }[]
+  size: number
 }
 
 function SSSingleSankeyDiagram({
   inputs,
-  outputs
+  outputs,
+  size
 }: SSSingleSankeyDiagramProps) {
   const { width: w, height: h, onCanvasLayout } = useLayout()
+  const topHeaderHeight = useHeaderHeight()
+  const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height - topHeaderHeight
+  const GRAPH_WIDTH = width
 
   // Calculate the maximum number of nodes at any depthH level
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(100)
     .extent([
-      [0, 160],
-      [1000 * 0.4, 1000 * (Math.max(2.4, inputs.length) / 10)]
+      [-8, 0],
+      [w, 1000 * size * 0.0005]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -90,7 +97,7 @@ function SSSingleSankeyDiagram({
     const outputNodes = outputs.map((output, index) => ({
       id: String(index + 2 + inputs.length),
       type: 'text',
-      depthH: 0,
+      depthH: 2,
       textInfo: [
         `${output.value}`,
         `${formatAddress(output.address, 3)}`,
@@ -142,7 +149,10 @@ function SSSingleSankeyDiagram({
 
   return (
     <View style={{ flex: 1 }}>
-      <Canvas style={{ width: 2000, height: 2000 }} onLayout={onCanvasLayout}>
+      <Canvas
+        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        onLayout={onCanvasLayout}
+      >
         <Group origin={{ x: w / 2, y: h / 2 }}>
           <SSSankeyLinks
             links={transformedLinks}
