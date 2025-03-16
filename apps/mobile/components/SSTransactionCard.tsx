@@ -93,14 +93,15 @@ function SSTransactionCard({
       <SSVStack
         style={[
           {
-            paddingHorizontal: 16,
-            paddingTop: expand ? 4 : 8
+            paddingHorizontal: 0,
+            paddingTop: expand ? 4 : 8,
+            paddingBottom: expand ? 4 : 8
           },
           style
         ]}
         gap="none"
       >
-        <SSHStack justifyBetween style={{ height: expand ? 18 : 22 }}>
+        <SSHStack justifyBetween style={{ height: expand ? 18 : 18 }}>
           <SSText color="muted">
             {transaction.timestamp && (
               <SSTimeAgoText date={new Date(transaction.timestamp)} />
@@ -119,18 +120,18 @@ function SSTransactionCard({
               }}
             >
               {transaction.type === 'receive' && (
-                <SSHStack style={{ marginTop: expand ? 4 : 0 }}>
+                <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
                   <SSIconIncoming
-                    height={expand ? 12 : 19}
-                    width={expand ? 12 : 19}
+                    height={expand ? 12 : 21}
+                    width={expand ? 12 : 21}
                   />
                 </SSHStack>
               )}
               {transaction.type === 'send' && (
-                <SSHStack style={{ marginTop: expand ? 4 : 0 }}>
+                <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
                   <SSIconOutgoing
-                    height={expand ? 12 : 19}
-                    width={expand ? 12 : 19}
+                    height={expand ? 12 : 21}
+                    width={expand ? 12 : 21}
                   />
                 </SSHStack>
               )}
@@ -140,7 +141,7 @@ function SSTransactionCard({
                   decimals={0}
                   useZeroPadding={useZeroPadding}
                   type={transaction.type}
-                  textSize={expand ? 'xl' : '3xl'}
+                  textSize={expand ? 'xl' : '4xl'}
                   noColor={false}
                   weight="light"
                   letterSpacing={expand ? 0 : -0.5}
@@ -173,17 +174,23 @@ function SSTransactionCard({
               </SSText>
             </SSHStack>
           </SSVStack>
-          {walletBalance !== undefined && (
-            <SSText color="muted" style={[{ textAlign: 'right' }]}>
-              <SSStyledSatText
-                amount={walletBalance}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                type={transaction.type}
-                textSize={expand ? 'xs' : 'sm'}
-              />
+
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            {walletBalance !== undefined && (
+              <SSText color="muted" style={[{ textAlign: 'right' }]}>
+                <SSStyledSatText
+                  amount={walletBalance}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  type={transaction.type}
+                  textSize={expand ? 'xs' : 'sm'}
+                />
+              </SSText>
+            )}
+            <SSText size="xs" color="muted" style={[{ textAlign: 'right' }]}>
+              {t('bitcoin.sats').toLowerCase()}
             </SSText>
-          )}
+          </SSHStack>
         </SSHStack>
         <SSHStack justifyBetween>
           <SSText
