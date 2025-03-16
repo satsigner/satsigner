@@ -101,7 +101,7 @@ function SSTransactionCard({
         ]}
         gap="none"
       >
-        <SSHStack justifyBetween style={{ height: expand ? 18 : 18 }}>
+        <SSHStack justifyBetween style={{ height: 18 }}>
           <SSText color="muted">
             {transaction.timestamp && (
               <SSTimeAgoText date={new Date(transaction.timestamp)} />
