@@ -95,7 +95,7 @@ function SSTransactionCard({
           {
             paddingHorizontal: 0,
             paddingTop: expand ? 4 : 8,
-            paddingBottom: expand ? 4 : 8
+            paddingBottom: expand ? 2 : 4
           },
           style
         ]}
@@ -114,9 +114,10 @@ function SSTransactionCard({
         <SSHStack justifyBetween>
           <SSVStack gap="none">
             <SSHStack
-              gap="sm"
+              gap={expand ? 'xs' : 'sm'}
               style={{
-                height: expand ? 24 : 42
+                height: expand ? 24 : 42,
+                marginTop: expand ? 0 : -8
               }}
             >
               {transaction.type === 'receive' && (
@@ -197,7 +198,7 @@ function SSTransactionCard({
             size={expand ? 'xs' : 'md'}
             style={[
               { textAlign: 'left', flex: 1 },
-              !transaction.label && { color: Colors.gray[100] }
+              !transaction.label && { color: Colors.gray[500] }
             ]}
             numberOfLines={1}
           >
@@ -219,7 +220,7 @@ function SSTransactionCard({
                     {
                       backgroundColor: Colors.gray[700],
                       paddingVertical: 2,
-                      paddingHorizontal: 4,
+                      paddingHorizontal: 6,
                       borderRadius: 4,
                       marginHorizontal: 2
                     }
@@ -234,11 +235,11 @@ function SSTransactionCard({
               <SSText
                 size={expand ? 'xxs' : 'xs'}
                 style={[
-                  { textAlign: 'right', color: Colors.gray[100] },
+                  { textAlign: 'right', color: Colors.gray[500] },
                   {
-                    backgroundColor: Colors.gray[700],
+                    backgroundColor: Colors.gray[900],
                     paddingVertical: expand ? 0 : 2,
-                    paddingHorizontal: expand ? 2 : 4,
+                    paddingHorizontal: expand ? 4 : 6,
                     borderRadius: 4
                   }
                 ]}
