@@ -59,7 +59,7 @@ function SSSingleSankeyDiagram({
     .nodePadding(100)
     .extent([
       [-8, 0],
-      [w, 1000 * size * 0.0005]
+      [w, size * 0.3]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
