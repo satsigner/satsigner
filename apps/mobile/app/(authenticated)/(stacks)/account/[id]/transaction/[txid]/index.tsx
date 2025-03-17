@@ -243,6 +243,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
+  const placeholder = '-'
   const [amount, setAmount] = useState(0)
   const [confirmations, setConfirmations] = useState(0)
   const [oldPrice, setOldPrice] = useState('')
@@ -284,20 +285,17 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
         {type === 'send' && <SSIconOutgoing height={12} width={12} />}
         <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
-            {amount && (
+            {amount ? (
               <SSStyledSatText
                 amount={amount}
                 decimals={0}
                 useZeroPadding={useZeroPadding}
                 type={tx?.type}
-                noColor={false}
+                noColor={amount === 0}
                 weight="light"
               />
-            )}
-            {!amount && (
-              <SSText size="xl" style={{ lineHeight: 30 }}>
-                -
-              </SSText>
+            ) : (
+              <SSText color='muted'>?</SSText>
             )}
             <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
           </SSHStack>
