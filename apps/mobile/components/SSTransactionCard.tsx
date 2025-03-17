@@ -93,7 +93,7 @@ function SSTransactionCard({
       <SSVStack
         style={[
           {
-            paddingHorizontal: 0,
+            paddingHorizontal: 16,
             paddingTop: expand ? 4 : 8
           },
           style
