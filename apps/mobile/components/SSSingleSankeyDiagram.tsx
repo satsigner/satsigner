@@ -53,7 +53,6 @@ function SSSingleSankeyDiagram({
   const GRAPH_HEIGHT = height - topHeaderHeight
   const GRAPH_WIDTH = width
 
-  // Calculate the maximum number of nodes at any depthH level
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(100)
