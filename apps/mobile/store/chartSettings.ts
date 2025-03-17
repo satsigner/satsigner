@@ -25,7 +25,7 @@ const useChartSettingStore = create<ChartSettingState & ChartSettingAction>()(
       showLabel: true,
       showAmount: true,
       showTransactionInfo: true,
-      showOutputField: true,
+      showOutputField: false,
       lockZoomToXAxis: true,
       setShowLabel: (showLabel) => {
         set({ showLabel })
