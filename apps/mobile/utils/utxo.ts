@@ -14,6 +14,12 @@ function getUtxoOutpoint(utxo: Utxo) {
   return `${utxo.txid}:${utxo.vout}`
 }
 
+interface UtxoOptions {
+  dustThreshold: number
+  inputSize: number
+  changeOutputSize: number
+}
+
 /**
  * Efficient UTXO Selection Algorithm
  * @param {Array} utxos - Array of available UTXOs
@@ -26,7 +32,7 @@ function selectUtxos(
   utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
-  options = {}
+  options?: UtxoOptions
 ) {
   // Default options
   const defaultOptions = {
@@ -125,12 +131,6 @@ function selectUtxos(
   }
 }
 
-interface BranchAndBoundOptions {
-  dustThreshold: number
-  inputSize: number
-  changeOutputSize: number
-}
-
 /**
  * Branch and Bound UTXO selection algorithm
  * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
@@ -139,7 +139,7 @@ function branchAndBoundUtxoSelection(
   utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
-  opts: BranchAndBoundOptions
+  opts: UtxoOptions
 ) {
   const MAX_TRIES = 1000000
   const inputCost = opts.inputSize * feeRate
