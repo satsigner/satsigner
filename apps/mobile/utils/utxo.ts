@@ -125,6 +125,12 @@ function selectUtxos(
   }
 }
 
+interface BranchAndBoundOptions {
+  dustThreshold: number
+  inputSize: number
+  changeOutputSize: number
+}
+
 /**
  * Branch and Bound UTXO selection algorithm
  * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
@@ -133,7 +139,7 @@ function branchAndBoundUtxoSelection(
   utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
-  opts: any
+  opts: BranchAndBoundOptions
 ) {
   const MAX_TRIES = 1000000
   const inputCost = opts.inputSize * feeRate
@@ -182,7 +188,7 @@ function branchAndBoundUtxoSelection(
     effectiveValue: number,
     depth: number,
     tries: number
-  ): any {
+  ): null | boolean {
     if (tries > MAX_TRIES) return false
 
     if (effectiveValue >= targetAmount) {
@@ -428,7 +434,7 @@ function selectStonewallUtxos(
 
       // Remove the selected UTXO from the available pool
       utxosByType[type] = typeUtxos.filter(
-        (_: any, idx: number) => idx !== randomIndex
+        (_: _Utxo, idx: number) => idx !== randomIndex
       )
     }
 
@@ -595,7 +601,10 @@ function selectStonewallUtxos(
  * @param {Object} solution - A STONEWALL transaction solution
  * @returns {Number} Entropy score
  */
-function calculateStonewallEntropy(solution: { inputs: any; outputs: any }) {
+function calculateStonewallEntropy(solution: {
+  inputs: _Utxo[]
+  outputs: ChangeOutput[]
+}) {
   if (!solution || !solution.inputs || !solution.outputs) {
     return 0
   }
@@ -606,8 +615,8 @@ function calculateStonewallEntropy(solution: { inputs: any; outputs: any }) {
   let entropy = 0
 
   const allValues = [
-    ...inputs.map((i: { value: any }) => i.value),
-    ...outputs.map((o: { value: any }) => o.value)
+    ...inputs.map((i: { value: number }) => i.value),
+    ...outputs.map((o: { value: number }) => o.value)
   ]
   const valueDistribution: { [key: number]: number } = {}
 
