@@ -4,6 +4,7 @@ type _Utxo = Utxo & {
   effectiveValue: number
   scriptType?: 'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'
 }
+
 type ChangeOutput = {
   type: string
   value: number

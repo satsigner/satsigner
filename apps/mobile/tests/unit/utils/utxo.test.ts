@@ -25,7 +25,6 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const target = 10000
     const feeRate = 1
     const result = selectUtxos(utxos, target, feeRate)
-    // expect(result).toEqual([utxos[2]])
     expect(result.inputs.length).toBe(1)
     expect(result.inputs[0].value).toBe(10000)
   })
