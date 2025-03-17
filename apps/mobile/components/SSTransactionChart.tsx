@@ -75,16 +75,15 @@ function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
   const { width: w, height: h, onCanvasLayout } = useLayout()
   const topHeaderHeight = useHeaderHeight()
   const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = (height - topHeaderHeight)*0.45
+  const GRAPH_HEIGHT = (height - topHeaderHeight) * 0.45
   const GRAPH_WIDTH = width
 
-  const sankeyHeight = totalOutputValue*0.03
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(100)
     .extent([
       [0, 0],
-      [width, GRAPH_HEIGHT*0.90]
+      [width, GRAPH_HEIGHT * 0.9]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -113,12 +112,7 @@ function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
         id: String(inputs.length + 1),
         type: 'block',
         depthH: 1,
-        textInfo: [
-          '',
-          '',
-          `${txSize} B`,
-          `${txVsize} vB`,
-        ],
+        textInfo: ['', '', `${txSize} B`, `${txVsize} vB`],
         y0: 0
       }
     ]
