@@ -6,6 +6,7 @@
     <meta name="keywords" content="sats, bitcoin, mobile">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
     <link rel="stylesheet" type="text/css" href="styles.css" media="screen" />
 
 
@@ -19,18 +20,77 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
 
+
+
+
+
   </head>
   <body>
 
 
   <div id="header">
     <img id="logo" src="imgs/satSigner_symbol.png">
-    <h3>
-      A bitcoin first mobile application concept
-    </h3>
-    <div>
-      <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank">nostr</a>  <a href="https://twitter.com/satsigner" target="_blank">twitter</a> <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank">figma</a>   <a href="https://github.com/satsigner/" target="_blank">github</a>  <a href="https://t.me/+x12KPZKW2IZmMGE0" target="_blank">telegram</a>
+    <h1>
+      Take control of your UTXOs
+    </h1>
+
+
+
+
+    <script>
+          function submitForm(event) {
+              event.preventDefault(); // Prevent the default form submission
+
+              const inputField = document.getElementById('inputField').value;
+
+              // Create a new FormData object
+              const formData = new FormData();
+              formData.append('inputField', inputField);
+
+              // Send the data using fetch
+              fetch('https://pvxg.net/satsigner/interest/index.php', {
+                  method: 'POST',
+                  body: formData
+              })
+              .then(response => response.json())
+              .then(data => {
+                  // Get the message element
+                  const messageElement = document.getElementById('message');
+
+                  // Update the message element based on the response
+                  if (data.status === 'success') {
+                      messageElement.textContent = data.message; // Show success message
+                      messageElement.style.color = '#6da66d'; // Set text color to green
+                  } else {
+                      messageElement.textContent = data.message; // Show error message
+                      messageElement.style.color = 'red'; // Set text color to red
+                  }
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+                  const messageElement = document.getElementById('message');
+                  messageElement.textContent = 'An error occurred while submitting the form.';
+                  messageElement.style.color = 'red'; // Set text color to red
+              });
+          }
+      </script>
+
+
+
+      <form onsubmit="submitForm(event)" id="nostr-form">
+          <label for="inputField"><h3>Enter your npub for beta access</h3></label>
+          <input type="text" id="inputField" name="inputField" placeholder="npub..." required><br><br>
+          <input class="button" type="submit" value="Submit">
+          <div id="message" style="margin-top: 10px;"></div> <!-- Message display area -->
+      </form>
+
+
+
+    <div id="social-links">
+      <br><br><h3>Follow and contribute</h3><br>
+      <a href="https://nostrapp.link/#npub1dhfmwt3jtknnswe8tmh3cesnrwjxvsexu93tcps9yagfkn3n4epsa3d8yn" target="_blank">nostr</a> <a href="https://www.figma.com/file/bGTIqefDHHt1uruCqFWwPQ/SatsSigner?node-id=26%3A2" target="_blank">figma</a>   <a href="https://github.com/satsigner/" target="_blank">github</a>
     </div>
+
   </div>
 
   <!--
@@ -68,303 +128,6 @@
                   </button></form>
                 -->
 
-                <style>
-
-                .btcpay-form {
-                  display: inline-flex;
-                  align-items: center;
-                  justify-content: center;
-                }
-
-                .btcpay-form--inline {
-                  flex-direction: row;
-                }
-
-                .btcpay-form--block {
-                  flex-direction: column;
-                }
-
-                .btcpay-form--inline .submit {
-                  margin-left: 15px;
-                }
-
-                .btcpay-form--block select {
-                  margin-bottom: 10px;
-                }
-
-                .btcpay-form .btcpay-custom-container {
-                  text-align: center;
-                }
-
-                .btcpay-custom {
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                }
-
-                .btcpay-form .plus-minus {
-                  cursor: pointer;
-                  font-size: 25px;
-                  line-height: 25px;
-                  background: #DFE0E1;
-                  height: 30px;
-                  width: 45px;
-                  border: none;
-                  border-radius: 60px;
-                  margin: auto 5px;
-                  display: inline-flex;
-                  justify-content: center;
-                }
-
-                .btcpay-form select {
-                  -moz-appearance: none;
-                  -webkit-appearance: none;
-                  appearance: none;
-                  color: currentColor;
-                  background: transparent;
-                  border: 1px solid transparent;
-                  display: block;
-                  padding: 1px;
-                  margin-left: auto;
-                  margin-right: auto;
-                  font-size: 11px;
-                  cursor: pointer;
-                }
-
-                .btcpay-form select:hover {
-                  border-color: #ccc;
-                }
-
-                .btcpay-form option {
-                  color: #000;
-                  background: rgba(0,0,0,.1);
-                }
-
-                .btcpay-input-price {
-                  -moz-appearance: textfield;
-                  border: none;
-                  box-shadow: none;
-                  text-align: center;
-                  font-size: 25px;
-                  margin: auto;
-                  border-radius: 5px;
-                  line-height: 35px;
-                  background: #131313;
-                  color: #fff;
-                  padding: 14px 0px;
-                }
-
-                .btcpay-input-price::-webkit-outer-spin-button, .btcpay-input-price::-webkit-inner-spin-button {
-                  -webkit-appearance: none;
-                  margin: 0;
-                }
-              </style>
-              <style>
-
-               input[type=range].btcpay-input-range {
-                  -webkit-appearance: none;
-                  width: 100%;
-                  background: transparent;
-                  margin-bottom: 25px;
-                }
-
-                input[type=range].btcpay-input-range:focus {
-                  outline: 0;
-                }
-
-                input[type=range].btcpay-input-range::-webkit-slider-runnable-track {
-                  width: 100%;
-                  height: 3.1px;
-                  cursor: pointer;
-                  box-shadow: 0 0 1.7px #020,0 0 0 #fff;
-                  background: #c0c0c0;
-                  border-radius: 1px;
-                  border: 0;
-                }
-
-                input[type=range].btcpay-input-range::-webkit-slider-thumb {
-                  box-shadow: none;
-                  border: 0px solid #fff;
-                  height: 22px;
-                  width: 22px;
-                  border-radius: 50%;
-                  background: #fff;
-                  cursor: pointer;
-                  -webkit-appearance: none;
-                  margin-top: -9.45px
-                }
-
-                input[type=range].btcpay-input-range:focus::-webkit-slider-runnable-track {
-                  background: #fff;
-                }
-
-                input[type=range].btcpay-input-range::-moz-range-track {
-                  width: 100%;
-                  height: 3.1px;
-                  cursor: pointer;
-                  box-shadow: 0 0 1.7px #020,0 0 0 #003c00;
-                  background: #f3f3f3;
-                  border-radius: 1px;
-                  border: 0;
-                }
-
-                input[type=range].btcpay-input-range::-moz-range-thumb {
-                  box-shadow: none;
-                  border: 2.5px solid #cedc21;
-                  height: 22px;
-                  width: 22px;
-                  border-radius: 50%;
-                  background: #0f3723;
-                  cursor: pointer;
-                }
-
-                input[type=range].btcpay-input-range::-ms-track {
-                  width: 100%;
-                  height: 3.1px;
-                  cursor: pointer;
-                  background: 0 0;
-                  border-color: transparent;
-                  color: transparent;
-                }
-
-                input[type=range].btcpay-input-range::-ms-fill-lower {
-                  background: #e6e6e6;
-                  border: 0;
-                  border-radius: 2px;
-                  box-shadow: 0 0 1.7px #020,0 0 0 #003c00;
-                }
-
-                input[type=range].btcpay-input-range::-ms-fill-upper {
-                  background: #f3f3f3;
-                  border: 0;
-                  border-radius: 2px;
-                  box-shadow: 0 0 1.7px #020,0 0 0 #003c00;
-                }
-
-                input[type=range].btcpay-input-range::-ms-thumb {
-                  box-shadow: none;
-                  border: 2.5px solid #cedc21;
-                  height: 22px;
-                  width: 22px;
-                  border-radius: 50%;
-                  background: #0f3723;
-                  cursor: pointer;
-                  height: 3.1px;
-                }
-
-                input[type=range].btcpay-input-range:focus::-ms-fill-lower {
-                  background: #f3f3f3;
-                }
-
-                input[type=range].btcpay-input-range:focus::-ms-fill-upper {
-                  background: #fff;
-                }
-
-
-
-                button.submit.donation {
-                    padding: 15px;
-                    min-width: 210px;
-                    margin-bottom: 50px;
-                    letter-spacing: 0.1rem;
-                    margin-top: 10px;
-                }
-
-
-
-
-
-                .btcpay-form {
-                	display: inline-flex;
-                	align-items: center;
-                	justify-content: center;
-                	width: 100%;
-                	max-width: 370px;
-                }
-
-                .btcpay-form--inline {
-                	flex-direction: row;
-                }
-
-                .btcpay-form--block {
-                	flex-direction: column;
-                }
-
-                .btcpay-form .btcpay-custom-container {
-                	text-align: center;
-                	width: 100%;
-                	margin: 1rem;
-                }
-
-                .btcpay-custom {
-                	display: flex;
-                	align-items: center;
-                	justify-content: center;
-                }
-
-                .btcpay-form .plus-minus {
-                	cursor: pointer;
-                	font-size: 25px;
-                	line-height: 25px;
-                	background: #DFE0E1;
-                	height: 30px;
-                	width: 45px;
-                	border: none;
-                	border-radius: 60px;
-                	margin: auto 5px;
-                	display: inline-flex;
-                	justify-content: center;
-                }
-
-                .btcpay-form select {
-                	-moz-appearance: none;
-                	-webkit-appearance: none;
-                	appearance: none;
-                	color: currentColor;
-                	background: transparent;
-                	border: 1px solid transparent;
-                	display: block;
-                	padding: 1px;
-                	margin-left: auto;
-                	margin-right: auto;
-                	font-size: 11px;
-                	cursor: pointer;
-                }
-
-                .btcpay-form select:hover {
-                	border-color: #ccc;
-                }
-
-                .btcpay-input {
-                	-moz-appearance: none;
-                	-webkit-appearance: none;
-                	border: none;
-                	box-shadow: none;
-                	font-size: 20px;
-                	line-height: 35px;
-                	background: #131313;
-                	border: 1px #000000 solid;
-                	width: 100%;
-                	box-sizing: border-box;
-                	text-align: center;
-                	color: white;
-                	margin: 8px 0 3px 0;
-                	max-width: 216px;
-                	display: block;
-                	border-radius: 5px;
-                	padding: 5px;
-                }
-
-
-
-                .input-orderId, .input-checkoutDesc {
-                  display: none
-                }
-
-
-
-                </style>
-
 
 
 
@@ -392,7 +155,7 @@
                 });
                 </script>
 
-                <h3>Contribute</h3>
+                <h3>Support the developers</h3>
                 <form method="POST" onsubmit="onBTCPayFormSubmit(event);return false" action="https://btcpay989117.lndyn.com/api/v1/invoices" class="btcpay-form btcpay-form--block">
                   <input type="hidden" name="storeId" value="GRqWiPg5FBP5j7yNqaHVyAr884e65B7ebFjqE4g8Fu8k" />
                   <input type="hidden" name="jsonResponse" value="true" />
@@ -405,7 +168,7 @@
 
                   <div class="form-group">
                     <!--<label class="form-label" for="first">Twitter Handle</label>-->
-                    <input class="btcpay-input input-twitterHandle form-input" placeholder="@twitter" name="twitter" value="" />
+                    <input class="btcpay-input input-twitterHandle form-input" placeholder="name/nym" name="twitter" value="" />
                   </div>
 
                   <!--
@@ -433,7 +196,7 @@
                   </select>
                   <input type="range" class="btcpay-input-range" min="1" max="21000" step="1" value="21" style="width:209px;" oninput="handleSliderInput(event);return false" />
                   </div>
-                  <button type="submit" class="submit donation" name="submit" title="Pay with BTCPay Server, a Self-Hosted Bitcoin Payment Processor">DONATE</button>
+                  <button type="submit" class="submit donation" name="submit" title="Pay with BTCPay Server, a Self-Hosted Bitcoin Payment Processor">DONATE NOW</button>
                 </form>
 
                 <script>
@@ -498,11 +261,11 @@
 
 
 
-
+                      <!--
                       <a href="https://geyser.fund/project/satsigner/" target="_blank" class="submit donation-cta geyser"  title="">
                         <span style="color:#fff">Support on</span><img src="imgs/geyser.svg" style="height: 27px;display:inline-block;padding: 4% 0 9% 5px;vertical-align:middle;">
                       </a>
-
+                      -->
 
         						</div>
         					</div>
@@ -513,6 +276,55 @@
 
 
 
+
+
+
+
+
+
+    <h3>Progess updates</h3>
+    <div class="swiper events">
+
+      <div class="swiper-wrapper">
+
+        <div class="swiper-slide">
+          <img class="swiper-slide-image" src="https://satsigner.com/imgs/social-media/2024-02-23_opensats_development_update_1.jpg">
+          <div class="swiper-slide-title">Update 1</div>
+        </div>
+        <div class="swiper-slide">
+          <img class="swiper-slide-image" src="https://satsigner.com/imgs/social-media/2024-04-11_opensats_development_update_2.jpg">
+          <div class="swiper-slide-title">Update 2</div>
+        </div>
+        <div class="swiper-slide">
+          <img class="swiper-slide-image" src="https://cdn.satellite.earth/44f360a2056472eb39e3482013c5fbc49350ceacf3f988d4017aa9a6199cfd36.jpg">
+          <div class="swiper-slide-title">Update 3</div>
+        </div>
+        <div class="swiper-slide">
+          <img class="swiper-slide-image" src="https://cdn.satellite.earth/098e10aa9c420a2a3d247e9586f6e1b3071499ec36cc227b5ab9ddc3f5432bea.jpeg">
+          <div class="swiper-slide-title">Update 4.1</div>
+        </div>
+        <div class="swiper-slide">
+          <img class="swiper-slide-image" src="https://cdn.satellite.earth/cd254efd7acae2e0c9da84ddbd0ce8d40c319c65ed08fb435032d4e1926f2017.jpeg">
+          <div class="swiper-slide-title">Update 4.2</div>
+        </div>
+
+      </div>
+
+      <div class="swiper-pagination"></div>
+      <div class="swiper-button-prev"></div>
+      <div class="swiper-button-next"></div>
+
+  </div>
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script src="script.js"></script>
+
+
+
+
+  <h3>Original Design</h3>
   <div id="flex-container">
 
     <img class="flex-cell" src="imgs/ui/satSigner1.png">
