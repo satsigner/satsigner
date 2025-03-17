@@ -15,8 +15,8 @@ import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
+import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-import SSTxChart from '@/components/SSTxChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -123,7 +123,7 @@ export default function TxDetails() {
           header={t('transaction.label')}
         />
         <SSSeparator color="gradient" />
-        <SSTxChart transaction={tx} />
+        <SSTransactionChart transaction={tx} />
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('transaction.block')} text={height} />
