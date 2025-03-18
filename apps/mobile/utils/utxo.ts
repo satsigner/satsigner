@@ -15,7 +15,7 @@ function getUtxoOutpoint(utxo: Utxo) {
   return `${utxo.txid}:${utxo.vout}`
 }
 
-interface UtxoOptions {
+type UtxoOptions = {
   dustThreshold: number
   inputSize: number
   changeOutputSize: number
@@ -29,7 +29,7 @@ interface UtxoOptions {
  * @param {Object} options - Additional options
  * @returns {Object} Selected UTXOs and change
  */
-function selectUtxos(
+function selectEfficientUtxos(
   utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
@@ -710,6 +710,6 @@ export {
   calculateStonewallEntropy,
   distributeChangeWithPrivacy,
   getUtxoOutpoint,
-  selectStonewallUtxos,
-  selectUtxos
+  selectEfficientUtxos,
+  selectStonewallUtxos
 }

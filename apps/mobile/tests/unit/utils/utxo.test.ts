@@ -2,8 +2,8 @@ import { type Utxo } from '@/types/models/Utxo'
 import {
   calculateStonewallEntropy,
   distributeChangeWithPrivacy,
-  selectStonewallUtxos,
-  selectUtxos
+  selectEfficientUtxos,
+  selectStonewallUtxos
 } from '@/utils/utxo'
 
 describe('Efficiency UTXO Selection Algorithm', () => {
@@ -24,7 +24,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const utxos = createMockUtxos([10000, 20000, 30000])
     const target = 10000
     const feeRate = 1
-    const result = selectUtxos(utxos, target, feeRate)
+    const result = selectEfficientUtxos(utxos, target, feeRate)
     expect(result.inputs.length).toBe(1)
     expect(result.inputs[0].value).toBe(10000)
   })
@@ -34,7 +34,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const targetAmount = 10000
     const feeRate = 1
 
-    const result = selectUtxos(utxos, targetAmount, feeRate)
+    const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
     if ('error' in result) {
       expect(result.error).toBe('Insufficient funds')
       expect(result.inputs.length).toBe(0)
@@ -46,7 +46,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const targetAmount = 4000
     const feeRate = 1
 
-    const result = selectUtxos(utxos, targetAmount, feeRate)
+    const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
     expect(result.inputs.length).toBeGreaterThan(1)
     const totalSelected = result.inputs.reduce(
       (sum: number, utxo: Utxo) => sum + utxo.value,
@@ -60,7 +60,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const targetAmount = 25000
     const feeRate = 50 // Very high fee rate
 
-    const result = selectUtxos(utxos, targetAmount, feeRate)
+    const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
     expect(result.fee).toBeGreaterThan(0)
     const totalSelected = result.inputs.reduce(
       (sum: number, utxo: Utxo) => sum + utxo.value,
@@ -74,7 +74,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const targetAmount = 8000
     const feeRate = 1
 
-    const result = selectUtxos(utxos, targetAmount, feeRate)
+    const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
     // The optimal solution should select as few inputs as possible
     // while minimizing waste (change)
     expect(result.inputs.length).toBeLessThanOrEqual(3)
@@ -111,7 +111,7 @@ describe('Efficiency UTXO Selection Algorithm', () => {
     const targetAmount = 100
     const feeRate = 2
 
-    const result = selectUtxos(utxos, targetAmount, feeRate)
+    const result = selectEfficientUtxos(utxos, targetAmount, feeRate)
 
     // Should ignore tiny UTXOs that would cost more to spend than they're worth
     expect(result.inputs.length).toBe(1)
@@ -137,7 +137,6 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
     }))
   }
 
-  // Test STONEWALL with sufficient funds
   test('should create a valid STONEWALL transaction with sufficient funds', () => {
     const utxos = createMockUtxos([10000, 20000, 30000, 40000, 50000, 60000], {
       scriptTypes: ['p2pkh', 'p2wpkh']
