@@ -31,7 +31,10 @@ export default function StackLayout(params: any) {
         return (
           <Stack.Screen
             name="index"
-            initialParams={{ tab: t('navigation.label.signer') }}
+            initialParams={{
+              tab: t('navigation.label.signer'),
+              segment: params?.segment
+            }}
             options={{ title: 'Signer' }}
           />
         )
@@ -39,7 +42,10 @@ export default function StackLayout(params: any) {
         return (
           <Stack.Screen
             name="index"
-            initialParams={{ tab: t('navigation.label.explorer') }}
+            initialParams={{
+              tab: t('navigation.label.explorer'),
+              segment: params?.segment
+            }}
             options={{ title: 'Explore' }}
           />
         )
@@ -47,7 +53,10 @@ export default function StackLayout(params: any) {
         return (
           <Stack.Screen
             name="index"
-            initialParams={{ tab: t('navigation.label.converter') }}
+            initialParams={{
+              tab: t('navigation.label.converter'),
+              segment: params?.segment
+            }}
             options={{ title: 'Converter' }}
           />
         )
@@ -55,7 +64,10 @@ export default function StackLayout(params: any) {
         return (
           <Stack.Screen
             name="index"
-            initialParams={{ tab: t('navigation.label.signer') }}
+            initialParams={{
+              tab: t('navigation.label.signer'),
+              segment: params?.segment
+            }}
             options={{ title: 'Signer' }}
           />
         )
@@ -84,6 +96,7 @@ export default function StackLayout(params: any) {
               {t('app.name')}
             </SSText>
           ),
+          headerBackVisible: false,
           headerLeft: () => (
             <SSIconButton
               style={{ marginLeft: 8 }}

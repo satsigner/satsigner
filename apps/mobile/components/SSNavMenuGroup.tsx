@@ -22,6 +22,7 @@ function SSNavMenuGroup({ group }: SSNavMenuGroupProps) {
       {group.items.map((item, index) => (
         <SSNavItem
           key={`${index}-${group.title}/${item.title}`}
+          group={group.title}
           item={item}
           focused={currentPath === item.url}
         />
