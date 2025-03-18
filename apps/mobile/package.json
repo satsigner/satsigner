@@ -89,6 +89,7 @@
     "@types/jest": "^29.5.12",
     "@types/react": "~18.2.45",
     "@types/react-timeago": "^4.1.7",
+    "detox": "^20.35.0",
     "eslint": "8",
     "eslint-config-universe": "^12.0.1",
     "eslint-plugin-simple-import-sort": "^12.1.0",
