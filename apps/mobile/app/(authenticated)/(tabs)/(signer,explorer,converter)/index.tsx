@@ -65,6 +65,9 @@ export default function Home() {
                     borderBottomColor: '#222222',
                     borderRadius: 0
                   }}
+                  textStyle={{
+                    color: page.isSoon ? Colors.gray[450] : Colors.white
+                  }}
                   onPress={() => handlePress(page)}
                   variant="gradient"
                   gradientType="special"
