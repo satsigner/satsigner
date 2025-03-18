@@ -123,7 +123,7 @@ describe('STONEWALL UTXO Selection Algorithm', () => {
   // Helper functions for creating test UTXOs
   function createMockUtxos(
     values: number[],
-    options?: { scriptTypes?: Array<'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'> }
+    options?: { scriptTypes?: ('p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh')[] }
   ) {
     return values.map((value, index) => ({
       txid: `tx${index}`,

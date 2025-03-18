@@ -352,7 +352,7 @@ function selectStonewallUtxos(
   }
 
   // Filter UTXOs based on postmix option
-  let eligibleUtxos = [...utxos]
+  const eligibleUtxos = [...utxos]
 
   // Get input size based on script type
   function getInputSize(utxo: Partial<Pick<_Utxo, 'scriptType'>>) {
@@ -448,7 +448,7 @@ function selectStonewallUtxos(
 
     // Calculate base fee (inputs + recipient output + overhead)
     const recipientOutputSize = getOutputSize(options.recipientType || 'p2pkh')
-    let baseFee =
+    const baseFee =
       (totalInputSize + recipientOutputSize + opts.txOverhead) * feeRate
 
     // Calculate remaining amount for change outputs
@@ -582,7 +582,7 @@ function selectStonewallUtxos(
           ...changeOutputs
         ],
         fee: finalFee,
-        privacyScore: privacyScore,
+        privacyScore,
         txSize: totalTxSize
       }
     }
