@@ -180,6 +180,7 @@ export default function AuthenticatedLayout() {
         }}
       >
         <Drawer.Screen name="(tabs)" />
+        <Drawer.Screen name="(screens)" />
       </Drawer>
     </GestureHandlerRootView>
   )
