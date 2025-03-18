@@ -423,7 +423,6 @@ function DerivedAddresses({
               }}
               uppercase
               onPress={() => setChange(index === 1)}
-              disabled={index === 1}
               label={type}
               variant="outline"
             />
