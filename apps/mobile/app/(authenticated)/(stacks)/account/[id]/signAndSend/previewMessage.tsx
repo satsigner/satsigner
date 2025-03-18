@@ -1,3 +1,4 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -11,6 +12,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -35,7 +37,7 @@ export default function PreviewMessage() {
     state.accounts.find((account) => account.id === id)
   )
   const wallet = useWalletsStore((state) => state.wallets[id!])
-
+  const network = useBlockchainStore((state) => state.network)
   const [messageId, setMessageId] = useState('')
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
@@ -44,14 +46,18 @@ export default function PreviewMessage() {
     async function getTransactionMessage() {
       if (!wallet) return
 
-      const transactionMessage = await buildTransaction(wallet, {
-        inputs: Array.from(inputs.values()),
-        outputs: Array.from(outputs.values()),
-        feeRate,
-        options: {
-          rbf
-        }
-      })
+      const transactionMessage = await buildTransaction(
+        wallet,
+        {
+          inputs: Array.from(inputs.values()),
+          outputs: Array.from(outputs.values()),
+          feeRate,
+          options: {
+            rbf
+          }
+        },
+        network as Network
+      )
 
       setMessageId(transactionMessage.txDetails.txid)
       setTxBuilderResult(transactionMessage)
