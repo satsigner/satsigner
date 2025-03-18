@@ -27,7 +27,7 @@ export default function Home() {
         router.navigate(`${segment}/${page.url}`)
       }
     },
-    [router]
+    [router, segment]
   )
 
   return (

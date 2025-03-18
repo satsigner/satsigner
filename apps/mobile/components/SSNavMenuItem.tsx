@@ -27,7 +27,7 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
     } else {
       router.navigate(`(${group.toLowerCase()})/${item.url}`)
     }
-  }, [item, router])
+  }, [item, router, group])
 
   const opacity = focused || !item.isSoon ? 1 : 0.5
 

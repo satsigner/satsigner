@@ -5,8 +5,6 @@ import { StyleSheet, View } from 'react-native'
 
 import { SSIconSettings } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
-import SSText from '@/components/SSText'
-import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 export default function AuthenticatedLayout() {
