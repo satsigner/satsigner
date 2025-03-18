@@ -209,19 +209,19 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             labels.forEach((labelObj) => {
               const label = labelObj.label
               if (labelObj.type === 'tx') {
-                if (!transactionMap[labelObj.ref]) return
+                if (transactionMap[labelObj.ref] === undefined) return
                 const txIndex = transactionMap[labelObj.ref]
                 state.accounts[index].transactions[txIndex].label = label
                 labelsAdded += 1
               }
               if (labelObj.type === 'output') {
-                if (!utxoMap[labelObj.ref]) return
+                if (utxoMap[labelObj.ref] === undefined) return
                 const utxoIndex = utxoMap[labelObj.ref]
                 state.accounts[index].utxos[utxoIndex].label = label
                 labelsAdded += 1
               }
               if (labelObj.type === 'addr') {
-                if (!addressMap[labelObj.ref]) return
+                if (addressMap[labelObj.ref] === undefined) return
                 const addrIndex = addressMap[labelObj.ref]
                 state.accounts[index].addresses[addrIndex].label = label
                 labelsAdded += 1

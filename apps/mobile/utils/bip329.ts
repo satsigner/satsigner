@@ -69,7 +69,7 @@ const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
 
 const bip329Alias: Record<string, keyof Label> = {}
 for (const key in bip329Aliases) {
-  for (const value in bip329Aliases) {
+  for (const value of bip329Aliases[key as keyof Label] as string[]) {
     bip329Alias[value.toLowerCase()] = key as keyof Label
   }
 }
