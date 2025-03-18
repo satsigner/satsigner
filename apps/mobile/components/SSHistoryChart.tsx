@@ -175,8 +175,6 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     chartData[0].date.getTime()
   const margin = { top: 30, right: 10, bottom: 80, left: 40 }
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
-
-  //const [scale, setScale] = useState<number>(1)
   const prevScale = useRef<number>(1)
   const scaleRef = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
@@ -190,11 +188,6 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     ),
     scale: 1
   })
-  // const [endDate, setEndDate] = useState<Date>(
-  //   new Date(
-  //     new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
-  //   )
-  // )
   const endDateRef = useRef<Date>(
     new Date(
       new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
