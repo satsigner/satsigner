@@ -4049,9 +4049,9 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-"bdk-rn@https://github.com/LtbLightning/bdk-rn#37b33a8282e35032e50a34aead94ecc829e66f45":
-  version "0.29.0"
-  resolved "https://github.com/LtbLightning/bdk-rn#37b33a8282e35032e50a34aead94ecc829e66f45"
+"bdk-rn@https://github.com/LtbLightning/bdk-rn#bc918a5f58b2fb4a1c50bd21ba9206300edff43d":
+  version "0.31.0"
+  resolved "https://github.com/LtbLightning/bdk-rn#bc918a5f58b2fb4a1c50bd21ba9206300edff43d"
   dependencies:
     "@synonymdev/result" "0.0.2"
     adm-zip "^0.5.9"
