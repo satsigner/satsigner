@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -117,11 +118,11 @@ export default function UtxoDetails() {
               }
             }}
           >
-            <SSVStack gap="none">
+            <SSVStack gap="sm">
               <SSText weight="bold" uppercase>
                 {t('utxo.address')}
               </SSText>
-              <SSText color="muted">{addressDisplay}</SSText>
+              <SSAddressDisplay address={utxo?.addressTo || '-'} />
             </SSVStack>
           </TouchableOpacity>
           <SSSeparator color="gradient" />
