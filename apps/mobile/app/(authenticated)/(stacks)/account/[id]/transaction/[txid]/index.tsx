@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -430,13 +431,20 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                   }
                 }}
               >
-                <SSTxDetailsBox
-                  header={t('transaction.address')}
-                  text={output.address}
-                />
+                <SSVStack gap="sm">
+                  <SSText uppercase weight="bold" size="md">
+                    {t('bitcoin.address')}
+                  </SSText>
+                  <SSAddressDisplay
+                    address={output.address}
+                    variant="simple"
+                    color="muted"
+                    size="sm"
+                  />
+                </SSVStack>
               </TouchableOpacity>
               <SSVStack>
-                <SSText weight="bold">
+                <SSText uppercase weight="bold" size="md">
                   {t('transaction.unlockingScript')}
                 </SSText>
                 <SSScriptDecoded script={output.script || []} />
