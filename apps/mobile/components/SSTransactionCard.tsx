@@ -1,271 +1,224 @@
-import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { Canvas, Group } from '@shopify/react-native-skia'
 import {
-  type StyleProp,
-  StyleSheet,
-  TouchableOpacity,
-  type ViewStyle
-} from 'react-native'
+  sankey,
+  type SankeyLinkMinimal,
+  type SankeyNodeMinimal
+} from 'd3-sankey'
+import { useMemo } from 'react'
+import { useWindowDimensions, View } from 'react-native'
 
-import SSHStack from '@/layouts/SSHStack'
-import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
+import { useLayout } from '@/hooks/useLayout'
 import { type Transaction } from '@/types/models/Transaction'
-import {
-  formatConfirmations,
-  formatFiatPrice,
-  formatPercentualChange
-} from '@/utils/format'
-import { parseLabel } from '@/utils/parse'
+import { formatAddress } from '@/utils/format'
 
-import { SSIconIncoming, SSIconOutgoing } from './icons'
-import SSStyledSatText from './SSStyledSatText'
-import SSText from './SSText'
-import SSTimeAgoText from './SSTimeAgoText'
+import { SSSankeyLinks } from './SSSankeyLinks'
+import { SSSankeyNodes } from './SSSankeyNodes'
 
-type SSTransactionCardProps = {
-  transaction: Transaction
-  blockHeight: number
-  fiatCurrency: Currency
-  btcPrice: number
-  walletBalance?: number
-  link: string
-  expand: boolean
-  style?: StyleProp<ViewStyle>
+export interface Link extends SankeyLinkMinimal<object, object> {
+  source: string
+  target: string
+  value: number
 }
 
-function SSTransactionCard({
-  transaction,
-  blockHeight,
-  fiatCurrency,
-  btcPrice,
-  walletBalance,
-  link,
-  expand,
-  style = {}
-}: SSTransactionCardProps) {
-  const confirmations = transaction.blockHeight
-    ? blockHeight - transaction.blockHeight + 1
-    : 0
+export interface Node extends SankeyNodeMinimal<object, object> {
+  id: string
+  depth?: number
+  depthH: number
+  address?: string
+  type: string
+  textInfo: string[]
+  value?: number
+  txId?: string
+  nextTx?: string
+}
 
-  function getConfirmationsColor() {
-    if (confirmations <= 0) return styles.unconfirmed
-    else if (confirmations < 6) return styles.confirmedFew
-    else return styles.confirmedEnough
+const LINK_MAX_WIDTH = 60
+const BLOCK_WIDTH = 50
+const NODE_WIDTH = 98
+
+type SSSingleSankeyDiagramProps = {
+  transaction: Transaction
+}
+
+function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
+  const totalOutputValue = transaction.vout.reduce((prevValue, output) => {
+    return prevValue + output.value
+  }, 0)
+
+  const defaultInputValue = totalOutputValue / (transaction.vin.length || 1)
+
+  const inputs = transaction.vin.map((input) => ({
+    txid: input.previousOutput.txid,
+    value: input.value || defaultInputValue,
+    valueIsKnown: input.value !== undefined,
+    label: ''
+  }))
+
+  const outputs = transaction.vout.map((output) => ({
+    address: output.address,
+    value: output.value,
+    label: ''
+  }))
+
+  let minerFee: number | undefined
+  if (inputs.every((input) => input.valueIsKnown)) {
+    const totalInputValue = inputs.reduce((prevValue, input) => {
+      return prevValue + input.value
+    }, 0)
+    minerFee = totalInputValue - totalOutputValue
   }
 
-  const [priceDisplay, setPriceDisplay] = useState('')
-  const [percentChange, setPercentChange] = useState('')
+  const txSize = transaction.size || '?'
+  const txVsize = transaction.vsize || '?'
 
-  const { type, received, sent, prices } = transaction
-  const amount = type === 'receive' ? received : sent - received
+  const { width: w, height: h, onCanvasLayout } = useLayout()
+  const { width } = useWindowDimensions()
 
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  // output.length + 1 because of mining fee
+  const maxInputOutputLength = Math.max(inputs.length, outputs.length + 1)
 
-  useEffect(() => {
-    const itemsToDisplay: string[] = []
+  // Fixed base height with dynamic scaling for larger transactions
+  const FIXED_BASE_HEIGHT = 400
+  const SCALING_THRESHOLD = 3 // Start scaling when more than 5 inputs or outputs
+  const GRAPH_HEIGHT =
+    maxInputOutputLength > SCALING_THRESHOLD
+      ? FIXED_BASE_HEIGHT *
+        (1 + (maxInputOutputLength - SCALING_THRESHOLD) * 0.5)
+      : FIXED_BASE_HEIGHT
+  const GRAPH_WIDTH = width
 
-    const oldPrice = prices ? prices[fiatCurrency] : null
+  const sankeyGenerator = sankey()
+    .nodeWidth(NODE_WIDTH)
+    .nodePadding(GRAPH_HEIGHT / 2)
+    .extent([
+      [0, 20],
+      [width * 0.9, (GRAPH_HEIGHT * 0.75) / 2]
+    ])
+    .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
-    if (btcPrice) itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
+  sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
+    const { depthH } = node as Node
+    return depthH ?? 0
+  })
 
-    if (prices && prices[fiatCurrency]) {
-      itemsToDisplay.push(
-        '(' + formatFiatPrice(amount, prices[fiatCurrency] || 0) + ')'
-      )
+  const sankeyNodes = useMemo(() => {
+    if (inputs.length === 0 || outputs.length === 0) return []
+
+    const inputNodes = inputs.map((input, index) => ({
+      id: String(index + 1),
+      type: 'text',
+      depthH: 0,
+      textInfo: [
+        input.valueIsKnown ? `${input.value}` : '',
+        `${formatAddress(input.txid, 3)}`,
+        input.label ?? ''
+      ],
+      value: input.value
+    }))
+
+    const blockNode = [
+      {
+        id: String(inputs.length + 1),
+        type: 'block',
+        depthH: 1,
+        textInfo: ['', '', `${txSize} B`, `${txVsize} vB`],
+        y0: 0
+      }
+    ]
+
+    const outputNodes = outputs.map((output, index) => ({
+      id: String(index + 2 + inputs.length),
+      type: 'text',
+      depthH: 2,
+      textInfo: [
+        `${output.value}`,
+        `${formatAddress(output.address, 3)}`,
+        output.label ?? ''
+      ],
+      value: output.value
+    }))
+
+    if (minerFee !== undefined) {
+      outputNodes.push({
+        id: String(inputs.length + outputs.length + 2),
+        type: 'text',
+        depthH: 2,
+        textInfo: [`${minerFee}`, 'Miner fee', ''],
+        value: minerFee
+      })
     }
 
-    if (btcPrice || oldPrice) itemsToDisplay.push(fiatCurrency)
+    return [...inputNodes, ...blockNode, ...outputNodes] as SankeyNodeMinimal<
+      object,
+      object
+    >[]
+  }, [inputs, outputs, txSize, txVsize, minerFee])
 
-    if (btcPrice && oldPrice)
-      setPercentChange(formatPercentualChange(btcPrice, oldPrice))
+  const sankeyLinks = useMemo(() => {
+    if (inputs.length === 0 || outputs.length === 0) return []
 
-    setPriceDisplay(itemsToDisplay.join(' '))
-  }, [btcPrice, fiatCurrency, amount, prices])
+    const inputToBlockLinks = inputs.map((input, index) => ({
+      source: String(index + 1),
+      target: String(inputs.length + 1),
+      value: input.value,
+      y1: 0
+    }))
 
-  const router = useRouter()
+    const blockToOutputLinks = outputs.map((output, index) => ({
+      source: String(inputs.length + 1),
+      target: String(index + inputs.length + 2),
+      value: output.value
+    }))
+
+    if (minerFee) {
+      blockToOutputLinks.push({
+        source: String(inputs.length + 1),
+        target: String(inputs.length + outputs.length + 2),
+        value: minerFee
+      })
+    }
+
+    return [...inputToBlockLinks, ...blockToOutputLinks]
+  }, [inputs, outputs, minerFee])
+
+  const { nodes, links } = sankeyGenerator({
+    nodes: sankeyNodes,
+    links: sankeyLinks
+  })
+
+  const transformedLinks = links.map((link) => ({
+    source: (link.source as Node).id,
+    target: (link.target as Node).id,
+    value: link.value
+  }))
+
+  if (transaction.vin.length === 0 || transaction.vout.length === 0) {
+    return null
+  }
+
+  if (!nodes?.length || !transformedLinks?.length) {
+    return null
+  }
 
   return (
-    <TouchableOpacity onPress={() => router.navigate(link)}>
-      <SSVStack
-        style={[
-          {
-            paddingHorizontal: 0,
-            paddingTop: expand ? 4 : 8,
-            paddingBottom: expand ? 2 : 4
-          },
-          style
-        ]}
-        gap="none"
+    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2 }}>
+      <Canvas
+        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
+        onLayout={onCanvasLayout}
       >
-        <SSHStack justifyBetween style={{ height: 18 }}>
-          <SSText color="muted">
-            {transaction.timestamp && (
-              <SSTimeAgoText date={new Date(transaction.timestamp)} />
-            )}
-          </SSText>
-          <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
-            {formatConfirmations(confirmations)}
-          </SSText>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none">
-            <SSHStack
-              gap={expand ? 'xs' : 'sm'}
-              style={{
-                height: expand ? 24 : 42,
-                marginTop: expand ? 0 : -8
-              }}
-            >
-              {transaction.type === 'receive' && (
-                <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
-                  <SSIconIncoming
-                    height={expand ? 12 : 21}
-                    width={expand ? 12 : 21}
-                  />
-                </SSHStack>
-              )}
-              {transaction.type === 'send' && (
-                <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
-                  <SSIconOutgoing
-                    height={expand ? 12 : 21}
-                    width={expand ? 12 : 21}
-                  />
-                </SSHStack>
-              )}
-              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                <SSStyledSatText
-                  amount={amount}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  type={transaction.type}
-                  textSize={expand ? 'xl' : '4xl'}
-                  noColor={false}
-                  weight="light"
-                  letterSpacing={expand ? 0 : -0.5}
-                />
-                <SSText color="muted" size={expand ? 'xs' : 'sm'}>
-                  {t('bitcoin.sats').toLowerCase()}
-                </SSText>
-              </SSHStack>
-            </SSHStack>
-            <SSHStack
-              gap="xs"
-              style={{
-                height: expand ? 14 : 22
-              }}
-            >
-              <SSText
-                style={{ color: Colors.gray[400] }}
-                size={expand ? 'xs' : 'sm'}
-              >
-                {priceDisplay}
-              </SSText>
-              <SSText
-                style={{
-                  color:
-                    percentChange[0] === '+' ? Colors.mainGreen : Colors.mainRed
-                }}
-                size={expand ? 'xs' : 'sm'}
-              >
-                {percentChange}
-              </SSText>
-            </SSHStack>
-          </SSVStack>
-
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            {walletBalance !== undefined && (
-              <SSText color="muted" style={[{ textAlign: 'right' }]}>
-                <SSStyledSatText
-                  amount={walletBalance}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  type={transaction.type}
-                  textSize={expand ? 'xs' : 'sm'}
-                />
-              </SSText>
-            )}
-            <SSText size="xs" color="muted" style={[{ textAlign: 'right' }]}>
-              {t('bitcoin.sats').toLowerCase()}
-            </SSText>
-          </SSHStack>
-        </SSHStack>
-        <SSHStack justifyBetween>
-          <SSText
-            size={expand ? 'xs' : 'md'}
-            style={[
-              { textAlign: 'left', flex: 1 },
-              !transaction.label && { color: Colors.gray[500] }
-            ]}
-            numberOfLines={1}
-          >
-            {parseLabel(transaction.label || t('transaction.noLabel')).label}
-          </SSText>
-          <SSHStack
-            gap="xs"
-            style={{
-              alignSelf: 'flex-end'
-            }}
-          >
-            {transaction.label ? (
-              parseLabel(transaction.label).tags.map((tag, index) => (
-                <SSText
-                  key={index}
-                  size={expand ? 'xxs' : 'xs'}
-                  style={[
-                    { textAlign: 'right' },
-                    {
-                      backgroundColor: Colors.gray[700],
-                      paddingVertical: 2,
-                      paddingHorizontal: 6,
-                      borderRadius: 4,
-                      marginHorizontal: 2
-                    }
-                  ]}
-                  uppercase
-                  numberOfLines={1}
-                >
-                  {tag}
-                </SSText>
-              ))
-            ) : (
-              <SSText
-                size={expand ? 'xxs' : 'xs'}
-                style={[
-                  { textAlign: 'right', color: Colors.gray[500] },
-                  {
-                    backgroundColor: Colors.gray[900],
-                    paddingVertical: expand ? 0 : 2,
-                    paddingHorizontal: expand ? 4 : 6,
-                    borderRadius: 4
-                  }
-                ]}
-                uppercase
-                numberOfLines={1}
-              >
-                {t('transaction.noTags')}
-              </SSText>
-            )}
-          </SSHStack>
-        </SSHStack>
-      </SSVStack>
-    </TouchableOpacity>
+        <Group origin={{ x: w / 2, y: h / 2 }}>
+          <SSSankeyLinks
+            links={transformedLinks}
+            nodes={nodes as Node[]}
+            sankeyGenerator={sankeyGenerator}
+            LINK_MAX_WIDTH={LINK_MAX_WIDTH}
+            BLOCK_WIDTH={BLOCK_WIDTH}
+          />
+          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+        </Group>
+      </Canvas>
+    </View>
   )
 }
 
-const styles = StyleSheet.create({
-  unconfirmed: {
-    color: Colors.error
-  },
-  confirmedFew: {
-    color: Colors.warning
-  },
-  confirmedEnough: {
-    color: Colors.success
-  }
-})
-
-export default SSTransactionCard
+export default SSTransactionChart
