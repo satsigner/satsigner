@@ -4059,10 +4059,9 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-bdk-rn@^0.30.0:
-  version "0.30.0"
-  resolved "https://registry.npmjs.org/bdk-rn/-/bdk-rn-0.30.0.tgz#d91de8dec7167e6732c3fec6d846afd9949fa1c4"
-  integrity sha512-9gOJnSvoow4IR5Ezs4vCgrY+9QhrQ0Umj0DXl03G/bCbjMHfiJTZK6v1I3c0e4pkJJLOTjdpr4iTKPJ1/BSm/w==
+"bdk-rn@https://github.com/LtbLightning/bdk-rn#bc918a5f58b2fb4a1c50bd21ba9206300edff43d":
+  version "0.31.0"
+  resolved "https://github.com/LtbLightning/bdk-rn#bc918a5f58b2fb4a1c50bd21ba9206300edff43d"
   dependencies:
     "@synonymdev/result" "0.0.2"
     adm-zip "^0.5.9"
