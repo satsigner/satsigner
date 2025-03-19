@@ -17,6 +17,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -83,13 +84,17 @@ export default function Receive() {
             <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
           {localAddressQR && <SSQRCode value={localAddressQR} />}
-          <SSVStack gap="none" itemsCenter>
-            <SSText color="muted" uppercase>
+          <SSVStack
+            gap="xs"
+            itemsCenter
+            style={{ marginVertical: 10 }}
+          >
+            <SSText color="muted" uppercase weight="bold">
               {t('receive.address')}
             </SSText>
             {localAddress && (
               <SSClipboardCopy text={localAddress} withPopup={false}>
-                <SSText size="sm">{localAddress}</SSText>
+                <SSAddressDisplay address={localAddress} />
               </SSClipboardCopy>
             )}
           </SSVStack>
