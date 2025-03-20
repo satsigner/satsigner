@@ -1,4 +1,3 @@
-import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group } from '@shopify/react-native-skia'
 import {
   sankey,
@@ -73,17 +72,27 @@ function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
   const txVsize = transaction.vsize || '?'
 
   const { width: w, height: h, onCanvasLayout } = useLayout()
-  const topHeaderHeight = useHeaderHeight()
-  const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = (height - topHeaderHeight) * 0.45
+  const { width } = useWindowDimensions()
+
+  // output.length + 1 because of mining fee
+  const maxInputOutputLength = Math.max(inputs.length, outputs.length + 1)
+
+  // Fixed base height with dynamic scaling for larger transactions
+  const FIXED_BASE_HEIGHT = 400
+  const SCALING_THRESHOLD = 3 // Start scaling when more than 5 inputs or outputs
+  const GRAPH_HEIGHT =
+    maxInputOutputLength > SCALING_THRESHOLD
+      ? FIXED_BASE_HEIGHT *
+        (1 + (maxInputOutputLength - SCALING_THRESHOLD) * 0.5)
+      : FIXED_BASE_HEIGHT
   const GRAPH_WIDTH = width
 
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
-    .nodePadding(100)
+    .nodePadding(GRAPH_HEIGHT / 2)
     .extent([
-      [0, 0],
-      [width, GRAPH_HEIGHT * 0.9]
+      [0, 20],
+      [width * 0.9, (GRAPH_HEIGHT * 0.75) / 2]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -158,16 +167,14 @@ function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
     const blockToOutputLinks = outputs.map((output, index) => ({
       source: String(inputs.length + 1),
       target: String(index + inputs.length + 2),
-      value: output.value,
-      y0: 0
+      value: output.value
     }))
 
     if (minerFee) {
       blockToOutputLinks.push({
         source: String(inputs.length + 1),
         target: String(inputs.length + outputs.length + 2),
-        value: minerFee,
-        y0: 0
+        value: minerFee
       })
     }
 
@@ -179,7 +186,6 @@ function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
     links: sankeyLinks
   })
 
-  // Transform SankeyLinkMinimal to Link type
   const transformedLinks = links.map((link) => ({
     source: (link.source as Node).id,
     target: (link.target as Node).id,
@@ -195,9 +201,9 @@ function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
   }
 
   return (
-    <View style={{ flex: 1, height: GRAPH_HEIGHT }}>
+    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2 }}>
       <Canvas
-        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
+        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
         onLayout={onCanvasLayout}
       >
         <Group origin={{ x: w / 2, y: h / 2 }}>
