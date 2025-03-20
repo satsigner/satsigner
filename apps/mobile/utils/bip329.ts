@@ -132,6 +132,7 @@ function removeQuotes(str: string) {
   return str.replace(/^['"]/, '').replace(/['"]$/, '')
 }
 
+// TODO: refactor this !
 export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
   if (lines.length < 0) throw new Error('Empty CSV text')
@@ -161,6 +162,23 @@ export function CSVtoLabels(CsvText: string): Label[] {
         const txid = label.ref
         const vout = value
         label.ref = `${txid}:${vout}`
+        continue
+      }
+
+      // INFO: the following is meant to parse CSV from Sparrow.
+      if (column === 'output') {
+        label.type = 'output'
+        label.ref = value
+        continue
+      }
+
+      if (column === 'address' && label.type === 'output') {
+        continue
+      }
+
+      if (column === 'txid' && label.type === undefined) {
+        label.type = 'tx'
+        label.ref = value
         continue
       }
 
