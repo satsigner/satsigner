@@ -98,7 +98,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const txid = tx.id
         const accounts = get().accounts
         const accountIndex = accounts.findIndex(
-          (account) => account.name === accountId
+          (account) => account.id === accountId
         )
 
         if (accountIndex === -1) return
