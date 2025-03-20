@@ -21,7 +21,7 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.bitcoin'),
         icon: SSIconBitcoin,
-        url: 'accountList',
+        url: '/accountList',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },
@@ -101,7 +101,7 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.currency'),
         icon: SSIconCurrency,
-        url: 'currency',
+        url: '/currency',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },

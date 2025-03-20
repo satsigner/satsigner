@@ -24,7 +24,7 @@ export default function Home() {
           params: { title: page.title }
         })
       } else {
-        router.navigate(`${segment}/${page.url}`)
+        router.navigate(`${segment}${page.url}`)
       }
     },
     [router, segment]
