@@ -72,12 +72,11 @@ import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { compareTimestamp } from '@/utils/sort'
+import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
@@ -87,7 +86,7 @@ type TotalTransactionsProps = {
   expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
-  sortTransactions: (transactions: Transaction[]) => Transaction[]
+  sortDirection: Direction
   blockchainHeight: number
 }
 
@@ -98,7 +97,8 @@ function TotalTransactions({
   expand,
   setSortDirection,
   refreshing,
-  blockchainHeight
+  blockchainHeight,
+  sortDirection
 }: TotalTransactionsProps) {
   const router = useRouter()
 
@@ -107,9 +107,11 @@ function TotalTransactions({
   )
 
   const sortedTransactions = useMemo(() => {
-    return [...account.transactions].sort((transaction1, transaction2) =>
-      compareTimestamp(transaction1.timestamp, transaction2.timestamp)
-    )
+    return sortTransactions([...account.transactions], sortDirection)
+  }, [account.transactions, sortDirection])
+
+  const chartTransactions = useMemo(() => {
+    return sortTransactions([...account.transactions], 'desc')
   }, [account.transactions])
 
   const transactionBalances = useMemo(() => {
@@ -173,7 +175,7 @@ function TotalTransactions({
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
           <SSHistoryChart
-            transactions={sortedTransactions}
+            transactions={chartTransactions}
             utxos={account.utxos}
           />
         </View>
@@ -692,7 +694,7 @@ export default function AccountView() {
             expand={expand}
             setSortDirection={setSortDirectionTransactions}
             refreshing={refreshing}
-            sortTransactions={sortTransactions}
+            sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
           />
         )
@@ -734,14 +736,6 @@ export default function AccountView() {
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: false
     }).start()
-  }
-
-  function sortTransactions(transactions: Transaction[]) {
-    return transactions.sort((transaction1, transaction2) =>
-      sortDirectionTransactions === 'asc'
-        ? compareTimestamp(transaction1.timestamp, transaction2.timestamp)
-        : compareTimestamp(transaction2.timestamp, transaction1.timestamp)
-    )
   }
 
   function sortUtxos(utxos: Utxo[]) {
