@@ -1,9 +1,5 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import {
-  sankey,
-  type SankeyLinkMinimal,
-  type SankeyNodeMinimal
-} from 'd3-sankey'
+import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import { useWindowDimensions, View } from 'react-native'
 
@@ -11,16 +7,10 @@ import { useLayout } from '@/hooks/useLayout'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress } from '@/utils/format'
 
-import { SSSankeyLinks } from './SSSankeyLinks'
-import { SSSankeyNodes } from './SSSankeyNodes'
+import SSSankeyLinks from './SSSankeyLinks'
+import SSSankeyNodes from './SSSankeyNodes'
 
-export interface Link extends SankeyLinkMinimal<object, object> {
-  source: string
-  target: string
-  value: number
-}
-
-export interface Node extends SankeyNodeMinimal<object, object> {
+interface Node extends SankeyNodeMinimal<object, object> {
   id: string
   depth?: number
   depthH: number
@@ -36,11 +26,11 @@ const LINK_MAX_WIDTH = 60
 const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
-type SSSingleSankeyDiagramProps = {
+type SSTransactionChartProps = {
   transaction: Transaction
 }
 
-function SSTransactionChart({ transaction }: SSSingleSankeyDiagramProps) {
+function SSTransactionChart({ transaction }: SSTransactionChartProps) {
   const totalOutputValue = transaction.vout.reduce((prevValue, output) => {
     return prevValue + output.value
   }, 0)
