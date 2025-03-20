@@ -124,7 +124,12 @@ export default function TxDetails() {
           header={t('transaction.label')}
         />
         <SSSeparator color="gradient" />
-        <SSTransactionChart transaction={tx} />
+        <SSVStack>
+          <SSText uppercase weight="bold" size="md">
+            {t('transaction.details.chart')}
+          </SSText>
+          <SSTransactionChart transaction={tx} />
+        </SSVStack>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('transaction.block')} text={height} />
@@ -295,7 +300,7 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
                 weight="light"
               />
             ) : (
-              <SSText color='muted'>?</SSText>
+              <SSText color="muted">?</SSText>
             )}
             <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
           </SSHStack>

@@ -574,6 +574,7 @@
     "decoded.label.witnessVarInt": "Witness count",
     "decoded.title": "Decoded",
     "details.title": "Transaction details",
+    "details.chart": "Transaction flow",
     "edit.label.transaction": "Edit transaction label",
     "edit.label.utxo": "Edit UTXO label",
     "fee": "Fee",
