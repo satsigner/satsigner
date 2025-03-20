@@ -7,7 +7,10 @@ export default function ExplorerLanding() {
   const router = useRouter()
 
   const navigateToExplorerView = (view: string) => {
-    router.push({ pathname: 'explorer/explorerViews', params: { view } } as any)
+    router.push({ pathname: `explorer/${view}` } as any)
+
+    // Legacy:
+    //router.push({ pathname: 'explorer/explorerViews', params: { view } } as any)
   }
 
   return (
