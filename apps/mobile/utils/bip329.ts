@@ -1,3 +1,5 @@
+import { type Address } from '@/types/models/Address'
+import { type Prices } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 
@@ -10,8 +12,18 @@ export type Label = {
   type: LabelType
   ref: string
   label: string
-  origin?: string
   spendable: boolean
+
+  // optional
+  fee?: number
+  fmv?: Prices
+  height?: number
+  heights?: number[]
+  keypath?: string
+  origin?: string
+  rate?: Prices
+  time?: Date
+  value?: number
 }
 
 export type Bip329FileType = 'JSONL' | 'JSON' | 'CSV'
@@ -36,6 +48,45 @@ export const bip329mimes = {
   CSV: 'text/csv'
 } as Record<Bip329FileType, PickFileProps['type']>
 
+// These aliases is to handle importing from wallets which do not respect the
+// standard names defined in BIP329 but define their own nonsense
+const bip329Aliases: Partial<Record<keyof Label, string[]>> = {
+  type: ['type'],
+  ref: ['ref', 'txid', 'address', 'Payment Address'],
+  label: ['label', 'memo'],
+  spendable: ['spendable'],
+
+  fee: ['fee', 'Fee sat/vbyte'],
+  fmv: ['fmv'],
+  height: ['height', 'Block height', 'Blockheight'],
+  heights: ['heights', 'Block heights'],
+  keypath: ['keypath', 'index'],
+  origin: ['origin', 'derivation'],
+  rate: ['rate', 'Prices', 'Value (USD)'],
+  time: ['date', 'Date (UTC)', 'time', 'timestamp'],
+  value: ['value', 'sats', 'satoshis', 'amount']
+}
+
+const bip329Alias: Record<string, keyof Label> = {}
+for (const key in bip329Aliases) {
+  for (const value in bip329Aliases) {
+    bip329Alias[value.toLowerCase()] = key as keyof Label
+  }
+}
+
+export function formatAddressLabels(addresses: Address[]): Label[] {
+  return addresses
+    .filter((address) => address.label)
+    .map((address) => {
+      return {
+        label: address.label,
+        type: 'addr',
+        ref: address.address,
+        spendable: true
+      } as Label
+    })
+}
+
 export function formatTransactionLabels(transactions: Transaction[]): Label[] {
   return transactions
     .filter((tx) => tx.label)
@@ -54,7 +105,7 @@ export function formatUtxoLabels(utxos: Utxo[]): Label[] {
     .filter((utxo) => utxo.label)
     .map((utxo) => {
       return {
-        label: utxo.label,
+        label: utxo.label!,
         type: 'output',
         ref: getUtxoOutpoint(utxo),
         spendable: true // TODO: allow the user to mark utxo as not spendable
@@ -77,21 +128,46 @@ export function labelsToCSV(labels: Label[]) {
   return Csv
 }
 
+function removeQuotes(str: string) {
+  return str.replace(/^['"]/, '').replace(/['"]$/, '')
+}
+
 export function CSVtoLabels(CsvText: string): Label[] {
   const lines = CsvText.split('\n')
   if (lines.length < 0) throw new Error('Empty CSV text')
   const header = lines[0]
-  if (!header.match(/^([a-z]+,?)+/)) throw new Error('Invalid CSV header')
+  if (!header.match(/^([a-zA-Z()]+,?)+/)) throw new Error('Invalid CSV header')
   const rows = lines.slice(1)
   const labels: Label[] = []
   const columns = header.split(',')
   for (const row of rows) {
+    // INFO: SPARROW WALLET uses non-standard CSV files, with empty lines and
+    // comment lines. The if statement below ignores those lines in order to
+    // correctly parse their non-standard weird CSV export.
+    if (row === '' || row.startsWith('#')) continue
+
     if (!row.match(/^([^,]*,?)+$/)) throw new Error('Invalid CSV line')
+
     const rowItems = row.split(',')
     const label = {} as Label
     for (const index in columns) {
-      const column = columns[index] as keyof Label
-      label[column] = rowItems[index] as never
+      const column = columns[index].toLowerCase()
+      const value = removeQuotes(rowItems[index]) as never
+
+      // INFO: the following is meant to parse CSV from nunchuk.
+      // It assumes the txid was already added to the label ref field.
+      if (column === 'vout') {
+        label.type = 'addr'
+        const txid = label.ref
+        const vout = value
+        label.ref = `${txid}:${vout}`
+        continue
+      }
+
+      if (bip329Alias[column] === undefined) continue
+
+      const field = bip329Alias[column]
+      label[field] = value
     }
     labels.push(label)
   }
@@ -111,8 +187,25 @@ export function labelsToJSONL(labels: Label[]): string {
 }
 
 export function JSONLtoLabels(JSONLines: string): Label[] {
-  return JSONLines.split('\n').map((line) => {
-    if (!line.match(/^{[^}]+}$/)) throw new Error('Invalid line (JSONL)')
-    return JSON.parse(line) as Label
-  })
+  const lines = JSONLines.split('\n')
+  const labels: Label[] = []
+  for (const line of lines) {
+    if (line === '') continue
+    if (!line.match(/^{.+}$/)) throw new Error('Invalid line (JSONL)')
+    const obj = JSON.parse(line)
+    for (const key in obj) {
+      const aliasKey = key.toLowerCase()
+      if (bip329Alias[aliasKey] !== undefined) {
+        const field = bip329Alias[aliasKey]
+        if (field === key) {
+          continue
+        }
+        const value = obj[key]
+        obj[field] = value
+      }
+      delete obj[key]
+    }
+    labels.push(obj as Label)
+  }
+  return labels
 }

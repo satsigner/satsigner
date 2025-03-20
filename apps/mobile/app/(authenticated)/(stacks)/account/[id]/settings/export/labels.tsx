@@ -17,6 +17,7 @@ import {
   type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
+  formatAddressLabels,
   formatTransactionLabels,
   formatUtxoLabels,
   type Label
@@ -27,7 +28,7 @@ export default function ExportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.name === accountId)
+    state.accounts.find((_account) => _account.id === accountId)
   )
 
   const [exportType, setExportType] = useState<Bip329FileType>('JSONL')
@@ -55,7 +56,8 @@ export default function ExportLabels() {
 
   const labels = [
     ...formatTransactionLabels(account.transactions),
-    ...formatUtxoLabels(account.utxos)
+    ...formatUtxoLabels(account.utxos),
+    ...formatAddressLabels(account.addresses)
   ] as Label[]
 
   return (

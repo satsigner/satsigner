@@ -2,12 +2,12 @@ import { create } from 'zustand'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { type Currency, type Prices } from '@/types/models/Blockchain'
-// import { useBlockchainStore } from './blockchain'
 
 type PriceState = {
   prices: Prices
   fiatCurrency: Currency
-  btcPrice: number // price in the current fiat currency
+  /** Price in the current fiat currency */
+  btcPrice: number
 }
 
 type PriceAction = {
@@ -20,9 +20,8 @@ const SATS_IN_BITCOIN = 100_000_000
 const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
   prices: {
     AUD: 0,
-    BRL: 0,
     CAD: 0,
-    CHN: 0,
+    CHF: 0,
     EUR: 0,
     GBP: 0,
     JPY: 0,
@@ -36,7 +35,6 @@ const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
     return (sats / SATS_IN_BITCOIN) * bitcoinPrice
   },
   fetchPrices: async () => {
-    // const { url } = useBlockchainStore.getState()
     const oracle = new MempoolOracle()
     const prices = await oracle.getPrices()
 

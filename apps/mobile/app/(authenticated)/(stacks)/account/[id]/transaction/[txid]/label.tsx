@@ -17,7 +17,7 @@ export default function SSTxLabel() {
 
   const [tx, setTxLabel] = useAccountsStore((state) => [
     state.accounts
-      .find((account: Account) => account.name === accountId)
+      .find((account: Account) => account.id === accountId)
       ?.transactions.find((tx: Transaction) => tx.id === txid),
     state.setTxLabel
   ])

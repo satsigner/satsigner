@@ -23,8 +23,8 @@ export const gray = {
   950: '#131313'
 }
 
-export const success = '#07BC03'
-export const warning = '#FEFF5D'
+export const success = '#237C3C'
+export const warning = '#DCBB13'
 export const error = '#C13939'
 export const info = '#0AA4EB'
 export const softGreen = '#A7FFAF4F'

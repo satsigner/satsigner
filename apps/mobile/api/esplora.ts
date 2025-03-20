@@ -1,3 +1,5 @@
+import { parseHexToBytes } from '@/utils/parse'
+
 export type EsploraTx = {
   txid: string
   version: number
@@ -100,6 +102,23 @@ export class Esplora {
 
   async getTxRaw(txid: string) {
     return await this._call('/tx/' + txid + '/raw')
+  }
+
+  async getTxInputValues(txid: string) {
+    return this.getTxInfo(txid).then((data) =>
+      data.vin.map((input) => {
+        return {
+          previousOutput: {
+            txid: input.txid,
+            vout: input.vout
+          },
+          sequence: input.sequence,
+          scriptSig: parseHexToBytes(input.scriptsig),
+          value: input.prevout.value,
+          witness: input.witness.map(parseHexToBytes)
+        }
+      })
+    )
   }
 
   async getTxOutspends(txid: string) {

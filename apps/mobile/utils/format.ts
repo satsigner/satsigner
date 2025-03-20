@@ -9,7 +9,12 @@ function formatAddress(address: string, character: number = 8) {
   return `${beginning}...${end}`
 }
 
-function formatNumber(n: number, decimals = 0, padding = false) {
+function formatNumber(
+  n: number,
+  decimals = 0,
+  padding = false,
+  separator = ' '
+) {
   const formatted = padding
     ? (n / 10 ** 8).toFixed(8)
     : n.toLocaleString(undefined, {
@@ -17,7 +22,15 @@ function formatNumber(n: number, decimals = 0, padding = false) {
         maximumFractionDigits: decimals
       })
 
-  return formatted.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ')
+  const [integerPart, decimalPart] = formatted.split('.')
+  const formattedInteger = integerPart.replace(
+    /(\d)(?=(\d{3})+(?!\d))/g,
+    '$1' + separator
+  )
+
+  return decimalPart !== undefined
+    ? `${formattedInteger}.${decimalPart}`
+    : formattedInteger
 }
 
 function formatTime(date: Date) {
@@ -71,19 +84,17 @@ function formatFiatPrice(sats: number, btcPrice: number) {
 
 function formatConfirmations(confirmations: number) {
   if (confirmations <= 0) return t('bitcoin.confirmations.unconfirmed')
-
   if (confirmations === 1)
     return `1 ${t('bitcoin.confirmations.oneBlock').toLowerCase()}`
-
   const manyBlocks = t('bitcoin.confirmations.manyBlocks').toLowerCase()
+  if (confirmations < 1_000) return `${confirmations} ${manyBlocks}`
 
-  if (confirmations < 6) return `${confirmations} ${manyBlocks}`
-  if (confirmations < 10) return `6+ ${manyBlocks}`
-  if (confirmations < 100) return `10+ ${manyBlocks}`
-  if (confirmations < 1_000) return `100+ ${manyBlocks}`
-  if (confirmations < 10_000) return `1k+ ${manyBlocks}`
-  if (confirmations < 100_000) return `10k+ ${manyBlocks}`
-  return `100k+ ${manyBlocks}`
+  if (confirmations < 1_000_000) {
+    const roundedValue = Math.round(confirmations / 1_000)
+    return `~${roundedValue}k ${manyBlocks}`
+  }
+  const roundedValue = Math.round(confirmations / 1_000_000)
+  return `~${roundedValue}M ${manyBlocks}`
 }
 
 export {
