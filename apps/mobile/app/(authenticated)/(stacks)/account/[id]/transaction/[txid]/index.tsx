@@ -248,7 +248,6 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
-  const placeholder = '-'
   const [amount, setAmount] = useState(0)
   const [confirmations, setConfirmations] = useState(0)
   const [oldPrice, setOldPrice] = useState('')
