@@ -73,7 +73,7 @@ export const navMenuGroups: NavMenuGroup[] = [
         platform: PLATFORM.HYBRID
       },
       {
-        title: t('navigation.item.difficult'),
+        title: t('navigation.item.difficulty'),
         icon: SSIconDifficult,
         url: '',
         isSoon: true,

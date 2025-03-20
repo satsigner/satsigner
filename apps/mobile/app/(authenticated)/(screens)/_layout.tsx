@@ -40,17 +40,6 @@ export default function AuthenticatedLayout() {
           headerBackTitleVisible: false
         }}
       />
-      {/* <Stack.Screen
-          name="index"
-          options={{
-            headerTitle: () => (
-              <SSText uppercase style={{ letterSpacing: 1 }}>
-                {t('app.name')}
-              </SSText>
-            )
-          }}
-        />
-      </Stack> */}
     </View>
   )
 }
