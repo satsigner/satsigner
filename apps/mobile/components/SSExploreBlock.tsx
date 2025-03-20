@@ -10,7 +10,7 @@ import {
   SSIconChevronRight
 } from '@/components/icons'
 
-export default function ExploreBlock() {
+export default function SSExploreBlock() {
   const { height } = useLocalSearchParams<{ height?: string }>()
 
   const [inputHeight, setInputHeight] = useState(height ? height : '1')
@@ -19,23 +19,29 @@ export default function ExploreBlock() {
   const [loading, setLoading] = useState<boolean>(false)
 
   useEffect(() => {
-    if (!blockHeight) return
-    setLoading(true)
+    const fetchBlockDetails = async () => {
+      if (!blockHeight) return
+      setLoading(true)
 
-    fetch(`https://mempool.space/api/block-height/${blockHeight}`)
-      .then((res) => res.text())
-      .then((hash) => fetch(`https://mempool.space/api/block/${hash}`))
-      .then((res) => res.json())
-      .then((data) => {
+      try {
+        const hashResponse = await fetch(
+          `https://mempool.space/api/block-height/${blockHeight}`
+        )
+        const hash = await hashResponse.text()
+        const blockResponse = await fetch(
+          `https://mempool.space/api/block/${hash}`
+        )
+        const data = await blockResponse.json()
         setBlockDetails(data)
         console.log(data)
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Error fetching block details:', error)
-      })
-      .finally(() => {
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+
+    fetchBlockDetails()
   }, [blockHeight])
 
   return (
