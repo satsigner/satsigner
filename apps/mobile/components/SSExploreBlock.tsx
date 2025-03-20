@@ -9,11 +9,20 @@ import {
   SSIconChevronLeft,
   SSIconChevronRight
 } from '@/components/icons'
+import { t } from '@/locales'
+
+const MEMPOOL_API_BASE_URL = 'https://mempool.space/api'
+const DEFAULT_HEIGHT = '1'
+const CHEVRON_ICON_HEIGHT = 22
+const CHEVRON_ICON_WIDTH = 24
+const INPUT_PLACEHOLDER = 'Enter block height'
+const PLACEHOLDER_TEXT_COLOR = '#888'
 
 export default function SSExploreBlock() {
   const { height } = useLocalSearchParams<{ height?: string }>()
-
-  const [inputHeight, setInputHeight] = useState(height ? height : '1')
+  const [inputHeight, setInputHeight] = useState(
+    height ? height : DEFAULT_HEIGHT
+  )
   const [blockHeight, setBlockHeight] = useState(inputHeight)
   const [blockDetails, setBlockDetails] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(false)
@@ -25,15 +34,14 @@ export default function SSExploreBlock() {
 
       try {
         const hashResponse = await fetch(
-          `https://mempool.space/api/block-height/${blockHeight}`
+          `${MEMPOOL_API_BASE_URL}/block-height/${blockHeight}`
         )
         const hash = await hashResponse.text()
         const blockResponse = await fetch(
-          `https://mempool.space/api/block/${hash}`
+          `${MEMPOOL_API_BASE_URL}/block/${hash}`
         )
         const data = await blockResponse.json()
         setBlockDetails(data)
-        console.log(data)
       } catch (error) {
         console.error('Error fetching block details:', error)
       } finally {
@@ -45,54 +53,55 @@ export default function SSExploreBlock() {
   }, [blockHeight])
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Block Details</Text>
-
-        <Text style={styles.paramText}>Height: {blockHeight}</Text>
-
-        <View style={styles.whiteRectangle} />
+    <ScrollView contentContainerStyle={STYLES.scrollContainer}>
+      <View style={STYLES.container}>
+        <Text style={STYLES.title}>{t('explorer.block.title')}</Text>
+        <Text style={STYLES.paramText}>
+          {t('explorer.block.heightLabel')} {blockHeight}
+        </Text>
+        <View style={STYLES.whiteRectangle} />
 
         {loading ? (
-          <Text style={styles.statusText}>Loading block details...</Text>
+          <Text style={STYLES.statusText}>Loading block details...</Text>
         ) : blockDetails ? (
           <>
-            <Text style={styles.statusText}>
+            <Text style={STYLES.statusText}>
               Block ID: {String(blockDetails.id)}
             </Text>
-            <Text style={styles.statusText}>
+            <Text style={STYLES.statusText}>
               Difficulty: {String(blockDetails.difficulty)}
             </Text>
-            <Text style={styles.statusText}>
+            <Text style={STYLES.statusText}>
               Timestamp: {String(blockDetails.timestamp)}
             </Text>
           </>
         ) : (
-          <Text style={styles.statusText}>No block details available.</Text>
+          <Text style={STYLES.statusText}>No block details available.</Text>
         )}
 
-        {/* Navigation Controls */}
-        <View style={styles.navContainer}>
+        <View style={STYLES.navContainer}>
           <SSIconButton
             onPress={() => {
               const prevHeight = Math.max(parseInt(blockHeight) - 1, 1)
               setBlockHeight(prevHeight.toString())
               setInputHeight(prevHeight.toString())
             }}
-            style={styles.chevronButton}
+            style={STYLES.chevronButton}
           >
-            <SSIconChevronLeft height={22} width={24} />
+            <SSIconChevronLeft
+              height={CHEVRON_ICON_HEIGHT}
+              width={CHEVRON_ICON_WIDTH}
+            />
           </SSIconButton>
 
-          {/* Number Input Field */}
           <TextInput
-            style={styles.input}
+            style={STYLES.input}
             value={inputHeight}
             onChangeText={setInputHeight}
             keyboardType="numeric"
-            placeholder="Enter block height"
-            placeholderTextColor="#888"
-            textAlign="center" // Centers text inside input
+            placeholder={INPUT_PLACEHOLDER}
+            placeholderTextColor={PLACEHOLDER_TEXT_COLOR}
+            textAlign="center"
           />
 
           <SSIconButton
@@ -101,13 +110,15 @@ export default function SSExploreBlock() {
               setBlockHeight(nextHeight.toString())
               setInputHeight(nextHeight.toString())
             }}
-            style={styles.chevronButton}
+            style={STYLES.chevronButton}
           >
-            <SSIconChevronRight height={22} width={24} />
+            <SSIconChevronRight
+              height={CHEVRON_ICON_HEIGHT}
+              width={CHEVRON_ICON_WIDTH}
+            />
           </SSIconButton>
         </View>
 
-        {/* Fetch Button */}
         <SSButton
           label="Fetch"
           variant="gradient"
@@ -118,7 +129,7 @@ export default function SSExploreBlock() {
   )
 }
 
-const styles = StyleSheet.create({
+const STYLES = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -179,7 +190,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 5,
     width: 80,
-    textAlign: 'center', // Centers text inside the input field
+    textAlign: 'center',
     fontSize: 18
   }
 })

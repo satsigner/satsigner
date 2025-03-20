@@ -33,26 +33,20 @@ import {
 } from '@/components/icons'
 import { Colors } from '@/styles'
 
-// Constants
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
-console.log(`Screenwidth: ${screenWidth} Screenheight: ${screenHeight}`)
-const maxBlocksPerSpiral: number = 2016 // 2016
-const factorBlockDistance: number = 0.04
-const radiusSpiralStart: number = 1
-const factorSpiralGrowth: number = 0.8
-const canvasWidth = screenWidth // Canvas dimensions
-const canvasHeight = 650
-const blockSize = 3 // Block size in pixels
-const maxLoggingBlock = 10
-const debugLog = true
-const radiusWeeks = [110, 160, 220, 270]
-const canvasTopOffset = 140
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
+const MAX_BLOCKS_PER_SPIRAL = 2016
+const FACTOR_BLOCK_DISTANCE = 0.04
+const RADIUS_SPIRAL_START = 1
+const FACTOR_SPIRAL_GROWTH = 0.8
+const CANVAS_WIDTH = SCREEN_WIDTH
+const CANVAS_HEIGHT = 650
+const BLOCK_SIZE = 3
+const RADIUS_WEEKS = [110, 160, 220, 270]
+const CANVAS_TOP_OFFSET = 140
+const MIN_BRIGHTNESS = 20
+const MAX_BRIGHTNESS_SIZE = 5000
 
-// color
-const min_brightness: number = 20
-const maxBrightnessSize: number = 5000
-
-const dataLink = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
+const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
 
 /**
  * Newton-Raphson method to find roots of a function
@@ -88,15 +82,13 @@ function newtonRaphson(
   throw new Error('Convergence Failed!')
 }
 
-// Logic for files
 const getFileName = (index: number) => {
-  return `rcp_bitcoin_block_data_${(index * maxBlocksPerSpiral)
+  return `rcp_bitcoin_block_data_${(index * MAX_BLOCKS_PER_SPIRAL)
     .toString()
     .padStart(7, '0')}.json`
 }
 
 export default function SSSpiralBlocks() {
-  // State for handling pressed blocks (for opacity effect)
   const [pressedBlocks, setPressedBlocks] = useState<{
     [key: number]: boolean
   }>({})
@@ -114,18 +106,6 @@ export default function SSSpiralBlocks() {
     }))
   }
 
-  /* const handleBlockPress = (index: number) => {
-    const block = spiralBlocks[index]
-    const height = block?.height || 675
-
-    if (!height) {
-      console.error('Block height not found, using fallback height of 675')
-    }
-    console.log(1111)
-    // Navigate to exploreBlock page with the height as parameter.
-    router.push(`explorer/block?height=${height}` as any)
-  }*/
-
   const handleBlockPress = (index: number) => {
     const block = spiralBlocks[index]
     const height = block?.height || 675
@@ -133,8 +113,6 @@ export default function SSSpiralBlocks() {
     if (!height) {
       console.error('Block height not found, using fallback height of 675')
     }
-
-    console.log('Navigating to SSExploreBlock with height:', height)
 
     router.push({
       pathname: 'explorer/explorerViews',
@@ -146,7 +124,7 @@ export default function SSSpiralBlocks() {
   const [spiralDataRaw, setSpiralDataRaw] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [currentFileIndex, setCurrentFileIndex] = useState(0)
-  const [inputValue, setInputValue] = useState(String(currentFileIndex)) // Sync input with state
+  const [inputValue, setInputValue] = useState(String(currentFileIndex))
 
   const router = useRouter()
 
@@ -206,7 +184,7 @@ export default function SSSpiralBlocks() {
     setLoading(true)
     try {
       const fileName = getFileName(currentFileIndex)
-      const response = await fetch(dataLink + fileName)
+      const response = await fetch(DATA_LINK + fileName)
       const data = await response.json()
       setSpiralDataRaw(data)
     } catch (error) {
@@ -224,41 +202,32 @@ export default function SSSpiralBlocks() {
     if (!spiralDataRaw || spiralDataRaw.length === 0) return []
 
     var spiralData = spiralDataRaw[0]
-    if (debugLog) console.log('Loaded Data:', spiralData)
-
     const blocks = []
-    var phi_spiral = radiusSpiralStart / factorSpiralGrowth
+    var phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
     var arc_distance =
-      factorSpiralGrowth *
+      FACTOR_SPIRAL_GROWTH *
       (Math.asinh(phi_spiral) + phi_spiral * Math.sqrt(phi_spiral ** 2 + 1))
 
-    let radius_spiral = radiusSpiralStart
-    const maxIterations = Math.min(maxBlocksPerSpiral, spiralData.length)
+    let radius_spiral = RADIUS_SPIRAL_START
+    const maxIterations = Math.min(MAX_BLOCKS_PER_SPIRAL, spiralData.length)
 
     for (let i = 0; i < maxIterations; i++) {
       const currentBlock = spiralData[i]
       const timeDifference = currentBlock?.[8]?.time_difference ?? 0
       const size = currentBlock?.[5]?.size ?? 0
       const block_distance =
-        i === 0 || i === maxBlocksPerSpiral - 1 ? 0 : timeDifference
+        i === 0 || i === MAX_BLOCKS_PER_SPIRAL - 1 ? 0 : timeDifference
 
-      arc_distance += block_distance * factorBlockDistance
-      phi_spiral = newtonRaphson(arc_distance, factorSpiralGrowth, phi_spiral)
-      radius_spiral = factorSpiralGrowth * phi_spiral
+      arc_distance += block_distance * FACTOR_BLOCK_DISTANCE
+      phi_spiral = newtonRaphson(arc_distance, FACTOR_SPIRAL_GROWTH, phi_spiral)
+      radius_spiral = FACTOR_SPIRAL_GROWTH * phi_spiral
 
       const x = radius_spiral * Math.cos(phi_spiral)
       const y = radius_spiral * Math.sin(phi_spiral)
       const logMin = Math.log(1)
-      const logMax = Math.log(maxBrightnessSize)
-      let brightness = min_brightness + (size / maxBrightnessSize) * 256
+      const logMax = Math.log(MAX_BRIGHTNESS_SIZE)
+      let brightness = MIN_BRIGHTNESS + (size / MAX_BRIGHTNESS_SIZE) * 256
 
-      if (debugLog) {
-        if (i < maxLoggingBlock)
-          console.log(
-            `Block: ${i} x: ${x} y: ${y} phi ${phi_spiral}  td: ${timeDifference} size: ${size} brght: ${brightness} `
-          )
-        if (i == maxLoggingBlock) console.log('(...)')
-      }
       blocks.push({
         x,
         y,
@@ -268,39 +237,40 @@ export default function SSSpiralBlocks() {
         height: currentBlock?.[0]?.height || null
       })
     }
-    if (debugLog) console.log('Spiral Blocks:', blocks)
     return blocks
   }, [loading, spiralDataRaw])
 
   useEffect(() => {
-    if (selectedBlock !== null) {
-      // Get the selected block from spiralBlocks array
+    const fetchBlockDetails = async () => {
+      if (selectedBlock === null) return
+
       const block = spiralBlocks[selectedBlock.blockIndex]
       if (!block || !block.height) {
         console.error('Height not found for selected block')
         return
       }
-      // Build the URL for block hash using the block's height
+
       const urlHeight = `https://mempool.space/api/block-height/${block.height}`
       setLoadingBlockDetails(true)
       setBlockDetails(null)
-      fetch(urlHeight)
-        .then((res) => res.text()) // Expecting plain text containing the block hash
-        .then((hash) => {
-          const urlBlock = `https://mempool.space/api/block/${hash}`
-          return fetch(urlBlock)
-        })
-        .then((res) => res.json())
-        .then((data) => {
-          setBlockDetails(data)
-        })
-        .catch((error) => {
-          console.error('Error fetching block details:', error)
-        })
-        .finally(() => {
-          setLoadingBlockDetails(false)
-        })
+
+      try {
+        const resHeight = await fetch(urlHeight)
+        const hash = await resHeight.text()
+
+        const urlBlock = `https://mempool.space/api/block/${hash}`
+        const resBlock = await fetch(urlBlock)
+        const data = await resBlock.json()
+
+        setBlockDetails(data)
+      } catch (error) {
+        console.error('Error fetching block details:', error)
+      } finally {
+        setLoadingBlockDetails(false)
+      }
     }
+
+    fetchBlockDetails()
   }, [selectedBlock, spiralBlocks])
 
   useEffect(() => {
@@ -313,8 +283,8 @@ export default function SSSpiralBlocks() {
       <View style={styles.container}>
         <Canvas style={styles.canvas}>
           <Circle
-            cx={canvasWidth / 2}
-            cy={canvasHeight / 2}
+            cx={CANVAS_WIDTH / 2}
+            cy={CANVAS_HEIGHT / 2}
             r={40}
             color="transparent"
             style="stroke"
@@ -366,7 +336,7 @@ export default function SSSpiralBlocks() {
       <Canvas style={styles.canvas}>
         {spiralBlocks.map((block, index) => {
           const path = Skia.Path.Make()
-          const halfSize = blockSize / 2
+          const halfSize = BLOCK_SIZE / 2
           const cosTheta = Math.cos(block.rotation)
           const sinTheta = Math.sin(block.rotation)
           const points = [
@@ -381,33 +351,33 @@ export default function SSSpiralBlocks() {
           })
 
           path.moveTo(
-            points[0][0] + canvasWidth / 2,
-            points[0][1] + canvasHeight / 2
+            points[0][0] + CANVAS_WIDTH / 2,
+            points[0][1] + CANVAS_HEIGHT / 2
           )
           path.lineTo(
-            points[1][0] + canvasWidth / 2,
-            points[1][1] + canvasHeight / 2
+            points[1][0] + CANVAS_WIDTH / 2,
+            points[1][1] + CANVAS_HEIGHT / 2
           )
           path.lineTo(
-            points[2][0] + canvasWidth / 2,
-            points[2][1] + canvasHeight / 2
+            points[2][0] + CANVAS_WIDTH / 2,
+            points[2][1] + CANVAS_HEIGHT / 2
           )
           path.lineTo(
-            points[3][0] + canvasWidth / 2,
-            points[3][1] + canvasHeight / 2
+            points[3][0] + CANVAS_WIDTH / 2,
+            points[3][1] + CANVAS_HEIGHT / 2
           )
           path.close()
 
           return <Path key={index} path={path} color={block.color} />
         })}
 
-        {radiusWeeks.map((r, index) => {
+        {RADIUS_WEEKS.map((r, index) => {
           const myColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
           return (
             <Circle
               key={index}
-              cx={canvasWidth / 2}
-              cy={canvasHeight / 2}
+              cx={CANVAS_WIDTH / 2}
+              cy={CANVAS_HEIGHT / 2}
               r={r}
               color="transparent"
             >
@@ -418,10 +388,10 @@ export default function SSSpiralBlocks() {
           )
         })}
 
-        <Paragraph paragraph={pWeek1} x={0} y={220} width={canvasWidth} />
-        <Paragraph paragraph={pWeek3} x={0} y={170} width={canvasWidth} />
-        <Paragraph paragraph={pWeek3} x={0} y={110} width={canvasWidth} />
-        <Paragraph paragraph={pWeek4} x={0} y={60} width={canvasWidth} />
+        <Paragraph paragraph={pWeek1} x={0} y={220} width={CANVAS_WIDTH} />
+        <Paragraph paragraph={pWeek3} x={0} y={170} width={CANVAS_WIDTH} />
+        <Paragraph paragraph={pWeek3} x={0} y={110} width={CANVAS_WIDTH} />
+        <Paragraph paragraph={pWeek4} x={0} y={60} width={CANVAS_WIDTH} />
       </Canvas>
 
       {/* Overlay for touchable areas to detect block clicks */}
@@ -433,10 +403,14 @@ export default function SSSpiralBlocks() {
             key={index}
             style={{
               position: 'absolute',
-              top: canvasTopOffset + canvasHeight / 2 + block.y - blockSize / 2,
-              left: block.x - blockSize / 2,
-              width: blockSize + 3,
-              height: blockSize + 3,
+              top:
+                CANVAS_TOP_OFFSET +
+                CANVAS_HEIGHT / 2 +
+                block.y -
+                BLOCK_SIZE / 2,
+              left: block.x - BLOCK_SIZE / 2,
+              width: BLOCK_SIZE + 3,
+              height: BLOCK_SIZE + 3,
               borderRadius: 25,
               backgroundColor: 'rgba(255, 255, 255, 0)'
             }}
@@ -460,11 +434,11 @@ export default function SSSpiralBlocks() {
           borderRadius: 5,
           width: 100,
           height: 40,
-          textAlign: 'center', // Centers text inside the input field
+          textAlign: 'center',
           fontSize: 18
         }}
         value={inputValue}
-        onChangeText={setInputValue} // Allows typing freely
+        onChangeText={setInputValue}
         keyboardType="numeric"
         placeholder="Enter ID"
         placeholderTextColor="#888"
@@ -478,12 +452,11 @@ export default function SSSpiralBlocks() {
         onPress={() => {
           const parsed = parseInt(inputValue, 10)
           if (!isNaN(parsed)) {
-            setCurrentFileIndex(parsed) // Only update state if input is valid
+            setCurrentFileIndex(parsed)
           }
         }}
       />
 
-      {/* Navigation Buttons */}
       <View style={styles.buttonContainer}>
         <SSIconButton
           onPress={() => {
@@ -519,19 +492,15 @@ export default function SSSpiralBlocks() {
         </SSIconButton>
       </View>
 
-      {/* Overlay view for when a block is clicked */}
       {selectedBlock && (
         <View style={styles.overlay}>
           {loadingBlockDetails ? (
-            // While block details are loading, show a message
             <Text style={styles.overlayText}>Loading block details...</Text>
           ) : (
             <>
-              {/* New canvas with a simple cube */}
               <Canvas style={styles.overlayCanvas}>
                 <Rect x={50} y={50} width={100} height={100} color="white" />
               </Canvas>
-              {/* Display some of the fetched block details */}
               <Text style={styles.overlayText}>
                 Block ID: {blockDetails?.id}
                 {'\n'}
@@ -539,7 +508,6 @@ export default function SSSpiralBlocks() {
                 {'\n'}
                 Difficulty: {blockDetails?.difficulty}
               </Text>
-              {/* Close button */}
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => {
@@ -557,7 +525,6 @@ export default function SSSpiralBlocks() {
   )
 }
 
-// Styles
 const styles = StyleSheet.create({
   topContainer: {
     width: '100%',
@@ -580,11 +547,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000'
   },
   canvas: {
-    width: canvasWidth,
-    height: canvasHeight,
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT,
     backgroundColor: '#000',
     position: 'absolute',
-    top: canvasTopOffset
+    top: CANVAS_TOP_OFFSET
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -619,7 +586,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)', // semi-transparent dark overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
@@ -628,7 +595,7 @@ const styles = StyleSheet.create({
   overlayCanvas: {
     width: 200,
     height: 200,
-    backgroundColor: '#000', // or transparent if you prefer
+    backgroundColor: '#000',
     marginBottom: 16
   },
   overlayText: {
@@ -656,7 +623,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 5,
     width: 100,
-    textAlign: 'center', // Centers text inside the input field
+    textAlign: 'center',
     fontSize: 18
   }
 })

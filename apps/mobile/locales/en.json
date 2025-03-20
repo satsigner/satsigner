@@ -230,9 +230,6 @@
     "warning": "Warning",
     "yes": "Yes"
   },
-  "explore": {
-    "title": "Explore"
-  },
   "converter": {
     "currency.bitcoin": "Bitcoin",
     "currency.cad": "CAD",
@@ -259,6 +256,27 @@
   },
   "error": {
     "notFound.wallet": "Wallet not found"
+  },
+  "explorer": {
+    "block": {
+      "heightLabel": "Height:",
+      "title": "Block Details"
+    },
+    "chain": {
+      "title": "Chain"
+    },
+    "chaintip": {
+      "title": "Chain Tip"
+    },
+    "difficulty": {
+      "title": "Difficulty"
+    },
+    "halving": {
+      "title": "Halving"
+    },
+    "mempool": {
+      "title": "Mempool"
+    }
   },
   "export": {
     "file.name.descriptors": "Descriptors",
