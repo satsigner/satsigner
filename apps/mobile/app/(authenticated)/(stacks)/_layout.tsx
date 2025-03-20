@@ -36,6 +36,7 @@ export default function AuthenticatedLayout() {
     firstTime,
     requiresAuth,
     lockTriggered,
+    setLockTriggered,
     skipPin,
     justUnlocked,
     markPageVisited,
@@ -45,6 +46,7 @@ export default function AuthenticatedLayout() {
       state.firstTime,
       state.requiresAuth,
       state.lockTriggered,
+      state.setLockTriggered,
       state.skipPin,
       state.justUnlocked,
       state.markPageVisited,
@@ -69,18 +71,18 @@ export default function AuthenticatedLayout() {
 
   const routeName = getFocusedRouteNameFromRoute(useRoute()) || ''
 
-  // useEffect(() => {
-  //   if (lockTriggered && skipPin) {
-  //     setLockTriggered(false)
-  //     const pages = getPagesHistory()
-  //     clearPageHistory()
-  //     setImmediate(() => {
-  //       for (const page of pages) {
-  //         router.push(page as any)
-  //       }
-  //     })
-  //   }
-  // }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (lockTriggered && skipPin) {
+      setLockTriggered(false)
+      // const pages = getPagesHistory()
+      // clearPageHistory()
+      // setImmediate(() => {
+      //   for (const page of pages) {
+      //     router.push(page as any)
+      //   }
+      // })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function loadWallets() {
