@@ -573,6 +573,7 @@
     "decoded.label.witnessItemsVarInt": "Witness item length (input %{input} witness %{witness})",
     "decoded.label.witnessVarInt": "Witness count",
     "decoded.title": "Decoded",
+    "details.chart": "Transaction flow",
     "details.title": "Transaction details",
     "edit.label.transaction": "Edit transaction label",
     "edit.label.utxo": "Edit UTXO label",

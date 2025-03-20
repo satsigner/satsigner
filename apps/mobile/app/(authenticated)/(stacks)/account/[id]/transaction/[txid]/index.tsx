@@ -8,15 +8,17 @@ import {
 } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-// import { getTransactionInputValues } from '@/api/bdk'
+import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
 import SSSeparator from '@/components/SSSeparator'
+import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
+import SSTimeAgoText from '@/components/SSTimeAgoText'
+import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-// import SSTxChart from '@/components/SSTxChart'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -29,7 +31,6 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
 import {
   formatConfirmations,
-  formatDate,
   formatFiatPrice,
   formatNumber
 } from '@/utils/format'
@@ -39,7 +40,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 export default function TxDetails() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [tx, _loadTx] = useAccountsStore(
+  const [tx, loadTx] = useAccountsStore(
     useShallow((state) => [
       state.accounts
         .find((account) => account.id === accountId)
@@ -48,9 +49,9 @@ export default function TxDetails() {
     ])
   )
 
-  // const [backend, network, url] = useBlockchainStore(
-  //   useShallow((state) => [state.backend, state.network, state.url])
-  // )
+  const [backend, network, url] = useBlockchainStore(
+    useShallow((state) => [state.backend, state.network, state.url])
+  )
 
   const placeholder = '-'
 
@@ -91,10 +92,10 @@ export default function TxDetails() {
 
     if (tx.raw) setRaw(bytesToHex(tx.raw))
 
-    // if (tx.vin.some((input) => input.value === undefined)) {
-    //   tx.vin = await getTransactionInputValues(tx, backend, network, url)
-    //   loadTx(accountId!, tx)
-    // }
+    if (tx.vin.some((input) => input.value === undefined)) {
+      const vin = await getTransactionInputValues(tx, backend, network, url)
+      loadTx(accountId!, { ...tx, vin })
+    }
   }
 
   useEffect(() => {
@@ -122,10 +123,13 @@ export default function TxDetails() {
           link={`/account/${accountId}/transaction/${txid}/label`}
           header={t('transaction.label')}
         />
-        {/* TODO: finish it
-            <SSSeparator color="gradient" />
-            <SSTxChart transaction={tx} />
-        */}
+        <SSSeparator color="gradient" />
+        <SSVStack>
+          <SSText uppercase weight="bold" size="md">
+            {t('transaction.details.chart')}
+          </SSText>
+          <SSTransactionChart transaction={tx} />
+        </SSVStack>
         <SSSeparator color="gradient" />
         <SSClipboardCopy text={height}>
           <SSTxDetailsBox header={t('transaction.block')} text={height} />
@@ -242,20 +246,20 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     (state) => state.getBlockchainHeight
   )
 
-  const [amount, setAmount] = useState('')
+  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+
+  const [amount, setAmount] = useState(0)
   const [confirmations, setConfirmations] = useState(0)
   const [oldPrice, setOldPrice] = useState('')
   const [price, setPrice] = useState('')
-  const [timestamp, setTimestamp] = useState('')
   const [type, setType] = useState('')
   const [inputsCount, setInputsCount] = useState(0)
-  const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+
   const updateInfo = async () => {
     if (!tx) return
 
     const amount = tx.received - tx.sent
-
-    setAmount(formatNumber(amount, 0, useZeroPadding))
+    setAmount(amount)
     setType(tx.type)
 
     if (btcPrice) setPrice(formatFiatPrice(Number(amount), btcPrice))
@@ -263,8 +267,6 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
     if (tx.prices) {
       setOldPrice(formatFiatPrice(Number(amount), tx.prices[fiatCurrency] || 0))
     }
-
-    if (tx.timestamp) setTimestamp(formatDate(tx.timestamp))
 
     if (tx.vin) setInputsCount(tx.vin.length)
 
@@ -281,32 +283,33 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
 
   return (
     <SSVStack gap="none" style={{ alignItems: 'center' }}>
-      {timestamp && (
-        <SSHStack gap="xs">
-          {type === 'receive' && <SSIconIncoming height={12} width={12} />}
-          {type === 'send' && <SSIconOutgoing height={12} width={12} />}
-          <SSText center color="muted">
-            {timestamp}
-          </SSText>
-        </SSHStack>
-      )}
-      <SSHStack>
-        <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
-          <SSText
-            size="xl"
-            style={{
-              lineHeight: 30,
-              color: tx ? (tx.received < tx.sent ? 'red' : 'green') : 'white'
-            }}
-          >
-            {amount}
-          </SSText>
-          <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
-        </SSHStack>
-        <SSHStack gap="xs">
-          {price && <SSText>{price}</SSText>}
-          {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
-          {(price || oldPrice) && <SSText color="muted">{fiatCurrency}</SSText>}
+      {tx?.timestamp && <SSTimeAgoText date={new Date(tx.timestamp)} />}
+      <SSHStack gap="sm" style={{ alignItems: 'center' }}>
+        {type === 'receive' && <SSIconIncoming height={12} width={12} />}
+        {type === 'send' && <SSIconOutgoing height={12} width={12} />}
+        <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
+            {amount ? (
+              <SSStyledSatText
+                amount={amount}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                type={tx?.type}
+                noColor={amount === 0}
+                weight="light"
+              />
+            ) : (
+              <SSText color="muted">?</SSText>
+            )}
+            <SSText color="muted">{t('bitcoin.sats').toLowerCase()}</SSText>
+          </SSHStack>
+          <SSHStack gap="xs">
+            {price && <SSText>{price}</SSText>}
+            {oldPrice && <SSText color="muted">({oldPrice})</SSText>}
+            {(price || oldPrice) && (
+              <SSText color="muted">{fiatCurrency}</SSText>
+            )}
+          </SSHStack>
         </SSHStack>
       </SSHStack>
       <SSHStack gap="sm">
