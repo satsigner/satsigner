@@ -8,7 +8,7 @@ import SSText, { type SSTextProps } from './SSText'
 
 type SSAddressDisplayProps = {
   address: string
-  variant?: 'box' | 'simple'
+  variant?: 'box' | 'darkbox' | 'simple'
 } & SSTextProps
 
 function SSAddressDisplay({
@@ -18,7 +18,7 @@ function SSAddressDisplay({
 }: SSAddressDisplayProps) {
   return (
     <SSClipboardCopy text={address}>
-      <SSHStack style={variant === 'box' ? styles.box : styles.simple} gap="sm">
+      <SSHStack style={styles[variant]} gap="sm">
         {(address.match(/(.{1,4})/g) || []).map((bytes, index) => (
           <SSText type="mono" size="md" {...props} key={index}>
             {bytes}
@@ -32,12 +32,23 @@ function SSAddressDisplay({
 const styles = StyleSheet.create({
   box: {
     backgroundColor: Colors.gray[800],
+    borderRadius: 5,
     flexWrap: 'wrap',
-    padding: 12
+    padding: 12,
+    width: '100%'
+  },
+  darkbox: {
+    borderColor: Colors.gray[100],
+    borderWidth: 1,
+    borderRadius: 2,
+    flexWrap: 'wrap',
+    padding: 10,
+    width: '100%'
   },
   simple: {
     flexWrap: 'wrap',
-    padding: 0
+    padding: 0,
+    width: '100%'
   }
 })
 
