@@ -25,7 +25,7 @@ function SSNavMenuItem({ group, item, focused = false }: SSNavMenuItemProps) {
         params: { title: item.title }
       })
     } else {
-      router.navigate(`(${group.toLowerCase()})/${item.url}`)
+      router.navigate(`(${group.toLowerCase()})${item.url}`)
     }
   }, [item, router, group])
 

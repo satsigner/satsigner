@@ -4,9 +4,15 @@ import {
   type DrawerNavigationProp,
   useDrawerStatus
 } from '@react-navigation/drawer'
-import { Stack, useNavigation, useRouter } from 'expo-router'
+import {
+  Stack,
+  useNavigation,
+  usePathname,
+  useRouter,
+  useSegments
+} from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import {
@@ -18,8 +24,17 @@ import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import { showNavigation } from '@/utils/navigation'
 
 export default function StackLayout(params: any) {
+  const currentPath = usePathname()
+  const segments = useSegments()
+  const [isShowNav, setShowNav] = useState(false)
+
+  useEffect(() => {
+    setShowNav(showNavigation(currentPath, segments.length))
+  }, [currentPath, segments])
+
   const router = useRouter()
   const nav = useNavigation<DrawerNavigationProp<any>>()
 
@@ -96,19 +111,20 @@ export default function StackLayout(params: any) {
               {t('app.name')}
             </SSText>
           ),
-          headerBackVisible: false,
-          headerLeft: () => (
-            <SSIconButton
-              style={{ marginLeft: 8 }}
-              onPress={() => nav.openDrawer()}
-            >
-              {isDrawerOpen ? (
-                <SSIconCloseThin height={20} width={20} />
-              ) : (
-                <SSIconHamburger height={18} width={18} />
-              )}
-            </SSIconButton>
-          ),
+          headerLeft: isShowNav
+            ? () => (
+                <SSIconButton
+                  style={{ marginLeft: 8 }}
+                  onPress={() => nav.openDrawer()}
+                >
+                  {isDrawerOpen ? (
+                    <SSIconCloseThin height={20} width={20} />
+                  ) : (
+                    <SSIconHamburger height={18} width={18} />
+                  )}
+                </SSIconButton>
+              )
+            : undefined,
           headerRight: () => (
             <SSIconButton
               style={{ marginRight: 8 }}
@@ -118,8 +134,7 @@ export default function StackLayout(params: any) {
             </SSIconButton>
           ),
           headerTitleAlign: 'center',
-          headerTintColor: Colors.gray[200],
-          headerBackTitleVisible: false
+          headerTintColor: Colors.gray[200]
         }}
       >
         {homeScreen}

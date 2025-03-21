@@ -149,24 +149,26 @@ export default function AuthenticatedLayout() {
     loadWallets()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Do not push index route
+  useEffect(() => {
+    if (routeName !== '' && routeName !== 'index') {
+      const {
+        params: _paramsUnused,
+        screen: _screenUnused,
+        ...filteredRouteParams
+      } = routeParams
+
+      markPageVisited({
+        path: routeName,
+        params: filteredRouteParams
+      } as PageRoute)
+    }
+  }, [routeName, routeParams, markPageVisited])
+
   if (firstTime) return <Redirect href="/setPin" />
 
   if (requiresAuth && lockTriggered && !skipPin)
     return <Redirect href="/unlock" />
-
-  // Do not push index route
-  if (routeName !== '' && routeName !== 'index') {
-    const {
-      params: _paramsUnused,
-      screen: _screenUnused,
-      ...filteredRouteParams
-    } = routeParams
-
-    markPageVisited({
-      path: routeName,
-      params: filteredRouteParams
-    } as PageRoute)
-  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -180,7 +182,6 @@ export default function AuthenticatedLayout() {
         }}
       >
         <Drawer.Screen name="(tabs)" />
-        <Drawer.Screen name="(screens)" />
       </Drawer>
     </GestureHandlerRootView>
   )

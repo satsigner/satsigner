@@ -43,7 +43,8 @@ export default function Converter() {
             <SSText uppercase style={styles.headerTitle}>
               {t('converter.title')}
             </SSText>
-          )
+          ),
+          headerBackVisible: false
         }}
       />
       <SSVStack>

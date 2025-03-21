@@ -37,8 +37,7 @@ export default function UpComing() {
               {t('upcoming.name')}
             </SSText>
           ),
-          headerLeft: undefined,
-          headerRight: undefined
+          headerBackVisible: false
         }}
       />
 

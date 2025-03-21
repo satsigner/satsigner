@@ -21,6 +21,7 @@ export default function Settings() {
       <Stack.Screen
         options={{
           headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
+          headerLeft: undefined,
           headerRight: undefined
         }}
       />
