@@ -437,7 +437,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                   <SSAddressDisplay
                     address={output.address}
                     copyToClipboard={false}
-                    variant="simple"
+                    variant="bare"
                     color="muted"
                     size="sm"
                   />

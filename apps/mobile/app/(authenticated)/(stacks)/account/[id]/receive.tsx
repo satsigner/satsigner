@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { getLastUnusedAddressFromWallet } from '@/api/bdk'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -17,7 +18,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import SSAddressDisplay from '@/components/SSAddressDisplay'
 
 export default function Receive() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -84,11 +84,7 @@ export default function Receive() {
             <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
           {localAddressQR && <SSQRCode value={localAddressQR} />}
-          <SSVStack
-            gap="xs"
-            itemsCenter
-            style={{ marginVertical: 10 }}
-          >
+          <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
             <SSText color="muted" uppercase weight="bold">
               {t('receive.address')}
             </SSText>

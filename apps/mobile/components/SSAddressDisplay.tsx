@@ -9,16 +9,15 @@ import SSText, { type SSTextProps } from './SSText'
 type SSAddressDisplayProps = {
   address: string
   copyToClipboard?: boolean
-  variant?: 'box' | 'darkbox' | 'simple'
+  variant?: 'default' | 'outline' | 'bare'
 } & SSTextProps
 
 function SSAddressDisplay({
   address,
-  variant = 'box',
+  variant = 'default',
   copyToClipboard = true,
   ...props
 }: SSAddressDisplayProps) {
-
   function AddressDisplayWithoutClipboard() {
     return (
       <SSHStack style={styles[variant]} gap="sm">
@@ -41,7 +40,7 @@ function SSAddressDisplay({
 }
 
 const styles = StyleSheet.create({
-  box: {
+  default: {
     backgroundColor: Colors.gray[800],
     borderRadius: 5,
     flexWrap: 'wrap',
@@ -49,7 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%'
   },
-  darkbox: {
+  outline: {
     borderColor: Colors.gray[600],
     borderWidth: 1,
     borderRadius: 5,
@@ -58,7 +57,7 @@ const styles = StyleSheet.create({
     padding: 12,
     width: '100%'
   },
-  simple: {
+  bare: {
     flexWrap: 'wrap',
     padding: 0,
     width: '100%'

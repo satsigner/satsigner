@@ -1017,7 +1017,7 @@ export default function AccountView() {
                     {t('receive.address').toUpperCase()}
                   </SSText>
                   <SSAddressDisplay
-                    variant="darkbox"
+                    variant="outline"
                     type="sans-serif"
                     style={{ lineHeight: 14 }}
                     address={watchOnlyWalletAddress || ''}
