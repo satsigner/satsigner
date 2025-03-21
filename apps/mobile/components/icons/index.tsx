@@ -19,6 +19,8 @@ import SSIconCircleXThin from './SSIconCircleXThin'
 import SSIconClose from './SSIconClose'
 import SSIconCloseThin from './SSIconCloseThin'
 import SSIconCollapse from './SSIconCollapse'
+import SSIconConverter from './SSIconConverter'
+import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
 import SSIconDev from './SSIconDev'
 import SSIconDifficult from './SSIconDifficult'
@@ -26,6 +28,8 @@ import SSIconECash from './SSIconECash'
 import SSIconEdit from './SSIconEdit'
 import SSIconEditPencil from './SSIconEditPencil'
 import SSIconExpand from './SSIconExpand'
+import SSIconExplorer from './SSIconExplorer'
+import SSIconExplorerActive from './SSIconExplorerActive'
 import SSIconEyeOff from './SSIconEyeOff'
 import SSIconEyeOn from './SSIconEyeOn'
 import SSIconFeature from './SSIconFeature'
@@ -55,6 +59,8 @@ import SSIconRemove from './SSIconRemove'
 import SSIconScan from './SSIconScan'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
 import SSIconSettings from './SSIconSettings'
+import SSIconSigner from './SSIconSigner'
+import SSIconSignerActive from './SSIconSignerActive'
 import SSIconSingleSignature from './SSIconSingleSignature'
 import SSIconSuccess from './SSIconSuccess'
 import SSIconTime from './SSIconTime'
@@ -86,6 +92,8 @@ export {
   SSIconClose,
   SSIconCloseThin,
   SSIconCollapse,
+  SSIconConverter,
+  SSIconConverterActive,
   SSIconCurrency,
   SSIconDev,
   SSIconDifficult,
@@ -93,6 +101,8 @@ export {
   SSIconEdit,
   SSIconEditPencil,
   SSIconExpand,
+  SSIconExplorer,
+  SSIconExplorerActive,
   SSIconEyeOff,
   SSIconEyeOn,
   SSIconFeature,
@@ -122,6 +132,8 @@ export {
   SSIconScan,
   SSIconScriptsP2pkh,
   SSIconSettings,
+  SSIconSigner,
+  SSIconSignerActive,
   SSIconSingleSignature,
   SSIconSuccess,
   SSIconTime,

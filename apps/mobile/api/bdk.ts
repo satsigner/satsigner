@@ -661,8 +661,8 @@ async function getLastUnusedAddressFromWallet(wallet: Wallet) {
   return newAddress
 }
 
-async function getScriptPubKeyFromAddress(address: string) {
-  const recipientAddress = await new Address().create(address)
+async function getScriptPubKeyFromAddress(address: string, network: Network) {
+  const recipientAddress = await new Address().create(address, network)
   return recipientAddress.scriptPubKey()
 }
 
@@ -675,7 +675,8 @@ async function buildTransaction(
     options: {
       rbf: boolean
     }
-  }
+  },
+  network: Network
 ) {
   const transactionBuilder = await new TxBuilder().create()
 
@@ -685,7 +686,7 @@ async function buildTransaction(
   await transactionBuilder.manuallySelectedOnly()
 
   for (const output of data.outputs) {
-    const recipient = await getScriptPubKeyFromAddress(output.to)
+    const recipient = await getScriptPubKeyFromAddress(output.to, network)
     await transactionBuilder.addRecipient(recipient, output.amount)
   }
 
