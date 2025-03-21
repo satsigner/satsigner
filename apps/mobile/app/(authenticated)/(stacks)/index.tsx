@@ -231,7 +231,6 @@ export default function AccountList() {
               </SSVStack>
             ))}
           </SSVStack>
-
           <SSVStack itemsCenter style={{ paddingTop: 50, paddingBottom: 100 }}>
             {accounts.length === 0 && (
               <SSText style={{ paddingBottom: 50 }} uppercase>
