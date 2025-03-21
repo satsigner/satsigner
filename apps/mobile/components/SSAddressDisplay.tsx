@@ -46,14 +46,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     flexWrap: 'wrap',
     padding: 12,
+    justifyContent: 'center',
     width: '100%'
   },
   darkbox: {
-    borderColor: Colors.gray[100],
+    borderColor: Colors.gray[600],
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 5,
     flexWrap: 'wrap',
-    padding: 10,
+    justifyContent: 'center',
+    padding: 12,
     width: '100%'
   },
   simple: {

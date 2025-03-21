@@ -1018,6 +1018,8 @@ export default function AccountView() {
                   </SSText>
                   <SSAddressDisplay
                     variant="darkbox"
+                    type="sans-serif"
+                    style={{ lineHeight: 14 }}
                     address={watchOnlyWalletAddress || ''}
                   />
                 </SSVStack>

@@ -296,7 +296,6 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
                 decimals={0}
                 useZeroPadding={useZeroPadding}
                 type={tx?.type}
-                noColor={amount === 0}
                 weight="light"
               />
             ) : (
