@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.white
   },
   buttonGhost: {
-    backgroundColor: Colors.transparent
+    backgroundColor: Colors.gray[900]
   },
   buttonGradient: {
     position: 'absolute',
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     color: Colors.black
   },
   textGhost: {
-    color: Colors.gray[200]
+    color: Colors.gray[100]
   },
   disabled: {
     opacity: 0.3
