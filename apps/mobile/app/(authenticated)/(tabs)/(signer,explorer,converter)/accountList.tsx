@@ -265,12 +265,6 @@ export default function AccountList() {
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
-      <SSButton
-        label={t('explore.title')}
-        variant="gradient"
-        style={{ borderRadius: 0, marginTop: 8 }}
-        onPress={() => router.push('explorer' as any)}
-      />
     </>
   )
 }
