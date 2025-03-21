@@ -31,7 +31,6 @@ export default function UtxoDetails() {
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [amount, setAmount] = useState(placeholder)
-  const [addressDisplay, setAddressDisplay] = useState(placeholder)
 
   const updateInfo = () => {
     if (tx) {
@@ -41,9 +40,8 @@ export default function UtxoDetails() {
     }
 
     if (utxo) {
-      const { addressTo, value } = utxo
+      const { value } = utxo
       if (value) setAmount(formatNumber(value))
-      if (addressTo) setAddressDisplay(addressTo)
     }
   }
 
