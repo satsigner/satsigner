@@ -8,16 +8,19 @@ import SSText, { type SSTextProps } from './SSText'
 
 type SSAddressDisplayProps = {
   address: string
+  copyToClipboard?: boolean
   variant?: 'box' | 'darkbox' | 'simple'
 } & SSTextProps
 
 function SSAddressDisplay({
   address,
   variant = 'box',
+  copyToClipboard = true,
   ...props
 }: SSAddressDisplayProps) {
-  return (
-    <SSClipboardCopy text={address}>
+
+  function AddressDisplayWithoutClipboard() {
+    return (
       <SSHStack style={styles[variant]} gap="sm">
         {(address.match(/(.{1,4})/g) || []).map((bytes, index) => (
           <SSText type="mono" size="md" {...props} key={index}>
@@ -25,6 +28,14 @@ function SSAddressDisplay({
           </SSText>
         ))}
       </SSHStack>
+    )
+  }
+
+  if (!copyToClipboard) return <AddressDisplayWithoutClipboard />
+
+  return (
+    <SSClipboardCopy text={address}>
+      <AddressDisplayWithoutClipboard />
     </SSClipboardCopy>
   )
 }
