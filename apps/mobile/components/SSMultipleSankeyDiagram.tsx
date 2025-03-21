@@ -13,8 +13,8 @@ import Animated from 'react-native-reanimated'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 
-import { SSSankeyLinks } from './SSSankeyLinks'
-import { SSSankeyNodes } from './SSSankeyNodes'
+import SSSankeyLinks from './SSSankeyLinks'
+import SSSankeyNodes from './SSSankeyNodes'
 
 export interface Link extends SankeyLinkMinimal<object, object> {
   source: string

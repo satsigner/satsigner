@@ -44,10 +44,10 @@ import {
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -942,16 +942,14 @@ export default function AccountView() {
         <SSVStack itemsCenter gap="none">
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText size="7xl" color="white">
-                <SSStyledSatText
-                  amount={account?.summary.balance || 0}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  textSize="7xl"
-                  weight="ultralight"
-                  letterSpacing={-1}
-                />
-              </SSText>
+              <SSStyledSatText
+                amount={account?.summary.balance || 0}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                textSize="6xl"
+                weight="ultralight"
+                letterSpacing={-1}
+              />
               <SSText size="xl" color="muted">
                 {t('bitcoin.sats').toLowerCase()}
               </SSText>
@@ -1014,21 +1012,17 @@ export default function AccountView() {
                 </SSActionButton>
               )}
               {account.keys[0].creationType === 'importAddress' && (
-                <SSClipboardCopy text={watchOnlyWalletAddress || ''}>
-                  <SSActionButton
-                    style={{
-                      ...styles.actionButton,
-                      width: '100%'
-                    }}
-                  >
-                    <SSVStack gap="none" style={{ alignItems: 'center' }}>
-                      <SSText center color="muted">
-                        {t('receive.address').toUpperCase()}
-                      </SSText>
-                      <SSText center>{watchOnlyWalletAddress}</SSText>
-                    </SSVStack>
-                  </SSActionButton>
-                </SSClipboardCopy>
+                <SSVStack gap="xs">
+                  <SSText center color="muted" size="xs">
+                    {t('receive.address').toUpperCase()}
+                  </SSText>
+                  <SSAddressDisplay
+                    variant="outline"
+                    type="sans-serif"
+                    style={{ lineHeight: 14 }}
+                    address={watchOnlyWalletAddress || ''}
+                  />
+                </SSVStack>
               )}
             </SSHStack>
           </SSVStack>
