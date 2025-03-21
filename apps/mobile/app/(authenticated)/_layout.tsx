@@ -3,7 +3,7 @@ import {
   useRoute
 } from '@react-navigation/native'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Redirect, useGlobalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useGlobalSearchParams } from 'expo-router'
 import Drawer from 'expo-router/drawer'
 import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -25,7 +25,6 @@ import { aesDecrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
 export default function AuthenticatedLayout() {
-  const router = useRouter()
   const routeParams = useGlobalSearchParams()
   const [
     firstTime,
@@ -35,8 +34,6 @@ export default function AuthenticatedLayout() {
     justUnlocked,
     setLockTriggered,
     markPageVisited,
-    getPagesHistory,
-    clearPageHistory,
     setJustUnlocked
   ] = useAuthStore(
     useShallow((state) => [
@@ -47,8 +44,6 @@ export default function AuthenticatedLayout() {
       state.justUnlocked,
       state.setLockTriggered,
       state.markPageVisited,
-      state.getPagesHistory,
-      state.clearPageHistory,
       state.setJustUnlocked
     ])
   )
