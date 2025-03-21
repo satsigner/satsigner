@@ -86,12 +86,14 @@ export default function ExportLabels() {
             </SSText>
             <SSHStack>
               {bip329FileTypes.map((ext) => (
-                <SSCheckbox
-                  key={ext}
-                  label={ext}
-                  selected={exportType === ext}
-                  onPress={() => setExportType(ext)}
-                />
+                <View style={{ width: `${100 / bip329FileTypes.length}%` }}>
+                  <SSCheckbox
+                    key={ext}
+                    label={ext}
+                    selected={exportType === ext}
+                    onPress={() => setExportType(ext)}
+                  />
+                </View>
               ))}
             </SSHStack>
             <View

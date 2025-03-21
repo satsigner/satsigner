@@ -36,24 +36,20 @@ export default function AuthenticatedLayout() {
     firstTime,
     requiresAuth,
     lockTriggered,
+    setLockTriggered,
     skipPin,
     justUnlocked,
-    setLockTriggered,
     markPageVisited,
-    getPagesHistory,
-    clearPageHistory,
     setJustUnlocked
   ] = useAuthStore(
     useShallow((state) => [
       state.firstTime,
       state.requiresAuth,
       state.lockTriggered,
+      state.setLockTriggered,
       state.skipPin,
       state.justUnlocked,
-      state.setLockTriggered,
       state.markPageVisited,
-      state.getPagesHistory,
-      state.clearPageHistory,
       state.setJustUnlocked
     ])
   )
@@ -78,13 +74,13 @@ export default function AuthenticatedLayout() {
   useEffect(() => {
     if (lockTriggered && skipPin) {
       setLockTriggered(false)
-      const pages = getPagesHistory()
-      clearPageHistory()
-      setImmediate(() => {
-        for (const page of pages) {
-          router.push(page as any)
-        }
-      })
+      // const pages = getPagesHistory()
+      // clearPageHistory()
+      // setImmediate(() => {
+      //   for (const page of pages) {
+      //     router.push(page as any)
+      //   }
+      // })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
