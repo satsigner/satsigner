@@ -125,6 +125,43 @@ class BaseElectrumClient {
     return client
   }
 
+  static async test(url: string, network: Network, timeout: number) {
+    const port = url.replace(/.*:/, '')
+    const protocol = url.replace(/:\/\/.*/, '')
+    const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
+
+    if (
+      !host.match(/^[a-z][a-z.]+$/i) ||
+      !port.match(/^[0-9]+$/) ||
+      (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
+    ) {
+      throw new Error('Invalid backend URL')
+    }
+    const client = new ElectrumClient({
+      host,
+      port: Number(port),
+      protocol,
+      network
+    })
+    const pingPromise = client.client.initElectrum({
+      client: 'satsigner',
+      version: '1.4'
+    })
+    const timeoutPromise = new Promise((resolve, reject) =>
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, timeout)
+    )
+    try {
+      await Promise.race([pingPromise, timeoutPromise])
+      return true
+    } catch {
+      return false
+    } finally {
+      client.close()
+    }
+  }
+
   async init() {
     await this.client.initElectrum({
       client: 'satsigner',
