@@ -220,37 +220,6 @@ export default function AccountList() {
       </SSHStack>
       <SSMainLayout style={{ paddingTop: 32, paddingRight: 2 }}>
         <ScrollView style={{ paddingRight: '6%' }}>
-          {accounts.length === 0 && (
-            <SSVStack itemsCenter>
-              <SSText color="muted" uppercase>
-                {t('accounts.empty')}
-              </SSText>
-              <SSButton
-                label={t('account.load.sample.segwit')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('segwit')}
-                loading={loadingWallet === 'segwit'}
-              />
-              <SSButton
-                label={t('account.load.sample.legacy')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('legacy')}
-                loading={loadingWallet === 'legacy'}
-              />
-              <SSButton
-                label={t('account.load.sample.xpub')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('watchonlyXpub')}
-                loading={loadingWallet === 'watchonlyXpub'}
-              />
-              <SSButton
-                label={t('account.load.sample.address')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('watchonlyAddress')}
-                loading={loadingWallet === 'watchonlyAddress'}
-              />
-            </SSVStack>
-          )}
           <SSVStack>
             {accounts.map((account) => (
               <SSVStack key={account.id}>
@@ -261,6 +230,41 @@ export default function AccountList() {
                 <SSSeparator color="gradient" />
               </SSVStack>
             ))}
+          </SSVStack>
+
+          <SSVStack itemsCenter style={{ paddingTop: 50, paddingBottom: 100 }}>
+            {accounts.length === 0 && (
+              <SSText style={{ paddingBottom: 50 }} uppercase>
+                {t('accounts.empty')}
+              </SSText>
+            )}
+            <SSText color="muted" uppercase>
+              {t('accounts.samples')}
+            </SSText>
+            <SSButton
+              label={t('account.load.sample.segwit')}
+              variant="ghost"
+              onPress={() => loadSampleWallet('segwit')}
+              loading={loadingWallet === 'segwit'}
+            />
+            <SSButton
+              label={t('account.load.sample.legacy')}
+              variant="ghost"
+              onPress={() => loadSampleWallet('legacy')}
+              loading={loadingWallet === 'legacy'}
+            />
+            <SSButton
+              label={t('account.load.sample.xpub')}
+              variant="ghost"
+              onPress={() => loadSampleWallet('watchonlyXpub')}
+              loading={loadingWallet === 'watchonlyXpub'}
+            />
+            <SSButton
+              label={t('account.load.sample.address')}
+              variant="ghost"
+              onPress={() => loadSampleWallet('watchonlyAddress')}
+              loading={loadingWallet === 'watchonlyAddress'}
+            />
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
