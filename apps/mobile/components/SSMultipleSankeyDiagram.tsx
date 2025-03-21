@@ -214,7 +214,7 @@ function SSMultipleSankeyDiagram({
             ]}
             onLayout={onCanvasLayout}
           >
-            {/* Add transparent nodes that match the canvas diagram */}
+            // TODO: enable selection for three dots
             {nodeStyles.map((style, index) => (
               <View
                 key={index}
