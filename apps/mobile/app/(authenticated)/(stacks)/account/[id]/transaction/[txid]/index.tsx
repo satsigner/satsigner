@@ -10,6 +10,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getTransactionInputValues } from '@/api/bdk'
 import { SSIconIncoming, SSIconOutgoing } from '@/components/icons'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -289,13 +290,12 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
         {type === 'send' && <SSIconOutgoing height={12} width={12} />}
         <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
-            {amount ? (
+            {amount !== 0 ? (
               <SSStyledSatText
-                amount={amount}
+                amount={Math.abs(amount)}
                 decimals={0}
                 useZeroPadding={useZeroPadding}
                 type={tx?.type}
-                noColor={amount === 0}
                 weight="light"
               />
             ) : (
@@ -430,13 +430,21 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                   }
                 }}
               >
-                <SSTxDetailsBox
-                  header={t('transaction.address')}
-                  text={output.address}
-                />
+                <SSVStack gap="sm">
+                  <SSText uppercase weight="bold" size="md">
+                    {t('bitcoin.address')}
+                  </SSText>
+                  <SSAddressDisplay
+                    address={output.address}
+                    copyToClipboard={false}
+                    variant="bare"
+                    color="muted"
+                    size="sm"
+                  />
+                </SSVStack>
               </TouchableOpacity>
               <SSVStack>
-                <SSText weight="bold">
+                <SSText uppercase weight="bold" size="md">
                   {t('transaction.unlockingScript')}
                 </SSText>
                 <SSScriptDecoded script={output.script || []} />
