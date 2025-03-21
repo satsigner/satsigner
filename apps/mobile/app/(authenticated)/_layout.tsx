@@ -73,13 +73,13 @@ export default function AuthenticatedLayout() {
   useEffect(() => {
     if (lockTriggered && skipPin) {
       setLockTriggered(false)
-      const pages = getPagesHistory()
-      clearPageHistory()
-      setImmediate(() => {
-        for (const page of pages) {
-          router.push(page as any)
-        }
-      })
+      // const pages = getPagesHistory()
+      // clearPageHistory()
+      // setImmediate(() => {
+      //   for (const page of pages) {
+      //     router.push(page as any)
+      //   }
+      // })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
