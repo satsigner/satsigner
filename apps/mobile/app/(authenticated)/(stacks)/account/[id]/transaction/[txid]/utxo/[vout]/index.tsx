@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity } from 'react-native'
 
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSLabelDetails from '@/components/SSLabelDetails'
 import SSScriptDecoded from '@/components/SSScriptDecoded'
@@ -30,7 +31,6 @@ export default function UtxoDetails() {
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [amount, setAmount] = useState(placeholder)
-  const [addressDisplay, setAddressDisplay] = useState(placeholder)
 
   const updateInfo = () => {
     if (tx) {
@@ -40,9 +40,8 @@ export default function UtxoDetails() {
     }
 
     if (utxo) {
-      const { addressTo, value } = utxo
+      const { value } = utxo
       if (value) setAmount(formatNumber(value))
-      if (addressTo) setAddressDisplay(addressTo)
     }
   }
 
@@ -117,11 +116,11 @@ export default function UtxoDetails() {
               }
             }}
           >
-            <SSVStack gap="none">
+            <SSVStack gap="sm">
               <SSText weight="bold" uppercase>
                 {t('utxo.address')}
               </SSText>
-              <SSText color="muted">{addressDisplay}</SSText>
+              <SSAddressDisplay address={utxo?.addressTo || '-'} />
             </SSVStack>
           </TouchableOpacity>
           <SSSeparator color="gradient" />
