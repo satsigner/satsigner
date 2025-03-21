@@ -290,9 +290,9 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
         {type === 'send' && <SSIconOutgoing height={12} width={12} />}
         <SSHStack gap="sm" style={{ alignItems: 'baseline' }}>
           <SSHStack gap="xs" style={{ alignItems: 'baseline', width: 'auto' }}>
-            {amount ? (
+            {amount !== 0 ? (
               <SSStyledSatText
-                amount={amount}
+                amount={Math.abs(amount)}
                 decimals={0}
                 useZeroPadding={useZeroPadding}
                 type={tx?.type}
@@ -437,6 +437,7 @@ function SSTxDetailsOutputs({ tx, accountId }: SSTxDetailsOutputsProps) {
                   </SSText>
                   <SSAddressDisplay
                     address={output.address}
+                    copyToClipboard={false}
                     variant="simple"
                     color="muted"
                     size="sm"
