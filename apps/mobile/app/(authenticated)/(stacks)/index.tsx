@@ -242,25 +242,25 @@ export default function AccountList() {
             </SSText>
             <SSButton
               label={t('account.load.sample.segwit')}
-              variant="ghost"
+              variant="subtle"
               onPress={() => loadSampleWallet('segwit')}
               loading={loadingWallet === 'segwit'}
             />
             <SSButton
               label={t('account.load.sample.legacy')}
-              variant="ghost"
+              variant="subtle"
               onPress={() => loadSampleWallet('legacy')}
               loading={loadingWallet === 'legacy'}
             />
             <SSButton
               label={t('account.load.sample.xpub')}
-              variant="ghost"
+              variant="subtle"
               onPress={() => loadSampleWallet('watchonlyXpub')}
               loading={loadingWallet === 'watchonlyXpub'}
             />
             <SSButton
               label={t('account.load.sample.address')}
-              variant="ghost"
+              variant="subtle"
               onPress={() => loadSampleWallet('watchonlyAddress')}
               loading={loadingWallet === 'watchonlyAddress'}
             />
