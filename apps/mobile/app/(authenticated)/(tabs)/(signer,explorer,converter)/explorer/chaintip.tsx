@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native'
 
-export default function ExplorerView() {
+function ExplorerChaintip() {
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
       <Text
@@ -15,3 +15,5 @@ export default function ExplorerView() {
     </View>
   )
 }
+
+export default ExplorerChaintip

@@ -26,6 +26,10 @@ import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import { Colors } from '@/styles'
 
+type SSSpiralBlocksProps = {
+  //
+}
+
 const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
 const MAX_BLOCKS_PER_SPIRAL = 2016
 const FACTOR_BLOCK_DISTANCE = 0.04
@@ -41,47 +45,7 @@ const MAX_BRIGHTNESS_SIZE = 5000
 
 const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
 
-/**
- * Newton-Raphson method to find roots of a function
- */
-function newtonRaphson(
-  L: number,
-  k: number,
-  initialGuess: number = 1.0,
-  tolerance: number = 1e-6,
-  maxIterations: number = 1000
-): number {
-  let t = initialGuess
-
-  const f = (t: number, L: number, k: number): number => {
-    return t ** 2 - L * k
-  }
-
-  const df = (t: number): number => {
-    return 2 * t
-  }
-
-  for (let i = 0; i < maxIterations; i++) {
-    const f_t = f(t, L, k)
-    const df_t = df(t)
-
-    if (Math.abs(f_t) < tolerance) {
-      return t
-    }
-
-    t = t - f_t / df_t
-  }
-
-  throw new Error('Convergence Failed!')
-}
-
-const getFileName = (index: number) => {
-  return `rcp_bitcoin_block_data_${(index * MAX_BLOCKS_PER_SPIRAL)
-    .toString()
-    .padStart(7, '0')}.json`
-}
-
-export default function SSSpiralBlocks() {
+function SSSpiralBlocks({}: SSSpiralBlocksProps) {
   const [_pressedBlocks, setPressedBlocks] = useState<{
     [key: number]: boolean
   }>({})
@@ -170,7 +134,9 @@ export default function SSSpiralBlocks() {
   const pWeek1 = useMemo(() => {
     return createParagraph('1 WEEK')
   }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
-  // const pWeek2 = useMemo(() => createParagraph('2 WEEKS'), [customFontManager])
+  const pWeek2 = useMemo(() => {
+    return createParagraph('2 WEEKS')
+  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
   const pWeek3 = useMemo(() => {
     return createParagraph('3 WEEKS')
   }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -384,7 +350,7 @@ export default function SSSpiralBlocks() {
         })}
 
         <Paragraph paragraph={pWeek1} x={0} y={220} width={CANVAS_WIDTH} />
-        <Paragraph paragraph={pWeek3} x={0} y={170} width={CANVAS_WIDTH} />
+        <Paragraph paragraph={pWeek2} x={0} y={170} width={CANVAS_WIDTH} />
         <Paragraph paragraph={pWeek3} x={0} y={110} width={CANVAS_WIDTH} />
         <Paragraph paragraph={pWeek4} x={0} y={60} width={CANVAS_WIDTH} />
       </Canvas>
@@ -520,6 +486,46 @@ export default function SSSpiralBlocks() {
   )
 }
 
+/**
+ * Newton-Raphson method to find roots of a function
+ */
+function newtonRaphson(
+  L: number,
+  k: number,
+  initialGuess: number = 1.0,
+  tolerance: number = 1e-6,
+  maxIterations: number = 1000
+): number {
+  let t = initialGuess
+
+  const f = (t: number, L: number, k: number): number => {
+    return t ** 2 - L * k
+  }
+
+  const df = (t: number): number => {
+    return 2 * t
+  }
+
+  for (let i = 0; i < maxIterations; i++) {
+    const f_t = f(t, L, k)
+    const df_t = df(t)
+
+    if (Math.abs(f_t) < tolerance) {
+      return t
+    }
+
+    t = t - f_t / df_t
+  }
+
+  throw new Error('Convergence Failed!')
+}
+
+function getFileName(index: number) {
+  return `rcp_bitcoin_block_data_${(index * MAX_BLOCKS_PER_SPIRAL)
+    .toString()
+    .padStart(7, '0')}.json`
+}
+
 const styles = StyleSheet.create({
   topContainer: {
     width: '100%',
@@ -622,3 +628,5 @@ const styles = StyleSheet.create({
     fontSize: 18
   }
 })
+
+export default SSSpiralBlocks

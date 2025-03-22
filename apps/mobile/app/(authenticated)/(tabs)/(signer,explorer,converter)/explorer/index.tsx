@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 
-export default function ExplorerLanding() {
+function ExplorerIndex() {
   const router = useRouter()
 
   const navigateToExplorerView = (view: string) => {
@@ -14,7 +14,6 @@ export default function ExplorerLanding() {
     <View style={styles.container}>
       <Text style={styles.header}>SATS SIGNER</Text>
       <Text style={styles.title}>EXPLORER</Text>
-
       <SSButton
         label="CHAINTIP"
         variant="ghost"
@@ -78,3 +77,5 @@ const styles = StyleSheet.create({
     marginVertical: 5
   }
 })
+
+export default ExplorerIndex
