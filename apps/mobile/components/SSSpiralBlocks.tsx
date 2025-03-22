@@ -12,7 +12,6 @@ import {
 } from '@shopify/react-native-skia'
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Dimensions,
   StyleSheet,
   Text,
   TextInput,
@@ -27,25 +26,33 @@ import SSIconButton from '@/components/SSIconButton'
 import { Colors } from '@/styles'
 
 type SSSpiralBlocksProps = {
-  //
+  currentFileIndex: number
+  onChangeFileIndex: (value: number) => void
+  data: any[]
+  loading: boolean
+  maxBlocksPerSpiral: number
+  canvasWidth: number
+  canvasHeight: number
 }
 
-const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
-const MAX_BLOCKS_PER_SPIRAL = 2016
 const FACTOR_BLOCK_DISTANCE = 0.04
 const RADIUS_SPIRAL_START = 1
 const FACTOR_SPIRAL_GROWTH = 0.8
-const CANVAS_WIDTH = SCREEN_WIDTH
-const CANVAS_HEIGHT = 650
 const BLOCK_SIZE = 3
 const RADIUS_WEEKS = [110, 160, 220, 270]
 const CANVAS_TOP_OFFSET = 140
 const MIN_BRIGHTNESS = 20
 const MAX_BRIGHTNESS_SIZE = 5000
 
-const DATA_LINK = 'https://pvxg.net/bitcoin_data/difficulty_epochs/'
-
-function SSSpiralBlocks({}: SSSpiralBlocksProps) {
+function SSSpiralBlocks({
+  canvasWidth,
+  canvasHeight,
+  currentFileIndex,
+  onChangeFileIndex,
+  maxBlocksPerSpiral,
+  data,
+  loading
+}: SSSpiralBlocksProps) {
   const [_pressedBlocks, setPressedBlocks] = useState<{
     [key: number]: boolean
   }>({})
@@ -79,9 +86,6 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
   }
 
   // State for fetching data
-  const [spiralDataRaw, setSpiralDataRaw] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [currentFileIndex, setCurrentFileIndex] = useState(0)
   const [inputValue, setInputValue] = useState(String(currentFileIndex))
 
   // State for the overlay view when a block is clicked.
@@ -144,28 +148,10 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
     return createParagraph('4 WEEKS')
   }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const fileName = getFileName(currentFileIndex)
-      const response = await fetch(DATA_LINK + fileName)
-      const data = await response.json()
-      setSpiralDataRaw(data)
-    } catch (error) {
-      throw new Error('Failed to fetch data:' + error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchData()
-  }, [currentFileIndex]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const spiralBlocks = useMemo(() => {
-    if (!spiralDataRaw || spiralDataRaw.length === 0) return []
+    if (!data || data.length === 0) return []
 
-    const spiralData = spiralDataRaw[0]
+    const spiralData = data[0]
     const blocks = []
     let phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
     let arc_distance =
@@ -173,14 +159,14 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
       (Math.asinh(phi_spiral) + phi_spiral * Math.sqrt(phi_spiral ** 2 + 1))
 
     let radius_spiral = RADIUS_SPIRAL_START
-    const maxIterations = Math.min(MAX_BLOCKS_PER_SPIRAL, spiralData.length)
+    const maxIterations = Math.min(maxBlocksPerSpiral, spiralData.length)
 
     for (let i = 0; i < maxIterations; i++) {
       const currentBlock = spiralData[i]
       const timeDifference = currentBlock?.[8]?.time_difference ?? 0
       const size = currentBlock?.[5]?.size ?? 0
       const block_distance =
-        i === 0 || i === MAX_BLOCKS_PER_SPIRAL - 1 ? 0 : timeDifference
+        i === 0 || i === maxBlocksPerSpiral - 1 ? 0 : timeDifference
 
       arc_distance += block_distance * FACTOR_BLOCK_DISTANCE
       phi_spiral = newtonRaphson(arc_distance, FACTOR_SPIRAL_GROWTH, phi_spiral)
@@ -200,7 +186,7 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
       })
     }
     return blocks
-  }, [loading, spiralDataRaw]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading, data]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const fetchBlockDetails = async () => {
@@ -242,10 +228,12 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Canvas style={styles.canvas}>
+        <Canvas
+          style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+        >
           <Circle
-            cx={CANVAS_WIDTH / 2}
-            cy={CANVAS_HEIGHT / 2}
+            cx={canvasWidth / 2}
+            cy={canvasHeight / 2}
             r={40}
             color="transparent"
             style="stroke"
@@ -294,7 +282,9 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
       </View>
 
       {/* Main canvas with spiral blocks */}
-      <Canvas style={styles.canvas}>
+      <Canvas
+        style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+      >
         {spiralBlocks.map((block, index) => {
           const path = Skia.Path.Make()
           const halfSize = BLOCK_SIZE / 2
@@ -312,20 +302,20 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
           })
 
           path.moveTo(
-            points[0][0] + CANVAS_WIDTH / 2,
-            points[0][1] + CANVAS_HEIGHT / 2
+            points[0][0] + canvasWidth / 2,
+            points[0][1] + canvasHeight / 2
           )
           path.lineTo(
-            points[1][0] + CANVAS_WIDTH / 2,
-            points[1][1] + CANVAS_HEIGHT / 2
+            points[1][0] + canvasWidth / 2,
+            points[1][1] + canvasHeight / 2
           )
           path.lineTo(
-            points[2][0] + CANVAS_WIDTH / 2,
-            points[2][1] + CANVAS_HEIGHT / 2
+            points[2][0] + canvasWidth / 2,
+            points[2][1] + canvasHeight / 2
           )
           path.lineTo(
-            points[3][0] + CANVAS_WIDTH / 2,
-            points[3][1] + CANVAS_HEIGHT / 2
+            points[3][0] + canvasWidth / 2,
+            points[3][1] + canvasHeight / 2
           )
           path.close()
 
@@ -337,8 +327,8 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
           return (
             <Circle
               key={index}
-              cx={CANVAS_WIDTH / 2}
-              cy={CANVAS_HEIGHT / 2}
+              cx={canvasWidth / 2}
+              cy={canvasHeight / 2}
               r={r}
               color="transparent"
             >
@@ -349,10 +339,10 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
           )
         })}
 
-        <Paragraph paragraph={pWeek1} x={0} y={220} width={CANVAS_WIDTH} />
-        <Paragraph paragraph={pWeek2} x={0} y={170} width={CANVAS_WIDTH} />
-        <Paragraph paragraph={pWeek3} x={0} y={110} width={CANVAS_WIDTH} />
-        <Paragraph paragraph={pWeek4} x={0} y={60} width={CANVAS_WIDTH} />
+        <Paragraph paragraph={pWeek1} x={0} y={220} width={canvasWidth} />
+        <Paragraph paragraph={pWeek2} x={0} y={170} width={canvasWidth} />
+        <Paragraph paragraph={pWeek3} x={0} y={110} width={canvasWidth} />
+        <Paragraph paragraph={pWeek4} x={0} y={60} width={canvasWidth} />
       </Canvas>
 
       {/* Overlay for touchable areas to detect block clicks */}
@@ -365,10 +355,7 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
             style={{
               position: 'absolute',
               top:
-                CANVAS_TOP_OFFSET +
-                CANVAS_HEIGHT / 2 +
-                block.y -
-                BLOCK_SIZE / 2,
+                CANVAS_TOP_OFFSET + canvasHeight / 2 + block.y - BLOCK_SIZE / 2,
               left: block.x - BLOCK_SIZE / 2,
               width: BLOCK_SIZE + 3,
               height: BLOCK_SIZE + 3,
@@ -413,17 +400,14 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
         onPress={() => {
           const parsed = parseInt(inputValue, 10)
           if (!isNaN(parsed)) {
-            setCurrentFileIndex(parsed)
+            onChangeFileIndex(parsed)
           }
         }}
       />
 
       <View style={styles.buttonContainer}>
         <SSIconButton
-          onPress={() => {
-            setLoading(true)
-            setCurrentFileIndex((prevIndex) => Math.max(prevIndex - 1, 0))
-          }}
+          onPress={() => onChangeFileIndex(Math.max(currentFileIndex - 1, 0))}
           style={styles.chevronButton}
         >
           <SSIconChevronLeft height={22} width={24} />
@@ -443,10 +427,7 @@ function SSSpiralBlocks({}: SSSpiralBlocksProps) {
         </View>
 
         <SSIconButton
-          onPress={() => {
-            setLoading(true)
-            setCurrentFileIndex((prevIndex) => prevIndex + 1)
-          }}
+          onPress={() => onChangeFileIndex(currentFileIndex + 1)}
           style={styles.chevronButton}
         >
           <SSIconChevronRight height={22} width={24} />
@@ -520,12 +501,6 @@ function newtonRaphson(
   throw new Error('Convergence Failed!')
 }
 
-function getFileName(index: number) {
-  return `rcp_bitcoin_block_data_${(index * MAX_BLOCKS_PER_SPIRAL)
-    .toString()
-    .padStart(7, '0')}.json`
-}
-
 const styles = StyleSheet.create({
   topContainer: {
     width: '100%',
@@ -548,8 +523,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000'
   },
   canvas: {
-    width: CANVAS_WIDTH,
-    height: CANVAS_HEIGHT,
     backgroundColor: '#000',
     position: 'absolute',
     top: CANVAS_TOP_OFFSET
