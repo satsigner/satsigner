@@ -89,6 +89,7 @@
     "index": "Index",
     "label": "Label",
     "receive": "Receive",
+    "samples": "Add sample account",
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
     "totalTransactions": "Total\nTransactions",
