@@ -1,14 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, TextInput, StyleSheet, ScrollView } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+
+import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
-import {
-  SSIconChevronUp,
-  SSIconChevronDown,
-  SSIconChevronLeft,
-  SSIconChevronRight
-} from '@/components/icons'
 import { t } from '@/locales'
 
 const MEMPOOL_API_BASE_URL = 'https://mempool.space/api'
@@ -43,7 +39,7 @@ export default function SSExploreBlock() {
         const data = await blockResponse.json()
         setBlockDetails(data)
       } catch (error) {
-        console.error('Error fetching block details:', error)
+        throw new Error('Error fetching block details:' + error)
       } finally {
         setLoading(false)
       }
@@ -82,7 +78,7 @@ export default function SSExploreBlock() {
         <View style={STYLES.navContainer}>
           <SSIconButton
             onPress={() => {
-              const prevHeight = Math.max(parseInt(blockHeight) - 1, 1)
+              const prevHeight = Math.max(parseInt(blockHeight, 10) - 1, 1)
               setBlockHeight(prevHeight.toString())
               setInputHeight(prevHeight.toString())
             }}
@@ -106,7 +102,7 @@ export default function SSExploreBlock() {
 
           <SSIconButton
             onPress={() => {
-              const nextHeight = parseInt(blockHeight) + 1
+              const nextHeight = parseInt(blockHeight, 10) + 1
               setBlockHeight(nextHeight.toString())
               setInputHeight(nextHeight.toString())
             }}

@@ -1,14 +1,13 @@
 import { useRouter } from 'expo-router'
-import { View, Text, StyleSheet } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+
 import SSButton from '@/components/SSButton'
 
 export default function ExplorerLanding() {
   const router = useRouter()
 
-  console.log('helllooo')
   const navigateToExplorerView = (view: string) => {
-    console.log('this is view', view)
-    // router.push({ pathname: `/explorer/${view}` } as any)
+    router.push({ pathname: `/explorer/${view}` } as any)
   }
 
   return (

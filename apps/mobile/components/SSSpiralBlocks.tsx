@@ -10,8 +10,7 @@ import {
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
-import { useRouter } from 'expo-router'
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Dimensions,
   StyleSheet,
@@ -27,7 +26,7 @@ import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import { Colors } from '@/styles'
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
+const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
 const MAX_BLOCKS_PER_SPIRAL = 2016
 const FACTOR_BLOCK_DISTANCE = 0.04
 const RADIUS_SPIRAL_START = 1
@@ -58,13 +57,13 @@ function newtonRaphson(
     return t ** 2 - L * k
   }
 
-  const df = (t: number, k: number): number => {
+  const df = (t: number): number => {
     return 2 * t
   }
 
   for (let i = 0; i < maxIterations; i++) {
     const f_t = f(t, L, k)
-    const df_t = df(t, k)
+    const df_t = df(t)
 
     if (Math.abs(f_t) < tolerance) {
       return t
@@ -83,7 +82,7 @@ const getFileName = (index: number) => {
 }
 
 export default function SSSpiralBlocks() {
-  const [pressedBlocks, setPressedBlocks] = useState<{
+  const [_pressedBlocks, setPressedBlocks] = useState<{
     [key: number]: boolean
   }>({})
 
@@ -121,8 +120,6 @@ export default function SSSpiralBlocks() {
   const [currentFileIndex, setCurrentFileIndex] = useState(0)
   const [inputValue, setInputValue] = useState(String(currentFileIndex))
 
-  const router = useRouter()
-
   // State for the overlay view when a block is clicked.
   // It stores the block index and the current file index.
   const [selectedBlock, setSelectedBlock] = useState<{
@@ -144,7 +141,6 @@ export default function SSSpiralBlocks() {
   })
 
   const fontSize = 12
-  const dateText = '1 WEEK'
 
   const TextStyleWeeks = {
     color: Skia.Color(Colors.gray[100]),
@@ -158,7 +154,7 @@ export default function SSSpiralBlocks() {
   const createParagraph = (text: string) => {
     if (!customFontManager) return null
 
-    const para = Skia.ParagraphBuilder.Make({
+    const paragraph = Skia.ParagraphBuilder.Make({
       maxLines: 1,
       textAlign: TextAlign.Center
     })
@@ -167,13 +163,20 @@ export default function SSSpiralBlocks() {
       .pop()
       .build()
 
-    para.layout(100)
-    return para
+    paragraph.layout(100)
+    return paragraph
   }
-  const pWeek1 = useMemo(() => createParagraph('1 WEEK'), [customFontManager])
-  const pWeek2 = useMemo(() => createParagraph('2 WEEKS'), [customFontManager])
-  const pWeek3 = useMemo(() => createParagraph('3 WEEKS'), [customFontManager])
-  const pWeek4 = useMemo(() => createParagraph('4 WEEKS'), [customFontManager])
+
+  const pWeek1 = useMemo(() => {
+    return createParagraph('1 WEEK')
+  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
+  // const pWeek2 = useMemo(() => createParagraph('2 WEEKS'), [customFontManager])
+  const pWeek3 = useMemo(() => {
+    return createParagraph('3 WEEKS')
+  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
+  const pWeek4 = useMemo(() => {
+    return createParagraph('4 WEEKS')
+  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchData = async () => {
     setLoading(true)
@@ -183,7 +186,7 @@ export default function SSSpiralBlocks() {
       const data = await response.json()
       setSpiralDataRaw(data)
     } catch (error) {
-      console.error('Failed to fetch data:', error)
+      throw new Error('Failed to fetch data:' + error)
     } finally {
       setLoading(false)
     }
@@ -191,7 +194,7 @@ export default function SSSpiralBlocks() {
 
   useEffect(() => {
     fetchData()
-  }, [currentFileIndex])
+  }, [currentFileIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const spiralBlocks = useMemo(() => {
     if (!spiralDataRaw || spiralDataRaw.length === 0) return []
@@ -219,8 +222,6 @@ export default function SSSpiralBlocks() {
 
       const x = radius_spiral * Math.cos(phi_spiral)
       const y = radius_spiral * Math.sin(phi_spiral)
-      const logMin = Math.log(1)
-      const logMax = Math.log(MAX_BRIGHTNESS_SIZE)
       const brightness = MIN_BRIGHTNESS + (size / MAX_BRIGHTNESS_SIZE) * 256
 
       blocks.push({
@@ -233,7 +234,7 @@ export default function SSSpiralBlocks() {
       })
     }
     return blocks
-  }, [loading, spiralDataRaw])
+  }, [loading, spiralDataRaw]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const fetchBlockDetails = async () => {
@@ -241,8 +242,7 @@ export default function SSSpiralBlocks() {
 
       const block = spiralBlocks[selectedBlock.blockIndex]
       if (!block || !block.height) {
-        console.error('Height not found for selected block')
-        return
+        throw new Error('Height not found for selected block')
       }
 
       const urlHeight = `https://mempool.space/api/block-height/${block.height}`
@@ -259,7 +259,7 @@ export default function SSSpiralBlocks() {
 
         setBlockDetails(data)
       } catch (error) {
-        console.error('Error fetching block details:', error)
+        throw new Error('Error fetching block details:' + error)
       } finally {
         setLoadingBlockDetails(false)
       }
