@@ -59,6 +59,18 @@ export type Block = {
   previousblockhash: string
 }
 
+export type BlockDifficulty = {
+  height: number
+  timestamp: number
+  txCount: number
+  chainWork: string
+  nonce: number
+  size: number
+  weight: number
+  cycleHeight: number
+  timeDifference: number
+}
+
 export enum TxPriority {
   none = 'none',
   low = 'low',

@@ -24,6 +24,7 @@ import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import { Colors } from '@/styles'
+import { BlockDifficulty } from '@/types/models/Blockchain'
 
 type SSSpiralBlocksProps = {
   currentFileIndex: number
@@ -151,7 +152,6 @@ function SSSpiralBlocks({
   const spiralBlocks = useMemo(() => {
     if (!data || data.length === 0) return []
 
-    const spiralData = data[0]
     const blocks = []
     let phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
     let arc_distance =
@@ -159,12 +159,12 @@ function SSSpiralBlocks({
       (Math.asinh(phi_spiral) + phi_spiral * Math.sqrt(phi_spiral ** 2 + 1))
 
     let radius_spiral = RADIUS_SPIRAL_START
-    const maxIterations = Math.min(maxBlocksPerSpiral, spiralData.length)
+    const maxIterations = Math.min(maxBlocksPerSpiral, data.length)
 
     for (let i = 0; i < maxIterations; i++) {
-      const currentBlock = spiralData[i]
-      const timeDifference = currentBlock?.[8]?.time_difference ?? 0
-      const size = currentBlock?.[5]?.size ?? 0
+      const currentBlock = data[i] as BlockDifficulty
+      const timeDifference = currentBlock?.timeDifference ?? 0
+      const size = currentBlock?.size ?? 0
       const block_distance =
         i === 0 || i === maxBlocksPerSpiral - 1 ? 0 : timeDifference
 
@@ -182,7 +182,7 @@ function SSSpiralBlocks({
         rotation: phi_spiral,
         color: `rgb(${brightness},${brightness},${brightness})`,
         timeDifference,
-        height: currentBlock?.[0]?.height || null
+        height: currentBlock?.height || null
       })
     }
     return blocks
