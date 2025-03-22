@@ -1,36 +1,30 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import SSButton from '@/components/SSButton'
 import {
   Canvas,
-  Rect,
   Circle,
-  Skia,
-  Path,
-  Paint,
   DashPathEffect,
-  useFonts,
+  Paint,
+  Paragraph,
+  Path,
+  Rect,
+  Skia,
   TextAlign,
-  Paragraph
+  useFonts
 } from '@shopify/react-native-skia'
+import { useRouter } from 'expo-router'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
-  StyleSheet,
-  View,
-  TextInput,
-  Text,
-  TouchableOpacity,
   Dimensions,
-  ViewStyle,
-  StyleProp
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native'
 import Animated from 'react-native-reanimated'
-import { useRouter } from 'expo-router'
+
+import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
-import {
-  SSIconChevronUp,
-  SSIconChevronDown,
-  SSIconChevronLeft,
-  SSIconChevronRight
-} from '@/components/icons'
 import { Colors } from '@/styles'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -111,13 +105,14 @@ export default function SSSpiralBlocks() {
     const height = block?.height || 675
 
     if (!height) {
-      console.error('Block height not found, using fallback height of 675')
+      throw new Error('Block height not found, using fallback height of 675')
     }
 
-    router.push({
-      pathname: 'explorer/explorerViews',
-      params: { view: 'block', height }
-    } as any)
+    // TODO: add esplorerViews route
+    // router.push({
+    //   pathname: 'explorer/explorerViews',
+    //   params: { view: 'block', height }
+    // } as any)
   }
 
   // State for fetching data
@@ -154,7 +149,7 @@ export default function SSSpiralBlocks() {
   const TextStyleWeeks = {
     color: Skia.Color(Colors.gray[100]),
     fontFamilies: ['SF Pro Text'],
-    fontSize: fontSize,
+    fontSize,
     fontStyle: {
       weight: 400
     }
@@ -201,10 +196,10 @@ export default function SSSpiralBlocks() {
   const spiralBlocks = useMemo(() => {
     if (!spiralDataRaw || spiralDataRaw.length === 0) return []
 
-    var spiralData = spiralDataRaw[0]
+    const spiralData = spiralDataRaw[0]
     const blocks = []
-    var phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
-    var arc_distance =
+    let phi_spiral = RADIUS_SPIRAL_START / FACTOR_SPIRAL_GROWTH
+    let arc_distance =
       FACTOR_SPIRAL_GROWTH *
       (Math.asinh(phi_spiral) + phi_spiral * Math.sqrt(phi_spiral ** 2 + 1))
 
@@ -226,7 +221,7 @@ export default function SSSpiralBlocks() {
       const y = radius_spiral * Math.sin(phi_spiral)
       const logMin = Math.log(1)
       const logMax = Math.log(MAX_BRIGHTNESS_SIZE)
-      let brightness = MIN_BRIGHTNESS + (size / MAX_BRIGHTNESS_SIZE) * 256
+      const brightness = MIN_BRIGHTNESS + (size / MAX_BRIGHTNESS_SIZE) * 256
 
       blocks.push({
         x,
