@@ -258,6 +258,27 @@
   "error": {
     "notFound.wallet": "Wallet not found"
   },
+  "explorer": {
+    "block": {
+      "heightLabel": "Height:",
+      "title": "Block Details"
+    },
+    "chain": {
+      "title": "Chain"
+    },
+    "chaintip": {
+      "title": "Chain Tip"
+    },
+    "difficulty": {
+      "title": "Difficulty"
+    },
+    "halving": {
+      "title": "Halving"
+    },
+    "mempool": {
+      "title": "Mempool"
+    }
+  },
   "export": {
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",
