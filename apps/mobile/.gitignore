@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# cosmos
+cosmos.imports.ts
+
 # Native
 *.orig.*
 *.jks

@@ -21,6 +21,8 @@ import {
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
 
+import AppCosmos from './App.cosmos'
+
 if (Platform.OS === 'android') {
   SystemUI.setBackgroundColorAsync(Colors.gray[950])
 
@@ -30,7 +32,7 @@ if (Platform.OS === 'android') {
 
 const queryClient = new QueryClient()
 
-export default function RootLayout() {
+function RootLayout() {
   const [firstTime, setLockTriggered, requiresAuth, lockDeltaTime] =
     useAuthStore(
       useShallow((state) => [
@@ -97,6 +99,12 @@ export default function RootLayout() {
     </QueryClientProvider>
   )
 }
+
+// TODO: toggle between them using an environment variable,
+// such as process.env.COSMOS
+const App = 1 ? AppCosmos : RootLayout
+
+export default App
 
 const styles = StyleSheet.create({
   container: {
