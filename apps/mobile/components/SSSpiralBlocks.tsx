@@ -14,21 +14,15 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native'
 import Animated from 'react-native-reanimated'
 
-import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
-import SSButton from '@/components/SSButton'
-import SSIconButton from '@/components/SSIconButton'
 import { Colors } from '@/styles'
-import { BlockDifficulty } from '@/types/models/Blockchain'
+import { type BlockDifficulty } from '@/types/models/Blockchain'
 
 type SSSpiralBlocksProps = {
-  currentFileIndex: number
-  onChangeFileIndex: (value: number) => void
   data: any[]
   loading: boolean
   maxBlocksPerSpiral: number
@@ -48,8 +42,6 @@ const MAX_BRIGHTNESS_SIZE = 5000
 function SSSpiralBlocks({
   canvasWidth,
   canvasHeight,
-  currentFileIndex,
-  onChangeFileIndex,
   maxBlocksPerSpiral,
   data,
   loading
@@ -85,9 +77,6 @@ function SSSpiralBlocks({
     //   params: { view: 'block', height }
     // } as any)
   }
-
-  // State for fetching data
-  const [inputValue, setInputValue] = useState(String(currentFileIndex))
 
   // State for the overlay view when a block is clicked.
   // It stores the block index and the current file index.
@@ -220,10 +209,6 @@ function SSSpiralBlocks({
     fetchBlockDetails()
   }, [selectedBlock, spiralBlocks])
 
-  useEffect(() => {
-    setInputValue(String(currentFileIndex)) // Sync input field when index changes
-  }, [currentFileIndex])
-
   // If still loading data, show a loading spinner (an outlined circle)
   if (loading) {
     return (
@@ -247,41 +232,6 @@ function SSSpiralBlocks({
 
   return (
     <View style={styles.container}>
-      {/* Top container with text */}
-      <View style={styles.topContainer}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text
-            style={{ color: 'white', fontSize: 28, fontFamily: 'SF Pro Text' }}
-          >
-            ~0.0 mins
-          </Text>
-          <Text
-            style={{ color: 'white', fontSize: 28, fontFamily: 'SF Pro Text' }}
-          >
-            ~0 days
-          </Text>
-        </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            marginTop: 5
-          }}
-        >
-          <Text
-            style={{ color: '#aaa', fontSize: 14, fontFamily: 'SF Pro Text' }}
-          >
-            Avg Block
-          </Text>
-          <Text
-            style={{ color: '#aaa', fontSize: 14, fontFamily: 'SF Pro Text' }}
-          >
-            Adjustment Time
-          </Text>
-        </View>
-      </View>
-
-      {/* Main canvas with spiral blocks */}
       <Canvas
         style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
       >
@@ -369,71 +319,6 @@ function SSSpiralBlocks({
         ))}
       </Animated.View>
 
-      <TextInput
-        style={{
-          position: 'absolute',
-          bottom: 100,
-          backgroundColor: '#222',
-          color: 'white',
-          borderWidth: 1,
-          borderColor: '#555',
-          paddingHorizontal: 10,
-          paddingVertical: 8,
-          borderRadius: 5,
-          width: 100,
-          height: 40,
-          textAlign: 'center',
-          fontSize: 18
-        }}
-        value={inputValue}
-        onChangeText={setInputValue}
-        keyboardType="numeric"
-        placeholder="Enter ID"
-        placeholderTextColor="#888"
-        textAlign="center"
-      />
-
-      <SSButton
-        style={{ height: 20, width: 100, position: 'absolute', bottom: 80 }}
-        label="Fetch"
-        variant="gradient"
-        onPress={() => {
-          const parsed = parseInt(inputValue, 10)
-          if (!isNaN(parsed)) {
-            onChangeFileIndex(parsed)
-          }
-        }}
-      />
-
-      <View style={styles.buttonContainer}>
-        <SSIconButton
-          onPress={() => onChangeFileIndex(Math.max(currentFileIndex - 1, 0))}
-          style={styles.chevronButton}
-        >
-          <SSIconChevronLeft height={22} width={24} />
-        </SSIconButton>
-
-        <View style={styles.bottomText}>
-          <Text
-            style={{ color: 'white', fontSize: 14, fontFamily: 'SF Pro Text' }}
-          >
-            000000-000000
-          </Text>
-          <Text
-            style={{ color: '#888', fontSize: 12, fontFamily: 'SF Pro Text' }}
-          >
-            01-10 January, 2020
-          </Text>
-        </View>
-
-        <SSIconButton
-          onPress={() => onChangeFileIndex(currentFileIndex + 1)}
-          style={styles.chevronButton}
-        >
-          <SSIconChevronRight height={22} width={24} />
-        </SSIconButton>
-      </View>
-
       {selectedBlock && (
         <View style={styles.overlay}>
           {loadingBlockDetails ? (
@@ -479,22 +364,20 @@ function newtonRaphson(
 ): number {
   let t = initialGuess
 
-  const f = (t: number, L: number, k: number): number => {
+  function f(t: number, L: number, k: number): number {
     return t ** 2 - L * k
   }
 
-  const df = (t: number): number => {
+  function df(t: number): number {
     return 2 * t
   }
 
   for (let i = 0; i < maxIterations; i++) {
     const f_t = f(t, L, k)
     const df_t = df(t)
-
     if (Math.abs(f_t) < tolerance) {
       return t
     }
-
     t = t - f_t / df_t
   }
 
@@ -502,20 +385,6 @@ function newtonRaphson(
 }
 
 const styles = StyleSheet.create({
-  topContainer: {
-    width: '100%',
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    position: 'absolute',
-    top: 80
-  },
-  floatingContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    alignItems: 'center'
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -524,35 +393,17 @@ const styles = StyleSheet.create({
   },
   canvas: {
     backgroundColor: '#000',
-    position: 'absolute',
-    top: CANVAS_TOP_OFFSET
+    position: 'absolute'
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 16,
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0
+  closeButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+    borderRadius: 4
   },
-  bottomText: {
-    alignItems: 'center',
-    marginHorizontal: 16,
-    minWidth: 150,
-    borderWidth: 1
-  },
-
-  chevronButton: {
-    height: 80,
-    width: 80,
-    borderWidth: 0.5,
-    borderColor: '#888',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 10
+  closeButtonText: {
+    color: 'black',
+    fontSize: 14
   },
   overlay: {
     position: 'absolute',
@@ -577,28 +428,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     textAlign: 'center'
-  },
-  closeButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: 'white',
-    borderRadius: 4
-  },
-  closeButtonText: {
-    color: 'black',
-    fontSize: 14
-  },
-  input: {
-    backgroundColor: '#222',
-    color: 'white',
-    borderWidth: 1,
-    borderColor: '#555',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 5,
-    width: 100,
-    textAlign: 'center',
-    fontSize: 18
   }
 })
 

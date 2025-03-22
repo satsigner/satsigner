@@ -68,8 +68,6 @@ function ExplorerDifficulty() {
       <SSSpiralBlocks
         data={data}
         loading={loading}
-        currentFileIndex={currentFileIndex}
-        onChangeFileIndex={setCurrentFileIndex}
         maxBlocksPerSpiral={MAX_BLOCKS_PER_SPIRAL}
         canvasWidth={CANVAS_WIDTH}
         canvasHeight={CANVAS_HEIGHT}
