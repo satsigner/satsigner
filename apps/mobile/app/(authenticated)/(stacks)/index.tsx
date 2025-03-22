@@ -2,6 +2,7 @@ import {
   type DrawerNavigationProp,
   useDrawerStatus
 } from '@react-navigation/drawer'
+import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
@@ -252,15 +253,23 @@ export default function AccountList() {
             </SSVStack>
           )}
           <SSVStack>
-            {accounts.map((account) => (
-              <SSVStack key={account.id}>
-                <SSAccountCard
-                  account={account}
-                  onPress={() => router.navigate(`/account/${account.id}`)}
-                />
-                <SSSeparator color="gradient" />
-              </SSVStack>
-            ))}
+            <FlashList
+              data={accounts}
+              renderItem={({ item }) => (
+                <SSVStack>
+                  <SSAccountCard
+                    account={item}
+                    onPress={() => router.navigate(`/account/${item.id}`)}
+                  />
+                </SSVStack>
+              )}
+              estimatedItemSize={20}
+              ItemSeparatorComponent={() => (
+                <SSSeparator style={{ marginVertical: 16 }} color="gradient" />
+              )}
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={false}
+            />
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
