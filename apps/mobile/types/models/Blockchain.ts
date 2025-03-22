@@ -150,11 +150,16 @@ export type MemPoolBlock = {
 }
 
 export type DifficultyAdjustment = {
+  adjustedTimeAvg: number
   difficultyChange: number
+  estimatedRetargetDate: number
+  nextRetargetHeight: number
+  previousRetarget: number
   progressPercent: number
   remainingBlocks: number
   remainingTime: number
-  nextRetargetHeight: number
+  timeAvg: number
+  timeOffset: number
 }
 
 export type HashRateInfo = {
