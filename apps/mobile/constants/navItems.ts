@@ -76,14 +76,14 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.difficulty'),
         icon: SSIconDifficult,
-        url: '/difficulty',
+        url: '/explorer/difficulty',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },
       {
         title: t('navigation.item.block'),
         icon: SSIconBlock,
-        url: '/block',
+        url: '/explorer/block',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },
