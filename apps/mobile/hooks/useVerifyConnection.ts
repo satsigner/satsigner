@@ -5,15 +5,20 @@ import { useShallow } from 'zustand/react/shallow'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const [network, url, timeout] = useBlockchainStore(
-    useShallow((state) => [state.network, state.url, state.timeout * 1000])
+  const [network, url, timeout, backend] = useBlockchainStore(
+    useShallow((state) => [
+      state.network,
+      state.url,
+      state.timeout * 1000,
+      state.backend
+    ])
   )
 
   const isConnectionAvailable = useRef<boolean | null>(false)
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
-    return network + ' - ' + url
-  }, [network, url])
+    return backend + ' : ' + network + ' - ' + url
+  }, [backend, network, url])
 
   const verifyUrl = useMemo(() => {
     const urlObj = new URL(url)
