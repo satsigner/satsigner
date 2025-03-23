@@ -44,10 +44,10 @@ import {
   SSIconRefresh
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -72,12 +72,11 @@ import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { compareTimestamp } from '@/utils/sort'
+import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type TotalTransactionsProps = {
@@ -87,7 +86,7 @@ type TotalTransactionsProps = {
   expand: boolean
   setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
-  sortTransactions: (transactions: Transaction[]) => Transaction[]
+  sortDirection: Direction
   blockchainHeight: number
 }
 
@@ -98,7 +97,8 @@ function TotalTransactions({
   expand,
   setSortDirection,
   refreshing,
-  blockchainHeight
+  blockchainHeight,
+  sortDirection
 }: TotalTransactionsProps) {
   const router = useRouter()
 
@@ -107,9 +107,11 @@ function TotalTransactions({
   )
 
   const sortedTransactions = useMemo(() => {
-    return [...account.transactions].sort((transaction1, transaction2) =>
-      compareTimestamp(transaction1.timestamp, transaction2.timestamp)
-    )
+    return sortTransactions([...account.transactions], sortDirection)
+  }, [account.transactions, sortDirection])
+
+  const chartTransactions = useMemo(() => {
+    return sortTransactions([...account.transactions], 'desc')
   }, [account.transactions])
 
   const transactionBalances = useMemo(() => {
@@ -173,7 +175,7 @@ function TotalTransactions({
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
           <SSHistoryChart
-            transactions={sortedTransactions}
+            transactions={chartTransactions}
             utxos={account.utxos}
           />
         </View>
@@ -692,7 +694,7 @@ export default function AccountView() {
             expand={expand}
             setSortDirection={setSortDirectionTransactions}
             refreshing={refreshing}
-            sortTransactions={sortTransactions}
+            sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
           />
         )
@@ -734,14 +736,6 @@ export default function AccountView() {
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: false
     }).start()
-  }
-
-  function sortTransactions(transactions: Transaction[]) {
-    return transactions.sort((transaction1, transaction2) =>
-      sortDirectionTransactions === 'asc'
-        ? compareTimestamp(transaction1.timestamp, transaction2.timestamp)
-        : compareTimestamp(transaction2.timestamp, transaction1.timestamp)
-    )
   }
 
   function sortUtxos(utxos: Utxo[]) {
@@ -948,16 +942,14 @@ export default function AccountView() {
         <SSVStack itemsCenter gap="none">
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText size="7xl" color="white">
-                <SSStyledSatText
-                  amount={account?.summary.balance || 0}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  textSize="7xl"
-                  weight="ultralight"
-                  letterSpacing={-1}
-                />
-              </SSText>
+              <SSStyledSatText
+                amount={account?.summary.balance || 0}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                textSize="6xl"
+                weight="ultralight"
+                letterSpacing={-1}
+              />
               <SSText size="xl" color="muted">
                 {t('bitcoin.sats').toLowerCase()}
               </SSText>
@@ -1020,21 +1012,17 @@ export default function AccountView() {
                 </SSActionButton>
               )}
               {account.keys[0].creationType === 'importAddress' && (
-                <SSClipboardCopy text={watchOnlyWalletAddress || ''}>
-                  <SSActionButton
-                    style={{
-                      ...styles.actionButton,
-                      width: '100%'
-                    }}
-                  >
-                    <SSVStack gap="none" style={{ alignItems: 'center' }}>
-                      <SSText center color="muted">
-                        {t('receive.address').toUpperCase()}
-                      </SSText>
-                      <SSText center>{watchOnlyWalletAddress}</SSText>
-                    </SSVStack>
-                  </SSActionButton>
-                </SSClipboardCopy>
+                <SSVStack gap="xs">
+                  <SSText center color="muted" size="xs">
+                    {t('receive.address').toUpperCase()}
+                  </SSText>
+                  <SSAddressDisplay
+                    variant="outline"
+                    type="sans-serif"
+                    style={{ lineHeight: 14 }}
+                    address={watchOnlyWalletAddress || ''}
+                  />
+                </SSVStack>
               )}
             </SSHStack>
           </SSVStack>

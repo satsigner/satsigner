@@ -50,7 +50,7 @@ interface SSSankeyLinksProps {
 
 export const LINK_BLOCK_MAX_WIDTH = 16
 
-export function SSSankeyLinks({
+function SSSankeyLinks({
   links,
   nodes,
   sankeyGenerator,
@@ -353,3 +353,5 @@ const generateCustomLink = (points: LinkPoints) => {
     'Z'
   ].join('\n')
 }
+
+export default SSSankeyLinks

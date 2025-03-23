@@ -106,11 +106,11 @@ export const slides = [
     ]
   },
   {
-    page: t('navigation.item.difficult'),
+    page: t('navigation.item.difficulty'),
     items: [
       {
-        title: t('upcoming.difficult.title'),
-        description: t('upcoming.difficult.description'),
+        title: t('upcoming.difficulty.title'),
+        description: t('upcoming.difficulty.description'),
         image: require('@/assets/images/difficulty.jpg')
       }
     ]

@@ -28,7 +28,7 @@ const PADDING_LEFT = 8
 const BLOCK_WIDTH = 50
 const Y_OFFSET_BLOCK_NODE_TEXT = 10
 
-export function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
+function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),

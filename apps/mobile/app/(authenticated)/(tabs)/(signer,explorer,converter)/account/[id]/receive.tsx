@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { getLastUnusedAddressFromWallet } from '@/api/bdk'
+import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -83,13 +84,13 @@ export default function Receive() {
             <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
           {localAddressQR && <SSQRCode value={localAddressQR} />}
-          <SSVStack gap="none" itemsCenter>
-            <SSText color="muted" uppercase>
+          <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
+            <SSText color="muted" uppercase weight="bold">
               {t('receive.address')}
             </SSText>
             {localAddress && (
               <SSClipboardCopy text={localAddress} withPopup={false}>
-                <SSText size="sm">{localAddress}</SSText>
+                <SSAddressDisplay address={localAddress} />
               </SSClipboardCopy>
             )}
           </SSVStack>

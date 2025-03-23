@@ -1,28 +1,24 @@
-import * as d3 from 'd3'
-import { useLocalSearchParams, useRouter } from 'expo-router'
 import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
-import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Svg, {
-  ClipPath,
-  Defs,
-  G,
+  Canvas,
+  DashPathEffect,
+  Group,
   Line,
   LinearGradient,
-  Mask,
+  matchFont,
   Path,
   Rect,
-  Stop,
-  Text as SvgText,
-  TSpan
-} from 'react-native-svg'
+  rect,
+  Skia,
+  Text,
+  TileMode,
+  useFonts,
+  vec
+} from '@shopify/react-native-skia'
+import * as d3 from 'd3'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Fragment, useCallback, useMemo, useRef, useState } from 'react'
+import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useShallow } from 'zustand/react/shallow'
 
 import { useChartSettingStore } from '@/store/chartSettings'
@@ -39,6 +35,7 @@ type HistoryChartData = {
   balance: number
   amount: number
   type: 'send' | 'receive' | 'end'
+  id: string
 }
 
 type SSHistoryChartProps = {
@@ -67,8 +64,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
 
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const currentDate = useRef<Date>(new Date())
+  const labelRectRef = useRef<{ rect: Rectangle; id: string }[]>([])
 
-  const [walletAddresses] = useMemo(() => {
+  const walletAddresses = useMemo(() => {
     const addresses = new Set<string>()
     const transactionsMap = new Map<string, Transaction>()
     utxos.forEach((val) => {
@@ -89,11 +87,12 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         })
       })
     addresses.delete('')
-    return [addresses]
+    return addresses
   }, [transactions, utxos])
 
   const balanceHistory = useMemo(() => {
     const history = new Map<number, Map<string, Utxo>>()
+    const pendingDeleteBalances = new Set<string>()
     transactions.forEach((t, index) => {
       const currentBalances = new Map<string, Utxo>()
       if (index > 0) {
@@ -121,6 +120,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             input.previousOutput.txid + '::' + input.previousOutput.vout
           if (currentBalances.has(inputName)) {
             currentBalances.delete(inputName)
+          } else {
+            pendingDeleteBalances.add(inputName)
           }
         })
         t.vout?.forEach((out, index) => {
@@ -139,6 +140,14 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       }
       history.set(index, currentBalances)
     })
+    pendingDeleteBalances.forEach((value) => {
+      Array.from(history.entries()).forEach(([, historyBalance]) => {
+        if (historyBalance.has(value)) {
+          historyBalance.delete(value)
+        }
+      })
+      pendingDeleteBalances.delete(value)
+    })
     return history
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletAddresses])
@@ -156,30 +165,38 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         date: new Date(transaction?.timestamp ?? currentDate.current),
         type: transaction.type ?? 'receive',
         balance: sum,
-        amount
+        amount,
+        id: transaction.id
       }
     })
   }, [transactions])
   const timeOffset =
     new Date(currentDate.current).setDate(currentDate.current.getDate() + 10) -
     chartData[0].date.getTime()
-  const margin = { top: 30, right: 0, bottom: 80, left: 40 }
+  const margin = { top: 30, right: 10, bottom: 80, left: 40 }
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
-
-  const [scale, setScale] = useState<number>(1)
   const prevScale = useRef<number>(1)
+  const scaleRef = useRef<number>(1)
   const [cursorX, setCursorX] = useState<Date | undefined>(undefined)
   const [cursorY, setCursorY] = useState<number | undefined>(undefined)
-  const [endDate, setEndDate] = useState<Date>(
+  const [{ endDate, scale }, setLocationState] = useState<{
+    endDate: Date
+    scale: number
+  }>({
+    endDate: new Date(
+      new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
+    ),
+    scale: 1
+  })
+  const endDateRef = useRef<Date>(
     new Date(
       new Date(currentDate.current).setDate(currentDate.current.getDate() + 5)
     )
   )
-  const [prevEndDate, setPrevEndDate] = useState<Date>(
-    new Date(currentDate.current)
-  )
+  const prevEndDate = useRef<Date>(new Date(currentDate.current))
   const [startY, setStartY] = useState<number>(0)
-  const [prevStartY, setPrevStartY] = useState<number>(0)
+  const startYRef = useRef<number>(0)
+  const prevStartY = useRef<number>(0)
 
   const startDate = useMemo<Date>(() => {
     return new Date(endDate.getTime() - timeOffset / scale)
@@ -203,7 +220,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       amount: 0,
       balance: startBalance,
       memo: '',
-      type: 'end'
+      type: 'end',
+      id: ''
     })
     if (endDate.getTime() <= currentDate.current.getTime()) {
       validData.push({
@@ -211,7 +229,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
         memo: '',
-        type: 'end'
+        type: 'end',
+        id: ''
       })
     } else {
       validData.push({
@@ -219,7 +238,8 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         amount: 0,
         balance: validData[validData.length - 1]?.balance ?? 0,
         memo: '',
-        type: 'end'
+        type: 'end',
+        id: ''
       })
     }
     return [maxBalance, validData]
@@ -252,11 +272,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
   }[] = useMemo(() => {
     return Array.from(balanceHistory.entries())
       .flatMap(([index, balances]) => {
-        const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+        const x1 = xScale(
+          new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+        )
         const x2 = xScale(
           index === transactions.length - 1
             ? currentDate.current
-            : new Date(transactions.at(index + 1)?.timestamp!)
+            : new Date(
+                transactions.at(index + 1)?.timestamp ?? currentDate.current
+              )
         )
         if (x2 < 0 && x1 >= chartWidth) {
           return []
@@ -318,11 +342,15 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       utxo: Utxo
     }[] = []
     Array.from(balanceHistory.entries()).forEach(([index, balances]) => {
-      const x1 = xScale(new Date(transactions.at(index)?.timestamp!))
+      const x1 = xScale(
+        new Date(transactions.at(index)?.timestamp ?? currentDate.current)
+      )
       const x2 = xScale(
         index === transactions.length - 1
           ? currentDate.current
-          : new Date(transactions.at(index + 1)?.timestamp!)
+          : new Date(
+              transactions.at(index + 1)?.timestamp ?? currentDate.current
+            )
       )
       if (x2 < 0 && x1 >= chartWidth) {
         return
@@ -361,47 +389,53 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     .minDistance(1)
     .maxPointers(1)
     .onStart(() => {
-      setPrevEndDate(endDate)
-      setPrevStartY(startY)
+      prevEndDate.current = endDate
+      prevStartY.current = startY
     })
     .onUpdate((event) => {
-      setEndDate(
-        new Date(
-          Math.max(
-            Math.min(
-              prevEndDate.getTime() -
-                ((timeOffset / scale) * event.translationX) / chartWidth,
-              new Date(currentDate.current).setDate(
-                new Date(currentDate.current).getDate() + 5
-              )
-            ),
-            new Date(transactions[0].timestamp!).getTime()
-          )
+      endDateRef.current = new Date(
+        Math.max(
+          Math.min(
+            prevEndDate.current.getTime() -
+              ((timeOffset / scale) * event.translationX) / chartWidth,
+            new Date(
+              currentDate.current.getTime() + timeOffset / scale
+            ).getTime()
+          ),
+          new Date(transactions[0].timestamp!).getTime()
         )
       )
+      setLocationState((prev) => ({ ...prev, endDate: endDateRef.current }))
       if (!lockZoomToXAxis) {
-        setStartY(
-          Math.max(
-            Math.min(
-              prevStartY +
-                (((maxBalance * 1.2) / scale) * event.translationY) /
-                  chartHeight,
-              maxBalance * 1.2 - (maxBalance * 1.2) / scale
-            ),
-            0
-          )
+        startYRef.current = Math.max(
+          Math.min(
+            prevStartY.current +
+              (((maxBalance * 1.2) / scale) * event.translationY) / chartHeight,
+            maxBalance * 1.2 - (maxBalance * 1.2) / scale
+          ),
+          0
         )
+        setStartY(startYRef.current)
       }
     })
     .onEnd(() => {
-      setPrevEndDate(endDate)
-      setPrevStartY(startY)
+      prevEndDate.current = endDate
+      prevStartY.current = startY
     })
     .runOnJS(true)
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
-      setScale(Math.max(prevScale.current * event.scale, 1))
+      const cScale = Math.max(prevScale.current * event.scale, 1)
+      const middleDate =
+        endDateRef.current.getTime() - timeOffset / scaleRef.current / 2
+      endDateRef.current = new Date(middleDate + timeOffset / cScale / 2)
+      scaleRef.current = cScale
+      setLocationState((prev) => ({
+        ...prev,
+        endDate: endDateRef.current,
+        scale: cScale
+      }))
     })
     .onEnd(() => {
       prevScale.current = scale
@@ -429,12 +463,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     .runOnJS(true)
 
   const pressGesture = Gesture.Tap()
-    .maxDuration(50)
+    .maxDuration(100)
     .onEnd((e, success) => {
       if (success) {
-        if (!showOutputField) {
-          return
-        }
         const locationX = e.x
         const locationY = e.y
         const x = locationX - margin.left
@@ -444,10 +475,21 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
             (value) =>
               x >= value.x1 && x <= value.x2 && y >= value.y2 && y <= value.y1
           )
-          if (tappedRect !== undefined) {
+          if (tappedRect !== undefined && showOutputField) {
             router.navigate(
               `/account/${id}/transaction/${tappedRect.utxo.txid}/utxo/${tappedRect.utxo.vout}`
             )
+            return
+          }
+          const tapLabelRect = labelRectRef.current.find(
+            ({ rect }) =>
+              x >= rect.left &&
+              x <= rect.right &&
+              y <= rect.bottom &&
+              y >= rect.top
+          )
+          if (tapLabelRect !== undefined && showTransactionInfo) {
+            router.navigate(`/account/${id}/transaction/${tapLabelRect.id}`)
           }
         }
       }
@@ -496,11 +538,7 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     setContainersize({ width, height })
   }, [])
 
-  const [txXBoundbox, setTxXBoundbox] = useState<{ [key: string]: Rectangle }>(
-    {}
-  )
-
-  const [txXAxisLabels, setTxXAxisLabels] = useState<
+  const txXAxisLabels = useMemo<
     {
       textColor: string
       x: number
@@ -510,37 +548,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       numberOfOutput: number
       numberOfInput: number
     }[]
-  >([])
-
-  const handleXAxisLayout = (
-    event: LayoutChangeEvent,
-    index: number,
-    x: number
-  ) => {
-    const rect: Rectangle = {
-      left: Math.round(x),
-      right: Math.round(x + event.nativeEvent.layout.width),
-      top: Math.round(chartHeight),
-      bottom: Math.round(chartHeight + event.nativeEvent.layout.height),
-      width: Math.round(event.nativeEvent.layout.width),
-      height: Math.round(event.nativeEvent.layout.height)
-    }
-    if (rect.height === 0) {
-      return
-    }
-    if (
-      txXBoundbox[index] !== undefined &&
-      txXBoundbox[index].width === rect.width &&
-      txXBoundbox[index].height === rect.height
-    ) {
-      return
-    }
-    setTxXBoundbox((prev) => ({ ...prev, [index]: rect }))
-  }
-
-  useEffect(() => {
+  >(() => {
     if (!showTransactionInfo) {
-      return
+      return []
     }
     const length = xScaleTransactions.length
     const xAxisLabels = xScaleTransactions.map((t) => {
@@ -565,24 +575,13 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
     })
     const boundaryBoxes: { [key: string]: Rectangle } = {}
     xAxisLabels.forEach((t) => {
-      if (txXBoundbox[t.index] === undefined) {
-        boundaryBoxes[t.index] = {
-          left: t.x,
-          right: t.x,
-          top: chartHeight,
-          bottom: chartHeight,
-          width: 0,
-          height: 0
-        }
-      } else {
-        boundaryBoxes[t.index] = {
-          left: t.x,
-          right: txXBoundbox[t.index].width! + t.x,
-          top: chartHeight,
-          bottom: chartHeight + txXBoundbox[t.index].height!,
-          width: txXBoundbox[t.index].width,
-          height: txXBoundbox[t.index].height
-        }
+      boundaryBoxes[t.index] = {
+        left: t.x,
+        right: 40 + t.x,
+        top: chartHeight,
+        bottom: chartHeight + 30,
+        width: 40,
+        height: 30
       }
     })
     const visible: { [key: string]: boolean } = {}
@@ -607,11 +606,11 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         textColor: visible[x.index] ? 'white' : 'transparent'
       }
     })
-    setTxXAxisLabels(result)
+    return result
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletAddresses, xScaleTransactions, txXBoundbox, xScale])
+  }, [walletAddresses, xScaleTransactions, xScale, showTransactionInfo])
 
-  const [txInfoLabels, setTxInfoLabels] = useState<
+  const txInfoLabels = useMemo<
     {
       x: number
       y: number
@@ -619,58 +618,13 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       amount?: number
       type: string
       boundBox?: Rectangle
+      index: string
+      id: string
     }[]
-  >([])
-
-  const [txInfoBoundBox, setTxInfoBoundBox] = useState<{
-    [key: string]: Rectangle
-  }>({})
-
-  const handleTxInfoLayout = (
-    event: LayoutChangeEvent,
-    index: number,
-    x: number,
-    y: number,
-    type: string
-  ) => {
-    const rect: Rectangle = {
-      left: Math.min(
-        Math.round(x),
-        Math.round(
-          x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
-        )
-      ),
-      right: Math.max(
-        Math.round(x),
-        Math.round(
-          x + (type === 'receive' ? -1 : 1) * event.nativeEvent.layout.width
-        )
-      ),
-      top: Math.min(
-        Math.round(y),
-        Math.round(y - event.nativeEvent.layout.height)
-      ),
-      bottom: Math.max(
-        Math.round(y),
-        Math.round(y - event.nativeEvent.layout.height)
-      ),
-      width: Math.round(event.nativeEvent.layout.width),
-      height: Math.round(event.nativeEvent.layout.height)
+  >(() => {
+    if (!showAmount && !showLabel) {
+      return []
     }
-    if (
-      txInfoBoundBox[index] !== undefined &&
-      txInfoBoundBox[index].width === rect.width &&
-      txInfoBoundBox[index].height === rect.height
-    ) {
-      return
-    }
-    setTxInfoBoundBox((prev) => ({
-      ...prev,
-      [index]: rect
-    }))
-  }
-
-  useEffect(() => {
     const initialLabels: {
       x: number
       y: number
@@ -678,405 +632,454 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
       amount?: number
       type: string
       boundBox?: Rectangle
+      index: string
+      id: string
     }[] = []
-    if (
-      validChartData.findIndex(
-        (d, index) => d.type !== 'end' && txInfoBoundBox[index] === undefined
-      ) !== -1
-    ) {
-      validChartData.forEach((d) => {
-        if (d.type === 'end') return
-        const x = xScale(d.date) + (d.type === 'receive' ? -5 : +5)
-        const y = yScale(d.balance) - 5
-        if (showLabel && d.memo) {
-          initialLabels.push({
-            x,
-            y: y + (showAmount ? -15 : 0),
-            memo: d.memo,
-            type: d.type
-          })
-        }
-        if (showAmount) {
-          initialLabels.push({
-            x,
-            y,
-            amount: d.amount,
-            type: d.type
-          })
-        }
-      })
-    } else {
-      validChartData.forEach((d, index) => {
-        if (d.type === 'end') return
-        const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
-        const y = Math.round(yScale(d.balance) - 5)
-        const width = Math.round(txInfoBoundBox[index].width!)
-        const height = Math.round(txInfoBoundBox[index].height!)
+
+    validChartData.forEach((d) => {
+      if (d.type === 'end') return
+      const x = Math.round(xScale(d.date) + (d.type === 'receive' ? -5 : +5))
+      const y = Math.round(yScale(d.balance) - 5)
+      if (showLabel && d.memo) {
+        const index = d.date.getTime().toString() + d.balance.toString() + 'L'
+        const width = 40
+        const height = 10
         const left = Math.round(d.type === 'receive' ? x - width : x)
         const right = Math.round(d.type === 'receive' ? x : x + width)
         const bottom = y
         const top = y - height
-        if (showLabel && d.memo) {
-          initialLabels.push({
-            x,
-            y: y + (showAmount ? -15 : 0),
-            memo: d.memo,
-            type: d.type,
-            boundBox: {
-              left,
-              right,
-              top: top + (showAmount ? -15 : 0),
-              bottom: bottom + (showAmount ? -15 : 0),
-              width,
-              height
-            }
-          })
-        }
-        if (showAmount) {
-          initialLabels.push({
-            x,
-            y,
-            amount: d.amount,
-            type: d.type,
-            boundBox: {
-              left,
-              right,
-              top,
-              bottom,
-              width,
-              height
-            }
-          })
-        }
-      })
-    }
+        initialLabels.push({
+          x,
+          y: y + (showAmount ? -15 : 0),
+          memo: d.memo,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top: top + (showAmount ? -15 : 0),
+            bottom: bottom + (showAmount ? -15 : 0),
+            width,
+            height
+          },
+          index,
+          id: d.id
+        })
+      }
+      if (showAmount) {
+        const index = d.date.getTime().toString() + d.balance.toString() + 'A'
+        const width = 40
+        const height = 10
+        const left = Math.round(d.type === 'receive' ? x - width : x)
+        const right = Math.round(d.type === 'receive' ? x : x + width)
+        const bottom = y
+        const top = y - height
+        initialLabels.push({
+          x,
+          y,
+          amount: d.amount,
+          type: d.type,
+          boundBox: {
+            left,
+            right,
+            top,
+            bottom,
+            width,
+            height
+          },
+          index,
+          id: d.id
+        })
+      }
+    })
     for (let i = 0; i < initialLabels.length - 1; i++) {
       const boundBoxA = initialLabels[i].boundBox
       for (let j = i + 1; j < initialLabels.length; j++) {
         const boundBoxB = initialLabels[j].boundBox
         if (boundBoxA !== undefined && boundBoxB !== undefined) {
           if (isOverlapping(boundBoxA!, boundBoxB!)) {
-            initialLabels[j].y -= 20
-            initialLabels[j].boundBox!.top -= 20
-            initialLabels[j].boundBox!.bottom -= 20
+            initialLabels[j].y -= 30
+            initialLabels[j].boundBox!.top -= 30
+            initialLabels[j].boundBox!.bottom -= 30
           }
         }
       }
     }
-    setTxInfoLabels(initialLabels)
-  }, [showAmount, showLabel, txInfoBoundBox, validChartData, xScale, yScale])
+    return initialLabels
+  }, [showAmount, showLabel, validChartData, xScale, yScale])
+
+  const customFontManager = useFonts({
+    'SF Pro Text': [
+      require('@/assets/fonts/SF-Pro-Text-Light.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Regular.otf'),
+      require('@/assets/fonts/SF-Pro-Text-Medium.otf')
+    ]
+  })
+  const fontStyle = {
+    fontFamily: 'SF Pro Text',
+    fontSize: 10
+  } as const
+
+  let previousDate: string = ''
+
+  function YScaleRendrer() {
+    if (!customFontManager) {
+      return null
+    }
+    const font = matchFont(fontStyle, customFontManager)
+    return yScale.ticks(4).map((tick) => {
+      const yPosition = yScale(tick)
+      return (
+        yPosition <= chartHeight && (
+          <Fragment key={tick.toString()}>
+            <Line
+              p1={vec(0, yPosition)}
+              p2={vec(chartWidth, yPosition)}
+              color="#FFFFFF29"
+              style="stroke"
+              strokeWidth={1}
+            >
+              <DashPathEffect intervals={[2, 2]} phase={0} />
+            </Line>
+            <Text
+              x={-30}
+              y={yPosition + 6}
+              text={yAxisFormatter(tick)}
+              font={font}
+              color="white"
+            />
+          </Fragment>
+        )
+      )
+    })
+  }
+
+  function XScaleRenderer() {
+    if (!customFontManager) {
+      return null
+    }
+    const font = matchFont(fontStyle, customFontManager)
+    return (
+      showTransactionInfo &&
+      !!txXAxisLabels?.length &&
+      txXAxisLabels.map((t, index) => {
+        const x = t.x
+        return (
+          <Fragment key={t.x + index.toString()}>
+            <Group>
+              <Line
+                p1={vec(x, 0)}
+                p2={vec(x, chartHeight)}
+                color="#FFFFFF29"
+                style="stroke"
+              >
+                <DashPathEffect intervals={[2, 2]} phase={0} />
+              </Line>
+              <Text
+                x={x}
+                y={chartHeight + 10}
+                text={`TX ${t.index}`}
+                font={font}
+                color={t.textColor}
+              />
+              <Text
+                x={x}
+                y={chartHeight + 20}
+                text={t.amountString}
+                font={font}
+                color={t.textColor}
+              />
+              {t.type === 'receive' && (
+                <Text
+                  x={x}
+                  y={chartHeight + 30}
+                  text={`${t.numberOfOutput} Output`}
+                  font={font}
+                  color={t.textColor}
+                />
+              )}
+              {t.type === 'send' && (
+                <>
+                  <Text
+                    x={x}
+                    y={chartHeight + 30}
+                    text={`${t.numberOfInput} Input`}
+                    font={font}
+                    color={t.textColor}
+                  />
+                  <Text
+                    x={x}
+                    y={chartHeight + 40}
+                    text="+ change"
+                    font={font}
+                    color={t.textColor}
+                  />
+                </>
+              )}
+            </Group>
+          </Fragment>
+        )
+      })
+    )
+  }
+
+  function XAxisRenderer() {
+    if (!customFontManager) {
+      return null
+    }
+    const font = matchFont(fontStyle, customFontManager)
+    return xScale.ticks(3).map((tick) => {
+      const currentDate = d3.timeFormat('%b %d')(tick)
+      const displayTime = previousDate === currentDate
+      previousDate = currentDate
+      const x = xScale(tick)
+      return (
+        <Group key={tick.getTime().toString()}>
+          <Text
+            x={x}
+            y={chartHeight + (showTransactionInfo ? 50 : 20)}
+            text={
+              displayTime ? d3.timeFormat('%b %d %H:%M')(tick) : currentDate
+            }
+            font={font}
+            color="#777777"
+          />
+        </Group>
+      )
+    })
+  }
+
+  function AreaPathRenderer() {
+    const path = useMemo(() => {
+      if (areaPath === null) {
+        return null
+      }
+      return Skia.Path.MakeFromSVGString(areaPath)
+    }, [])
+
+    if (path === null) {
+      return null
+    }
+    const bounds = path.getBounds()
+    const gradientStart = vec(0, bounds.y)
+    const gradientEnd = vec(0, bounds.height + bounds.y)
+    const paint = Skia.Paint()
+    paint.setShader(
+      Skia.Shader.MakeLinearGradient(
+        gradientStart,
+        gradientEnd,
+        [Skia.Color('#FFFFFF88'), Skia.Color('#FFFFFF33')],
+        [0, 1],
+        TileMode.Clamp
+      )
+    )
+    return <Path path={path} paint={paint} />
+  }
+
+  function UtxoRectRenderer() {
+    return (
+      showOutputField &&
+      utxoRectangleData.map((data, index) => {
+        return (
+          <Fragment key={getUtxoOutpoint(data.utxo) + index}>
+            <Rect
+              x={data.x1}
+              y={data.y1}
+              width={data.x2 - data.x1}
+              height={data.y2 - data.y1}
+              style="fill"
+              strokeWidth={0.5}
+            >
+              <LinearGradient
+                start={vec(0, data.y2)}
+                end={vec(0, data.y1)}
+                colors={['#FFFFFF99', '#FFFFFF55']}
+              />
+            </Rect>
+            {(data.gradientType === -1 || data.gradientType === 2) && (
+              <Rect
+                x={data.x1}
+                y={data.y1}
+                width={data.x2 - data.x1}
+                height={data.y2 - data.y1}
+                style="fill"
+                strokeWidth={0.5}
+              >
+                <LinearGradient
+                  start={vec(data.x1, data.y1)}
+                  end={vec(data.x2, data.y1)}
+                  colors={['#FFFFFF55', '#FFFFFF00', '#FFFFFF00']}
+                  positions={[0, 0.3, 1]}
+                />
+              </Rect>
+            )}
+            {(data.gradientType === 1 || data.gradientType === 2) && (
+              <Rect
+                x={data.x1}
+                y={data.y1}
+                width={data.x2 - data.x1}
+                height={data.y2 - data.y1}
+                style="fill"
+                strokeWidth={0.5}
+              >
+                <LinearGradient
+                  start={vec(data.x1, data.y1)}
+                  end={vec(data.x2, data.y1)}
+                  colors={['#00000000', '#00000000', '#00000055']}
+                  positions={[0, 0.7, 1]}
+                />
+              </Rect>
+            )}
+          </Fragment>
+        )
+      })
+    )
+  }
+
+  function UtxoLabelRenderer() {
+    if (!customFontManager) {
+      return null
+    }
+    const font = matchFont(fontStyle, customFontManager)
+    return (
+      showOutputField &&
+      utxoLabels.map((data, index) => {
+        if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
+          return (
+            <Text
+              key={getUtxoOutpoint(data.utxo) + index}
+              x={data.x1 + 2}
+              y={data.y2 + 10}
+              text={
+                data.utxo.txid.slice(0, 3) +
+                '...' +
+                data.utxo.txid.slice(-3) +
+                ':' +
+                data.utxo.vout
+              }
+              font={font}
+              color="white"
+            />
+          )
+        } else {
+          return null
+        }
+      })
+    )
+  }
+
+  function TransactionInfoRenderer() {
+    if (!customFontManager) {
+      return null
+    }
+    const font = matchFont(fontStyle, customFontManager)
+    labelRectRef.current = []
+    return txInfoLabels.map((label, index) => {
+      if (label.type === 'end') {
+        return null
+      }
+      const text =
+        (showLabel && label.memo!) ||
+        (showAmount && numberCommaFormatter(label.amount!)) ||
+        ''
+      const textWidth = font.measureText(text).width
+      labelRectRef.current.push({
+        rect: {
+          left: label.type === 'receive' ? label.x - textWidth : label.x,
+          right: label.type === 'receive' ? label.x : label.x + textWidth,
+          bottom: label.y,
+          top: label.y - 10
+        },
+        id: label.id
+      })
+      return (
+        <Fragment key={index}>
+          <Text
+            x={label.type === 'receive' ? label.x - textWidth : label.x}
+            y={label.y}
+            text={text}
+            font={font}
+            color={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
+          />
+        </Fragment>
+      )
+    })
+  }
+
+  function CursorRenderer() {
+    if (!customFontManager) {
+      return null
+    }
+    const font = matchFont(fontStyle, customFontManager)
+    return (
+      cursorX !== undefined && (
+        <Group>
+          <Line
+            p1={vec(xScale(cursorX), 20)}
+            p2={vec(xScale(cursorX), chartHeight)}
+            color="white"
+            style="stroke"
+          >
+            <DashPathEffect intervals={[10, 2]} phase={0} />
+          </Line>
+          <Text
+            x={xScale(cursorX)}
+            y={10}
+            text={cursorFormatter(cursorY ?? 0)}
+            font={font}
+            color="white"
+          />
+        </Group>
+      )
+    )
+  }
+
+  const clipPathRect = rect(0, 0, chartWidth, chartHeight)
 
   if (!containerSize.width || !containerSize.height) {
     return <View onLayout={handleLayout} style={styles.container} />
   }
 
-  let previousDate: string = ''
-
   return (
-    <View style={{ flex: 1 }}>
-      <GestureDetector gesture={combinedGesture}>
-        <View style={styles.container} onLayout={handleLayout}>
-          <Svg
-            width={containerSize.width}
-            height={containerSize.height}
-            pointerEvents="box-none"
+    <GestureDetector gesture={combinedGesture}>
+      <View style={styles.container} onLayout={handleLayout}>
+        <Canvas
+          style={{
+            width: containerSize.width,
+            height: containerSize.height,
+            flex: 1
+          }}
+          pointerEvents="box-none"
+        >
+          <Group
+            transform={[
+              { translateX: margin.left },
+              { translateY: margin.top }
+            ]}
           >
-            <G x={margin.left} y={margin.top}>
-              {yScale.ticks(4).map(
-                (tick) =>
-                  yScale(tick) <= chartHeight && (
-                    <G
-                      key={tick.toString()}
-                      transform={`translate(0, ${yScale(tick)})`}
-                    >
-                      <Line
-                        x1={0}
-                        x2={chartWidth}
-                        y1={0}
-                        y2={0}
-                        stroke="#FFFFFF29"
-                        strokeDasharray="2 2"
-                      />
-                      <SvgText
-                        x={-10}
-                        y={0}
-                        textAnchor="end"
-                        fontSize={10}
-                        fill="white"
-                      >
-                        {yAxisFormatter(tick)}
-                      </SvgText>
-                    </G>
-                  )
+            <YScaleRendrer />
+            <XScaleRenderer />
+            <XAxisRenderer />
+            <Group clip={clipPathRect}>
+              {showOutputField && (
+                <>
+                  <UtxoRectRenderer />
+                  <UtxoLabelRenderer />
+                </>
               )}
-              {showTransactionInfo &&
-                !!txXAxisLabels?.length &&
-                txXAxisLabels.map((t, index) => {
-                  return (
-                    <Fragment key={t.x + index.toString()}>
-                      <G
-                        transform={`translate(${t.x}, 0)`}
-                        onLayout={(e) => handleXAxisLayout(e, t.index, t.x)}
-                      >
-                        <Line
-                          x1={0}
-                          x2={0}
-                          y1={0}
-                          y2={chartHeight}
-                          stroke="#FFFFFF29"
-                          strokeDasharray="2 2"
-                        />
-                        <SvgText
-                          x={0}
-                          y={chartHeight + 10}
-                          textAnchor="start"
-                          fontSize={10}
-                          fill={t.textColor}
-                        >
-                          <TSpan x={0} dy={0}>
-                            TX&nbsp;{t.index}
-                          </TSpan>
-                          <TSpan x={0} dy={10}>
-                            {t.amountString}
-                          </TSpan>
-                          {t.type === 'receive' && (
-                            <TSpan x={0} dy={10}>
-                              {t.numberOfOutput} Output
-                            </TSpan>
-                          )}
-                          {t.type === 'send' && (
-                            <>
-                              <TSpan x={0} dy={10}>
-                                {t.numberOfInput} Input
-                              </TSpan>
-                              <TSpan x={0} dy={10}>
-                                + change
-                              </TSpan>
-                            </>
-                          )}
-                        </SvgText>
-                      </G>
-                    </Fragment>
-                  )
-                })}
-              {xScale.ticks(3).map((tick) => {
-                const currentDate = d3.timeFormat('%b %d')(tick)
-                const displayTime = previousDate === currentDate
-                previousDate = currentDate
-                return (
-                  <G
-                    key={tick.getTime().toString()}
-                    transform={`translate(${xScale(tick)}, 0)`}
-                  >
-                    <SvgText
-                      x={0}
-                      y={chartHeight + (showTransactionInfo ? 50 : 20)}
-                      dy=".71em"
-                      fontSize={10}
-                      fill="#777777"
-                      textAnchor="middle"
-                    >
-                      {displayTime
-                        ? d3.timeFormat('%b %d %H:%M')(tick)
-                        : currentDate}
-                    </SvgText>
-                  </G>
-                )
-              })}
-              <Defs>
-                <LinearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="white" stopOpacity="0.5" />
-                  <Stop offset="100%" stopColor="white" stopOpacity="0.3" />
-                </LinearGradient>
-                <LinearGradient id="gradientBlack" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0%" stopColor="transparent" stopOpacity="0.0" />
-                  <Stop
-                    offset="70%"
-                    stopColor="transparent"
-                    stopOpacity="0.0"
-                  />
-                  <Stop offset="70%" stopColor="white" stopOpacity="0.0" />
-                  <Stop offset="100%" stopColor="black" stopOpacity="0.6" />
-                </LinearGradient>
-                <LinearGradient id="gradientWhite" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0%" stopColor="white" stopOpacity="0.6" />
-                  <Stop offset="30%" stopColor="white" stopOpacity="0.0" />
-                  <Stop
-                    offset="30%"
-                    stopColor="transparent"
-                    stopOpacity="0.0"
-                  />
-                  <Stop
-                    offset="100%"
-                    stopColor="transparent"
-                    stopOpacity="0.0"
-                  />
-                </LinearGradient>
-                <LinearGradient id="gradientBoth" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0%" stopColor="white" stopOpacity="0.6" />
-                  <Stop offset="30%" stopColor="white" stopOpacity="0.0" />
-                  <Stop
-                    offset="30%"
-                    stopColor="transparent"
-                    stopOpacity="0.0"
-                  />
-                  <Stop
-                    offset="70%"
-                    stopColor="transparent"
-                    stopOpacity="0.0"
-                  />
-                  <Stop offset="70%" stopColor="white" stopOpacity="0.0" />
-                  <Stop offset="100%" stopColor="black" stopOpacity="0.6" />
-                </LinearGradient>
-                <ClipPath id="clip">
-                  <Rect x="0" y="0" width={chartWidth} height={chartHeight} />
-                </ClipPath>
-              </Defs>
-              <G clipPath="url(#clip)" pointerEvents="box-none">
-                {showOutputField &&
-                  utxoRectangleData.map((data, index) => {
-                    return (
-                      <Fragment key={getUtxoOutpoint(data.utxo) + index}>
-                        <Rect
-                          x={data.x1}
-                          y={data.y1}
-                          width={data.x2 - data.x1}
-                          height={data.y2 - data.y1}
-                          fill="url(#gradient)"
-                          stroke="gray"
-                          strokeOpacity={0.8}
-                          strokeWidth={0.5}
-                          pointerEvents="none"
-                        />
-                        {data.gradientType !== 0 && (
-                          <>
-                            <Defs>
-                              <Mask id={getUtxoOutpoint(data.utxo) + index}>
-                                <Rect
-                                  x={data.x1}
-                                  y={data.y1}
-                                  width={data.x2 - data.x1}
-                                  height={data.y2 - data.y1}
-                                  fill={`url(#${data.gradientType === 1 ? 'gradientBlack' : data.gradientType === 2 ? 'gradientBoth' : 'gradientWhite'})`}
-                                />
-                              </Mask>
-                            </Defs>
-                            <Rect
-                              key={getUtxoOutpoint(data.utxo) + index + '-mask'}
-                              x={data.x1}
-                              y={data.y1}
-                              width={data.x2 - data.x1}
-                              height={data.y2 - data.y1}
-                              fill={`url(#${data.gradientType === 1 ? 'gradientBlack' : data.gradientType === 2 ? 'gradientBoth' : 'gradientWhite'})`}
-                              pointerEvents="none"
-                            />
-                          </>
-                        )}
-                      </Fragment>
-                    )
-                  })}
-                {showOutputField &&
-                  utxoLabels.map((data, index) => {
-                    if (data.x2 - data.x1 >= 50 && data.y1 - data.y2 >= 10) {
-                      return (
-                        <SvgText
-                          key={getUtxoOutpoint(data.utxo) + index}
-                          x={data.x1 + 2}
-                          y={data.y2 + 10}
-                          fontSize={10}
-                          fill="white"
-                        >
-                          {data.utxo.txid.slice(0, 3) +
-                            '...' +
-                            data.utxo.txid.slice(-3) +
-                            ':' +
-                            data.utxo.vout}
-                        </SvgText>
-                      )
-                    } else {
-                      return null
-                    }
-                  })}
-                {txInfoLabels.map((label, index) => {
-                  if (label.type === 'end') {
-                    return null
-                  }
-                  return (
-                    <Fragment key={index}>
-                      <SvgText
-                        key={index}
-                        x={
-                          label.boundBox === undefined
-                            ? label.x
-                            : label.boundBox.left
-                        }
-                        y={
-                          label.boundBox === undefined
-                            ? label.y
-                            : label.boundBox.bottom
-                        }
-                        textAnchor={
-                          label.type === 'receive' &&
-                          label.boundBox === undefined
-                            ? 'end'
-                            : 'start'
-                        }
-                        fontSize={10}
-                        fill={label.type === 'receive' ? '#A7FFAF' : '#FF7171'}
-                        onLayout={(e) =>
-                          handleTxInfoLayout(
-                            e,
-                            index,
-                            label.x,
-                            label.y,
-                            label.type
-                          )
-                        }
-                      >
-                        {(showLabel && label.memo!) ||
-                          (showAmount && numberCommaFormatter(label.amount!)) ||
-                          ''}
-                      </SvgText>
-                    </Fragment>
-                  )
-                })}
-                <Path
-                  d={linePath ?? ''}
-                  fill="none"
-                  stroke="white"
-                  strokeWidth={2}
-                  pointerEvents="none"
-                />
-                {!showOutputField && (
-                  <Path d={areaPath ?? ''} fill="url(#gradient)" />
-                )}
-                {cursorX !== undefined && (
-                  <G>
-                    <Line
-                      x1={xScale(cursorX)}
-                      x2={xScale(cursorX)}
-                      y1={20}
-                      y2={chartHeight}
-                      stroke="white"
-                      strokeDasharray="10 2"
-                    />
-                    <SvgText
-                      x={xScale(cursorX)}
-                      y={10}
-                      textAnchor="middle"
-                      fontSize={12}
-                      fill="white"
-                    >
-                      {cursorFormatter(cursorY ?? 0)}
-                    </SvgText>
-                  </G>
-                )}
-              </G>
-            </G>
-          </Svg>
-        </View>
-      </GestureDetector>
-    </View>
+              <TransactionInfoRenderer />
+              <Path
+                path={linePath ?? ''}
+                color="white"
+                strokeWidth={2}
+                style="stroke"
+              />
+              {!showOutputField && <AreaPathRenderer />}
+              <CursorRenderer />
+            </Group>
+          </Group>
+        </Canvas>
+      </View>
+    </GestureDetector>
   )
 }
 
