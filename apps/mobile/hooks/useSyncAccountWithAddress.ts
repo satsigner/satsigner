@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
-import { Esplora } from '@/api/esplora'
+import Esplora from '@/api/esplora'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Account } from '@/types/models/Account'
