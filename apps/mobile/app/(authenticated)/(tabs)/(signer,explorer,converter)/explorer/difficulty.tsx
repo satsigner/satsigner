@@ -144,6 +144,8 @@ function ExplorerDifficulty() {
           maxBlocksPerSpiral={BLOCKS_PER_EPOCH}
           canvasWidth={CANVAS_WIDTH}
           canvasHeight={CANVAS_HEIGHT}
+          {/* TODO: display block details in modal popup */}
+          onBlockPress={(block) => console.log(block)}
         />
       </View>
       <SSVStack gap="none">
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   canvasContainer: {
-    marginTop: 120,
+    marginTop: 140,
     flex: 1
   },
   mainContainer: {

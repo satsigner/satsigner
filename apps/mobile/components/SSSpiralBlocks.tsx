@@ -5,22 +5,22 @@ import {
   Paint,
   Paragraph,
   Path,
-  Rect,
   Skia,
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
-import { useEffect, useMemo, useState } from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useMemo } from 'react'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
 
 type SSSpiralBlocksProps = {
-  data: any[]
+  data: BlockDifficulty[]
   loading: boolean
   maxBlocksPerSpiral: number
+  onBlockPress: (block: BlockDifficulty) => void
   canvasWidth: number
   canvasHeight: number
 }
@@ -35,56 +35,13 @@ const MIN_BRIGHTNESS = 20
 const MAX_BRIGHTNESS_SIZE = 5000
 
 function SSSpiralBlocks({
+  onBlockPress,
   canvasWidth,
   canvasHeight,
   maxBlocksPerSpiral,
   data,
   loading
 }: SSSpiralBlocksProps) {
-  const [_pressedBlocks, setPressedBlocks] = useState<{
-    [key: number]: boolean
-  }>({})
-
-  const handlePressIn = (index: number) => {
-    setPressedBlocks((prevState) => ({
-      ...prevState,
-      [index]: true
-    }))
-  }
-  const handlePressOut = (index: number) => {
-    setPressedBlocks((prevState) => ({
-      ...prevState,
-      [index]: false
-    }))
-  }
-
-  const handleBlockPress = (index: number) => {
-    const block = spiralBlocks[index]
-    const height = block?.height || 675
-
-    if (!height) {
-      throw new Error('Block height not found, using fallback height of 675')
-    }
-
-    // TODO: add esplorerViews route
-    // router.push({
-    //   pathname: 'explorer/explorerViews',
-    //   params: { view: 'block', height }
-    // } as any)
-  }
-
-  // State for the overlay view when a block is clicked.
-  // It stores the block index and the current file index.
-  const [selectedBlock, setSelectedBlock] = useState<{
-    blockIndex: number
-    fileIndex: number
-  } | null>(null)
-
-  // State to store fetched block details from the API
-  const [blockDetails, setBlockDetails] = useState<any>(null)
-  // State to track loading status for block details
-  const [loadingBlockDetails, setLoadingBlockDetails] = useState(false)
-
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
@@ -163,6 +120,7 @@ function SSSpiralBlocks({
       blocks.push({
         x,
         y,
+        index: i,
         rotation: phi_spiral,
         color: `rgb(${brightness},${brightness},${brightness})`,
         timeDifference,
@@ -171,38 +129,6 @@ function SSSpiralBlocks({
     }
     return blocks
   }, [loading, data]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const fetchBlockDetails = async () => {
-      if (selectedBlock === null) return
-
-      const block = spiralBlocks[selectedBlock.blockIndex]
-      if (!block || !block.height) {
-        throw new Error('Height not found for selected block')
-      }
-
-      const urlHeight = `https://mempool.space/api/block-height/${block.height}`
-      setLoadingBlockDetails(true)
-      setBlockDetails(null)
-
-      try {
-        const resHeight = await fetch(urlHeight)
-        const hash = await resHeight.text()
-
-        const urlBlock = `https://mempool.space/api/block/${hash}`
-        const resBlock = await fetch(urlBlock)
-        const data = await resBlock.json()
-
-        setBlockDetails(data)
-      } catch (error) {
-        throw new Error('Error fetching block details:' + error)
-      } finally {
-        setLoadingBlockDetails(false)
-      }
-    }
-
-    fetchBlockDetails()
-  }, [selectedBlock, spiralBlocks])
 
   // If still loading data, show a loading spinner (an outlined circle)
   if (loading) {
@@ -292,7 +218,13 @@ function SSSpiralBlocks({
 
       {/* Overlay for touchable areas to detect block clicks */}
       <Animated.View
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }}
       >
         {spiralBlocks.map((block, index) => (
           <TouchableOpacity
@@ -307,42 +239,13 @@ function SSSpiralBlocks({
               borderRadius: 25,
               backgroundColor: 'rgba(255, 255, 255, 0)'
             }}
-            onPress={() => handleBlockPress(index)}
-            onPressIn={() => handlePressIn(index)}
-            onPressOut={() => handlePressOut(index)}
+            onPress={() => {
+              console.log('pressed...', block)
+              onBlockPress(data[block.index])
+            }}
           />
         ))}
       </Animated.View>
-
-      {selectedBlock && (
-        <View style={styles.overlay}>
-          {loadingBlockDetails ? (
-            <Text style={styles.overlayText}>Loading block details...</Text>
-          ) : (
-            <>
-              <Canvas style={styles.overlayCanvas}>
-                <Rect x={50} y={50} width={100} height={100} color="white" />
-              </Canvas>
-              <Text style={styles.overlayText}>
-                Block ID: {blockDetails?.id}
-                {'\n'}
-                Height: {blockDetails?.height}
-                {'\n'}
-                Difficulty: {blockDetails?.difficulty}
-              </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => {
-                  setSelectedBlock(null)
-                  setBlockDetails(null)
-                }}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
     </View>
   )
 }
@@ -387,7 +290,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000'
   },
   canvas: {
-    // position: 'absolute',
+    position: 'absolute',
     backgroundColor: '#000'
   },
   closeButton: {
@@ -401,7 +304,7 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   overlay: {
-    // position: 'absolute',
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
