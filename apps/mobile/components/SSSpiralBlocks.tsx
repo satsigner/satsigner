@@ -11,12 +11,7 @@ import {
   useFonts
 } from '@shopify/react-native-skia'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 
 import { Colors } from '@/styles'
@@ -392,8 +387,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000'
   },
   canvas: {
-    backgroundColor: '#000',
-    position: 'absolute'
+    // position: 'absolute',
+    backgroundColor: '#000'
   },
   closeButton: {
     paddingHorizontal: 20,
@@ -406,7 +401,7 @@ const styles = StyleSheet.create({
     fontSize: 14
   },
   overlay: {
-    position: 'absolute',
+    // position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
