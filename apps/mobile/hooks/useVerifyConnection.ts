@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient from '@/api/electrum'
-import { Esplora } from '@/api/esplora'
+import Esplora from '@/api/esplora'
 import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
@@ -36,27 +36,11 @@ function useVerifyConnection() {
       return
     }
     try {
-      if (backend === 'electrum') {
-        const result = await ElectrumClient.test(url, network, timeout)
-        setConnectionState(result)
-      } else if (backend === 'esplora') {
-        const timeoutPromise = new Promise((resolve, reject) =>
-          setTimeout(() => {
-            reject(new Error('timeout'))
-          }, timeout)
-        )
-        const esploraClient = new Esplora(url)
-        const fetchPromise = esploraClient.getLatestBlockHeight()
-        Promise.race([timeoutPromise, fetchPromise])
-          .then((result) => {
-            if (result) {
-              setConnectionState(true)
-            } else {
-              setConnectionState(false)
-            }
-          })
-          .catch(() => {})
-      }
+      const result =
+        backend === 'electrum'
+          ? await ElectrumClient.test(url, network, timeout)
+          : await Esplora.test(url, timeout)
+      setConnectionState(result)
     } catch {
       setConnectionState(false)
     }
