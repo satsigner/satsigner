@@ -144,7 +144,6 @@ function ExplorerDifficulty() {
           maxBlocksPerSpiral={BLOCKS_PER_EPOCH}
           canvasWidth={CANVAS_WIDTH}
           canvasHeight={CANVAS_HEIGHT}
-          {/* TODO: display block details in modal popup */}
           onBlockPress={(block) => console.log(block)}
         />
       </View>
