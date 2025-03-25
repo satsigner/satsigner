@@ -11,7 +11,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
+import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useWalletsStore } from '@/store/wallets'
 import { Layout } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
 
@@ -38,6 +40,8 @@ export default function Unlock() {
       state.setJustUnlocked
     ])
   )
+  const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
+  const deleteWallets = useWalletsStore((state) => state.deleteWallets)
   const { shake, shakeStyle } = useAnimatedShake()
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
@@ -76,7 +80,8 @@ export default function Unlock() {
 
       const triesLeft = incrementPinTries()
       if (triesLeft === 0) {
-        // TODO: Delete accounts?
+        deleteAccounts()
+        deleteWallets()
         setFirstTime(true)
         setRequiresAuth(false)
         setLockTriggered(false)
