@@ -1,21 +1,19 @@
 import { useRouter } from 'expo-router'
-import { View, Text, StyleSheet } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
+
 import SSButton from '@/components/SSButton'
 
-export default function ExplorerLanding() {
+function ExplorerIndex() {
   const router = useRouter()
 
-  console.log('helllooo')
   const navigateToExplorerView = (view: string) => {
-    console.log('this is view', view)
-    // router.push({ pathname: `/explorer/${view}` } as any)
+    router.push({ pathname: `/explorer/${view}` } as any)
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>SATS SIGNER</Text>
       <Text style={styles.title}>EXPLORER</Text>
-
       <SSButton
         label="CHAINTIP"
         variant="ghost"
@@ -79,3 +77,5 @@ const styles = StyleSheet.create({
     marginVertical: 5
   }
 })
+
+export default ExplorerIndex

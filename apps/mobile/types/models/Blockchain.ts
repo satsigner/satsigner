@@ -59,6 +59,18 @@ export type Block = {
   previousblockhash: string
 }
 
+export type BlockDifficulty = {
+  height: number
+  timestamp: number
+  txCount: number
+  chainWork: string
+  nonce: number
+  size: number
+  weight: number
+  cycleHeight: number
+  timeDifference: number
+}
+
 export enum TxPriority {
   none = 'none',
   low = 'low',
@@ -138,11 +150,16 @@ export type MemPoolBlock = {
 }
 
 export type DifficultyAdjustment = {
+  adjustedTimeAvg: number
   difficultyChange: number
+  estimatedRetargetDate: number
+  nextRetargetHeight: number
+  previousRetarget: number
   progressPercent: number
   remainingBlocks: number
   remainingTime: number
-  nextRetargetHeight: number
+  timeAvg: number
+  timeOffset: number
 }
 
 export type HashRateInfo = {
