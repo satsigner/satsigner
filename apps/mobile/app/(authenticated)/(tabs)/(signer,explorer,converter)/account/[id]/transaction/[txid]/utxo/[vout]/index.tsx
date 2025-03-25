@@ -155,11 +155,12 @@ function UtxoDetailsPage() {
   ])
 
   function navigateToTx() {
+    if (!accountId) return
     router.navigate(`/account/${accountId}/transaction/${txid}`)
   }
 
   function navigateToAddress() {
-    if (!utxo || !utxo.addressTo) return
+    if (!accountId || !utxo || !utxo.addressTo) return
     router.navigate(`/account/${accountId}/address/${utxo.addressTo}`)
   }
 
@@ -172,7 +173,7 @@ function UtxoDetailsPage() {
       />
       <View style={styles.outerContainer}>
         <UtxoDetails
-          accountId={accountId}
+          accountId={accountId || ''}
           onPressAddress={navigateToAddress}
           onPressTx={navigateToTx}
           tx={tx}
