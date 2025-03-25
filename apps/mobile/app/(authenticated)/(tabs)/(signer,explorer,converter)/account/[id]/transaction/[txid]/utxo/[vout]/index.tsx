@@ -160,7 +160,7 @@ function UtxoDetailsPage() {
 
   function navigateToAddress() {
     if (!utxo || !utxo.addressTo) return
-    router.navigate(`/account/${accountId}/addresses/${utxo.addressTo}`)
+    router.navigate(`/account/${accountId}/address/${utxo.addressTo}`)
   }
 
   return (
