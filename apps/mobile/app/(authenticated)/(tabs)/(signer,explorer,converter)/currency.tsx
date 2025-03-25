@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router'
+import { Stack, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -33,7 +33,11 @@ export default function Converter() {
     useShallow((state) => [state.prices, state.fetchPrices])
   )
 
-  fetchPrices()
+  useFocusEffect(
+    useCallback(() => {
+      fetchPrices()
+    }, [fetchPrices])
+  )
 
   return (
     <>

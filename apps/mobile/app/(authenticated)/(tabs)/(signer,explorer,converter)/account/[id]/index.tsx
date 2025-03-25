@@ -409,7 +409,6 @@ function DerivedAddresses({
           />
         </SSHStack>
       </SSHStack>
-
       <SSHStack
         gap="md"
         justifyBetween
@@ -429,7 +428,6 @@ function DerivedAddresses({
           </SSHStack>
         ))}
       </SSHStack>
-
       <ScrollView style={{ marginTop: 10 }}>
         <ScrollView horizontal>
           <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
@@ -483,7 +481,6 @@ function DerivedAddresses({
                 {t('address.list.table.utxo')}
               </SSText>
             </SSHStack>
-
             <FlashList
               data={addresses?.filter((address) =>
                 change
