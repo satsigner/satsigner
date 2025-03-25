@@ -25,11 +25,11 @@ type SSSpiralBlocksProps = {
   canvasHeight: number
 }
 
-const FACTOR_BLOCK_DISTANCE = 0.04
+const FACTOR_BLOCK_DISTANCE = 0.055
 const RADIUS_SPIRAL_START = 1
-const FACTOR_SPIRAL_GROWTH = 0.8
-const BLOCK_SIZE = 3
-const RADIUS_WEEKS = [110, 160, 220, 270]
+const FACTOR_SPIRAL_GROWTH = 0.97
+const BLOCK_SIZE = 5
+const RADIUS_WEEKS = [180, 250, 320, 451]
 const CANVAS_TOP_OFFSET = 140
 const MIN_BRIGHTNESS = 20
 const MAX_BRIGHTNESS_SIZE = 5000
@@ -210,18 +210,18 @@ function SSSpiralBlocks({
           )
         })}
 
-        <Paragraph paragraph={pWeek1} x={0} y={220} width={canvasWidth} />
-        <Paragraph paragraph={pWeek2} x={0} y={170} width={canvasWidth} />
-        <Paragraph paragraph={pWeek3} x={0} y={110} width={canvasWidth} />
-        <Paragraph paragraph={pWeek4} x={0} y={60} width={canvasWidth} />
+        <Paragraph paragraph={pWeek1} x={0} y={135} width={canvasWidth} />
+        <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
+        <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
+        <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
       </Canvas>
 
       {/* Overlay for touchable areas to detect block clicks */}
       <Animated.View
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
+          top: -228,
+          left: 186,
           right: 0,
           bottom: 0
         }}
