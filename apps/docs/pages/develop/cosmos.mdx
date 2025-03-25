@@ -1,0 +1,93 @@
+# Cosmos
+
+[Comos](https://github.com/react-cosmos/react-cosmos) is a tool for developing
+and testing UI components and pages in isolation.
+
+## How it works
+
+Cosmos has a WebUI and a CosmosApp.
+
+The WebUI allows you to select a fixture file to render on your device
+(physical or emulator). By default it runs on `http://localshot:5000`
+
+The CosmosApp is the root component which renders the selected fixture,
+allowing you to interact with your UI and see live changes as you code.
+
+## Fixtures
+
+A fixture is a standard `tsx` component file with a `.fixture` prefixed to
+the file extension. The file name of the fixture **must** follow the template
+`MyComponent.fixture.tsx`.
+
+This is a sample fixture for the `SSText` component:
+
+```typescriptreact
+import { StyleSheet, View } from 'react-native'
+
+import SSText from './SSText'
+
+function SSTextFixture() {
+  return (
+    <View style={styles.container}>
+      <SSText size="xl" center uppercase>
+        Hello World!
+      </SSText>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    gap:5,
+    justifyContent: 'center',
+    backgroundColor: '#000'
+  }
+})
+
+export default SSTextFixture
+```
+
+You can import **any** component and library in the fixture file. By default,
+you will **not** be able to use `router` or access the `store` because we have
+not configured Cosmos for that matter because we are using Cosmos to test
+components and pages in isolation, and not the whole app, even though this is
+also possible.
+
+When creating a fixture, place the fixture file in the same directory as the
+component or page you are testing. For example, if the fixture is meant to test
+the page `accounts/[id]/settings.tsx`, the fixture file **must** be placed in
+`accounts/[id]/settings.fixture.tsx`. If the fixture is meant to test the
+component `components/SSTransactionChart.tsx`, the fixture **must** be placed in
+`components/SSTransactionChart.fixture.tsx`
+
+## Developing
+
+To enable cosmos, first create an `.env.local` file in `apps/mobile`, with
+the following content:
+
+```bash
+EXPO_PUBLIC_COSMOS=1
+```
+
+The `.env.local` file **must not** be tracked by git (no worries, gitignore
+has this file there).
+
+This will tell `expo` to use `AppCosmos` component instead of our default `App`
+component. The `AppCosmos` will render the selected fixture
+
+After that, run `yarn cosmos`, which will start the Web UI.
+
+Then, run `yarn android` or `yarn ios` to start the development server for
+the device you are working on.
+
+If you are using a physical device instead of an emulator, your device **must**
+be connected to the **same local network** as your machine running the yarn
+command because the device needs to be able to connect to the websocket running
+on your machine.
+
+On the first time, you may see a blank screen "No fixture selected". Go to
+the Web UI on your machine on `http://localhost:5000` and select one.
+
+To disable cosmos, just set `EXPO_PUBLIC_COSMOS=0`.
