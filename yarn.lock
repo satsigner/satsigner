@@ -11247,44 +11247,42 @@ rc@~1.2.7:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
-react-cosmos-core@^6.2.0:
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/react-cosmos-core/-/react-cosmos-core-6.2.0.tgz#3731595b3c04cab8996660a95c37bd0cd00929fa"
-  integrity sha512-BAkTG5cGStSd1K99FjYlVEE07P13UD+4bVFhqf4LGqpYVPiMkem/ICVoZK+EFEnftnk9OLk2PertaEE1fkOFsg==
+react-cosmos-core@6.2.4-canary.323500c.0+323500c:
+  version "6.2.4-canary.323500c.0"
+  resolved "https://registry.yarnpkg.com/react-cosmos-core/-/react-cosmos-core-6.2.4-canary.323500c.0.tgz#7d7626db8c5256c9235490393c74fa0ac13e0c10"
+  integrity sha512-vMzR6eZz/uJEXYAaUtzy+vZL2MrnW2rp5yl+AKuXDjigEa4Z/NdHEOKtOdNgeWpAYEqXY0Yive336wFeRRuu4w==
   dependencies:
     js-base64 "3.7.7"
     lodash-es "4.17.21"
-    react-is "18.3.1"
 
-react-cosmos-native@^6.2.2:
-  version "6.2.2"
-  resolved "https://registry.yarnpkg.com/react-cosmos-native/-/react-cosmos-native-6.2.2.tgz#38ffa738204e5af214230ba6610e2170432f9b7f"
-  integrity sha512-6bRaqcp6VmMrII6FVFoYowKJgwAORnNsLt796+lXvk6+ZMcfvubhUvnDI4BFB/BtfnybyYCfNuuE5qw5p2ojlA==
+react-cosmos-native@^6.2.4-canary.323500c.0:
+  version "6.2.4-canary.323500c.0"
+  resolved "https://registry.yarnpkg.com/react-cosmos-native/-/react-cosmos-native-6.2.4-canary.323500c.0.tgz#8890fe0266570dae49bf206e1194be24c4c250fb"
+  integrity sha512-1IyIqjlrQig3SRC8J8YWni+8GrkedwlZ2A1GgMirN69Sny1XgJSIAGntknxkmX6rEYleQ1Y6fDz6l3hmSBDgcg==
   dependencies:
-    react-cosmos-core "^6.2.0"
-    react-cosmos-renderer "^6.2.0"
+    react-cosmos-core "6.2.4-canary.323500c.0+323500c"
+    react-cosmos-renderer "6.2.4-canary.323500c.0+323500c"
 
-react-cosmos-renderer@^6.2.0:
-  version "6.2.0"
-  resolved "https://registry.yarnpkg.com/react-cosmos-renderer/-/react-cosmos-renderer-6.2.0.tgz#2138656239acb8317724f1f54423888f9a5ff6fc"
-  integrity sha512-XWuZcyslVB32QwJ3ODuu/rV14fcbXOoFNhUUos+Ox4PNvZtu43HxfUK62S9OZiwdI++Hx+dxH4akdaDDkZ82AQ==
-  dependencies:
-    lodash-es "4.17.21"
-    react-cosmos-core "^6.2.0"
-    react-is "18.3.1"
-
-react-cosmos-ui@^6.2.3:
-  version "6.2.3"
-  resolved "https://registry.yarnpkg.com/react-cosmos-ui/-/react-cosmos-ui-6.2.3.tgz#f46b2f8596f5df281bfb34855ba76e973111dbe3"
-  integrity sha512-V9BDVfP1W+5MTS/SDyRKl1OJPuOkDiMAAuFjasKKZEj5mYR0DdEryjg4bboSo+g/3VMxdWOCTJ7a6pVGzAx0uQ==
+react-cosmos-renderer@6.2.4-canary.323500c.0+323500c:
+  version "6.2.4-canary.323500c.0"
+  resolved "https://registry.yarnpkg.com/react-cosmos-renderer/-/react-cosmos-renderer-6.2.4-canary.323500c.0.tgz#7a151c6db1f85dafa579bf39a913206731f576d4"
+  integrity sha512-aE53pIrbru6JKTEzSeufsEGyvpAG1J7e4x97UTpNtKJzuWFbHldPZ5seQ3MwTlG1mGmY5quW3ksysQyIZPCA+A==
   dependencies:
     lodash-es "4.17.21"
-    react-cosmos-core "^6.2.0"
+    react-cosmos-core "6.2.4-canary.323500c.0+323500c"
 
-react-cosmos@^6.2.3:
-  version "6.2.3"
-  resolved "https://registry.yarnpkg.com/react-cosmos/-/react-cosmos-6.2.3.tgz#3580bcfb9b77ee29cc31e86e3d1306b51867688e"
-  integrity sha512-4dy0niyZW+6spwmlSzXqAQoH0kvWgc+RZsAFPlPxJlW5FCdEwnITrrJZ7XCQjBpmQLdes5Gpd4lkKFyxKeughQ==
+react-cosmos-ui@6.2.4-canary.323500c.0+323500c:
+  version "6.2.4-canary.323500c.0"
+  resolved "https://registry.yarnpkg.com/react-cosmos-ui/-/react-cosmos-ui-6.2.4-canary.323500c.0.tgz#356ba72f98c8152df18e7a01d9df2402fde4af80"
+  integrity sha512-G2ssYdVddgfcSnFZGCNRErvnsp8HC4OmeytvwNA5BoZ3Qi0P/80fDJEhh4ui8o6PDR0kWu+SMe1GTIVj2Cee6w==
+  dependencies:
+    lodash-es "4.17.21"
+    react-cosmos-core "6.2.4-canary.323500c.0+323500c"
+
+react-cosmos@^6.2.4-canary.323500c.0:
+  version "6.2.4-canary.323500c.0"
+  resolved "https://registry.yarnpkg.com/react-cosmos/-/react-cosmos-6.2.4-canary.323500c.0.tgz#1674b15f718f08acf2407b3a0446dd64f2c0a0ef"
+  integrity sha512-enUmqaoGd9PNHpDdFNZdFQ9lVVlFwFeV9/eaiZlawzSRv4KfCo/tLGvapCKdheLZPKmWyeJJ9LERv8NodsSD2A==
   dependencies:
     "@skidding/launch-editor" "2.2.3"
     chokidar "3.6.0"
@@ -11295,9 +11293,9 @@ react-cosmos@^6.2.3:
     micromatch "4.0.8"
     open "10.1.0"
     pem "1.15.1"
-    react-cosmos-core "^6.2.0"
-    react-cosmos-renderer "^6.2.0"
-    react-cosmos-ui "^6.2.3"
+    react-cosmos-core "6.2.4-canary.323500c.0+323500c"
+    react-cosmos-renderer "6.2.4-canary.323500c.0+323500c"
+    react-cosmos-ui "6.2.4-canary.323500c.0+323500c"
     ws "8.18.0"
     yargs "17.7.2"
 
@@ -11337,11 +11335,6 @@ react-helmet-async@^1.3.0:
     prop-types "^15.7.2"
     react-fast-compare "^3.2.0"
     shallowequal "^1.1.0"
-
-react-is@18.3.1:
-  version "18.3.1"
-  resolved "https://registry.yarnpkg.com/react-is/-/react-is-18.3.1.tgz#e83557dc12eae63a99e003a46388b1dcbb44db7e"
-  integrity sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==
 
 "react-is@^16.12.0 || ^17.0.0 || ^18.0.0", react-is@^18.0.0, react-is@^18.2.0:
   version "18.2.0"
