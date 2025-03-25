@@ -16,10 +16,11 @@ import {
   type DifficultyAdjustment
 } from '@/types/models/Blockchain'
 import { formatDate } from '@/utils/format'
+import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 
 const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
 const CANVAS_WIDTH = SCREEN_WIDTH
-const CANVAS_HEIGHT = 650
+const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
 
 const BLOCKS_PER_EPOCH = 2016
 
@@ -148,7 +149,10 @@ function ExplorerDifficulty() {
         />
       </View>
       <SSVStack gap="none">
-        <SSVStack gap="none" style={{ justifyContent: 'center', backgroundColor: 'black' }}>
+        <SSVStack
+          gap="none"
+          style={{ justifyContent: 'center', backgroundColor: 'black' }}
+        >
           <SSHStack gap="xs" style={styles.dateContainer}>
             <SSText color="muted">Bitcoin Epoch:</SSText>
             <SSText weight="bold">{epoch}</SSText>
