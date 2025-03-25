@@ -12,6 +12,9 @@ import { Colors, Sizes } from '@/styles'
 
 import SSText from './SSText'
 
+// Allow only 8 decimal places (good for BTC input)
+const NUMBER_REGEX = /^\d*\.?\d{0,8}$/
+
 type SSNumberInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
@@ -72,7 +75,7 @@ function SSNumberInput(
     if (value === undefined || value === '') {
       return
     }
-    if (!value.match(/^[0-9]*$/)) {
+    if (!value.match(NUMBER_REGEX)) {
       setInvalid(true)
       if (onValidate) onValidate(false)
       return
@@ -84,7 +87,7 @@ function SSNumberInput(
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
-    if (!text.match(/^[0-9]*$/)) {
+    if (!text.match(NUMBER_REGEX)) {
       return
     }
 
