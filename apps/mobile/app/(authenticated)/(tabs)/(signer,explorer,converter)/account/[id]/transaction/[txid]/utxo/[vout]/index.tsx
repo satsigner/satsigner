@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { ScrollView, TouchableOpacity, View } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -12,35 +12,44 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatNumber } from '@/utils/format'
 
-export default function UtxoDetails() {
-  const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+type UtxoDetailsProps = {
+  accountId: string
+  onPressAddress: () => void
+  onPressTx: () => void
+  tx?: Transaction
+  utxo?: Utxo
+}
 
-  const [tx, utxo] = useAccountsStore((state) => [
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.transactions.find((tx) => tx.id === txid),
-    state.accounts
-      .find((account) => account.id === accountId)
-      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout))
-  ])
-
+function UtxoDetails({
+  accountId,
+  onPressAddress,
+  onPressTx,
+  tx,
+  utxo
+}: UtxoDetailsProps) {
   const placeholder = '-'
   const [blockTime, setBlockTime] = useState(placeholder)
   const [blockHeight, setBlockHeight] = useState(placeholder)
   const [amount, setAmount] = useState(placeholder)
+  const [txid, setTxid] = useState(placeholder)
+  const [vout, setVout] = useState(placeholder)
 
   const updateInfo = () => {
     if (tx) {
       const { blockHeight, timestamp } = tx
+      setTxid(tx.id)
       if (blockHeight) setBlockHeight(blockHeight.toString())
       if (timestamp) setBlockTime(formatDate(timestamp))
     }
 
     if (utxo) {
       const { value } = utxo
+      setVout(utxo.vout.toString())
       if (value) setAmount(formatNumber(value))
     }
   }
@@ -49,24 +58,18 @@ export default function UtxoDetails() {
     try {
       updateInfo()
     } catch {
-      router.back()
+      //
     }
   }, [tx, utxo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <ScrollView>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText>{t('utxo.details.title')}</SSText>
-        }}
-      />
       <SSVStack
         gap="lg"
         style={{
           flexGrow: 1,
           flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: 20
+          justifyContent: 'space-between'
         }}
       >
         <SSVStack>
@@ -107,15 +110,7 @@ export default function UtxoDetails() {
             </SSVStack>
           </SSHStack>
           <SSSeparator color="gradient" />
-          <TouchableOpacity
-            onPress={() => {
-              if (utxo?.addressTo) {
-                router.navigate(
-                  `/account/${accountId}/address/${utxo.addressTo}`
-                )
-              }
-            }}
-          >
+          <TouchableOpacity onPress={onPressAddress}>
             <SSVStack gap="sm">
               <SSText weight="bold" uppercase>
                 {t('utxo.address')}
@@ -124,11 +119,7 @@ export default function UtxoDetails() {
             </SSVStack>
           </TouchableOpacity>
           <SSSeparator color="gradient" />
-          <TouchableOpacity
-            onPress={() =>
-              router.navigate(`/account/${accountId}/transaction/${txid}`)
-            }
-          >
+          <TouchableOpacity onPress={onPressTx}>
             <SSVStack gap="none">
               <SSText weight="bold" uppercase>
                 {t('transaction.id')}
@@ -157,3 +148,46 @@ export default function UtxoDetails() {
     </ScrollView>
   )
 }
+
+function UtxoDetailsPage() {
+  const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+
+  const [tx, utxo] = useAccountsStore((state) => [
+    state.accounts
+      .find((account) => account.id === accountId)
+      ?.transactions.find((tx) => tx.id === txid),
+    state.accounts
+      .find((account) => account.id === accountId)
+      ?.utxos.find((u) => u.txid === txid && u.vout === Number(vout))
+  ])
+
+  function navigateToTx() {
+    router.navigate(`/account/${accountId}/transaction/${txid}`)
+  }
+
+  function navigateToAddress() {
+    if (!utxo || !utxo.addressTo) return
+    router.navigate(`/account/${accountId}/addresses/${utxo.addressTo}`)
+  }
+
+  return (
+    <>
+      <Stack.Screen
+        options={{
+          headerTitle: () => <SSText>{t('utxo.details.title')}</SSText>
+        }}
+      />
+      <View style={{ padding: 20 }}>
+        <UtxoDetails
+          accountId={accountId}
+          onPressAddress={navigateToAddress}
+          onPressTx={navigateToTx}
+          tx={tx}
+          utxo={utxo}
+        />
+      </View>
+    </>
+  )
+}
+
+export { UtxoDetailsPage as default, UtxoDetails, UtxoDetailsPage }
