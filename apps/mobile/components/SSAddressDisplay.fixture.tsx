@@ -3,19 +3,24 @@ import { StyleSheet, View } from 'react-native'
 import SSAddressDisplay from './SSAddressDisplay'
 import SSText from './SSText'
 
-function SSAddressDisplayFixture() {
-  const address = 'bc1f5fd90388e8293b3ef4f7c6f06c24aff6314'
+type SSAddressDisplayFixtureProps = {
+  address: string
+  variant: 'default' | 'outline' | 'bare'
+}
+
+function SSAddressDisplayFixture({
+  address,
+  variant
+}: SSAddressDisplayFixtureProps) {
   return (
     <View style={styles.container}>
       <SSText size="xl" center uppercase>
         Address display
       </SSText>
-      <SSText size="md">Default</SSText>
-      <SSAddressDisplay address={address} />
-      <SSText size="md">Outline</SSText>
-      <SSAddressDisplay address={address} variant="outline" />
-      <SSText size="md">Bare</SSText>
-      <SSAddressDisplay address={address} variant="bare" />
+      <SSText size="md" uppercase>
+        {variant}
+      </SSText>
+      <SSAddressDisplay address={address} variant={variant} />
     </View>
   )
 }
@@ -30,4 +35,9 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSAddressDisplayFixture
+export default (
+  <SSAddressDisplayFixture
+    address="bc1f5fd90388e8293b3ef4f7c6f06c24aff6314"
+    variant="default"
+  />
+)
