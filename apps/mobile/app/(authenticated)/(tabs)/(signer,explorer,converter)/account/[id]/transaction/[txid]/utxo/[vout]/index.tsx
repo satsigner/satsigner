@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -64,14 +64,7 @@ function UtxoDetails({
 
   return (
     <ScrollView>
-      <SSVStack
-        gap="lg"
-        style={{
-          flexGrow: 1,
-          flexDirection: 'column',
-          justifyContent: 'space-between'
-        }}
-      >
+      <SSVStack gap="lg" style={styles.innerContainer}>
         <SSVStack>
           <SSLabelDetails
             label={utxo?.label || ''}
@@ -177,7 +170,7 @@ function UtxoDetailsPage() {
           headerTitle: () => <SSText>{t('utxo.details.title')}</SSText>
         }}
       />
-      <View style={{ padding: 20 }}>
+      <View style={styles.outerContainer}>
         <UtxoDetails
           accountId={accountId}
           onPressAddress={navigateToAddress}
@@ -189,5 +182,16 @@ function UtxoDetailsPage() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    padding: 20
+  },
+  innerContainer: {
+    flexGrow: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-between'
+  }
+})
 
 export { UtxoDetailsPage as default, UtxoDetails, UtxoDetailsPage }
