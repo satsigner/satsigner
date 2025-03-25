@@ -100,9 +100,9 @@ function RootLayout() {
   )
 }
 
-// TODO: toggle between them using an environment variable,
-// such as process.env.COSMOS
-const App = 1 ? AppCosmos : RootLayout
+// Change .env.local to use Cosmos when developing.
+// Otherwise, normal app is loaded.
+const App = process.env.EXPO_PUBLIC_COSMOS === '1' ? AppCosmos : RootLayout
 
 export default App
 
