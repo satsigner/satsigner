@@ -1,9 +1,12 @@
+import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import { useEffect, useState } from 'react'
-import { Dimensions, StyleSheet, View } from 'react-native'
+import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
+import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSSpiralBlocks from '@/components/SSSpiralBlocks'
 import SSText from '@/components/SSText'
@@ -16,7 +19,6 @@ import {
   type DifficultyAdjustment
 } from '@/types/models/Blockchain'
 import { formatDate } from '@/utils/format'
-import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 
 const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
 const CANVAS_WIDTH = SCREEN_WIDTH
@@ -40,8 +42,11 @@ type DifficultyEpochsData = [
 ]
 
 function ExplorerDifficulty() {
+  const { width } = useWindowDimensions()
+
   const [data, setData] = useState<BlockDifficulty[]>([])
   const [loading, setLoading] = useState(false)
+
   const [epoch, setEpoch] = useState('0')
   const [averageBlockTime, setAverageBlockTime] = useState('unknown')
   const [remainingTime, setRemainingTime] = useState('unknown')
@@ -50,6 +55,9 @@ function ExplorerDifficulty() {
   const [dateEnd, setDateEnd] = useState('unknown date')
   const [heightStart, setHeightStart] = useState('?')
   const [heightEnd, setHeightEnd] = useState('?')
+
+  const [modalVisible, setModalVisible] = useState(false)
+  const [selectedBlock, setSelectedBlock] = useState({} as BlockDifficulty)
 
   async function fetchDifficultyAdjustment() {
     const mempoolOracle = new MempoolOracle()
@@ -116,23 +124,28 @@ function ExplorerDifficulty() {
     setEpoch(Math.max(0, Number(epoch) - 1).toString())
   }
 
+  function selectBlock(block: BlockDifficulty) {
+    setModalVisible(true)
+    setSelectedBlock(block)
+  }
+
   return (
     <SSMainLayout style={styles.mainContainer}>
-      <SSHStack gap="none" justifyBetween style={{ alignItems: 'flex-start' }}>
+      <SSHStack gap="none" justifyBetween style={styles.headerContainer}>
         <SSVStack gap="none">
           <SSText weight="bold">~{averageBlockTime} minutes</SSText>
-          <SSText color="muted" size="xs" style={{ flexShrink: 1 }}>
+          <SSText color="muted" size="xs" style={[styles.headerCaption]}>
             Average Block Time (current)
           </SSText>
         </SSVStack>
         <SSVStack gap="none">
-          <SSText weight="bold" style={{ textAlign: 'right' }}>
+          <SSText weight="bold" style={styles.headerRight}>
             {remainingTime}
           </SSText>
           <SSText
             color="muted"
             size="xs"
-            style={{ flexShrink: 1, textAlign: 'right' }}
+            style={[styles.headerCaption, styles.headerRight]}
           >
             Next Difficulty Adjustment
           </SSText>
@@ -145,14 +158,11 @@ function ExplorerDifficulty() {
           maxBlocksPerSpiral={BLOCKS_PER_EPOCH}
           canvasWidth={CANVAS_WIDTH}
           canvasHeight={CANVAS_HEIGHT}
-          onBlockPress={(block) => console.log(block)}
+          onBlockPress={selectBlock}
         />
       </View>
       <SSVStack gap="none">
-        <SSVStack
-          gap="none"
-          style={{ justifyContent: 'center', backgroundColor: 'black' }}
-        >
+        <SSVStack gap="none" style={styles.footerContainer}>
           <SSHStack gap="xs" style={styles.dateContainer}>
             <SSText color="muted">Bitcoin Epoch:</SSText>
             <SSText weight="bold">{epoch}</SSText>
@@ -193,7 +203,111 @@ function ExplorerDifficulty() {
           </SSActionButton>
         </SSHStack>
       </SSVStack>
+      <SSModal visible={modalVisible} onClose={() => setModalVisible(false)}>
+        <SSVStack style={styles.modalContainer}>
+          <BlockDetails block={selectedBlock} />
+          <SSButton
+            label="close"
+            onPress={() => setModalVisible(false)}
+            variant="secondary"
+            style={{ width: (width - 40) }}
+          />
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
+  )
+}
+
+type BlockDetailsProps = {
+  block: BlockDifficulty | null
+}
+
+function BlockDetails({ block }: BlockDetailsProps) {
+  const { width } = useWindowDimensions()
+
+  if (block === null) {
+    return null
+  }
+
+  const horizontalPadding = 20 * 2
+  const columnStyle = {
+    width: (width - horizontalPadding) / 3,
+  }
+
+  return (
+    <>
+      <SSText center uppercase weight="bold">
+        BLOCK DETAILS
+      </SSText>
+      <SSHStack style={styles.blockDetailsSectionGroup}>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Height
+          </SSText>
+          <SSText>{block.height}</SSText>
+        </SSVStack>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Cycle Height
+          </SSText>
+          <SSText>{block.cycleHeight}</SSText>
+        </SSVStack>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Transactions
+          </SSText>
+          <SSText>{block.txCount}</SSText>
+        </SSVStack>
+      </SSHStack>
+      <SSHStack style={styles.blockDetailsSectionGroup}>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Size
+          </SSText>
+          <SSText>{block.size}</SSText>
+        </SSVStack>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            vBytes
+          </SSText>
+          <SSText>{Math.trunc(block.weight / 4)}</SSText>
+        </SSVStack>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Weight
+          </SSText>
+          <SSText>{block.weight}</SSText>
+        </SSVStack>
+      </SSHStack>
+      <SSHStack style={styles.blockDetailsSectionGroup}>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Nonce
+          </SSText>
+          <SSText>{block.nonce}</SSText>
+        </SSVStack>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Date
+          </SSText>
+          <SSText>{formatDate(block.timestamp * 1000)}</SSText>
+        </SSVStack>
+        <SSVStack gap="none" style={columnStyle}>
+          <SSText color="muted" uppercase>
+            Time
+          </SSText>
+          <SSText>{block.timeDifference}s</SSText>
+        </SSVStack>
+      </SSHStack>
+      <SSVStack gap="none" style={{
+        width: (width-horizontalPadding),
+      }}>
+        <SSText color="muted" uppercase>
+          Chain Work
+        </SSText>
+        <SSText>{block.chainWork}</SSText>
+      </SSVStack>
+    </>
   )
 }
 
@@ -258,6 +372,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.black,
     paddingTop: 10,
     paddingBottom: 20
+  },
+  modalContainer: {
+    zIndex: 120,
+    backgroundColor: 'black',
+    height: '100%',
+    width: '100%',
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  blockDetailsSection: {
+    flexGrow: 1
+  },
+  blockDetailsSectionGroup: {
+    alignItems: 'flex-start',
+    gap: 0
+  },
+  fullWidth: {
+    width: '100%',
+    textAlign: 'center'
+  },
+  headerContainer: {
+    alignItems: 'flex-start'
+  },
+  headerCaption: {
+    flexShrink: 1
+  },
+  headerRight: {
+    textAlign: 'right'
+  },
+  footerContainer: {
+    justifyContent: 'center'
   }
 })
 
