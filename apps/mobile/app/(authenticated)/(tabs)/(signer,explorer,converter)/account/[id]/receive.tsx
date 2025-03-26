@@ -42,7 +42,11 @@ export default function Receive() {
 
     const queryParts: string[] = []
 
-    if (localCustomAmount && Number(localCustomAmount) > 0)
+    if (
+      localCustomAmount &&
+      Number(localCustomAmount) > 0 &&
+      Number(localCustomAmount) <= 21_000_000
+    )
       queryParts.push(`amount=${encodeURIComponent(localCustomAmount)}`)
     if (localLabel) queryParts.push(`label=${encodeURIComponent(localLabel)}`)
 
@@ -120,12 +124,15 @@ export default function Receive() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('receive.customAmount')} />
               <SSNumberInput
-                min={0}
+                min={0.00000001}
                 max={21_000_000}
                 placeholder="BTC"
                 align="center"
                 keyboardType="numeric"
                 onChangeText={(text) => setLocalCustomAmount(text)}
+                allowDecimal
+                allowValidEmpty
+                alwaysTriggerOnChange
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
