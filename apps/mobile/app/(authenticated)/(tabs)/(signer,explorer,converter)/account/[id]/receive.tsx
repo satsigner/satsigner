@@ -32,6 +32,7 @@ export default function Receive() {
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
   const [localAddressQR, setLocalAddressQR] = useState<string>()
+  const [localFinalAddressQR, setLocalFinalAddressQR] = useState<string>()
   const [localAddressPath, setLocalAddressPath] = useState<string>()
   const [localCustomAmount, setLocalCustomAmount] = useState<string>()
   const [localLabel, setLocalLabel] = useState<string>()
@@ -41,7 +42,7 @@ export default function Receive() {
 
     const queryParts: string[] = []
 
-    if (localCustomAmount)
+    if (localCustomAmount && Number(localCustomAmount) > 0)
       queryParts.push(`amount=${encodeURIComponent(localCustomAmount)}`)
     if (localLabel) queryParts.push(`label=${encodeURIComponent(localLabel)}`)
 
@@ -50,7 +51,7 @@ export default function Receive() {
         ? `${localAddressQR}?${queryParts.join('&')}`
         : localAddressQR
 
-    setLocalAddressQR(finalUri)
+    setLocalFinalAddressQR(finalUri)
   }, [localCustomAmount, localLabel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function Receive() {
       setLocalAddress(address)
       setLocalAddressNumber(addressInfo.index)
       setLocalAddressQR(qrUri)
+      setLocalFinalAddressQR(qrUri)
       setLocalAddressPath(
         `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
       )
@@ -103,7 +105,7 @@ export default function Receive() {
             </SSHStack>
             <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
-          {localAddressQR && <SSQRCode value={localAddressQR} />}
+          {localFinalAddressQR && <SSQRCode value={localFinalAddressQR} />}
           <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
             <SSText color="muted" uppercase weight="bold">
               {t('receive.address')}
