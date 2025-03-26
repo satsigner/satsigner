@@ -1,7 +1,8 @@
 import DatePicker from '@dietime/react-native-date-picker'
+import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -93,7 +94,7 @@ export default function Converter() {
                   {formatNumber((prices.USD || 0) * bitcoin, 2, false, ',')}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('converter.currency.usd')}
+                  🇺🇸 {t('converter.currency.usd')}
                 </SSText>
               </SSVStack>
               <SSVStack
@@ -105,7 +106,7 @@ export default function Converter() {
                   {formatNumber((prices.EUR || 0) * bitcoin, 2, false, ',')}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('converter.currency.eur')}
+                  🇪🇺 {t('converter.currency.eur')}
                 </SSText>
               </SSVStack>
             </SSHStack>
@@ -115,7 +116,7 @@ export default function Converter() {
                   {formatNumber((prices.GBP || 0) * bitcoin, 2, false, ',')}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('converter.currency.gbp')}
+                  🇬🇧 {t('converter.currency.gbp')}
                 </SSText>
               </SSVStack>
               <SSVStack
@@ -127,7 +128,7 @@ export default function Converter() {
                   {formatNumber((prices.CAD || 0) * bitcoin, 2, false, ',')}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('converter.currency.cad')}
+                  🇨🇦 {t('converter.currency.cad')}
                 </SSText>
               </SSVStack>
             </SSHStack>
@@ -137,7 +138,7 @@ export default function Converter() {
                   {formatNumber((prices.CHF || 0) * bitcoin, 2, false, ',')}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('converter.currency.chf')}
+                  🇨🇭 {t('converter.currency.chf')}
                 </SSText>
               </SSVStack>
               <SSVStack
@@ -149,26 +150,38 @@ export default function Converter() {
                   {formatNumber((prices.JPY || 0) * bitcoin, 2, false, ',')}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  {t('converter.currency.jpy')}
+                  🇯🇵 {t('converter.currency.jpy')}
                 </SSText>
               </SSVStack>
             </SSHStack>
           </SSVStack>
         </SSVStack>
         <SSVStack style={styles.dateContainer} gap="lg">
-          <DatePicker
-            key={pickerKey}
-            value={date}
-            onChange={(value) => setDate(value)}
-            width="80%"
-            height={200}
-            fontSize={Sizes.text.fontSize['2xl']}
-            textColor={Colors.white}
-            fadeColor={Colors.black}
-            markColor={Colors.gray[950]}
-            markHeight={46}
-            startYear={2011}
-          />
+          <View>
+            <DatePicker
+              key={pickerKey}
+              value={date}
+              onChange={(value) => setDate(value)}
+              width="80%"
+              height={200}
+              fontSize={Sizes.text.fontSize['2xl']}
+              textColor={Colors.white}
+              fadeColor={Colors.black}
+              markColor={Colors.gray[950]}
+              markHeight={46}
+              startYear={2011}
+            />
+            <LinearGradient
+              style={[styles.gradient, { bottom: 0, height: 60 }]}
+              colors={['#000000BB', Colors.black]}
+              pointerEvents="none"
+            />
+            <LinearGradient
+              style={[styles.gradient, { top: 0, height: 60 }]}
+              colors={[Colors.black, '#000000BB']}
+              pointerEvents="none"
+            />
+          </View>
           <SSButton
             key="today"
             label={t('date.today')}
@@ -217,8 +230,14 @@ const styles = StyleSheet.create({
     padding: 12
   },
   dateContainer: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
     padding: 20,
     alignItems: 'center',
     backgroundColor: 'black'
+  },
+  gradient: {
+    position: 'absolute',
+    width: '100%'
   }
 })
