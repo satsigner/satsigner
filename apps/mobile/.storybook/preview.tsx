@@ -1,14 +1,15 @@
-import type { Preview } from '@storybook/react';
+import type { Preview } from '@storybook/react'
 
 const preview: Preview = {
   parameters: {
+    layout: 'centered',
     controls: {
       matchers: {
         color: /(background|color)$/i,
-        date: /Date$/,
-      },
-    },
-  },
-};
+        date: /Date$/
+      }
+    }
+  }
+}
 
-export default preview;
+export default preview
