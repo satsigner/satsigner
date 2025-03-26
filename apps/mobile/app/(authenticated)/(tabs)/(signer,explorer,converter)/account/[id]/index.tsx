@@ -27,6 +27,7 @@ import {
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
@@ -755,13 +756,17 @@ export default function AccountView() {
     if (isImportAddress && !watchOnlyWalletAddress) return
     else if (!isImportAddress && !wallet) return
 
-    const updatedAccount = !isImportAddress
-      ? await syncAccountWithWallet(account, wallet!)
-      : await syncAccountWithAddress(
-          account,
-          `addr(${watchOnlyWalletAddress!})`
-        )
-    updateAccount(updatedAccount)
+    try {
+      const updatedAccount = !isImportAddress
+        ? await syncAccountWithWallet(account, wallet!)
+        : await syncAccountWithAddress(
+            account,
+            `addr(${watchOnlyWalletAddress!})`
+          )
+      updateAccount(updatedAccount)
+    } catch (error) {
+      toast.error((error as Error).message)
+    }
   }
 
   async function handleOnRefresh() {
