@@ -1,15 +1,17 @@
+import DatePicker from '@dietime/react-native-date-picker'
 import { Stack, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSButton from '@/components/SSButton'
 import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { Colors } from '@/styles'
+import { Colors, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
 import { formatNumber } from '@/utils/format'
 
@@ -18,6 +20,8 @@ const SATS_PER_BITCOIN = 100_000_000
 export default function Converter() {
   const [sats, setSats] = useState(0)
   const [bitcoin, setBitcoin] = useState(0)
+  const [date, setDate] = useState(new Date())
+  const [pickerKey, setPickerKey] = useState(0)
 
   const handleSatsChange = useCallback((sats: number) => {
     setSats(sats)
@@ -29,14 +33,19 @@ export default function Converter() {
     setSats(Math.round(bitcoin * SATS_PER_BITCOIN))
   }, [])
 
-  const [prices, fetchPrices] = usePriceStore(
-    useShallow((state) => [state.prices, state.fetchPrices])
+  const [prices, featchFullPriceAt] = usePriceStore(
+    useShallow((state) => [state.prices, state.featchFullPriceAt])
   )
 
   useFocusEffect(
     useCallback(() => {
-      fetchPrices()
-    }, [fetchPrices])
+      const normalizedDate = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      )
+      featchFullPriceAt(normalizedDate.getTime() / 1000)
+    }, [featchFullPriceAt, date])
   )
 
   return (
@@ -51,98 +60,124 @@ export default function Converter() {
           headerBackVisible: false
         }}
       />
-      <SSVStack>
-        <SSVStack itemsCenter style={styles.inputContainer}>
-          <SSCurrencyInput
-            value={sats.toString()}
-            size="large"
-            onChangeValue={handleSatsChange}
-            align="center"
-            style={styles.currencyInput}
-          />
-          <SSText size="xs" color="muted">
-            {t('converter.currency.sats')}
-          </SSText>
+      <SSVStack gap="none" justifyBetween>
+        <SSVStack>
+          <SSVStack itemsCenter style={styles.inputContainer}>
+            <SSCurrencyInput
+              value={sats.toString()}
+              size="large"
+              onChangeValue={handleSatsChange}
+              align="center"
+              style={styles.currencyInput}
+            />
+            <SSText size="xs" color="muted">
+              {t('converter.currency.sats')}
+            </SSText>
+          </SSVStack>
+          <SSVStack itemsCenter style={styles.inputContainer}>
+            <SSCurrencyInput
+              value={bitcoin.toString()}
+              size="large"
+              onChangeValue={handleBitcoinChange}
+              align="center"
+              style={styles.currencyInput}
+            />
+            <SSText size="xs" color="muted">
+              {t('converter.currency.bitcoin')}
+            </SSText>
+          </SSVStack>
+          <SSVStack gap="none" style={styles.currencySection}>
+            <SSHStack gap="none" style={styles.rowSeparator}>
+              <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
+                <SSText size="md">
+                  {formatNumber((prices.USD || 0) * bitcoin, 2, false, ',')}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {t('converter.currency.usd')}
+                </SSText>
+              </SSVStack>
+              <SSVStack
+                itemsCenter
+                gap="none"
+                style={styles.currencyBlockNoBorder}
+              >
+                <SSText size="md">
+                  {formatNumber((prices.EUR || 0) * bitcoin, 2, false, ',')}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {t('converter.currency.eur')}
+                </SSText>
+              </SSVStack>
+            </SSHStack>
+            <SSHStack gap="none" style={styles.rowSeparator}>
+              <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
+                <SSText size="md">
+                  {formatNumber((prices.GBP || 0) * bitcoin, 2, false, ',')}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {t('converter.currency.gbp')}
+                </SSText>
+              </SSVStack>
+              <SSVStack
+                itemsCenter
+                gap="none"
+                style={styles.currencyBlockNoBorder}
+              >
+                <SSText size="md">
+                  {formatNumber((prices.CAD || 0) * bitcoin, 2, false, ',')}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {t('converter.currency.cad')}
+                </SSText>
+              </SSVStack>
+            </SSHStack>
+            <SSHStack gap="none" style={styles.rowSeparator}>
+              <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
+                <SSText size="md">
+                  {formatNumber((prices.CHF || 0) * bitcoin, 2, false, ',')}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {t('converter.currency.chf')}
+                </SSText>
+              </SSVStack>
+              <SSVStack
+                itemsCenter
+                gap="none"
+                style={styles.currencyBlockNoBorder}
+              >
+                <SSText size="md">
+                  {formatNumber((prices.JPY || 0) * bitcoin, 2, false, ',')}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {t('converter.currency.jpy')}
+                </SSText>
+              </SSVStack>
+            </SSHStack>
+          </SSVStack>
         </SSVStack>
-        <SSVStack itemsCenter style={styles.inputContainer}>
-          <SSCurrencyInput
-            value={bitcoin.toString()}
-            size="large"
-            onChangeValue={handleBitcoinChange}
-            align="center"
-            style={styles.currencyInput}
+        <SSVStack style={styles.dateContainer} gap="lg">
+          <DatePicker
+            key={pickerKey}
+            value={date}
+            onChange={(value) => setDate(value)}
+            width="80%"
+            height={200}
+            fontSize={Sizes.text.fontSize['2xl']}
+            textColor={Colors.white}
+            fadeColor={Colors.black}
+            markColor={Colors.gray[950]}
+            markHeight={46}
+            startYear={2011}
           />
-          <SSText size="xs" color="muted">
-            {t('converter.currency.bitcoin')}
-          </SSText>
-        </SSVStack>
-        <SSVStack gap="none" style={styles.currencySection}>
-          <SSHStack gap="none" style={styles.rowSeparator}>
-            <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-              <SSText size="md">
-                {formatNumber((prices.USD || 0) * bitcoin, 2, false, ',')}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('converter.currency.usd')}
-              </SSText>
-            </SSVStack>
-            <SSVStack
-              itemsCenter
-              gap="none"
-              style={styles.currencyBlockNoBorder}
-            >
-              <SSText size="md">
-                {formatNumber((prices.EUR || 0) * bitcoin, 2, false, ',')}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('converter.currency.eur')}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
-          <SSHStack gap="none" style={styles.rowSeparator}>
-            <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-              <SSText size="md">
-                {formatNumber((prices.GBP || 0) * bitcoin, 2, false, ',')}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('converter.currency.gbp')}
-              </SSText>
-            </SSVStack>
-            <SSVStack
-              itemsCenter
-              gap="none"
-              style={styles.currencyBlockNoBorder}
-            >
-              <SSText size="md">
-                {formatNumber((prices.CAD || 0) * bitcoin, 2, false, ',')}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('converter.currency.cad')}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
-          <SSHStack gap="none" style={styles.rowSeparator}>
-            <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-              <SSText size="md">
-                {formatNumber((prices.CHF || 0) * bitcoin, 2, false, ',')}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('converter.currency.chf')}
-              </SSText>
-            </SSVStack>
-            <SSVStack
-              itemsCenter
-              gap="none"
-              style={styles.currencyBlockNoBorder}
-            >
-              <SSText size="md">
-                {formatNumber((prices.JPY || 0) * bitcoin, 2, false, ',')}
-              </SSText>
-              <SSText size="xs" color="muted">
-                {t('converter.currency.jpy')}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
+          <SSButton
+            key="today"
+            label={t('date.today')}
+            variant="outline"
+            onPress={() => {
+              setDate(new Date())
+              setPickerKey((prev) => prev + 1)
+            }}
+          />
         </SSVStack>
       </SSVStack>
     </>
@@ -180,5 +215,10 @@ const styles = StyleSheet.create({
   currencyBlockNoBorder: {
     flex: 1,
     padding: 12
+  },
+  dateContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: 'black'
   }
 })
