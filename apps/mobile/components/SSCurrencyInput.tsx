@@ -7,7 +7,7 @@ import {
 } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 
 const formatNumberWithCommas = (numStr: string) => {
   let rawText = ''
@@ -140,7 +140,8 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.textInput.borderRadius,
     width: '100%',
     textAlign: 'center',
-    color: Colors.white
+    color: Colors.white,
+    fontFamily: Typography.sfProTextRegular
   },
   variantDefault: {
     backgroundColor: Colors.gray[850]
