@@ -42,12 +42,13 @@ export default function IOPreview() {
     (state) => state.accounts.find((account) => account.id === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [inputs, outputs, getInputs, addOutput, setFeeRate] =
+  const [inputs, outputs, getInputs, feeRate, addOutput, setFeeRate] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.outputs,
         state.getInputs,
+        state.feeRate,
         state.addOutput,
         state.setFeeRate
       ])
@@ -117,7 +118,7 @@ export default function IOPreview() {
     transactions,
     inputs,
     outputs,
-    utxosSelectedValue
+    feeRate
   })
 
   if (loading && inputs.size > 0) {

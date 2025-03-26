@@ -214,7 +214,7 @@ function SSMultipleSankeyDiagram({
             ]}
             onLayout={onCanvasLayout}
           >
-            // TODO: enable selection for three dots
+            {/* TODO: enable selection for three dots */}
             {nodeStyles.map((style, index) => (
               <View
                 key={index}
