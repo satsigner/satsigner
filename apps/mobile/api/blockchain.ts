@@ -161,9 +161,9 @@ export class MempoolOracle implements BlockchainOracle {
       Object.entries(exchangeRates)
         .map(([key, rate]) => {
           const currencyCode = key.replace('USD', '')
-          return [currencyCode, Math.round(btcPrice * Number(rate))]
+          return [currencyCode, btcPrice * Number(rate)]
         })
-        .concat([['USD', Math.round(btcPrice)]])
+        .concat([['USD', btcPrice]])
     )
   }
 
