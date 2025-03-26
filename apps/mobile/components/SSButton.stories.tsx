@@ -14,10 +14,10 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Basic: Story = {}
+export const Default: Story = {}
 
-export const AnotherExample: Story = {
+export const Secondary: Story = {
   args: {
-    label: 'Another example'
+    variant: 'secondary'
   }
 }
