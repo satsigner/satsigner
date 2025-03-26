@@ -13,7 +13,7 @@ type PriceState = {
 type PriceAction = {
   satsToFiat: (sats: number, btcPrice?: number) => number
   fetchPrices: () => Promise<void>
-  featchFullPriceAt: (timestamps: number) => Promise<void>
+  fetchFullPriceAt: (timestamps: number) => Promise<void>
 }
 
 const SATS_IN_BITCOIN = 100_000_000
@@ -40,16 +40,16 @@ const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
     const prices = await oracle.getPrices()
 
     const { fiatCurrency } = get()
-    const btcPrice = prices[fiatCurrency]
+    const btcPrice = prices[fiatCurrency] ?? 0
 
     set({ prices, btcPrice })
   },
-  featchFullPriceAt: async (timestamp: number) => {
+  fetchFullPriceAt: async (timestamp: number) => {
     const { fiatCurrency } = get()
 
     const oracle = new MempoolOracle()
     const prices = await oracle.getFullPriceAt(fiatCurrency, timestamp)
-    const btcPrice = prices[fiatCurrency]
+    const btcPrice = prices[fiatCurrency] ?? 0
 
     set({ prices, btcPrice })
   }

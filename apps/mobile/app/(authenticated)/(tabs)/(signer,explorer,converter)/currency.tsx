@@ -23,6 +23,7 @@ export default function Converter() {
   const [bitcoin, setBitcoin] = useState(0)
   const [date, setDate] = useState(new Date())
   const [pickerKey, setPickerKey] = useState(0)
+  const [lastFetchedDate, setLastFetchedDate] = useState<number | null>(null)
 
   const handleSatsChange = useCallback((sats: number) => {
     setSats(sats)
@@ -34,19 +35,18 @@ export default function Converter() {
     setSats(Math.round(bitcoin * SATS_PER_BITCOIN))
   }, [])
 
-  const [prices, featchFullPriceAt] = usePriceStore(
-    useShallow((state) => [state.prices, state.featchFullPriceAt])
+  const [prices, fetchFullPriceAt] = usePriceStore(
+    useShallow((state) => [state.prices, state.fetchFullPriceAt])
   )
 
   useFocusEffect(
     useCallback(() => {
-      const normalizedDate = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      )
-      featchFullPriceAt(normalizedDate.getTime() / 1000)
-    }, [featchFullPriceAt, date])
+      const timestamp = Math.floor(date.setHours(0, 0, 0, 0) / 1000)
+      if (timestamp !== lastFetchedDate) {
+        fetchFullPriceAt(timestamp)
+        setLastFetchedDate(timestamp)
+      }
+    }, [fetchFullPriceAt, date, lastFetchedDate])
   )
 
   return (
