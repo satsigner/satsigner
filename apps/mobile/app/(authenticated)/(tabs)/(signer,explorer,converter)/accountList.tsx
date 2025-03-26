@@ -5,6 +5,7 @@ import {
 import { Stack, useNavigation, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -147,8 +148,8 @@ export default function AccountList() {
               `addr(${sampleSignetAddress})`
             )
       updateAccount(updatedAccount)
-    } catch {
-      // TODO
+    } catch (error) {
+      toast.error((error as Error).message)
     } finally {
       clearAccount()
       setLoadingWallet(undefined)

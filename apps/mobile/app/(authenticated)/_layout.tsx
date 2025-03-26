@@ -7,6 +7,7 @@ import { Redirect, useGlobalSearchParams } from 'expo-router'
 import Drawer from 'expo-router/drawer'
 import { useEffect } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
@@ -133,8 +134,8 @@ export default function AuthenticatedLayout() {
                 )
             updateAccount(updatedAccount)
           }
-        } catch {
-          // TODO
+        } catch (error) {
+          toast.error((error as Error).message)
         } finally {
           setJustUnlocked(false)
         }
