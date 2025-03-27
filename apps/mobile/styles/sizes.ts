@@ -57,7 +57,7 @@ export const textInput = {
   },
   fontSize: {
     default: text.fontSize['2xl'],
-    small: text.fontSize['sm'],
+    small: text.fontSize['lg'],
     large: text.fontSize['3xl']
   }
 }
