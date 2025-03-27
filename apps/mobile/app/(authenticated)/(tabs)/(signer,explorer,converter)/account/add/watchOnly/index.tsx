@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
 import { Keyboard, ScrollView, StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -161,8 +162,8 @@ export default function WatchOnly() {
               `addr(${address})`
             )
       updateAccount(updatedAccount)
-    } catch {
-      // TODO
+    } catch (error) {
+      toast.error((error as Error).message)
     } finally {
       clearAccount()
       setLoadingWallet(false)

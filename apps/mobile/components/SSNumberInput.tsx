@@ -12,9 +12,6 @@ import { Colors, Sizes } from '@/styles'
 
 import SSText from './SSText'
 
-// Allow only 8 decimal places (good for BTC input)
-const NUMBER_REGEX = /^\d*\.?\d{0,8}$/
-
 type SSNumberInputProps = {
   variant?: 'default' | 'outline'
   size?: 'default' | 'small'
@@ -23,6 +20,9 @@ type SSNumberInputProps = {
   max: number
   onValidate?: (valid: boolean) => void
   showFeedback?: boolean
+  allowDecimal?: boolean
+  allowValidEmpty?: boolean
+  alwaysTriggerOnChange?: boolean
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSNumberInput(
@@ -36,11 +36,16 @@ function SSNumberInput(
     onChangeText,
     onValidate,
     showFeedback,
+    allowDecimal = false,
+    allowValidEmpty = false,
+    alwaysTriggerOnChange = false,
     style,
     ...props
   }: SSNumberInputProps,
   ref: ForwardedRef<TextInput>
 ) {
+  const NUMBER_REGEX = allowDecimal ? /^\d*\.?\d{0,8}$/ : /^[0-9]*$/
+
   const [invalid, setInvalid] = useState(false)
 
   const textInputStyle = useMemo(() => {
@@ -87,13 +92,15 @@ function SSNumberInput(
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
+    if (alwaysTriggerOnChange && onChangeText) onChangeText(text)
+
     if (!text.match(NUMBER_REGEX)) {
       return
     }
 
     if (text === '') {
       setLocalValue('')
-      setInvalid(true)
+      setInvalid(!allowValidEmpty)
       if (onValidate) onValidate(false)
       return
     }
