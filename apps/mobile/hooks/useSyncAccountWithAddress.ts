@@ -70,7 +70,7 @@ function useSyncAccountWithAddress() {
               },
               sequence: input.sequence,
               scriptSig: parseHexToBytes(input.scriptsig),
-              witness: input.witness.map(parseHexToBytes)
+              witness: input.witness ? input.witness.map(parseHexToBytes) : []
             })
             if (input.prevout.scriptpubkey_address === address) {
               sent += input.prevout.value
@@ -140,27 +140,18 @@ function useSyncAccountWithAddress() {
           }
         })
       } else if (backend === 'electrum') {
-        const port = url.replace(/.*:/, '')
-        const protocol = url.replace(/:\/\/.*/, '')
-        const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
-
-        if (
-          !host.match(/^[a-z][a-z.]+$/i) ||
-          !port.match(/^[0-9]+$/) ||
-          (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
-        )
-          throw new Error('Invalid backend URL')
-
-        const electrumClient = new ElectrumClient({
-          host,
-          port: Number(port),
-          protocol,
+        const electrumClient = ElectrumClient.fromUrl(
+          url,
           network
-        })
+        )
 
         await electrumClient.init()
         const addrInfo = await electrumClient.getAddressInfo(address)
-        electrumClient.close()
+        try {
+          electrumClient.close()
+        } catch {
+          //
+        }
         transactions = addrInfo.transactions
         utxos = addrInfo.utxos
         confirmed = addrInfo.balance.confirmed
