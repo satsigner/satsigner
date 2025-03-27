@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Dimensions,
-  DimensionValue,
+  type DimensionValue,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,7 +10,39 @@ import {
   View
 } from 'react-native'
 
-const SSDatePicker: React.FC<SSDatePickerProps> = ({
+type DateBlockProps = {
+  digits: number[]
+  value: number
+  type: string
+  height: number
+  fontSize?: number
+  textColor?: string
+  markColor?: string
+  markHeight?: number
+  markWidth?: number | string
+  fadeColor?: string
+
+  onChange(type: string, digit: number): void
+}
+
+type SSDatePickerProps = {
+  value: Date | null | undefined
+  height?: number
+  width?: number | string
+  fontSize?: number
+  textColor?: string
+  startYear?: number
+  endYear?: number
+  markColor?: string
+  markHeight?: number
+  markWidth?: number | string
+  fadeColor?: string
+  format?: string
+
+  onChange(value: Date): void
+}
+
+function SSDatePicker({
   value,
   onChange,
   height,
@@ -24,7 +56,7 @@ const SSDatePicker: React.FC<SSDatePickerProps> = ({
   markWidth,
   fadeColor,
   format
-}) => {
+}: SSDatePickerProps) {
   const [days, setDays] = useState<number[]>([])
   const [months, setMonths] = useState<number[]>([])
   const [years, setYears] = useState<number[]>([])
@@ -46,7 +78,7 @@ const SSDatePicker: React.FC<SSDatePickerProps> = ({
     setDays(_days)
     setMonths(_months)
     setYears(_years)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickerHeight: number = Math.round(
     height || Dimensions.get('window').height / 3.5
@@ -146,7 +178,7 @@ const SSDatePicker: React.FC<SSDatePickerProps> = ({
   )
 }
 
-const DateBlock: React.FC<DateBlockProps> = ({
+function DateBlock({
   value,
   digits,
   type,
@@ -158,7 +190,7 @@ const DateBlock: React.FC<DateBlockProps> = ({
   markHeight,
   markWidth,
   fadeColor
-}) => {
+}: DateBlockProps) {
   const dHeight: number = Math.round(height / 4)
 
   const mHeight: number = markHeight || Math.min(dHeight, 65)
@@ -167,7 +199,7 @@ const DateBlock: React.FC<DateBlockProps> = ({
   const offsets = digits.map((_: number, index: number) => index * dHeight)
 
   const fadeFilled: string = hex2rgba(fadeColor || '#ffffff', 1)
-  const fadeTransparent: string = hex2rgba(fadeColor || '#ffffff', 0)
+  const fadeTransparent: string = hex2rgba('#000000', 0.7)
 
   const scrollRef = useRef<any>(null)
 
@@ -177,7 +209,7 @@ const DateBlock: React.FC<DateBlockProps> = ({
 
   useEffect(() => {
     snapScrollToIndex(value - digits[0])
-  }, [scrollRef.current])
+  }, [scrollRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMomentumScrollEnd = ({ nativeEvent }: any) => {
     const digit = Math.round(nativeEvent.contentOffset.y / dHeight + digits[0])
@@ -203,7 +235,7 @@ const DateBlock: React.FC<DateBlockProps> = ({
         snapToOffsets={offsets}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={0}
-        nestedScrollEnabled={true}
+        nestedScrollEnabled
         onMomentumScrollEnd={handleMomentumScrollEnd}
       >
         {digits.map((value: number, index: number) => {
@@ -239,12 +271,12 @@ const DateBlock: React.FC<DateBlockProps> = ({
       </ScrollView>
       <LinearGradient
         style={[styles.gradient, { bottom: 0, height: height / 3 }]}
-        colors={['#000000BB', fadeFilled]}
+        colors={[fadeTransparent, fadeFilled]}
         pointerEvents="none"
       />
       <LinearGradient
         style={[styles.gradient, { top: 0, height: height / 3 }]}
-        colors={[fadeFilled, '#000000BB']}
+        colors={[fadeFilled, fadeTransparent]}
         pointerEvents="none"
       />
     </View>
@@ -297,37 +329,5 @@ const styles = StyleSheet.create({
     width: '100%'
   }
 })
-
-export interface SSDatePickerProps {
-  value: Date | null | undefined
-  height?: number
-  width?: number | string
-  fontSize?: number
-  textColor?: string
-  startYear?: number
-  endYear?: number
-  markColor?: string
-  markHeight?: number
-  markWidth?: number | string
-  fadeColor?: string
-  format?: string
-
-  onChange(value: Date): void
-}
-
-export interface DateBlockProps {
-  digits: number[]
-  value: number
-  type: string
-  height: number
-  fontSize?: number
-  textColor?: string
-  markColor?: string
-  markHeight?: number
-  markWidth?: number | string
-  fadeColor?: string
-
-  onChange(type: string, digit: number): void
-}
 
 export default SSDatePicker
