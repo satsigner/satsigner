@@ -1231,11 +1231,6 @@
   resolved "https://registry.yarnpkg.com/@braintree/sanitize-url/-/sanitize-url-6.0.4.tgz#923ca57e173c6b232bbbb07347b1be982f03e783"
   integrity sha512-s3jaWicZd0pkP0jf5ysyHUI/RE7MHos6qlToFcGWXVp+ykHOy77OUMrfbgJ9it2C5bow7OIQwYYaHjk9XlBQ2A==
 
-"@dietime/react-native-date-picker@^1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@dietime/react-native-date-picker/-/react-native-date-picker-1.2.1.tgz#79bcc66f009b81051cb0dd2009dac6259929efb0"
-  integrity sha512-ezrBP7qxnYyKsvtt1SiTLZVjwf8fN1pscSK1qPGB1saYA7Mcof6XpHNlwao8uXhz7BRmzo6sYCQLPyx5VK60Kg==
-
 "@egjs/hammerjs@^2.0.17":
   version "2.0.17"
   resolved "https://registry.npmjs.org/@egjs/hammerjs/-/hammerjs-2.0.17.tgz#5dc02af75a6a06e4c2db0202cae38c9263895124"

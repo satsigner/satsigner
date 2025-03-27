@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@bitcoinerlab/secp256k1": "^1.2.0",
-    "@dietime/react-native-date-picker": "^1.2.1",
     "@gorhom/bottom-sheet": "^5.1.1",
     "@miblanchard/react-native-slider": "^2.6.0",
     "@react-native-community/netinfo": "^11.4.1",
