@@ -23,7 +23,6 @@ export default function Converter() {
   const [bitcoin, setBitcoin] = useState(0)
   const [date, setDate] = useState(new Date())
   const [pickerKey, setPickerKey] = useState(0)
-  const [lastFetchedDate, setLastFetchedDate] = useState<number | null>(null)
 
   const handleSatsChange = useCallback((sats: number) => {
     setSats(sats)
@@ -42,11 +41,8 @@ export default function Converter() {
   useFocusEffect(
     useCallback(() => {
       const timestamp = Math.floor(date.setHours(0, 0, 0, 0) / 1000)
-      if (timestamp !== lastFetchedDate) {
-        fetchFullPriceAt(timestamp)
-        setLastFetchedDate(timestamp)
-      }
-    }, [fetchFullPriceAt, date, lastFetchedDate])
+      fetchFullPriceAt(timestamp)
+    }, [fetchFullPriceAt, date])
   )
 
   return (
@@ -190,6 +186,7 @@ export default function Converter() {
               setDate(new Date())
               setPickerKey((prev) => prev + 1)
             }}
+            disabled={date.toDateString() === new Date().toDateString()}
           />
         </SSVStack>
       </SSVStack>
