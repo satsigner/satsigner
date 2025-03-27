@@ -28,6 +28,12 @@ const SSDatePicker: React.FC<SSDatePickerProps> = ({
   const [days, setDays] = useState<number[]>([])
   const [months, setMonths] = useState<number[]>([])
   const [years, setYears] = useState<number[]>([])
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  )
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    new Date().getMonth() + 1
+  )
 
   useEffect(() => {
     const end = endYear || new Date().getFullYear()
@@ -51,40 +57,61 @@ const SSDatePicker: React.FC<SSDatePickerProps> = ({
   const date = new Date(value || unexpectedDate)
 
   const changeHandle = (type: string, digit: number): void => {
+    const newDate = new Date(date)
+
     switch (type) {
       case 'day':
-        date.setDate(digit)
+        newDate.setDate(digit)
         break
       case 'month':
-        date.setMonth(digit - 1)
+        setSelectedMonth(digit)
+        newDate.setMonth(digit - 1)
         break
       case 'year':
-        date.setFullYear(digit)
+        setSelectedYear(digit)
+        newDate.setFullYear(digit)
         break
     }
 
-    onChange(date)
+    const now = new Date()
+    if (newDate > now) {
+      onChange(now)
+    } else {
+      onChange(newDate)
+    }
+  }
+
+  const getDaysInMonth = (month: number, year: number) => {
+    return new Date(year, month, 0).getDate()
   }
 
   const getOrder = () => {
+    const now = new Date()
+    const isCurrentYear = selectedYear === now.getFullYear()
+    const isCurrentMonth = selectedMonth === now.getMonth() + 1
+
+    const maxMonth = isCurrentYear ? now.getMonth() + 1 : 12
+    const maxDay =
+      isCurrentYear && isCurrentMonth
+        ? now.getDate()
+        : getDaysInMonth(selectedMonth, selectedYear)
+
+    const filteredMonths = months.filter((m) => m <= maxMonth)
+    const filteredDays = days.filter((d) => d <= maxDay)
+
     return (format || 'dd-mm-yyyy').split('-').map((type, index) => {
       switch (type) {
         case 'dd':
-          return { name: 'day', digits: days, value: date.getDate() }
+          return { name: 'day', digits: filteredDays, value: date.getDate() }
         case 'mm':
-          return { name: 'month', digits: months, value: date.getMonth() + 1 }
+          return { name: 'month', digits: filteredMonths, value: selectedMonth }
         case 'yyyy':
-          return { name: 'year', digits: years, value: date.getFullYear() }
+          return { name: 'year', digits: years, value: selectedYear }
         default:
-          console.warn(
-            `Invalid date picker format prop: found "${type}" in ${format}. Please read documentation!`
-          )
           return {
             name: ['day', 'month', 'year'][index],
-            digits: [days, months, years][index],
-            value: [date.getDate(), date.getMonth() + 1, date.getFullYear()][
-              index
-            ]
+            digits: [filteredDays, filteredMonths, years][index],
+            value: [date.getDate(), selectedMonth, selectedYear][index]
           }
       }
     })
