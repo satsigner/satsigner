@@ -45,9 +45,6 @@ function SSNavMenu(props: SSNavMenuProps) {
         style={styles.gradientOverlay}
         pointerEvents="none"
       />
-      <SSText size="sm" color="muted" style={styles.versionText}>
-        {`v${APP_VERSION} (${BUILD_NUMBER})`}
-      </SSText>
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={styles.contentContainer}
@@ -56,6 +53,9 @@ function SSNavMenu(props: SSNavMenuProps) {
           {filteredNavMenuGroups.map((group, index) => (
             <SSNavMenuGroup key={`${index} - ${group.title}`} group={group} />
           ))}
+          <SSText size="sm" color="muted" style={styles.versionText}>
+            {`v${APP_VERSION} (${BUILD_NUMBER})`}
+          </SSText>
         </SSVStack>
       </DrawerContentScrollView>
     </View>
