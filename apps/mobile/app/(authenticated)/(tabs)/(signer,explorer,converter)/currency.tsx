@@ -1,7 +1,6 @@
-import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -57,7 +56,7 @@ export default function Converter() {
           headerBackVisible: false
         }}
       />
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <SSVStack gap="none" justifyBetween>
           <SSVStack>
             <SSVStack itemsCenter style={styles.inputContainer}>
