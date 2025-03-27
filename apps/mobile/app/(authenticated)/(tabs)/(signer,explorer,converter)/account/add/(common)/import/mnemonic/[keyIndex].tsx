@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { AppState, ScrollView, type TextInput } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -343,8 +344,9 @@ export default function ImportMnemonic() {
         )
         updateAccount(updatedAccount)
         setSyncedAccount(updatedAccount)
-      } catch {
+      } catch (error) {
         setWalletSyncFailed(true)
+        toast.error((error as Error).message)
       } finally {
         setAccountImported(true)
         setLoadingAccount(false)

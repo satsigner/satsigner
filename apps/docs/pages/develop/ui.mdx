@@ -1,0 +1,41 @@
+# UI
+
+In **satsigner** you can develop the UI in isolation with [Storybook](https://storybook.js.org/)
+
+## Run storybook
+
+Instead of running `yarn android` or `yarn ios`, run:
+
+```bash
+yarn sb:android
+yarn sb:ios
+```
+
+## Create stories
+
+Create component stories inside the `components` folder
+
+```
+SSButton.stories.tsx
+```
+
+Follow the example story for `SSButton` above to see how you can:
+
+1. Create different stories
+2. Decorators to wrap the story
+3. Define arguments and argument types
+4. Define other parameters
+
+## Controls
+
+Storybook has stories settings where you can change the component props, change parameters, actions, etc.
+
+Click on the bottom right icon to display these settings.
+
+## Multiple stories vs Controls
+
+Using the SSButton as example, it has multiple variants.
+
+We can create just one Story and allow the storybook user to control the variant via story settings.
+
+Or we can create multiple stories with all the variants already set for each variant.

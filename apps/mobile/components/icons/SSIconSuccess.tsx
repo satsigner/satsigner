@@ -11,7 +11,7 @@ export default function SSIconSuccess({
   fill = 'white'
 }: IconProps) {
   return (
-    <Svg width={width} height={height} viewBox="0 0 159 159" fill="none">
+    <Svg width={width} height={height} viewBox="-4 -4 167 167" fill="none">
       <Circle
         cx="79.4999"
         cy="79.4999"
