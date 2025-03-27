@@ -13,7 +13,6 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
-import { formatNumber } from '@/utils/format'
 
 const SATS_PER_BITCOIN = 100_000_000
 
@@ -80,8 +79,9 @@ export default function Converter() {
   useFocusEffect(
     useCallback(() => {
       handleValueChange(lastChangeKey, currencyValues[lastChangeKey])
-    }, [prices])
+    }, [prices]) // eslint-disable-line react-hooks/exhaustive-deps
   )
+
   return (
     <>
       <Stack.Screen
