@@ -11,10 +11,15 @@ import {
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
-import Animated from 'react-native-reanimated'
-
+import { GestureDetector, Gesture } from 'react-native-gesture-handler'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring
+} from 'react-native-reanimated'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
+import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 
 type SSSpiralBlocksProps = {
   data: BlockDifficulty[]
@@ -51,6 +56,33 @@ function SSSpiralBlocks({
   })
 
   const fontSize = 12
+
+  const scale = useSharedValue(1)
+  const translateX = useSharedValue(0)
+  const translateY = useSharedValue(0)
+
+  const pinchGesture = Gesture.Pinch().onUpdate((event) => {
+    scale.value = event.scale
+  })
+
+  const panGesture = Gesture.Pan().onUpdate((event) => {
+    translateX.value = event.translationX
+    translateY.value = event.translationY
+  })
+
+  const gesture = Gesture.Simultaneous(pinchGesture, panGesture)
+
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [
+        { translateX: withSpring(translateX.value) },
+        { translateY: withSpring(translateY.value) },
+        { scale: withSpring(scale.value, { damping: 10, stiffness: 200 }) }
+      ]
+      //transformOrigin: 'center center' // This ensures scaling happens from the center
+    }),
+    [scale, translateX, translateY]
+  )
 
   const TextStyleWeeks = {
     color: Skia.Color(Colors.gray[100]),
@@ -153,98 +185,91 @@ function SSSpiralBlocks({
 
   return (
     <View style={styles.container}>
-      <Canvas
-        style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
-      >
-        {spiralBlocks.map((block, index) => {
-          const path = Skia.Path.Make()
-          const halfSize = BLOCK_SIZE / 2
-          const cosTheta = Math.cos(block.rotation)
-          const sinTheta = Math.sin(block.rotation)
-          const points = [
-            [-halfSize, -halfSize],
-            [halfSize, -halfSize],
-            [halfSize, halfSize],
-            [-halfSize, halfSize]
-          ].map(([x, y]) => {
-            const rotatedX = cosTheta * x - sinTheta * y
-            const rotatedY = sinTheta * x + cosTheta * y
-            return [rotatedX + block.x, rotatedY + block.y]
-          })
+      <Animated.View style={animatedStyle}>
+        <Canvas
+          style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+        >
+          {spiralBlocks.map((block, index) => {
+            const path = Skia.Path.Make()
+            const halfSize = BLOCK_SIZE / 2
+            const cosTheta = Math.cos(block.rotation)
+            const sinTheta = Math.sin(block.rotation)
+            const points = [
+              [-halfSize, -halfSize],
+              [halfSize, -halfSize],
+              [halfSize, halfSize],
+              [-halfSize, halfSize]
+            ].map(([x, y]) => {
+              const rotatedX = cosTheta * x - sinTheta * y
+              const rotatedY = sinTheta * x + cosTheta * y
+              return [rotatedX + block.x, rotatedY + block.y]
+            })
 
-          path.moveTo(
-            points[0][0] + canvasWidth / 2,
-            points[0][1] + canvasHeight / 2
-          )
-          path.lineTo(
-            points[1][0] + canvasWidth / 2,
-            points[1][1] + canvasHeight / 2
-          )
-          path.lineTo(
-            points[2][0] + canvasWidth / 2,
-            points[2][1] + canvasHeight / 2
-          )
-          path.lineTo(
-            points[3][0] + canvasWidth / 2,
-            points[3][1] + canvasHeight / 2
-          )
-          path.close()
+            path.moveTo(
+              points[0][0] + canvasWidth / 2,
+              points[0][1] + canvasHeight / 2
+            )
+            path.lineTo(
+              points[1][0] + canvasWidth / 2,
+              points[1][1] + canvasHeight / 2
+            )
+            path.lineTo(
+              points[2][0] + canvasWidth / 2,
+              points[2][1] + canvasHeight / 2
+            )
+            path.lineTo(
+              points[3][0] + canvasWidth / 2,
+              points[3][1] + canvasHeight / 2
+            )
+            path.close()
 
-          return <Path key={index} path={path} color={block.color} />
-        })}
+            return <Path key={index} path={path} color={block.color} />
+          })}
 
-        {RADIUS_WEEKS.map((r, index) => {
-          const myColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
-          return (
-            <Circle
+          {RADIUS_WEEKS.map((r, index) => {
+            const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
+            return (
+              <Circle
+                key={index}
+                cx={canvasWidth / 2}
+                cy={canvasHeight / 2}
+                r={r}
+                color="transparent"
+              >
+                <Paint color={weekRingColor} style="stroke" strokeWidth={1}>
+                  <DashPathEffect intervals={[5, 5]} phase={0} />
+                </Paint>
+              </Circle>
+            )
+          })}
+
+          <Paragraph paragraph={pWeek1} x={0} y={135} width={canvasWidth} />
+          <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
+          <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
+          <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
+        </Canvas>
+
+        {/* Overlay for touchable areas, ensuring correct alignment with blocks */}
+        <View style={styles.touchableOverlay}>
+          {spiralBlocks.map((block, index) => (
+            <TouchableOpacity
               key={index}
-              cx={canvasWidth / 2}
-              cy={canvasHeight / 2}
-              r={r}
-              color="transparent"
-            >
-              <Paint color={myColor} style="stroke" strokeWidth={1}>
-                <DashPathEffect intervals={[5, 5]} phase={0} />
-              </Paint>
-            </Circle>
-          )
-        })}
-
-        <Paragraph paragraph={pWeek1} x={0} y={135} width={canvasWidth} />
-        <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
-        <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
-        <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
-      </Canvas>
-
-      {/* Overlay for touchable areas to detect block clicks */}
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: -228,
-          left: 186,
-          right: 0,
-          bottom: 0
-        }}
-      >
-        {spiralBlocks.map((block, index) => (
-          <TouchableOpacity
-            key={index}
-            style={{
-              position: 'absolute',
-              top:
-                CANVAS_TOP_OFFSET + canvasHeight / 2 + block.y - BLOCK_SIZE / 2,
-              left: block.x - BLOCK_SIZE / 2,
-              width: BLOCK_SIZE + 3,
-              height: BLOCK_SIZE + 3,
-              borderRadius: 25,
-              backgroundColor: 'rgba(255, 255, 255, 0)'
-            }}
-            onPress={() => {
-              console.log('pressed...', block)
-              onBlockPress(data[block.index])
-            }}
-          />
-        ))}
+              style={{
+                position: 'absolute',
+                top: canvasHeight / 2 + block.y - BLOCK_SIZE / 2,
+                left: canvasWidth / 2 + block.x - BLOCK_SIZE / 2,
+                width: BLOCK_SIZE + 3,
+                height: BLOCK_SIZE + 3,
+                borderRadius: 25,
+                backgroundColor: 'rgba(255, 255, 255, 0)'
+              }}
+              onPress={() => {
+                console.log('pressed...', block)
+                onBlockPress(data[block.index])
+              }}
+            />
+          ))}
+        </View>
       </Animated.View>
     </View>
   )
@@ -290,8 +315,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000'
   },
   canvas: {
-    position: 'absolute',
-    backgroundColor: '#000'
+    position: 'relative',
+    backgroundColor: '#000',
+
+    borderWidth: 1,
+    borderColor: 'red'
+  },
+  touchableOverlay: {
+    position: 'relative',
+    top: -0.7 * SCREEN_HEIGHT, // Adjust as needed
+    left: 0, // Adjust as needed
+    right: 0,
+    bottom: 0
   },
   closeButton: {
     paddingHorizontal: 20,
@@ -309,7 +344,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
