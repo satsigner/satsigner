@@ -18,23 +18,56 @@ import { formatNumber } from '@/utils/format'
 const SATS_PER_BITCOIN = 100_000_000
 
 export default function Converter() {
-  const [sats, setSats] = useState(0)
-  const [bitcoin, setBitcoin] = useState(0)
   const [date, setDate] = useState(new Date())
   const [pickerKey, setPickerKey] = useState(0)
-
-  const handleSatsChange = useCallback((sats: number) => {
-    setSats(sats)
-    setBitcoin(sats / SATS_PER_BITCOIN)
-  }, [])
-
-  const handleBitcoinChange = useCallback((bitcoin: number) => {
-    setBitcoin(bitcoin)
-    setSats(Math.round(bitcoin * SATS_PER_BITCOIN))
-  }, [])
+  const [lastChangeKey, setLastChangedKey] = useState<
+    'sats' | 'bitcoin' | 'USD' | 'EUR' | 'GBP' | 'CAD' | 'CHF' | 'JPY'
+  >('sats')
+  const [currencyValues, setCurrencyValues] = useState({
+    sats: 0,
+    bitcoin: 0,
+    USD: 0,
+    EUR: 0,
+    GBP: 0,
+    CAD: 0,
+    CHF: 0,
+    JPY: 0
+  })
 
   const [prices, fetchFullPriceAt] = usePriceStore(
     useShallow((state) => [state.prices, state.fetchFullPriceAt])
+  )
+
+  const handleValueChange = useCallback(
+    (key: keyof typeof currencyValues, value: number) => {
+      setLastChangedKey(key)
+
+      let bitcoinValue = 0
+
+      if (key === 'sats') {
+        bitcoinValue = value / SATS_PER_BITCOIN
+      } else if (key === 'bitcoin') {
+        bitcoinValue = value
+      } else {
+        const price = prices[key]
+        bitcoinValue = price ? value / price : 0
+      }
+
+      const updatedValues = {
+        sats: Math.round(bitcoinValue * SATS_PER_BITCOIN),
+        bitcoin: bitcoinValue,
+        USD: (prices.USD || 0) * bitcoinValue,
+        EUR: (prices.EUR || 0) * bitcoinValue,
+        GBP: (prices.GBP || 0) * bitcoinValue,
+        CAD: (prices.CAD || 0) * bitcoinValue,
+        CHF: (prices.CHF || 0) * bitcoinValue,
+        JPY: (prices.JPY || 0) * bitcoinValue,
+        [key]: value
+      }
+
+      setCurrencyValues(updatedValues)
+    },
+    [prices]
   )
 
   useFocusEffect(
@@ -44,6 +77,11 @@ export default function Converter() {
     }, [fetchFullPriceAt, date])
   )
 
+  useFocusEffect(
+    useCallback(() => {
+      handleValueChange(lastChangeKey, currencyValues[lastChangeKey])
+    }, [prices])
+  )
   return (
     <>
       <Stack.Screen
@@ -61,9 +99,9 @@ export default function Converter() {
           <SSVStack>
             <SSVStack itemsCenter style={styles.inputContainer}>
               <SSCurrencyInput
-                value={sats.toString()}
+                value={currencyValues.sats.toString()}
                 size="large"
-                onChangeValue={handleSatsChange}
+                onChangeValue={(value) => handleValueChange('sats', value)}
                 align="center"
                 style={styles.currencyInput}
               />
@@ -73,9 +111,9 @@ export default function Converter() {
             </SSVStack>
             <SSVStack itemsCenter style={styles.inputContainer}>
               <SSCurrencyInput
-                value={bitcoin.toString()}
+                value={currencyValues.bitcoin.toString()}
                 size="large"
-                onChangeValue={handleBitcoinChange}
+                onChangeValue={(value) => handleValueChange('bitcoin', value)}
                 align="center"
                 style={styles.currencyInput}
               />
@@ -86,9 +124,14 @@ export default function Converter() {
             <SSVStack gap="none" style={styles.currencySection}>
               <SSHStack gap="none" style={styles.rowSeparator}>
                 <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                  <SSText size="md">
-                    {formatNumber((prices.USD || 0) * bitcoin, 2, false, ',')}
-                  </SSText>
+                  <SSCurrencyInput
+                    decimal={2}
+                    value={currencyValues.USD.toString()}
+                    size="small"
+                    onChangeValue={(value) => handleValueChange('USD', value)}
+                    align="center"
+                    style={styles.currencyInput}
+                  />
                   <SSText size="xs" color="muted">
                     🇺🇸 {t('converter.currency.usd')}
                   </SSText>
@@ -98,9 +141,14 @@ export default function Converter() {
                   gap="none"
                   style={styles.currencyBlockNoBorder}
                 >
-                  <SSText size="md">
-                    {formatNumber((prices.EUR || 0) * bitcoin, 2, false, ',')}
-                  </SSText>
+                  <SSCurrencyInput
+                    decimal={2}
+                    value={currencyValues.EUR.toString()}
+                    size="small"
+                    onChangeValue={(value) => handleValueChange('EUR', value)}
+                    align="center"
+                    style={styles.currencyInput}
+                  />
                   <SSText size="xs" color="muted">
                     🇪🇺 {t('converter.currency.eur')}
                   </SSText>
@@ -108,9 +156,14 @@ export default function Converter() {
               </SSHStack>
               <SSHStack gap="none" style={styles.rowSeparator}>
                 <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                  <SSText size="md">
-                    {formatNumber((prices.GBP || 0) * bitcoin, 2, false, ',')}
-                  </SSText>
+                  <SSCurrencyInput
+                    decimal={2}
+                    value={currencyValues.GBP.toString()}
+                    size="small"
+                    onChangeValue={(value) => handleValueChange('GBP', value)}
+                    align="center"
+                    style={styles.currencyInput}
+                  />
                   <SSText size="xs" color="muted">
                     🇬🇧 {t('converter.currency.gbp')}
                   </SSText>
@@ -120,9 +173,14 @@ export default function Converter() {
                   gap="none"
                   style={styles.currencyBlockNoBorder}
                 >
-                  <SSText size="md">
-                    {formatNumber((prices.CAD || 0) * bitcoin, 2, false, ',')}
-                  </SSText>
+                  <SSCurrencyInput
+                    decimal={2}
+                    value={currencyValues.CAD.toString()}
+                    size="small"
+                    onChangeValue={(value) => handleValueChange('CAD', value)}
+                    align="center"
+                    style={styles.currencyInput}
+                  />
                   <SSText size="xs" color="muted">
                     🇨🇦 {t('converter.currency.cad')}
                   </SSText>
@@ -130,9 +188,14 @@ export default function Converter() {
               </SSHStack>
               <SSHStack gap="none" style={styles.rowSeparator}>
                 <SSVStack itemsCenter gap="none" style={styles.currencyBlock}>
-                  <SSText size="md">
-                    {formatNumber((prices.CHF || 0) * bitcoin, 2, false, ',')}
-                  </SSText>
+                  <SSCurrencyInput
+                    decimal={2}
+                    value={currencyValues.CHF.toString()}
+                    size="small"
+                    onChangeValue={(value) => handleValueChange('CHF', value)}
+                    align="center"
+                    style={styles.currencyInput}
+                  />
                   <SSText size="xs" color="muted">
                     🇨🇭 {t('converter.currency.chf')}
                   </SSText>
@@ -142,9 +205,14 @@ export default function Converter() {
                   gap="none"
                   style={styles.currencyBlockNoBorder}
                 >
-                  <SSText size="md">
-                    {formatNumber((prices.JPY || 0) * bitcoin, 2, false, ',')}
-                  </SSText>
+                  <SSCurrencyInput
+                    decimal={2}
+                    value={currencyValues.JPY.toString()}
+                    size="small"
+                    onChangeValue={(value) => handleValueChange('JPY', value)}
+                    align="center"
+                    style={styles.currencyInput}
+                  />
                   <SSText size="xs" color="muted">
                     🇯🇵 {t('converter.currency.jpy')}
                   </SSText>
