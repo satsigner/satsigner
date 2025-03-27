@@ -1,5 +1,5 @@
 import { Stack, useFocusEffect } from 'expo-router'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -17,6 +17,8 @@ import { transparent } from '@/styles/colors'
 const SATS_PER_BITCOIN = 100_000_000
 
 export default function Converter() {
+  const hasInitializedRef = useRef(false)
+
   const [date, setDate] = useState(new Date())
   const [pickerKey, setPickerKey] = useState(0)
   const [lastChangeKey, setLastChangedKey] = useState<
@@ -78,7 +80,12 @@ export default function Converter() {
 
   useFocusEffect(
     useCallback(() => {
-      handleValueChange(lastChangeKey, currencyValues[lastChangeKey])
+      if (!hasInitializedRef.current) {
+        hasInitializedRef.current = true
+        handleValueChange('bitcoin', 1)
+      } else {
+        handleValueChange(lastChangeKey, currencyValues[lastChangeKey])
+      }
     }, [prices]) // eslint-disable-line react-hooks/exhaustive-deps
   )
 
