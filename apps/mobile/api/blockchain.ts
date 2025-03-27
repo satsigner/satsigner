@@ -147,6 +147,26 @@ export class MempoolOracle implements BlockchainOracle {
     return prices[0][currency] as number
   }
 
+  async getFullPriceAt(
+    currency: string,
+    timestamp: number
+  ): Promise<Record<string, number>> {
+    const { prices, exchangeRates }: any = await this.get(
+      `/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
+    )
+
+    const btcPrice = prices[0][currency]
+
+    return Object.fromEntries(
+      Object.entries(exchangeRates)
+        .map(([key, rate]) => {
+          const currencyCode = key.replace('USD', '')
+          return [currencyCode, btcPrice * Number(rate)]
+        })
+        .concat([['USD', btcPrice]])
+    )
+  }
+
   async getPricesAt(currency: string, timestamps: number[]): Promise<number[]> {
     // create a set of unique timestamps to avoid duplicate requests
     const uniqueTimestamps = [...new Set(timestamps)]

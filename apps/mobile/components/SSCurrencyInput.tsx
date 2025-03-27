@@ -7,9 +7,9 @@ import {
 } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 
-const formatNumberWithCommas = (numStr: string) => {
+const formatNumberWithCommas = (numStr: string, decimal: number) => {
   let rawText = ''
   if (numStr.indexOf('e') !== -1) {
     const [baseStr, exponentStr] = numStr.split('e')
@@ -34,7 +34,7 @@ const formatNumberWithCommas = (numStr: string) => {
   if (rawText.includes('.')) {
     let [integerPart, decimalPart] = rawText.split('.')
     integerPart = integerPart.replace(/^0+/, '') || '0'
-    decimalPart = decimalPart.slice(0, 8)
+    decimalPart = decimalPart.slice(0, decimal)
     const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
     return formattedInt + '.' + decimalPart
   }
@@ -44,6 +44,7 @@ const formatNumberWithCommas = (numStr: string) => {
 }
 
 type SSCurrencyInputProps = {
+  decimal?: number
   variant?: 'default' | 'outline'
   size?: 'default' | 'small' | 'large'
   align?: 'center' | 'left'
@@ -53,6 +54,7 @@ type SSCurrencyInputProps = {
 
 function SSCurrencyInput(
   {
+    decimal = 8,
     variant = 'default',
     size = 'default',
     align = 'left',
@@ -75,7 +77,7 @@ function SSCurrencyInput(
 
     const rawValue = text.replace(/,/g, '')
     if (/^(\d*\.?\d*)$/.test(rawValue)) {
-      const formattedValue = formatNumberWithCommas(rawValue)
+      const formattedValue = formatNumberWithCommas(rawValue, decimal)
       setLocalValue(formattedValue)
 
       if (onChangeValue) {
@@ -111,7 +113,7 @@ function SSCurrencyInput(
   useEffect(() => {
     if (value !== localValue && value !== undefined) {
       const rawValue = value?.replace(/,/g, '')
-      setLocalValue(formatNumberWithCommas(rawValue) || '')
+      setLocalValue(formatNumberWithCommas(rawValue, decimal) || '')
     }
   }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -140,7 +142,8 @@ const styles = StyleSheet.create({
     borderRadius: Sizes.textInput.borderRadius,
     width: '100%',
     textAlign: 'center',
-    color: Colors.white
+    color: Colors.white,
+    fontFamily: Typography.sfProTextRegular
   },
   variantDefault: {
     backgroundColor: Colors.gray[850]
