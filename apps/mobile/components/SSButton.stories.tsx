@@ -2,6 +2,9 @@ import { withBackgrounds } from '@storybook/addon-ondevice-backgrounds'
 import type { Meta, StoryObj } from '@storybook/react'
 import { View } from 'react-native'
 
+import { storybookBackgrounds } from '@/.storybook/utils/backgrounds'
+import { Layout } from '@/styles'
+
 import SSButton from './SSButton'
 
 const meta = {
@@ -9,7 +12,8 @@ const meta = {
   component: SSButton,
   args: {
     label: 'Satsigner',
-    variant: 'default'
+    variant: 'default',
+    gradientType: 'default'
   },
   argTypes: {
     variant: {
@@ -23,6 +27,18 @@ const meta = {
         'gradient',
         'danger'
       ]
+    },
+    loading: {
+      control: 'boolean',
+      description: 'Button loading'
+    },
+    withSelect: {
+      control: 'boolean',
+      description: 'With select icon'
+    },
+    uppercase: {
+      control: 'boolean',
+      description: 'Text uppercase'
     }
   },
   decorators: [
@@ -32,7 +48,7 @@ const meta = {
           alignItems: 'center',
           justifyContent: 'center',
           flex: 1,
-          paddingHorizontal: '6%'
+          paddingHorizontal: Layout.mainContainer.paddingHorizontal
         }}
       >
         <Story />
@@ -41,16 +57,7 @@ const meta = {
     withBackgrounds
   ],
   parameters: {
-    backgrounds: {
-      default: 'satsigner',
-      values: [
-        {
-          name: 'satsigner',
-          value: '#131313'
-        },
-        { name: 'black', value: '#000000' }
-      ]
-    }
+    backgrounds: storybookBackgrounds
   }
 } satisfies Meta<typeof SSButton>
 
@@ -63,5 +70,41 @@ export const Default: Story = {}
 export const Secondary: Story = {
   args: {
     variant: 'secondary'
+  }
+}
+
+export const Outline: Story = {
+  args: {
+    variant: 'outline'
+  }
+}
+
+export const Ghost: Story = {
+  args: {
+    variant: 'ghost'
+  }
+}
+
+export const Subtle: Story = {
+  args: {
+    variant: 'subtle'
+  }
+}
+
+export const Gradient: Story = {
+  args: {
+    variant: 'gradient'
+  },
+  argTypes: {
+    gradientType: {
+      control: 'select',
+      options: ['default', 'special']
+    }
+  }
+}
+
+export const Danger: Story = {
+  args: {
+    variant: 'danger'
   }
 }
