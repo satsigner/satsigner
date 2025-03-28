@@ -180,46 +180,55 @@ function TotalTransactions({
           />
         </View>
       ) : (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleOnRefresh}
-              colors={[Colors.gray[900]]}
-              progressBackgroundColor={Colors.white}
-            />
-          }
-          style={{ marginLeft: 16, marginRight: 2, paddingRight: 14 }}
+        <SSVStack
+          style={{
+            flex: 1,
+            marginLeft: 16,
+            marginRight: 2,
+            paddingRight: 14,
+            marginBottom: expand ? 8 : 16,
+            height: 400,
+            minHeight: 200
+          }}
+          gap={expand ? 'sm' : 'md'}
         >
-          <SSVStack
-            style={{ marginBottom: expand ? 8 : 16 }}
-            gap={expand ? 'sm' : 'md'}
-          >
-            {sortedTransactions
-              .slice()
-              .reverse()
-              .map((transaction, index) => {
-                return (
-                  <SSVStack gap="none" key={transaction.id}>
-                    <SSBalanceChangeBar
-                      transaction={transaction}
-                      balance={transactionBalances[index]}
-                      maxBalance={maxBalance}
-                    />
-                    <SSTransactionCard
-                      btcPrice={btcPrice}
-                      fiatCurrency={fiatCurrency}
-                      transaction={transaction}
-                      expand={expand}
-                      walletBalance={transactionBalances[index]}
-                      blockHeight={blockchainHeight}
-                      link={`/account/${account.id}/transaction/${transaction.id}`}
-                    />
-                  </SSVStack>
-                )
-              })}
-          </SSVStack>
-        </ScrollView>
+          <FlashList
+            data={sortedTransactions.slice().reverse()}
+            renderItem={({ item, index }) => (
+              <SSVStack gap="none">
+                <SSBalanceChangeBar
+                  transaction={item}
+                  balance={transactionBalances[index]}
+                  maxBalance={maxBalance}
+                />
+                <SSTransactionCard
+                  btcPrice={btcPrice}
+                  fiatCurrency={fiatCurrency}
+                  transaction={item}
+                  expand={expand}
+                  walletBalance={transactionBalances[index]}
+                  blockHeight={blockchainHeight}
+                  link={`/account/${account.id}/transaction/${item.id}`}
+                />
+              </SSVStack>
+            )}
+            estimatedItemSize={120}
+            ListEmptyComponent={
+              <SSVStack>
+                <SSText>No transactions</SSText>
+              </SSVStack>
+            }
+            keyExtractor={(item) => item.id}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleOnRefresh}
+                colors={[Colors.gray[900]]}
+                progressBackgroundColor={Colors.white}
+              />
+            }
+          />
+        </SSVStack>
       )}
     </SSMainLayout>
   )
@@ -292,7 +301,8 @@ function DerivedAddresses({
   }
 
   async function updateAddresses() {
-    // if (hasLoadMoreAddresses) return
+    if (!wallet) return
+
     const result = await getLastUnusedAddressFromWallet(wallet!)
 
     if (!result) return
