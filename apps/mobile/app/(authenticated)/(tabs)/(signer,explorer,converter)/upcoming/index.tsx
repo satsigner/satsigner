@@ -37,7 +37,7 @@ export default function UpComing() {
               {t('upcoming.name')}
             </SSText>
           ),
-          headerRight: undefined
+          headerBackVisible: false
         }}
       />
 
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     paddingTop: 40,
-    paddingBottom: 60,
+    paddingBottom: 15,
     gap: 60
   },
   flexContainer: {

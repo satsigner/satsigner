@@ -179,7 +179,8 @@ export default function AccountList() {
                 <SSIconHamburger height={18} width={18} />
               )}
             </SSIconButton>
-          )
+          ),
+          headerBackVisible: false
         }}
       />
       <SSHStack style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}>
