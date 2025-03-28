@@ -140,10 +140,7 @@ function useSyncAccountWithAddress() {
           }
         })
       } else if (backend === 'electrum') {
-        const electrumClient = ElectrumClient.fromUrl(
-          url,
-          network
-        )
+        const electrumClient = ElectrumClient.fromUrl(url, network)
 
         await electrumClient.init()
         const addrInfo = await electrumClient.getAddressInfo(address)
