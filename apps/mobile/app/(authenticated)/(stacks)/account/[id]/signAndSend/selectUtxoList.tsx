@@ -1,6 +1,7 @@
+import { FlashList } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { Platform, ScrollView, StyleSheet, View } from 'react-native'
+import { Dimensions, Platform, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconBubbles } from '@/components/icons'
@@ -25,7 +26,6 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareAmount, compareTimestamp } from '@/utils/sort'
-import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SortField = 'date' | 'amount'
 
@@ -215,23 +215,26 @@ export default function SelectUtxoList() {
       </SSHStack>
       <View>
         <View style={styles.scrollBackgroundBase} />
-        <ScrollView
-          contentContainerStyle={{
-            paddingBottom: Platform.OS === 'android' ? 356 : 286
+        <View
+          style={{
+            marginTop: 2,
+            paddingBottom: Platform.OS === 'android' ? 386 : 306,
+            height: Dimensions.get('window').height
           }}
         >
-          <View style={{ marginTop: 2 }}>
-            {sortUtxos([...account.utxos]).map((utxo) => (
+          <FlashList
+            data={sortUtxos([...account.utxos])}
+            renderItem={({ item }) => (
               <SSUtxoItem
-                key={getUtxoOutpoint(utxo)}
-                utxo={utxo}
-                selected={hasInput(utxo)}
+                utxo={item}
+                selected={hasInput(item)}
                 onToggleSelected={handleOnToggleSelected}
                 largestValue={largestValue}
               />
-            ))}
-          </View>
-        </ScrollView>
+            )}
+            estimatedItemSize={110}
+          />
+        </View>
       </View>
       <SSMainLayout style={styles.absoluteSubmitContainer}>
         <SSButton
