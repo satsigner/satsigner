@@ -440,84 +440,82 @@ function DerivedAddresses({
         ))}
       </SSHStack>
 
-      <ScrollView style={{ marginTop: 10 }}>
-        <ScrollView horizontal>
-          <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
-            <SSHStack style={addressListStyles.headerRow}>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnIndex
-                ]}
-              >
-                {t('address.list.table.index')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnAddress
-                ]}
-              >
-                {t('bitcoin.address')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnLabel
-                ]}
-              >
-                {t('common.label')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnTxs
-                ]}
-              >
-                {t('address.list.table.tx')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnSats
-                ]}
-              >
-                {t('address.list.table.balance')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnUtxos
-                ]}
-              >
-                {t('address.list.table.utxo')}
-              </SSText>
-            </SSHStack>
+      <ScrollView style={{ marginTop: 10 }} horizontal>
+        <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
+          <SSHStack style={addressListStyles.headerRow}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnIndex
+              ]}
+            >
+              {t('address.list.table.index')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnAddress
+              ]}
+            >
+              {t('bitcoin.address')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnLabel
+              ]}
+            >
+              {t('common.label')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnTxs
+              ]}
+            >
+              {t('address.list.table.tx')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnSats
+              ]}
+            >
+              {t('address.list.table.balance')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnUtxos
+              ]}
+            >
+              {t('address.list.table.utxo')}
+            </SSText>
+          </SSHStack>
 
-            <FlashList
-              data={addresses?.filter((address) =>
-                change
-                  ? address.keychain === 'internal'
-                  : address.keychain === 'external'
-              )}
-              renderItem={renderItem}
-              estimatedItemSize={150}
-              keyExtractor={(item) => {
-                return `${item.index}:${item.address}:${item.keychain}`
-              }}
-              removeClippedSubviews
-            />
-          </SSVStack>
-        </ScrollView>
-        <SSButton
-          variant="outline"
-          uppercase
-          style={{ marginTop: 10 }}
-          label={t('address.list.table.loadMore')}
-          disabled={loadingAddresses}
-          onPress={loadMoreAddresses}
-        />
+          <FlashList
+            data={addresses?.filter((address) =>
+              change
+                ? address.keychain === 'internal'
+                : address.keychain === 'external'
+            )}
+            renderItem={renderItem}
+            estimatedItemSize={150}
+            keyExtractor={(item) => {
+              return `${item.index}:${item.address}:${item.keychain}`
+            }}
+            removeClippedSubviews
+          />
+        </SSVStack>
       </ScrollView>
+      <SSButton
+        variant="outline"
+        uppercase
+        style={{ marginTop: 10 }}
+        label={t('address.list.table.loadMore')}
+        disabled={loadingAddresses}
+        onPress={loadMoreAddresses}
+      />
     </SSMainLayout>
   )
 }
