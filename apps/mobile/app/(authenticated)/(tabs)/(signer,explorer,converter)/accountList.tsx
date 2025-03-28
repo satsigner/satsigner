@@ -238,16 +238,19 @@ export default function AccountList() {
               ItemSeparatorComponent={() => (
                 <SSSeparator style={{ marginVertical: 16 }} color="gradient" />
               )}
+              ListEmptyComponent={
+                <SSVStack
+                  itemsCenter
+                  style={{ paddingTop: 32, paddingBottom: 64 }}
+                >
+                  <SSText uppercase>{t('accounts.empty')}</SSText>
+                </SSVStack>
+              }
               indicatorStyle="white"
               showsVerticalScrollIndicator={false}
             />
           </SSVStack>
-          <SSVStack itemsCenter style={{ paddingTop: 50, paddingBottom: 100 }}>
-            {accounts.length === 0 && (
-              <SSText style={{ paddingBottom: 50 }} uppercase>
-                {t('accounts.empty')}
-              </SSText>
-            )}
+          <SSVStack itemsCenter style={{ paddingBottom: 100 }}>
             <SSText color="muted" uppercase>
               {t('accounts.samples')}
             </SSText>
