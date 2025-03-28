@@ -215,11 +215,12 @@ class BaseElectrumClient {
   // async getTransactions(txIds: string[]): Promise<IElectrumClient['transaction']> {
   async getTransactions(txIds: string[]): Promise<string[]> {
     const verbose = false // verbose=true is not supported by some clients
-    const result = (await this.client.blockchainTransaction_getBatch(
-      txIds,
-      verbose
-    )) as IElectrumClient['transactionRaw'][]
-    return result.map((item) => item.result)
+    const rawTxs = []
+    for (const txid of txIds) {
+      const raw = await this.client.blockchainTransaction_get(txid, verbose)
+      rawTxs.push(raw)
+    }
+    return rawTxs
   }
 }
 
@@ -243,14 +244,13 @@ class ElectrumClient extends BaseElectrumClient {
     const rawTransactions = await this.getTransactions(txIds)
     const txHeights = addressTxs.map((value) => value.height)
     const txTimestamps = await this.getBlockTimestamps(txHeights)
+    const balance = await this.getAddressBalance(address)
     const transactions = this.parseAddressTransactions(
       address,
       rawTransactions,
       txHeights,
       txTimestamps
     )
-
-    const balance = await this.getAddressBalance(address)
 
     return { utxos, transactions, balance }
   }
