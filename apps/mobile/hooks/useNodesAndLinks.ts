@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
+import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -45,15 +46,15 @@ type Transaction = {
 type UseNodesAndLinksProps = {
   transactions: Map<string, Transaction>
   inputs: Map<string, Utxo>
-  outputs: any[]
-  utxosSelectedValue: number
+  outputs: Output[]
+  feeRate: number
 }
 
 export const useNodesAndLinks = ({
   transactions,
   inputs,
   outputs,
-  utxosSelectedValue
+  feeRate
 }: UseNodesAndLinksProps) => {
   // Ensure all transaction outputs have the vout property set
   Array.from(transactions.values()).forEach((tx) => {
@@ -82,32 +83,94 @@ export const useNodesAndLinks = ({
         outputs.length + 2
       )
 
-      const miningFee = `${MINING_FEE_VALUE}`
-      const priority = '42 sats/vB'
-      const outputNodes = [
-        {
-          id: `vout-${blockDepth + 1}-0`,
+      const miningFee = `${Math.round(feeRate)}`
+      const priority = `${miningFee} sats/vB`
+
+      // Calculate total input value
+      const totalInputValue = Array.from(inputs.values()).reduce(
+        (sum, input) => sum + input.value,
+        0
+      )
+
+      // Calculate total output value
+      const totalOutputValue = outputs.reduce(
+        (sum, output) => sum + output.amount,
+        0
+      )
+
+      // Create output nodes
+      let outputNodes = []
+
+      if (outputs.length === 0) {
+        // If no outputs, create unspent node with remaining balance and mining fee node
+        outputNodes = [
+          {
+            id: `vout-${blockDepth + 1}-1`,
+            type: 'text',
+            depthH: blockDepth + 1,
+            textInfo: [
+              t('transaction.build.unspent'),
+              `${totalInputValue - MINING_FEE_VALUE}`
+            ],
+            value: totalInputValue - MINING_FEE_VALUE,
+            indexV: 0,
+            vout: 0
+          },
+          {
+            id: `vout-${blockDepth + 1}-0`,
+            type: 'text',
+            depthH: blockDepth + 1,
+            textInfo: [priority, miningFee, t('transaction.build.minerFee')],
+            value: MINING_FEE_VALUE,
+            indexV: 1,
+            vout: 1
+          }
+        ]
+      } else {
+        outputNodes = outputs.map((output, index) => ({
+          id: `vout-${blockDepth + 1}-${index + 1}`,
+          localId: output.localId ?? '',
           type: 'text',
           depthH: blockDepth + 1,
           textInfo: [
             t('transaction.build.unspent'),
-            `${utxosSelectedValue - MINING_FEE_VALUE}`,
-            t('common.to')
+            `${output.amount}`,
+            `${formatAddress(output.to, 4)}`
           ],
-          value: utxosSelectedValue - MINING_FEE_VALUE,
-          indexV: 0,
-          vout: 0
-        },
-        {
-          id: `vout-${blockDepth + 1}-1`,
+          value: output.amount,
+          indexV: index,
+          vout: index
+        }))
+
+        const remainingBalance =
+          totalInputValue - totalOutputValue - MINING_FEE_VALUE
+
+        if (remainingBalance > 0) {
+          outputNodes.push({
+            id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
+            type: 'text',
+            depthH: blockDepth + 1,
+            textInfo: [t('transaction.build.unspent'), `${remainingBalance}`],
+            value: remainingBalance,
+            indexV: outputs.length,
+            vout: outputs.length,
+            localId: ''
+          })
+        }
+
+        // Add mining fee node
+        outputNodes.push({
+          id: `vout-${blockDepth + 1}-0}`,
           type: 'text',
           depthH: blockDepth + 1,
-          textInfo: [priority, miningFee, t('transaction.build.miningFee')],
+          textInfo: [priority, miningFee, t('transaction.build.minerFee')],
           value: MINING_FEE_VALUE,
-          indexV: 1,
-          vout: 1
-        }
-      ]
+          indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
+          vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
+          localId: ''
+        })
+      }
+
       return [
         {
           id: `block-${blockDepth}-0`,
@@ -122,7 +185,7 @@ export const useNodesAndLinks = ({
     } else {
       return []
     }
-  }, [inputs.size, maxExistingDepth, outputs.length, utxosSelectedValue])
+  }, [inputs, maxExistingDepth, outputs, feeRate])
 
   const outputAddresses = Array.from(transactions.values()).flatMap(
     (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
@@ -343,19 +406,40 @@ export const useNodesAndLinks = ({
           })
         }
       })
-      links.push({
-        source: ingoingNodes[0].id,
-        target: ingoingNodes[1].id,
-        value: ingoingNodes[1]?.value ?? 0
-      })
 
-      links.push({
-        source: ingoingNodes[0].id,
-        target: ingoingNodes[2].id,
-        value: ingoingNodes[2]?.value ?? 0
+      ingoingNodes.slice(1).map((node) => {
+        links.push({
+          source: ingoingNodes[0].id,
+          target: node.id,
+          value: node.value ?? 0
+        })
       })
+      // console.log(JSON.stringify({ links, outputs }, null, 2))
       return links
     }
+
+    console.log(
+      JSON.stringify(
+        {
+          ingoingNodes: ingoingNodes.map(
+            ({ id, localId, type, depthH, textInfo, value, indexV, vout }) => {
+              return {
+                id,
+                localId: localId ? localId : '',
+                type,
+                depthH,
+                textInfo,
+                value,
+                indexV,
+                vout
+              }
+            }
+          )
+        },
+        null,
+        2
+      )
+    )
     if (nodes?.length === 0) return []
 
     return generateSankeyLinks(previousConfirmedNodes)

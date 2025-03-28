@@ -26,7 +26,7 @@ const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 const BLOCK_WIDTH = 50
-const Y_OFFSET_BLOCK_NODE_TEXT = 10
+const Y_OFFSET_BLOCK_NODE_TEXT = -10
 
 function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
@@ -116,17 +116,16 @@ function NodeText({
   blockHeight: number
 }) {
   const isBlock = textInfo[0] === '' && textInfo[1] === ''
+  const isMiningFee = textInfo[0].includes('/vB')
+  const isAddress = textInfo[1].includes('...')
+  const isUnspent = textInfo[0].includes('Unspent')
+  const isNumeric = (text: string) => /^[0-9]+$/.test(text)
+  const amount = textInfo[0].replace(/\s*sats\s*/g, '')
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
 
-    const isMiningFee = textInfo[0].includes('/vB')
-    const isAddress = textInfo[1].includes('...')
-    const isUnspent = textInfo[0].includes('Unspent')
-
-    const isUnspentOrMiningFee = isUnspent || isMiningFee
-
-    const textStyle = {
+    const baseTextStyle = {
       color: Skia.Color('white'),
       fontFamilies: ['SF Pro Text'],
       fontSize: BASE_FONT_SIZE,
@@ -134,82 +133,212 @@ function NodeText({
         weight: 500
       }
     }
-    const isNumeric = (text: string) => {
-      return /^[0-9]+$/.test(text)
+
+    const createParagraphBuilder = () => {
+      return Skia.ParagraphBuilder.Make({
+        maxLines: 4,
+        textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+        strutStyle: {
+          strutEnabled: true,
+          forceStrutHeight: true,
+          heightMultiplier: 1,
+          leading: 0
+        }
+      })
     }
 
-    const amount = textInfo[0].replace(/\s*sats\s*/g, '')
-    const para = Skia.ParagraphBuilder.Make({
-      maxLines: 4,
-      textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
-      strutStyle: {
-        strutEnabled: true,
-        forceStrutHeight: true,
-        heightMultiplier: 1,
-        leading: 0
-      }
-    })
-      .pushStyle({
-        ...textStyle,
-        fontSize: isUnspentOrMiningFee ? XS_FONT_SIZE : BASE_FONT_SIZE
-      })
-      .addText(
-        isNumeric(textInfo[0])
-          ? `${Number(amount).toLocaleString()}`
-          : isMiningFee
-            ? textInfo[0].replace('sats/vB', '')
-            : textInfo[0]
-      )
-      .pushStyle({
-        ...textStyle,
-        color: Skia.Color(Colors.gray[200]),
-        fontSize: isMiningFee ? XS_FONT_SIZE : SM_FONT_SIZE
-      })
-      .addText(
-        isNumeric(textInfo[0])
-          ? ` ${t('bitcoin.sats').toLowerCase()}\n`
-          : isMiningFee
-            ? ` ${t('bitcoin.sats').toLowerCase()}/vB \n`
-            : '\n'
-      )
-      .pushStyle({
-        ...textStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[300])
-      })
-      .addText(isAddress ? `${t('common.from')} ` : '')
-      .pushStyle({
-        ...textStyle,
-        fontSize: isUnspentOrMiningFee ? BASE_FONT_SIZE : XS_FONT_SIZE,
-        color: Skia.Color('white')
-      })
-      .addText(
-        isUnspentOrMiningFee
-          ? `${Number(textInfo[1]).toLocaleString()} sats\n`
-          : `${textInfo[1]}\n`
-      )
-      .pushStyle({
-        ...textStyle,
-        fontSize: isBlock ? BASE_FONT_SIZE : XS_FONT_SIZE,
-        color: isBlock ? Skia.Color('white') : Skia.Color(gray[300])
-      })
-      .addText(
-        isMiningFee || isBlock || isUnspent
-          ? `${textInfo[2]}\n`
-          : `"${textInfo[2]}"\n`
-      )
-      .pushStyle({
-        ...textStyle,
-        fontSize: XS_FONT_SIZE,
-        color: isBlock ? Skia.Color('white') : Skia.Color(gray[300])
-      })
-      .addText(isBlock || isUnspent ? `${textInfo[3] ?? ''}` : ``)
-      .pop()
-      .build()
+    const buildBlockParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(textInfo[2])
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`\n${textInfo[3] ?? ''}`)
+        .pop()
+
+      return para.build()
+    }
+
+    const buildMiningFeeParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(textInfo[0].replace('sats/vB', ''))
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(` ${t('bitcoin.sats').toLowerCase()}/vB \n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`${Number(textInfo[1]).toLocaleString()} sats\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(`${textInfo[2]}\n`)
+        .pop()
+
+      return para.build()
+    }
+
+    const buildUnspentParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(textInfo[0])
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`\n${Number(textInfo[1]).toLocaleString()} `)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[200])
+        })
+        .addText(`sats\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(textInfo[2] ? `${t('common.to')} ` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(textInfo[2] ? `${textInfo[2]}\n` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(textInfo[3] ?? '')
+        .pop()
+
+      return para.build()
+    }
+
+    const buildNumericParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(`${Number(amount).toLocaleString()}`)
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: SM_FONT_SIZE
+        })
+        .addText(` ${t('bitcoin.sats').toLowerCase()}\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(isAddress ? `${t('common.from')} ` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`${textInfo[1]}\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(`"${textInfo[2]}"\n`)
+        .pop()
+
+      return para.build()
+    }
+
+    const buildDefaultParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(textInfo[0])
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: SM_FONT_SIZE
+        })
+        .addText('\n')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(isAddress ? `${t('common.from')} ` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`${textInfo[1]}\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(`"${textInfo[2]}"\n`)
+        .pop()
+
+      return para.build()
+    }
+
+    let para
+    if (isBlock) {
+      para = buildBlockParagraph()
+    } else if (isMiningFee) {
+      para = buildMiningFeeParagraph()
+    } else if (isUnspent) {
+      para = buildUnspentParagraph()
+    } else if (isNumeric(textInfo[0])) {
+      para = buildNumericParagraph()
+    } else {
+      para = buildDefaultParagraph()
+    }
 
     para.layout(isBlock ? width * 0.6 : width - PADDING_LEFT)
     return para
-  }, [customFontManager, isBlock, textInfo, width])
+  }, [
+    customFontManager,
+    isBlock,
+    isMiningFee,
+    isUnspent,
+    isAddress,
+    textInfo,
+    width,
+    amount
+  ])
 
   if (!customFontManager || !mainParagraph) return null
 
