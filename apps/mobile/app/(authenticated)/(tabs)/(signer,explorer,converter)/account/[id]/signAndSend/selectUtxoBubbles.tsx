@@ -99,7 +99,7 @@ function SelectUtxoBubbles() {
       <LinearGradient
         style={styles.absoluteTopContainer}
         locations={[0.185, 0.5554, 0.7713, 1]}
-        colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}
+        colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
       >
         <SSVStack>
           <SSHStack justifyBetween>
@@ -175,7 +175,7 @@ function SelectUtxoBubbles() {
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={[styles.absoluteSubmitContainer]}
-        colors={['#00000000', '#0000000F', '#0000002A', '#000000']}
+        colors={['#13131300', '#1313130F', '#1313132A', '#131313']}
       >
         <SSVStack style={{ width: '92%' }}>
           <SSHStack justifyBetween>

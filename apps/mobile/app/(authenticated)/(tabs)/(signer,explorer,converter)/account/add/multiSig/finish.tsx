@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
+import { toast } from 'sonner-native'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -33,15 +34,17 @@ export default function ConfirmScreen() {
 
     const data = await accountBuilderFinish(account)
     if (!data) return
-
-    const updatedAccount = await syncAccountWithWallet(
-      data.accountWithEncryptedSecret,
-      data.wallet!
-    )
-    updateAccount(updatedAccount)
     setCompleted(true)
 
-    // TODO: wrap around try catch and show error notification with sonner
+    try {
+      const updatedAccount = await syncAccountWithWallet(
+        data.accountWithEncryptedSecret,
+        data.wallet!
+      )
+      updateAccount(updatedAccount)
+    } catch (error) {
+      toast.error((error as Error).message)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function rotate() {

@@ -102,7 +102,7 @@ class BaseElectrumClient {
     this.network = bitcoinjsNetwork(network)
   }
 
-  static async fromUrl(url: string, network: Network): Promise<ElectrumClient> {
+  static fromUrl(url: string, network: Network): ElectrumClient {
     const port = url.replace(/.*:/, '')
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
@@ -121,8 +121,37 @@ class BaseElectrumClient {
       protocol,
       network
     })
+    return client
+  }
+
+  static async initClientFromUrl(
+    url: string,
+    network: Network
+  ): Promise<ElectrumClient> {
+    const client = ElectrumClient.fromUrl(url, network)
     await client.init()
     return client
+  }
+
+  static async test(url: string, network: Network, timeout: number) {
+    const client = ElectrumClient.fromUrl(url, network)
+    const pingPromise = client.client.initElectrum({
+      client: 'satsigner',
+      version: '1.4'
+    })
+    const timeoutPromise = new Promise((resolve, reject) =>
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, timeout)
+    )
+    try {
+      await Promise.race([pingPromise, timeoutPromise])
+      return true
+    } catch {
+      return false
+    } finally {
+      client.close()
+    }
   }
 
   async init() {

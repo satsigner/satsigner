@@ -157,7 +157,7 @@ export default function IOPreview() {
           zIndex: 20
         }}
         locations={[0.185, 0.5554, 0.7713, 1]}
-        colors={['#000000F5', '#000000A6', '#0000004B', '#00000000']}
+        colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
       >
         <SSVStack itemsCenter gap="sm" style={{ flex: 1 }}>
           <SSVStack itemsCenter gap="xs">
@@ -227,7 +227,7 @@ export default function IOPreview() {
           backgroundColor: Colors.transparent,
           paddingBottom: 20
         }}
-        colors={['#00000000', '#0000004B', '#000000A6', '#000000F5']}
+        colors={['#13131300', '#1313134B', '#131313A6', '#131313F5']}
       >
         <SSVStack
           style={{

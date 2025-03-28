@@ -50,7 +50,7 @@ export type EsploraUtxo = {
   value: number
 }
 
-export class Esplora {
+export default class Esplora {
   public esploraUrl: string
 
   constructor(url: string) {
@@ -187,5 +187,24 @@ export class Esplora {
 
   async getFeeEstimates() {
     return await this._call('/fee-estimates')
+  }
+
+  static async test(url: string, timeout: number) {
+    const esploraClient = new Esplora(url)
+    const fetchPromise = esploraClient.getLatestBlockHeight()
+    const timeoutPromise = new Promise((resolve, reject) =>
+      setTimeout(() => {
+        reject(new Error('timeout'))
+      }, timeout)
+    )
+    try {
+      const result = await Promise.race([fetchPromise, timeoutPromise])
+      if (result) {
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
   }
 }

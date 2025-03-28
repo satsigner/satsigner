@@ -7,6 +7,7 @@ import { getLastUnusedAddressFromWallet } from '@/api/bdk'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSNumberInput from '@/components/SSNumberInput'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -31,7 +32,31 @@ export default function Receive() {
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()
   const [localAddressQR, setLocalAddressQR] = useState<string>()
+  const [localFinalAddressQR, setLocalFinalAddressQR] = useState<string>()
   const [localAddressPath, setLocalAddressPath] = useState<string>()
+  const [localCustomAmount, setLocalCustomAmount] = useState<string>()
+  const [localLabel, setLocalLabel] = useState<string>()
+
+  useEffect(() => {
+    if (!localAddressQR) return
+
+    const queryParts: string[] = []
+
+    if (
+      localCustomAmount &&
+      Number(localCustomAmount) > 0 &&
+      Number(localCustomAmount) <= 21_000_000
+    )
+      queryParts.push(`amount=${encodeURIComponent(localCustomAmount)}`)
+    if (localLabel) queryParts.push(`label=${encodeURIComponent(localLabel)}`)
+
+    const finalUri =
+      queryParts.length > 0
+        ? `${localAddressQR}?${queryParts.join('&')}`
+        : localAddressQR
+
+    setLocalFinalAddressQR(finalUri)
+  }, [localCustomAmount, localLabel]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function loadAddress() {
@@ -48,6 +73,7 @@ export default function Receive() {
       setLocalAddress(address)
       setLocalAddressNumber(addressInfo.index)
       setLocalAddressQR(qrUri)
+      setLocalFinalAddressQR(qrUri)
       setLocalAddressPath(
         `${account?.keys[0].derivationPath}/0/${addressInfo.index}`
       )
@@ -83,7 +109,7 @@ export default function Receive() {
             </SSHStack>
             <SSText>{t('receive.neverUsed')}</SSText>
           </SSVStack>
-          {localAddressQR && <SSQRCode value={localAddressQR} />}
+          {localFinalAddressQR && <SSQRCode value={localFinalAddressQR} />}
           <SSVStack gap="xs" itemsCenter style={{ marginVertical: 10 }}>
             <SSText color="muted" uppercase weight="bold">
               {t('receive.address')}
@@ -97,14 +123,21 @@ export default function Receive() {
           <SSFormLayout>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('receive.customAmount')} />
-              <SSTextInput
+              <SSNumberInput
+                min={0.00000001}
+                max={21_000_000}
+                placeholder="BTC"
+                align="center"
                 keyboardType="numeric"
-                placeholder={t('app.notImplemented')}
+                onChangeText={(text) => setLocalCustomAmount(text)}
+                allowDecimal
+                allowValidEmpty
+                alwaysTriggerOnChange
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('receive.label')} />
-              <SSTextInput placeholder={t('app.notImplemented')} />
+              <SSTextInput onChangeText={(text) => setLocalLabel(text)} />
             </SSFormLayout.Item>
           </SSFormLayout>
           <SSVStack widthFull>
