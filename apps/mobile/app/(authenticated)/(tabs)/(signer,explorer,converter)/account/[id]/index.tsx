@@ -491,7 +491,6 @@ function DerivedAddresses({
               {t('address.list.table.utxo')}
             </SSText>
           </SSHStack>
-
           <FlashList
             data={addresses?.filter((address) =>
               change
