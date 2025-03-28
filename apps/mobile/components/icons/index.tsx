@@ -11,6 +11,7 @@ import SSIconChartSettings from './SSIconChartSettings'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
+import SSIconChevronLeft from './SSIconChevronLeft'
 import SSIconChevronRight from './SSIconChevronRight'
 import SSIconChevronUp from './SSIconChevronUp'
 import SSIconCircleX from './SSIconCircleX'
@@ -83,6 +84,7 @@ export {
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,
+  SSIconChevronLeft,
   SSIconChevronRight,
   SSIconChevronUp,
   SSIconCircleX,
