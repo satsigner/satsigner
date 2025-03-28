@@ -241,7 +241,7 @@ export default function AccountList() {
               ListEmptyComponent={
                 <SSVStack
                   itemsCenter
-                  style={{ paddingTop: 32, paddingBottom: 64 }}
+                  style={{ paddingTop: 32, paddingBottom: 32 }}
                 >
                   <SSText uppercase>{t('accounts.empty')}</SSText>
                 </SSVStack>
@@ -250,7 +250,13 @@ export default function AccountList() {
               showsVerticalScrollIndicator={false}
             />
           </SSVStack>
-          <SSVStack itemsCenter style={{ paddingBottom: 100 }}>
+          <SSVStack
+            itemsCenter
+            style={{
+              paddingBottom: 100,
+              paddingTop: 32
+            }}
+          >
             <SSText color="muted" uppercase>
               {t('accounts.samples')}
             </SSText>

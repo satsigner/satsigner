@@ -218,7 +218,7 @@ export default function SelectUtxoList() {
         <View
           style={{
             marginTop: 2,
-            paddingBottom: Platform.OS === 'android' ? 386 : 306,
+            paddingBottom: Platform.OS === 'android' ? 386 : 306, // TODO: Fix. This is not ideal
             height: Dimensions.get('window').height
           }}
         >
