@@ -1,6 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 // @ts-ignore @eslint-disable-next-line
-import RnElectrumClient from 'electrum-client'
+import BlueWalletElectrumClient from 'electrum-client'
 import TcpSocket from 'react-native-tcp-socket'
 
 import { type Transaction } from '@/types/models/Transaction'
@@ -85,6 +85,32 @@ type AddressInfo = {
   }
 }
 
+class ModifiedClient extends BlueWalletElectrumClient {
+  // INFO: Override the default timeout for keeping client alive
+  keepAlive() {
+    // @ts-ignore
+    if (this.timeout != null) clearTimeout(this.timeout)
+    const now = new Date().getTime()
+    // @ts-ignore
+    this.timeout = setTimeout(() => {
+      // @ts-ignore
+      if (this.timeLastCall !== 0 && now > this.timeLastCall + 500_000) {
+        const pingTimer = setTimeout(() => {
+          // @ts-ignore
+          this.onError(new Error('keepalive ping timeout'))
+        }, 900_000)
+
+        // @ts-ignore
+        this.server_ping()
+          .catch(() => {
+            clearTimeout(pingTimer)
+          })
+          .then(() => clearTimeout(pingTimer))
+      }
+    }, 50_000)
+  }
+}
+
 class BaseElectrumClient {
   client: any
   network: bitcoinjs.networks.Network
@@ -98,7 +124,9 @@ class BaseElectrumClient {
     const net = TcpSocket
     const tls = TcpSocket
     const options = {}
-    this.client = new RnElectrumClient(net, tls, port, host, protocol, options)
+
+    // @ts-ignore
+    this.client = new ModifiedClient(net, tls, port, host, protocol, options)
     this.network = bitcoinjsNetwork(network)
   }
 
@@ -139,7 +167,7 @@ class BaseElectrumClient {
       client: 'satsigner',
       version: '1.4'
     })
-    const timeoutPromise = new Promise((resolve, reject) =>
+    const timeoutPromise = new Promise((_resolve, reject) =>
       setTimeout(() => {
         reject(new Error('timeout'))
       }, timeout)
@@ -215,11 +243,12 @@ class BaseElectrumClient {
   // async getTransactions(txIds: string[]): Promise<IElectrumClient['transaction']> {
   async getTransactions(txIds: string[]): Promise<string[]> {
     const verbose = false // verbose=true is not supported by some clients
-    const result = (await this.client.blockchainTransaction_getBatch(
-      txIds,
-      verbose
-    )) as IElectrumClient['transactionRaw'][]
-    return result.map((item) => item.result)
+    const rawTxs = []
+    for (const txid of txIds) {
+      const raw = await this.client.blockchainTransaction_get(txid, verbose)
+      rawTxs.push(raw)
+    }
+    return rawTxs
   }
 }
 
@@ -243,14 +272,13 @@ class ElectrumClient extends BaseElectrumClient {
     const rawTransactions = await this.getTransactions(txIds)
     const txHeights = addressTxs.map((value) => value.height)
     const txTimestamps = await this.getBlockTimestamps(txHeights)
+    const balance = await this.getAddressBalance(address)
     const transactions = this.parseAddressTransactions(
       address,
       rawTransactions,
       txHeights,
       txTimestamps
     )
-
-    const balance = await this.getAddressBalance(address)
 
     return { utxos, transactions, balance }
   }
