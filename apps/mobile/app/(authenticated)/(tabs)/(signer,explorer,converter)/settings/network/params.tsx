@@ -9,26 +9,39 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
+import SSCheckbox from '@/components/SSCheckbox'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [retries, setRetries, timeout, setTimeout, stopGap, setStopGap] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.retries,
-        state.setRetries,
-        state.timeout,
-        state.setTimeout,
-        state.stopGap,
-        state.setStopGap
-      ])
-    )
+  const [
+    connectionMode,
+    setConnectionMode,
+    retries,
+    setRetries,
+    timeout,
+    setTimeout,
+    stopGap,
+    setStopGap
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.connectionMode,
+      state.setConnectionMode,
+      state.retries,
+      state.setRetries,
+      state.timeout,
+      state.setTimeout,
+      state.stopGap,
+      state.setStopGap
+    ])
+  )
 
   const [selectedRetries, setSelectedRetries] = useState(retries.toString())
   const [selectedTimeout, setSelectedTimeout] = useState(timeout.toString())
   const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
+  const [autoconnect, setAutoconnect] = useState(connectionMode === 'auto')
 
   function handleOnSave() {
+    setConnectionMode(autoconnect ? 'auto' : 'manual')
     setRetries(Number(selectedRetries))
     setStopGap(Number(selectedStopGap))
     setTimeout(Number(selectedTimeout))
@@ -49,6 +62,20 @@ export default function NetworkSettings() {
       />
       <SSVStack gap="lg" justifyBetween>
         <SSVStack gap="md">
+          <SSVStack>
+            <SSText uppercase>
+              {t('settings.network.params.connectionMode.label')}
+            </SSText>
+            <SSCheckbox
+              label={
+                autoconnect
+                  ? t('settings.network.params.connectionMode.auto')
+                  : t('settings.network.params.connectionMode.manual')
+              }
+              selected={autoconnect}
+              onPress={() => setAutoconnect(!autoconnect)}
+            />
+          </SSVStack>
           <SSVStack>
             <SSText uppercase>{t('settings.network.params.retries')}</SSText>
             <SSNumberInput
