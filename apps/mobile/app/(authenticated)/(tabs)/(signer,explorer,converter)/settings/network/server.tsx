@@ -115,7 +115,7 @@ export default function NetworkSettings() {
           <ScrollView>
             <SSVStack gap="md">
               <SSVStack>
-                <SSText uppercase>{t('settings.network.backend')}</SSText>
+                <SSText uppercase>{t('settings.network.server.backend')}</SSText>
                 {backends.map((backend) => (
                   <SSCheckbox
                     key={backend}
@@ -126,7 +126,7 @@ export default function NetworkSettings() {
                 ))}
               </SSVStack>
               <SSVStack>
-                <SSText uppercase>{t('settings.network.network')}</SSText>
+                <SSText uppercase>{t('settings.network.server.network')}</SSText>
                 {networks.map((network: Network) => (
                   <SSCheckbox
                     key={network}
@@ -137,14 +137,14 @@ export default function NetworkSettings() {
                 ))}
               </SSVStack>
               <SSVStack>
-                <SSText uppercase>{t('settings.network.url')}</SSText>
+                <SSText uppercase>{t('settings.network.server.url')}</SSText>
                 <SSTextInput
                   value={selectedUrl}
                   onChangeText={(url) => setSelectedUrl(url)}
                 />
               </SSVStack>
               <SSVStack>
-                <SSText uppercase>{t('settings.network.retries')}</SSText>
+                <SSText uppercase>{t('settings.network.server.retries')}</SSText>
                 <SSNumberInput
                   value={selectedRetries}
                   min={1}
@@ -153,7 +153,7 @@ export default function NetworkSettings() {
                 />
               </SSVStack>
               <SSVStack>
-                <SSText uppercase>{t('settings.network.timeout')}</SSText>
+                <SSText uppercase>{t('settings.network.server.timeout')}</SSText>
                 <SSNumberInput
                   value={selectedTimeout}
                   min={1}
@@ -162,7 +162,7 @@ export default function NetworkSettings() {
                 />
               </SSVStack>
               <SSVStack>
-                <SSText uppercase>{t('settings.network.stopGap')}</SSText>
+                <SSText uppercase>{t('settings.network.server.stopGap')}</SSText>
                 <SSNumberInput
                   value={selectedStopGap}
                   min={1}
@@ -189,11 +189,11 @@ export default function NetworkSettings() {
                   strokeTriangle="red"
                 />
                 <SSText uppercase>
-                  {t('settings.network.server.warning.title')}
+                  {t('settings.network.server.server.warning.title')}
                 </SSText>
               </SSHStack>
               <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
-                {t('settings.network.server.warning.text')}
+                {t('settings.network.server.server.warning.text')}
               </SSText>
             </SSVStack>
             <SSVStack gap="md">
@@ -202,7 +202,7 @@ export default function NetworkSettings() {
                 label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
                 onPress={() => setServerModalVisible(true)}
               />
-              <SSButton label={t('settings.network.test').toUpperCase()} />
+              <SSButton label={t('settings.network.server.test').toUpperCase()} />
             </SSVStack>
           </SSVStack>
         )
@@ -235,7 +235,7 @@ export default function NetworkSettings() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('settings.network.title')}</SSText>
+            <SSText uppercase>{t('settings.network.server.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -265,7 +265,7 @@ export default function NetworkSettings() {
       </SSVStack>
       <SSSelectModal
         visible={serverModalVisible}
-        title={t('settings.network.server.modal.title').toUpperCase()}
+        title={t('settings.network.server.server.modal.title').toUpperCase()}
         onCancel={() => setServerModalVisible(false)}
         onSelect={() => {
           setConfirmedServer(selectedServer)
@@ -277,7 +277,7 @@ export default function NetworkSettings() {
             <SSVStack gap="none">
               <SSText uppercase>{network}</SSText>
               <SSText color="muted">
-                {t(`settings.network.type.${network}`)}
+                {t(`settings.network.server.type.${network}`)}
               </SSText>
             </SSVStack>
             {servers
