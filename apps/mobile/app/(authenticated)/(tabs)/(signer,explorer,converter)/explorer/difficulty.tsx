@@ -13,12 +13,13 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import {
   type BlockDifficulty,
   type DifficultyAdjustment
 } from '@/types/models/Blockchain'
-import { formatDate } from '@/utils/format'
+import { formatDate, formatTimeFromNow } from '@/utils/format'
 
 const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
 const CANVAS_WIDTH = SCREEN_WIDTH
@@ -59,14 +60,50 @@ function ExplorerDifficulty() {
   const [modalVisible, setModalVisible] = useState(false)
   const [selectedBlock, setSelectedBlock] = useState({} as BlockDifficulty)
 
+  // function mockFechData() {
+  //   const data: BlockDifficulty[] = []
+  //   for (let i = 0; i < BLOCKS_PER_EPOCH; i += 1) {
+  //     data.push({
+  //       height: Number(epoch) * BLOCKS_PER_EPOCH + i,
+  //       timestamp: new Date().getTime() / 1000,
+  //       txCount: 1000 + Math.trunc(i / 10),
+  //       chainWork: '0000000000011',
+  //       nonce: Math.trunc(1_000_000_000 * Math.random()),
+  //       size: 400 + Math.trunc(400 * Math.random()),
+  //       weight: 600 + Math.trunc(600 * Math.random()),
+  //       cycleHeight: i + 1,
+  //       timeDifference: 500 + Math.trunc(200 * Math.random())
+  //     })
+  //   }
+  //   const firstBlock = data[0]
+  //   const lastBlock = data[data.length - 1]
+  //   setAverageBlockTime('10.0')
+  //   setRemainingTime('~5 days')
+  //   setHeightStart(firstBlock.height.toString())
+  //   setHeightEnd(lastBlock.height.toString())
+  //   setDateStart(formatDate(firstBlock.timestamp * 1000))
+  //   setDateEnd(formatDate(lastBlock.timestamp * 1000))
+  //   setData(data)
+  // }
+
   async function fetchDifficultyAdjustment() {
     const mempoolOracle = new MempoolOracle()
     const response =
       (await mempoolOracle.getDifficultyAdjustment()) as DifficultyAdjustment
+
     const avgTimeInSeconds = response.timeAvg / 1000
     const avgTimeInMinutes = avgTimeInSeconds / 60
-    setAverageBlockTime(avgTimeInMinutes.toFixed(1))
-    setRemainingTime(formatTimeFromNow(response.remainingTime))
+    const formattedAvgTime = t('time.minutes', {
+      value: avgTimeInMinutes.toFixed(1)
+    })
+    setAverageBlockTime(formattedAvgTime)
+
+    const [time, timeUnit] = formatTimeFromNow(response.remainingTime)
+    const timeFromAdjusment =
+      time.toFixed(1) === '1.0'
+        ? t(`time.${timeUnit}`)
+        : t(`time.${timeUnit}s`, { value: time.toFixed(1) })
+    setRemainingTime(`~${timeFromAdjusment}`)
   }
 
   useEffect(() => {
@@ -133,9 +170,9 @@ function ExplorerDifficulty() {
     <SSMainLayout style={styles.mainContainer}>
       <SSHStack gap="none" justifyBetween style={styles.headerContainer}>
         <SSVStack gap="none">
-          <SSText weight="bold">~{averageBlockTime} minutes</SSText>
+          <SSText weight="bold">~{averageBlockTime}</SSText>
           <SSText color="muted" size="xs" style={[styles.headerCaption]}>
-            Average Block Time (current)
+            {t('explorer.difficulty.avgBlock')}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">
@@ -147,7 +184,7 @@ function ExplorerDifficulty() {
             size="xs"
             style={[styles.headerCaption, styles.headerRight]}
           >
-            Next Difficulty Adjustment
+            {t('explorer.difficulty.nextAdjustment')}
           </SSText>
         </SSVStack>
       </SSHStack>
@@ -164,16 +201,16 @@ function ExplorerDifficulty() {
       <SSVStack gap="none">
         <SSVStack gap="none" style={styles.footerContainer}>
           <SSHStack gap="xs" style={styles.dateContainer}>
-            <SSText color="muted">Bitcoin Epoch:</SSText>
+            <SSText color="muted">{t('explorer.difficulty.epoch')}</SSText>
             <SSText weight="bold">{epoch}</SSText>
           </SSHStack>
           <SSText center weight="bold">
             {dateStart} - {dateEnd}
           </SSText>
           <SSHStack gap="xs" style={styles.dateContainer}>
-            <SSText color="muted">From block</SSText>
+            <SSText color="muted">{t('explorer.difficulty.blockFrom')}</SSText>
             <SSText weight="bold">{heightStart}</SSText>
-            <SSText color="muted">to block</SSText>
+            <SSText color="muted">{t('explorer.difficulty.blockTo')}</SSText>
             <SSText weight="bold">{heightEnd}</SSText>
           </SSHStack>
         </SSVStack>
@@ -210,7 +247,7 @@ function ExplorerDifficulty() {
             label="close"
             onPress={() => setModalVisible(false)}
             variant="secondary"
-            style={{ width: (width - 40) }}
+            style={{ width: width - 40 }}
           />
         </SSVStack>
       </SSModal>
@@ -231,7 +268,7 @@ function BlockDetails({ block }: BlockDetailsProps) {
 
   const horizontalPadding = 20 * 2
   const columnStyle = {
-    width: (width - horizontalPadding) / 3,
+    width: (width - horizontalPadding) / 3
   }
 
   return (
@@ -299,9 +336,12 @@ function BlockDetails({ block }: BlockDetailsProps) {
           <SSText>{block.timeDifference}s</SSText>
         </SSVStack>
       </SSHStack>
-      <SSVStack gap="none" style={{
-        width: (width-horizontalPadding),
-      }}>
+      <SSVStack
+        gap="none"
+        style={{
+          width: width - horizontalPadding
+        }}
+      >
         <SSText color="muted" uppercase>
           Chain Work
         </SSText>
@@ -315,36 +355,6 @@ function getFileName(index: number) {
   return `rcp_bitcoin_block_data_${(index * BLOCKS_PER_EPOCH)
     .toString()
     .padStart(7, '0')}.json`
-}
-
-function formatTimeFromNow(milliseconds: number): string {
-  const seconds = milliseconds / 1000
-  const minutes = seconds / 60
-  const hours = minutes / 60
-  const days = hours / 24
-  const weeks = days / 7
-  const months = days / 30 // Approximate
-  const years = days / 365 // Approximate
-
-  if (years >= 1) {
-    return `in ~${years.toFixed(1)} years`
-  }
-  if (months >= 1) {
-    return `in ~${months.toFixed(1)} months`
-  }
-  if (weeks >= 1) {
-    return `in ~${weeks.toFixed(1)} weeks`
-  }
-  if (days >= 1) {
-    return `in ~${days.toFixed(1)} days`
-  }
-  if (hours >= 1) {
-    return `in ~${hours.toFixed(1)} hours`
-  }
-  if (minutes >= 1) {
-    return `in ~${minutes.toFixed(1)} minutes`
-  }
-  return `in ~${seconds.toFixed(1)} seconds`
 }
 
 const styles = StyleSheet.create({

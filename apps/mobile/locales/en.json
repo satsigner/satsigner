@@ -258,25 +258,18 @@
     "notFound.wallet": "Wallet not found"
   },
   "explorer": {
-    "block": {
-      "heightLabel": "Height:",
-      "title": "Block Details"
-    },
-    "chain": {
-      "title": "Chain"
-    },
-    "chaintip": {
-      "title": "Chain Tip"
-    },
-    "difficulty": {
-      "title": "Difficulty"
-    },
-    "halving": {
-      "title": "Halving"
-    },
-    "mempool": {
-      "title": "Mempool"
-    }
+    "block.heightLabel": "Height:",
+    "block.title": "Block Details",
+    "chain.title": "Chain",
+    "chaintip.title": "Chain Tip",
+    "difficulty.avgBlock": "Average Block Time (current)",
+    "difficulty.blockFrom": "From block",
+    "difficulty.blockTo": "to block",
+    "difficulty.epoch": "Bitcoin Epoch:",
+    "difficulty.nextAdjustment": "Next Difficulty Adjustment",
+    "difficulty.title": "Difficulty",
+    "halving.title": "Halving",
+    "mempool.title": "Mempool"
   },
   "export": {
     "file.name.descriptors": "Descriptors",
@@ -502,7 +495,19 @@
     "transaction": "Sign transaction"
   },
   "time": {
-    "lessThanAMinute": "Less than a minute"
+    "day": "1 day",
+    "days": "%{value} days",
+    "hour": "1 hour",
+    "hours": "%{value} hours",
+    "lessThanAMinute": "Less than a minute",
+    "minute": "1 minute",
+    "minutes": "%{value} minutes",
+    "month": "1 month",
+    "months": "%{value} months",
+    "week": "1 week",
+    "weeks": "%{value} weeks",
+    "year": "1 year",
+    "years": "%{value} years"
   },
   "transaction": {
     "address": "Address",

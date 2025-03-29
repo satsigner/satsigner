@@ -250,10 +250,7 @@ function SSSpiralBlocks({
                 borderRadius: 25,
                 backgroundColor: 'rgba(255, 255, 255, 0)'
               }}
-              onPress={() => {
-                console.log('pressed...', block)
-                onBlockPress(data[block.index])
-              }}
+              onPress={() => onBlockPress(data[block.index])}
             />
           ))}
         </View>

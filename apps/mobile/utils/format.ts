@@ -97,6 +97,41 @@ function formatConfirmations(confirmations: number) {
   return `~${roundedValue}M ${manyBlocks}`
 }
 
+type TimeFromNow = [
+  number,
+  'year' | 'month' | 'week' | 'day' | 'hour' | 'minute' | 'second'
+]
+
+function formatTimeFromNow(milliseconds: number): TimeFromNow {
+  const seconds = milliseconds / 1000
+  const minutes = seconds / 60
+  const hours = minutes / 60
+  const days = hours / 24
+  const weeks = days / 7
+  const months = days / 30 // Approximate
+  const years = days / 365 // Approximate
+
+  if (years >= 1) {
+    return [years, 'year']
+  }
+  if (months >= 1) {
+    return [months, 'month']
+  }
+  if (weeks >= 1) {
+    return [weeks, 'week']
+  }
+  if (days >= 1) {
+    return [days, 'day']
+  }
+  if (hours >= 1) {
+    return [hours, 'hour']
+  }
+  if (minutes >= 1) {
+    return [minutes, 'minute']
+  }
+  return [seconds, 'second']
+}
+
 export {
   formatAddress,
   formatConfirmations,
@@ -106,5 +141,6 @@ export {
   formatPageUrl,
   formatPercentualChange,
   formatTime,
+  formatTimeFromNow,
   formatTimestamp
 }
