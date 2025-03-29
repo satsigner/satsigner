@@ -4,7 +4,7 @@ import {
 } from '@react-navigation/drawer'
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -88,10 +88,12 @@ export default function AccountList() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  fetchPrices()
-
   type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
+
+  useEffect(() => {
+    if (connectionMode === 'auto') fetchPrices()
+  }, [connectionMode, fetchPrices])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
