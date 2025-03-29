@@ -1,12 +1,11 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconHistoryChart } from '@/components/icons'
+import { SSIconServer, SSIconServerOptions } from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
 
 export default function Features() {
   const router = useRouter()
@@ -29,10 +28,9 @@ export default function Features() {
                 title={t('settings.network.server.title')}
                 description={t('settings.network.server.description')}
                 icon={
-                  <SSIconHistoryChart
+                  <SSIconServer
                     width={24}
                     height={24}
-                    stroke={Colors.white}
                   />
                 }
                 onPress={() => {
@@ -43,10 +41,9 @@ export default function Features() {
                 title={t('settings.network.params.title')}
                 description={t('settings.network.params.description')}
                 icon={
-                  <SSIconHistoryChart
+                  <SSIconServerOptions
                     width={24}
                     height={24}
-                    stroke={Colors.white}
                   />
                 }
                 onPress={() => {
