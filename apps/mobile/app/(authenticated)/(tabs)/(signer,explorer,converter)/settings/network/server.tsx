@@ -7,15 +7,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSNumberInput from '@/components/SSNumberInput'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import {
-  DEFAULT_RETRIES,
-  DEFAULT_STOP_GAP,
-  DEFAULT_TIME_OUT
-} from '@/config/servers'
 import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -30,43 +24,21 @@ const serverTypes: ServerType[] = ['CUSTOM', 'PUBLIC']
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [
-    backend,
-    setBackend,
-    network,
-    setNetwork,
-    url,
-    setUrl,
-    retries,
-    setRetries,
-    timeout,
-    setTimeout,
-    stopGap,
-    setStopGap
-  ] = useBlockchainStore(
-    useShallow((state) => [
-      state.backend,
-      state.setBackend,
-      state.network,
-      state.setNetwork,
-      state.url,
-      state.setUrl,
-      state.retries,
-      state.setRetries,
-      state.timeout,
-      state.setTimeout,
-      state.stopGap,
-      state.setStopGap
-    ])
-  )
+  const [backend, setBackend, network, setNetwork, url, setUrl] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.backend,
+        state.setBackend,
+        state.network,
+        state.setNetwork,
+        state.url,
+        state.setUrl
+      ])
+    )
 
   const [selectedBackend, setSelectedBackend] = useState(backend)
   const [selectedNetwork, setSelectedNetwork] = useState(network)
   const [selectedUrl, setSelectedUrl] = useState(url)
-
-  const [selectedRetries, setSelectedRetries] = useState(retries.toString())
-  const [selectedTimeout, setSelectedTimeout] = useState(timeout.toString())
-  const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
 
   const serverIndex = servers.findIndex((s) => {
     return s.url === url && s.backend === backend && s.network === network
@@ -115,7 +87,9 @@ export default function NetworkSettings() {
           <ScrollView>
             <SSVStack gap="md">
               <SSVStack>
-                <SSText uppercase>{t('settings.network.server.backend')}</SSText>
+                <SSText uppercase>
+                  {t('settings.network.server.backend')}
+                </SSText>
                 {backends.map((backend) => (
                   <SSCheckbox
                     key={backend}
@@ -126,7 +100,9 @@ export default function NetworkSettings() {
                 ))}
               </SSVStack>
               <SSVStack>
-                <SSText uppercase>{t('settings.network.server.network')}</SSText>
+                <SSText uppercase>
+                  {t('settings.network.server.network')}
+                </SSText>
                 {networks.map((network: Network) => (
                   <SSCheckbox
                     key={network}
@@ -141,33 +117,6 @@ export default function NetworkSettings() {
                 <SSTextInput
                   value={selectedUrl}
                   onChangeText={(url) => setSelectedUrl(url)}
-                />
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>{t('settings.network.server.retries')}</SSText>
-                <SSNumberInput
-                  value={selectedRetries}
-                  min={1}
-                  max={10}
-                  onChangeText={setSelectedRetries}
-                />
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>{t('settings.network.server.timeout')}</SSText>
-                <SSNumberInput
-                  value={selectedTimeout}
-                  min={1}
-                  max={20}
-                  onChangeText={setSelectedTimeout}
-                />
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>{t('settings.network.server.stopGap')}</SSText>
-                <SSNumberInput
-                  value={selectedStopGap}
-                  min={1}
-                  max={30}
-                  onChangeText={setSelectedStopGap}
                 />
               </SSVStack>
             </SSVStack>
@@ -202,7 +151,9 @@ export default function NetworkSettings() {
                 label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
                 onPress={() => setServerModalVisible(true)}
               />
-              <SSButton label={t('settings.network.server.test').toUpperCase()} />
+              <SSButton
+                label={t('settings.network.server.test').toUpperCase()}
+              />
             </SSVStack>
           </SSVStack>
         )
@@ -216,16 +167,10 @@ export default function NetworkSettings() {
       setBackend(selectedBackend)
       setNetwork(selectedNetwork)
       setUrl(selectedUrl)
-      setRetries(Number(selectedRetries))
-      setStopGap(Number(selectedStopGap))
-      setTimeout(Number(selectedTimeout))
     } else {
       setBackend(confirmedServer.backend)
       setNetwork(confirmedServer.network)
       setUrl(confirmedServer.url)
-      setRetries(DEFAULT_RETRIES)
-      setStopGap(DEFAULT_STOP_GAP)
-      setTimeout(DEFAULT_TIME_OUT)
     }
     router.back()
   }

@@ -39,6 +39,20 @@ export default function Features() {
                   router.navigate('/settings/network/server')
                 }}
               />
+              <SSSettingsCards
+                title={t('settings.network.params.title')}
+                description={t('settings.network.params.description')}
+                icon={
+                  <SSIconHistoryChart
+                    width={24}
+                    height={24}
+                    stroke={Colors.white}
+                  />
+                }
+                onPress={() => {
+                  router.navigate('/settings/network/params')
+                }}
+              />
             </SSVStack>
           </SSVStack>
         </ScrollView>
