@@ -8,13 +8,21 @@ import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const [backend, network, url, timeout, connectionMode] = useBlockchainStore(
+  const [
+    backend,
+    network,
+    url,
+    timeout,
+    connectionMode,
+    connectionTestInterval
+  ] = useBlockchainStore(
     useShallow((state) => [
       state.backend,
       state.network,
       state.url,
       state.timeout * 1000,
-      state.connectionMode
+      state.connectionMode,
+      state.connectionTestInterval
     ])
   )
 
@@ -72,7 +80,9 @@ function useVerifyConnection() {
 
     const timerId = setInterval(() => {
       verifyConnection()
-    }, 60000)
+      // INFO: we store the interval in seconds but the function expects the
+      // timeout interval to be in miliseconds
+    }, connectionTestInterval * 1000)
 
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (
@@ -94,7 +104,12 @@ function useVerifyConnection() {
       unsubscribe()
       clearInterval(timerId)
     }
-  }, [checkConnection, verifyConnection, connectionMode])
+  }, [
+    checkConnection,
+    verifyConnection,
+    connectionMode,
+    connectionTestInterval
+  ])
 
   useEffect(() => {
     verifyConnection()

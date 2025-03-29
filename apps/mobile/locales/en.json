@@ -462,6 +462,8 @@
     "network.params.connectionMode.auto": "Auto",
     "network.params.connectionMode.label": "Connection mode",
     "network.params.connectionMode.manual": "Manual",
+    "network.params.connectionTestInterval": "Connection test interval",
+    "network.params.connectionTestIntervalNotice": "Only works when autoconnection is on",
     "network.params.description": "Customize network parameters",
     "network.params.retries": "Retries",
     "network.params.stopGap": "Stop Gap",
