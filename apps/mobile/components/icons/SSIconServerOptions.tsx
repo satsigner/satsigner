@@ -4,7 +4,7 @@ type SSIconServerOptionsProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 
 export default function SSIconServerOptions({
   width,
-  height,
+  height
 }: SSIconServerOptionsProps) {
   return (
     <Svg

@@ -27,12 +27,7 @@ export default function Features() {
               <SSSettingsCards
                 title={t('settings.network.server.title')}
                 description={t('settings.network.server.description')}
-                icon={
-                  <SSIconServer
-                    width={24}
-                    height={24}
-                  />
-                }
+                icon={<SSIconServer width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/server')
                 }}
@@ -40,12 +35,7 @@ export default function Features() {
               <SSSettingsCards
                 title={t('settings.network.params.title')}
                 description={t('settings.network.params.description')}
-                icon={
-                  <SSIconServerOptions
-                    width={24}
-                    height={24}
-                  />
-                }
+                icon={<SSIconServerOptions width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/params')
                 }}

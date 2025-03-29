@@ -21,6 +21,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
 import {
@@ -29,7 +30,6 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import { useBlockchainStore } from '@/store/blockchain'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',
