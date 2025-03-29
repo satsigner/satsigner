@@ -6,6 +6,7 @@ import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { TouchableOpacity } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -190,26 +191,32 @@ export default function AccountList() {
           headerBackVisible: false
         }}
       />
-      <SSHStack style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}>
-        {connectionState ? (
-          isPrivateConnection ? (
-            <SSIconYellowIndicator height={24} width={24} />
-          ) : (
-            <SSIconGreenIndicator height={24} width={24} />
-          )
-        ) : (
-          <SSIconBlackIndicator height={24} width={24} />
-        )}
-        <SSText
-          size="xxs"
-          uppercase
-          style={{
-            color: connectionState ? Colors.gray['200'] : Colors.gray['450']
-          }}
+      <TouchableOpacity
+        onPress={() => router.navigate('/settings/network/server')}
+      >
+        <SSHStack
+          style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
         >
-          {connectionString}
-        </SSText>
-      </SSHStack>
+          {connectionState ? (
+            isPrivateConnection ? (
+              <SSIconYellowIndicator height={24} width={24} />
+            ) : (
+              <SSIconGreenIndicator height={24} width={24} />
+            )
+          ) : (
+            <SSIconBlackIndicator height={24} width={24} />
+          )}
+          <SSText
+            size="xxs"
+            uppercase
+            style={{
+              color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+            }}
+          >
+            {connectionString}
+          </SSText>
+        </SSHStack>
+      </TouchableOpacity>
       <SSHStack style={{ paddingHorizontal: '5%' }}>
         <View style={{ flex: 1 }}>
           <SSButton
