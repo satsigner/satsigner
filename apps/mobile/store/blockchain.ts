@@ -20,10 +20,14 @@ type BlockchainState = {
   timeout: number
   retries: number
   stopGap: number
+  connectionMode: 'auto' | 'manual'
+  connectionTestInterval: number
 }
 
 type BlockchainAction = {
   setBackend: (backend: Backend) => void
+  setConnectionMode: (mode: BlockchainState['connectionMode']) => void
+  setConnectionTestInterval: (interval: number) => void
   setNetwork: (network: Network) => void
   setUrl: (url: string) => void
   setTimeout: (timeout: number) => void
@@ -42,8 +46,16 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       timeout: DEFAULT_TIME_OUT,
       retries: DEFAULT_RETRIES,
       stopGap: DEFAULT_STOP_GAP,
+      connectionMode: 'auto',
+      connectionTestInterval: 60,
       setBackend: (backend) => {
         set({ backend })
+      },
+      setConnectionMode: (connectionMode) => {
+        set({ connectionMode })
+      },
+      setConnectionTestInterval: (connectionTestInterval) => {
+        set({ connectionTestInterval })
       },
       setNetwork: (network) => {
         set({ network })

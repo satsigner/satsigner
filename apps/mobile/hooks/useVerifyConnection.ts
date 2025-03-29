@@ -8,12 +8,21 @@ import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const [backend, network, url, timeout] = useBlockchainStore(
+  const [
+    backend,
+    network,
+    url,
+    timeout,
+    connectionMode,
+    connectionTestInterval
+  ] = useBlockchainStore(
     useShallow((state) => [
       state.backend,
       state.network,
       state.url,
-      state.timeout * 1000
+      state.timeout * 1000,
+      state.connectionMode,
+      state.connectionTestInterval
     ])
   )
 
@@ -31,6 +40,10 @@ function useVerifyConnection() {
   }, [url])
 
   const verifyConnection = useCallback(async () => {
+    if (connectionMode === 'manual') {
+      return
+    }
+
     if (!isConnectionAvailable.current) {
       setConnectionState(false)
       return
@@ -44,21 +57,32 @@ function useVerifyConnection() {
     } catch {
       setConnectionState(false)
     }
-  }, [backend, network, timeout, url])
+  }, [backend, network, timeout, url, connectionMode])
 
   const checkConnection = useCallback(async () => {
+    if (connectionMode === 'manual') {
+      return
+    }
+
     const state = await NetInfo.fetch()
     isConnectionAvailable.current = state.isConnected
-  }, [])
+  }, [connectionMode])
 
   useEffect(() => {
+    if (connectionMode === 'manual') {
+      return
+    }
+
     ;(async () => {
       await checkConnection()
       verifyConnection()
     })()
+
     const timerId = setInterval(() => {
       verifyConnection()
-    }, 60000)
+      // INFO: we store the interval in seconds but the function expects the
+      // timeout interval to be in miliseconds
+    }, connectionTestInterval * 1000)
 
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (
@@ -80,7 +104,12 @@ function useVerifyConnection() {
       unsubscribe()
       clearInterval(timerId)
     }
-  }, [checkConnection, verifyConnection])
+  }, [
+    checkConnection,
+    verifyConnection,
+    connectionMode,
+    connectionTestInterval
+  ])
 
   useEffect(() => {
     verifyConnection()

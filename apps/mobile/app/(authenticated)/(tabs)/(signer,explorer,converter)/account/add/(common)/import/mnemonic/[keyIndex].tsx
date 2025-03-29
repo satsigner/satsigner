@@ -81,7 +81,9 @@ export default function ImportMnemonic() {
       state.clearKeyState
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const [network, connectionMode] = useBlockchainStore(
+    useShallow((state) => [state.network, state.connectionMode])
+  )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
@@ -338,12 +340,14 @@ export default function ImportMnemonic() {
       setAccountAddedModalVisible(true)
 
       try {
-        const updatedAccount = await syncAccountWithWallet(
-          data.accountWithEncryptedSecret,
-          data.wallet
-        )
-        updateAccount(updatedAccount)
-        setSyncedAccount(updatedAccount)
+        if (connectionMode === 'auto') {
+          const updatedAccount = await syncAccountWithWallet(
+            data.accountWithEncryptedSecret,
+            data.wallet
+          )
+          updateAccount(updatedAccount)
+          setSyncedAccount(updatedAccount)
+        }
       } catch (error) {
         setWalletSyncFailed(true)
         toast.error((error as Error).message)
