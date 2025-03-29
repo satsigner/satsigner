@@ -29,6 +29,7 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+import { useBlockchainStore } from '@/store/blockchain'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',
@@ -67,6 +68,7 @@ export default function WatchOnly() {
       state.setKey
     ])
   )
+  const connectionMode = useBlockchainStore((state) => state.connectionMode)
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
@@ -151,17 +153,19 @@ export default function WatchOnly() {
     if (!data) return
 
     try {
-      const updatedAccount =
-        selectedOption !== 'importAddress'
-          ? await syncAccountWithWallet(
-              data.accountWithEncryptedSecret,
-              data.wallet!
-            )
-          : await syncAccountWithAddress(
-              data.accountWithEncryptedSecret,
-              `addr(${address})`
-            )
-      updateAccount(updatedAccount)
+      if (connectionMode === 'auto') {
+        const updatedAccount =
+          selectedOption !== 'importAddress'
+            ? await syncAccountWithWallet(
+                data.accountWithEncryptedSecret,
+                data.wallet!
+              )
+            : await syncAccountWithAddress(
+                data.accountWithEncryptedSecret,
+                `addr(${address})`
+              )
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     } finally {

@@ -31,6 +31,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import {
@@ -82,6 +83,7 @@ export default function AccountList() {
     ])
   )
   const fetchPrices = usePriceStore((state) => state.fetchPrices)
+  const connectionMode = useBlockchainStore((state) => state.connectionMode)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
@@ -138,17 +140,19 @@ export default function AccountList() {
     if (!data) return
 
     try {
-      const updatedAccount =
-        type !== 'watchonlyAddress'
-          ? await syncAccountWithWallet(
-              data.accountWithEncryptedSecret,
-              data.wallet!
-            )
-          : await syncAccountWithAddress(
-              data.accountWithEncryptedSecret,
-              `addr(${sampleSignetAddress})`
-            )
-      updateAccount(updatedAccount)
+      if (connectionMode === 'auto') {
+        const updatedAccount =
+          type !== 'watchonlyAddress'
+            ? await syncAccountWithWallet(
+                data.accountWithEncryptedSecret,
+                data.wallet!
+              )
+            : await syncAccountWithAddress(
+                data.accountWithEncryptedSecret,
+                `addr(${sampleSignetAddress})`
+              )
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     } finally {

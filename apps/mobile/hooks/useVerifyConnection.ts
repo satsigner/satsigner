@@ -8,12 +8,13 @@ import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const [backend, network, url, timeout] = useBlockchainStore(
+  const [backend, network, url, timeout, connectionMode] = useBlockchainStore(
     useShallow((state) => [
       state.backend,
       state.network,
       state.url,
-      state.timeout * 1000
+      state.timeout * 1000,
+      state.connectionMode
     ])
   )
 
@@ -31,6 +32,10 @@ function useVerifyConnection() {
   }, [url])
 
   const verifyConnection = useCallback(async () => {
+    if (connectionMode === 'manual') {
+      return
+    }
+
     if (!isConnectionAvailable.current) {
       setConnectionState(false)
       return
@@ -44,18 +49,27 @@ function useVerifyConnection() {
     } catch {
       setConnectionState(false)
     }
-  }, [backend, network, timeout, url])
+  }, [backend, network, timeout, url, connectionMode])
 
   const checkConnection = useCallback(async () => {
+    if (connectionMode === 'manual') {
+      return
+    }
+
     const state = await NetInfo.fetch()
     isConnectionAvailable.current = state.isConnected
-  }, [])
+  }, [connectionMode])
 
   useEffect(() => {
+    if (connectionMode === 'manual') {
+      return
+    }
+
     ;(async () => {
       await checkConnection()
       verifyConnection()
     })()
+
     const timerId = setInterval(() => {
       verifyConnection()
     }, 60000)
@@ -80,7 +94,7 @@ function useVerifyConnection() {
       unsubscribe()
       clearInterval(timerId)
     }
-  }, [checkConnection, verifyConnection])
+  }, [checkConnection, verifyConnection, connectionMode])
 
   useEffect(() => {
     verifyConnection()
