@@ -11,7 +11,6 @@ import {
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 import { StyleSheet, TouchableOpacity, View } from 'react-native'
-import { GestureDetector, Gesture } from 'react-native-gesture-handler'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -35,7 +34,6 @@ const RADIUS_SPIRAL_START = 1
 const FACTOR_SPIRAL_GROWTH = 0.97
 const BLOCK_SIZE = 5
 const RADIUS_WEEKS = [180, 250, 320, 451]
-const CANVAS_TOP_OFFSET = 140
 const MIN_BRIGHTNESS = 20
 const MAX_BRIGHTNESS_SIZE = 5000
 
@@ -60,17 +58,6 @@ function SSSpiralBlocks({
   const scale = useSharedValue(1)
   const translateX = useSharedValue(0)
   const translateY = useSharedValue(0)
-
-  const pinchGesture = Gesture.Pinch().onUpdate((event) => {
-    scale.value = event.scale
-  })
-
-  const panGesture = Gesture.Pan().onUpdate((event) => {
-    translateX.value = event.translationX
-    translateY.value = event.translationY
-  })
-
-  const gesture = Gesture.Simultaneous(pinchGesture, panGesture)
 
   const animatedStyle = useAnimatedStyle(
     () => ({
@@ -263,10 +250,7 @@ function SSSpiralBlocks({
                 borderRadius: 25,
                 backgroundColor: 'rgba(255, 255, 255, 0)'
               }}
-              onPress={() => {
-                console.log('pressed...', block)
-                onBlockPress(data[block.index])
-              }}
+              onPress={() => onBlockPress(data[block.index])}
             />
           ))}
         </View>
