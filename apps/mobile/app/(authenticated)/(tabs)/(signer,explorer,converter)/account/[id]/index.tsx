@@ -27,6 +27,7 @@ import {
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
@@ -180,46 +181,55 @@ function TotalTransactions({
           />
         </View>
       ) : (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleOnRefresh}
-              colors={[Colors.gray[900]]}
-              progressBackgroundColor={Colors.white}
-            />
-          }
-          style={{ marginLeft: 16, marginRight: 2, paddingRight: 14 }}
+        <SSVStack
+          style={{
+            flex: 1,
+            marginLeft: 16,
+            marginRight: 2,
+            paddingRight: 14,
+            marginBottom: expand ? 8 : 16,
+            height: 400,
+            minHeight: 200
+          }}
+          gap={expand ? 'sm' : 'md'}
         >
-          <SSVStack
-            style={{ marginBottom: expand ? 8 : 16 }}
-            gap={expand ? 'sm' : 'md'}
-          >
-            {sortedTransactions
-              .slice()
-              .reverse()
-              .map((transaction, index) => {
-                return (
-                  <SSVStack gap="none" key={transaction.id}>
-                    <SSBalanceChangeBar
-                      transaction={transaction}
-                      balance={transactionBalances[index]}
-                      maxBalance={maxBalance}
-                    />
-                    <SSTransactionCard
-                      btcPrice={btcPrice}
-                      fiatCurrency={fiatCurrency}
-                      transaction={transaction}
-                      expand={expand}
-                      walletBalance={transactionBalances[index]}
-                      blockHeight={blockchainHeight}
-                      link={`/account/${account.id}/transaction/${transaction.id}`}
-                    />
-                  </SSVStack>
-                )
-              })}
-          </SSVStack>
-        </ScrollView>
+          <FlashList
+            data={sortedTransactions.slice().reverse()}
+            renderItem={({ item, index }) => (
+              <SSVStack gap="none">
+                <SSBalanceChangeBar
+                  transaction={item}
+                  balance={transactionBalances[index]}
+                  maxBalance={maxBalance}
+                />
+                <SSTransactionCard
+                  btcPrice={btcPrice}
+                  fiatCurrency={fiatCurrency}
+                  transaction={item}
+                  expand={expand}
+                  walletBalance={transactionBalances[index]}
+                  blockHeight={blockchainHeight}
+                  link={`/account/${account.id}/transaction/${item.id}`}
+                />
+              </SSVStack>
+            )}
+            estimatedItemSize={120}
+            ListEmptyComponent={
+              <SSVStack>
+                <SSText>No transactions</SSText>
+              </SSVStack>
+            }
+            keyExtractor={(item) => item.id}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleOnRefresh}
+                colors={[Colors.gray[900]]}
+                progressBackgroundColor={Colors.white}
+              />
+            }
+          />
+        </SSVStack>
       )}
     </SSMainLayout>
   )
@@ -292,7 +302,8 @@ function DerivedAddresses({
   }
 
   async function updateAddresses() {
-    // if (hasLoadMoreAddresses) return
+    if (!wallet) return
+
     const result = await getLastUnusedAddressFromWallet(wallet!)
 
     if (!result) return
@@ -409,7 +420,6 @@ function DerivedAddresses({
           />
         </SSHStack>
       </SSHStack>
-
       <SSHStack
         gap="md"
         justifyBetween
@@ -429,85 +439,81 @@ function DerivedAddresses({
           </SSHStack>
         ))}
       </SSHStack>
-
-      <ScrollView style={{ marginTop: 10 }}>
-        <ScrollView horizontal>
-          <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
-            <SSHStack style={addressListStyles.headerRow}>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnIndex
-                ]}
-              >
-                {t('address.list.table.index')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnAddress
-                ]}
-              >
-                {t('bitcoin.address')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnLabel
-                ]}
-              >
-                {t('common.label')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnTxs
-                ]}
-              >
-                {t('address.list.table.tx')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnSats
-                ]}
-              >
-                {t('address.list.table.balance')}
-              </SSText>
-              <SSText
-                style={[
-                  addressListStyles.headerText,
-                  addressListStyles.columnUtxos
-                ]}
-              >
-                {t('address.list.table.utxo')}
-              </SSText>
-            </SSHStack>
-
-            <FlashList
-              data={addresses?.filter((address) =>
-                change
-                  ? address.keychain === 'internal'
-                  : address.keychain === 'external'
-              )}
-              renderItem={renderItem}
-              estimatedItemSize={150}
-              keyExtractor={(item) => {
-                return `${item.index}:${item.address}:${item.keychain}`
-              }}
-              removeClippedSubviews
-            />
-          </SSVStack>
-        </ScrollView>
-        <SSButton
-          variant="outline"
-          uppercase
-          style={{ marginTop: 10 }}
-          label={t('address.list.table.loadMore')}
-          disabled={loadingAddresses}
-          onPress={loadMoreAddresses}
-        />
+      <ScrollView style={{ marginTop: 10 }} horizontal>
+        <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
+          <SSHStack style={addressListStyles.headerRow}>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnIndex
+              ]}
+            >
+              {t('address.list.table.index')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnAddress
+              ]}
+            >
+              {t('bitcoin.address')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnLabel
+              ]}
+            >
+              {t('common.label')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnTxs
+              ]}
+            >
+              {t('address.list.table.tx')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnSats
+              ]}
+            >
+              {t('address.list.table.balance')}
+            </SSText>
+            <SSText
+              style={[
+                addressListStyles.headerText,
+                addressListStyles.columnUtxos
+              ]}
+            >
+              {t('address.list.table.utxo')}
+            </SSText>
+          </SSHStack>
+          <FlashList
+            data={addresses?.filter((address) =>
+              change
+                ? address.keychain === 'internal'
+                : address.keychain === 'external'
+            )}
+            renderItem={renderItem}
+            estimatedItemSize={150}
+            keyExtractor={(item) => {
+              return `${item.index}:${item.address}:${item.keychain}`
+            }}
+            removeClippedSubviews
+          />
+        </SSVStack>
       </ScrollView>
+      <SSButton
+        variant="outline"
+        uppercase
+        style={{ marginTop: 10 }}
+        label={t('address.list.table.loadMore')}
+        disabled={loadingAddresses}
+        onPress={loadMoreAddresses}
+      />
     </SSMainLayout>
   )
 }
@@ -758,13 +764,17 @@ export default function AccountView() {
     if (isImportAddress && !watchOnlyWalletAddress) return
     else if (!isImportAddress && !wallet) return
 
-    const updatedAccount = !isImportAddress
-      ? await syncAccountWithWallet(account, wallet!)
-      : await syncAccountWithAddress(
-          account,
-          `addr(${watchOnlyWalletAddress!})`
-        )
-    updateAccount(updatedAccount)
+    try {
+      const updatedAccount = !isImportAddress
+        ? await syncAccountWithWallet(account, wallet!)
+        : await syncAccountWithAddress(
+            account,
+            `addr(${watchOnlyWalletAddress!})`
+          )
+      updateAccount(updatedAccount)
+    } catch (error) {
+      toast.error((error as Error).message)
+    }
   }
 
   async function handleOnRefresh() {

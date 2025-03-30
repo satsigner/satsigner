@@ -16,6 +16,10 @@ export interface BlockchainOracle {
   getPrice: (currency: Currency) => Promise<number>
   getPrices: () => Promise<Prices>
   getPriceAt: (currency: Currency, timestamp: number) => Promise<number>
+  getFullPriceAt: (
+    currency: Currency,
+    timestamp: number
+  ) => Promise<Record<string, number>>
   getPricesAddress: (
     currency: Currency,
     address: string

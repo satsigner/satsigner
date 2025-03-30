@@ -2,9 +2,11 @@ import {
   type DrawerNavigationProp,
   useDrawerStatus
 } from '@react-navigation/drawer'
+import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -147,8 +149,8 @@ export default function AccountList() {
               `addr(${sampleSignetAddress})`
             )
       updateAccount(updatedAccount)
-    } catch {
-      // TODO
+    } catch (error) {
+      toast.error((error as Error).message)
     } finally {
       clearAccount()
       setLoadingWallet(undefined)
@@ -221,47 +223,67 @@ export default function AccountList() {
       </SSHStack>
       <SSMainLayout style={{ paddingTop: 32, paddingRight: 2 }}>
         <ScrollView style={{ paddingRight: '6%' }}>
-          {accounts.length === 0 && (
-            <SSVStack itemsCenter>
-              <SSText color="muted" uppercase>
-                {t('accounts.empty')}
-              </SSText>
-              <SSButton
-                label={t('account.load.sample.segwit')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('segwit')}
-                loading={loadingWallet === 'segwit'}
-              />
-              <SSButton
-                label={t('account.load.sample.legacy')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('legacy')}
-                loading={loadingWallet === 'legacy'}
-              />
-              <SSButton
-                label={t('account.load.sample.xpub')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('watchonlyXpub')}
-                loading={loadingWallet === 'watchonlyXpub'}
-              />
-              <SSButton
-                label={t('account.load.sample.address')}
-                variant="ghost"
-                onPress={() => loadSampleWallet('watchonlyAddress')}
-                loading={loadingWallet === 'watchonlyAddress'}
-              />
-            </SSVStack>
-          )}
           <SSVStack>
-            {accounts.map((account) => (
-              <SSVStack key={account.id}>
-                <SSAccountCard
-                  account={account}
-                  onPress={() => router.navigate(`/account/${account.id}`)}
-                />
-                <SSSeparator color="gradient" />
-              </SSVStack>
-            ))}
+            <FlashList
+              data={accounts}
+              renderItem={({ item }) => (
+                <SSVStack>
+                  <SSAccountCard
+                    account={item}
+                    onPress={() => router.navigate(`/account/${item.id}`)}
+                  />
+                </SSVStack>
+              )}
+              estimatedItemSize={20}
+              ItemSeparatorComponent={() => (
+                <SSSeparator style={{ marginVertical: 16 }} color="gradient" />
+              )}
+              ListEmptyComponent={
+                <SSVStack
+                  itemsCenter
+                  style={{ paddingTop: 32, paddingBottom: 32 }}
+                >
+                  <SSText uppercase>{t('accounts.empty')}</SSText>
+                </SSVStack>
+              }
+              indicatorStyle="white"
+              showsVerticalScrollIndicator={false}
+            />
+          </SSVStack>
+          <SSVStack
+            itemsCenter
+            style={{
+              paddingBottom: 100,
+              paddingTop: 32
+            }}
+          >
+            <SSText color="muted" uppercase>
+              {t('accounts.samples')}
+            </SSText>
+            <SSButton
+              label={t('account.load.sample.segwit')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('segwit')}
+              loading={loadingWallet === 'segwit'}
+            />
+            <SSButton
+              label={t('account.load.sample.legacy')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('legacy')}
+              loading={loadingWallet === 'legacy'}
+            />
+            <SSButton
+              label={t('account.load.sample.xpub')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyXpub')}
+              loading={loadingWallet === 'watchonlyXpub'}
+            />
+            <SSButton
+              label={t('account.load.sample.address')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyAddress')}
+              loading={loadingWallet === 'watchonlyAddress'}
+            />
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
-import { View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -31,19 +31,15 @@ export default function Home() {
   )
 
   return (
-    <>
-      <SSMainLayout style={{ paddingHorizontal: 2, gap: 60, paddingTop: 50 }}>
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <SSMainLayout style={styles.mainLayout}>
         <SSHStack>
-          <View style={{ flex: 1, alignItems: 'center' }}>
+          <View style={styles.headerContainer}>
             <SSText
               uppercase
               size="3xl"
               weight="light"
-              style={{
-                color: Colors.gray[200],
-                letterSpacing: 6,
-                lineHeight: 26
-              }}
+              style={styles.headerText}
             >
               {tab}
             </SSText>
@@ -52,22 +48,17 @@ export default function Home() {
         <SSVStack>
           {pages?.map((page, index) => (
             <SSHStack
-              style={{ paddingHorizontal: '5%' }}
+              style={styles.buttonRow}
               key={`${index}-${tab}/${page.title}`}
             >
-              <View style={{ flex: 1 }}>
+              <View style={styles.buttonContainer}>
                 <SSButton
                   label={page.title}
-                  style={{
-                    borderTopWidth: 1,
-                    borderTopColor: '#303030',
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#222222',
-                    borderRadius: 0
-                  }}
-                  textStyle={{
-                    color: page.isSoon ? Colors.gray[450] : Colors.white
-                  }}
+                  style={styles.button}
+                  textStyle={[
+                    styles.buttonText,
+                    page.isSoon && styles.buttonTextSoon
+                  ]}
                   onPress={() => handlePress(page)}
                   variant="gradient"
                   gradientType="special"
@@ -78,6 +69,44 @@ export default function Home() {
           ))}
         </SSVStack>
       </SSMainLayout>
-    </>
+    </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  mainLayout: {
+    flexGrow: 1,
+    paddingHorizontal: 2,
+    gap: 60,
+    paddingTop: 50,
+    marginBottom: 50
+  },
+  headerContainer: {
+    flex: 1,
+    alignItems: 'center'
+  },
+  headerText: {
+    color: Colors.gray[200],
+    letterSpacing: 6,
+    lineHeight: 26
+  },
+  buttonRow: {
+    paddingHorizontal: '5%'
+  },
+  buttonContainer: {
+    flex: 1
+  },
+  button: {
+    borderTopWidth: 1,
+    borderTopColor: '#303030',
+    borderBottomWidth: 1,
+    borderBottomColor: '#222222',
+    borderRadius: 0
+  },
+  buttonText: {
+    color: Colors.white
+  },
+  buttonTextSoon: {
+    color: Colors.gray[450]
+  }
+})

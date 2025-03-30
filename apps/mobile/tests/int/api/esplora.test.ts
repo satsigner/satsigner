@@ -1,4 +1,4 @@
-import { Esplora } from '@/api/esplora'
+import Esplora from '@/api/esplora'
 
 let esplora: Esplora
 

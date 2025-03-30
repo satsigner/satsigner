@@ -30,9 +30,14 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap="none">
-          <SSText size="xs" style={{ color: Colors.gray[500], lineHeight: 10 }}>
-            {account.keys[0].fingerprint}
-          </SSText>
+          {account.policyType === 'watchonly' ? null : (
+            <SSText
+              size="xs"
+              style={{ color: Colors.gray[500], lineHeight: 10 }}
+            >
+              {account.keys[0].fingerprint}
+            </SSText>
+          )}
           <SSHStack gap="sm">
             <SSText size="lg" color="muted">
               {account.name}

@@ -35,7 +35,7 @@ import {
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import ElectrumClient from './electrum'
-import { Esplora } from './esplora'
+import Esplora from './esplora'
 
 async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
@@ -621,7 +621,7 @@ async function getTransactionInputValues(
   let vin: Transaction['vin'] = []
 
   if (backend === 'electrum') {
-    const electrumClient = await ElectrumClient.fromUrl(url, network)
+    const electrumClient = await ElectrumClient.initClientFromUrl(url, network)
     vin = await electrumClient.getTxInputValues(tx)
     electrumClient.close()
   }

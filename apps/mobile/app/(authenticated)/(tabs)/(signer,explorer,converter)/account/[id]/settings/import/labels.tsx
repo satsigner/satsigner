@@ -103,9 +103,11 @@ export default function ImportLabels() {
         </SSText>
         <SSHStack>
           {bip329FileTypes.map((type) => (
-            <View style={{ width: `${100 / bip329FileTypes.length}%` }}>
+            <View
+              key={type}
+              style={{ width: `${100 / bip329FileTypes.length}%` }}
+            >
               <SSCheckbox
-                key={type}
                 label={type}
                 selected={importType === type}
                 onPress={() => updateImportType(type)}

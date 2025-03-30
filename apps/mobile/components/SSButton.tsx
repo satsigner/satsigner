@@ -22,13 +22,14 @@ type SSButtonProps = {
     | 'secondary'
     | 'outline'
     | 'ghost'
+    | 'subtle'
     | 'gradient'
     | 'danger'
   loading?: boolean
   withSelect?: boolean
   uppercase?: boolean
-  textStyle?: StyleProp<TextStyle>
   gradientType?: 'default' | 'special'
+  textStyle?: StyleProp<TextStyle>
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 function SSButton({
@@ -37,10 +38,10 @@ function SSButton({
   loading,
   withSelect,
   uppercase = true,
+  gradientType = 'default',
   textStyle,
   disabled,
   style,
-  gradientType = 'default',
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {
@@ -48,6 +49,7 @@ function SSButton({
     if (variant === 'secondary') buttonVariantStyles = styles.buttonSecondary
     if (variant === 'outline') buttonVariantStyles = styles.buttonOutline
     if (variant === 'ghost') buttonVariantStyles = styles.buttonGhost
+    if (variant === 'subtle') buttonVariantStyles = styles.buttonSubtle
     if (variant === 'default' && withSelect)
       buttonVariantStyles = styles.buttonWithSelect
     if (variant === 'danger') buttonVariantStyles = styles.buttonDanger
@@ -66,6 +68,7 @@ function SSButton({
     let textVariantStyles = styles.textDefault
     if (variant === 'secondary') textVariantStyles = styles.textSecondary
     if (variant === 'ghost') textVariantStyles = styles.textGhost
+    if (variant === 'subtle') textVariantStyles = styles.textSubtle
 
     return StyleSheet.compose({ ...textVariantStyles }, textStyle)
   }, [variant, textStyle])
@@ -139,6 +142,9 @@ const styles = StyleSheet.create({
   buttonGhost: {
     backgroundColor: Colors.transparent
   },
+  buttonSubtle: {
+    backgroundColor: Colors.gray[900]
+  },
   buttonGradient: {
     position: 'absolute',
     width: '100%',
@@ -160,6 +166,9 @@ const styles = StyleSheet.create({
   },
   textGhost: {
     color: Colors.gray[200]
+  },
+  textSubtle: {
+    color: Colors.gray[100]
   },
   disabled: {
     opacity: 0.3

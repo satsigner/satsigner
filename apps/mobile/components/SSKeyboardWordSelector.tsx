@@ -1,7 +1,7 @@
+import { FlashList } from '@shopify/flash-list'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
-  FlatList,
   Keyboard,
   Platform,
   type StyleProp,
@@ -70,7 +70,7 @@ function SSKeyboardWordSelector({
 }: SSKeyboardWordSelectorProps) {
   const { width } = useWindowDimensions()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const flatList = useRef<FlatList>(null)
+  const flashList = useRef<FlashList<WordInfo>>(null)
 
   const previousWordStart = usePrevious(wordStart)
   const keyboardHeight = useKeyboardHeight()
@@ -80,7 +80,7 @@ function SSKeyboardWordSelector({
   const data = getMatchingWords(wordStart)
 
   if (data.length > 0 && previousWordStart !== wordStart) {
-    flatList.current?.scrollToOffset({ animated: false, offset: 0 })
+    flashList.current?.scrollToOffset({ animated: false, offset: 0 })
   }
 
   if (keyboardOpen && visible && data.length > 0) {
@@ -135,12 +135,11 @@ function SSKeyboardWordSelector({
   return (
     <Animated.View style={containerStyle}>
       {data.length > 0 ? (
-        <FlatList
-          ref={flatList}
+        <FlashList
+          ref={flashList}
           data={data}
-          keyboardShouldPersistTaps="handled"
           horizontal
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <TouchableOpacity
               key={item.index}
@@ -151,6 +150,8 @@ function SSKeyboardWordSelector({
               </View>
             </TouchableOpacity>
           )}
+          estimatedItemSize={150}
+          removeClippedSubviews
         />
       ) : (
         <View style={styles.noMatchingWordsContainerBase}>
