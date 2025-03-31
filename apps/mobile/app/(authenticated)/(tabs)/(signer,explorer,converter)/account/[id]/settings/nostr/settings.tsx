@@ -11,7 +11,7 @@ import {
 import { useState, useEffect } from 'react'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { ScrollView } from 'react-native'
-
+import { t } from '@/locales'
 import SSText from '@/components/SSText'
 import SSButton from '@/components/SSButton'
 import SSTextInput from '@/components/SSTextInput'
@@ -42,10 +42,14 @@ export default function NostrSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
   const [nsec, setNsec] = useState('')
   const [npub, setNpub] = useState('')
+  const [passphrase, setPassphrase] = useState('')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [messages, setMessages] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [secretKey, setSecretKey] = useState<Uint8Array | null>(null)
+  const [customRelayUrl, setCustomRelayUrl] = useState('')
+  const [displayMessageCount, setDisplayMessageCount] = useState(3)
+  const [expandedMessages, setExpandedMessages] = useState<number[]>([])
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -149,17 +153,14 @@ export default function NostrSettings() {
 
   async function handleCreateNsec() {
     try {
-      // Use the specific mnemonic
       const mnemonic = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong'
-      const seed = await bip39.mnemonicToSeed(mnemonic)
-      // Convert Buffer to Uint8Array and use first 32 bytes as the private key
+      const seed = await bip39.mnemonicToSeed(mnemonic, passphrase)
       const newSecretKey = new Uint8Array(seed.slice(0, 32))
       setSecretKey(newSecretKey)
       const newNsec = nip19.nsecEncode(newSecretKey)
       console.log('Created nsec:', newNsec)
       setNsec(newNsec)
 
-      // Derive public key and encode as npub
       const publicKey = getPublicKey(newSecretKey)
       const newNpub = nip19.npubEncode(publicKey)
       console.log('Derived npub:', newNpub)
@@ -232,6 +233,74 @@ export default function NostrSettings() {
     }
   }
 
+  // Add function to handle custom relay addition
+  function handleAddCustomRelay() {
+    if (!customRelayUrl) return
+
+    // Basic validation for websocket URL
+    if (!customRelayUrl.startsWith('wss://')) {
+      console.error('Invalid relay URL. Must start with wss://')
+      return
+    }
+
+    // Add custom relay if it's not already in the list
+    if (!selectedRelays.includes(customRelayUrl)) {
+      const newSelectedRelays = [...selectedRelays, customRelayUrl]
+      setSelectedRelays(newSelectedRelays)
+
+      // Update account with new relays
+      if (account) {
+        updateAccount({
+          ...account,
+          nostrRelays: newSelectedRelays
+        })
+      }
+    }
+
+    // Clear the input
+    setCustomRelayUrl('')
+  }
+
+  // Add function to toggle message expansion
+  const toggleMessageExpansion = (index: number) => {
+    setExpandedMessages((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    )
+  }
+
+  // Add function to format message content
+  const formatMessageContent = (content: string, index: number) => {
+    if (content.length <= 200 || expandedMessages.includes(index)) {
+      return (
+        <SSVStack gap="xxs">
+          <SSText>{content}</SSText>
+          {content.length > 200 && (
+            <SSText
+              color="white"
+              onPress={() => toggleMessageExpansion(index)}
+              style={{ textDecorationLine: 'underline' }}
+            >
+              See less
+            </SSText>
+          )}
+        </SSVStack>
+      )
+    }
+
+    return (
+      <SSVStack gap="xxs">
+        <SSText>{content.slice(0, 200)}...</SSText>
+        <SSText
+          color="white"
+          onPress={() => toggleMessageExpansion(index)}
+          style={{ textDecorationLine: 'underline' }}
+        >
+          See more
+        </SSText>
+      </SSVStack>
+    )
+  }
+
   if (!currentAccountId || !account) return <Redirect href="/" />
 
   return (
@@ -239,22 +308,65 @@ export default function NostrSettings() {
       <SSVStack gap="lg" style={{ padding: 20 }}>
         <Stack.Screen
           options={{
-            headerTitle: () => <SSText uppercase>NOSTR settings</SSText>
+            headerTitle: () => <SSText uppercase>{account.name}</SSText>
           }}
         />
         <SSVStack gap="md">
+          <SSText center uppercase color="muted">
+            NOSTR Label Sync
+          </SSText>
+
           <SSText>Select Relays</SSText>
           {POPULAR_RELAYS.map((relay) => (
-            <SSCheckbox
-              key={relay.url}
-              label={relay.name}
-              selected={selectedRelays.includes(relay.url)}
-              onPress={() => handleRelayToggle(relay.url)}
-            />
+            <SSVStack key={relay.url} gap="xxs">
+              <SSCheckbox
+                label={relay.url}
+                selected={selectedRelays.includes(relay.url)}
+                onPress={() => handleRelayToggle(relay.url)}
+              />
+            </SSVStack>
           ))}
+
+          {/* Add custom relay section */}
+          <SSVStack gap="sm">
+            <SSText>Add Custom Relay</SSText>
+            <SSTextInput
+              placeholder="wss://your-relay.com"
+              value={customRelayUrl}
+              onChangeText={setCustomRelayUrl}
+            />
+            <SSButton
+              label="Add Relay"
+              variant="secondary"
+              onPress={handleAddCustomRelay}
+              disabled={!customRelayUrl.startsWith('wss://')}
+            />
+          </SSVStack>
+
+          {/* Show custom relays if any */}
+          {selectedRelays
+            .filter((url) => !POPULAR_RELAYS.some((relay) => relay.url === url))
+            .map((url) => (
+              <SSVStack key={url} gap="xxs">
+                <SSCheckbox
+                  label={url}
+                  selected={true}
+                  onPress={() => handleRelayToggle(url)}
+                />
+              </SSVStack>
+            ))}
+        </SSVStack>
+        <SSVStack gap="md">
+          <SSText>Mnemonic Passphrase (optional)</SSText>
+          <SSTextInput
+            placeholder="Enter passphrase"
+            value={passphrase}
+            onChangeText={setPassphrase}
+            secureTextEntry
+          />
         </SSVStack>
         <SSButton
-          label="create nsec"
+          label="Derive nsec"
           variant="gradient"
           onPress={handleCreateNsec}
         />
@@ -289,7 +401,7 @@ export default function NostrSettings() {
               <SSText>Latest Messages</SSText>
               {isLoading && <SSText color="muted">Loading messages...</SSText>}
             </SSHStack>
-            {messages.slice(0, 3).map((msg, index) => (
+            {messages.slice(0, displayMessageCount).map((msg, index) => (
               <SSVStack
                 key={index}
                 gap="sm"
@@ -300,9 +412,9 @@ export default function NostrSettings() {
                 }}
               >
                 <SSText color={msg.isSender ? 'white' : 'muted'}>
-                  {msg.isSender ? 'Sent' : 'Received'}:
+                  {msg.isSender ? 'Content Sent' : 'Content Received'}:
                 </SSText>
-                <SSText>{msg.decryptedContent}</SSText>
+                {formatMessageContent(msg.decryptedContent, index)}
                 <SSText size="sm" color="muted">
                   {new Date(msg.created_at * 1000).toLocaleString()}
                 </SSText>
@@ -325,15 +437,11 @@ export default function NostrSettings() {
                 )}
               </SSVStack>
             ))}
-            {messages.length > 3 && (
+            {messages.length > displayMessageCount && (
               <SSButton
-                label="View All Messages"
+                label={`Load More Messages (${messages.length - displayMessageCount} remaining)`}
                 variant="gradient"
-                onPress={() =>
-                  router.push(
-                    `/account/${currentAccountId}/settings/nostr/messages`
-                  )
-                }
+                onPress={() => setDisplayMessageCount((prev) => prev + 3)}
               />
             )}
           </SSVStack>
