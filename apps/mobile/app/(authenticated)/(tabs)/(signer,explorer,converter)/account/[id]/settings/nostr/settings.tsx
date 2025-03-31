@@ -186,12 +186,10 @@ export default function NostrSettings() {
       const newSecretKey = new Uint8Array(seed.slice(0, 32))
       setSecretKey(newSecretKey)
       const newNsec = nip19.nsecEncode(newSecretKey)
-      console.log('Created nsec:', newNsec)
       setNsec(newNsec)
 
       const publicKey = getPublicKey(newSecretKey)
       const newNpub = nip19.npubEncode(publicKey)
-      console.log('Derived npub:', newNpub)
       setNpub(newNpub)
     } catch (error) {
       console.error('Error creating nsec:', error)
@@ -234,7 +232,6 @@ export default function NostrSettings() {
         recipientPubkey as string,
         messageContent
       )
-      console.log('encryptedMessage:', encryptedMessage)
 
       // Create and publish the event
       const event = new NDKEvent(ndk, {
@@ -251,9 +248,6 @@ export default function NostrSettings() {
         .join('')
       const signer = new NDKPrivateKeySigner(secretKeyHex)
       await event.sign(signer)
-
-      // Log the signed event details
-      console.log('Signed event:', JSON.stringify(event.rawEvent(), null, 2))
 
       await event.publish()
 
@@ -344,10 +338,10 @@ export default function NostrSettings() {
         />
         <SSVStack gap="md">
           <SSText center uppercase color="muted">
-            NOSTR Label Sync
+            {t('account.nostrlabels.title')}
           </SSText>
 
-          <SSText>Select Relays</SSText>
+          <SSText>{t('account.nostrlabels.selectRelays')}</SSText>
           {POPULAR_RELAYS.map((relay) => (
             <SSVStack key={relay.url} gap="xxs">
               <SSCheckbox
@@ -360,14 +354,14 @@ export default function NostrSettings() {
 
           {/* Add custom relay section */}
           <SSVStack gap="sm">
-            <SSText>Add Custom Relay</SSText>
+            <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
             <SSTextInput
               placeholder="wss://your-relay.com"
               value={customRelayUrl}
               onChangeText={setCustomRelayUrl}
             />
             <SSButton
-              label="Add Relay"
+              label={t('account.nostrlabels.addRelay')}
               variant="secondary"
               onPress={handleAddCustomRelay}
               disabled={!customRelayUrl.startsWith('wss://')}
@@ -388,7 +382,7 @@ export default function NostrSettings() {
             ))}
         </SSVStack>
         <SSVStack gap="md">
-          <SSText>Mnemonic Passphrase (optional)</SSText>
+          <SSText>{t('account.nostrlabels.mnemonicPassphrase')}</SSText>
           <SSTextInput
             placeholder="Enter passphrase"
             value={passphrase}
@@ -397,22 +391,22 @@ export default function NostrSettings() {
           />
         </SSVStack>
         <SSButton
-          label="Derive nsec"
+          label={t('account.nostrlabels.deriveNsec')}
           variant="gradient"
           onPress={handleCreateNsec}
         />
         {nsec && (
           <SSVStack gap="xxs">
-            <SSText>Private Key (nsec)</SSText>
+            <SSText>{t('account.nostrlabels.privateKey')}</SSText>
             <SSText>{nsec}</SSText>
-            <SSText>Public Key (npub)</SSText>
+            <SSText>{t('account.nostrlabels.publicKey')}</SSText>
             <SSText>{npub}</SSText>
           </SSVStack>
         )}
         {npub && (
           <SSVStack gap="md">
             <SSButton
-              label="Check for messages"
+              label={t('account.nostrlabels.checkForMessages')}
               variant="gradient"
               onPress={fetchMessages}
               disabled={isLoading}
@@ -421,7 +415,7 @@ export default function NostrSettings() {
         )}
         {npub && (
           <SSButton
-            label="Send Labels to Relays"
+            label={t('account.nostrlabels.sendLabels')}
             variant="secondary"
             onPress={handleSendMessage}
           />
@@ -429,8 +423,12 @@ export default function NostrSettings() {
         {messages.length > 0 && (
           <SSVStack gap="md">
             <SSHStack gap="md" justifyBetween>
-              <SSText>Latest Messages</SSText>
-              {isLoading && <SSText color="muted">Loading messages...</SSText>}
+              <SSText> {t('account.nostrlabels.latestMessages')}</SSText>
+              {isLoading && (
+                <SSText color="muted">
+                  {t('account.nostrlabels.loading')}
+                </SSText>
+              )}
             </SSHStack>
             {messages.slice(0, displayMessageCount).map((msg, index) => (
               <SSVStack
@@ -451,7 +449,7 @@ export default function NostrSettings() {
                 </SSText>
                 {msg.decryptedContent.startsWith('{"label":') && (
                   <SSButton
-                    label="Import Labels"
+                    label={t('account.nostrlabels.importLabels')}
                     variant="outline"
                     onPress={() => {
                       try {
