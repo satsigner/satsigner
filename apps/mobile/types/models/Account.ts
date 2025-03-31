@@ -65,4 +65,5 @@ export type Account = {
   createdAt: Date
   isSyncing?: boolean
   nostrRelays?: string[]
+  nostrLabelsAutoSync?: boolean
 }

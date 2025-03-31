@@ -55,6 +55,7 @@ export default function NostrSettings() {
   const [displayMessageCount, setDisplayMessageCount] = useState(3)
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
+  const [autoSync, setAutoSync] = useState(false)
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -70,12 +71,32 @@ export default function NostrSettings() {
     }
   }, [account?.nostrRelays])
 
+  // Load saved autoSync state when component mounts
+  useEffect(() => {
+    if (account?.nostrLabelsAutoSync !== undefined) {
+      setAutoSync(account.nostrLabelsAutoSync)
+    }
+  }, [account?.nostrLabelsAutoSync])
+
   // Fetch messages when npub or selected relays change
   useEffect(() => {
     if (npub && selectedRelays.length > 0) {
       fetchMessages()
     }
   }, [npub, selectedRelays])
+
+  // Add useEffect for auto sync
+  useEffect(() => {
+    if (autoSync && npub && selectedRelays.length > 0) {
+      // Set up interval for auto sync
+      const syncInterval = setInterval(() => {
+        handleSendMessage()
+      }, 60000) // Sync every minute
+
+      // Cleanup interval on unmount or when auto sync is disabled
+      return () => clearInterval(syncInterval)
+    }
+  }, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchMessages() {
     if (!npub || !secretKey) return
@@ -176,7 +197,6 @@ export default function NostrSettings() {
       const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
       const accountSecret = JSON.parse(accountSecretString) as Secret
       const mnemonic = accountSecret.mnemonic
-      console.log('mnemonic:', mnemonic)
       if (!mnemonic) {
         throw new Error('No mnemonic found in account secret')
       }
@@ -341,6 +361,160 @@ export default function NostrSettings() {
             {t('account.nostrlabels.title')}
           </SSText>
 
+          {/* Mnemonic Passphrase field */}
+          <SSVStack gap="md">
+            <SSText>{t('account.nostrlabels.mnemonicPassphrase')}</SSText>
+            <SSTextInput
+              placeholder="Enter passphrase"
+              value={passphrase}
+              onChangeText={setPassphrase}
+              secureTextEntry
+            />
+          </SSVStack>
+
+          {/* Auto Sync Checkbox and Sync Now button */}
+          <SSVStack gap="sm">
+            <SSHStack gap="md" style={{ marginBottom: 10 }}>
+              <SSCheckbox
+                label={t('account.nostrlabels.autoSync')}
+                selected={autoSync}
+                onPress={() => {
+                  /*
+                  if (!npub) {
+                    setRelayError('Please derive your keys first')
+                    return
+                  }
+                  if (selectedRelays.length === 0) {
+                    setRelayError('Please select at least one relay')
+                    return
+                  }
+                    */
+                  const newAutoSync = !autoSync
+                  setAutoSync(newAutoSync)
+                  setRelayError(null)
+
+                  // Save autoSync state to account
+                  if (account) {
+                    updateAccount({
+                      ...account,
+                      nostrLabelsAutoSync: newAutoSync
+                    })
+                  }
+                }}
+              />
+              {autoSync && (
+                <SSText size="sm" color="muted">
+                  Syncing everytime a label is added or edited
+                </SSText>
+              )}
+            </SSHStack>
+
+            {autoSync && (
+              <SSButton
+                label="Sync now"
+                variant="secondary"
+                onPress={handleSendMessage}
+                disabled={isLoading || !npub || selectedRelays.length === 0}
+              />
+            )}
+          </SSVStack>
+
+          {relayError && <SSText size="sm">{relayError}</SSText>}
+
+          {/* Hide manual sync elements when autoSync is enabled */}
+          {!autoSync && (
+            <>
+              <SSButton
+                label={t('account.nostrlabels.deriveNsec')}
+                variant="gradient"
+                onPress={handleCreateNsec}
+              />
+              {nsec && (
+                <SSVStack gap="xxs">
+                  <SSText>{t('account.nostrlabels.nsec')}</SSText>
+                  <SSText>{nsec}</SSText>
+                  <SSText>{t('account.nostrlabels.npub')}</SSText>
+                  <SSText>{npub}</SSText>
+                </SSVStack>
+              )}
+              {npub && (
+                <SSVStack gap="md">
+                  <SSButton
+                    label={t('account.nostrlabels.checkForMessages')}
+                    variant="gradient"
+                    onPress={fetchMessages}
+                    disabled={isLoading}
+                  />
+                </SSVStack>
+              )}
+              {npub && (
+                <SSButton
+                  label={t('account.nostrlabels.sendLabels')}
+                  variant="secondary"
+                  onPress={handleSendMessage}
+                />
+              )}
+            </>
+          )}
+
+          {/* Messages section */}
+          {messages.length > 0 && (
+            <SSVStack gap="md" style={{ marginTop: 60 }}>
+              <SSHStack gap="md" justifyBetween>
+                <SSText> {t('account.nostrlabels.latestMessages')}</SSText>
+                {isLoading && (
+                  <SSText color="muted">
+                    {t('account.nostrlabels.loading')}
+                  </SSText>
+                )}
+              </SSHStack>
+              {messages.slice(0, displayMessageCount).map((msg, index) => (
+                <SSVStack
+                  key={index}
+                  gap="sm"
+                  style={{
+                    backgroundColor: '#1a1a1a',
+                    padding: 10,
+                    borderRadius: 8
+                  }}
+                >
+                  <SSText size="sm" color="muted">
+                    {new Date(msg.created_at * 1000).toLocaleString()}
+                  </SSText>
+                  <SSText color={msg.isSender ? 'white' : 'muted'}>
+                    {msg.isSender ? 'Content Sent' : 'Content Received'}:
+                  </SSText>
+                  {formatMessageContent(msg.decryptedContent, index)}
+
+                  {msg.decryptedContent.startsWith('{"label":') && (
+                    <SSButton
+                      label={t('account.nostrlabels.importLabels')}
+                      variant="outline"
+                      onPress={() => {
+                        try {
+                          const labels = JSON.parse(msg.decryptedContent)
+                          if (account) {
+                            // TODO: Implement label import logic
+                            console.log('Importing labels:', labels)
+                          }
+                        } catch (error) {
+                          console.error('Error parsing labels:', error)
+                        }
+                      }}
+                    />
+                  )}
+                </SSVStack>
+              ))}
+              {messages.length > displayMessageCount && (
+                <SSButton
+                  label={`Load Older Messages (${messages.length - displayMessageCount} remaining)`}
+                  variant="gradient"
+                  onPress={() => setDisplayMessageCount((prev) => prev + 3)}
+                />
+              )}
+            </SSVStack>
+          )}
+
           <SSText>{t('account.nostrlabels.selectRelays')}</SSText>
           {POPULAR_RELAYS.map((relay) => (
             <SSVStack key={relay.url} gap="xxs">
@@ -352,7 +526,7 @@ export default function NostrSettings() {
             </SSVStack>
           ))}
 
-          {/* Add custom relay section */}
+          {/* Custom relay section moved to bottom */}
           <SSVStack gap="sm">
             <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
             <SSTextInput
@@ -381,100 +555,6 @@ export default function NostrSettings() {
               </SSVStack>
             ))}
         </SSVStack>
-        <SSVStack gap="md">
-          <SSText>{t('account.nostrlabels.mnemonicPassphrase')}</SSText>
-          <SSTextInput
-            placeholder="Enter passphrase"
-            value={passphrase}
-            onChangeText={setPassphrase}
-            secureTextEntry
-          />
-        </SSVStack>
-        <SSButton
-          label={t('account.nostrlabels.deriveNsec')}
-          variant="gradient"
-          onPress={handleCreateNsec}
-        />
-        {nsec && (
-          <SSVStack gap="xxs">
-            <SSText>{t('account.nostrlabels.privateKey')}</SSText>
-            <SSText>{nsec}</SSText>
-            <SSText>{t('account.nostrlabels.publicKey')}</SSText>
-            <SSText>{npub}</SSText>
-          </SSVStack>
-        )}
-        {npub && (
-          <SSVStack gap="md">
-            <SSButton
-              label={t('account.nostrlabels.checkForMessages')}
-              variant="gradient"
-              onPress={fetchMessages}
-              disabled={isLoading}
-            />
-          </SSVStack>
-        )}
-        {npub && (
-          <SSButton
-            label={t('account.nostrlabels.sendLabels')}
-            variant="secondary"
-            onPress={handleSendMessage}
-          />
-        )}
-        {messages.length > 0 && (
-          <SSVStack gap="md">
-            <SSHStack gap="md" justifyBetween>
-              <SSText> {t('account.nostrlabels.latestMessages')}</SSText>
-              {isLoading && (
-                <SSText color="muted">
-                  {t('account.nostrlabels.loading')}
-                </SSText>
-              )}
-            </SSHStack>
-            {messages.slice(0, displayMessageCount).map((msg, index) => (
-              <SSVStack
-                key={index}
-                gap="sm"
-                style={{
-                  backgroundColor: '#1a1a1a',
-                  padding: 10,
-                  borderRadius: 8
-                }}
-              >
-                <SSText color={msg.isSender ? 'white' : 'muted'}>
-                  {msg.isSender ? 'Content Sent' : 'Content Received'}:
-                </SSText>
-                {formatMessageContent(msg.decryptedContent, index)}
-                <SSText size="sm" color="muted">
-                  {new Date(msg.created_at * 1000).toLocaleString()}
-                </SSText>
-                {msg.decryptedContent.startsWith('{"label":') && (
-                  <SSButton
-                    label={t('account.nostrlabels.importLabels')}
-                    variant="outline"
-                    onPress={() => {
-                      try {
-                        const labels = JSON.parse(msg.decryptedContent)
-                        if (account) {
-                          // TODO: Implement label import logic
-                          console.log('Importing labels:', labels)
-                        }
-                      } catch (error) {
-                        console.error('Error parsing labels:', error)
-                      }
-                    }}
-                  />
-                )}
-              </SSVStack>
-            ))}
-            {messages.length > displayMessageCount && (
-              <SSButton
-                label={`Load More Messages (${messages.length - displayMessageCount} remaining)`}
-                variant="gradient"
-                onPress={() => setDisplayMessageCount((prev) => prev + 3)}
-              />
-            )}
-          </SSVStack>
-        )}
       </SSVStack>
     </ScrollView>
   )
