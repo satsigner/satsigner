@@ -27,6 +27,10 @@ import {
   type Label,
   bip329export
 } from '@/utils/bip329'
+import { aesDecrypt } from '@/utils/crypto'
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
+import { type Secret } from '@/types/models/Account'
 
 const POPULAR_RELAYS = [
   { url: 'wss://nos.lol', name: 'Nos.lol' },
@@ -50,6 +54,7 @@ export default function NostrSettings() {
   const [customRelayUrl, setCustomRelayUrl] = useState('')
   const [displayMessageCount, setDisplayMessageCount] = useState(3)
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
+  const [relayError, setRelayError] = useState<string | null>(null)
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -153,7 +158,30 @@ export default function NostrSettings() {
 
   async function handleCreateNsec() {
     try {
-      const mnemonic = 'zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong'
+      if (!account?.keys[0].secret) {
+        throw new Error('No secret found')
+      }
+
+      // Get PIN from secure storage
+      const pin = await getItem(PIN_KEY)
+      if (!pin) {
+        throw new Error('PIN not found')
+      }
+
+      // Get IV and encrypted secret from account
+      const iv = account.keys[0].iv
+      const encryptedSecret = account.keys[0].secret as string
+
+      // Decrypt the secret
+      const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+      const accountSecret = JSON.parse(accountSecretString) as Secret
+      const mnemonic = accountSecret.mnemonic
+      console.log('mnemonic:', mnemonic)
+      if (!mnemonic) {
+        throw new Error('No mnemonic found in account secret')
+      }
+
+      // Generate Nostr keys from mnemonic
       const seed = await bip39.mnemonicToSeed(mnemonic, passphrase)
       const newSecretKey = new Uint8Array(seed.slice(0, 32))
       setSecretKey(newSecretKey)
@@ -167,6 +195,9 @@ export default function NostrSettings() {
       setNpub(newNpub)
     } catch (error) {
       console.error('Error creating nsec:', error)
+      setRelayError(
+        error instanceof Error ? error.message : 'Failed to create nsec'
+      )
     }
   }
 
