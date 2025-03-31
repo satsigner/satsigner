@@ -196,7 +196,7 @@ export default function AccountSettings() {
               variant="gradient"
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccountId}/settings/nostr/settings`
+                  `/account/${currentAccountId}/settings/nostrLabelSync`
                 )
               }
             />
