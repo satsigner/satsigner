@@ -189,6 +189,18 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
+          <SSHStack>
+            <SSButton
+              style={{ flex: 1 }}
+              label="nostr sync"
+              variant="gradient"
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/nostr/settings`
+                )
+              }
+            />
+          </SSHStack>
         </SSVStack>
         <SSFormLayout>
           <SSFormLayout.Item>

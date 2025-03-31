@@ -64,4 +64,5 @@ export type Account = {
   addresses: Address[]
   createdAt: Date
   isSyncing?: boolean
+  nostrRelays?: string[]
 }
