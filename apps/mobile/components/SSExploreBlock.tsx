@@ -23,6 +23,12 @@ export default function SSExploreBlock() {
   const [blockDetails, setBlockDetails] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(false)
 
+  function handleBlockPress() {
+      const prevHeight = Math.max(parseInt(blockHeight, 10) - 1, 1)
+      setBlockHeight(prevHeight.toString())
+      setInputHeight(prevHeight.toString())
+  }
+
   useEffect(() => {
     const fetchBlockDetails = async () => {
       if (!blockHeight) return
@@ -56,7 +62,6 @@ export default function SSExploreBlock() {
           {t('explorer.block.heightLabel')} {blockHeight}
         </Text>
         <View style={STYLES.whiteRectangle} />
-
         {loading ? (
           <Text style={STYLES.statusText}>Loading block details...</Text>
         ) : blockDetails ? (
@@ -74,14 +79,9 @@ export default function SSExploreBlock() {
         ) : (
           <Text style={STYLES.statusText}>No block details available.</Text>
         )}
-
         <View style={STYLES.navContainer}>
           <SSIconButton
-            onPress={() => {
-              const prevHeight = Math.max(parseInt(blockHeight, 10) - 1, 1)
-              setBlockHeight(prevHeight.toString())
-              setInputHeight(prevHeight.toString())
-            }}
+            onPress={handleBlockPress}
             style={STYLES.chevronButton}
           >
             <SSIconChevronLeft
@@ -89,7 +89,6 @@ export default function SSExploreBlock() {
               width={CHEVRON_ICON_WIDTH}
             />
           </SSIconButton>
-
           <TextInput
             style={STYLES.input}
             value={inputHeight}
@@ -99,7 +98,6 @@ export default function SSExploreBlock() {
             placeholderTextColor={PLACEHOLDER_TEXT_COLOR}
             textAlign="center"
           />
-
           <SSIconButton
             onPress={() => {
               const nextHeight = parseInt(blockHeight, 10) + 1
@@ -114,7 +112,6 @@ export default function SSExploreBlock() {
             />
           </SSIconButton>
         </View>
-
         <SSButton
           label="Fetch"
           variant="gradient"

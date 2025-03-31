@@ -60,32 +60,6 @@ function ExplorerDifficulty() {
   const [modalVisible, setModalVisible] = useState(false)
   const [selectedBlock, setSelectedBlock] = useState({} as BlockDifficulty)
 
-  // function mockFechData() {
-  //   const data: BlockDifficulty[] = []
-  //   for (let i = 0; i < BLOCKS_PER_EPOCH; i += 1) {
-  //     data.push({
-  //       height: Number(epoch) * BLOCKS_PER_EPOCH + i,
-  //       timestamp: new Date().getTime() / 1000,
-  //       txCount: 1000 + Math.trunc(i / 10),
-  //       chainWork: '0000000000011',
-  //       nonce: Math.trunc(1_000_000_000 * Math.random()),
-  //       size: 400 + Math.trunc(400 * Math.random()),
-  //       weight: 600 + Math.trunc(600 * Math.random()),
-  //       cycleHeight: i + 1,
-  //       timeDifference: 500 + Math.trunc(200 * Math.random())
-  //     })
-  //   }
-  //   const firstBlock = data[0]
-  //   const lastBlock = data[data.length - 1]
-  //   setAverageBlockTime('10.0')
-  //   setRemainingTime('~5 days')
-  //   setHeightStart(firstBlock.height.toString())
-  //   setHeightEnd(lastBlock.height.toString())
-  //   setDateStart(formatDate(firstBlock.timestamp * 1000))
-  //   setDateEnd(formatDate(lastBlock.timestamp * 1000))
-  //   setData(data)
-  // }
-
   async function fetchDifficultyAdjustment() {
     const mempoolOracle = new MempoolOracle()
     const response =
