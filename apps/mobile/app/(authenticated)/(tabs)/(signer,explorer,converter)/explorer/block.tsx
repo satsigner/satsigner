@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,

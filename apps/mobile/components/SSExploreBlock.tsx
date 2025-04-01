@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-// import { t } from '@/locales'
+import { t } from '@/locales'
 import { type Block } from '@/models/block'
 import { formatDate, formatTime } from '@/utils/format'
 
@@ -17,16 +17,13 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
   return (
     <SSVStack style={styles.centered} gap="none">
       <SSHStack gap="xs">
-        <SSText color="muted" uppercase>
-          Block
-        </SSText>
         <SSText weight="bold">{block?.height || '?'}</SSText>
       </SSHStack>
       <View style={styles.whiteRectangle} />
       <SSVStack gap="md">
         <SSVStack gap="none">
           <SSText uppercase color="muted">
-            Block Hash
+            {t('explorer.block.id')}
           </SSText>
           <SSText weight="bold" type="mono">
             {block?.id || placeholder}
@@ -35,7 +32,7 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
         <SSHStack justifyBetween>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Date
+              {t('explorer.block.date')}
             </SSText>
             <SSText weight="bold">
               {block
@@ -47,7 +44,7 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
           </SSVStack>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Date (median)
+              {t('explorer.block.dateMedian')}
             </SSText>
             <SSText weight="bold">
               {block
@@ -61,13 +58,13 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
         <SSHStack justifyBetween>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Total transactions
+              {t('explorer.block.txCount')}
             </SSText>
             <SSText weight="bold">{block?.tx_count || placeholder}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Version
+              {t('explorer.block.version')}
             </SSText>
             <SSText weight="bold">{block?.version || placeholder}</SSText>
           </SSVStack>
@@ -75,13 +72,13 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
         <SSHStack justifyBetween>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Nonce
+              {t('explorer.block.nonce')}
             </SSText>
             <SSText weight="bold">{block?.nonce || placeholder}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Difficulty
+              {t('explorer.block.difficulty')}
             </SSText>
             <SSText weight="bold">{block?.difficulty || placeholder}</SSText>
           </SSVStack>
@@ -89,20 +86,20 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
         <SSHStack justifyBetween>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Size
+              {t('explorer.block.size')}
             </SSText>
             <SSText weight="bold">{block?.size || placeholder}</SSText>
           </SSVStack>
           <SSVStack gap="none" style={styles.halfWidth}>
             <SSText uppercase color="muted">
-              Weight
+              {t('explorer.block.weight')}
             </SSText>
             <SSText weight="bold">{block?.weight || placeholder}</SSText>
           </SSVStack>
         </SSHStack>
         <SSVStack gap="none">
           <SSText uppercase color="muted">
-            Merkle Root
+            {t('explorer.block.merkleRoot')}
           </SSText>
           <SSText weight="bold" type="mono">
             {block?.merkle_root || placeholder}
@@ -110,7 +107,7 @@ export default function SSExploreBlock({ block }: SSExploreBlockProps) {
         </SSVStack>
         <SSVStack gap="none">
           <SSText uppercase color="muted">
-            Previous block hash
+            {t('explorer.block.prevHash')}
           </SSText>
           <SSText weight="bold" type="mono">
             {block?.previousblockhash || placeholder}
