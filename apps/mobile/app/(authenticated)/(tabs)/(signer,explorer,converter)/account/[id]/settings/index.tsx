@@ -195,7 +195,7 @@ export default function AccountSettings() {
               label={t('account.nostrlabels.sync')}
               onPress={() =>
                 router.navigate(
-                  `/account/${currentAccountId}/settings/nostrLabelSync`
+                  `/account/${currentAccountId}/settings/nostr/nostrLabelSync`
                 )
               }
             />

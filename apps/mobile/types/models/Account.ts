@@ -66,4 +66,5 @@ export type Account = {
   isSyncing?: boolean
   nostrRelays?: string[]
   nostrLabelsAutoSync?: boolean
+  nostrPassphrase?: string
 }

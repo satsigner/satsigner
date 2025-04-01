@@ -10,7 +10,7 @@ import {
 } from 'nostr-tools'
 import { useState, useEffect } from 'react'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
-import { ScrollView } from 'react-native'
+import { ScrollView, useWindowDimensions } from 'react-native'
 import { t } from '@/locales'
 import SSText from '@/components/SSText'
 import SSButton from '@/components/SSButton'
@@ -25,22 +25,14 @@ import {
   formatTransactionLabels,
   formatUtxoLabels,
   type Label,
-  bip329export
+  bip329export,
+  bip329parser
 } from '@/utils/bip329'
 import { aesDecrypt } from '@/utils/crypto'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type Secret } from '@/types/models/Account'
-
-const POPULAR_RELAYS = [
-  { url: 'wss://nos.lol', name: 'Nos.lol' },
-  { url: 'wss://nostr.mom', name: 'Nostr Mom' },
-  { url: 'wss://nostr.wine', name: 'Nostr Wine' },
-  { url: 'wss://offchain.pub', name: 'Offchain' },
-  { url: 'wss://relay.damus.io', name: 'Damus' },
-  { url: 'wss://relay.primal.net', name: 'Primal' },
-  { url: 'wss://relay.snort.social', name: 'Snort' }
-]
+import SSModal from '@/components/SSModal'
 
 export default function NostrSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -56,11 +48,22 @@ export default function NostrSettings() {
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
   const [autoSync, setAutoSync] = useState(false)
+  const layout = useWindowDimensions()
+  const [importCount, setImportCount] = useState(0)
+  const [importCountTotal, setImportCountTotal] = useState(0)
+  const [successMsgVisible, setSuccessMsgVisible] = useState(false)
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((_account) => _account.id === currentAccountId),
       state.updateAccount
+    ])
+  )
+
+  const [, importLabelsToAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.id === currentAccountId),
+      state.importLabels
     ])
   )
 
@@ -78,25 +81,43 @@ export default function NostrSettings() {
     }
   }, [account?.nostrLabelsAutoSync])
 
-  // Fetch messages when npub or selected relays change
+  // Load saved passphrase when component mounts
   useEffect(() => {
-    if (npub && selectedRelays.length > 0) {
-      fetchMessages()
+    if (account?.nostrPassphrase !== undefined) {
+      setPassphrase(account.nostrPassphrase)
     }
-  }, [npub, selectedRelays])
+  }, [account?.nostrPassphrase])
 
-  // Add useEffect for auto sync
+  // Modify the fetch messages useEffect to only run when autoSync is on
   useEffect(() => {
     if (autoSync && npub && selectedRelays.length > 0) {
+      fetchMessages()
+    }
+  }, [npub, selectedRelays, autoSync])
+
+  // Modify the auto sync useEffect to include fetchMessages in the interval
+  useEffect(() => {
+    if (autoSync && npub && selectedRelays.length > 0) {
+      // Initial sync
+      handleSendMessage()
+
       // Set up interval for auto sync
       const syncInterval = setInterval(() => {
-        handleSendMessage()
+        //handleSendMessage()
+        fetchMessages()
       }, 60000) // Sync every minute
 
       // Cleanup interval on unmount or when auto sync is disabled
       return () => clearInterval(syncInterval)
     }
   }, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Add new useEffect to auto-execute handleCreateNsec
+  useEffect(() => {
+    if (account && passphrase !== undefined) {
+      handleCreateNsec()
+    }
+  }, [account, passphrase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchMessages() {
     if (!npub || !secretKey) return
@@ -158,22 +179,6 @@ export default function NostrSettings() {
       console.error('Error fetching messages:', error)
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  function handleRelayToggle(relayUrl: string) {
-    const newSelectedRelays = selectedRelays.includes(relayUrl)
-      ? selectedRelays.filter((url) => url !== relayUrl)
-      : [...selectedRelays, relayUrl]
-
-    setSelectedRelays(newSelectedRelays)
-
-    // Update account with new relays
-    if (account) {
-      updateAccount({
-        ...account,
-        nostrRelays: newSelectedRelays
-      })
     }
   }
 
@@ -278,34 +283,6 @@ export default function NostrSettings() {
     }
   }
 
-  // Add function to handle custom relay addition
-  function handleAddCustomRelay() {
-    if (!customRelayUrl) return
-
-    // Basic validation for websocket URL
-    if (!customRelayUrl.startsWith('wss://')) {
-      console.error('Invalid relay URL. Must start with wss://')
-      return
-    }
-
-    // Add custom relay if it's not already in the list
-    if (!selectedRelays.includes(customRelayUrl)) {
-      const newSelectedRelays = [...selectedRelays, customRelayUrl]
-      setSelectedRelays(newSelectedRelays)
-
-      // Update account with new relays
-      if (account) {
-        updateAccount({
-          ...account,
-          nostrRelays: newSelectedRelays
-        })
-      }
-    }
-
-    // Clear the input
-    setCustomRelayUrl('')
-  }
-
   // Add function to toggle message expansion
   const toggleMessageExpansion = (index: number) => {
     setExpandedMessages((prev) =>
@@ -346,216 +323,237 @@ export default function NostrSettings() {
     )
   }
 
+  function handleImportLabels(content: string) {
+    try {
+      // Clean the content by removing control characters
+      const cleanContent = content
+        .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+        .trim()
+
+      // Split concatenated JSON objects
+      const jsonStrings = cleanContent.match(/\{[^}]+\}/g) || []
+
+      // Parse each JSON object and collect valid labels
+      const labels = jsonStrings
+        .map((jsonString) => {
+          try {
+            return JSON.parse(jsonString)
+          } catch (e) {
+            console.error('Error parsing JSON:', jsonString, e)
+            return null
+          }
+        })
+        .filter((label) => label !== null)
+
+      if (labels.length === 0) {
+        throw new Error('No valid labels found in the message')
+      }
+
+      const importCount = importLabelsToAccount(currentAccountId!, labels)
+      setImportCount(importCount)
+      setImportCountTotal(labels.length)
+      setSuccessMsgVisible(true)
+    } catch (error) {
+      console.error('Error importing labels:', error)
+      setRelayError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to parse labels. Make sure the format is correct.'
+      )
+    }
+  }
+
   if (!currentAccountId || !account) return <Redirect href="/" />
 
   return (
-    <ScrollView>
-      <SSVStack gap="lg" style={{ padding: 20 }}>
-        <Stack.Screen
-          options={{
-            headerTitle: () => <SSText uppercase>{account.name}</SSText>
-          }}
-        />
+    <SSVStack style={{ flex: 1 }}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => <SSText uppercase>{account.name}</SSText>
+        }}
+      />
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
         <SSVStack gap="md">
-          <SSText center uppercase color="muted">
+          <SSText center uppercase color="muted" style={{ padding: 20 }}>
             {t('account.nostrlabels.title')}
           </SSText>
 
-          {/* Mnemonic Passphrase field */}
-          <SSVStack gap="md">
+          {/* Top section with relay selection and keys */}
+          <SSVStack gap="md" style={{ padding: 20 }}>
+            <SSButton
+              variant="secondary"
+              label={`${t('account.nostrlabels.relays')} (${selectedRelays.length})`}
+              onPress={() => {
+                router.push({
+                  pathname: `/account/${currentAccountId}/settings/nostr/selectRelays`
+                })
+              }}
+            />
+
+            {/* Passphrase field - moved up */}
             <SSText>{t('account.nostrlabels.mnemonicPassphrase')}</SSText>
             <SSTextInput
               placeholder="Enter passphrase"
               value={passphrase}
-              onChangeText={setPassphrase}
+              onChangeText={(text) => {
+                setPassphrase(text)
+                setRelayError(null)
+                if (account) {
+                  updateAccount({
+                    ...account,
+                    nostrPassphrase: text
+                  })
+                }
+              }}
               secureTextEntry
             />
-          </SSVStack>
 
-          {/* Auto Sync Checkbox and Sync Now button */}
-          <SSVStack gap="sm">
-            <SSHStack gap="md" style={{ marginBottom: 10 }}>
-              <SSCheckbox
-                label={t('account.nostrlabels.autoSync')}
-                selected={autoSync}
-                onPress={() => {
-                  /*
-                  if (!npub) {
-                    setRelayError('Please derive your keys first')
-                    return
-                  }
-                  if (selectedRelays.length === 0) {
-                    setRelayError('Please select at least one relay')
-                    return
-                  }
-                    */
-                  const newAutoSync = !autoSync
-                  setAutoSync(newAutoSync)
-                  setRelayError(null)
-
-                  // Save autoSync state to account
-                  if (account) {
-                    updateAccount({
-                      ...account,
-                      nostrLabelsAutoSync: newAutoSync
-                    })
-                  }
-                }}
-              />
-              {autoSync && (
-                <SSText size="sm" color="muted">
-                  Syncing everytime a label is added or edited
-                </SSText>
-              )}
-            </SSHStack>
-
-            {autoSync && (
-              <SSButton
-                label="Sync now"
-                variant="secondary"
-                onPress={handleSendMessage}
-                disabled={isLoading || !npub || selectedRelays.length === 0}
-              />
+            {/* Keys display */}
+            {nsec && (
+              <SSVStack gap="xxs">
+                <SSText>{t('account.nostrlabels.nsec')}</SSText>
+                <SSText>{nsec}</SSText>
+                <SSText>{t('account.nostrlabels.npub')}</SSText>
+                <SSText>{npub}</SSText>
+              </SSVStack>
             )}
           </SSVStack>
 
-          {relayError && <SSText size="sm">{relayError}</SSText>}
-
-          {/* Hide manual sync elements when autoSync is enabled */}
-          {!autoSync && (
-            <>
-              <SSButton
-                label={t('account.nostrlabels.deriveNsec')}
-                variant="gradient"
-                onPress={handleCreateNsec}
-              />
-              {nsec && (
-                <SSVStack gap="xxs">
-                  <SSText>{t('account.nostrlabels.nsec')}</SSText>
-                  <SSText>{nsec}</SSText>
-                  <SSText>{t('account.nostrlabels.npub')}</SSText>
-                  <SSText>{npub}</SSText>
-                </SSVStack>
-              )}
-              {npub && (
-                <SSVStack gap="md">
-                  <SSButton
-                    label={t('account.nostrlabels.checkForMessages')}
-                    variant="gradient"
-                    onPress={fetchMessages}
-                    disabled={isLoading}
-                  />
-                </SSVStack>
-              )}
-              {npub && (
+          {/* Combined content */}
+          <SSVStack gap="md" style={{ padding: 20 }}>
+            {/* Message controls - moved up */}
+            {npub && (
+              <>
+                <SSButton
+                  label={t('account.nostrlabels.checkForMessages')}
+                  variant="gradient"
+                  onPress={fetchMessages}
+                  disabled={isLoading}
+                />
                 <SSButton
                   label={t('account.nostrlabels.sendLabels')}
                   variant="secondary"
                   onPress={handleSendMessage}
                 />
-              )}
-            </>
-          )}
+              </>
+            )}
 
-          {/* Messages section */}
-          {messages.length > 0 && (
-            <SSVStack gap="md" style={{ marginTop: 60 }}>
-              <SSHStack gap="md" justifyBetween>
-                <SSText> {t('account.nostrlabels.latestMessages')}</SSText>
-                {isLoading && (
-                  <SSText color="muted">
-                    {t('account.nostrlabels.loading')}
+            {/* Auto-sync section */}
+            <SSVStack gap="sm">
+              <SSHStack gap="md" style={{ marginBottom: 10 }}>
+                <SSCheckbox
+                  label={t('account.nostrlabels.autoSync')}
+                  selected={autoSync}
+                  onPress={() => {
+                    const newAutoSync = !autoSync
+                    setAutoSync(newAutoSync)
+                    setRelayError(null)
+                    if (account) {
+                      updateAccount({
+                        ...account,
+                        nostrLabelsAutoSync: newAutoSync
+                      })
+                      // Fetch messages immediately when auto-sync is enabled
+                      if (newAutoSync && npub && selectedRelays.length > 0) {
+                        fetchMessages()
+                      }
+                    }
+                  }}
+                />
+                {autoSync && (
+                  <SSText size="sm" color="muted">
+                    Syncing everytime a label is added or edited
                   </SSText>
                 )}
               </SSHStack>
-              {messages.slice(0, displayMessageCount).map((msg, index) => (
-                <SSVStack
-                  key={index}
-                  gap="sm"
-                  style={{
-                    backgroundColor: '#1a1a1a',
-                    padding: 10,
-                    borderRadius: 8
-                  }}
-                >
-                  <SSText size="sm" color="muted">
-                    {new Date(msg.created_at * 1000).toLocaleString()}
-                  </SSText>
-                  <SSText color={msg.isSender ? 'white' : 'muted'}>
-                    {msg.isSender ? 'Content Sent' : 'Content Received'}:
-                  </SSText>
-                  {formatMessageContent(msg.decryptedContent, index)}
 
-                  {msg.decryptedContent.startsWith('{"label":') && (
-                    <SSButton
-                      label={t('account.nostrlabels.importLabels')}
-                      variant="outline"
-                      onPress={() => {
-                        try {
-                          const labels = JSON.parse(msg.decryptedContent)
-                          if (account) {
-                            // TODO: Implement label import logic
-                            console.log('Importing labels:', labels)
-                          }
-                        } catch (error) {
-                          console.error('Error parsing labels:', error)
-                        }
-                      }}
-                    />
-                  )}
-                </SSVStack>
-              ))}
-              {messages.length > displayMessageCount && (
+              {autoSync && (
                 <SSButton
-                  label={`Load Older Messages (${messages.length - displayMessageCount} remaining)`}
-                  variant="gradient"
-                  onPress={() => setDisplayMessageCount((prev) => prev + 3)}
+                  label="Sync now"
+                  variant="secondary"
+                  onPress={handleSendMessage}
+                  disabled={isLoading || !npub || selectedRelays.length === 0}
                 />
               )}
             </SSVStack>
-          )}
 
-          <SSText>{t('account.nostrlabels.selectRelays')}</SSText>
-          {POPULAR_RELAYS.map((relay) => (
-            <SSVStack key={relay.url} gap="xxs">
-              <SSCheckbox
-                label={relay.url}
-                selected={selectedRelays.includes(relay.url)}
-                onPress={() => handleRelayToggle(relay.url)}
-              />
-            </SSVStack>
-          ))}
-
-          {/* Custom relay section moved to bottom */}
-          <SSVStack gap="sm">
-            <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
-            <SSTextInput
-              placeholder="wss://your-relay.com"
-              value={customRelayUrl}
-              onChangeText={setCustomRelayUrl}
-            />
-            <SSButton
-              label={t('account.nostrlabels.addRelay')}
-              variant="secondary"
-              onPress={handleAddCustomRelay}
-              disabled={!customRelayUrl.startsWith('wss://')}
-            />
-          </SSVStack>
-
-          {/* Show custom relays if any */}
-          {selectedRelays
-            .filter((url) => !POPULAR_RELAYS.some((relay) => relay.url === url))
-            .map((url) => (
-              <SSVStack key={url} gap="xxs">
-                <SSCheckbox
-                  label={url}
-                  selected={true}
-                  onPress={() => handleRelayToggle(url)}
-                />
+            {/* Messages section */}
+            {messages.length > 0 && (
+              <SSVStack gap="md" style={{ marginTop: 20 }}>
+                <SSHStack gap="md" justifyBetween>
+                  <SSText>{t('account.nostrlabels.latestMessages')}</SSText>
+                  {isLoading && (
+                    <SSText color="muted">
+                      {t('account.nostrlabels.loading')}
+                    </SSText>
+                  )}
+                </SSHStack>
+                {messages.slice(0, displayMessageCount).map((msg, index) => (
+                  <SSVStack
+                    key={index}
+                    gap="sm"
+                    style={{
+                      backgroundColor: '#1a1a1a',
+                      padding: 10,
+                      borderRadius: 8
+                    }}
+                  >
+                    <SSText size="sm" color="muted">
+                      {new Date(msg.created_at * 1000).toLocaleString()}
+                    </SSText>
+                    <SSText color={msg.isSender ? 'white' : 'muted'}>
+                      {msg.isSender ? 'Content Sent' : 'Content Received'}:
+                    </SSText>
+                    {formatMessageContent(msg.decryptedContent, index)}
+                    {msg.decryptedContent.startsWith('{"label":') && (
+                      <SSButton
+                        label={t('account.nostrlabels.importLabels')}
+                        variant="outline"
+                        onPress={() => {
+                          handleImportLabels(msg.decryptedContent)
+                        }}
+                      />
+                    )}
+                  </SSVStack>
+                ))}
+                {messages.length > displayMessageCount && (
+                  <SSButton
+                    label={`Load Older Messages (${
+                      messages.length - displayMessageCount
+                    } remaining)`}
+                    variant="gradient"
+                    onPress={() => setDisplayMessageCount((prev) => prev + 3)}
+                  />
+                )}
               </SSVStack>
-            ))}
+            )}
+
+            {relayError && <SSText size="sm">{relayError}</SSText>}
+          </SSVStack>
         </SSVStack>
-      </SSVStack>
-    </ScrollView>
+      </ScrollView>
+
+      <SSModal
+        visible={successMsgVisible}
+        onClose={() => setSuccessMsgVisible(false)}
+      >
+        <SSVStack
+          gap="lg"
+          style={{ justifyContent: 'center', height: '100%', width: '100%' }}
+        >
+          <SSText uppercase size="md" center weight="bold">
+            {t('import.success', { importCount, total: importCountTotal })}
+          </SSText>
+          <SSButton
+            label={t('common.close')}
+            onPress={() => setSuccessMsgVisible(false)}
+          />
+        </SSVStack>
+      </SSModal>
+    </SSVStack>
   )
 }
