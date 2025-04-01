@@ -9,6 +9,7 @@ type AccountBuilderState = {
   policyType: Account['policyType']
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
+  entropy: Key['entropy']
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']
@@ -27,6 +28,7 @@ type AccountBuilderAction = {
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
+  setEntropy: (entropy: AccountBuilderState['entropy']) => void
   setMnemonicWordCount: (
     mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
   ) => void
@@ -69,6 +71,7 @@ const initialState: AccountBuilderState = {
   policyType: 'singlesig',
   keyName: '',
   creationType: 'importMnemonic',
+  entropy: 'None',
   mnemonicWordCount: 24,
   mnemonic: '',
   passphrase: undefined,
@@ -98,6 +101,9 @@ const useAccountBuilderStore = create<
   setCreationType: (creationType) => {
     set({ creationType })
   },
+  setEntropy: (entropy) => {
+    set({ entropy })
+  },
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
   },
@@ -126,6 +132,7 @@ const useAccountBuilderStore = create<
     const {
       keyName,
       creationType,
+      entropy,
       mnemonicWordCount,
       mnemonic,
       passphrase,
@@ -139,6 +146,7 @@ const useAccountBuilderStore = create<
       index,
       name: keyName,
       creationType,
+      entropy,
       mnemonicWordCount,
       secret: {
         ...(mnemonic && { mnemonic }),
@@ -222,6 +230,7 @@ const useAccountBuilderStore = create<
     set({
       keyName: '',
       creationType: 'importMnemonic',
+      entropy: 'None',
       mnemonicWordCount: 24,
       mnemonic: '',
       passphrase: undefined,
