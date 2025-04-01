@@ -8,6 +8,8 @@ export type MnemonicCount = 12 | 15 | 18 | 21 | 24
 
 export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
 
+export type EntropyType = 'None' | 'Drawing' | 'Coin Flip' | 'Dice'
+
 export type CreationType =
   | 'generateMnemonic'
   | 'importMnemonic'
@@ -32,6 +34,7 @@ export type Key = {
   index: number
   name?: string
   creationType: CreationType
+  entropy?: EntropyType
   mnemonicWordCount?: MnemonicCount
   /** Sensitive information that can be encrypted with PIN */
   secret: Secret | string

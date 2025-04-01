@@ -43,11 +43,14 @@ export default function SingleSig() {
   )
   const network = useBlockchainStore((state) => state.network)
 
+  const [localEntropyType, setLocalEntropyType] =
+    useState<NonNullable<Key['entropy']>>('None')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
 
+  const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
@@ -86,6 +89,11 @@ export default function SingleSig() {
     setMnemonicWordCountModalVisibile(false)
   }
 
+  function handleOnSelectEntropy() {
+    setLocalEntropyType(localEntropyType)
+    setEntropyModalVisible(false)
+  }
+
   if (!name) return <Redirect href="/" />
 
   return (
@@ -118,6 +126,14 @@ export default function SingleSig() {
                 label={`${localMnemonicWordCount} ${t('bitcoin.words').toLowerCase()}`}
                 withSelect
                 onPress={() => setMnemonicWordCountModalVisibile(true)}
+              />
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.entropy.title')} />
+              <SSButton
+                label={`${localEntropyType}`}
+                withSelect
+                onPress={() => setEntropyModalVisible(true)}
               />
             </SSFormLayout.Item>
           </SSFormLayout>
@@ -164,6 +180,25 @@ export default function SingleSig() {
             selected={localMnemonicWordCount === count}
             onPress={() =>
               setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
+            }
+          />
+        ))}
+      </SSSelectModal>
+      <SSSelectModal
+        visible={entropyModalVisible}
+        title={t('account.entropy.title')}
+        selectedText={`${localEntropyType}`}
+        // selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        onSelect={handleOnSelectEntropy}
+        onCancel={() => setEntropyModalVisible(false)}
+      >
+        {(['None', 'Drawing', 'Coin Flip', 'Dice'] as const).map((entropy) => (
+          <SSRadioButton
+            key={entropy}
+            label={`${entropy}`}
+            selected={localEntropyType === entropy}
+            onPress={() =>
+              setStateWithLayoutAnimation(setLocalEntropyType, entropy)
             }
           />
         ))}
