@@ -2,6 +2,7 @@ export interface BlockchainOracle {
   getAddressUtxos: (address: string) => Promise<UTXO[]>
   getBlock: (blkid: string) => Promise<Block>
   getBlockAt: (timestamp: number) => Promise<Block>
+  getBlockAtHeight: (height: number) => Promise<Block>
   getBlockStatus: (blkid: string) => Promise<BlockStatus>
   getBlockTransactions: (blkid: string) => Promise<Tx[]>
   getCurrentBlockHash: () => Promise<string>
@@ -54,13 +55,17 @@ export type BlockStatus = {
 
 export type Block = {
   id: string
-  height: number
-  size: number
-  weight: number
   difficulty: number
-  tx_count: number
-  timestamp: number
+  height: number
+  mediantime: number
+  merkle_root: string
+  nonce: number
   previousblockhash: string
+  size: number
+  timestamp: number
+  tx_count: number
+  version: number
+  weight: number
 }
 
 export type BlockDifficulty = {

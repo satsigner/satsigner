@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 
+import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSExploreBlock from '@/components/SSExploreBlock'
@@ -10,36 +11,53 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
+import { type Block } from '@/types/models/Blockchain'
+
+const oracle = new MempoolOracle()
 
 function ExplorerBlock() {
   const [inputHeight, setInputHeight] = useState('1')
+  const [loading, setLoading] = useState(false)
+  const [maxBlockHeight, setMaxBlockHeight] = useState(890_000)
 
   const { height } = useWindowDimensions()
   const padding = 120
   const minHeight = height - padding
 
-  const block = {
-    difficulty: 49402014931.22746,
-    hash: '000000000000000015dc777b3ff2611091336355d3f0ee9766a2cf3be8e4b1ce',
-    height: 363366,
-    nonce: 2892644888,
-    prevBlockHash: "000000000000000010c545b6fa3ef1f7cf45a2a8760b1ee9f2e89673218207ce",
-    merkleRoot: "9d3cb87bf05ebae366b4262ed5f768ce8c62fc385c3886c9cb097647b04b686c",
-    size: 286494,
-    timestamp: 1435766771 * 1000,
-    medianTime: 1435763435 * 1000,
-    txCount: 494,
-    version: 2,
-    weight: 1145976,
-  }
+  const [block, setBlock] = useState<Block | null>(null)
 
   function nextBlockHeight() {
-    setInputHeight((Number(inputHeight) + 1).toString())
+    setInputHeight(Math.min(maxBlockHeight, Number(inputHeight) + 1).toString())
   }
 
   function prevBlockHeight() {
-    setInputHeight((Math.max(1, Number(inputHeight) - 1)).toString())
+    setInputHeight(Math.max(1, Number(inputHeight) - 1).toString())
   }
+
+  async function fetchBlock() {
+    setLoading(true)
+    try {
+      const block = await oracle.getBlockAtHeight(Number(inputHeight))
+      setBlock(block)
+      setInputHeight(block.height.toString())
+    } catch {
+      //
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function fetchLatestBlock() {
+    const tipHash = await oracle.getCurrentBlockHash()
+    const block = await oracle.getBlock(tipHash)
+    setBlock(block)
+    setMaxBlockHeight(block.height)
+    setInputHeight(block.height.toString())
+  }
+
+  useEffect(() => {
+    fetchLatestBlock()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <SSMainLayout style={{ paddingBottom: 20, paddingTop: 10 }}>
@@ -50,31 +68,56 @@ function ExplorerBlock() {
         <SSVStack>
           <SSHStack justifyBetween>
             <SSIconButton
-              style={styles.chevronButton}
+              style={[
+                styles.chevronButton,
+                {
+                  borderColor:
+                    inputHeight === '1' ? Colors.barRed : Colors.gray[500]
+                }
+              ]}
               onPress={prevBlockHeight}
             >
-              <SSIconChevronLeft height={22} width={24} />
+              <SSIconChevronLeft
+                height={22}
+                width={24}
+                stroke={inputHeight === '1' ? Colors.barRed : Colors.gray[500]}
+              />
             </SSIconButton>
             <View style={{ flexGrow: 1 }}>
               <SSNumberInput
                 min={1}
-                max={900_000}
+                max={maxBlockHeight}
                 value={inputHeight}
                 onChangeText={setInputHeight}
                 style={styles.input}
               />
             </View>
             <SSIconButton
-              style={styles.chevronButton}
+              style={[
+                styles.chevronButton,
+                {
+                  borderColor:
+                    inputHeight === `${maxBlockHeight}`
+                      ? Colors.barRed
+                      : Colors.gray[500]
+                }
+              ]}
               onPress={nextBlockHeight}
             >
-              <SSIconChevronRight height={22} width={24} />
+              <SSIconChevronRight
+                height={22}
+                width={24}
+                stroke={
+                  inputHeight === `${maxBlockHeight}`
+                    ? Colors.barRed
+                    : Colors.gray[500]
+                }
+              />
             </SSIconButton>
           </SSHStack>
-          <SSButton label="Fetch" />
+          <SSButton disabled={loading} label="Fetch" onPress={fetchBlock} />
         </SSVStack>
       </SSVStack>
-
     </SSMainLayout>
   )
 }
@@ -83,7 +126,7 @@ const styles = StyleSheet.create({
   chevronButton: {
     padding: 15,
     borderWidth: 1,
-    borderColor: Colors.gray[600],
+    borderColor: Colors.gray[500],
     borderRadius: 10
   },
   input: {
