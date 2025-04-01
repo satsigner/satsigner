@@ -29,8 +29,10 @@ function useVerifyConnection() {
   const isConnectionAvailable = useRef<boolean | null>(false)
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
-    return network + ' - ' + url
-  }, [network, url])
+    if (connectionMode === 'auto') return `${network} - ${url}`
+
+    return `${network} - ${url} (${connectionMode})`
+  }, [network, url, connectionMode])
 
   const isPrivateConnection = useMemo(() => {
     if (servers.findIndex((val) => val.url === url) === -1) {
@@ -40,9 +42,7 @@ function useVerifyConnection() {
   }, [url])
 
   const verifyConnection = useCallback(async () => {
-    if (connectionMode === 'manual') return
-
-    if (!isConnectionAvailable.current) {
+    if (!isConnectionAvailable.current || connectionMode === 'manual') {
       setConnectionState(false)
       return
     }
