@@ -58,6 +58,8 @@ import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScan from './SSIconScan'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
+import SSIconServer from './SSIconServer'
+import SSIconServerOptions from './SSIconServerOptions'
 import SSIconSettings from './SSIconSettings'
 import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
@@ -131,6 +133,8 @@ export {
   SSIconRemove,
   SSIconScan,
   SSIconScriptsP2pkh,
+  SSIconServer,
+  SSIconServerOptions,
   SSIconSettings,
   SSIconSigner,
   SSIconSignerActive,
