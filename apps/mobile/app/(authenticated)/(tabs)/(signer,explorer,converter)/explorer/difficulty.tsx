@@ -49,11 +49,11 @@ function ExplorerDifficulty() {
   const [loading, setLoading] = useState(false)
 
   const [epoch, setEpoch] = useState('0')
-  const [averageBlockTime, setAverageBlockTime] = useState('unknown')
-  const [remainingTime, setRemainingTime] = useState('unknown')
+  const [averageBlockTime, setAverageBlockTime] = useState('?')
+  const [remainingTime, setRemainingTime] = useState('?')
 
-  const [dateStart, setDateStart] = useState('unknown date')
-  const [dateEnd, setDateEnd] = useState('unknown date')
+  const [dateStart, setDateStart] = useState('?')
+  const [dateEnd, setDateEnd] = useState('?')
   const [heightStart, setHeightStart] = useState('?')
   const [heightEnd, setHeightEnd] = useState('?')
 

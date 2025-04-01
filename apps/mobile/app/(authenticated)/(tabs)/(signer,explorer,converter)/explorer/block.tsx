@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View
+} from 'react-native'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
@@ -60,65 +67,67 @@ function ExplorerBlock() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <SSMainLayout style={{ paddingBottom: 20, paddingTop: 10 }}>
-      <SSVStack justifyBetween style={{ minHeight }}>
-        <ScrollView>
+    <ScrollView>
+      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 10 }}>
+        <SSVStack justifyBetween style={{ minHeight }}>
           <SSExploreBlock block={block} />
-        </ScrollView>
-        <SSVStack>
-          <SSHStack justifyBetween>
-            <SSIconButton
-              style={[
-                styles.chevronButton,
-                {
-                  borderColor:
+          <SSVStack>
+            <SSHStack justifyBetween>
+              <SSIconButton
+                style={[
+                  styles.chevronButton,
+                  {
+                    borderColor:
+                      inputHeight === '1' ? Colors.barRed : Colors.gray[500]
+                  }
+                ]}
+                onPress={prevBlockHeight}
+              >
+                <SSIconChevronLeft
+                  height={22}
+                  width={24}
+                  stroke={
                     inputHeight === '1' ? Colors.barRed : Colors.gray[500]
-                }
-              ]}
-              onPress={prevBlockHeight}
-            >
-              <SSIconChevronLeft
-                height={22}
-                width={24}
-                stroke={inputHeight === '1' ? Colors.barRed : Colors.gray[500]}
-              />
-            </SSIconButton>
-            <View style={{ flexGrow: 1 }}>
-              <SSNumberInput
-                min={1}
-                max={maxBlockHeight}
-                value={inputHeight}
-                onChangeText={setInputHeight}
-                style={styles.input}
-              />
-            </View>
-            <SSIconButton
-              style={[
-                styles.chevronButton,
-                {
-                  borderColor:
+                  }
+                />
+              </SSIconButton>
+              <View style={{ flexGrow: 1 }}>
+                <SSNumberInput
+                  min={1}
+                  max={maxBlockHeight}
+                  value={inputHeight}
+                  onChangeText={setInputHeight}
+                  style={styles.input}
+                />
+              </View>
+              <SSIconButton
+                style={[
+                  styles.chevronButton,
+                  {
+                    borderColor:
+                      inputHeight === `${maxBlockHeight}`
+                        ? Colors.barRed
+                        : Colors.gray[500]
+                  }
+                ]}
+                onPress={nextBlockHeight}
+              >
+                <SSIconChevronRight
+                  height={22}
+                  width={24}
+                  stroke={
                     inputHeight === `${maxBlockHeight}`
                       ? Colors.barRed
                       : Colors.gray[500]
-                }
-              ]}
-              onPress={nextBlockHeight}
-            >
-              <SSIconChevronRight
-                height={22}
-                width={24}
-                stroke={
-                  inputHeight === `${maxBlockHeight}`
-                    ? Colors.barRed
-                    : Colors.gray[500]
-                }
-              />
-            </SSIconButton>
-          </SSHStack>
-          <SSButton disabled={loading} label="Fetch" onPress={fetchBlock} />
+                  }
+                />
+              </SSIconButton>
+            </SSHStack>
+            <SSButton disabled={loading} label="Fetch" onPress={fetchBlock} />
+          </SSVStack>
         </SSVStack>
-      </SSVStack>
-    </SSMainLayout>
+      </SSMainLayout>
+    </ScrollView>
   )
 }
 
