@@ -141,9 +141,7 @@ export default function AuthenticatedLayout() {
   }
 
   useEffect(() => {
-    if (connectionMode === 'auto') {
-      loadWallets()
-    }
+    if (connectionMode === 'auto') loadWallets()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Do not push index route
