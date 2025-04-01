@@ -17,6 +17,9 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
 import { type Block } from '@/types/models/Blockchain'
+import SSText from '@/components/SSText'
+import { Stack } from 'expo-router'
+import { t } from '@/locales'
 
 const oracle = new MempoolOracle()
 
@@ -66,7 +69,14 @@ function ExplorerBlock() {
 
   return (
     <ScrollView>
-      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 10 }}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <SSText uppercase>{t('explorer.block.title')}</SSText>
+          )
+        }}
+      />
+      <SSMainLayout style={{ paddingBottom: 20, paddingTop: 0 }}>
         <SSVStack justifyBetween style={{ minHeight }}>
           <SSExploreBlock block={block} />
           <SSVStack>
