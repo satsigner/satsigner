@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Block } from '@/models/block'
+import { type Block } from '@/types/models/Blockchain'
 import { formatDate, formatTime } from '@/utils/format'
 
 import SSText from './SSText'

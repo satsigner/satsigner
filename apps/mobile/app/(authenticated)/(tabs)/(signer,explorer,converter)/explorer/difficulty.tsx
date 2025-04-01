@@ -49,8 +49,8 @@ function ExplorerDifficulty() {
   const [loading, setLoading] = useState(false)
 
   const [epoch, setEpoch] = useState('0')
-    // TODO: Update the data source. The latest available epoch from our data
-    // source is 426 even though as of March 2025 the epoch is 441.
+  // TODO: Update the data source. The latest available epoch from our data
+  // source is 426 even though as of March 2025 the epoch is 441.
   const [maxEpoch, _setMaxEpoch] = useState(426)
   const [averageBlockTime, setAverageBlockTime] = useState('?')
   const [remainingTime, setRemainingTime] = useState('?')

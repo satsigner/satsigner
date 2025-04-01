@@ -16,7 +16,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  type ViewStyle,
+  type ViewStyle
 } from 'react-native'
 import Animated, {
   useAnimatedStyle,

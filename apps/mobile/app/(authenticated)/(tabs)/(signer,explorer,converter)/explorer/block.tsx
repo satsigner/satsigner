@@ -1,10 +1,6 @@
+import { Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
-import {
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft, SSIconChevronRight } from '@/components/icons'
@@ -12,14 +8,13 @@ import SSButton from '@/components/SSButton'
 import SSExploreBlock from '@/components/SSExploreBlock'
 import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
+import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Block } from '@/types/models/Blockchain'
-import SSText from '@/components/SSText'
-import { Stack } from 'expo-router'
-import { t } from '@/locales'
 
 const oracle = new MempoolOracle()
 
