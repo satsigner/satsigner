@@ -7,16 +7,11 @@ import {
   bip329parser
 } from '@/utils/bip329'
 import { type Account } from '@/types/models/Account'
-import { useAccountsStore } from '@/store/accounts'
 
 export interface LabelsAPI {
   formatLabels(account: Account): Label[]
   exportLabels(labels: Label[]): string
   parseLabels(content: string): Label[]
-  importLabels(
-    accountId: string,
-    content: string
-  ): { importCount: number; total: number }
 }
 
 export class LabelsAPI implements LabelsAPI {
@@ -58,16 +53,5 @@ export class LabelsAPI implements LabelsAPI {
     }
 
     return labels
-  }
-
-  importLabels(
-    accountId: string,
-    content: string
-  ): { importCount: number; total: number } {
-    const labels = this.parseLabels(content)
-    const importCount = useAccountsStore
-      .getState()
-      .importLabels(accountId, labels)
-    return { importCount, total: labels.length }
   }
 }

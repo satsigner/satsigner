@@ -33,7 +33,7 @@ export class NostrAPI {
 
   constructor(private relays: string[]) {}
 
-  private async connect() {
+  async connect() {
     if (!this.ndk) {
       this.ndk = new NDK({
         explicitRelayUrls: this.relays

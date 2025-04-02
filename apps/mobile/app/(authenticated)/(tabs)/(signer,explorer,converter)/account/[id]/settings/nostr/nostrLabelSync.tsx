@@ -68,7 +68,13 @@ export default function NostrSettings() {
   // Initialize NostrAPI when relays change
   useEffect(() => {
     if (selectedRelays.length > 0) {
-      setNostrApi(new NostrAPI(selectedRelays))
+      const api = new NostrAPI(selectedRelays)
+      setNostrApi(api)
+      // Connect immediately
+      api.connect().catch((error) => {
+        console.error('Failed to connect to relays:', error)
+        setRelayError('Failed to connect to relays')
+      })
     }
   }, [selectedRelays])
 
@@ -92,13 +98,6 @@ export default function NostrSettings() {
       setPassphrase(account.nostrPassphrase)
     }
   }, [account?.nostrPassphrase])
-
-  // Initialize NostrAPI when component mounts if relays are available
-  useEffect(() => {
-    if (account?.nostrRelays && account.nostrRelays.length > 0) {
-      setNostrApi(new NostrAPI(account.nostrRelays))
-    }
-  }, [account?.nostrRelays])
 
   // Modify the fetch messages useEffect to only run when autoSync is on
   useEffect(() => {
@@ -156,6 +155,9 @@ export default function NostrSettings() {
 
     setIsLoading(true)
     try {
+      // Ensure connection is established
+      await nostrApi.connect()
+
       const fetchedMessages = await nostrApi.fetchMessages(
         secretNostrKey,
         npub,
@@ -220,6 +222,9 @@ export default function NostrSettings() {
     }
 
     try {
+      // Ensure connection is established
+      await nostrApi.connect()
+
       // Format labels using the API
       const labels = labelsApi.formatLabels(account)
 
@@ -281,22 +286,18 @@ export default function NostrSettings() {
     )
   }
 
-  function handleImportLabels(content: string) {
+  const handleImportLabels = async (content: string) => {
     try {
-      const { importCount, total } = labelsApi.importLabels(
-        currentAccountId!,
-        content
-      )
+      const labels = labelsApi.parseLabels(content)
+      const importCount = useAccountsStore
+        .getState()
+        .importLabels(currentAccountId!, labels)
       setImportCount(importCount)
-      setImportCountTotal(total)
+      setImportCountTotal(labels.length)
       setSuccessMsgVisible(true)
     } catch (error) {
       console.error('Error importing labels:', error)
-      setRelayError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to parse labels. Make sure the format is correct.'
-      )
+      setRelayError('Failed to import labels')
     }
   }
 
