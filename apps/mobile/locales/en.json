@@ -553,7 +553,6 @@
     "build.add.output.title": "Add output",
     "build.insufficientSats": "Insufficient sats",
     "build.minerFee": "Miner fee",
-    "build.miningFee": "Mining fee",
     "build.options.autoSelect.utxos.efficiency.description": "Selection of inputs that won't produce dust change and will occupy the least amount of space.",
     "build.options.autoSelect.utxos.efficiency.title": "Efficiency",
     "build.options.autoSelect.utxos.label": "Auto select utxos for",
