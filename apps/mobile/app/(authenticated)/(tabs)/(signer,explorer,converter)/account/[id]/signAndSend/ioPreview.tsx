@@ -44,17 +44,25 @@ export default function IOPreview() {
     (state) => state.accounts.find((account) => account.id === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [inputs, outputs, getInputs, feeRate, addOutput, setFeeRate] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.inputs,
-        state.outputs,
-        state.getInputs,
-        state.feeRate,
-        state.addOutput,
-        state.setFeeRate
-      ])
-    )
+  const [
+    inputs,
+    outputs,
+    getInputs,
+    feeRate,
+    addOutput,
+    updateOutput,
+    setFeeRate
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.outputs,
+      state.getInputs,
+      state.feeRate,
+      state.addOutput,
+      state.updateOutput,
+      state.setFeeRate
+    ])
+  )
 
   const { transactions, loading, error } = usePreviousTransactions(
     inputs,
@@ -86,6 +94,7 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
+  const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
   const [outputTo, setOutputTo] = useState('')
   const [outputAmount, setOutputAmount] = useState(1)
@@ -110,16 +119,25 @@ export default function IOPreview() {
   }
 
   function handleAddOutput() {
-    addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
+    const outputIndex = outputs.findIndex(
+      (output) => output.localId === currentOutputLocalId
+    )
+
+    const output = { to: outputTo, amount: outputAmount, label: outputLabel }
+
+    if (outputIndex === -1) addOutput(output)
+    else updateOutput(outputs[outputIndex].localId, output)
+
     addOutputBottomSheetRef.current?.close()
     resetLocalOutput()
   }
 
   function resetLocalOutput() {
+    setCurrentOutputLocalId(undefined)
+    setCurrentOutputNumber(outputs.length + 1)
     setOutputTo('')
     setOutputAmount(1)
     setOutputLabel('')
-    setCurrentOutputNumber(outputs.length + 1)
   }
 
   function handleSetFeeRate() {
@@ -135,6 +153,7 @@ export default function IOPreview() {
   })
 
   function handleOnPressOutput(localId?: string) {
+    setCurrentOutputLocalId(localId)
     const outputIndex = outputs.findIndex(
       (output) => output.localId === localId
     )

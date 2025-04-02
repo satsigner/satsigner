@@ -28,6 +28,10 @@ type TransactionBuilderAction = {
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
   addOutput: (output: Omit<Output, 'localId'>) => void
+  updateOutput: (
+    localId: Output['localId'],
+    output: Omit<Output, 'localId'>
+  ) => void
   setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
   setRbf: (rbf: TransactionBuilderState['rbf']) => void
   setCpfp: (rbf: TransactionBuilderState['cpfp']) => void
@@ -79,6 +83,16 @@ const useTransactionBuilderStore = create<
     set(
       produce((state: TransactionBuilderState) => {
         state.outputs.push({ localId: uuid.v4(), ...output })
+      })
+    )
+  },
+  updateOutput: (localId, output) => {
+    set(
+      produce((state: TransactionBuilderState) => {
+        const index = state.outputs.findIndex(
+          (output) => output.localId === localId
+        )
+        if (index !== -1) state.outputs[index] = { localId, ...output }
       })
     )
   },
