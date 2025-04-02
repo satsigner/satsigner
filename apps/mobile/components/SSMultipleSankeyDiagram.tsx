@@ -237,7 +237,9 @@ function SSMultipleSankeyDiagram({
                 onPress={() => {}}
               >
                 {(nodes[index] as Node).depthH === maxDepthH && (
-                  <SSIconEllipsis />
+                  <View style={styles.iconContainer}>
+                    <SSIconEllipsis />
+                  </View>
                 )}
               </TouchableOpacity>
             ))}
