@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
-import { View } from 'react-native'
+import { ActivityIndicator, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconScan } from '@/components/icons'
@@ -109,6 +109,13 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
 
+  const { nodes, links } = useNodesAndLinks({
+    transactions,
+    inputs,
+    outputs,
+    feeRate
+  })
+
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
     setOutputTo(address)
@@ -154,13 +161,6 @@ export default function IOPreview() {
     changeFeeBottomSheetRef.current?.close()
   }
 
-  const { nodes, links } = useNodesAndLinks({
-    transactions,
-    inputs,
-    outputs,
-    feeRate
-  })
-
   function handleOnPressOutput(localId?: string) {
     setCurrentOutputLocalId(localId)
     const outputIndex = outputs.findIndex(
@@ -178,8 +178,8 @@ export default function IOPreview() {
 
   if (loading && inputs.size > 0) {
     return (
-      <SSVStack itemsCenter>
-        <SSText>Loading transaction details...</SSText>
+      <SSVStack itemsCenter style={{ justifyContent: 'center', flex: 1 }}>
+        <ActivityIndicator color={Colors.white} />
       </SSVStack>
     )
   }
