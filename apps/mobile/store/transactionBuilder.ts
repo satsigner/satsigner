@@ -32,6 +32,7 @@ type TransactionBuilderAction = {
     localId: Output['localId'],
     output: Omit<Output, 'localId'>
   ) => void
+  removeOutput: (localId: Output['localId']) => void
   setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
   setRbf: (rbf: TransactionBuilderState['rbf']) => void
   setCpfp: (rbf: TransactionBuilderState['cpfp']) => void
@@ -93,6 +94,16 @@ const useTransactionBuilderStore = create<
           (output) => output.localId === localId
         )
         if (index !== -1) state.outputs[index] = { localId, ...output }
+      })
+    )
+  },
+  removeOutput: (localId) => {
+    set(
+      produce((state: TransactionBuilderState) => {
+        const index = state.outputs.findIndex(
+          (output) => output.localId === localId
+        )
+        if (index !== -1) state.outputs.splice(index, 1)
       })
     )
   },

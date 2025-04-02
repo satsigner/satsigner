@@ -51,6 +51,7 @@ export default function IOPreview() {
     feeRate,
     addOutput,
     updateOutput,
+    removeOutput,
     setFeeRate
   ] = useTransactionBuilderStore(
     useShallow((state) => [
@@ -60,6 +61,7 @@ export default function IOPreview() {
       state.feeRate,
       state.addOutput,
       state.updateOutput,
+      state.removeOutput,
       state.setFeeRate
     ])
   )
@@ -128,6 +130,13 @@ export default function IOPreview() {
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
 
+    addOutputBottomSheetRef.current?.close()
+    resetLocalOutput()
+  }
+
+  function handleRemoveOutput() {
+    if (!currentOutputLocalId) return
+    removeOutput(currentOutputLocalId)
     addOutputBottomSheetRef.current?.close()
     resetLocalOutput()
   }
@@ -397,6 +406,7 @@ export default function IOPreview() {
               label={t('transaction.build.remove.output.title')}
               variant="danger"
               style={{ flex: 1 }}
+              onPress={handleRemoveOutput}
             />
             <SSButton
               label={t('transaction.build.save.output.title')}
