@@ -525,7 +525,9 @@ export default function NostrSettings() {
               <>
                 <SSButton
                   label={t('account.nostrlabels.checkForMessages')}
-                  onPress={fetchMessages}
+                  onPress={(_event) => {
+                    void fetchMessages(false)
+                  }}
                   disabled={isLoading || selectedRelays.length === 0}
                 />
                 <SSButton
