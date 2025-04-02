@@ -5,6 +5,7 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { formatAddressLabels } from '@/utils/bip329'
 
 const MINING_FEE_VALUE = 1635
 
@@ -83,8 +84,8 @@ export const useNodesAndLinks = ({
         outputs.length + 2
       )
 
-      const miningFee = `${Math.round(feeRate)}`
-      const priority = `${miningFee} sats/vB`
+      const miningFee = `${Math.round(feeRate * vsize)}`
+      const priority = `${Math.round(feeRate)} sats/vB`
 
       // Calculate total input value
       const totalInputValue = Array.from(inputs.values()).reduce(
@@ -135,7 +136,8 @@ export const useNodesAndLinks = ({
           textInfo: [
             t('transaction.build.unspent'),
             `${output.amount}`,
-            `${formatAddress(output.to, 4)}`
+            `${formatAddress(output.to, 4)}`,
+            `${output.label}`
           ],
           value: output.amount,
           indexV: index,
@@ -154,7 +156,7 @@ export const useNodesAndLinks = ({
             value: remainingBalance,
             indexV: outputs.length,
             vout: outputs.length,
-            localId: ''
+            localId: 'remainingBalance'
           })
         }
 
@@ -167,7 +169,7 @@ export const useNodesAndLinks = ({
           value: MINING_FEE_VALUE,
           indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
           vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
-          localId: ''
+          localId: 'minerFee'
         })
       }
 
@@ -237,8 +239,7 @@ export const useNodesAndLinks = ({
               depthH,
               textInfo: [
                 `${input.prevout.value}`,
-                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-                ''
+                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`
               ],
               value: input.prevout.value,
               txId: tx.txid,
@@ -250,6 +251,7 @@ export const useNodesAndLinks = ({
             nodes.push(node)
             return nodes
           }, [] as any[])
+          // console.log('inputnodes', allInputNodes)
 
           const vsize = Math.ceil(tx.weight * 0.25)
           const blockDepth = tx.depthH
@@ -418,28 +420,6 @@ export const useNodesAndLinks = ({
       return links
     }
 
-    console.log(
-      JSON.stringify(
-        {
-          ingoingNodes: ingoingNodes.map(
-            ({ id, localId, type, depthH, textInfo, value, indexV, vout }) => {
-              return {
-                id,
-                localId: localId ? localId : '',
-                type,
-                depthH,
-                textInfo,
-                value,
-                indexV,
-                vout
-              }
-            }
-          )
-        },
-        null,
-        2
-      )
-    )
     if (nodes?.length === 0) return []
 
     return generateSankeyLinks(previousConfirmedNodes)

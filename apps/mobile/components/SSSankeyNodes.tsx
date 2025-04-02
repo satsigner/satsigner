@@ -5,13 +5,17 @@ import {
   Skia,
   type SkTypefaceFontProvider,
   TextAlign,
-  useFonts
+  useFonts,
+  useSVG, // Keep useSVG
+  ImageSVG, // Changed from Svg to ImageSVG
+  PlaceholderAlignment,
+  TextBaseline
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { gray } from '@/styles/colors'
+import { gray, mainRed } from '@/styles/colors'
 
 import { type Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
@@ -27,6 +31,7 @@ const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 const BLOCK_WIDTH = 50
 const Y_OFFSET_BLOCK_NODE_TEXT = -10
+const ICON_SIZE = 10
 
 function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
@@ -122,6 +127,9 @@ function NodeText({
   const isNumeric = (text: string) => /^[0-9]+$/.test(text)
   const amount = textInfo[0].replace(/\s*sats\s*/g, '')
 
+  const minerFeeIconSvg = useSVG(require('@/assets/red-miner-fee.svg'))
+  const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
+
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
 
@@ -135,16 +143,19 @@ function NodeText({
     }
 
     const createParagraphBuilder = () => {
-      return Skia.ParagraphBuilder.Make({
-        maxLines: 4,
-        textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
-        strutStyle: {
-          strutEnabled: true,
-          forceStrutHeight: true,
-          heightMultiplier: 1,
-          leading: 0
-        }
-      })
+      return Skia.ParagraphBuilder.Make(
+        {
+          maxLines: 4,
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+          strutStyle: {
+            strutEnabled: true,
+            forceStrutHeight: true,
+            heightMultiplier: 1,
+            leading: 0
+          }
+        },
+        customFontManager
+      ) // Pass font manager here
     }
 
     const buildBlockParagraph = () => {
@@ -185,14 +196,32 @@ function NodeText({
           fontSize: BASE_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`${Number(textInfo[1]).toLocaleString()} sats\n`)
+        .addText(`${Number(textInfo[1]).toLocaleString()} `)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          fontSize: BASE_FONT_SIZE,
+          color: Skia.Color(Colors.gray[200])
         })
-        .addText(`${textInfo[2]}\n`)
-        .pop()
+        .addText(`sats\n`)
+        .pushStyle({
+          // Style for the icon + text line
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          fontStyle: {
+            weight: 800
+          },
+          color: Skia.Color(mainRed)
+        })
+        // Add placeholder for the miner svg icon
+        .addPlaceholder(
+          ICON_SIZE,
+          ICON_SIZE,
+          PlaceholderAlignment.Middle,
+          TextBaseline.Alphabetic,
+          0
+        )
+        .addText(` ${textInfo[2].toLowerCase()}\n`) // Add space before text
+        .pop() // Pop the red style
 
       return para.build()
     }
@@ -234,6 +263,14 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
+        // Add placeholder for the miner svg icon
+        .addPlaceholder(
+          ICON_SIZE,
+          ICON_SIZE,
+          PlaceholderAlignment.Middle,
+          TextBaseline.Alphabetic,
+          0
+        )
         .addText(textInfo[3] ?? '')
         .pop()
 
@@ -271,7 +308,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        .addText(`"${textInfo[2]}"\n`)
+        .addText(`${textInfo[2]}\n`)
         .pop()
 
       return para.build()
@@ -342,13 +379,55 @@ function NodeText({
 
   if (!customFontManager || !mainParagraph) return null
 
+  // Calculate position for the paragraph and potentially the icon
+  const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
+  const paragraphY = isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y
+
+  // Get placeholder rects if it's a mining fee node
+  const placeholderRectsMiner = useMemo(() => {
+    if (isMiningFee && mainParagraph) {
+      return mainParagraph.getRectsForPlaceholders()
+    }
+    return []
+  }, [mainParagraph, isMiningFee])
+
+  const placeholderRectsUnspent = useMemo(() => {
+    if (isUnspent && mainParagraph) {
+      return mainParagraph.getRectsForPlaceholders()
+    }
+    return []
+  }, [mainParagraph, isUnspent])
+
   return (
-    <Paragraph
-      width={isBlock ? width * 0.6 : width}
-      x={isBlock ? x + width * 0.2 : x + PADDING_LEFT}
-      y={isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y}
-      paragraph={mainParagraph}
-    />
+    <Group>
+      <Paragraph
+        paragraph={mainParagraph}
+        x={paragraphX}
+        y={paragraphY}
+        width={isBlock ? width * 0.6 : width - PADDING_LEFT}
+      />
+      {isMiningFee && minerFeeIconSvg && placeholderRectsMiner.length > 0 && (
+        <ImageSVG
+          svg={minerFeeIconSvg}
+          x={paragraphX + placeholderRectsMiner[0].rect.x}
+          y={paragraphY + placeholderRectsMiner[0].rect.y}
+          width={placeholderRectsMiner[0].rect.width}
+          height={placeholderRectsMiner[0].rect.height}
+        />
+      )}
+      {isUnspent &&
+        labelIconSvg &&
+        placeholderRectsUnspent.length > 0 &&
+        textInfo[3] && (
+          <ImageSVG
+            svg={labelIconSvg}
+            x={paragraphX + placeholderRectsUnspent[0].rect.x}
+            y={paragraphY + placeholderRectsUnspent[0].rect.y}
+            width={placeholderRectsUnspent[0].rect.width}
+            height={placeholderRectsUnspent[0].rect.height}
+          />
+        )}
+    </Group>
   )
 }
 

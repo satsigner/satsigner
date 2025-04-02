@@ -321,5 +321,7 @@ export function usePreviousTransactions(
     fetchInputTransactions()
   }, [fetchInputTransactions])
 
+  console.log(JSON.stringify({ transactions }))
+
   return { transactions, loading, error, fetchInputTransactions }
 }
