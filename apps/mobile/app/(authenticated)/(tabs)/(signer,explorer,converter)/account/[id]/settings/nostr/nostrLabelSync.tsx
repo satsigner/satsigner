@@ -175,9 +175,12 @@ export default function NostrSettings() {
               msg.content
             )
 
+            // Ensure proper encoding of decrypted content
+            const decodedContent = decodeURIComponent(escape(decryptedContent))
+
             return {
               ...msg,
-              decryptedContent,
+              decryptedContent: decodedContent,
               isSender
             }
           } catch (error) {
@@ -294,11 +297,14 @@ export default function NostrSettings() {
       // Create message content with labels in JSONL format
       const messageContent = labels.length > 0 ? bip329export.JSONL(labels) : ''
 
+      // Ensure proper encoding before encryption
+      const encodedContent = unescape(encodeURIComponent(messageContent))
+
       // Create nip04 encrypted message
       const encryptedMessage = await nip04.encrypt(
         secretKey,
         recipientPubkey as string,
-        messageContent
+        encodedContent
       )
 
       // Create and publish the event
@@ -341,7 +347,7 @@ export default function NostrSettings() {
     if (content.length <= 200 || expandedMessages.includes(index)) {
       return (
         <SSVStack gap="xxs">
-          <SSText>{content}</SSText>
+          <SSText style={{ fontFamily: 'System' }}>{content}</SSText>
           {content.length > 200 && (
             <SSText
               color="white"
@@ -357,7 +363,9 @@ export default function NostrSettings() {
 
     return (
       <SSVStack gap="xxs">
-        <SSText>{content.slice(0, 200)}...</SSText>
+        <SSText style={{ fontFamily: 'System' }}>
+          {content.slice(0, 200)}...
+        </SSText>
         <SSText
           color="white"
           onPress={() => toggleMessageExpansion(index)}
@@ -621,7 +629,6 @@ export default function NostrSettings() {
                 {hasMoreMessages && (
                   <SSButton
                     label={t('account.nostrlabels.loadOlderMessages')}
-                    variant="gradient"
                     onPress={(_event) => {
                       void fetchMessages(true)
                     }}
