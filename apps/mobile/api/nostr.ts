@@ -7,6 +7,7 @@ import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type Secret, type Account } from '@/types/models/Account'
 import { LabelsAPI } from '@/api/labels'
+import { useAccountsStore } from '@/store/accounts'
 
 export interface NostrKeys {
   nsec: string
@@ -215,5 +216,60 @@ export class NostrAPI {
   async disconnect() {
     // NDK doesn't have a disconnect method, so we just nullify the instance
     this.ndk = null
+  }
+
+  async fetchAndImportLabels(
+    account: Account,
+    since?: number,
+    limit: number = 3
+  ): Promise<{ labels: Label[]; totalMessages: number }> {
+    if (!account) {
+      throw new Error('Account is required for fetching and importing labels')
+    }
+
+    if (!account.nostrPubkey) {
+      throw new Error('Account has no Nostr public key configured')
+    }
+
+    // Get Nostr keys using createNsec
+    const keys = await this.createNsec(account, account.nostrPassphrase || '')
+    const { secretNostrKey, npub } = keys
+
+    // Fetch messages
+    const messages = await this.fetchMessages(
+      secretNostrKey,
+      npub,
+      since,
+      limit
+    )
+
+    if (messages.length === 0) {
+      return { labels: [], totalMessages: 0 }
+    }
+
+    // Find the latest message that starts with {"label":
+    const latestLabelMessage = messages.find((msg) =>
+      msg.decryptedContent?.startsWith('{"label":')
+    )
+
+    if (!latestLabelMessage?.decryptedContent) {
+      return { labels: [], totalMessages: messages.length }
+    }
+
+    // Initialize LabelsAPI for parsing
+    const labelsApi = new LabelsAPI()
+    let labels: Label[] = []
+
+    try {
+      // Parse labels from the latest valid message
+      labels = labelsApi.parseLabels(latestLabelMessage.decryptedContent)
+    } catch (error) {
+      console.error('Error parsing labels from message:', error)
+    }
+
+    return {
+      labels,
+      totalMessages: messages.length
+    }
   }
 }

@@ -70,7 +70,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      setIsSyncing: (id, isSyncing) => {
+      setIsSyncing: async (id, isSyncing) => {
+        const account = get().accounts.find((account) => account.id === id)
+        if (!account) return
+
+        // Update syncing state
         set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
@@ -79,6 +83,39 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             if (index !== -1) state.accounts[index].isSyncing = isSyncing
           })
         )
+
+        // If syncing is enabled and we have Nostr credentials, fetch and import labels
+        if (
+          isSyncing &&
+          account.nostrPubkey &&
+          account.nostrRelays &&
+          account.nostrRelays.length > 0
+        ) {
+          try {
+            const nostrApi = new NostrAPI(account.nostrRelays)
+
+            // Fetch labels from Nostr
+            const { labels, totalMessages } =
+              await nostrApi.fetchAndImportLabels(account)
+
+            // Import labels if any were found
+            if (labels.length > 0) {
+              const importedCount = get().importLabels(account.id, labels)
+              console.log(`Imported ${importedCount} labels`)
+            }
+          } catch (error) {
+            console.error('Error syncing labels:', error)
+            // Revert syncing state on error
+            set(
+              produce((state: AccountsState) => {
+                const index = state.accounts.findIndex(
+                  (account) => account.id === id
+                )
+                if (index !== -1) state.accounts[index].isSyncing = false
+              })
+            )
+          }
+        }
       },
       deleteAccount: (id) => {
         set(
