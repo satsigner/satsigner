@@ -32,6 +32,9 @@ import { Colors, Layout } from '@/styles'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { selectEfficientUtxos } from '@/utils/utxo'
+import { toast } from 'sonner-native'
+import { Output } from '@/types/models/Output'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
@@ -95,6 +98,11 @@ export default function IOPreview() {
     [account.utxos]
   )
   const utxosSelectedValue = utxosValue(getInputs())
+
+  const outputsValue = (outputs: Output[]): number =>
+    outputs.reduce((acc, output) => acc + output.amount, 0)
+
+  const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
@@ -174,6 +182,38 @@ export default function IOPreview() {
     setCurrentOutputNumber(outputIndex + 1)
 
     addOutputBottomSheetRef.current?.expand()
+  }
+
+  function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
+    if (type === selectedAutoSelectUtxos) return
+
+    if (outputs.length === 0 && (type === 'privacy' || type === 'efficiency')) {
+      toast.error(
+        t('transaction.build.errors.noOutputSelected.autoUtxoSelection')
+      )
+      return
+    }
+
+    setSelectedAutoSelectUtxos(type)
+
+    switch (type) {
+      case 'user':
+        return router.back()
+      case 'privacy':
+        //
+        break
+      case 'efficiency': {
+        // const result = selectEfficientUtxos(
+        //   account.utxos.map((utxo) => ({
+        //     ...utxo,
+        //     effectiveValue: utxo.value
+        //   })),
+        //   outputsTotalAmount,
+        //   localFeeRate
+        // )
+        break
+      }
+    }
   }
 
   if (loading && inputs.size > 0) {
@@ -440,7 +480,7 @@ export default function IOPreview() {
                 )}
                 selected={selectedAutoSelectUtxos === 'user'}
                 style={{ width: '33%', flex: 1 }}
-                onPress={() => setSelectedAutoSelectUtxos('user')}
+                onPress={() => handleOnChangeUtxoSelection('user')}
               />
               <SSRadioButton
                 variant="outline"
@@ -449,7 +489,7 @@ export default function IOPreview() {
                 )}
                 selected={selectedAutoSelectUtxos === 'privacy'}
                 style={{ width: '33%', flex: 1 }}
-                onPress={() => setSelectedAutoSelectUtxos('privacy')}
+                onPress={() => handleOnChangeUtxoSelection('privacy')}
               />
               <SSRadioButton
                 variant="outline"
@@ -458,7 +498,7 @@ export default function IOPreview() {
                 )}
                 selected={selectedAutoSelectUtxos === 'efficiency'}
                 style={{ width: '33%', flex: 1 }}
-                onPress={() => setSelectedAutoSelectUtxos('efficiency')}
+                onPress={() => handleOnChangeUtxoSelection('efficiency')}
               />
             </SSHStack>
             <SSText color="muted">

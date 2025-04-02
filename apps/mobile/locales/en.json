@@ -552,6 +552,7 @@
     "build.add.output.number": "Output %{number}",
     "build.add.output.title": "Add output",
     "build.change": "Change",
+    "build.errors.noOutputSelected.autoUtxoSelection": "Please add an output first to use this auto utxo selection algorithm",
     "build.insufficientSats": "Insufficient sats",
     "build.minerFee": "Miner fee",
     "build.options.autoSelect.utxos.efficiency.description": "Selection of inputs that won't produce dust change and will occupy the least amount of space.",
