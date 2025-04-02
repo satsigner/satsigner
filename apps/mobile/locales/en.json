@@ -62,6 +62,7 @@
     "nostrlabels.loading": "Loading messages...",
     "nostrlabels.mnemonicPassphrase": "Mnemonic Passphrase (optional)",
     "nostrlabels.noLabels": "No labels to send",
+    "nostrlabels.noRelaysWarning": "Please select at least one relay to sync labels",
     "nostrlabels.npub": "npub",
     "nostrlabels.nsec": "nsec",
     "nostrlabels.relays": "Select Relays",

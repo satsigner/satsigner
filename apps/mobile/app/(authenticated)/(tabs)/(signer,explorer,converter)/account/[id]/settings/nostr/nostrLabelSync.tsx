@@ -122,6 +122,12 @@ export default function NostrSettings() {
   async function fetchMessages() {
     if (!npub || !secretKey) return
 
+    // Add relay check at the start
+    if (selectedRelays.length === 0) {
+      setRelayError(t('account.nostrlabels.noRelaysWarning'))
+      return
+    }
+
     setIsLoading(true)
     try {
       const ndk = new NDK({
@@ -177,6 +183,9 @@ export default function NostrSettings() {
       setMessages(decryptedMessages)
     } catch (error) {
       console.error('Error fetching messages:', error)
+      setRelayError(
+        error instanceof Error ? error.message : 'Failed to fetch messages'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -225,7 +234,13 @@ export default function NostrSettings() {
   }
 
   async function handleSendMessage() {
-    if (!secretKey || !npub || selectedRelays.length === 0 || !account) return
+    if (!secretKey || !npub || !account) return
+
+    // Add relay check at the start
+    if (selectedRelays.length === 0) {
+      setRelayError(t('account.nostrlabels.noRelaysWarning'))
+      return
+    }
 
     try {
       console.log('Sending message to relays:', selectedRelays)
@@ -279,7 +294,10 @@ export default function NostrSettings() {
       // Refresh messages
       await fetchMessages()
     } catch (error) {
-      console.error('Error sending message:', error)
+      console.error('Error in handleSendMessage:', error)
+      setRelayError(
+        error instanceof Error ? error.message : 'Failed to send message'
+      )
     }
   }
 
@@ -382,20 +400,54 @@ export default function NostrSettings() {
             {t('account.nostrlabels.title')}
           </SSText>
 
-          {/* Top section with relay selection and keys */}
-          <SSVStack gap="md" style={{ padding: 20 }}>
-            <SSButton
-              variant="secondary"
-              label={`${t('account.nostrlabels.relays')} (${selectedRelays.length})`}
-              onPress={() => {
-                router.push({
-                  pathname: `/account/${currentAccountId}/settings/nostr/selectRelays`
-                })
-              }}
-            />
+          {/* Keys display - moved to top */}
+          <SSVStack
+            gap="xxs"
+            style={{
+              padding: 15,
+              backgroundColor: '#1a1a1a',
+              borderRadius: 8,
+              marginHorizontal: 20,
+              height: 190
+            }}
+          >
+            {nsec && (
+              <SSVStack gap="md">
+                <SSVStack gap="xxs">
+                  <SSText color="muted" center>
+                    {t('account.nostrlabels.nsec')}
+                  </SSText>
+                  <SSText
+                    center
+                    size="xl"
+                    type="mono"
+                    style={{ letterSpacing: 1 }}
+                  >
+                    {nsec}
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="xxs">
+                  <SSText color="muted" center>
+                    {t('account.nostrlabels.npub')}
+                  </SSText>
+                  <SSText
+                    center
+                    size="xl"
+                    type="mono"
+                    style={{ letterSpacing: 1 }}
+                  >
+                    {npub}
+                  </SSText>
+                </SSVStack>
+              </SSVStack>
+            )}
+          </SSVStack>
 
-            {/* Passphrase field - moved up */}
-            <SSText>{t('account.nostrlabels.mnemonicPassphrase')}</SSText>
+          {/* Passphrase field - moved here */}
+          <SSVStack gap="sm" style={{ paddingHorizontal: 20 }}>
+            <SSText center>
+              {t('account.nostrlabels.mnemonicPassphrase')}
+            </SSText>
             <SSTextInput
               placeholder="Enter passphrase"
               value={passphrase}
@@ -411,33 +463,43 @@ export default function NostrSettings() {
               }}
               secureTextEntry
             />
+          </SSVStack>
 
-            {/* Keys display */}
-            {nsec && (
-              <SSVStack gap="xxs">
-                <SSText>{t('account.nostrlabels.nsec')}</SSText>
-                <SSText>{nsec}</SSText>
-                <SSText>{t('account.nostrlabels.npub')}</SSText>
-                <SSText>{npub}</SSText>
+          {/* Top section with relay selection */}
+          <SSVStack gap="md" style={{ padding: 20 }}>
+            {selectedRelays.length === 0 && (
+              <SSVStack gap="sm">
+                <SSText color="white" weight="bold" center>
+                  {t('account.nostrlabels.noRelaysWarning')}
+                </SSText>
               </SSVStack>
             )}
+
+            <SSButton
+              variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
+              label={`${t('account.nostrlabels.relays')} (${selectedRelays.length})`}
+              onPress={() => {
+                router.push({
+                  pathname: `/account/${currentAccountId}/settings/nostr/selectRelays`
+                })
+              }}
+            />
           </SSVStack>
 
           {/* Combined content */}
           <SSVStack gap="md" style={{ padding: 20 }}>
-            {/* Message controls - moved up */}
+            {/* Message controls */}
             {npub && (
               <>
                 <SSButton
                   label={t('account.nostrlabels.checkForMessages')}
-                  variant="gradient"
                   onPress={fetchMessages}
-                  disabled={isLoading}
+                  disabled={isLoading || selectedRelays.length === 0}
                 />
                 <SSButton
                   label={t('account.nostrlabels.sendLabels')}
-                  variant="secondary"
                   onPress={handleSendMessage}
+                  disabled={selectedRelays.length === 0}
                 />
               </>
             )}
@@ -460,6 +522,8 @@ export default function NostrSettings() {
                       // Fetch messages immediately when auto-sync is enabled
                       if (newAutoSync && npub && selectedRelays.length > 0) {
                         fetchMessages()
+                      } else if (newAutoSync && selectedRelays.length === 0) {
+                        setRelayError(t('account.nostrlabels.noRelaysWarning'))
                       }
                     }
                   }}
