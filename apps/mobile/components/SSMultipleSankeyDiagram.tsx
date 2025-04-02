@@ -6,9 +6,16 @@ import {
   type SankeyNodeMinimal
 } from 'd3-sankey'
 import { useMemo } from 'react'
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
+import Svg, { Circle } from 'react-native-svg'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
@@ -216,7 +223,7 @@ function SSMultipleSankeyDiagram({
           >
             {/* TODO: enable selection for three dots */}
             {nodeStyles.map((style, index) => (
-              <View
+              <TouchableOpacity
                 key={index}
                 style={[
                   styles.node,
@@ -225,10 +232,34 @@ function SSMultipleSankeyDiagram({
                     left: style.x,
                     top: style.y,
                     width: style.width,
-                    height: style.height
+                    height: style.height,
+                    borderColor: 'red',
+                    borderWidth: 1
                   }
                 ]}
-              />
+                onPress={(event) => {
+                  console.log('onPress for node:', index)
+                }}
+              >
+                {(nodes[index] as Node).depthH === maxDepthH && (
+                  <TouchableOpacity
+                    style={{
+                      ...styles.iconContainer,
+                      borderColor: 'red',
+                      borderWidth: 1
+                    }}
+                    onPress={(event) => {
+                      console.log('onPressed for three dots:', index)
+                    }}
+                  >
+                    <Svg width="11" height="3" viewBox="0 0 11 3" fill="none">
+                      <Circle cx="9.48926" cy="1.5" r="1" fill="#D9D9D9" />
+                      <Circle cx="5.48926" cy="1.5" r="1" fill="#D9D9D9" />
+                      <Circle cx="1.48926" cy="1.5" r="1" fill="#D9D9D9" />
+                    </Svg>
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
             ))}
           </Animated.View>
         </View>
@@ -254,6 +285,12 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     width: '100%',
     height: '100%'
+  },
+  iconContainer: {
+    position: 'absolute',
+    top: 5, // Adjust as needed
+    right: 5, // Adjust as needed
+    padding: 5 // Add padding for easier pressing
   }
 })
 
