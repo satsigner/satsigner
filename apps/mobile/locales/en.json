@@ -59,6 +59,7 @@
     "nostrlabels.deriveNsec": "Derive nsec",
     "nostrlabels.importLabels": "Import Labels",
     "nostrlabels.latestMessages": "Latest Messages",
+    "nostrlabels.loadOlderMessages": "Load Older Messages",
     "nostrlabels.loading": "Loading messages...",
     "nostrlabels.mnemonicPassphrase": "Mnemonic Passphrase (optional)",
     "nostrlabels.noLabels": "No labels to send",
