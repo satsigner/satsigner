@@ -25,6 +25,7 @@ import { getItem } from '@/storage/encrypted'
 import { type Secret } from '@/types/models/Account'
 import SSModal from '@/components/SSModal'
 import { NostrAPI, type NostrKeys, type NostrMessage } from '@/api/nostr'
+import { LabelsAPI } from '@/api/labels'
 
 export default function NostrSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -34,7 +35,7 @@ export default function NostrSettings() {
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [secretKey, setSecretKey] = useState<Uint8Array | null>(null)
+  const [secretNostrKey, setSecretNostrKey] = useState<Uint8Array | null>(null)
   const [displayMessageCount, setDisplayMessageCount] = useState(3)
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
@@ -48,6 +49,7 @@ export default function NostrSettings() {
   const [importCountTotal, setImportCountTotal] = useState(0)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
+  const [labelsApi] = useState(() => new LabelsAPI())
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -121,6 +123,20 @@ export default function NostrSettings() {
     }
   }, [autoSync, npub, selectedRelays])
 
+  // Add effect to handle label updates
+  useEffect(() => {
+    if (
+      autoSync &&
+      npub &&
+      selectedRelays.length > 0 &&
+      secretNostrKey &&
+      account &&
+      nostrApi
+    ) {
+      nostrApi.sendLabelsToNostr(secretNostrKey, npub, account)
+    }
+  }, [account?.transactions, account?.utxos, account?.addresses])
+
   // Add new useEffect to auto-execute handleCreateNsec
   useEffect(() => {
     if (account && passphrase !== undefined && selectedRelays.length > 0) {
@@ -130,7 +146,7 @@ export default function NostrSettings() {
   }, [account, passphrase, selectedRelays])
 
   async function fetchMessages(loadMore: boolean = false) {
-    if (!npub || !secretKey || !nostrApi) return
+    if (!npub || !secretNostrKey || !nostrApi) return
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
@@ -141,7 +157,7 @@ export default function NostrSettings() {
     setIsLoading(true)
     try {
       const fetchedMessages = await nostrApi.fetchMessages(
-        secretKey,
+        secretNostrKey,
         npub,
         loadMore ? lastMessageTimestamp ?? undefined : undefined
       )
@@ -178,35 +194,12 @@ export default function NostrSettings() {
 
   async function handleCreateNsec() {
     try {
-      if (!account?.keys[0].secret) {
-        throw new Error('No secret found')
-      }
-
-      // Get PIN from secure storage
-      const pin = await getItem(PIN_KEY)
-      if (!pin) {
-        throw new Error('PIN not found')
-      }
-
-      // Get IV and encrypted secret from account
-      const iv = account.keys[0].iv
-      const encryptedSecret = account.keys[0].secret as string
-
-      // Decrypt the secret
-      const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
-      const accountSecret = JSON.parse(accountSecretString) as Secret
-      const mnemonic = accountSecret.mnemonic
-      if (!mnemonic) {
-        throw new Error('No mnemonic found in account secret')
-      }
-
-      // Generate Nostr keys using the API
-      if (!nostrApi) {
+      if (!account || !nostrApi) {
         throw new Error('Nostr API not initialized')
       }
 
-      const keys = await nostrApi.generateKeys(mnemonic, passphrase)
-      setSecretKey(keys.secretKey)
+      const keys = await nostrApi.createNsec(account, passphrase)
+      setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
     } catch (error) {
@@ -218,7 +211,7 @@ export default function NostrSettings() {
   }
 
   async function handleSendMessage() {
-    if (!secretKey || !npub || !account || !nostrApi) return
+    if (!secretNostrKey || !npub || !account || !nostrApi) return
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
@@ -227,18 +220,14 @@ export default function NostrSettings() {
     }
 
     try {
-      // Format labels
-      const labels = [
-        ...formatTransactionLabels(account.transactions),
-        ...formatUtxoLabels(account.utxos),
-        ...formatAddressLabels(account.addresses)
-      ] as Label[]
+      // Format labels using the API
+      const labels = labelsApi.formatLabels(account)
 
-      // Create message content with labels in JSONL format
-      const messageContent = labels.length > 0 ? bip329export.JSONL(labels) : ''
+      // Create message content with labels in JSONL format using the API
+      const messageContent = labelsApi.exportLabels(labels)
 
       // Send message using the API
-      await nostrApi.sendMessage(secretKey, npub, messageContent)
+      await nostrApi.sendMessage(secretNostrKey, npub, messageContent)
 
       // Refresh messages
       await fetchMessages()
@@ -294,33 +283,12 @@ export default function NostrSettings() {
 
   function handleImportLabels(content: string) {
     try {
-      // Clean the content by removing control characters
-      const cleanContent = content
-        .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
-        .trim()
-
-      // Split concatenated JSON objects
-      const jsonStrings = cleanContent.match(/\{[^}]+\}/g) || []
-
-      // Parse each JSON object and collect valid labels
-      const labels = jsonStrings
-        .map((jsonString) => {
-          try {
-            return JSON.parse(jsonString)
-          } catch (e) {
-            console.error('Error parsing JSON:', jsonString, e)
-            return null
-          }
-        })
-        .filter((label) => label !== null)
-
-      if (labels.length === 0) {
-        throw new Error('No valid labels found in the message')
-      }
-
-      const importCount = importLabelsToAccount(currentAccountId!, labels)
+      const { importCount, total } = labelsApi.importLabels(
+        currentAccountId!,
+        content
+      )
       setImportCount(importCount)
-      setImportCountTotal(labels.length)
+      setImportCountTotal(total)
       setSuccessMsgVisible(true)
     } catch (error) {
       console.error('Error importing labels:', error)

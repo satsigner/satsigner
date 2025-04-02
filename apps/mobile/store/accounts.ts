@@ -7,6 +7,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { NostrAPI } from '@/api/nostr'
 
 type AccountsState = {
   accounts: Account[]
@@ -126,6 +127,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return
 
+        if (account.nostrLabelsAutoSync && account.nostrPubkey) {
+          const nostrApi = new NostrAPI(account.nostrRelays || [])
+          nostrApi.sendLabelsToNostr(
+            account.keys[0].secret as Uint8Array,
+            account.nostrPubkey,
+            account
+          )
+          console.log('sent labels to nostr')
+        }
+
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
         )
@@ -146,6 +157,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return
 
+        if (account.nostrLabelsAutoSync && account.nostrPubkey) {
+          const nostrApi = new NostrAPI(account.nostrRelays || [])
+          nostrApi.sendLabelsToNostr(
+            account.keys[0].secret as Uint8Array,
+            account.nostrPubkey,
+            account
+          )
+          console.log('sent labels to nostr')
+        }
+
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
         if (txIndex === -1) return
 
@@ -163,6 +184,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           (account) => account.id === accountId
         )
         if (!account) return
+
+        if (account.nostrLabelsAutoSync && account.nostrPubkey) {
+          const nostrApi = new NostrAPI(account.nostrRelays || [])
+          nostrApi.sendLabelsToNostr(
+            account.keys[0].secret as Uint8Array,
+            account.nostrPubkey,
+            account
+          )
+          console.log('sent labels to nostr')
+        }
 
         const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout

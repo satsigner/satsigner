@@ -15,34 +15,17 @@ export type CreationType =
   | 'importExtendedPub'
   | 'importAddress'
 
-export type Secret = {
-  /** Mnemonic words separated with a space */
-  mnemonic?: string
-  passphrase?: string
-  /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
-  externalDescriptor?: string
-  /** Only for sigle/multisig import descriptor and watch-only descriptor/extended key */
-  internalDescriptor?: string
-  /** Only for watch-only */
-  extendedPublicKey?: string
+export interface Secret {
+  mnemonic: string
+  xpriv: string
 }
 
-export type Key = {
-  /** Key position for multisig. Set to 0 if singlesig */
-  index: number
-  name?: string
-  creationType: CreationType
-  mnemonicWordCount?: MnemonicCount
-  /** Sensitive information that can be encrypted with PIN */
-  secret: Secret | string
-  /** Initialization vector for AES encryption */
+export interface Key {
+  secret: string | Uint8Array
   iv: string
-  fingerprint?: string
-  scriptVersion?: ScriptVersionType
-  derivationPath?: string
 }
 
-export type Account = {
+export interface Account {
   id: string
   name: string
   policyType: PolicyType
@@ -59,11 +42,12 @@ export type Account = {
     numberOfUtxos: number
     satsInMempool: number
   }
-  transactions: Transaction[]
-  utxos: Utxo[]
-  addresses: Address[]
+  transactions: { id: string; label?: string }[]
+  utxos: { txid: string; vout: number; label?: string }[]
+  addresses: { address: string; label?: string }[]
   createdAt: Date
   isSyncing?: boolean
+  nostrPubkey?: string
   nostrRelays?: string[]
   nostrLabelsAutoSync?: boolean
   nostrPassphrase?: string

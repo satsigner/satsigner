@@ -2,11 +2,16 @@ import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
 import { generateSecretKey, nip19, getPublicKey, nip04 } from 'nostr-tools'
 import { type Label } from '@/utils/bip329'
+import { aesDecrypt } from '@/utils/crypto'
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
+import { type Secret, type Account } from '@/types/models/Account'
+import { LabelsAPI } from '@/api/labels'
 
 export interface NostrKeys {
   nsec: string
   npub: string
-  secretKey: Uint8Array
+  secretNostrKey: Uint8Array
 }
 
 export interface NostrMessage {
@@ -37,29 +42,58 @@ export class NostrAPI {
     }
   }
 
-  async generateKeys(mnemonic: string, passphrase: string): Promise<NostrKeys> {
+  async createNsec(account: Account, passphrase: string): Promise<NostrKeys> {
+    if (!account.keys[0].secret) {
+      throw new Error('No secret found')
+    }
+
+    // Get PIN from secure storage
+    const pin = await getItem(PIN_KEY)
+    if (!pin) {
+      throw new Error('PIN not found')
+    }
+
+    // Get IV and encrypted secret from account
+    const iv = account.keys[0].iv
+    const encryptedSecret = account.keys[0].secret as string
+
+    // Decrypt the secret
+    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+    const accountSecret = JSON.parse(accountSecretString) as Secret
+    const mnemonic = accountSecret.mnemonic
+    if (!mnemonic) {
+      throw new Error('No mnemonic found in account secret')
+    }
+
+    return this.generateNostrKeys(mnemonic, passphrase)
+  }
+
+  async generateNostrKeys(
+    mnemonic: string,
+    passphrase: string
+  ): Promise<NostrKeys> {
     const seed = await bip39.mnemonicToSeed(mnemonic, passphrase)
-    const secretKey = new Uint8Array(seed.slice(0, 32))
-    const nsec = nip19.nsecEncode(secretKey)
-    const publicKey = getPublicKey(secretKey)
+    const secretNostrKey = new Uint8Array(seed.slice(0, 32))
+    const nsec = nip19.nsecEncode(secretNostrKey)
+    const publicKey = getPublicKey(secretNostrKey)
     const npub = nip19.npubEncode(publicKey)
 
     return {
       nsec,
       npub,
-      secretKey
+      secretNostrKey
     }
   }
 
   async sendMessage(
-    secretKey: Uint8Array,
+    secretNostrKey: Uint8Array,
     recipientNpub: string,
     content: string
   ): Promise<void> {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
-    const ourPubkey = getPublicKey(secretKey)
+    const ourPubkey = getPublicKey(secretNostrKey)
     const { data: recipientPubkey } = nip19.decode(recipientNpub)
 
     // Ensure proper encoding before encryption
@@ -67,7 +101,7 @@ export class NostrAPI {
 
     // Create nip04 encrypted message
     const encryptedMessage = await nip04.encrypt(
-      secretKey,
+      secretNostrKey,
       recipientPubkey as string,
       encodedContent
     )
@@ -82,17 +116,17 @@ export class NostrAPI {
     })
 
     // Convert secret key to hex string for NDKPrivateKeySigner
-    const secretKeyHex = Array.from(secretKey)
+    const secretNostrKeyHex = Array.from(secretNostrKey)
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
-    const signer = new NDKPrivateKeySigner(secretKeyHex)
+    const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
     await event.sign(signer)
 
     await event.publish()
   }
 
   async fetchMessages(
-    secretKey: Uint8Array,
+    secretNostrKey: Uint8Array,
     recipientNpub: string,
     since?: number,
     limit: number = 3
@@ -101,7 +135,7 @@ export class NostrAPI {
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
     const user = this.ndk.getUser({ npub: recipientNpub })
-    const ourPubkey = getPublicKey(secretKey)
+    const ourPubkey = getPublicKey(secretNostrKey)
 
     // Get nip04 encrypted messages with pagination
     const messages = await this.ndk.fetchEvents({
@@ -121,7 +155,7 @@ export class NostrAPI {
 
           // Decrypt the message
           const decryptedContent = await nip04.decrypt(
-            secretKey,
+            secretNostrKey,
             otherPubkey,
             msg.content
           )
@@ -154,6 +188,28 @@ export class NostrAPI {
       (a: NostrMessage, b: NostrMessage) =>
         (b.created_at ?? 0) - (a.created_at ?? 0)
     )
+  }
+
+  async sendLabelsToNostr(
+    secretNostrKey: Uint8Array,
+    recipientNpub: string,
+    account: Account
+  ): Promise<void> {
+    if (!secretNostrKey || !recipientNpub || !account) {
+      throw new Error('Missing required parameters for sending labels')
+    }
+
+    // Format labels using the LabelsAPI
+    const labelsApi = new LabelsAPI()
+    const labels = labelsApi.formatLabels(account)
+
+    if (labels.length === 0) {
+      console.log('No labels to send')
+      return
+    }
+
+    const messageContent = labelsApi.exportLabels(labels)
+    await this.sendMessage(secretNostrKey, recipientNpub, messageContent)
   }
 
   async disconnect() {
