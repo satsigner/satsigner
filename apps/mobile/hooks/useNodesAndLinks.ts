@@ -228,7 +228,6 @@ export const useNodesAndLinks = ({
             nodes.push(node)
             return nodes
           }, [] as any[])
-          // console.log('inputnodes', allInputNodes)
 
           const vsize = Math.ceil(tx.weight * 0.25)
           const blockDepth = tx.depthH

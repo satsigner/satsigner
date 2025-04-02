@@ -253,7 +253,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        .addText(textInfo[2] ? `${t('common.to')} ` : '')
+        .addText(textInfo[2] ? `${t('common.to').toLowerCase()} ` : '')
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
