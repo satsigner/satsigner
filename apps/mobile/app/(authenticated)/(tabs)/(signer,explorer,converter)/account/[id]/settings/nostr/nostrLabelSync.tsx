@@ -99,6 +99,19 @@ export default function NostrSettings() {
     }
   }, [account?.nostrPassphrase])
 
+  // Initialize NostrAPI when component mounts if relays are available
+  useEffect(() => {
+    if (account?.nostrRelays && account.nostrRelays.length > 0) {
+      const api = new NostrAPI(account.nostrRelays)
+      setNostrApi(api)
+      // Connect immediately
+      api.connect().catch((error) => {
+        console.error('Failed to connect to relays:', error)
+        setRelayError('Failed to connect to relays')
+      })
+    }
+  }, [account?.nostrRelays])
+
   // Modify the fetch messages useEffect to only run when autoSync is on
   useEffect(() => {
     if (autoSync && npub && selectedRelays.length > 0) {
