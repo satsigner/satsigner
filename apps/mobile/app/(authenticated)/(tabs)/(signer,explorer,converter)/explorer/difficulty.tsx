@@ -1,4 +1,5 @@
 import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
+import { Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
 
@@ -24,7 +25,6 @@ import { formatDate, formatTimeFromNow } from '@/utils/format'
 const { width: SCREEN_WIDTH, height: _SCREEN_HEIGHT } = Dimensions.get('window')
 const CANVAS_WIDTH = SCREEN_WIDTH
 const CANVAS_HEIGHT = 0.7 * SCREEN_HEIGHT
-
 const BLOCKS_PER_EPOCH = 2016
 
 // WARN: warn the user about where it is getting the data
@@ -49,42 +49,19 @@ function ExplorerDifficulty() {
   const [loading, setLoading] = useState(false)
 
   const [epoch, setEpoch] = useState('0')
-  const [averageBlockTime, setAverageBlockTime] = useState('unknown')
-  const [remainingTime, setRemainingTime] = useState('unknown')
+  // TODO: Update the data source. The latest available epoch from our data
+  // source is 426 even though as of March 2025 the epoch is 441.
+  const [maxEpoch, _setMaxEpoch] = useState(426)
+  const [averageBlockTime, setAverageBlockTime] = useState('?')
+  const [remainingTime, setRemainingTime] = useState('?')
 
-  const [dateStart, setDateStart] = useState('unknown date')
-  const [dateEnd, setDateEnd] = useState('unknown date')
+  const [dateStart, setDateStart] = useState('?')
+  const [dateEnd, setDateEnd] = useState('?')
   const [heightStart, setHeightStart] = useState('?')
   const [heightEnd, setHeightEnd] = useState('?')
 
   const [modalVisible, setModalVisible] = useState(false)
   const [selectedBlock, setSelectedBlock] = useState({} as BlockDifficulty)
-
-  // function mockFechData() {
-  //   const data: BlockDifficulty[] = []
-  //   for (let i = 0; i < BLOCKS_PER_EPOCH; i += 1) {
-  //     data.push({
-  //       height: Number(epoch) * BLOCKS_PER_EPOCH + i,
-  //       timestamp: new Date().getTime() / 1000,
-  //       txCount: 1000 + Math.trunc(i / 10),
-  //       chainWork: '0000000000011',
-  //       nonce: Math.trunc(1_000_000_000 * Math.random()),
-  //       size: 400 + Math.trunc(400 * Math.random()),
-  //       weight: 600 + Math.trunc(600 * Math.random()),
-  //       cycleHeight: i + 1,
-  //       timeDifference: 500 + Math.trunc(200 * Math.random())
-  //     })
-  //   }
-  //   const firstBlock = data[0]
-  //   const lastBlock = data[data.length - 1]
-  //   setAverageBlockTime('10.0')
-  //   setRemainingTime('~5 days')
-  //   setHeightStart(firstBlock.height.toString())
-  //   setHeightEnd(lastBlock.height.toString())
-  //   setDateStart(formatDate(firstBlock.timestamp * 1000))
-  //   setDateEnd(formatDate(lastBlock.timestamp * 1000))
-  //   setData(data)
-  // }
 
   async function fetchDifficultyAdjustment() {
     const mempoolOracle = new MempoolOracle()
@@ -96,7 +73,7 @@ function ExplorerDifficulty() {
     const formattedAvgTime = t('time.minutes', {
       value: avgTimeInMinutes.toFixed(1)
     })
-    setAverageBlockTime(formattedAvgTime)
+    setAverageBlockTime(`~${formattedAvgTime}`)
 
     const [time, timeUnit] = formatTimeFromNow(response.remainingTime)
     const timeFromAdjusment =
@@ -110,11 +87,11 @@ function ExplorerDifficulty() {
     fetchDifficultyAdjustment()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function fetchData() {
+  async function fetchData(epoch: number) {
     if (loading) return
     setLoading(true)
     try {
-      const fileName = getFileName(Number(epoch))
+      const fileName = getFileName(epoch)
       const response = await fetch(DATA_LINK + fileName)
       const rawData = (await response.json()) as DifficultyEpochsData[][]
       const items = rawData[0]
@@ -149,12 +126,21 @@ function ExplorerDifficulty() {
     }
   }
 
+  async function fetchLatestEpoch() {
+    // INFO: this is how we would get the latest epoch:
+    // const oracle = new MempoolOracle()
+    // const blockHeight = await oracle.getCurrentBlockHeight()
+    // const latestEpoch = Math.floor(blockHeight / BLOCKS_PER_EPOCH)
+    setEpoch(maxEpoch.toString())
+    fetchData(maxEpoch)
+  }
+
   useEffect(() => {
-    fetchData()
-  }, [epoch]) // eslint-disable-line react-hooks/exhaustive-deps
+    fetchLatestEpoch()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function nextEpoch() {
-    setEpoch((Number(epoch) + 1).toString())
+    setEpoch(Math.min(maxEpoch, Number(epoch) + 1).toString())
   }
 
   function previousEpoch() {
@@ -166,11 +152,22 @@ function ExplorerDifficulty() {
     setSelectedBlock(block)
   }
 
+  async function fetchEpoch() {
+    fetchData(Number(epoch))
+  }
+
   return (
     <SSMainLayout style={styles.mainContainer}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <SSText uppercase>{t('explorer.difficulty.title')}</SSText>
+          )
+        }}
+      />
       <SSHStack gap="none" justifyBetween style={styles.headerContainer}>
         <SSVStack gap="none">
-          <SSText weight="bold">~{averageBlockTime}</SSText>
+          <SSText weight="bold">{averageBlockTime}</SSText>
           <SSText color="muted" size="xs" style={[styles.headerCaption]}>
             {t('explorer.difficulty.avgBlock')}
           </SSText>
@@ -218,27 +215,32 @@ function ExplorerDifficulty() {
           <SSActionButton
             style={styles.button}
             onPress={previousEpoch}
-            disabled={loading || epoch === '0'}
+            disabled={epoch === '0'}
           >
-            <SSIconChevronLeft height={20} width={20} />
+            <SSIconChevronLeft height={20} width={20} stroke="#fff" />
           </SSActionButton>
           <SSVStack gap="none" style={styles.inputContainer}>
             <SSNumberInput
               min={0}
-              max={400}
+              max={maxEpoch}
               value={epoch}
               onChangeText={setEpoch}
               textAlign="center"
+              style={{ borderWidth: 1, borderColor: '#fff' }}
             />
           </SSVStack>
-          <SSActionButton
-            style={styles.button}
-            onPress={nextEpoch}
-            disabled={loading}
-          >
-            <SSIconChevronRight height={20} width={20} />
+          <SSActionButton style={styles.button} onPress={nextEpoch}>
+            <SSIconChevronRight height={20} width={18} stroke="#fff" />
           </SSActionButton>
         </SSHStack>
+        <SSVStack style={{ alignItems: 'center', marginTop: 10 }}>
+          <SSButton
+            label={t('explorer.difficulty.fetch')}
+            variant="outline"
+            onPress={fetchEpoch}
+            loading={loading}
+          />
+        </SSVStack>
       </SSVStack>
       <SSModal visible={modalVisible} onClose={() => setModalVisible(false)}>
         <SSVStack style={styles.modalContainer}>
@@ -274,24 +276,24 @@ function BlockDetails({ block }: BlockDetailsProps) {
   return (
     <>
       <SSText center uppercase weight="bold">
-        BLOCK DETAILS
+        {t('explorer.difficulty.blockDetails.title')}
       </SSText>
       <SSHStack style={styles.blockDetailsSectionGroup}>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Height
+            {t('explorer.difficulty.blockDetails.height')}
           </SSText>
           <SSText>{block.height}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Cycle Height
+            {t('explorer.difficulty.blockDetails.cycleHeight')}
           </SSText>
           <SSText>{block.cycleHeight}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Transactions
+            {t('explorer.difficulty.blockDetails.txs')}
           </SSText>
           <SSText>{block.txCount}</SSText>
         </SSVStack>
@@ -299,19 +301,19 @@ function BlockDetails({ block }: BlockDetailsProps) {
       <SSHStack style={styles.blockDetailsSectionGroup}>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Size
+            {t('explorer.difficulty.blockDetails.size')}
           </SSText>
           <SSText>{block.size}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            vBytes
+            {t('explorer.difficulty.blockDetails.vsize')}
           </SSText>
           <SSText>{Math.trunc(block.weight / 4)}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Weight
+            {t('explorer.difficulty.blockDetails.weight')}
           </SSText>
           <SSText>{block.weight}</SSText>
         </SSVStack>
@@ -319,19 +321,19 @@ function BlockDetails({ block }: BlockDetailsProps) {
       <SSHStack style={styles.blockDetailsSectionGroup}>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Nonce
+            {t('explorer.difficulty.blockDetails.nonce')}
           </SSText>
           <SSText>{block.nonce}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Date
+            {t('explorer.difficulty.blockDetails.date')}
           </SSText>
           <SSText>{formatDate(block.timestamp * 1000)}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            Time
+            {t('explorer.difficulty.blockDetails.time')}
           </SSText>
           <SSText>{block.timeDifference}s</SSText>
         </SSVStack>
@@ -343,7 +345,7 @@ function BlockDetails({ block }: BlockDetailsProps) {
         }}
       >
         <SSText color="muted" uppercase>
-          Chain Work
+          {t('explorer.difficulty.blockDetails.chainWork')}
         </SSText>
         <SSText>{block.chainWork}</SSText>
       </SSVStack>
@@ -361,7 +363,7 @@ const styles = StyleSheet.create({
   button: {
     borderWidth: 1,
     borderRadius: 5,
-    borderColor: Colors.gray[600],
+    borderColor: Colors.white,
     padding: 20
   },
   dateContainer: {

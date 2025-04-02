@@ -1,3 +1,4 @@
+import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import {
   Canvas,
   Circle,
@@ -10,15 +11,21 @@ import {
   useFonts
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
-import { StyleSheet, TouchableOpacity, View } from 'react-native'
+import {
+  type StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type ViewStyle
+} from 'react-native'
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withSpring
 } from 'react-native-reanimated'
+
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
-import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 
 type SSSpiralBlocksProps = {
   data: BlockDifficulty[]
@@ -149,6 +156,59 @@ function SSSpiralBlocks({
     return blocks
   }, [loading, data]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const paths = useMemo(() => {
+    return spiralBlocks.map((block) => {
+      const path = Skia.Path.Make()
+      const halfSize = BLOCK_SIZE / 2
+      const cosTheta = Math.cos(block.rotation)
+      const sinTheta = Math.sin(block.rotation)
+      const points = [
+        [-halfSize, -halfSize],
+        [halfSize, -halfSize],
+        [halfSize, halfSize],
+        [-halfSize, halfSize]
+      ].map(([x, y]) => {
+        const rotatedX = cosTheta * x - sinTheta * y
+        const rotatedY = sinTheta * x + cosTheta * y
+        return [rotatedX + block.x, rotatedY + block.y]
+      })
+
+      path.moveTo(
+        points[0][0] + canvasWidth / 2,
+        points[0][1] + canvasHeight / 2
+      )
+      path.lineTo(
+        points[1][0] + canvasWidth / 2,
+        points[1][1] + canvasHeight / 2
+      )
+      path.lineTo(
+        points[2][0] + canvasWidth / 2,
+        points[2][1] + canvasHeight / 2
+      )
+      path.lineTo(
+        points[3][0] + canvasWidth / 2,
+        points[3][1] + canvasHeight / 2
+      )
+      path.close()
+
+      return path
+    })
+  }, [spiralBlocks, canvasHeight, canvasWidth])
+
+  const invisibleOverlayBlocks = useMemo(() => {
+    return spiralBlocks.map((block) => {
+      return {
+        position: 'absolute',
+        top: canvasHeight / 2 + block.y - BLOCK_SIZE / 2,
+        left: canvasWidth / 2 + block.x - BLOCK_SIZE / 2,
+        width: BLOCK_SIZE + 3,
+        height: BLOCK_SIZE + 3,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255, 255, 255, 0)'
+      } as StyleProp<ViewStyle>
+    })
+  }, [spiralBlocks, canvasWidth, canvasHeight])
+
   // If still loading data, show a loading spinner (an outlined circle)
   if (loading) {
     return (
@@ -176,42 +236,9 @@ function SSSpiralBlocks({
         <Canvas
           style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
         >
-          {spiralBlocks.map((block, index) => {
-            const path = Skia.Path.Make()
-            const halfSize = BLOCK_SIZE / 2
-            const cosTheta = Math.cos(block.rotation)
-            const sinTheta = Math.sin(block.rotation)
-            const points = [
-              [-halfSize, -halfSize],
-              [halfSize, -halfSize],
-              [halfSize, halfSize],
-              [-halfSize, halfSize]
-            ].map(([x, y]) => {
-              const rotatedX = cosTheta * x - sinTheta * y
-              const rotatedY = sinTheta * x + cosTheta * y
-              return [rotatedX + block.x, rotatedY + block.y]
-            })
-
-            path.moveTo(
-              points[0][0] + canvasWidth / 2,
-              points[0][1] + canvasHeight / 2
-            )
-            path.lineTo(
-              points[1][0] + canvasWidth / 2,
-              points[1][1] + canvasHeight / 2
-            )
-            path.lineTo(
-              points[2][0] + canvasWidth / 2,
-              points[2][1] + canvasHeight / 2
-            )
-            path.lineTo(
-              points[3][0] + canvasWidth / 2,
-              points[3][1] + canvasHeight / 2
-            )
-            path.close()
-
-            return <Path key={index} path={path} color={block.color} />
-          })}
+          {spiralBlocks.map((block, index) => (
+            <Path key={index} path={paths[index]} color={block.color} />
+          ))}
 
           {RADIUS_WEEKS.map((r, index) => {
             const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
@@ -238,19 +265,11 @@ function SSSpiralBlocks({
 
         {/* Overlay for touchable areas, ensuring correct alignment with blocks */}
         <View style={styles.touchableOverlay}>
-          {spiralBlocks.map((block, index) => (
+          {invisibleOverlayBlocks.map((style, index) => (
             <TouchableOpacity
               key={index}
-              style={{
-                position: 'absolute',
-                top: canvasHeight / 2 + block.y - BLOCK_SIZE / 2,
-                left: canvasWidth / 2 + block.x - BLOCK_SIZE / 2,
-                width: BLOCK_SIZE + 3,
-                height: BLOCK_SIZE + 3,
-                borderRadius: 25,
-                backgroundColor: 'rgba(255, 255, 255, 0)'
-              }}
-              onPress={() => onBlockPress(data[block.index])}
+              onPress={() => onBlockPress(data[index])}
+              style={style}
             />
           ))}
         </View>
