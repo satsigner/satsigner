@@ -15,11 +15,11 @@ import {
 } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
-import Svg, { Circle } from 'react-native-svg'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 
+import { SSIconEllipsis } from './icons'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -243,11 +243,7 @@ function SSMultipleSankeyDiagram({
                     }}
                     onPress={() => {}}
                   >
-                    <Svg width="11" height="3" viewBox="0 0 11 3" fill="none">
-                      <Circle cx="9.48926" cy="1.5" r="1" fill="#D9D9D9" />
-                      <Circle cx="5.48926" cy="1.5" r="1" fill="#D9D9D9" />
-                      <Circle cx="1.48926" cy="1.5" r="1" fill="#D9D9D9" />
-                    </Svg>
+                    <SSIconEllipsis />
                   </TouchableOpacity>
                 )}
               </TouchableOpacity>
