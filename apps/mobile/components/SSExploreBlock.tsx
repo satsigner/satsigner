@@ -12,7 +12,7 @@ type SSExploreBlockProps = {
   block: Block | null
 }
 
-export default function SSExploreBlock({ block }: SSExploreBlockProps) {
+function SSExploreBlock({ block }: SSExploreBlockProps) {
   const placeholder = '-'
   return (
     <SSVStack style={styles.centered} gap="none">
@@ -132,3 +132,5 @@ const styles = StyleSheet.create({
     width: '45%'
   }
 })
+
+export default SSExploreBlock

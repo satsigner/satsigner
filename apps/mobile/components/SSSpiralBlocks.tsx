@@ -27,15 +27,6 @@ import Animated, {
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
 
-type SSSpiralBlocksProps = {
-  data: BlockDifficulty[]
-  loading: boolean
-  maxBlocksPerSpiral: number
-  onBlockPress: (block: BlockDifficulty) => void
-  canvasWidth: number
-  canvasHeight: number
-}
-
 const FACTOR_BLOCK_DISTANCE = 0.055
 const RADIUS_SPIRAL_START = 1
 const FACTOR_SPIRAL_GROWTH = 0.97
@@ -44,13 +35,22 @@ const RADIUS_WEEKS = [180, 250, 320, 451]
 const MIN_BRIGHTNESS = 20
 const MAX_BRIGHTNESS_SIZE = 5000
 
+type SSSpiralBlocksProps = {
+  data: BlockDifficulty[]
+  loading: boolean
+  maxBlocksPerSpiral: number
+  canvasWidth: number
+  canvasHeight: number
+  onBlockPress: (block: BlockDifficulty) => void
+}
+
 function SSSpiralBlocks({
-  onBlockPress,
+  data,
+  loading,
+  maxBlocksPerSpiral,
   canvasWidth,
   canvasHeight,
-  maxBlocksPerSpiral,
-  data,
-  loading
+  onBlockPress
 }: SSSpiralBlocksProps) {
   const customFontManager = useFonts({
     'SF Pro Text': [
