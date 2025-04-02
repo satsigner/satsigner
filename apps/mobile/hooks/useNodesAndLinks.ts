@@ -9,6 +9,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 const MINING_FEE_VALUE = 1635
 
 type Node = {
+  localId?: string
   id: string
   type: string
   depthH: number
@@ -109,7 +110,7 @@ export const useNodesAndLinks = ({
 
       outputNodes = outputs.map((output, index) => ({
         id: `vout-${blockDepth + 1}-${index + 1}`,
-        localId: output.localId ?? '',
+        localId: output.localId,
         type: 'text',
         depthH: blockDepth + 1,
         textInfo: [
@@ -152,6 +153,7 @@ export const useNodesAndLinks = ({
 
       return [
         {
+          localId: undefined,
           id: `block-${blockDepth}-0`,
           type: 'block',
           depthH: blockDepth,
@@ -263,6 +265,7 @@ export const useNodesAndLinks = ({
               )?.txid || ''
 
             const node = {
+              localId: undefined,
               id: `vout-${outputDepth}-${output.indexV}`,
               type: 'text',
               depthH: outputDepth,

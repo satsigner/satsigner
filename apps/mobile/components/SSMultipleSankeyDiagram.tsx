@@ -30,6 +30,7 @@ export interface Link extends SankeyLinkMinimal<object, object> {
 }
 
 export interface Node extends SankeyNodeMinimal<object, object> {
+  localId?: string
   id: string
   depth?: number
   depthH: number
@@ -48,11 +49,13 @@ const NODE_WIDTH = 98
 type SSMultipleSankeyDiagramProps = {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
+  onPressOutput?: (localId?: string) => void
 }
 
 function SSMultipleSankeyDiagram({
   sankeyNodes,
-  sankeyLinks
+  sankeyLinks,
+  onPressOutput
 }: SSMultipleSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
 
@@ -181,6 +184,7 @@ function SSMultipleSankeyDiagram({
           : 0
 
       return {
+        localId: (node as Node).localId,
         x: isBlock
           ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
           : node.x0 ?? 0,
@@ -234,7 +238,11 @@ function SSMultipleSankeyDiagram({
                     height: style.height
                   }
                 ]}
-                onPress={() => {}}
+                onPress={
+                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
+                    ? () => onPressOutput(style.localId)
+                    : undefined
+                }
               >
                 {(nodes[index] as Node).depthH === maxDepthH && (
                   <View style={styles.iconContainer}>
