@@ -8,6 +8,7 @@ import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import { NostrAPI } from '@/api/nostr'
+import { toast } from 'sonner-native'
 
 type AccountsState = {
   accounts: Account[]
@@ -101,7 +102,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             // Import labels if any were found
             if (labels.length > 0) {
               const importedCount = get().importLabels(account.id, labels)
-              console.log(`Imported ${importedCount} labels`)
+              toast(`Imported ${totalMessages} labels`)
             }
           } catch (error) {
             console.error('Error syncing labels:', error)
@@ -171,7 +172,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             account.nostrPubkey,
             account
           )
-          console.log('sent labels to nostr')
+          toast('sent labels to nostr')
         }
 
         const addrIndex = account.addresses.findIndex(
@@ -201,7 +202,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             account.nostrPubkey,
             account
           )
-          console.log('sent labels to nostr')
+          toast('sent labels to nostr')
         }
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
