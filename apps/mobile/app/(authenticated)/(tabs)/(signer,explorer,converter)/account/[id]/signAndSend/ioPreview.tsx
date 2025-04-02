@@ -12,7 +12,9 @@ import SSButton from '@/components/SSButton'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
+import SSMultipleSankeyDiagram, {
+  type Link
+} from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
@@ -214,7 +216,10 @@ export default function IOPreview() {
         inputs.size > 0 &&
         nodes?.length > 0 &&
         links?.length > 0 ? (
-          <SSMultipleSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
+          <SSMultipleSankeyDiagram
+            sankeyNodes={nodes}
+            sankeyLinks={links as Link[]}
+          />
         ) : null}
       </View>
       <LinearGradient
