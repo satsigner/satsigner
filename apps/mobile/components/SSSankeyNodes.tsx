@@ -129,8 +129,9 @@ function NodeText({
   const isNumeric = (text: string) => /^[0-9]+$/.test(text)
   const amount = textInfo[0].replace(/\s*sats\s*/g, '')
 
-  const minerFeeIconSvg = useSVG(require('@/assets/red-miner-fee.svg'))
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
+  const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
+  const minerFeeIconSvg = useSVG(require('@/assets/red-miner-fee.svg'))
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
@@ -265,7 +266,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        // Add placeholder for the miner svg icon
+        // Add placeholder for the svg icon
         .addPlaceholder(
           ICON_SIZE,
           ICON_SIZE,
@@ -273,7 +274,7 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(textInfo[3] ?? '')
+        .addText(textInfo[3] ?? t('transaction.build.change'))
         .pop()
 
       return para.build()
@@ -408,17 +409,6 @@ function NodeText({
         y={paragraphY}
         width={isBlock ? width * 0.6 : width - PADDING_LEFT}
       />
-      {isMiningFee &&
-        minerFeeIconSvg &&
-        placeholderRectsMinerIcon.length > 0 && (
-          <ImageSVG
-            svg={minerFeeIconSvg}
-            x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
-            y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
-            width={placeholderRectsMinerIcon[0].rect.width}
-            height={placeholderRectsMinerIcon[0].rect.height}
-          />
-        )}
       {isUnspent &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
@@ -429,6 +419,29 @@ function NodeText({
             y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
             width={placeholderRectsUnspentIcon[0].rect.width}
             height={placeholderRectsUnspentIcon[0].rect.height}
+          />
+        )}
+      {isUnspent &&
+        changeIconSvg &&
+        placeholderRectsUnspentIcon.length > 0 &&
+        !textInfo[3] && (
+          <ImageSVG
+            svg={changeIconSvg}
+            x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
+            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
+            width={placeholderRectsUnspentIcon[0].rect.width}
+            height={placeholderRectsUnspentIcon[0].rect.height}
+          />
+        )}
+      {isMiningFee &&
+        minerFeeIconSvg &&
+        placeholderRectsMinerIcon.length > 0 && (
+          <ImageSVG
+            svg={minerFeeIconSvg}
+            x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
+            y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
+            width={placeholderRectsMinerIcon[0].rect.width}
+            height={placeholderRectsMinerIcon[0].rect.height}
           />
         )}
     </Group>
