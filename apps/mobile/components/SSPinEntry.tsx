@@ -9,14 +9,14 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 
-interface SSPinEntryProps {
+type SSPinEntryProps = {
   pin: string[]
   setPin: Dispatch<SetStateAction<string[]>>
   onFillEnded: (pin: string) => void
   title?: string
 }
 
-export default function SSPinEntry({
+function SSPinEntry({
   pin,
   setPin,
   onFillEnded,
@@ -52,3 +52,5 @@ export default function SSPinEntry({
     </SSVStack>
   )
 }
+
+export default SSPinEntry
