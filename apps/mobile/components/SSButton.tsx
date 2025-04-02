@@ -28,8 +28,8 @@ type SSButtonProps = {
   loading?: boolean
   withSelect?: boolean
   uppercase?: boolean
-  textStyle?: StyleProp<TextStyle>
   gradientType?: 'default' | 'special'
+  textStyle?: StyleProp<TextStyle>
 } & React.ComponentPropsWithoutRef<typeof TouchableOpacity>
 
 function SSButton({
@@ -38,10 +38,10 @@ function SSButton({
   loading,
   withSelect,
   uppercase = true,
+  gradientType = 'default',
   textStyle,
   disabled,
   style,
-  gradientType = 'default',
   ...props
 }: SSButtonProps) {
   const buttonStyle = useMemo(() => {

@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { AppState, ScrollView, type TextInput } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -80,7 +81,9 @@ export default function ImportMnemonic() {
       state.clearKeyState
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const [network, connectionMode] = useBlockchainStore(
+    useShallow((state) => [state.network, state.connectionMode])
+  )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
@@ -337,14 +340,17 @@ export default function ImportMnemonic() {
       setAccountAddedModalVisible(true)
 
       try {
-        const updatedAccount = await syncAccountWithWallet(
-          data.accountWithEncryptedSecret,
-          data.wallet
-        )
-        updateAccount(updatedAccount)
-        setSyncedAccount(updatedAccount)
-      } catch {
+        if (connectionMode === 'auto') {
+          const updatedAccount = await syncAccountWithWallet(
+            data.accountWithEncryptedSecret,
+            data.wallet
+          )
+          updateAccount(updatedAccount)
+          setSyncedAccount(updatedAccount)
+        }
+      } catch (error) {
         setWalletSyncFailed(true)
+        toast.error((error as Error).message)
       } finally {
         setAccountImported(true)
         setLoadingAccount(false)

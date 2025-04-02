@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
 import { useState } from 'react'
 import { Keyboard, ScrollView, StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -20,6 +21,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
 import {
@@ -66,6 +68,7 @@ export default function WatchOnly() {
       state.setKey
     ])
   )
+  const connectionMode = useBlockchainStore((state) => state.connectionMode)
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
@@ -150,19 +153,21 @@ export default function WatchOnly() {
     if (!data) return
 
     try {
-      const updatedAccount =
-        selectedOption !== 'importAddress'
-          ? await syncAccountWithWallet(
-              data.accountWithEncryptedSecret,
-              data.wallet!
-            )
-          : await syncAccountWithAddress(
-              data.accountWithEncryptedSecret,
-              `addr(${address})`
-            )
-      updateAccount(updatedAccount)
-    } catch {
-      // TODO
+      if (connectionMode === 'auto') {
+        const updatedAccount =
+          selectedOption !== 'importAddress'
+            ? await syncAccountWithWallet(
+                data.accountWithEncryptedSecret,
+                data.wallet!
+              )
+            : await syncAccountWithAddress(
+                data.accountWithEncryptedSecret,
+                `addr(${address})`
+              )
+        updateAccount(updatedAccount)
+      }
+    } catch (error) {
+      toast.error((error as Error).message)
     } finally {
       clearAccount()
       setLoadingWallet(false)

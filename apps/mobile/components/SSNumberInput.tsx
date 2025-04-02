@@ -20,6 +20,9 @@ type SSNumberInputProps = {
   max: number
   onValidate?: (valid: boolean) => void
   showFeedback?: boolean
+  allowDecimal?: boolean
+  allowValidEmpty?: boolean
+  alwaysTriggerOnChange?: boolean
 } & React.ComponentPropsWithoutRef<typeof TextInput>
 
 function SSNumberInput(
@@ -33,11 +36,16 @@ function SSNumberInput(
     onChangeText,
     onValidate,
     showFeedback,
+    allowDecimal = false,
+    allowValidEmpty = false,
+    alwaysTriggerOnChange = false,
     style,
     ...props
   }: SSNumberInputProps,
   ref: ForwardedRef<TextInput>
 ) {
+  const NUMBER_REGEX = allowDecimal ? /^\d*\.?\d{0,8}$/ : /^[0-9]*$/
+
   const [invalid, setInvalid] = useState(false)
 
   const textInputStyle = useMemo(() => {
@@ -72,7 +80,7 @@ function SSNumberInput(
     if (value === undefined || value === '') {
       return
     }
-    if (!value.match(/^[0-9]*$/)) {
+    if (!value.match(NUMBER_REGEX)) {
       setInvalid(true)
       if (onValidate) onValidate(false)
       return
@@ -84,13 +92,15 @@ function SSNumberInput(
   }, [min, max]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleTextChange(text: string) {
-    if (!text.match(/^[0-9]*$/)) {
+    if (alwaysTriggerOnChange && onChangeText) onChangeText(text)
+
+    if (!text.match(NUMBER_REGEX)) {
       return
     }
 
     if (text === '') {
       setLocalValue('')
-      setInvalid(true)
+      setInvalid(!allowValidEmpty)
       if (onValidate) onValidate(false)
       return
     }

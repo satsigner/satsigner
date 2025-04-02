@@ -2,83 +2,80 @@ import NetInfo from '@react-native-community/netinfo'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import ElectrumClient from '@/api/electrum'
+import Esplora from '@/api/esplora'
+import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const [network, url, timeout] = useBlockchainStore(
-    useShallow((state) => [state.network, state.url, state.timeout * 1000])
+  const [
+    backend,
+    network,
+    url,
+    timeout,
+    connectionMode,
+    connectionTestInterval
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.backend,
+      state.network,
+      state.url,
+      state.timeout * 1000,
+      state.connectionMode,
+      state.connectionTestInterval
+    ])
   )
 
   const isConnectionAvailable = useRef<boolean | null>(false)
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
-    return network + ' - ' + url
-  }, [network, url])
+    if (connectionMode === 'auto') return `${network} - ${url}`
 
-  const verifyUrl = useMemo(() => {
-    const urlObj = new URL(url)
-    if (urlObj.protocol === 'ssl:') {
-      const modifiedUrl = new URL(url.replace('ssl://', 'https://'))
-      modifiedUrl.port = ''
-      modifiedUrl.pathname = `/${network === 'bitcoin' ? '' : `${network}/`}api/v1/difficulty-adjustment`
-      return modifiedUrl.toString()
-    } else {
-      urlObj.pathname = '/api/v1/difficulty-adjustment'
-    }
-    return urlObj.toString()
-  }, [network, url])
+    return `${network} - ${url} (${connectionMode})`
+  }, [network, url, connectionMode])
 
   const isPrivateConnection = useMemo(() => {
-    if (
-      url === 'ssl://mempool.space:60602' ||
-      url === 'https://mutinynet.com/api'
-    ) {
+    if (servers.findIndex((val) => val.url === url) === -1) {
       return false
     }
     return true
   }, [url])
 
   const verifyConnection = useCallback(async () => {
-    if (!isConnectionAvailable.current) {
+    if (!isConnectionAvailable.current || connectionMode === 'manual') {
       setConnectionState(false)
       return
     }
     try {
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), timeout)
-      )
-      const fetchPromise = fetch(verifyUrl)
-      const response = (await Promise.race([
-        timeoutPromise,
-        fetchPromise
-      ])) as Response
-      if (!isConnectionAvailable.current) {
-        setConnectionState(false)
-        return
-      }
-      if (response.ok) {
-        setConnectionState(true)
-      } else {
-        setConnectionState(false)
-      }
-    } catch (_) {
+      const result =
+        backend === 'electrum'
+          ? await ElectrumClient.test(url, network, timeout)
+          : await Esplora.test(url, timeout)
+      setConnectionState(result)
+    } catch {
       setConnectionState(false)
     }
-  }, [timeout, verifyUrl])
+  }, [backend, network, timeout, url, connectionMode])
 
   const checkConnection = useCallback(async () => {
+    if (connectionMode === 'manual') return
+
     const state = await NetInfo.fetch()
     isConnectionAvailable.current = state.isConnected
-  }, [])
+  }, [connectionMode])
 
   useEffect(() => {
+    if (connectionMode === 'manual') return
     ;(async () => {
       await checkConnection()
       verifyConnection()
     })()
+
     const timerId = setInterval(() => {
       verifyConnection()
-    }, 60000)
+      // INFO: we store the interval in seconds but the function expects the
+      // timeout interval to be in miliseconds
+    }, connectionTestInterval * 1000)
 
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (
@@ -100,7 +97,16 @@ function useVerifyConnection() {
       unsubscribe()
       clearInterval(timerId)
     }
-  }, [checkConnection, verifyConnection])
+  }, [
+    checkConnection,
+    verifyConnection,
+    connectionMode,
+    connectionTestInterval
+  ])
+
+  useEffect(() => {
+    verifyConnection()
+  }, [url, verifyConnection])
 
   return [connectionState, connectionString, isPrivateConnection]
 }

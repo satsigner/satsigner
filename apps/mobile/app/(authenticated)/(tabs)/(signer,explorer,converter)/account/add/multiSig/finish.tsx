@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { View } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
+import { toast } from 'sonner-native'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -14,11 +15,13 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 
 export default function ConfirmScreen() {
   const router = useRouter()
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
   const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const connectionMode = useBlockchainStore((state) => state.connectionMode)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
@@ -33,15 +36,19 @@ export default function ConfirmScreen() {
 
     const data = await accountBuilderFinish(account)
     if (!data) return
-
-    const updatedAccount = await syncAccountWithWallet(
-      data.accountWithEncryptedSecret,
-      data.wallet!
-    )
-    updateAccount(updatedAccount)
     setCompleted(true)
 
-    // TODO: wrap around try catch and show error notification with sonner
+    try {
+      if (connectionMode === 'auto') {
+        const updatedAccount = await syncAccountWithWallet(
+          data.accountWithEncryptedSecret,
+          data.wallet!
+        )
+        updateAccount(updatedAccount)
+      }
+    } catch (error) {
+      toast.error((error as Error).message)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function rotate() {
