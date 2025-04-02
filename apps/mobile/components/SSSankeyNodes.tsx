@@ -384,14 +384,14 @@ function NodeText({
   const paragraphY = isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y
 
   // Get placeholder rects if it's a mining fee node
-  const placeholderRectsMiner = useMemo(() => {
+  const placeholderRectsMinerIcon = useMemo(() => {
     if (isMiningFee && mainParagraph) {
       return mainParagraph.getRectsForPlaceholders()
     }
     return []
   }, [mainParagraph, isMiningFee])
 
-  const placeholderRectsUnspent = useMemo(() => {
+  const placeholderRectsUnspentIcon = useMemo(() => {
     if (isUnspent && mainParagraph) {
       return mainParagraph.getRectsForPlaceholders()
     }
@@ -406,25 +406,27 @@ function NodeText({
         y={paragraphY}
         width={isBlock ? width * 0.6 : width - PADDING_LEFT}
       />
-      {isMiningFee && minerFeeIconSvg && placeholderRectsMiner.length > 0 && (
-        <ImageSVG
-          svg={minerFeeIconSvg}
-          x={paragraphX + placeholderRectsMiner[0].rect.x}
-          y={paragraphY + placeholderRectsMiner[0].rect.y}
-          width={placeholderRectsMiner[0].rect.width}
-          height={placeholderRectsMiner[0].rect.height}
-        />
-      )}
+      {isMiningFee &&
+        minerFeeIconSvg &&
+        placeholderRectsMinerIcon.length > 0 && (
+          <ImageSVG
+            svg={minerFeeIconSvg}
+            x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
+            y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
+            width={placeholderRectsMinerIcon[0].rect.width}
+            height={placeholderRectsMinerIcon[0].rect.height}
+          />
+        )}
       {isUnspent &&
         labelIconSvg &&
-        placeholderRectsUnspent.length > 0 &&
+        placeholderRectsUnspentIcon.length > 0 &&
         textInfo[3] && (
           <ImageSVG
             svg={labelIconSvg}
-            x={paragraphX + placeholderRectsUnspent[0].rect.x}
-            y={paragraphY + placeholderRectsUnspent[0].rect.y}
-            width={placeholderRectsUnspent[0].rect.width}
-            height={placeholderRectsUnspent[0].rect.height}
+            x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
+            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
+            width={placeholderRectsUnspentIcon[0].rect.width}
+            height={placeholderRectsUnspentIcon[0].rect.height}
           />
         )}
     </Group>
