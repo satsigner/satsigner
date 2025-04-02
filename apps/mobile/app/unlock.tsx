@@ -1,15 +1,10 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import Animated from 'react-native-reanimated'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSPinInput from '@/components/SSPinInput'
-import SSText from '@/components/SSText'
+import SSPinEntry from '@/components/SSPinEntry'
 import { PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
-import { useAnimatedShake } from '@/hooks/useAnimatedShake'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
@@ -20,8 +15,6 @@ import { pbkdf2Encrypt } from '@/utils/crypto'
 export default function Unlock() {
   const router = useRouter()
   const [
-    pinTries,
-    pinMaxTries,
     setLockTriggered,
     resetPinTries,
     incrementPinTries,
@@ -30,8 +23,6 @@ export default function Unlock() {
     setJustUnlocked
   ] = useAuthStore(
     useShallow((state) => [
-      state.pinTries,
-      state.pinMaxTries,
       state.setLockTriggered,
       state.resetPinTries,
       state.incrementPinTries,
@@ -42,10 +33,8 @@ export default function Unlock() {
   )
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
-  const { shake, shakeStyle } = useAnimatedShake()
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
-  const [triesLeft, setTriesLeft] = useState<number>(pinMaxTries - pinTries)
 
   function clearPin() {
     setPin(Array(PIN_SIZE).fill(''))
@@ -75,7 +64,6 @@ export default function Unlock() {
       // }
       router.push('/')
     } else {
-      shake()
       clearPin()
 
       const triesLeft = incrementPinTries()
@@ -87,10 +75,7 @@ export default function Unlock() {
         setLockTriggered(false)
         router.replace('/')
         resetPinTries()
-        return
       }
-
-      setTriesLeft(triesLeft)
     }
   }
 
@@ -101,27 +86,7 @@ export default function Unlock() {
         paddingTop: '25%'
       }}
     >
-      <SSVStack itemsCenter justifyBetween style={{ height: '100%' }}>
-        <SSVStack gap="lg" itemsCenter style={{ marginTop: '25%' }}>
-          <SSText uppercase size="lg" color="muted" center>
-            {t('auth.unlock')}
-          </SSText>
-          <Animated.View style={shakeStyle}>
-            <SSPinInput
-              pin={pin}
-              setPin={setPin}
-              autoFocus
-              onFillEnded={handleOnFillEnded}
-            />
-          </Animated.View>
-          {triesLeft !== pinMaxTries && (
-            <SSText uppercase color="muted" center>
-              {triesLeft}{' '}
-              {triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}
-            </SSText>
-          )}
-        </SSVStack>
-      </SSVStack>
+      <SSPinEntry pin={pin} setPin={setPin} onFillEnded={handleOnFillEnded} />
     </SSMainLayout>
   )
 }
