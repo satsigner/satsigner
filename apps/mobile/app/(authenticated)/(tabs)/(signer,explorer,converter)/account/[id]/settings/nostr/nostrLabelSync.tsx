@@ -458,6 +458,7 @@ export default function NostrSettings() {
                     size="xl"
                     type="mono"
                     style={{ letterSpacing: 1 }}
+                    selectable
                   >
                     {nsec}
                   </SSText>
@@ -471,6 +472,7 @@ export default function NostrSettings() {
                     size="xl"
                     type="mono"
                     style={{ letterSpacing: 1 }}
+                    selectable
                   >
                     {npub}
                   </SSText>
