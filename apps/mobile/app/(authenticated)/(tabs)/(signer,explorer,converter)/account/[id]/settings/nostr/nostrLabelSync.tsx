@@ -48,6 +48,10 @@ export default function NostrSettings() {
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
   const [autoSync, setAutoSync] = useState(false)
+  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<
+    number | null
+  >(null)
+  const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const layout = useWindowDimensions()
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
@@ -119,7 +123,7 @@ export default function NostrSettings() {
     }
   }, [account, passphrase]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function fetchMessages() {
+  async function fetchMessages(loadMore: boolean = false) {
     if (!npub || !secretKey) return
 
     // Add relay check at the start
@@ -138,12 +142,23 @@ export default function NostrSettings() {
       const user = ndk.getUser({ npub })
       const ourPubkey = getPublicKey(secretKey)
 
-      // Get all nip04 encrypted messages (kind 4) where we are either the sender or recipient
+      // Get nip04 encrypted messages with pagination
       const messages = await ndk.fetchEvents({
         kinds: [4], // nip04 encrypted messages
         authors: [ourPubkey, user.pubkey],
-        limit: 100 // Increased limit to get more messages
+        limit: 3,
+        since:
+          loadMore && lastMessageTimestamp !== null
+            ? lastMessageTimestamp
+            : undefined
       })
+
+      // If no messages returned, we've reached the end
+      if (messages.size === 0) {
+        setHasMoreMessages(false)
+        setIsLoading(false)
+        return
+      }
 
       // Decrypt messages
       const decryptedMessages = await Promise.all(
@@ -180,7 +195,20 @@ export default function NostrSettings() {
       decryptedMessages.sort(
         (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
       )
-      setMessages(decryptedMessages)
+
+      // Update last message timestamp for pagination
+      if (decryptedMessages.length > 0) {
+        setLastMessageTimestamp(
+          decryptedMessages[decryptedMessages.length - 1].created_at ?? 0
+        )
+      }
+
+      // Update messages state based on whether we're loading more or not
+      if (loadMore) {
+        setMessages((prev) => [...prev, ...decryptedMessages])
+      } else {
+        setMessages(decryptedMessages)
+      }
     } catch (error) {
       console.error('Error fetching messages:', error)
       setRelayError(
@@ -454,6 +482,10 @@ export default function NostrSettings() {
               onChangeText={(text) => {
                 setPassphrase(text)
                 setRelayError(null)
+                // Clear messages when passphrase changes
+                setMessages([])
+                setLastMessageTimestamp(null)
+                setHasMoreMessages(true)
                 if (account) {
                   updateAccount({
                     ...account,
@@ -556,7 +588,7 @@ export default function NostrSettings() {
                     </SSText>
                   )}
                 </SSHStack>
-                {messages.slice(0, displayMessageCount).map((msg, index) => (
+                {messages.map((msg, index) => (
                   <SSVStack
                     key={index}
                     gap="sm"
@@ -584,13 +616,14 @@ export default function NostrSettings() {
                     )}
                   </SSVStack>
                 ))}
-                {messages.length > displayMessageCount && (
+                {hasMoreMessages && (
                   <SSButton
-                    label={`Load Older Messages (${
-                      messages.length - displayMessageCount
-                    } remaining)`}
+                    label={t('account.nostrlabels.loadOlderMessages')}
                     variant="gradient"
-                    onPress={() => setDisplayMessageCount((prev) => prev + 3)}
+                    onPress={(_event) => {
+                      void fetchMessages(true)
+                    }}
+                    disabled={isLoading}
                   />
                 )}
               </SSVStack>
