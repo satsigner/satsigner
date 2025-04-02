@@ -1,15 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams, router } from 'expo-router'
 import { useShallow } from 'zustand/react/shallow'
-import * as bip39 from 'bip39'
-import {
-  generateSecretKey,
-  nip19,
-  getPublicKey,
-  nip04,
-  finalizeEvent
-} from 'nostr-tools'
 import { useState, useEffect } from 'react'
-import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { ScrollView, useWindowDimensions } from 'react-native'
 import { t } from '@/locales'
 import SSText from '@/components/SSText'
@@ -33,6 +24,7 @@ import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type Secret } from '@/types/models/Account'
 import SSModal from '@/components/SSModal'
+import { NostrAPI, type NostrKeys, type NostrMessage } from '@/api/nostr'
 
 export default function NostrSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -40,10 +32,9 @@ export default function NostrSettings() {
   const [npub, setNpub] = useState('')
   const [passphrase, setPassphrase] = useState('')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
-  const [messages, setMessages] = useState<any[]>([])
+  const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [secretKey, setSecretKey] = useState<Uint8Array | null>(null)
-  const [customRelayUrl, setCustomRelayUrl] = useState('')
   const [displayMessageCount, setDisplayMessageCount] = useState(3)
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
@@ -56,6 +47,7 @@ export default function NostrSettings() {
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
+  const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -70,6 +62,13 @@ export default function NostrSettings() {
       state.importLabels
     ])
   )
+
+  // Initialize NostrAPI when relays change
+  useEffect(() => {
+    if (selectedRelays.length > 0) {
+      setNostrApi(new NostrAPI(selectedRelays))
+    }
+  }, [selectedRelays])
 
   // Load saved relays when component mounts
   useEffect(() => {
@@ -92,6 +91,13 @@ export default function NostrSettings() {
     }
   }, [account?.nostrPassphrase])
 
+  // Initialize NostrAPI when component mounts if relays are available
+  useEffect(() => {
+    if (account?.nostrRelays && account.nostrRelays.length > 0) {
+      setNostrApi(new NostrAPI(account.nostrRelays))
+    }
+  }, [account?.nostrRelays])
+
   // Modify the fetch messages useEffect to only run when autoSync is on
   useEffect(() => {
     if (autoSync && npub && selectedRelays.length > 0) {
@@ -107,24 +113,24 @@ export default function NostrSettings() {
 
       // Set up interval for auto sync
       const syncInterval = setInterval(() => {
-        //handleSendMessage()
         fetchMessages()
       }, 60000) // Sync every minute
 
       // Cleanup interval on unmount or when auto sync is disabled
       return () => clearInterval(syncInterval)
     }
-  }, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoSync, npub, selectedRelays])
 
   // Add new useEffect to auto-execute handleCreateNsec
   useEffect(() => {
-    if (account && passphrase !== undefined) {
+    if (account && passphrase !== undefined && selectedRelays.length > 0) {
+      setNostrApi(new NostrAPI(selectedRelays))
       handleCreateNsec()
     }
-  }, [account, passphrase]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, passphrase, selectedRelays])
 
   async function fetchMessages(loadMore: boolean = false) {
-    if (!npub || !secretKey) return
+    if (!npub || !secretKey || !nostrApi) return
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
@@ -134,83 +140,31 @@ export default function NostrSettings() {
 
     setIsLoading(true)
     try {
-      const ndk = new NDK({
-        explicitRelayUrls: selectedRelays
-      })
-      await ndk.connect()
-
-      const user = ndk.getUser({ npub })
-      const ourPubkey = getPublicKey(secretKey)
-
-      // Get nip04 encrypted messages with pagination
-      const messages = await ndk.fetchEvents({
-        kinds: [4], // nip04 encrypted messages
-        authors: [ourPubkey, user.pubkey],
-        limit: 3,
-        since:
-          loadMore && lastMessageTimestamp !== null
-            ? lastMessageTimestamp
-            : undefined
-      })
+      const fetchedMessages = await nostrApi.fetchMessages(
+        secretKey,
+        npub,
+        loadMore ? lastMessageTimestamp ?? undefined : undefined
+      )
 
       // If no messages returned, we've reached the end
-      if (messages.size === 0) {
+      if (fetchedMessages.length === 0) {
         setHasMoreMessages(false)
         setIsLoading(false)
         return
       }
 
-      // Decrypt messages
-      const decryptedMessages = await Promise.all(
-        Array.from(messages).map(async (msg) => {
-          try {
-            // Determine if we're the sender or recipient
-            const isSender = msg.pubkey === ourPubkey
-            const otherPubkey = isSender ? user.pubkey : ourPubkey
-
-            // Decrypt the message
-            const decryptedContent = await nip04.decrypt(
-              secretKey,
-              otherPubkey,
-              msg.content
-            )
-
-            // Ensure proper encoding of decrypted content
-            const decodedContent = decodeURIComponent(escape(decryptedContent))
-
-            return {
-              ...msg,
-              decryptedContent: decodedContent,
-              isSender
-            }
-          } catch (error) {
-            console.error('Error decrypting message:', error)
-            return {
-              ...msg,
-              decryptedContent: '[Failed to decrypt]',
-              isSender: msg.pubkey === ourPubkey
-            }
-          }
-        })
-      )
-
-      // Sort messages by timestamp, newest first
-      decryptedMessages.sort(
-        (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0)
-      )
-
       // Update last message timestamp for pagination
-      if (decryptedMessages.length > 0) {
+      if (fetchedMessages.length > 0) {
         setLastMessageTimestamp(
-          decryptedMessages[decryptedMessages.length - 1].created_at ?? 0
+          fetchedMessages[fetchedMessages.length - 1].created_at
         )
       }
 
       // Update messages state based on whether we're loading more or not
       if (loadMore) {
-        setMessages((prev) => [...prev, ...decryptedMessages])
+        setMessages((prev) => [...prev, ...fetchedMessages])
       } else {
-        setMessages(decryptedMessages)
+        setMessages(fetchedMessages)
       }
     } catch (error) {
       console.error('Error fetching messages:', error)
@@ -246,16 +200,15 @@ export default function NostrSettings() {
         throw new Error('No mnemonic found in account secret')
       }
 
-      // Generate Nostr keys from mnemonic
-      const seed = await bip39.mnemonicToSeed(mnemonic, passphrase)
-      const newSecretKey = new Uint8Array(seed.slice(0, 32))
-      setSecretKey(newSecretKey)
-      const newNsec = nip19.nsecEncode(newSecretKey)
-      setNsec(newNsec)
+      // Generate Nostr keys using the API
+      if (!nostrApi) {
+        throw new Error('Nostr API not initialized')
+      }
 
-      const publicKey = getPublicKey(newSecretKey)
-      const newNpub = nip19.npubEncode(publicKey)
-      setNpub(newNpub)
+      const keys = await nostrApi.generateKeys(mnemonic, passphrase)
+      setSecretKey(keys.secretKey)
+      setNsec(keys.nsec)
+      setNpub(keys.npub)
     } catch (error) {
       console.error('Error creating nsec:', error)
       setRelayError(
@@ -265,7 +218,7 @@ export default function NostrSettings() {
   }
 
   async function handleSendMessage() {
-    if (!secretKey || !npub || !account) return
+    if (!secretKey || !npub || !account || !nostrApi) return
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
@@ -274,19 +227,6 @@ export default function NostrSettings() {
     }
 
     try {
-      console.log('Sending message to relays:', selectedRelays)
-
-      const ndk = new NDK({
-        explicitRelayUrls: selectedRelays
-      })
-      await ndk.connect()
-
-      // Get our public key
-      const ourPubkey = getPublicKey(secretKey)
-
-      // Decode our public key from npub
-      const { data: recipientPubkey } = nip19.decode(npub)
-
       // Format labels
       const labels = [
         ...formatTransactionLabels(account.transactions),
@@ -297,33 +237,8 @@ export default function NostrSettings() {
       // Create message content with labels in JSONL format
       const messageContent = labels.length > 0 ? bip329export.JSONL(labels) : ''
 
-      // Ensure proper encoding before encryption
-      const encodedContent = unescape(encodeURIComponent(messageContent))
-
-      // Create nip04 encrypted message
-      const encryptedMessage = await nip04.encrypt(
-        secretKey,
-        recipientPubkey as string,
-        encodedContent
-      )
-
-      // Create and publish the event
-      const event = new NDKEvent(ndk, {
-        kind: 4, // nip04 encrypted message
-        pubkey: ourPubkey,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [['p', recipientPubkey as string]], // recipient's pubkey
-        content: encryptedMessage
-      })
-
-      // Convert secret key to hex string for NDKPrivateKeySigner
-      const secretKeyHex = Array.from(secretKey)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('')
-      const signer = new NDKPrivateKeySigner(secretKeyHex)
-      await event.sign(signer)
-
-      await event.publish()
+      // Send message using the API
+      await nostrApi.sendMessage(secretKey, npub, messageContent)
 
       // Refresh messages
       await fetchMessages()
@@ -417,6 +332,15 @@ export default function NostrSettings() {
     }
   }
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (nostrApi) {
+        nostrApi.disconnect()
+      }
+    }
+  }, [nostrApi])
+
   if (!currentAccountId || !account) return <Redirect href="/" />
 
   return (
@@ -436,7 +360,7 @@ export default function NostrSettings() {
             {t('account.nostrlabels.title')}
           </SSText>
 
-          {/* Keys display - moved to top */}
+          {/* Keys display */}
           <SSVStack
             gap="xxs"
             style={{
@@ -481,7 +405,7 @@ export default function NostrSettings() {
             )}
           </SSVStack>
 
-          {/* Passphrase field - moved here */}
+          {/* Passphrase field */}
           <SSVStack gap="sm" style={{ paddingHorizontal: 20 }}>
             <SSText center>
               {t('account.nostrlabels.mnemonicPassphrase')}
@@ -616,13 +540,13 @@ export default function NostrSettings() {
                     <SSText color={msg.isSender ? 'white' : 'muted'}>
                       {msg.isSender ? 'Content Sent' : 'Content Received'}:
                     </SSText>
-                    {formatMessageContent(msg.decryptedContent, index)}
-                    {msg.decryptedContent.startsWith('{"label":') && (
+                    {formatMessageContent(msg.decryptedContent || '', index)}
+                    {msg.decryptedContent?.startsWith('{"label":') && (
                       <SSButton
                         label={t('account.nostrlabels.importLabels')}
                         variant="outline"
                         onPress={() => {
-                          handleImportLabels(msg.decryptedContent)
+                          handleImportLabels(msg.decryptedContent || '')
                         }}
                       />
                     )}
