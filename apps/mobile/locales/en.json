@@ -259,6 +259,42 @@
   "error": {
     "notFound.wallet": "Wallet not found"
   },
+  "explorer": {
+    "block.date": "Date (from header)",
+    "block.dateMedian": "Date (from median)",
+    "block.difficulty": "Difficulty",
+    "block.id": "Block Hash",
+    "block.merkleRoot": "Merkle Root",
+    "block.nonce": "Nonce",
+    "block.prevHash": "Previous block hash",
+    "block.size": "Size",
+    "block.title": "Block Details",
+    "block.txCount": "Total transactions",
+    "block.version": "Version",
+    "block.weight": "Weight",
+    "chain.title": "Chain",
+    "chaintip.title": "Chain Tip",
+    "difficulty.avgBlock": "Average Block Time (current)",
+    "difficulty.blockDetails.chainWork": "Chain Work",
+    "difficulty.blockDetails.cycleHeight": "height",
+    "difficulty.blockDetails.date": "Date",
+    "difficulty.blockDetails.height": "height",
+    "difficulty.blockDetails.nonce": "Nonce",
+    "difficulty.blockDetails.size": "Size",
+    "difficulty.blockDetails.time": "Time",
+    "difficulty.blockDetails.title": "Block Details",
+    "difficulty.blockDetails.txs": "Tramsactions",
+    "difficulty.blockDetails.vsize": "Virtual Size",
+    "difficulty.blockDetails.weight": "Weight",
+    "difficulty.blockFrom": "From block",
+    "difficulty.blockTo": "to block",
+    "difficulty.epoch": "Bitcoin Epoch:",
+    "difficulty.fetch": "FETCH",
+    "difficulty.nextAdjustment": "Next Difficulty Adjustment",
+    "difficulty.title": "Difficulty",
+    "halving.title": "Halving",
+    "mempool.title": "Mempool"
+  },
   "export": {
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",
@@ -492,7 +528,19 @@
     "transaction": "Sign transaction"
   },
   "time": {
-    "lessThanAMinute": "Less than a minute"
+    "day": "1 day",
+    "days": "%{value} days",
+    "hour": "1 hour",
+    "hours": "%{value} hours",
+    "lessThanAMinute": "Less than a minute",
+    "minute": "1 minute",
+    "minutes": "%{value} minutes",
+    "month": "1 month",
+    "months": "%{value} months",
+    "week": "1 week",
+    "weeks": "%{value} weeks",
+    "year": "1 year",
+    "years": "%{value} years"
   },
   "transaction": {
     "address": "Address",

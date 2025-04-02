@@ -2,6 +2,7 @@ export interface BlockchainOracle {
   getAddressUtxos: (address: string) => Promise<UTXO[]>
   getBlock: (blkid: string) => Promise<Block>
   getBlockAt: (timestamp: number) => Promise<Block>
+  getBlockAtHeight: (height: number) => Promise<Block>
   getBlockStatus: (blkid: string) => Promise<BlockStatus>
   getBlockTransactions: (blkid: string) => Promise<Tx[]>
   getCurrentBlockHash: () => Promise<string>
@@ -54,13 +55,29 @@ export type BlockStatus = {
 
 export type Block = {
   id: string
+  difficulty: number
   height: number
+  mediantime: number
+  merkle_root: string
+  nonce: number
+  previousblockhash: string
+  size: number
+  timestamp: number
+  tx_count: number
+  version: number
+  weight: number
+}
+
+export type BlockDifficulty = {
+  height: number
+  timestamp: number
+  txCount: number
+  chainWork: string
+  nonce: number
   size: number
   weight: number
-  difficulty: number
-  tx_count: number
-  timestamp: number
-  previousblockhash: string
+  cycleHeight: number
+  timeDifference: number
 }
 
 export enum TxPriority {
@@ -142,11 +159,16 @@ export type MemPoolBlock = {
 }
 
 export type DifficultyAdjustment = {
+  adjustedTimeAvg: number
   difficultyChange: number
+  estimatedRetargetDate: number
+  nextRetargetHeight: number
+  previousRetarget: number
   progressPercent: number
   remainingBlocks: number
   remainingTime: number
-  nextRetargetHeight: number
+  timeAvg: number
+  timeOffset: number
 }
 
 export type HashRateInfo = {
