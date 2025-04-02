@@ -221,7 +221,6 @@ function SSMultipleSankeyDiagram({
             ]}
             onLayout={onCanvasLayout}
           >
-            {/* TODO: enable selection for three dots */}
             {nodeStyles.map((style, index) => (
               <TouchableOpacity
                 key={index}
@@ -237,9 +236,7 @@ function SSMultipleSankeyDiagram({
                     borderWidth: 1
                   }
                 ]}
-                onPress={(event) => {
-                  console.log('onPress for node:', index)
-                }}
+                onPress={() => {}}
               >
                 {(nodes[index] as Node).depthH === maxDepthH && (
                   <TouchableOpacity
@@ -248,9 +245,7 @@ function SSMultipleSankeyDiagram({
                       borderColor: 'red',
                       borderWidth: 1
                     }}
-                    onPress={(event) => {
-                      console.log('onPressed for three dots:', index)
-                    }}
+                    onPress={() => {}}
                   >
                     <Svg width="11" height="3" viewBox="0 0 11 3" fill="none">
                       <Circle cx="9.48926" cy="1.5" r="1" fill="#D9D9D9" />

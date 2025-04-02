@@ -1,15 +1,15 @@
 import {
   Group,
+  ImageSVG,
   Paragraph,
+  PlaceholderAlignment,
   Rect,
   Skia,
   type SkTypefaceFontProvider,
   TextAlign,
+  TextBaseline,
   useFonts,
-  useSVG, // Keep useSVG
-  ImageSVG, // Changed from Svg to ImageSVG
-  PlaceholderAlignment,
-  TextBaseline
+  useSVG
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
@@ -88,6 +88,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
     return (
       <Group key={index}>
         <NodeText
+          isBlock={node.depthH % 2 !== 0}
           width={sankeyGenerator.nodeWidth()}
           x={node.x0 ?? 0}
           y={(node.y0 ?? 0) - 1.6}
@@ -106,6 +107,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
 }
 
 function NodeText({
+  isBlock,
   width,
   x,
   y,
@@ -113,6 +115,7 @@ function NodeText({
   customFontManager,
   blockHeight
 }: {
+  isBlock: boolean
   width: number
   x: number
   y: number
@@ -120,7 +123,6 @@ function NodeText({
   customFontManager: SkTypefaceFontProvider | null
   blockHeight: number
 }) {
-  const isBlock = textInfo[0] === '' && textInfo[1] === ''
   const isMiningFee = textInfo[0].includes('/vB')
   const isAddress = textInfo[1].includes('...')
   const isUnspent = textInfo[0].includes('Unspent')
@@ -377,8 +379,6 @@ function NodeText({
     amount
   ])
 
-  if (!customFontManager || !mainParagraph) return null
-
   // Calculate position for the paragraph and potentially the icon
   const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
   const paragraphY = isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y
@@ -397,6 +397,8 @@ function NodeText({
     }
     return []
   }, [mainParagraph, isUnspent])
+
+  if (!customFontManager || !mainParagraph) return null
 
   return (
     <Group>

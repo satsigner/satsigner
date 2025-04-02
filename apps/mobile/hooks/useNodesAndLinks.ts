@@ -5,7 +5,6 @@ import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { formatAddressLabels } from '@/utils/bip329'
 
 const MINING_FEE_VALUE = 1635
 
@@ -20,6 +19,12 @@ type Node = {
   indexV?: number
   vout?: number
   prevout?: any
+}
+
+type Link = {
+  source: string
+  target: string
+  value: number | undefined
 }
 
 type Transaction = {
@@ -83,8 +88,8 @@ export const useNodesAndLinks = ({
         inputs.size,
         outputs.length + 2
       )
-
-      const miningFee = `${Math.round(feeRate * vsize)}`
+      const minerFee = Math.round(feeRate * vsize)
+      const miningFee = `${minerFee}`
       const priority = `${Math.round(feeRate)} sats/vB`
 
       // Calculate total input value
@@ -102,76 +107,48 @@ export const useNodesAndLinks = ({
       // Create output nodes
       let outputNodes = []
 
-      if (outputs.length === 0) {
-        // If no outputs, create unspent node with remaining balance and mining fee node
-        outputNodes = [
-          {
-            id: `vout-${blockDepth + 1}-1`,
-            type: 'text',
-            depthH: blockDepth + 1,
-            textInfo: [
-              t('transaction.build.unspent'),
-              `${totalInputValue - MINING_FEE_VALUE}`
-            ],
-            value: totalInputValue - MINING_FEE_VALUE,
-            indexV: 0,
-            vout: 0
-          },
-          {
-            id: `vout-${blockDepth + 1}-0`,
-            type: 'text',
-            depthH: blockDepth + 1,
-            textInfo: [priority, miningFee, t('transaction.build.minerFee')],
-            value: MINING_FEE_VALUE,
-            indexV: 1,
-            vout: 1
-          }
-        ]
-      } else {
-        outputNodes = outputs.map((output, index) => ({
-          id: `vout-${blockDepth + 1}-${index + 1}`,
-          localId: output.localId ?? '',
-          type: 'text',
-          depthH: blockDepth + 1,
-          textInfo: [
-            t('transaction.build.unspent'),
-            `${output.amount}`,
-            `${formatAddress(output.to, 4)}`,
-            `${output.label}`
-          ],
-          value: output.amount,
-          indexV: index,
-          vout: index
-        }))
+      outputNodes = outputs.map((output, index) => ({
+        id: `vout-${blockDepth + 1}-${index + 1}`,
+        localId: output.localId ?? '',
+        type: 'text',
+        depthH: blockDepth + 1,
+        textInfo: [
+          t('transaction.build.unspent'),
+          `${output.amount}`,
+          `${formatAddress(output.to, 4)}`,
+          `${output.label}`
+        ],
+        value: output.amount,
+        indexV: index,
+        vout: index
+      }))
 
-        const remainingBalance =
-          totalInputValue - totalOutputValue - MINING_FEE_VALUE
+      const remainingBalance = totalInputValue - totalOutputValue - minerFee
 
-        if (remainingBalance > 0) {
-          outputNodes.push({
-            id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
-            type: 'text',
-            depthH: blockDepth + 1,
-            textInfo: [t('transaction.build.unspent'), `${remainingBalance}`],
-            value: remainingBalance,
-            indexV: outputs.length,
-            vout: outputs.length,
-            localId: 'remainingBalance'
-          })
-        }
-
-        // Add mining fee node
+      if (remainingBalance > 0) {
         outputNodes.push({
-          id: `vout-${blockDepth + 1}-0}`,
+          id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
           type: 'text',
           depthH: blockDepth + 1,
-          textInfo: [priority, miningFee, t('transaction.build.minerFee')],
-          value: MINING_FEE_VALUE,
-          indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
-          vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
-          localId: 'minerFee'
+          textInfo: [t('transaction.build.unspent'), `${remainingBalance}`],
+          value: remainingBalance,
+          indexV: outputs.length,
+          vout: outputs.length,
+          localId: 'remainingBalance'
         })
       }
+
+      // Add mining fee node
+      outputNodes.push({
+        id: `vout-${blockDepth + 1}-0}`,
+        type: 'text',
+        depthH: blockDepth + 1,
+        textInfo: [priority, miningFee, t('transaction.build.minerFee')],
+        value: MINING_FEE_VALUE,
+        indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
+        vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
+        localId: 'minerFee'
+      })
 
       return [
         {
@@ -327,7 +304,7 @@ export const useNodesAndLinks = ({
 
   const links = useMemo(() => {
     function generateSankeyLinks(nodes: Node[]) {
-      const links = []
+      const links: Link[] = []
       const depthMap = new Map()
 
       nodes.forEach((node: Node) => {
@@ -416,7 +393,6 @@ export const useNodesAndLinks = ({
           value: node.value ?? 0
         })
       })
-      // console.log(JSON.stringify({ links, outputs }, null, 2))
       return links
     }
 
