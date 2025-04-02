@@ -86,6 +86,7 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
+  const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
   const [outputTo, setOutputTo] = useState('')
   const [outputAmount, setOutputAmount] = useState(1)
   const [outputLabel, setOutputLabel] = useState('')
@@ -103,12 +104,22 @@ export default function IOPreview() {
     setCameraModalVisible(false)
   }
 
+  function handleOnPressAddOutput() {
+    resetLocalOutput()
+    addOutputBottomSheetRef.current?.expand()
+  }
+
   function handleAddOutput() {
     addOutput({ to: outputTo, amount: outputAmount, label: outputLabel })
     addOutputBottomSheetRef.current?.close()
+    resetLocalOutput()
+  }
+
+  function resetLocalOutput() {
     setOutputTo('')
     setOutputAmount(1)
     setOutputLabel('')
+    setCurrentOutputNumber(outputs.length + 1)
   }
 
   function handleSetFeeRate() {
@@ -122,6 +133,20 @@ export default function IOPreview() {
     outputs,
     feeRate
   })
+
+  function handleOnPressOutput(localId?: string) {
+    const outputIndex = outputs.findIndex(
+      (output) => output.localId === localId
+    )
+    if (outputIndex === -1) return
+
+    setOutputTo(outputs[outputIndex].to)
+    setOutputAmount(outputs[outputIndex].amount)
+    setOutputLabel(outputs[outputIndex].label)
+    setCurrentOutputNumber(outputIndex + 1)
+
+    addOutputBottomSheetRef.current?.expand()
+  }
 
   if (loading && inputs.size > 0) {
     return (
@@ -219,6 +244,7 @@ export default function IOPreview() {
           <SSMultipleSankeyDiagram
             sankeyNodes={nodes}
             sankeyLinks={links as Link[]}
+            onPressOutput={handleOnPressOutput}
           />
         ) : null}
       </View>
@@ -255,7 +281,7 @@ export default function IOPreview() {
                 variant="outline"
                 label={t('transaction.build.add.output.title')}
                 style={{ flex: 1 }}
-                onPress={() => addOutputBottomSheetRef.current?.expand()}
+                onPress={handleOnPressAddOutput}
               />
             </SSHStack>
             <SSHStack>
@@ -286,7 +312,7 @@ export default function IOPreview() {
       <SSBottomSheet
         ref={addOutputBottomSheetRef}
         title={t('transaction.build.add.output.number', {
-          number: outputs.length + 1
+          number: currentOutputNumber
         })}
       >
         <SSVStack>
@@ -344,6 +370,7 @@ export default function IOPreview() {
           <SSTextInput
             placeholder={t('transaction.build.add.label.title')}
             align="left"
+            value={outputLabel}
             onChangeText={(text) => setOutputLabel(text)}
           />
           <SSHStack>
