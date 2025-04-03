@@ -44,6 +44,14 @@ async function generateMnemonic(
   return mnemonic.asString()
 }
 
+async function generateMnemonicFromEntropy(entropy: string) {
+  const bytes = entropy.match(/.{1,8}/g)?.map((b) => parseInt(b, 2)) ?? []
+
+  const numbers = Array.from(new Uint8Array(bytes))
+  const mnemonic = await new Mnemonic().fromEntropy(numbers)
+  return mnemonic.asString()
+}
+
 async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   try {
     await new Mnemonic().fromString(mnemonic)
@@ -718,6 +726,7 @@ export {
   buildTransaction,
   extractExtendedKeyFromDescriptor,
   generateMnemonic,
+  generateMnemonicFromEntropy,
   getBlockchain,
   getDescriptor,
   getExtendedPublicKeyFromAccountKey,
