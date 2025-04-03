@@ -157,7 +157,7 @@ export default function SingleSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.entropy.title')} />
               <SSButton
-                label={`${localEntropyType}`}
+                label={t(`account.entropy.${localEntropyType}.label`)}
                 withSelect
                 onPress={() => setEntropyModalVisible(true)}
               />
@@ -213,7 +213,7 @@ export default function SingleSig() {
       <SSSelectModal
         visible={entropyModalVisible}
         title={t('account.entropy.title')}
-        selectedText={`${localEntropyType}`}
+        selectedText={t(`account.entropy.${localEntropyType}.label`)}
         onSelect={handleOnSelectEntropy}
         onCancel={() => setEntropyModalVisible(false)}
       >
