@@ -130,6 +130,7 @@ function selectEfficientUtxos(
 /**
  * Branch and Bound UTXO selection algorithm
  * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
+ * effectiveValue - used to determine the actual value that can be utilized from a group of UTXOs once fees are deducted
  */
 function branchAndBoundUtxoSelection(
   utxos: Utxo[],
