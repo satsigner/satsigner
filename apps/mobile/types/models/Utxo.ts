@@ -7,6 +7,4 @@ export type Utxo = {
   addressTo?: string
   keychain: 'internal' | 'external'
   script?: number[]
-  effectiveValue?: number
-  scriptType?: 'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'
 }
