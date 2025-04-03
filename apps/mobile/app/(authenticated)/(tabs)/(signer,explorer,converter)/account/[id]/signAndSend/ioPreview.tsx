@@ -1,21 +1,28 @@
 import type BottomSheet from '@gorhom/bottom-sheet'
+import { useIsFocused } from '@react-navigation/native'
+import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { ActivityIndicator, Animated, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { MempoolOracle } from '@/api/blockchain'
 import { SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSFeeInput from '@/components/SSFeeInput'
+import SSFeeRateChart, {
+  type SSFeeRateChartProps
+} from '@/components/SSFeeRateChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram, {
   type Link
 } from '@/components/SSMultipleSankeyDiagram'
+import SSNumberGhostInput from '@/components/SSNumberGhostInput'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
@@ -30,10 +37,12 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
+import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
+import { time } from '@/utils/time'
 import { selectEfficientUtxos } from '@/utils/utxo'
 
 const DEEP_LEVEL = 2 // how deep the tx history
@@ -42,6 +51,7 @@ export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const [permission, requestPermission] = useCameraPermissions()
+  const isFocused = useIsFocused()
 
   const account = useAccountsStore(
     (state) => state.accounts.find((account) => account.id === id)!
@@ -123,6 +133,24 @@ export default function IOPreview() {
     outputs,
     feeRate
   })
+
+  const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
+
+  const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
+    queryKey: ['statistics', selectedPeriod],
+    queryFn: () =>
+      new MempoolOracle().getMempoolStatistics(
+        selectedPeriod === '2hours'
+          ? '2h'
+          : selectedPeriod === 'day'
+            ? '24h'
+            : '1w'
+      ),
+    enabled: isFocused,
+    staleTime: time.minutes(5)
+  })
+
+  const boxPosition = new Animated.Value(localFeeRate)
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -384,17 +412,13 @@ export default function IOPreview() {
         })}
       >
         <SSVStack>
-          <SSHStack
-            gap="xs"
-            style={{ alignItems: 'baseline', justifyContent: 'center' }}
-          >
-            <SSText size="3xl" weight="medium">
-              {formatNumber(outputAmount)}
-            </SSText>
-            <SSText color="muted" size="lg">
-              {t('bitcoin.sats')}
-            </SSText>
-          </SSHStack>
+          <SSNumberGhostInput
+            min={1}
+            max={remainingSats}
+            suffix={t('bitcoin.sats')}
+            value={String(outputAmount)}
+            onChangeText={(text) => setOutputAmount(Number(text))}
+          />
           <SSVStack gap="none">
             <SSHStack justifyBetween>
               <SSHStack
@@ -540,6 +564,11 @@ export default function IOPreview() {
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
+        <SSFeeRateChart
+          mempoolStatistics={mempoolStatistics}
+          timeRange="2hours"
+          boxPosition={boxPosition}
+        />
         <SSFeeInput
           value={localFeeRate}
           onValueChange={setLocalFeeRate}
