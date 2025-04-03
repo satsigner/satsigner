@@ -1,10 +1,5 @@
 import { type Utxo } from '@/types/models/Utxo'
 
-type _Utxo = Utxo & {
-  effectiveValue: number
-  scriptType?: 'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'
-}
-
 type ChangeOutput = {
   type: string
   value: number
@@ -30,7 +25,7 @@ type UtxoOptions = {
  * @returns {Object} Selected UTXOs and change
  */
 function selectEfficientUtxos(
-  utxos: _Utxo[],
+  utxos: Utxo[],
   targetAmount: number,
   feeRate: number,
   options?: UtxoOptions
@@ -137,7 +132,7 @@ function selectEfficientUtxos(
  * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
  */
 function branchAndBoundUtxoSelection(
-  utxos: _Utxo[],
+  utxos: Utxo[],
   targetAmount: number,
   feeRate: number,
   opts: UtxoOptions
@@ -180,12 +175,12 @@ function branchAndBoundUtxoSelection(
   }
 
   // Apply Branch and Bound algorithm
-  let bestSelection: _Utxo[] = []
+  let bestSelection: Utxo[] = []
   let bestWaste = Infinity
 
   // Function to search recursively
   function search(
-    selection: _Utxo[],
+    selection: Utxo[],
     effectiveValue: number,
     depth: number,
     tries: number
@@ -260,7 +255,7 @@ function branchAndBoundUtxoSelection(
 /**
  * Find a subset of UTXOs that exactly match the target amount
  */
-function findExactMatch(utxos: _Utxo[], targetValue: number) {
+function findExactMatch(utxos: Utxo[], targetValue: number) {
   // This uses dynamic programming to find subset sum
   const n = utxos.length
 
@@ -322,7 +317,7 @@ type StonewallOptions = {
  * @returns {Object} Selected UTXOs, change outputs and metadata
  */
 function selectStonewallUtxos(
-  utxos: _Utxo[],
+  utxos: Utxo[],
   targetAmount: number,
   feeRate: number,
   options: StonewallOptions = {}
@@ -355,7 +350,7 @@ function selectStonewallUtxos(
   const eligibleUtxos = [...utxos]
 
   // Get input size based on script type
-  function getInputSize(utxo: Partial<Pick<_Utxo, 'scriptType'>>) {
+  function getInputSize(utxo: Partial<Pick<Utxo, 'scriptType'>>) {
     if (!utxo.scriptType) return opts.sizeP2PKH // Default to P2PKH
 
     switch (utxo.scriptType) {
@@ -375,7 +370,7 @@ function selectStonewallUtxos(
   }
 
   // Group UTXOs by script type to help with fingerprinting avoidance
-  const utxosByType: { [key: string]: _Utxo[] } = {}
+  const utxosByType: { [key: string]: Utxo[] } = {}
   eligibleUtxos.forEach((utxo) => {
     const type = utxo.scriptType || 'p2pkh'
     if (!utxosByType[type]) {
@@ -435,7 +430,7 @@ function selectStonewallUtxos(
 
       // Remove the selected UTXO from the available pool
       utxosByType[type] = typeUtxos.filter(
-        (_: _Utxo, idx: number) => idx !== randomIndex
+        (_: Utxo, idx: number) => idx !== randomIndex
       )
     }
 
@@ -603,7 +598,7 @@ function selectStonewallUtxos(
  * @returns {Number} Entropy score
  */
 function calculateStonewallEntropy(solution: {
-  inputs: _Utxo[]
+  inputs: Utxo[]
   outputs: ChangeOutput[]
 }) {
   if (!solution || !solution.inputs || !solution.outputs) {
