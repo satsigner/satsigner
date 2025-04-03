@@ -2,18 +2,18 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
+import { generateMnemonicFromEntropy, getFingerprint } from '@/api/bdk'
 import SSBinaryDisplay from '@/components/SSBinaryDisplay'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useShallow } from 'zustand/react/shallow'
-import { generateMnemonicFromEntropy, getFingerprint } from '@/api/bdk'
 import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
 
 const screenWidth = Dimensions.get('window').width
 const coinSize = Math.min(screenWidth * 0.4, 160)
@@ -42,10 +42,8 @@ export default function CoinEntropy() {
       const newStep = step + 1
       setStep(newStep)
 
-      if (newStep == length) {
-        console.log('debug -> CoinEntropy / bits : ', newBits)
+      if (newStep === length) {
         const mnemonic = await generateMnemonicFromEntropy(newBits)
-        console.log('debug -> CoinEntropy / mnemonic : ', mnemonic)
 
         setMnemonic(mnemonic)
 

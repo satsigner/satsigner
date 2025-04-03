@@ -45,8 +45,9 @@ export default function SingleSig() {
   )
   const network = useBlockchainStore((state) => state.network)
 
-  const [localEntropyType, setLocalEntropyType] =
-    useState<NonNullable<Key['entropy']>>('None')
+  const [localEntropyType, setLocalEntropyType] = useState<
+    'none' | 'drawing' | 'coin' | 'dice'
+  >('none')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
@@ -70,7 +71,7 @@ export default function SingleSig() {
 
     if (type === 'generateMnemonic') {
       switch (localEntropyType) {
-        case 'None': {
+        case 'none': {
           setLoading(true)
 
           const mnemonic = await generateMnemonic(localMnemonicWordCount)
@@ -87,14 +88,14 @@ export default function SingleSig() {
           router.navigate('/account/add/generate/mnemonic/0')
           break
         }
-        case 'Drawing': {
+        case 'drawing': {
           break
         }
-        case 'Coin Flip': {
+        case 'coin': {
           router.navigate('/account/add/entropy/coin')
           break
         }
-        case 'Dice': {
+        case 'dice': {
           router.navigate('/account/add/entropy/dice')
           break
         }
@@ -211,10 +212,10 @@ export default function SingleSig() {
         onSelect={handleOnSelectEntropy}
         onCancel={() => setEntropyModalVisible(false)}
       >
-        {(['None', 'Drawing', 'Coin Flip', 'Dice'] as const).map((entropy) => (
+        {(['none', 'drawing', 'coin', 'dice'] as const).map((entropy) => (
           <SSRadioButton
             key={entropy}
-            label={`${entropy}`}
+            label={t(`account.entropy.${entropy}.label`)}
             selected={localEntropyType === entropy}
             onPress={() =>
               setStateWithLayoutAnimation(setLocalEntropyType, entropy)
