@@ -45,6 +45,14 @@ async function generateMnemonic(
 }
 
 async function generateMnemonicFromEntropy(entropy: string) {
+  if (entropy.length < 128 || entropy.length > 256)
+    throw new Error(
+      'Invalid Entropy: Entropy length must be range of [128, 256]'
+    )
+
+  if (entropy.length % 32 !== 0)
+    throw new Error('Invalid Entropy: Entropy length must be divide by 32')
+
   const bytes = entropy.match(/.{1,8}/g)?.map((b) => parseInt(b, 2)) ?? []
 
   const numbers = Array.from(new Uint8Array(bytes))
