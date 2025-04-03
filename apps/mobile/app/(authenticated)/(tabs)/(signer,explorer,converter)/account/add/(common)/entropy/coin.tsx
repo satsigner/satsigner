@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -20,6 +20,8 @@ const coinSize = Math.min(screenWidth * 0.4, 160)
 
 export default function CoinEntropy() {
   const router = useRouter()
+  const { index } = useLocalSearchParams()
+
   const [mnemonicWordCount, setMnemonic, setFingerprint] =
     useAccountBuilderStore(
       useShallow((state) => [
@@ -53,7 +55,7 @@ export default function CoinEntropy() {
           network as Network
         )
         setFingerprint(fingerprint)
-        router.navigate('/account/add/generate/mnemonic/0')
+        router.navigate(`/account/add/generate/mnemonic/${index}`)
       }
     }
   }

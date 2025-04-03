@@ -92,11 +92,17 @@ export default function SingleSig() {
           break
         }
         case 'coin': {
-          router.navigate('/account/add/entropy/coin')
+          router.navigate({
+            pathname: '/account/add/entropy/coin',
+            params: { index: 0 }
+          })
           break
         }
         case 'dice': {
-          router.navigate('/account/add/entropy/dice')
+          router.navigate({
+            pathname: '/account/add/entropy/dice',
+            params: { index: 0 }
+          })
           break
         }
       }
@@ -208,7 +214,6 @@ export default function SingleSig() {
         visible={entropyModalVisible}
         title={t('account.entropy.title')}
         selectedText={`${localEntropyType}`}
-        // selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
         onSelect={handleOnSelectEntropy}
         onCancel={() => setEntropyModalVisible(false)}
       >

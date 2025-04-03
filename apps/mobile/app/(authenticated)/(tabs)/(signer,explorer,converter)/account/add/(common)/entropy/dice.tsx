@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Dimensions, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -28,6 +28,8 @@ const diceSize = Math.min(screenWidth * 0.25, 120)
 
 export default function DiceEntropy() {
   const router = useRouter()
+  const { index } = useLocalSearchParams()
+
   const [mnemonicWordCount, setMnemonic, setFingerprint] =
     useAccountBuilderStore(
       useShallow((state) => [
@@ -73,7 +75,7 @@ export default function DiceEntropy() {
           network as Network
         )
         setFingerprint(fingerprint)
-        router.navigate('/account/add/generate/mnemonic/0')
+        router.navigate(`/account/add/generate/mnemonic/${index}`)
       }
     }
   }

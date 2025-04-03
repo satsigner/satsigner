@@ -28,6 +28,7 @@ export default function MultiSigKeySettings() {
     setKeyName,
     keyCount,
     setScriptVersion,
+    setEntropy,
     setMnemonicWordCount,
     setMnemonic,
     setFingerprint,
@@ -38,6 +39,7 @@ export default function MultiSigKeySettings() {
       state.setKeyName,
       state.keyCount,
       state.setScriptVersion,
+      state.setEntropy,
       state.setMnemonicWordCount,
       state.setMnemonic,
       state.setFingerprint,
@@ -46,12 +48,17 @@ export default function MultiSigKeySettings() {
   )
   const network = useBlockchainStore((state) => state.network)
 
+  const [localEntropyType, setLocalEntropyType] = useState<
+    'none' | 'drawing' | 'coin' | 'dice'
+  >('none')
+
   const [localKeyName, setLocalKeyName] = useState('')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
 
+  const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
@@ -63,23 +70,46 @@ export default function MultiSigKeySettings() {
     setCreationType(type)
     setKeyName(localKeyName)
     setScriptVersion(localScriptVersion)
+    setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
 
     if (type === 'generateMnemonic') {
-      setLoading(true)
+      switch (localEntropyType) {
+        case 'none': {
+          setLoading(true)
 
-      const mnemonic = await generateMnemonic(localMnemonicWordCount)
-      setMnemonic(mnemonic)
+          const mnemonic = await generateMnemonic(localMnemonicWordCount)
+          setMnemonic(mnemonic)
 
-      const fingerprint = await getFingerprint(
-        mnemonic,
-        undefined,
-        network as Network
-      )
-      setFingerprint(fingerprint)
+          const fingerprint = await getFingerprint(
+            mnemonic,
+            undefined,
+            network as Network
+          )
+          setFingerprint(fingerprint)
 
-      setLoading(false)
-      router.navigate(`/account/add/generate/mnemonic/${index}`)
+          setLoading(false)
+          router.navigate(`/account/add/generate/mnemonic/${index}`)
+          break
+        }
+        case 'drawing': {
+          break
+        }
+        case 'coin': {
+          router.navigate({
+            pathname: '/account/add/entropy/coin',
+            params: { index }
+          })
+          break
+        }
+        case 'dice': {
+          router.navigate({
+            pathname: '/account/add/entropy/dice',
+            params: { index }
+          })
+          break
+        }
+      }
     } else if (type === 'importMnemonic')
       router.navigate(`/account/add/import/mnemonic/${index}`)
     else if (type === 'importDescriptor')
@@ -89,6 +119,11 @@ export default function MultiSigKeySettings() {
   function handleOnSelectMnemonicWordCount() {
     setLocalMnemonicWordCount(localMnemonicWordCount)
     setMnemonicWordCountModalVisibile(false)
+  }
+
+  function handleOnSelectEntropy() {
+    setLocalEntropyType(localEntropyType)
+    setEntropyModalVisible(false)
   }
 
   if (!name) return <Redirect href="/" />
@@ -136,6 +171,14 @@ export default function MultiSigKeySettings() {
                 label={`${localMnemonicWordCount} ${t('bitcoin.words').toLowerCase()}`}
                 withSelect
                 onPress={() => setMnemonicWordCountModalVisibile(true)}
+              />
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.entropy.title')} />
+              <SSButton
+                label={`${localEntropyType}`}
+                withSelect
+                onPress={() => setEntropyModalVisible(true)}
               />
             </SSFormLayout.Item>
           </SSFormLayout>
@@ -189,6 +232,24 @@ export default function MultiSigKeySettings() {
             selected={localMnemonicWordCount === count}
             onPress={() =>
               setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
+            }
+          />
+        ))}
+      </SSSelectModal>
+      <SSSelectModal
+        visible={entropyModalVisible}
+        title={t('account.entropy.title')}
+        selectedText={`${localEntropyType}`}
+        onSelect={handleOnSelectEntropy}
+        onCancel={() => setEntropyModalVisible(false)}
+      >
+        {(['none', 'drawing', 'coin', 'dice'] as const).map((entropy) => (
+          <SSRadioButton
+            key={entropy}
+            label={t(`account.entropy.${entropy}.label`)}
+            selected={localEntropyType === entropy}
+            onPress={() =>
+              setStateWithLayoutAnimation(setLocalEntropyType, entropy)
             }
           />
         ))}
