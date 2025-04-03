@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconScan } from '@/components/icons'
@@ -29,12 +30,11 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
+import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { selectEfficientUtxos } from '@/utils/utxo'
-import { toast } from 'sonner-native'
-import { Output } from '@/types/models/Output'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 

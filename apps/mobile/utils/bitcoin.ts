@@ -10,6 +10,15 @@ function isBitcoinAddress(address: string): boolean {
   )
 }
 
+function isBip21(uri: string) {
+  try {
+    decode(uri)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function bip21decode(uri: string) {
   try {
     if (!uri) throw new Error('No URI provided')
@@ -33,4 +42,4 @@ function bitcoinjsNetwork(network: Network): networks.Network {
   }
 }
 
-export { bip21decode, bitcoinjsNetwork, isBitcoinAddress }
+export { bip21decode, bitcoinjsNetwork, isBip21, isBitcoinAddress }
