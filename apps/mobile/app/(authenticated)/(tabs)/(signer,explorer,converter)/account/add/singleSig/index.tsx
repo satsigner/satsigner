@@ -23,6 +23,7 @@ export default function SingleSig() {
   const [
     name,
     setScriptVersion,
+    setEntropy,
     setMnemonicWordCount,
     setMnemonic,
     setFingerprint,
@@ -33,6 +34,7 @@ export default function SingleSig() {
     useShallow((state) => [
       state.name,
       state.setScriptVersion,
+      state.setEntropy,
       state.setMnemonicWordCount,
       state.setMnemonic,
       state.setFingerprint,
@@ -61,25 +63,42 @@ export default function SingleSig() {
   async function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
     setScriptVersion(localScriptVersion)
+    setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
     setKeyCount(1)
     setKeysRequired(1)
 
     if (type === 'generateMnemonic') {
-      setLoading(true)
+      switch (localEntropyType) {
+        case 'None': {
+          setLoading(true)
 
-      const mnemonic = await generateMnemonic(localMnemonicWordCount)
-      setMnemonic(mnemonic)
+          const mnemonic = await generateMnemonic(localMnemonicWordCount)
+          setMnemonic(mnemonic)
 
-      const fingerprint = await getFingerprint(
-        mnemonic,
-        undefined,
-        network as Network
-      )
-      setFingerprint(fingerprint)
+          const fingerprint = await getFingerprint(
+            mnemonic,
+            undefined,
+            network as Network
+          )
+          setFingerprint(fingerprint)
 
-      setLoading(false)
-      router.navigate('/account/add/generate/mnemonic/0')
+          setLoading(false)
+          router.navigate('/account/add/generate/mnemonic/0')
+          break
+        }
+        case 'Drawing': {
+          break
+        }
+        case 'Coin Flip': {
+          router.navigate('/account/add/entropy/coin')
+          break
+        }
+        case 'Dice': {
+          router.navigate('/account/add/entropy/dice')
+          break
+        }
+      }
     } else if (type === 'importMnemonic')
       router.navigate('/account/add/import/mnemonic/0')
   }
