@@ -1,7 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Dimensions, StyleSheet, View } from 'react-native'
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { generateMnemonicFromEntropy, getFingerprint } from '@/api/bdk'
@@ -22,6 +22,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
 
 const screenWidth = Dimensions.get('window').width
 const diceSize = Math.min(screenWidth * 0.25, 120)
@@ -101,20 +102,53 @@ export default function DiceEntropy() {
           )
         }}
       />
-      <SSVStack justifyBetween itemsCenter style={{ flex: 1 }}>
-        <SSVStack itemsCenter gap="lg">
-          <SSText size="8xl">{step}</SSText>
-          <SSHStack style={styles.grid}>
-            {DiceIcons.map((Icon, index) => (
-              <SSDice key={index} onPress={() => handleDicePress(index)}>
-                <Icon width={diceSize} height={diceSize} />
-              </SSDice>
-            ))}
-          </SSHStack>
-        </SSVStack>
-        <View style={{ minHeight: 200 }}>
+      <SSVStack
+        itemsCenter
+        gap="lg"
+        style={{ flex: 1, justifyContent: 'space-evenly' }}
+      >
+        <View
+          style={{
+            minHeight: 180,
+            minWidth: '100%',
+            borderRadius: 8,
+            paddingVertical: 16,
+            paddingHorizontal: 8,
+            backgroundColor: Colors.gray[900]
+          }}
+        >
           <SSBinaryDisplay binary={bits} />
         </View>
+        <ScrollView
+          style={{ flex: 1, gap: 32 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <SSVStack itemsCenter gap="lg">
+            <SSVStack itemsCenter gap="lg">
+              <SSVStack itemsCenter style={{ gap: -20 }}>
+                <SSText size="8xl">{step}</SSText>
+                <SSText size="sm" color="muted" uppercase>
+                  {t('common.of')} {approxRolls}
+                </SSText>
+              </SSVStack>
+              <SSText
+                size="sm"
+                color="muted"
+                center
+                style={{ letterSpacing: 0.5 }}
+              >
+                {t(`account.entropy.dice.desc.${mnemonicWordCount}`)}
+              </SSText>
+            </SSVStack>
+            <SSHStack style={styles.grid}>
+              {DiceIcons.map((Icon, index) => (
+                <SSDice key={index} onPress={() => handleDicePress(index)}>
+                  <Icon width={diceSize} height={diceSize} />
+                </SSDice>
+              ))}
+            </SSHStack>
+          </SSVStack>
+        </ScrollView>
       </SSVStack>
     </SSMainLayout>
   )
@@ -129,6 +163,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    marginTop: 12
+    marginTop: 24
   }
 })

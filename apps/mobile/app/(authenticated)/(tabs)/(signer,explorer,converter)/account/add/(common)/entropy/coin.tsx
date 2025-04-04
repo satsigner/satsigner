@@ -1,7 +1,13 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native'
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { generateMnemonicFromEntropy, getFingerprint } from '@/api/bdk'
@@ -69,27 +75,60 @@ export default function CoinEntropy() {
           )
         }}
       />
-      <SSVStack justifyBetween itemsCenter style={{ flex: 1 }}>
-        <SSVStack itemsCenter gap="lg">
-          <SSText size="8xl">{step}</SSText>
-          <SSHStack justifyBetween>
-            <TouchableOpacity
-              key="front"
-              activeOpacity={1}
-              style={styles.coin}
-              onPress={() => handleFlip('0')}
-            />
-            <TouchableOpacity
-              key="back"
-              activeOpacity={1}
-              style={styles.coin}
-              onPress={() => handleFlip('1')}
-            />
-          </SSHStack>
-        </SSVStack>
-        <View style={{ minHeight: 200 }}>
+      <SSVStack itemsCenter gap="lg" justifyBetween style={{ flex: 1 }}>
+        <View
+          style={{
+            minHeight: 180,
+            minWidth: '100%',
+            borderRadius: 8,
+            paddingVertical: 16,
+            paddingHorizontal: 8,
+            backgroundColor: Colors.gray[900]
+          }}
+        >
           <SSBinaryDisplay binary={bits} />
         </View>
+        <ScrollView
+          style={{
+            flex: 1,
+            gap: 32,
+            marginBottom: 12
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          <SSVStack itemsCenter gap="lg">
+            <SSVStack itemsCenter gap="lg">
+              <SSVStack itemsCenter style={{ gap: -20 }}>
+                <SSText size="8xl">{step}</SSText>
+                <SSText size="sm" color="muted" uppercase>
+                  {t('common.of')} {length}
+                </SSText>
+              </SSVStack>
+              <SSText
+                size="sm"
+                color="muted"
+                center
+                style={{ letterSpacing: 0.5 }}
+              >
+                {t(`account.entropy.coin.desc.${mnemonicWordCount}`)}
+              </SSText>
+            </SSVStack>
+            <SSHStack justifyBetween style={{ marginTop: 24 }}>
+              <TouchableOpacity
+                key="front"
+                activeOpacity={1}
+                style={styles.coin}
+                onPress={() => handleFlip('0')}
+              />
+              <TouchableOpacity
+                key="back"
+                activeOpacity={1}
+                style={styles.coin}
+                onPress={() => handleFlip('1')}
+              />
+            </SSHStack>
+          </SSVStack>
+        </ScrollView>
       </SSVStack>
     </SSMainLayout>
   )
