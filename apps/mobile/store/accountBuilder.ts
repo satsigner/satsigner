@@ -2,6 +2,7 @@ import { produce } from 'immer'
 import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
+import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 
 type AccountBuilderState = {
@@ -9,7 +10,7 @@ type AccountBuilderState = {
   policyType: Account['policyType']
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
-  entropy: 'none' | 'drawing' | 'coin' | 'dice'
+  entropy: EntropyType
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']

@@ -10,12 +10,14 @@ import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { ENTROPY_TYPES } from '@/config/entropy'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { type MultiSigKeySettingsSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
@@ -48,9 +50,7 @@ export default function MultiSigKeySettings() {
   )
   const network = useBlockchainStore((state) => state.network)
 
-  const [localEntropyType, setLocalEntropyType] = useState<
-    'none' | 'drawing' | 'coin' | 'dice'
-  >('none')
+  const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
 
   const [localKeyName, setLocalKeyName] = useState('')
   const [localScriptVersion, setLocalScriptVersion] =
@@ -243,7 +243,7 @@ export default function MultiSigKeySettings() {
         onSelect={handleOnSelectEntropy}
         onCancel={() => setEntropyModalVisible(false)}
       >
-        {(['none', 'drawing', 'coin', 'dice'] as const).map((entropy) => (
+        {ENTROPY_TYPES.map((entropy) => (
           <SSRadioButton
             key={entropy}
             label={t(`account.entropy.${entropy}.label`)}

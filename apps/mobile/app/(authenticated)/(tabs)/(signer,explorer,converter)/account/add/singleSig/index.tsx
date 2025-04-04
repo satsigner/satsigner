@@ -9,12 +9,14 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
+import { ENTROPY_TYPES } from '@/config/entropy'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
@@ -45,9 +47,7 @@ export default function SingleSig() {
   )
   const network = useBlockchainStore((state) => state.network)
 
-  const [localEntropyType, setLocalEntropyType] = useState<
-    'none' | 'drawing' | 'coin' | 'dice'
-  >('none')
+  const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
@@ -217,7 +217,7 @@ export default function SingleSig() {
         onSelect={handleOnSelectEntropy}
         onCancel={() => setEntropyModalVisible(false)}
       >
-        {(['none', 'drawing', 'coin', 'dice'] as const).map((entropy) => (
+        {ENTROPY_TYPES.map((entropy) => (
           <SSRadioButton
             key={entropy}
             label={t(`account.entropy.${entropy}.label`)}
