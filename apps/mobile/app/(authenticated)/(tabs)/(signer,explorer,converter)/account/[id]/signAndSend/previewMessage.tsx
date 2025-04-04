@@ -18,6 +18,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import { toast } from 'sonner-native'
 
 export default function PreviewMessage() {
   const router = useRouter()
@@ -46,21 +47,25 @@ export default function PreviewMessage() {
     async function getTransactionMessage() {
       if (!wallet) return
 
-      const transactionMessage = await buildTransaction(
-        wallet,
-        {
-          inputs: Array.from(inputs.values()),
-          outputs: Array.from(outputs.values()),
-          feeRate,
-          options: {
-            rbf
-          }
-        },
-        network as Network
-      )
+      try {
+        const transactionMessage = await buildTransaction(
+          wallet,
+          {
+            inputs: Array.from(inputs.values()),
+            outputs: Array.from(outputs.values()),
+            feeRate,
+            options: {
+              rbf
+            }
+          },
+          network as Network
+        )
 
-      setMessageId(transactionMessage.txDetails.txid)
-      setTxBuilderResult(transactionMessage)
+        setMessageId(transactionMessage.txDetails.txid)
+        setTxBuilderResult(transactionMessage)
+      } catch (err) {
+        toast.error(String(err))
+      }
     }
 
     getTransactionMessage()

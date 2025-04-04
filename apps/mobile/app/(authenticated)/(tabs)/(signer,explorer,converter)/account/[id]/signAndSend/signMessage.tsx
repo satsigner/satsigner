@@ -66,13 +66,17 @@ export default function SignMessage() {
     async function signTransactionMessage() {
       if (!wallet || !txBuilderResult) return
 
-      const partiallySignedTransaction = await signTransaction(
-        txBuilderResult,
-        wallet
-      )
+      try {
+        const partiallySignedTransaction = await signTransaction(
+          txBuilderResult,
+          wallet
+        )
 
-      setSigned(true)
-      setPsbt(partiallySignedTransaction)
+        setSigned(true)
+        setPsbt(partiallySignedTransaction)
+      } catch (err) {
+        toast(String(err))
+      }
     }
 
     signTransactionMessage()
