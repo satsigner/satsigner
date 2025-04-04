@@ -4,6 +4,7 @@ import { StyleSheet, type TextInput, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes } from '@/styles'
+import { formatNumber } from '@/utils/format'
 
 import SSNumberInput from './SSNumberInput'
 import SSText from './SSText'
@@ -47,7 +48,7 @@ function SSNumberGhostInput({
             style={{ alignItems: 'baseline', justifyContent: 'center' }}
           >
             <SSText size="3xl" weight="medium">
-              {props.value}
+              {formatNumber(Number(props.value), allowDecimal ? 2 : 0)}
             </SSText>
             {suffix ? (
               <SSText color="muted" size="lg">
