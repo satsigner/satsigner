@@ -654,6 +654,8 @@
     "details.title": "Transaction details",
     "edit.label.transaction": "Edit transaction label",
     "edit.label.utxo": "Edit UTXO label",
+    "error.address.invalid": "Invalid address",
+    "error.bip21.insufficientSats": "Insufficient sats for amount in address",
     "fee": "Fee",
     "feeBytes": "Fee sat/b",
     "feeVBytes": "Fee sat/vb",

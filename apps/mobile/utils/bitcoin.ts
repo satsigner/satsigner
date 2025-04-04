@@ -12,7 +12,8 @@ function isBitcoinAddress(address: string): boolean {
 
 function isBip21(uri: string) {
   try {
-    decode(uri)
+    const result = decode(uri)
+    if (!isBitcoinAddress(result.address)) return false
     return true
   } catch {
     return false

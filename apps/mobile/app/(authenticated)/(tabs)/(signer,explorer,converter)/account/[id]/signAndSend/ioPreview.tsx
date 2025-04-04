@@ -44,6 +44,8 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { selectEfficientUtxos } from '@/utils/utxo'
+import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
@@ -154,7 +156,32 @@ export default function IOPreview() {
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
-    setOutputTo(address)
+
+    if (isBitcoinAddress(address)) {
+      setOutputTo(address)
+    } else if (isBip21(address)) {
+      const decodedData = bip21decode(address)
+      if (!decodedData || typeof decodedData === 'string') {
+        toast.error(t('transaction.error.address.invalid'))
+        setCameraModalVisible(false)
+        return
+      }
+
+      setOutputTo(decodedData.address)
+      if (decodedData.options.amount) {
+        const normalizedAmount = decodedData.options.amount * SATS_PER_BITCOIN
+        if (normalizedAmount > remainingSats) {
+          toast.warning(t('transaction.error.bip21.insufficientSats'))
+        } else {
+          setOutputAmount(normalizedAmount)
+        }
+      }
+
+      if (decodedData.options.label) setOutputLabel(decodedData.options.label)
+    } else {
+      toast.error(t('transaction.error.address.invalid'))
+    }
+
     setCameraModalVisible(false)
   }
 
