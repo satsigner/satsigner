@@ -77,7 +77,7 @@ function selectEfficientUtxos(
     return Math.abs(netValue - targetAmount) < opts.dustThreshold
   })
 
-  if (exactMatch) {
+  if (exactMatch)
     return {
       inputs: [exactMatch],
       fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
@@ -86,7 +86,6 @@ function selectEfficientUtxos(
         targetAmount -
         (opts.inputSize + opts.changeOutputSize) * feeRate
     }
-  }
 
   // Try branch and bound algorithm for optimal selection
   const result = branchAndBoundUtxoSelection(
@@ -95,9 +94,7 @@ function selectEfficientUtxos(
     feeRate,
     opts
   )
-  if (result) {
-    return result
-  }
+  if (result) return result
 
   // Fallback to coin selection with accumulative strategy
   // Start with largest UTXOs (reverse the sorted list) for fewer inputs
@@ -126,9 +123,8 @@ function selectEfficientUtxos(
   }
 
   // Insufficient funds
-  if (selectedAmount < targetAmount + estimatedFee) {
+  if (selectedAmount < targetAmount + estimatedFee)
     return { inputs: [], fee: 0, change: 0, error: 'Insufficient funds' }
-  }
 
   return {
     inputs: selectedUtxos,
@@ -147,7 +143,11 @@ function branchAndBoundUtxoSelection(
   targetAmount: number,
   feeRate: number,
   opts: UtxoOptions
-) {
+): {
+  inputs: _Utxo[]
+  fee: number
+  change: number
+} | null {
   const MAX_TRIES = 1000000
   const inputCost = opts.inputSize * feeRate
 
@@ -170,9 +170,7 @@ function branchAndBoundUtxoSelection(
   )
 
   // If total value is less than target, impossible to satisfy
-  if (totalEffectiveValue < targetAmount) {
-    return null
-  }
+  if (totalEffectiveValue < targetAmount) return null
 
   // If we have exact match, return it
   const exactMatchSet = findExactMatch(effectiveUtxos, targetAmount)
@@ -245,13 +243,12 @@ function branchAndBoundUtxoSelection(
       fee
 
     // If change is less than dust, add it to fee
-    if (change > 0 && change < opts.dustThreshold) {
+    if (change > 0 && change < opts.dustThreshold)
       return {
         inputs: bestSelection,
         fee: fee + change,
         change: 0
       }
-    }
 
     return {
       inputs: bestSelection,
