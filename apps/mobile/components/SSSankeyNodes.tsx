@@ -1,17 +1,21 @@
 import {
   Group,
+  ImageSVG,
   Paragraph,
+  PlaceholderAlignment,
   Rect,
   Skia,
   type SkTypefaceFontProvider,
   TextAlign,
-  useFonts
+  TextBaseline,
+  useFonts,
+  useSVG
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { gray } from '@/styles/colors'
+import { gray, mainRed } from '@/styles/colors'
 
 import { type Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
@@ -26,7 +30,8 @@ const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 const BLOCK_WIDTH = 50
-const Y_OFFSET_BLOCK_NODE_TEXT = 10
+const Y_OFFSET_BLOCK_NODE_TEXT = -10
+const ICON_SIZE = 10
 
 function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
@@ -83,6 +88,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
     return (
       <Group key={index}>
         <NodeText
+          isBlock={node.depthH % 2 !== 0}
           width={sankeyGenerator.nodeWidth()}
           x={node.x0 ?? 0}
           y={(node.y0 ?? 0) - 1.6}
@@ -101,6 +107,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
 }
 
 function NodeText({
+  isBlock,
   width,
   x,
   y,
@@ -108,6 +115,7 @@ function NodeText({
   customFontManager,
   blockHeight
 }: {
+  isBlock: boolean
   width: number
   x: number
   y: number
@@ -115,18 +123,19 @@ function NodeText({
   customFontManager: SkTypefaceFontProvider | null
   blockHeight: number
 }) {
-  const isBlock = textInfo[0] === '' && textInfo[1] === ''
+  const isMiningFee = textInfo[0].includes('/vB')
+  const isAddress = textInfo[1].includes('...')
+  const isUnspent = textInfo[0].includes('Unspent')
+  const isNumeric = (text: string) => /^[0-9]+$/.test(text)
+  const amount = textInfo[0].replace(/\s*sats\s*/g, '')
+
+  const minerFeeIconSvg = useSVG(require('@/assets/red-miner-fee.svg'))
+  const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
 
-    const isMiningFee = textInfo[0].includes('/vB')
-    const isAddress = textInfo[1].includes('...')
-    const isUnspent = textInfo[0].includes('Unspent')
-
-    const isUnspentOrMiningFee = isUnspent || isMiningFee
-
-    const textStyle = {
+    const baseTextStyle = {
       color: Skia.Color('white'),
       fontFamilies: ['SF Pro Text'],
       fontSize: BASE_FONT_SIZE,
@@ -134,92 +143,295 @@ function NodeText({
         weight: 500
       }
     }
-    const isNumeric = (text: string) => {
-      return /^[0-9]+$/.test(text)
+
+    const createParagraphBuilder = () => {
+      return Skia.ParagraphBuilder.Make(
+        {
+          maxLines: 4,
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+          strutStyle: {
+            strutEnabled: true,
+            forceStrutHeight: true,
+            heightMultiplier: 1,
+            leading: 0
+          }
+        },
+        customFontManager
+      ) // Pass font manager here
     }
 
-    const amount = textInfo[0].replace(/\s*sats\s*/g, '')
-    const para = Skia.ParagraphBuilder.Make({
-      maxLines: 4,
-      textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
-      strutStyle: {
-        strutEnabled: true,
-        forceStrutHeight: true,
-        heightMultiplier: 1,
-        leading: 0
-      }
-    })
-      .pushStyle({
-        ...textStyle,
-        fontSize: isUnspentOrMiningFee ? XS_FONT_SIZE : BASE_FONT_SIZE
-      })
-      .addText(
-        isNumeric(textInfo[0])
-          ? `${Number(amount).toLocaleString()}`
-          : isMiningFee
-            ? textInfo[0].replace('sats/vB', '')
-            : textInfo[0]
-      )
-      .pushStyle({
-        ...textStyle,
-        color: Skia.Color(Colors.gray[200]),
-        fontSize: isMiningFee ? XS_FONT_SIZE : SM_FONT_SIZE
-      })
-      .addText(
-        isNumeric(textInfo[0])
-          ? ` ${t('bitcoin.sats').toLowerCase()}\n`
-          : isMiningFee
-            ? ` ${t('bitcoin.sats').toLowerCase()}/vB \n`
-            : '\n'
-      )
-      .pushStyle({
-        ...textStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[300])
-      })
-      .addText(isAddress ? `${t('common.from')} ` : '')
-      .pushStyle({
-        ...textStyle,
-        fontSize: isUnspentOrMiningFee ? BASE_FONT_SIZE : XS_FONT_SIZE,
-        color: Skia.Color('white')
-      })
-      .addText(
-        isUnspentOrMiningFee
-          ? `${Number(textInfo[1]).toLocaleString()} sats\n`
-          : `${textInfo[1]}\n`
-      )
-      .pushStyle({
-        ...textStyle,
-        fontSize: isBlock ? BASE_FONT_SIZE : XS_FONT_SIZE,
-        color: isBlock ? Skia.Color('white') : Skia.Color(gray[300])
-      })
-      .addText(
-        isMiningFee || isBlock || isUnspent
-          ? `${textInfo[2]}\n`
-          : `"${textInfo[2]}"\n`
-      )
-      .pushStyle({
-        ...textStyle,
-        fontSize: XS_FONT_SIZE,
-        color: isBlock ? Skia.Color('white') : Skia.Color(gray[300])
-      })
-      .addText(isBlock || isUnspent ? `${textInfo[3] ?? ''}` : ``)
-      .pop()
-      .build()
+    const buildBlockParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(textInfo[2])
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`\n${textInfo[3] ?? ''}`)
+        .pop()
+
+      return para.build()
+    }
+
+    const buildMiningFeeParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(textInfo[0].replace('sats/vB', ''))
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(` ${t('bitcoin.sats').toLowerCase()}/vB \n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`${Number(textInfo[1]).toLocaleString()} `)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE,
+          color: Skia.Color(Colors.gray[200])
+        })
+        .addText(`sats\n`)
+        .pushStyle({
+          // Style for the icon + text line
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          fontStyle: {
+            weight: 800
+          },
+          color: Skia.Color(mainRed)
+        })
+        // Add placeholder for the miner svg icon
+        .addPlaceholder(
+          ICON_SIZE,
+          ICON_SIZE,
+          PlaceholderAlignment.Middle,
+          TextBaseline.Alphabetic,
+          0
+        )
+        .addText(` ${textInfo[2].toLowerCase()}\n`) // Add space before text
+        .pop() // Pop the red style
+
+      return para.build()
+    }
+
+    const buildUnspentParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE
+        })
+        .addText(textInfo[0])
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`\n${Number(textInfo[1]).toLocaleString()} `)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[200])
+        })
+        .addText(`sats\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(textInfo[2] ? `${t('common.to').toLowerCase()} ` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(textInfo[2] ? `${textInfo[2]}\n` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        // Add placeholder for the miner svg icon
+        .addPlaceholder(
+          ICON_SIZE,
+          ICON_SIZE,
+          PlaceholderAlignment.Middle,
+          TextBaseline.Alphabetic,
+          0
+        )
+        .addText(textInfo[3] ?? '')
+        .pop()
+
+      return para.build()
+    }
+
+    const buildNumericParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(`${Number(amount).toLocaleString()}`)
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: SM_FONT_SIZE
+        })
+        .addText(` ${t('bitcoin.sats').toLowerCase()}\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(isAddress ? `${t('common.from')} ` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`${textInfo[1]}\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(`${textInfo[2]}\n`)
+        .pop()
+
+      return para.build()
+    }
+
+    const buildDefaultParagraph = () => {
+      const para = createParagraphBuilder()
+      para
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: BASE_FONT_SIZE
+        })
+        .addText(textInfo[0])
+        .pushStyle({
+          ...baseTextStyle,
+          color: Skia.Color(Colors.gray[200]),
+          fontSize: SM_FONT_SIZE
+        })
+        .addText('\n')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(isAddress ? `${t('common.from')} ` : '')
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color('white')
+        })
+        .addText(`${textInfo[1]}\n`)
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          color: Skia.Color(gray[300])
+        })
+        .addText(`"${textInfo[2]}"\n`)
+        .pop()
+
+      return para.build()
+    }
+
+    let para
+    if (isBlock) {
+      para = buildBlockParagraph()
+    } else if (isMiningFee) {
+      para = buildMiningFeeParagraph()
+    } else if (isUnspent) {
+      para = buildUnspentParagraph()
+    } else if (isNumeric(textInfo[0])) {
+      para = buildNumericParagraph()
+    } else {
+      para = buildDefaultParagraph()
+    }
 
     para.layout(isBlock ? width * 0.6 : width - PADDING_LEFT)
     return para
-  }, [customFontManager, isBlock, textInfo, width])
+  }, [
+    customFontManager,
+    isBlock,
+    isMiningFee,
+    isUnspent,
+    isAddress,
+    textInfo,
+    width,
+    amount
+  ])
+
+  // Calculate position for the paragraph and potentially the icon
+  const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
+  const paragraphY = isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y
+
+  // Get placeholder rects if it's a mining fee node
+  const placeholderRectsMinerIcon = useMemo(() => {
+    if (isMiningFee && mainParagraph) {
+      return mainParagraph.getRectsForPlaceholders()
+    }
+    return []
+  }, [mainParagraph, isMiningFee])
+
+  const placeholderRectsUnspentIcon = useMemo(() => {
+    if (isUnspent && mainParagraph) {
+      return mainParagraph.getRectsForPlaceholders()
+    }
+    return []
+  }, [mainParagraph, isUnspent])
 
   if (!customFontManager || !mainParagraph) return null
 
   return (
-    <Paragraph
-      width={isBlock ? width * 0.6 : width}
-      x={isBlock ? x + width * 0.2 : x + PADDING_LEFT}
-      y={isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y}
-      paragraph={mainParagraph}
-    />
+    <Group>
+      <Paragraph
+        paragraph={mainParagraph}
+        x={paragraphX}
+        y={paragraphY}
+        width={isBlock ? width * 0.6 : width - PADDING_LEFT}
+      />
+      {isMiningFee &&
+        minerFeeIconSvg &&
+        placeholderRectsMinerIcon.length > 0 && (
+          <ImageSVG
+            svg={minerFeeIconSvg}
+            x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
+            y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
+            width={placeholderRectsMinerIcon[0].rect.width}
+            height={placeholderRectsMinerIcon[0].rect.height}
+          />
+        )}
+      {isUnspent &&
+        labelIconSvg &&
+        placeholderRectsUnspentIcon.length > 0 &&
+        textInfo[3] && (
+          <ImageSVG
+            svg={labelIconSvg}
+            x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
+            y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
+            width={placeholderRectsUnspentIcon[0].rect.width}
+            height={placeholderRectsUnspentIcon[0].rect.height}
+          />
+        )}
+    </Group>
   )
 }
 

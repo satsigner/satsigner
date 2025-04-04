@@ -4,8 +4,9 @@ import {
 } from '@react-navigation/drawer'
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { TouchableOpacity } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -31,6 +32,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import {
@@ -82,14 +84,17 @@ export default function AccountList() {
     ])
   )
   const fetchPrices = usePriceStore((state) => state.fetchPrices)
+  const connectionMode = useBlockchainStore((state) => state.connectionMode)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  fetchPrices()
-
   type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
+
+  useEffect(() => {
+    if (connectionMode === 'auto') fetchPrices()
+  }, [connectionMode, fetchPrices])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
@@ -138,17 +143,19 @@ export default function AccountList() {
     if (!data) return
 
     try {
-      const updatedAccount =
-        type !== 'watchonlyAddress'
-          ? await syncAccountWithWallet(
-              data.accountWithEncryptedSecret,
-              data.wallet!
-            )
-          : await syncAccountWithAddress(
-              data.accountWithEncryptedSecret,
-              `addr(${sampleSignetAddress})`
-            )
-      updateAccount(updatedAccount)
+      if (connectionMode === 'auto') {
+        const updatedAccount =
+          type !== 'watchonlyAddress'
+            ? await syncAccountWithWallet(
+                data.accountWithEncryptedSecret,
+                data.wallet!
+              )
+            : await syncAccountWithAddress(
+                data.accountWithEncryptedSecret,
+                `addr(${sampleSignetAddress})`
+              )
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     } finally {
@@ -184,26 +191,32 @@ export default function AccountList() {
           headerBackVisible: false
         }}
       />
-      <SSHStack style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}>
-        {connectionState ? (
-          isPrivateConnection ? (
-            <SSIconYellowIndicator height={24} width={24} />
-          ) : (
-            <SSIconGreenIndicator height={24} width={24} />
-          )
-        ) : (
-          <SSIconBlackIndicator height={24} width={24} />
-        )}
-        <SSText
-          size="xxs"
-          uppercase
-          style={{
-            color: connectionState ? Colors.gray['200'] : Colors.gray['450']
-          }}
+      <TouchableOpacity
+        onPress={() => router.navigate('/settings/network/server')}
+      >
+        <SSHStack
+          style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
         >
-          {connectionString}
-        </SSText>
-      </SSHStack>
+          {connectionState ? (
+            isPrivateConnection ? (
+              <SSIconYellowIndicator height={24} width={24} />
+            ) : (
+              <SSIconGreenIndicator height={24} width={24} />
+            )
+          ) : (
+            <SSIconBlackIndicator height={24} width={24} />
+          )}
+          <SSText
+            size="xxs"
+            uppercase
+            style={{
+              color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+            }}
+          >
+            {connectionString}
+          </SSText>
+        </SSHStack>
+      </TouchableOpacity>
       <SSHStack style={{ paddingHorizontal: '5%' }}>
         <View style={{ flex: 1 }}>
           <SSButton
