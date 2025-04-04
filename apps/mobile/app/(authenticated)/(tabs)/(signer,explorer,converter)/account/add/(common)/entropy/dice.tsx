@@ -41,10 +41,11 @@ export default function DiceEntropy() {
   const network = useBlockchainStore((state) => state.network)
 
   const length = 32 * (mnemonicWordCount / 3)
-  const rolls = Math.ceil(length / Math.log2(6))
+  const approxRolls = Math.round(length / Math.log2(6))
 
   const [step, setStep] = useState(0)
   const [bits, setBits] = useState('')
+  const [rolls, setRolls] = useState<number[]>([])
 
   const DiceIcons = [
     SSIconDiceOne,
@@ -56,9 +57,20 @@ export default function DiceEntropy() {
   ]
 
   async function handleDicePress(value: number) {
-    if (step < rolls && bits.length < length) {
-      const newBits = bits + value.toString(2).padStart(3, '0')
+    if (bits.length < length) {
+      const updatedRolls = [...rolls, value]
+      setRolls(updatedRolls)
+
+      let base10 = BigInt(0)
+      updatedRolls.forEach((digit) => {
+        base10 = base10 * BigInt(6) + BigInt(digit)
+      })
+
+      let newBits = base10.toString(2)
+      const padded = Math.ceil(newBits.length / 8) * 8
+      newBits = newBits.padStart(padded, '0')
       setBits(newBits)
+
       const newStep = step + 1
       setStep(newStep)
 
