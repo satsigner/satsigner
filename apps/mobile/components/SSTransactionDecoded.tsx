@@ -7,6 +7,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { TxDecoded, type TxDecodedField } from '@/utils/txDecoded'
 
+import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
 
 function byteChunks(hex: string) {
@@ -19,12 +20,53 @@ function byteChunks(hex: string) {
 
 type SSTranssctionDecodedProps = {
   txHex: string
+  defaultDisplay?: 'list' | 'bytes'
 }
 
-function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
-  const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
-  const [selectedItem, setSelectedItem] = useState(0)
+type SSTransactionDecodedDisplayProps = {
+  decoded: TxDecodedField[]
+}
 
+function SSTransactionDecoded({
+  txHex,
+  defaultDisplay = 'bytes'
+}: SSTranssctionDecodedProps) {
+  const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
+  const [display, setDisplay] = useState<'list' | 'bytes'>(defaultDisplay)
+
+  function toggleDisplay() {
+    setDisplay(display === 'list' ? 'bytes' : 'list')
+  }
+
+  return (
+    <>
+      <TouchableOpacity onPress={toggleDisplay}>
+        <SSHStack gap="sm" style={{ justifyContent: 'flex-end' }}>
+          <SSText color="muted">
+            {display === 'list'
+              ? t('transaction.decoded.btnCollapse')
+              : t('transaction.decoded.btnExpand')}
+          </SSText>
+          {display === 'list' ? (
+            <SSIconChevronUp height={5} width={12} />
+          ) : (
+            <SSIconChevronDown height={5} width={12} />
+          )}
+        </SSHStack>
+      </TouchableOpacity>
+      {display === 'bytes' ? (
+        <SSTransactionDecodedBytes decoded={decoded} />
+      ) : (
+        <SSTransactionDecodedList decoded={decoded} />
+      )}
+    </>
+  )
+}
+
+function SSTransactionDecodedBytes({
+  decoded
+}: SSTransactionDecodedDisplayProps) {
+  const [selectedItem, setSelectedItem] = useState(0)
   return (
     <SSVStack gap="md">
       <SSHStack style={{ flexWrap: 'wrap' }} gap="none">
@@ -63,19 +105,35 @@ function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
           )
         })}
       </SSHStack>
-      <SSTxDecodedField {...decoded[selectedItem]} />
+      <SSTransactionDecodedItem {...decoded[selectedItem]} />
     </SSVStack>
   )
 }
 
-function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
+function SSTransactionDecodedList({
+  decoded
+}: SSTransactionDecodedDisplayProps) {
   return (
-    <SSVStack gap="xs">
-      <SSText color="muted" type="mono">
+    <SSVStack>
+      {decoded.map((item, index) => {
+        return <SSTransactionDecodedItem key={index} {...item} />
+      })}
+    </SSVStack>
+  )
+}
+
+function SSTransactionDecodedItem({
+  field,
+  value,
+  placeholders
+}: TxDecodedField) {
+  return (
+    <SSVStack gap="none">
+      <SSText weight="bold">
         {t(`transaction.decoded.label.${field}`, { ...placeholders })}
       </SSText>
-      <SSText type="mono">{value}</SSText>
-      <SSText color="muted">
+      <SSText color="muted">{value}</SSText>
+      <SSText color="muted" size="xxs">
         {t(`transaction.decoded.description.${field}`, { ...placeholders })}
       </SSText>
     </SSVStack>
