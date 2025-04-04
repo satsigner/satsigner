@@ -114,7 +114,7 @@ export default function Receive() {
               {t('receive.address')}
             </SSText>
             {localAddress && (
-              <SSAddressDisplay address={localAddress} copyToClipboard/>
+              <SSAddressDisplay address={localAddress} copyToClipboard />
             )}
           </SSVStack>
           <SSFormLayout>
