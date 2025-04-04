@@ -271,7 +271,6 @@ export default function IOPreview() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-
       <LinearGradient
         style={{
           width: '100%',
