@@ -277,7 +277,8 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 20
+          zIndex: 20,
+          pointerEvents: 'none'
         }}
         locations={[0.185, 0.5554, 0.7713, 1]}
         colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
