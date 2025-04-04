@@ -80,7 +80,7 @@ export default function PreviewMessage() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      <SSMainLayout>
+      <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
         <SSVStack justifyBetween>
           <SSVStack>
             <SSVStack gap="xxs">
