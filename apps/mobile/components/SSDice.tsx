@@ -1,4 +1,3 @@
-// components/SSDice.tsx
 import { type ReactNode } from 'react'
 import {
   StyleSheet,
