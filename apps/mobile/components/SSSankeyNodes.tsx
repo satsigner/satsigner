@@ -281,6 +281,7 @@ function NodeText({
     }
 
     const buildNumericParagraph = () => {
+      const hasLabel = textInfo?.[2]
       const para = createParagraphBuilder()
       para
         .pushStyle({
@@ -309,9 +310,9 @@ function NodeText({
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300])
         })
-        .addText(`${textInfo[2]}\n`)
+        .addText(hasLabel ? `${textInfo[2]}\n` : `${t('common.noLabel')}\n`)
         .pop()
 
       return para.build()

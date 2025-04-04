@@ -40,6 +40,7 @@ type Transaction = {
       value: number
     }
     indexV?: number
+    label?: string
   }[]
   vout?: {
     scriptpubkey_address: string
@@ -218,7 +219,8 @@ export const useNodesAndLinks = ({
               depthH,
               textInfo: [
                 `${input.prevout.value}`,
-                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`
+                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+                `${input.label ?? ''}`
               ],
               value: input.prevout.value,
               txId: tx.txid,
@@ -264,6 +266,14 @@ export const useNodesAndLinks = ({
                   vinTx.prevValue === output.value
               )?.txid || ''
 
+            const label =
+              Array.from(inputs.values()).find(
+                (input) =>
+                  input.vout === output.vout &&
+                  input.value === output.value &&
+                  input.addressTo === output.scriptpubkey_address
+              )?.label ?? ''
+
             const node = {
               localId: undefined,
               id: `vout-${outputDepth}-${output.indexV}`,
@@ -272,7 +282,7 @@ export const useNodesAndLinks = ({
               textInfo: [
                 `${output.value}`,
                 `${formatAddress(output.scriptpubkey_address, 6)}`,
-                ''
+                label
               ],
               value: output.value,
               txId: tx.txid,
@@ -294,7 +304,7 @@ export const useNodesAndLinks = ({
     return []
   }, [
     incomingAndOutgoingVinTxId,
-    inputs.size,
+    inputs,
     outputAddresses,
     outputValues,
     transactions
