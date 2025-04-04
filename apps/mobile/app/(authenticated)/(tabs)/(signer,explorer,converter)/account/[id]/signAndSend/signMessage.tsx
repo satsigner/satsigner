@@ -1,5 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { ScrollView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,6 +8,7 @@ import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { getBlockchainConfig } from '@/config/servers'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -18,8 +20,6 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
-import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-import { ScrollView } from 'react-native-gesture-handler'
 
 export default function SignMessage() {
   const router = useRouter()
@@ -116,18 +116,17 @@ export default function SignMessage() {
             <SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
-                Message Id
+                  Message Id
                 </SSText>
-              <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
+                <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
               </SSVStack>
 
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
-                Message
+                  Message
                 </SSText>
-              {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
+                {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
               </SSVStack>
-
             </SSVStack>
           </ScrollView>
           <SSButton
