@@ -73,6 +73,7 @@ function SSFeeInput({
         minimumTrackTintColor="#fff"
         thumbTintColor="#fff"
         maximumTrackTintColor={Colors.gray[600]}
+        step={1}
       />
     </SSVStack>
   )
