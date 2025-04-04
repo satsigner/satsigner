@@ -23,6 +23,12 @@ import SSIconConverter from './SSIconConverter'
 import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
 import SSIconDev from './SSIconDev'
+import SSIconDiceFive from './SSIconDiceFive'
+import SSIconDiceFour from './SSIconDiceFour'
+import SSIconDiceOne from './SSIconDiceOne'
+import SSIconDiceSix from './SSIconDiceSix'
+import SSIconDiceThree from './SSIconDiceThree'
+import SSIconDiceTwo from './SSIconDiceTwo'
 import SSIconDifficult from './SSIconDifficult'
 import SSIconECash from './SSIconECash'
 import SSIconEdit from './SSIconEdit'
@@ -99,6 +105,12 @@ export {
   SSIconConverterActive,
   SSIconCurrency,
   SSIconDev,
+  SSIconDiceFive,
+  SSIconDiceFour,
+  SSIconDiceOne,
+  SSIconDiceSix,
+  SSIconDiceThree,
+  SSIconDiceTwo,
   SSIconDifficult,
   SSIconECash,
   SSIconEdit,
