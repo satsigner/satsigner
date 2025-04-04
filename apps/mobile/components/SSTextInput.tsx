@@ -30,16 +30,19 @@ function SSTextInput(
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
 
+    const actionRightPadding = actionRight ? { paddingRight: 48 } : {}
+
     return StyleSheet.compose(
       {
         ...styles.textInputBase,
         ...variantStyle,
         ...sizeStyle,
-        ...alignStyle
+        ...alignStyle,
+        ...actionRightPadding
       },
       style
     )
-  }, [variant, size, align, style])
+  }, [variant, size, align, actionRight, style])
 
   return (
     <View style={styles.containerBase}>

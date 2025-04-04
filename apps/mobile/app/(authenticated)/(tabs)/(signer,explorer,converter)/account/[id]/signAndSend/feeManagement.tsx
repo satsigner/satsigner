@@ -11,12 +11,11 @@ import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 
 function FeeManagement() {
-  const [rbf, cpfp, setRbf, setCpfp] = useTransactionBuilderStore(
-    useShallow((state) => [state.rbf, state.cpfp, state.setRbf, state.setCpfp])
+  const [rbf, setRbf] = useTransactionBuilderStore(
+    useShallow((state) => [state.rbf, state.setRbf])
   )
 
   const [localRBF, setLocalRBF] = useState(rbf)
-  const [localCPFP, setLocalCPFP] = useState(cpfp)
 
   function cancel() {
     router.back()
@@ -24,7 +23,6 @@ function FeeManagement() {
 
   function saveChanges() {
     setRbf(localRBF)
-    setCpfp(localCPFP)
     router.back()
   }
 
@@ -32,7 +30,7 @@ function FeeManagement() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>EXTRA SECURITY</SSText>
+          headerTitle: () => <SSText uppercase>Extra Options</SSText>
         }}
       />
       <SSMainLayout style={{ paddingBottom: 24, paddingTop: 12 }}>
@@ -46,11 +44,6 @@ function FeeManagement() {
                 selected={localRBF}
                 label={t('bitcoin.rbf').toUpperCase()}
                 onPress={() => setLocalRBF(!localRBF)}
-              />
-              <SSCheckbox
-                selected={localCPFP}
-                label={t('bitcoin.cpfp').toUpperCase()}
-                onPress={() => setLocalCPFP(!localCPFP)}
               />
             </SSVStack>
           </SSVStack>

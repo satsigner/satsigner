@@ -15,11 +15,11 @@ import {
 } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
-import Svg, { Circle } from 'react-native-svg'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 
+import { SSIconEllipsis } from './icons'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -30,6 +30,7 @@ export interface Link extends SankeyLinkMinimal<object, object> {
 }
 
 export interface Node extends SankeyNodeMinimal<object, object> {
+  localId?: string
   id: string
   depth?: number
   depthH: number
@@ -48,11 +49,13 @@ const NODE_WIDTH = 98
 type SSMultipleSankeyDiagramProps = {
   sankeyNodes: Node[]
   sankeyLinks: Link[]
+  onPressOutput?: (localId?: string) => void
 }
 
 function SSMultipleSankeyDiagram({
   sankeyNodes,
-  sankeyLinks
+  sankeyLinks,
+  onPressOutput
 }: SSMultipleSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
 
@@ -181,6 +184,7 @@ function SSMultipleSankeyDiagram({
           : 0
 
       return {
+        localId: (node as Node).localId,
         x: isBlock
           ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
           : node.x0 ?? 0,
@@ -234,21 +238,16 @@ function SSMultipleSankeyDiagram({
                     height: style.height
                   }
                 ]}
-                onPress={() => {}}
+                onPress={
+                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
+                    ? () => onPressOutput(style.localId)
+                    : undefined
+                }
               >
                 {(nodes[index] as Node).depthH === maxDepthH && (
-                  <TouchableOpacity
-                    style={{
-                      ...styles.iconContainer
-                    }}
-                    onPress={() => {}}
-                  >
-                    <Svg width="11" height="3" viewBox="0 0 11 3" fill="none">
-                      <Circle cx="9.48926" cy="1.5" r="1" fill="#D9D9D9" />
-                      <Circle cx="5.48926" cy="1.5" r="1" fill="#D9D9D9" />
-                      <Circle cx="1.48926" cy="1.5" r="1" fill="#D9D9D9" />
-                    </Svg>
-                  </TouchableOpacity>
+                  <View style={styles.iconContainer}>
+                    <SSIconEllipsis />
+                  </View>
                 )}
               </TouchableOpacity>
             ))}

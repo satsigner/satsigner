@@ -1,6 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { buildTransaction } from '@/api/bdk'
@@ -46,21 +47,25 @@ export default function PreviewMessage() {
     async function getTransactionMessage() {
       if (!wallet) return
 
-      const transactionMessage = await buildTransaction(
-        wallet,
-        {
-          inputs: Array.from(inputs.values()),
-          outputs: Array.from(outputs.values()),
-          feeRate,
-          options: {
-            rbf
-          }
-        },
-        network as Network
-      )
+      try {
+        const transactionMessage = await buildTransaction(
+          wallet,
+          {
+            inputs: Array.from(inputs.values()),
+            outputs: Array.from(outputs.values()),
+            feeRate,
+            options: {
+              rbf
+            }
+          },
+          network as Network
+        )
 
-      setMessageId(transactionMessage.txDetails.txid)
-      setTxBuilderResult(transactionMessage)
+        setMessageId(transactionMessage.txDetails.txid)
+        setTxBuilderResult(transactionMessage)
+      } catch (err) {
+        toast.error(String(err))
+      }
     }
 
     getTransactionMessage()

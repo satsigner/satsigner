@@ -1,3 +1,4 @@
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { t } from '@/locales'
 import { type PageParams } from '@/types/navigation/page'
 
@@ -78,7 +79,6 @@ function formatPercentualChange(value: number, base: number) {
 }
 
 function formatFiatPrice(sats: number, btcPrice: number) {
-  const SATS_PER_BITCOIN = 100_000_000
   return formatNumber((sats * btcPrice) / SATS_PER_BITCOIN, 2)
 }
 

@@ -7,6 +7,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 
+import SSNumberGhostInput from './SSNumberGhostInput'
 import SSText from './SSText'
 
 type SSFeeInputProps = {
@@ -28,12 +29,14 @@ function SSFeeInput({
 
   return (
     <SSVStack gap="sm">
-      <SSHStack style={{ justifyContent: 'center' }} gap="sm">
-        <SSText size="lg">{Math.round(localValue)}</SSText>
-        <SSText size="lg" color="muted">
-          {t('bitcoin.satVb')}
-        </SSText>
-      </SSHStack>
+      <SSNumberGhostInput
+        min={1}
+        max={max}
+        suffix={t('bitcoin.satVb')}
+        allowDecimal
+        value={String(localValue)}
+        onChangeText={(text) => setLocalValue(Number(text))}
+      />
       <SSHStack justifyBetween>
         <SSHStack style={{ justifyContent: 'center' }} gap="xs">
           <SSText>1</SSText>
@@ -70,6 +73,7 @@ function SSFeeInput({
         minimumTrackTintColor="#fff"
         thumbTintColor="#fff"
         maximumTrackTintColor={Colors.gray[600]}
+        step={1}
       />
     </SSVStack>
   )

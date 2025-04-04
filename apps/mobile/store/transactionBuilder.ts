@@ -1,11 +1,11 @@
 import { type PartiallySignedTransaction } from 'bdk-rn'
 import { type TxBuilderResult } from 'bdk-rn/lib/classes/Bindings'
 import { enableMapSet, produce } from 'immer'
+import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
-import { generateId } from '@/utils/id'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 enableMapSet()
@@ -16,7 +16,6 @@ type TransactionBuilderState = {
   feeRate: number
   timeLock: number
   rbf: boolean
-  cpfp: boolean
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
 }
@@ -28,9 +27,13 @@ type TransactionBuilderAction = {
   addInput: (utxo: Utxo) => void
   removeInput: (utxo: Utxo) => void
   addOutput: (output: Omit<Output, 'localId'>) => void
+  updateOutput: (
+    localId: Output['localId'],
+    output: Omit<Output, 'localId'>
+  ) => void
+  removeOutput: (localId: Output['localId']) => void
   setFeeRate: (feeRate: TransactionBuilderState['feeRate']) => void
   setRbf: (rbf: TransactionBuilderState['rbf']) => void
-  setCpfp: (rbf: TransactionBuilderState['cpfp']) => void
   setTxBuilderResult: (
     txBuilderResult: NonNullable<TransactionBuilderState['txBuilderResult']>
   ) => void
@@ -78,7 +81,27 @@ const useTransactionBuilderStore = create<
   addOutput: (output) => {
     set(
       produce((state: TransactionBuilderState) => {
-        state.outputs.push({ localId: generateId(), ...output })
+        state.outputs.push({ localId: uuid.v4(), ...output })
+      })
+    )
+  },
+  updateOutput: (localId, output) => {
+    set(
+      produce((state: TransactionBuilderState) => {
+        const index = state.outputs.findIndex(
+          (output) => output.localId === localId
+        )
+        if (index !== -1) state.outputs[index] = { localId, ...output }
+      })
+    )
+  },
+  removeOutput: (localId) => {
+    set(
+      produce((state: TransactionBuilderState) => {
+        const index = state.outputs.findIndex(
+          (output) => output.localId === localId
+        )
+        if (index !== -1) state.outputs.splice(index, 1)
       })
     )
   },
@@ -87,9 +110,6 @@ const useTransactionBuilderStore = create<
   },
   setRbf: (rbf) => {
     set({ rbf })
-  },
-  setCpfp: (cpfp) => {
-    set({ cpfp })
   },
   setTxBuilderResult: (txBuilderResult) => {
     set({ txBuilderResult })
