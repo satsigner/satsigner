@@ -11,7 +11,8 @@ export const text = {
     '4xl': 30,
     '5xl': 36,
     '6xl': 42,
-    '7xl': 50
+    '7xl': 50,
+    '8xl': 62
   },
   fontWeight: {
     ultralight: '200',
