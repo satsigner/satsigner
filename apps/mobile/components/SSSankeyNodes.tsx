@@ -9,7 +9,8 @@ import {
   TextAlign,
   TextBaseline,
   useFonts,
-  useSVG
+  useSVG,
+  vec
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
@@ -42,6 +43,11 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
     ]
   })
 
+  // Find the maximum depth in nodes
+  const maxDepth = useMemo(() => {
+    return Math.max(...nodes.map((node) => node.depthH))
+  }, [nodes])
+
   const renderNode = (node: Node, index: number) => {
     const dataNode = node as {
       type: string
@@ -62,22 +68,48 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
 
     const blockNode = () => {
       if (dataNode.type === 'block') {
+        const isCurrentTxBlockNode = node.depthH === maxDepth - 1
+        const isTransactionChart = node.depthH === 1 && maxDepth === 2
+
+        const x = (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
+        const y = node.y0 ?? 0
+        const height = getBlockHeight()
+
+        const gradientPaint = Skia.Paint()
+        gradientPaint.setShader(
+          Skia.Shader.MakeLinearGradient(
+            vec(x, y + height / 2), // start point
+            vec(x + BLOCK_WIDTH, y + height / 2), // end point
+            [Skia.Color(gray[200]), Skia.Color('#FFFFFF')], // colors
+            [0, 1], // positions
+            0, // Clamp mode
+            Skia.Matrix()
+          )
+        )
+
         return (
           <Group>
             <Rect
-              x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
-              y={node.y0 ?? 0}
+              x={x}
+              y={y}
               width={BLOCK_WIDTH}
-              height={getBlockHeight()}
+              height={height}
               opacity={0.9}
-              color="#787878"
+              color={isCurrentTxBlockNode ? gray[100] : gray[500]}
             />
             <Rect
-              x={(node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2}
-              y={node.y0 ?? 0}
+              x={x}
+              y={y}
               width={BLOCK_WIDTH}
               height={LINK_BLOCK_MAX_WIDTH}
-              color="#FFFFFF"
+              color={
+                isTransactionChart
+                  ? Skia.Color('#818181')
+                  : isCurrentTxBlockNode
+                    ? 'white'
+                    : gray[400]
+              }
+              paint={isTransactionChart ? gradientPaint : undefined}
             />
           </Group>
         )
