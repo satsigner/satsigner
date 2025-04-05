@@ -503,7 +503,7 @@ export default function IOPreview() {
               label={t('transaction.build.save.output.title')}
               variant="secondary"
               style={{ flex: 1 }}
-              disabled={!outputTo || !outputAmount || !outputLabel}
+              disabled={!outputTo || !outputAmount}
               onPress={handleAddOutput}
             />
           </SSHStack>
