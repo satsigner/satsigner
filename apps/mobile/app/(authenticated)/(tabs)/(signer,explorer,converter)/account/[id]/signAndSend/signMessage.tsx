@@ -20,6 +20,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { ActivityIndicator } from 'react-native'
 
 export default function SignMessage() {
   const router = useRouter()
@@ -44,6 +45,7 @@ export default function SignMessage() {
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
+  const [broadcasted, setBroadcasted] = useState(false)
 
   const [rawTx, setRawTx] = useState('')
 
@@ -58,8 +60,10 @@ export default function SignMessage() {
     try {
       const broadcasted = await broadcastTransaction(psbt, blockchain)
 
-      if (broadcasted)
+      if (broadcasted) {
+        setBroadcasted(true)
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
+      }
     } catch (err) {
       toast(String(err))
     } finally {
@@ -108,8 +112,17 @@ export default function SignMessage() {
             <SSText size="lg">
               {formatAddress(txBuilderResult.txDetails.txid)}
             </SSText>
-            {signed && (
+            {(signed && !broadcasted) && (
               <SSIconSuccess width={159} height={159} variant="outline" />
+            )}
+            {(!signed && !broadcasted) && (
+              <ActivityIndicator
+                size={160}
+                color="#fff"
+              />
+            )}
+            {broadcasted && (
+              <SSIconSuccess width={159} height={159} variant="filled" />
             )}
           </SSVStack>
           <ScrollView>
