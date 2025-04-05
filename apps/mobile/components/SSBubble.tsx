@@ -95,10 +95,13 @@ function SSBubble({
         weight: selected ? 400 : 300
       }
     }
-    const para = Skia.ParagraphBuilder.Make({
-      maxLines: 1,
-      textAlign: TextAlign.Center
-    })
+    const para = Skia.ParagraphBuilder.Make(
+      {
+        maxLines: 1,
+        textAlign: TextAlign.Center
+      },
+      customFontManager
+    )
       .pushStyle(textStyle)
       .addText(`${utxo.value.toLocaleString()}`)
       .pushStyle({
@@ -141,10 +144,13 @@ function SSBubble({
         weight: 400
       }
     }
-    const para = Skia.ParagraphBuilder.Make({
-      maxLines: 1,
-      textAlign: TextAlign.Center
-    })
+    const para = Skia.ParagraphBuilder.Make(
+      {
+        maxLines: 1,
+        textAlign: TextAlign.Center
+      },
+      customFontManager
+    )
       .pushStyle(textStyle)
       .addText(`${dateText}`)
       .pop()
@@ -172,10 +178,13 @@ function SSBubble({
         weight: 400
       }
     }
-    const para = Skia.ParagraphBuilder.Make({
-      maxLines: 1,
-      textAlign: TextAlign.Center
-    })
+    const para = Skia.ParagraphBuilder.Make(
+      {
+        maxLines: 1,
+        textAlign: TextAlign.Center
+      },
+      customFontManager
+    )
       .pushStyle({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
@@ -213,10 +222,13 @@ function SSBubble({
         weight: 400
       }
     }
-    const para = Skia.ParagraphBuilder.Make({
-      maxLines: 1,
-      textAlign: TextAlign.Center
-    })
+    const para = Skia.ParagraphBuilder.Make(
+      {
+        maxLines: 1,
+        textAlign: TextAlign.Center
+      },
+      customFontManager
+    )
       .pushStyle({
         ...textStyle,
         color: Skia.Color(Colors.gray[500])
