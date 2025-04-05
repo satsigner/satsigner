@@ -88,10 +88,13 @@ function SSSpiralBlocks({
   const createParagraph = (text: string) => {
     if (!customFontManager) return null
 
-    const paragraph = Skia.ParagraphBuilder.Make({
-      maxLines: 1,
-      textAlign: TextAlign.Center
-    })
+    const paragraph = Skia.ParagraphBuilder.Make(
+      {
+        maxLines: 1,
+        textAlign: TextAlign.Center
+      },
+      customFontManager
+    )
       .pushStyle(TextStyleWeeks)
       .addText(text)
       .pop()
