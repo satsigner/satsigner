@@ -3,6 +3,7 @@ import {
   Canvas,
   Circle,
   DashPathEffect,
+  Group,
   Paint,
   Paragraph,
   Path,
@@ -12,18 +13,18 @@ import {
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 import {
+  Platform,
   type StyleProp,
   StyleSheet,
   TouchableOpacity,
   View,
   type ViewStyle
 } from 'react-native'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring
-} from 'react-native-reanimated'
+import { GestureDetector } from 'react-native-gesture-handler'
+import Animated from 'react-native-reanimated'
 
+import { useGestures } from '@/hooks/useGestures'
+import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
 
@@ -60,23 +61,20 @@ function SSSpiralBlocks({
     ]
   })
 
+  const { width: w, height: h, center, onCanvasLayout } = useLayout()
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    maxScale: 1000,
+    minScale: 0.1,
+    shouldResetOnInteractionEnd: false
+  })
+
   const fontSize = 12
-
-  const scale = useSharedValue(1)
-  const translateX = useSharedValue(0)
-  const translateY = useSharedValue(0)
-
-  const animatedStyle = useAnimatedStyle(
-    () => ({
-      transform: [
-        { translateX: withSpring(translateX.value) },
-        { translateY: withSpring(translateY.value) },
-        { scale: withSpring(scale.value, { damping: 10, stiffness: 200 }) }
-      ]
-      //transformOrigin: 'center center' // This ensures scaling happens from the center
-    }),
-    [scale, translateX, translateY]
-  )
 
   const TextStyleWeeks = {
     color: Skia.Color(Colors.gray[100]),
@@ -232,9 +230,13 @@ function SSSpiralBlocks({
 
   return (
     <View style={styles.container}>
-      <Animated.View style={animatedStyle}>
-        <Canvas
-          style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+      <Canvas
+        style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+        onLayout={onCanvasLayout}
+      >
+        <Group
+          transform={transform}
+          origin={{ x: canvasWidth / 2, y: canvasHeight / 2 }}
         >
           {spiralBlocks.map((block, index) => (
             <Path key={index} path={paths[index]} color={block.color} />
@@ -261,19 +263,44 @@ function SSSpiralBlocks({
           <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
           <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
           <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
-        </Canvas>
+        </Group>
+      </Canvas>
 
-        {/* Overlay for touchable areas, ensuring correct alignment with blocks */}
-        <View style={styles.touchableOverlay}>
-          {invisibleOverlayBlocks.map((style, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => onBlockPress(data[index])}
-              style={style}
-            />
-          ))}
+      <GestureDetector gesture={gestures}>
+        <View
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0
+          }}
+        >
+          <Animated.View
+            style={[
+              { width: canvasWidth, height: canvasHeight },
+              animatedStyle
+            ]}
+            onLayout={onCanvasLayout}
+          >
+            {spiralBlocks.map((block, index) => {
+              const style = invisibleOverlayBlocks[index]
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={style}
+                  delayPressIn={0}
+                  delayPressOut={0}
+                  onPress={() => onBlockPress(data[index])}
+                >
+                  <Animated.View />
+                </TouchableOpacity>
+              )
+            })}
+          </Animated.View>
         </View>
-      </Animated.View>
+      </GestureDetector>
     </View>
   )
 }
