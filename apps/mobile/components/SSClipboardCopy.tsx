@@ -11,7 +11,8 @@ type SSTextClipboardProps = {
   withPopup?: boolean
   children: React.ReactNode
 }
-function SSTextClipboard({
+
+function SSClipboardCopy({
   text,
   withPopup = true,
   children
@@ -40,4 +41,4 @@ function SSTextClipboard({
   )
 }
 
-export default SSTextClipboard
+export default SSClipboardCopy

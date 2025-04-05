@@ -13,6 +13,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 
 export default function MessageConfirmation() {
   const router = useRouter()
@@ -55,13 +56,12 @@ export default function MessageConfirmation() {
             <SSIconSuccess width={159} height={159} />
           </SSVStack>
           <SSVStack>
-            <SSButton
-              variant="outline"
-              label={t('sent.copyTransactionId')}
-              onPress={() =>
-                Clipboard.setStringAsync(txBuilderResult.txDetails.txid)
-              }
-            />
+            <SSClipboardCopy text={txBuilderResult.txDetails.txid}>
+              <SSButton
+                variant="outline"
+                label={t('sent.copyTransactionId')}
+              />
+            </SSClipboardCopy>
             <SSButton
               variant="outline"
               label={t('sent.trackOnChain')}
