@@ -1,5 +1,6 @@
 import {
   SSIconBitcoin,
+  SSIconBlock,
   SSIconChain,
   SSIconChainTip,
   SSIconCurrency,
@@ -75,8 +76,15 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.difficulty'),
         icon: SSIconDifficult,
-        url: '',
-        isSoon: true,
+        url: '/explorer/difficulty',
+        isSoon: false,
+        platform: PLATFORM.HYBRID
+      },
+      {
+        title: t('navigation.item.block'),
+        icon: SSIconBlock,
+        url: '/explorer/block',
+        isSoon: false,
         platform: PLATFORM.HYBRID
       },
       {

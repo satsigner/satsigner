@@ -36,7 +36,8 @@ function SSSwitch({
     '4xl': 1.5,
     '5xl': 1.7,
     '6xl': 1.9,
-    '7xl': 2.2
+    '7xl': 2.2,
+    '8xl': 2.4
   }
 
   const gapBySize: Record<TextFontSize, HStackGap> = {
@@ -51,7 +52,8 @@ function SSSwitch({
     '4xl': 'md',
     '5xl': 'lg',
     '6xl': 'lg',
-    '7xl': 'lg'
+    '7xl': 'lg',
+    '8xl': 'lg'
   }
 
   return (

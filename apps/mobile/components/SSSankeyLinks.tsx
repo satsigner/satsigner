@@ -23,6 +23,7 @@ interface Node {
   value?: number
   txId?: string
   nextTx?: string
+  localId?: string
 }
 
 interface Link {
@@ -200,7 +201,8 @@ function SSSankeyLinks({
         const sourceNode = nodes.find((n) => n.id === link.source) as Node
         const targetNode = nodes.find((n) => n.id === link.target) as Node
         const isUnspent = targetNode.textInfo[0] === 'Unspent'
-
+        const isRemainingBalance = targetNode.localId === 'remainingBalance'
+        const isMinerFee = targetNode.localId === 'minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentInput =
           targetNode.depthH === maxDepthH - 1 ||
@@ -243,7 +245,9 @@ function SSSankeyLinks({
               color={isCurrentInput || isUnspent ? 'white' : gray[700]}
               opacity={isCurrentInput || isUnspent ? 1 : 0.8}
             >
-              {isCurrentInput && !isUnspent ? (
+              {(isCurrentInput || isMinerFee) &&
+              !isRemainingBalance &&
+              !isUnspent ? (
                 <>
                   <Paint opacity={0.6}>
                     <LinearGradient
@@ -269,7 +273,24 @@ function SSSankeyLinks({
                     />
                   </Paint>
                 </>
-              ) : !isUnspent ? (
+              ) : isUnspent && !isRemainingBalance ? (
+                <>
+                  <Paint opacity={1}>
+                    <LinearGradient
+                      start={vec(
+                        targetNode.type === 'block' ? points.x1 : points.x2,
+                        (points.y1 + points.y2) / 2
+                      )}
+                      end={vec(
+                        targetNode.type === 'block' ? points.x2 : points.x1,
+                        (points.y1 + points.y2) / 2
+                      )}
+                      colors={['#2C2C2C', '#FFFFFF']}
+                      positions={[0, 0.2]}
+                    />
+                  </Paint>
+                </>
+              ) : !isUnspent && !isRemainingBalance ? (
                 <>
                   <Paint opacity={0.2}>
                     <LinearGradient

@@ -11,6 +11,7 @@ import SSIconChartSettings from './SSIconChartSettings'
 import SSIconCheckCircle from './SSIconCheckCircle'
 import SSIconCheckCircleThin from './SSIconCheckCircleThin'
 import SSIconChevronDown from './SSIconChevronDown'
+import SSIconChevronLeft from './SSIconChevronLeft'
 import SSIconChevronRight from './SSIconChevronRight'
 import SSIconChevronUp from './SSIconChevronUp'
 import SSIconCircleX from './SSIconCircleX'
@@ -22,6 +23,12 @@ import SSIconConverter from './SSIconConverter'
 import SSIconConverterActive from './SSIconConverterActive'
 import SSIconCurrency from './SSIconCurrency'
 import SSIconDev from './SSIconDev'
+import SSIconDiceFive from './SSIconDiceFive'
+import SSIconDiceFour from './SSIconDiceFour'
+import SSIconDiceOne from './SSIconDiceOne'
+import SSIconDiceSix from './SSIconDiceSix'
+import SSIconDiceThree from './SSIconDiceThree'
+import SSIconDiceTwo from './SSIconDiceTwo'
 import SSIconDifficult from './SSIconDifficult'
 import SSIconECash from './SSIconECash'
 import SSIconEdit from './SSIconEdit'
@@ -57,6 +64,8 @@ import SSIconRefresh from './SSIconRefresh'
 import SSIconRemove from './SSIconRemove'
 import SSIconScan from './SSIconScan'
 import SSIconScriptsP2pkh from './SSIconScriptsP2pkh'
+import SSIconServer from './SSIconServer'
+import SSIconServerOptions from './SSIconServerOptions'
 import SSIconSettings from './SSIconSettings'
 import SSIconSigner from './SSIconSigner'
 import SSIconSignerActive from './SSIconSignerActive'
@@ -83,6 +92,7 @@ export {
   SSIconCheckCircle,
   SSIconCheckCircleThin,
   SSIconChevronDown,
+  SSIconChevronLeft,
   SSIconChevronRight,
   SSIconChevronUp,
   SSIconCircleX,
@@ -94,6 +104,12 @@ export {
   SSIconConverterActive,
   SSIconCurrency,
   SSIconDev,
+  SSIconDiceFive,
+  SSIconDiceFour,
+  SSIconDiceOne,
+  SSIconDiceSix,
+  SSIconDiceThree,
+  SSIconDiceTwo,
   SSIconDifficult,
   SSIconECash,
   SSIconEdit,
@@ -129,6 +145,8 @@ export {
   SSIconRemove,
   SSIconScan,
   SSIconScriptsP2pkh,
+  SSIconServer,
+  SSIconServerOptions,
   SSIconSettings,
   SSIconSigner,
   SSIconSignerActive,

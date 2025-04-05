@@ -15,11 +15,13 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 
 export default function ConfirmScreen() {
   const router = useRouter()
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
   const updateAccount = useAccountsStore((state) => state.updateAccount)
+  const connectionMode = useBlockchainStore((state) => state.connectionMode)
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
@@ -37,11 +39,13 @@ export default function ConfirmScreen() {
     setCompleted(true)
 
     try {
-      const updatedAccount = await syncAccountWithWallet(
-        data.accountWithEncryptedSecret,
-        data.wallet!
-      )
-      updateAccount(updatedAccount)
+      if (connectionMode === 'auto') {
+        const updatedAccount = await syncAccountWithWallet(
+          data.accountWithEncryptedSecret,
+          data.wallet!
+        )
+        updateAccount(updatedAccount)
+      }
     } catch (error) {
       toast.error((error as Error).message)
     }

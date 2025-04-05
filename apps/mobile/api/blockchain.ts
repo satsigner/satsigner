@@ -52,6 +52,11 @@ export class MempoolOracle implements BlockchainOracle {
     return data as Block
   }
 
+  async getBlockAtHeight(height: number): Promise<Block> {
+    const blockHash = await this.getText(`/block-height/${height}`)
+    return this.getBlock(blockHash)
+  }
+
   async getBlockAt(timestamp: number): Promise<Block> {
     const data: any = await this.get(`/v1/mining/blocks/timestamp/${timestamp}`)
     const blockId = data.hash

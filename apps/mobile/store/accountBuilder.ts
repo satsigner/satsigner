@@ -2,6 +2,7 @@ import { produce } from 'immer'
 import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
+import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 
 type AccountBuilderState = {
@@ -9,6 +10,7 @@ type AccountBuilderState = {
   policyType: Account['policyType']
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
+  entropy: EntropyType
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']
@@ -27,6 +29,7 @@ type AccountBuilderAction = {
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
+  setEntropy: (entropy: AccountBuilderState['entropy']) => void
   setMnemonicWordCount: (
     mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
   ) => void
@@ -69,6 +72,7 @@ const initialState: AccountBuilderState = {
   policyType: 'singlesig',
   keyName: '',
   creationType: 'importMnemonic',
+  entropy: 'none',
   mnemonicWordCount: 24,
   mnemonic: '',
   passphrase: undefined,
@@ -97,6 +101,9 @@ const useAccountBuilderStore = create<
   },
   setCreationType: (creationType) => {
     set({ creationType })
+  },
+  setEntropy: (entropy) => {
+    set({ entropy })
   },
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
@@ -222,6 +229,7 @@ const useAccountBuilderStore = create<
     set({
       keyName: '',
       creationType: 'importMnemonic',
+      entropy: 'none',
       mnemonicWordCount: 24,
       mnemonic: '',
       passphrase: undefined,

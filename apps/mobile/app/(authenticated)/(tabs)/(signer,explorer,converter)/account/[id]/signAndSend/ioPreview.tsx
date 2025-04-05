@@ -12,7 +12,9 @@ import SSButton from '@/components/SSButton'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
+import SSMultipleSankeyDiagram, {
+  type Link
+} from '@/components/SSMultipleSankeyDiagram'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
@@ -42,12 +44,13 @@ export default function IOPreview() {
     (state) => state.accounts.find((account) => account.id === id)!
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
-  const [inputs, outputs, getInputs, addOutput, setFeeRate] =
+  const [inputs, outputs, getInputs, feeRate, addOutput, setFeeRate] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.outputs,
         state.getInputs,
+        state.feeRate,
         state.addOutput,
         state.setFeeRate
       ])
@@ -117,7 +120,7 @@ export default function IOPreview() {
     transactions,
     inputs,
     outputs,
-    utxosSelectedValue
+    feeRate
   })
 
   if (loading && inputs.size > 0) {
@@ -213,7 +216,10 @@ export default function IOPreview() {
         inputs.size > 0 &&
         nodes?.length > 0 &&
         links?.length > 0 ? (
-          <SSMultipleSankeyDiagram sankeyNodes={nodes} sankeyLinks={links} />
+          <SSMultipleSankeyDiagram
+            sankeyNodes={nodes}
+            sankeyLinks={links as Link[]}
+          />
         ) : null}
       </View>
       <LinearGradient
