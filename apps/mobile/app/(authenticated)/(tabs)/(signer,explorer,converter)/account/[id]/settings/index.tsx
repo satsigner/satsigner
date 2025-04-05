@@ -9,7 +9,7 @@ import {
   SSIconWarning
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
@@ -415,9 +415,9 @@ export default function AccountSettings() {
                 </SSSeedLayout>
               )}
             </SSHStack>
-            <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
+            <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
               <SSButton label={t('common.copy')} />
-            </SSTextClipboard>
+            </SSClipboardCopy>
           </SSVStack>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}

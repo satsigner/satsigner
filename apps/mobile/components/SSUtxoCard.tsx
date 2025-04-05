@@ -53,10 +53,6 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
             <SSText>{formatNumber(satsToFiat(utxo.value), 2)}</SSText>
             <SSText style={{ color: Colors.gray[400] }}>{fiatCurrency}</SSText>
           </SSHStack>
-          <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
-            {t('common.label')} {': '}
-            {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
-          </SSText>
         </SSVStack>
         <SSVStack gap="none">
           <SSHStack>
@@ -72,6 +68,10 @@ function SSUtxoCard({ utxo }: SSUtxoCardProps) {
           </SSText>
         </SSVStack>
       </SSHStack>
+      <SSText size="md" color={utxo.label ? 'white' : 'muted'}>
+        {t('common.label')} {': '}
+        {parseLabel(utxo.label || t('utxo.noLabel'))['label']}
+      </SSText>
     </TouchableOpacity>
   )
 }

@@ -45,7 +45,10 @@ export default function PreviewMessage() {
 
   useEffect(() => {
     async function getTransactionMessage() {
-      if (!wallet) return
+      if (!wallet) {
+        toast.error('WALLET NOT FOUND')
+        return
+      }
 
       try {
         const transactionMessage = await buildTransaction(
@@ -80,7 +83,7 @@ export default function PreviewMessage() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      <SSMainLayout>
+      <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
         <SSVStack justifyBetween>
           <SSVStack>
             <SSVStack gap="xxs">
@@ -134,11 +137,6 @@ export default function PreviewMessage() {
                   ))}
                 </SSVStack>
               </SSHStack>
-            </SSVStack>
-            <SSVStack gap="xxs">
-              <SSText color="muted" size="sm" uppercase>
-                Full Message
-              </SSText>
             </SSVStack>
           </SSVStack>
           <SSButton

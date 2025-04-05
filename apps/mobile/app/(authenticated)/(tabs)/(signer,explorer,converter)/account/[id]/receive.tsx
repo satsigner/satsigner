@@ -6,7 +6,6 @@ import { toast } from 'sonner-native'
 import { getLastUnusedAddressFromWallet } from '@/api/bdk'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
@@ -115,9 +114,7 @@ export default function Receive() {
               {t('receive.address')}
             </SSText>
             {localAddress && (
-              <SSClipboardCopy text={localAddress} withPopup={false}>
-                <SSAddressDisplay address={localAddress} />
-              </SSClipboardCopy>
+              <SSAddressDisplay address={localAddress} copyToClipboard />
             )}
           </SSVStack>
           <SSFormLayout>
