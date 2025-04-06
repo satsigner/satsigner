@@ -50,10 +50,10 @@
     "import.wif.title": "Import WIF (single key)",
     "import.word.noMatch": "No matching words",
     "key.number": "Key number",
-    "load.sample.address": "Load sample watch-only address",
-    "load.sample.legacy": "Load sample Legacy wallet",
-    "load.sample.segwit": "Load sample SegWit wallet",
-    "load.sample.xpub": "Load sample watch-only",
+    "load.sample.address": "Watch-only address",
+    "load.sample.legacy": "Legacy wallet",
+    "load.sample.segwit": "SegWit wallet",
+    "load.sample.xpub": "Watch-only",
     "mnemonic.12": "12 words generated from 128 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
     "mnemonic.15": "15 words generated from 160 bits of entropy. For potentially increased computational security, consider using 24 words for new accounts.",
     "mnemonic.18": "18 words generated from 192 bits of entropy.  For potentially increased computational security, consider using 24 words for new accounts.",
@@ -91,7 +91,7 @@
     "seed.sharePub": "Share XPub",
     "seed.unableToDecrypt": "Unable to decrypt seed",
     "selectKeySource": "Select Key Source",
-    "settings.title": "Master Key Settings and Tools",
+    "settings.title": "Account Settings and Tools",
     "signAndSend": "Sign & Send",
     "signatureRequired": "Signatures Required",
     "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
@@ -106,7 +106,7 @@
     "index": "Index",
     "label": "Label",
     "receive": "Receive",
-    "samples": "Add sample account",
+    "samples": "Sample accounts",
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
     "totalTransactions": "Total\nTransactions",
@@ -145,7 +145,7 @@
     "utxos": "Address UTXOs"
   },
   "app": {
-    "name": "Sat Signer",
+    "name": "SatSigner",
     "notImplemented": "Not yet implemented"
   },
   "auth": {
