@@ -369,30 +369,21 @@ export default function AccountSettings() {
         </SSVStack>
       </SSModal>
       <SSModal
+        fullOpacity={true}
         visible={mnemonicModalVisible}
         onClose={() => setMnemonicModalVisible(false)}
+        label={t('common.close')}
+        variant="subtle"
       >
         {localMnemonic && (
           <SSVStack gap="lg" itemsCenter>
-            <SSText center size="xl" weight="bold" uppercase>
-              {account.keys[0].mnemonicWordCount} {t('bitcoin.words')}
+            <SSText center uppercase>
+              {account.keys[0].mnemonicWordCount} {t('account.mnemonic.title')}
             </SSText>
             <SSHStack style={{ justifyContent: 'center' }}>
-              <SSIconWarning
-                width={32}
-                height={32}
-                fill="black"
-                stroke="yellow"
-              />
-              <SSText uppercase weight="bold" size="lg">
+              <SSText uppercase color="muted">
                 {t('account.seed.keepItSecret')}
               </SSText>
-              <SSIconWarning
-                width={32}
-                height={32}
-                fill="black"
-                stroke="yellow"
-              />
             </SSHStack>
             <SSHStack>
               {account.keys[0].mnemonicWordCount && (
@@ -401,23 +392,35 @@ export default function AccountSettings() {
                     <View
                       key={index}
                       style={{
-                        height: 44,
+                        height: 46,
                         width: '32%',
-                        justifyContent: 'center',
-                        alignItems: 'center'
+                        justifyContent: 'center'
                       }}
                     >
-                      <SSText type="mono" size="lg">
-                        {(index + 1).toString().padStart(2, '0')}. {word}
-                      </SSText>
+                      <SSHStack
+                        gap="sm"
+                        style={{
+                          padding: 8,
+                          borderRadius: 10,
+                          borderColor: Colors.gray[800],
+                          borderWidth: 1
+                        }}
+                      >
+                        <SSText size="md" color="muted">
+                          {(index + 1).toString().padStart(2, '0')}.
+                        </SSText>
+                        <SSText size="md">{word}</SSText>
+                      </SSHStack>
                     </View>
                   ))}
                 </SSSeedLayout>
               )}
             </SSHStack>
-            <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
-              <SSButton label={t('common.copy')} />
-            </SSTextClipboard>
+            <SSHStack>
+              <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
+                <SSButton variant="secondary" label={t('common.copy')} />
+              </SSTextClipboard>
+            </SSHStack>
           </SSVStack>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
