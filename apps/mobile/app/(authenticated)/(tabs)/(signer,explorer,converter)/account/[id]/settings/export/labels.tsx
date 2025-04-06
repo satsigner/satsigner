@@ -24,6 +24,8 @@ import {
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
 
+import { SSIconEyeOn } from '@/components/icons'
+
 export default function ExportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
@@ -64,24 +66,31 @@ export default function ExportLabels() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerRight: undefined
         }}
       />
       <SSVStack style={{ padding: 20 }}>
         {labels.length === 0 && (
           <>
-            <SSText center size="md" weight="bold">
+            <SSText uppercase center size="md" color="muted">
               {t('account.export.noLabels.title')}
             </SSText>
-            <SSText size="md">
+            <SSText center size="md">
               {t('account.export.noLabels.description')}
             </SSText>
           </>
         )}
         {labels.length > 0 && (
           <>
-            <SSText center uppercase weight="bold" size="lg" color="muted">
+            <SSText center uppercase color="muted">
               {t('account.export.labels')}
             </SSText>
             <SSHStack>

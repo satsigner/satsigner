@@ -22,6 +22,8 @@ import {
 } from '@/utils/bip329'
 import { pickFile } from '@/utils/filesystem'
 
+import { SSIconEyeOn } from '@/components/icons'
+
 export default function ImportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
@@ -93,12 +95,19 @@ export default function ImportLabels() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerRight: undefined
         }}
       />
-      <SSVStack style={{ padding: 20 }}>
-        <SSText center uppercase weight="bold" size="lg" color="muted">
+      <SSVStack style={{ padding: 40 }}>
+        <SSText center uppercase color="muted">
           {t('account.import.labels')}
         </SSText>
         <SSHStack>
