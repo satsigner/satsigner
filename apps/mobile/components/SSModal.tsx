@@ -9,6 +9,15 @@ import SSButton from './SSButton'
 type SSModalProps = {
   visible: boolean
   fullOpacity?: boolean
+  variant?:
+    | 'secondary'
+    | 'ghost'
+    | 'subtle'
+    | 'gradient'
+    | 'default'
+    | 'outline'
+    | 'danger'
+  label?: string
   onClose(): void
   children: React.ReactNode
 }
@@ -16,6 +25,8 @@ type SSModalProps = {
 function SSModal({
   visible,
   fullOpacity = false,
+  variant = 'ghost',
+  label = t('common.cancel'),
   onClose,
   children
 }: SSModalProps) {
@@ -26,11 +37,7 @@ function SSModal({
       >
         <SSVStack itemsCenter justifyBetween style={{ paddingVertical: 16 }}>
           {children}
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={onClose}
-          />
+          <SSButton label={label} variant={variant} onPress={onClose} />
         </SSVStack>
       </SSMainLayout>
     </Modal>
