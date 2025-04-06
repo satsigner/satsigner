@@ -9,6 +9,9 @@ import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSText from './SSText'
 
+const TEXT_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl'] as const
+type TextSize = (typeof TEXT_SIZES)[number]
+
 function byteChunks(hex: string) {
   const chunk = []
   for (let i = 0; i < hex.length; i += 2) {
@@ -24,6 +27,21 @@ type SSTranssctionDecodedProps = {
 function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [selectedItem, setSelectedItem] = useState(0)
+  const [textSize, setTextSize] = useState<TextSize>('md')
+
+  const handleZoomIn = () => {
+    const currentIndex = TEXT_SIZES.indexOf(textSize)
+    if (currentIndex < TEXT_SIZES.length - 1) {
+      setTextSize(TEXT_SIZES[currentIndex + 1])
+    }
+  }
+
+  const handleZoomOut = () => {
+    const currentIndex = TEXT_SIZES.indexOf(textSize)
+    if (currentIndex > 0) {
+      setTextSize(TEXT_SIZES[currentIndex - 1])
+    }
+  }
 
   const colors: Record<TxField, string> = {
     [TxField.Version]: '#fff',
@@ -52,7 +70,25 @@ function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
   }
 
   return (
-    <SSVStack gap="lg">
+    <SSVStack gap="md">
+      <SSHStack gap="md" style={{ marginTop: -30, justifyContent: 'flex-end' }}>
+        <TouchableOpacity
+          onPress={handleZoomOut}
+          disabled={textSize === TEXT_SIZES[0]}
+          style={{ opacity: textSize === TEXT_SIZES[0] ? 0.5 : 1 }}
+        >
+          <SSText size="xl">-</SSText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleZoomIn}
+          disabled={textSize === TEXT_SIZES[TEXT_SIZES.length - 1]}
+          style={{
+            opacity: textSize === TEXT_SIZES[TEXT_SIZES.length - 1] ? 0.5 : 1
+          }}
+        >
+          <SSText size="xl">+</SSText>
+        </TouchableOpacity>
+      </SSHStack>
       <SSHStack style={{ flexWrap: 'wrap' }} gap="none">
         {decoded.map((item, i) => {
           return (
@@ -66,7 +102,7 @@ function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
                   >
                     <SSText
                       type="mono"
-                      size="md"
+                      size={textSize}
                       style={
                         selected
                           ? [
