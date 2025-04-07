@@ -46,7 +46,7 @@ export default function PreviewMessage() {
   useEffect(() => {
     async function getTransactionMessage() {
       if (!wallet) {
-        toast.error('WALLET NOT FOUND')
+        toast.error(t('error.notFound.wallet'))
         return
       }
 
@@ -74,7 +74,7 @@ export default function PreviewMessage() {
     getTransactionMessage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!account) return <Redirect href="/" />
+  if (!id || !account) return <Redirect href="/" />
 
   return (
     <>

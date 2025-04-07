@@ -18,19 +18,15 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-type SSTranssctionDecodedProps = {
+type SSTransactionDecodedProps = {
   txHex: string
   defaultDisplay?: 'list' | 'bytes'
-}
-
-type SSTransactionDecodedDisplayProps = {
-  decoded: TxDecodedField[]
 }
 
 function SSTransactionDecoded({
   txHex,
   defaultDisplay = 'bytes'
-}: SSTranssctionDecodedProps) {
+}: SSTransactionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [display, setDisplay] = useState<'list' | 'bytes'>(defaultDisplay)
 
@@ -61,6 +57,10 @@ function SSTransactionDecoded({
       )}
     </>
   )
+}
+
+type SSTransactionDecodedDisplayProps = {
+  decoded: TxDecodedField[]
 }
 
 function SSTransactionDecodedBytes({
