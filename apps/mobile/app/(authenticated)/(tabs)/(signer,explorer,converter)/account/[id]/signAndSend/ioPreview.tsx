@@ -27,7 +27,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
@@ -120,7 +120,7 @@ export default function IOPreview() {
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
   const [outputTo, setOutputTo] = useState('')
-  const [outputAmount, setOutputAmount] = useState(1)
+  const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [outputLabel, setOutputLabel] = useState('')
 
   const remainingSats = useMemo(
@@ -220,7 +220,7 @@ export default function IOPreview() {
     setCurrentOutputLocalId(undefined)
     setCurrentOutputNumber(outputs.length + 1)
     setOutputTo('')
-    setOutputAmount(1)
+    setOutputAmount(DUST_LIMIT)
     setOutputLabel('')
   }
 
@@ -451,7 +451,7 @@ export default function IOPreview() {
       >
         <SSVStack>
           <SSNumberGhostInput
-            min={1}
+            min={DUST_LIMIT}
             max={remainingSats}
             suffix={t('bitcoin.sats')}
             value={String(outputAmount)}
@@ -463,7 +463,7 @@ export default function IOPreview() {
                 gap="xs"
                 style={{ alignItems: 'baseline', justifyContent: 'center' }}
               >
-                <SSText weight="medium">1</SSText>
+                <SSText weight="medium">{DUST_LIMIT}</SSText>
                 <SSText color="muted" size="sm">
                   {t('bitcoin.sats')}
                 </SSText>
@@ -479,7 +479,7 @@ export default function IOPreview() {
               </SSHStack>
             </SSHStack>
             <SSSlider
-              min={1}
+              min={DUST_LIMIT}
               max={remainingSats}
               value={outputAmount}
               step={100}
