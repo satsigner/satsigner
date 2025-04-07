@@ -64,8 +64,10 @@ export type Account = {
   addresses: Address[]
   createdAt: Date
   isSyncing?: boolean
-  nostrPubkey?: string
-  nostrRelays?: string[]
-  nostrLabelsAutoSync?: boolean
-  nostrPassphrase?: string
+  nostr: {
+    pubkey: string
+    relays: string[]
+    autoSync: boolean
+    passphrase?: string
+  }
 }

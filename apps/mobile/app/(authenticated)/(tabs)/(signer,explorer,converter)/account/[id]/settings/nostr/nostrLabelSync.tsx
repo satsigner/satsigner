@@ -59,36 +59,26 @@ export default function NostrSettings() {
 
   // Load saved relays when component mounts
   useEffect(() => {
-    if (account?.nostrRelays) {
-      setSelectedRelays(account.nostrRelays)
+    if (account) {
+      setSelectedRelays(account.nostr.relays)
+      setAutoSync(account.nostr.autoSync)
     }
-  }, [account?.nostrRelays])
-
-  // Load saved autoSync state when component mounts
-  useEffect(() => {
-    if (account?.nostrLabelsAutoSync !== undefined) {
-      setAutoSync(account.nostrLabelsAutoSync)
+    if (account && account.nostr.passphrase !== undefined) {
+      setPassphrase(account.nostr.passphrase)
     }
-  }, [account?.nostrLabelsAutoSync])
-
-  // Load saved passphrase when component mounts
-  useEffect(() => {
-    if (account?.nostrPassphrase !== undefined) {
-      setPassphrase(account.nostrPassphrase)
-    }
-  }, [account?.nostrPassphrase])
+  }, [account])
 
   // Initialize NostrAPI when component mounts if relays are available
   useEffect(() => {
-    if (account?.nostrRelays && account.nostrRelays.length > 0) {
-      const api = new NostrAPI(account.nostrRelays)
+    if (account && account.nostr.relays.length > 0) {
+      const api = new NostrAPI(account.nostr.relays)
       setNostrApi(api)
       // Connect immediately
       api.connect().catch(() => {
         setRelayError('Failed to connect to relays')
       })
     }
-  }, [account?.nostrRelays])
+  }, [account])
 
   // Modify the fetch messages useEffect to only run when autoSync is on
   useEffect(() => {
@@ -379,7 +369,10 @@ export default function NostrSettings() {
                 if (account) {
                   updateAccount({
                     ...account,
-                    nostrPassphrase: text
+                    nostr: {
+                      ...account.nostr,
+                      passphrase: text
+                    }
                   })
                 }
               }}
@@ -439,7 +432,10 @@ export default function NostrSettings() {
                     if (account) {
                       updateAccount({
                         ...account,
-                        nostrLabelsAutoSync: newAutoSync
+                        nostr: {
+                          ...account.nostr,
+                          autoSync: newAutoSync
+                        }
                       })
                       // Fetch messages immediately when auto-sync is enabled
                       if (newAutoSync && npub && selectedRelays.length > 0) {

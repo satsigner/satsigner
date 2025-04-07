@@ -219,11 +219,11 @@ export class NostrAPI {
       throw new Error('Account is required for fetching and importing labels')
     }
 
-    if (!account.nostrPubkey) {
+    if (!account.nostr.pubkey) {
       throw new Error('Account has no Nostr public key configured')
     }
 
-    const keys = await this.createNsec(account, account.nostrPassphrase || '')
+    const keys = await this.createNsec(account, account.nostr.passphrase || '')
     const { secretNostrKey, npub } = keys
 
     const messages = await this.fetchMessages(

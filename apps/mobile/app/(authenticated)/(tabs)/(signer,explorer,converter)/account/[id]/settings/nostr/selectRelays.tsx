@@ -23,17 +23,17 @@ const POPULAR_RELAYS = [
 ]
 
 export default function SelectRelays() {
-  const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
+  const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [customRelayUrl, setCustomRelayUrl] = useState('')
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account) => _account.id === currentAccountId),
+      state.accounts.find((_account) => _account.id === accountId),
       state.updateAccount
     ])
   )
 
-  const selectedRelays = account?.nostrRelays ?? []
+  const selectedRelays: string[] = account?.nostr.relays || []
 
   function handleRelayToggle(relayUrl: string) {
     if (!account) return
@@ -44,7 +44,10 @@ export default function SelectRelays() {
 
     updateAccount({
       ...account,
-      nostrRelays: newSelectedRelays
+      nostr: {
+        ...account.nostr,
+        relays: newSelectedRelays
+      }
     })
   }
 
@@ -59,7 +62,10 @@ export default function SelectRelays() {
       const newSelectedRelays = [...selectedRelays, customRelayUrl]
       updateAccount({
         ...account,
-        nostrRelays: newSelectedRelays
+        nostr: {
+          ...account.nostr,
+          relays: newSelectedRelays
+        }
       })
     }
 

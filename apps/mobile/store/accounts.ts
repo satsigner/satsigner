@@ -1,9 +1,7 @@
 import { produce } from 'immer'
-import { toast } from 'sonner-native'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
-import { NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
@@ -86,36 +84,36 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
 
         // If syncing is enabled and we have Nostr credentials, fetch and import labels
-        if (
-          isSyncing &&
-          account.nostrPubkey &&
-          account.nostrRelays &&
-          account.nostrRelays.length > 0
-        ) {
-          try {
-            const nostrApi = new NostrAPI(account.nostrRelays)
-
-            // Fetch labels from Nostr
-            const { labels, totalMessages } =
-              await nostrApi.fetchAndImportLabels(account)
-
-            // Import labels if any were found
-            if (labels.length > 0) {
-              get().importLabels(account.id, labels)
-              toast(`Imported ${totalMessages} labels`)
-            }
-          } catch {
-            // Revert syncing state on error
-            set(
-              produce((state: AccountsState) => {
-                const index = state.accounts.findIndex(
-                  (account) => account.id === id
-                )
-                if (index !== -1) state.accounts[index].isSyncing = false
-              })
-            )
-          }
-        }
+        // if (
+        //   isSyncing &&
+        //   account.nostr.pubkey &&
+        //   account.nostr.relays &&
+        //   account.nostr.relays.length > 0
+        // ) {
+        //   try {
+        //     const nostrApi = new NostrAPI(account.nostr.relays)
+        //
+        //     // Fetch labels from Nostr
+        //     const { labels, totalMessages } =
+        //       await nostrApi.fetchAndImportLabels(account)
+        //
+        //     // Import labels if any were found
+        //     if (labels.length > 0) {
+        //       get().importLabels(account.id, labels)
+        //       toast(`Imported ${totalMessages} labels`)
+        //     }
+        //   } catch {
+        //     // Revert syncing state on error
+        //     set(
+        //       produce((state: AccountsState) => {
+        //         const index = state.accounts.findIndex(
+        //           (account) => account.id === id
+        //         )
+        //         if (index !== -1) state.accounts[index].isSyncing = false
+        //       })
+        //     )
+        //   }
+        // }
       },
       deleteAccount: (id) => {
         set(
@@ -164,15 +162,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return
 
-        if (account.nostrLabelsAutoSync && account.nostrPubkey) {
-          const nostrApi = new NostrAPI(account.nostrRelays || [])
-          nostrApi.sendLabelsToNostr(
-            account.keys[0].secret as Uint8Array,
-            account.nostrPubkey,
-            account
-          )
-          toast('sent labels to nostr')
-        }
+        // if (account.nostr.autoSync && account.nostr.pubkey) {
+        //   const nostrApi = new NostrAPI(account.nostr.relays)
+        //   nostrApi.sendLabelsToNostr(
+        //     account.keys[0].secret as Uint8Array,
+        //     account.nostr.pubkey,
+        //     account
+        //   )
+        //   toast('sent labels to nostr')
+        // }
 
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
@@ -194,15 +192,15 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return
 
-        if (account.nostrLabelsAutoSync && account.nostrPubkey) {
-          const nostrApi = new NostrAPI(account.nostrRelays || [])
-          nostrApi.sendLabelsToNostr(
-            account.keys[0].secret as Uint8Array,
-            account.nostrPubkey,
-            account
-          )
-          toast('sent labels to nostr')
-        }
+        // if (account.nostr.autoSync && account.nostr.pubkey) {
+        //   const nostrApi = new NostrAPI(account.nostr.relays)
+        //   nostrApi.sendLabelsToNostr(
+        //     account.keys[0].secret as Uint8Array,
+        //     account.nostr.pubkey,
+        //     account
+        //   )
+        //   toast('sent labels to nostr')
+        // }
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
         if (txIndex === -1) return
@@ -222,14 +220,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         )
         if (!account) return
 
-        if (account.nostrLabelsAutoSync && account.nostrPubkey) {
-          const nostrApi = new NostrAPI(account.nostrRelays || [])
-          nostrApi.sendLabelsToNostr(
-            account.keys[0].secret as Uint8Array,
-            account.nostrPubkey,
-            account
-          )
-        }
+        // if (account.nostrLabelsAutoSync && account.nostrPubkey) {
+        //   const nostrApi = new NostrAPI(account.nostrRelays || [])
+        //   nostrApi.sendLabelsToNostr(
+        //     account.keys[0].secret as Uint8Array,
+        //     account.nostrPubkey,
+        //     account
+        //   )
+        // }
 
         const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
