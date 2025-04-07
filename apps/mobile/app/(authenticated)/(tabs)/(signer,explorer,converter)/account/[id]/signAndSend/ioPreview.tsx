@@ -46,6 +46,7 @@ import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { selectEfficientUtxos } from '@/utils/utxo'
+import { estimateTransactionSize } from '@/utils/transaction'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
@@ -127,6 +128,10 @@ export default function IOPreview() {
       utxosSelectedValue -
       outputs.reduce((acc, output) => acc + output.amount, 0),
     [utxosSelectedValue, outputs]
+  )
+  const transactionSize = useMemo(
+    () => estimateTransactionSize(inputs.size, outputs.length + 2),
+    [inputs.size, outputs.length]
   )
 
   const { nodes, links } = useNodesAndLinks({
@@ -605,7 +610,7 @@ export default function IOPreview() {
         <SSFeeInput
           value={localFeeRate}
           onValueChange={setLocalFeeRate}
-          vbytes={250}
+          vbytes={transactionSize.vsize}
           max={40}
           estimatedBlock={Math.trunc(40 / localFeeRate)}
         />
