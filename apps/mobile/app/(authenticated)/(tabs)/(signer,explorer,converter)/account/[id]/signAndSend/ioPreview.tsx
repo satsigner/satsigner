@@ -39,14 +39,14 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-import { type Output } from '@/types/models/Output'
+// import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
-import { selectEfficientUtxos } from '@/utils/utxo'
 import { estimateTransactionSize } from '@/utils/transaction'
+// import { selectEfficientUtxos } from '@/utils/utxo'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
@@ -112,10 +112,10 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
-  const outputsValue = (outputs: Output[]): number =>
-    outputs.reduce((acc, output) => acc + output.amount, 0)
+  // const outputsValue = (outputs: Output[]): number =>
+  //   outputs.reduce((acc, output) => acc + output.amount, 0)
 
-  const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
+  // const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
