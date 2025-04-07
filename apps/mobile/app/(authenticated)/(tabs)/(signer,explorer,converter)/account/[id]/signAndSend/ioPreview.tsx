@@ -226,6 +226,12 @@ export default function IOPreview() {
 
   function handleOnPressOutput(localId?: string) {
     setCurrentOutputLocalId(localId)
+
+    if (localId === 'minerFee') {
+      changeFeeBottomSheetRef.current?.expand()
+      return
+    }
+
     const outputIndex = outputs.findIndex(
       (output) => output.localId === localId
     )
