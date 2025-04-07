@@ -235,6 +235,9 @@ export default function IOPreview() {
     if (localId === 'minerFee') {
       changeFeeBottomSheetRef.current?.expand()
       return
+    } else if (localId === 'remainingBalance') {
+      addOutputBottomSheetRef.current?.expand()
+      return
     }
 
     const outputIndex = outputs.findIndex(
