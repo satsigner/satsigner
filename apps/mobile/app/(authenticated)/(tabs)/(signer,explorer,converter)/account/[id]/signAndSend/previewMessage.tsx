@@ -1,6 +1,6 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -8,7 +8,6 @@ import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
-import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -17,8 +16,11 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatAddress, formatNumber } from '@/utils/format'
-import { getUtxoOutpoint } from '@/utils/utxo'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
+import SSTransactionChart from '@/components/SSTransactionChart'
+import { type Transaction } from '@/types/models/Transaction'
+import { estimateTransactionSize } from '@/utils/transaction'
 
 export default function PreviewMessage() {
   const router = useRouter()
@@ -42,6 +44,53 @@ export default function PreviewMessage() {
   const [messageId, setMessageId] = useState('')
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
+
+  const transaction = useMemo(() => {
+    const { size, vsize } = estimateTransactionSize(
+      inputs.size,
+      outputs.length + 1
+    )
+
+    const vin = [...inputs.values()].map((input: Utxo) => ({
+      previousOutput: {
+        txid: input.txid,
+        vout: input.vout
+      },
+      value: input.value,
+      label: input.label || ''
+    }))
+
+    const vout = outputs.map((output: Output) => ({
+      address: output.to,
+      value: output.amount,
+      label: output.label || ''
+    }))
+
+    const totalVin = vin.reduce((previousValue, input) => {
+      return previousValue + input.value
+    }, 0)
+    const totalVout = vout.reduce((previousValue, output) => {
+      return previousValue + output.value
+    }, 0)
+    const minerFee = feeRate * vsize
+    const changeValue = totalVin - totalVout - minerFee
+
+    if (changeValue !== 0) {
+      vout.push({
+        address: t('transaction.build.change'),
+        value: changeValue,
+        label: ''
+      })
+    }
+
+    return {
+      id: messageId,
+      size,
+      vsize,
+      vin,
+      vout
+    } as never as Transaction
+  }, [inputs, outputs, messageId, feeRate])
 
   useEffect(() => {
     async function getTransactionMessage() {
@@ -98,45 +147,7 @@ export default function PreviewMessage() {
               <SSText color="muted" size="sm" uppercase>
                 Contents
               </SSText>
-              <SSHStack>
-                <SSVStack>
-                  <SSText>Inputs:</SSText>
-                  {[...inputs.values()].map((utxo) => (
-                    <SSVStack gap="none" key={getUtxoOutpoint(utxo)}>
-                      <SSText>{formatNumber(utxo.value)} sats</SSText>
-                      <SSHStack gap="xs">
-                        <SSText color="muted" size="xs">
-                          from
-                        </SSText>
-                        <SSText size="xs">
-                          {formatAddress(utxo.addressTo || '')}
-                        </SSText>
-                      </SSHStack>
-                    </SSVStack>
-                  ))}
-                </SSVStack>
-                <SSVStack gap="none">
-                  <SSText color="muted">Bytes:</SSText>
-                  <SSText>...</SSText>
-                </SSVStack>
-                <SSVStack>
-                  <SSText>Outputs:</SSText>
-                  {[...outputs].map((output) => (
-                    <SSVStack gap="none" key={output.localId}>
-                      <SSText>{formatNumber(output.amount)} sats</SSText>
-                      <SSHStack gap="xs">
-                        <SSText color="muted" size="xs">
-                          from
-                        </SSText>
-                        <SSText size="xs">{formatAddress(output.to)}</SSText>
-                      </SSHStack>
-                      <SSText color="muted" size="xxs">
-                        "{output.label}"
-                      </SSText>
-                    </SSVStack>
-                  ))}
-                </SSVStack>
-              </SSHStack>
+              <SSTransactionChart transaction={transaction} />
             </SSVStack>
           </SSVStack>
           <SSButton
