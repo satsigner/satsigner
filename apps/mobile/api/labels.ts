@@ -1,12 +1,11 @@
+import { type Account } from '@/types/models/Account'
 import {
+  bip329export,
   formatAddressLabels,
   formatTransactionLabels,
   formatUtxoLabels,
-  type Label,
-  bip329export,
-  bip329parser
+  type Label
 } from '@/utils/bip329'
-import { type Account } from '@/types/models/Account'
 
 export interface LabelsAPI {
   formatLabels(account: Account): Label[]
@@ -41,8 +40,7 @@ export class LabelsAPI implements LabelsAPI {
       .map((jsonString) => {
         try {
           return JSON.parse(jsonString)
-        } catch (e) {
-          console.error('Error parsing JSON:', jsonString, e)
+        } catch {
           return null
         }
       })

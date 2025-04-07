@@ -1,14 +1,14 @@
 import { produce } from 'immer'
+import { toast } from 'sonner-native'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { NostrAPI } from '@/api/nostr'
-import { toast } from 'sonner-native'
 
 type AccountsState = {
   accounts: Account[]
@@ -101,11 +101,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
 
             // Import labels if any were found
             if (labels.length > 0) {
-              const importedCount = get().importLabels(account.id, labels)
+              get().importLabels(account.id, labels)
               toast(`Imported ${totalMessages} labels`)
             }
-          } catch (error) {
-            console.error('Error syncing labels:', error)
+          } catch {
             // Revert syncing state on error
             set(
               produce((state: AccountsState) => {
@@ -230,7 +229,6 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             account.nostrPubkey,
             account
           )
-          console.log('sent labels to nostr')
         }
 
         const utxoIndex = account.utxos.findIndex((u) => {

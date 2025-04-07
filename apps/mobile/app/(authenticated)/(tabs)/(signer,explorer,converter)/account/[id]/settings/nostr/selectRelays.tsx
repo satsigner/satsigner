@@ -1,15 +1,16 @@
 import { Stack, useLocalSearchParams } from 'expo-router'
-import { useShallow } from 'zustand/react/shallow'
+import { useState } from 'react'
 import { ScrollView } from 'react-native'
-import { t } from '@/locales'
-import SSText from '@/components/SSText'
+import { useShallow } from 'zustand/react/shallow'
+
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
+import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSVStack from '@/layouts/SSVStack'
-import SSCheckbox from '@/components/SSCheckbox'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { useState } from 'react'
 
 const POPULAR_RELAYS = [
   { url: 'wss://nos.lol', name: 'Nos.lol' },
@@ -51,7 +52,6 @@ export default function SelectRelays() {
     if (!customRelayUrl || !account) return
 
     if (!customRelayUrl.startsWith('wss://')) {
-      console.error('Invalid relay URL. Must start with wss://')
       return
     }
 
@@ -107,7 +107,7 @@ export default function SelectRelays() {
             <SSVStack key={url} gap="xxs">
               <SSCheckbox
                 label={url}
-                selected={true}
+                selected
                 onPress={() => handleRelayToggle(url)}
               />
             </SSVStack>

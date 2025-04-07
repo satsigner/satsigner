@@ -1,31 +1,20 @@
-import { Redirect, Stack, useLocalSearchParams, router } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { useEffect, useState } from 'react'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
-import { useState, useEffect } from 'react'
-import { ScrollView, useWindowDimensions } from 'react-native'
-import { t } from '@/locales'
-import SSText from '@/components/SSText'
+
+import { LabelsAPI } from '@/api/labels'
+import { NostrAPI, type NostrMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
-import SSTextInput from '@/components/SSTextInput'
-import SSVStack from '@/layouts/SSVStack'
-import SSHStack from '@/layouts/SSHStack'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSModal from '@/components/SSModal'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import SSHStack from '@/layouts/SSHStack'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  formatAddressLabels,
-  formatTransactionLabels,
-  formatUtxoLabels,
-  type Label,
-  bip329export,
-  bip329parser
-} from '@/utils/bip329'
-import { aesDecrypt } from '@/utils/crypto'
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
-import { type Secret } from '@/types/models/Account'
-import SSModal from '@/components/SSModal'
-import { NostrAPI, type NostrKeys, type NostrMessage } from '@/api/nostr'
-import { LabelsAPI } from '@/api/labels'
 
 export default function NostrSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -36,7 +25,6 @@ export default function NostrSettings() {
   const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [secretNostrKey, setSecretNostrKey] = useState<Uint8Array | null>(null)
-  const [displayMessageCount, setDisplayMessageCount] = useState(3)
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
   const [autoSync, setAutoSync] = useState(false)
@@ -44,7 +32,6 @@ export default function NostrSettings() {
     number | null
   >(null)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
-  const layout = useWindowDimensions()
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
@@ -58,21 +45,13 @@ export default function NostrSettings() {
     ])
   )
 
-  const [, importLabelsToAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.id === currentAccountId),
-      state.importLabels
-    ])
-  )
-
   // Initialize NostrAPI when relays change
   useEffect(() => {
     if (selectedRelays.length > 0) {
       const api = new NostrAPI(selectedRelays)
       setNostrApi(api)
       // Connect immediately
-      api.connect().catch((error) => {
-        console.error('Failed to connect to relays:', error)
+      api.connect().catch(() => {
         setRelayError('Failed to connect to relays')
       })
     }
@@ -105,8 +84,7 @@ export default function NostrSettings() {
       const api = new NostrAPI(account.nostrRelays)
       setNostrApi(api)
       // Connect immediately
-      api.connect().catch((error) => {
-        console.error('Failed to connect to relays:', error)
+      api.connect().catch(() => {
         setRelayError('Failed to connect to relays')
       })
     }
@@ -117,7 +95,7 @@ export default function NostrSettings() {
     if (autoSync && npub && selectedRelays.length > 0) {
       fetchMessages()
     }
-  }, [npub, selectedRelays, autoSync])
+  }, [npub, selectedRelays, autoSync]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Modify the auto sync useEffect to include fetchMessages in the interval
   useEffect(() => {
@@ -133,7 +111,7 @@ export default function NostrSettings() {
       // Cleanup interval on unmount or when auto sync is disabled
       return () => clearInterval(syncInterval)
     }
-  }, [autoSync, npub, selectedRelays])
+  }, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Add effect to handle label updates
   useEffect(() => {
@@ -147,7 +125,7 @@ export default function NostrSettings() {
     ) {
       nostrApi.sendLabelsToNostr(secretNostrKey, npub, account)
     }
-  }, [account?.transactions, account?.utxos, account?.addresses])
+  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Add new useEffect to auto-execute handleCreateNsec
   useEffect(() => {
@@ -155,7 +133,7 @@ export default function NostrSettings() {
       setNostrApi(new NostrAPI(selectedRelays))
       handleCreateNsec()
     }
-  }, [account, passphrase, selectedRelays])
+  }, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchMessages(loadMore: boolean = false) {
     if (!npub || !secretNostrKey || !nostrApi) return
@@ -198,7 +176,6 @@ export default function NostrSettings() {
         setMessages(fetchedMessages)
       }
     } catch (error) {
-      console.error('Error fetching messages:', error)
       setRelayError(
         error instanceof Error ? error.message : 'Failed to fetch messages'
       )
@@ -218,7 +195,6 @@ export default function NostrSettings() {
       setNsec(keys.nsec)
       setNpub(keys.npub)
     } catch (error) {
-      console.error('Error creating nsec:', error)
       setRelayError(
         error instanceof Error ? error.message : 'Failed to create nsec'
       )
@@ -250,7 +226,6 @@ export default function NostrSettings() {
       // Refresh messages
       await fetchMessages()
     } catch (error) {
-      console.error('Error in handleSendMessage:', error)
       setRelayError(
         error instanceof Error ? error.message : 'Failed to send message'
       )
@@ -308,8 +283,7 @@ export default function NostrSettings() {
       setImportCount(importCount)
       setImportCountTotal(labels.length)
       setSuccessMsgVisible(true)
-    } catch (error) {
-      console.error('Error importing labels:', error)
+    } catch {
       setRelayError('Failed to import labels')
     }
   }
@@ -441,9 +415,7 @@ export default function NostrSettings() {
               <>
                 <SSButton
                   label={t('account.nostrlabels.checkForMessages')}
-                  onPress={(_event) => {
-                    void fetchMessages(false)
-                  }}
+                  onPress={() => fetchMessages(false)}
                   disabled={isLoading || selectedRelays.length === 0}
                 />
                 <SSButton
@@ -537,9 +509,7 @@ export default function NostrSettings() {
                 {hasMoreMessages && (
                   <SSButton
                     label={t('account.nostrlabels.loadOlderMessages')}
-                    onPress={(_event) => {
-                      void fetchMessages(true)
-                    }}
+                    onPress={() => fetchMessages(true)}
                     disabled={isLoading}
                   />
                 )}

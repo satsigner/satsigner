@@ -1,13 +1,13 @@
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
-import { generateSecretKey, nip19, getPublicKey, nip04 } from 'nostr-tools'
-import { type Label } from '@/utils/bip329'
-import { aesDecrypt } from '@/utils/crypto'
+import { getPublicKey, nip04, nip19 } from 'nostr-tools'
+
+import { LabelsAPI } from '@/api/labels'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
-import { type Secret, type Account } from '@/types/models/Account'
-import { LabelsAPI } from '@/api/labels'
-import { useAccountsStore } from '@/store/accounts'
+import { type Account, type Secret } from '@/types/models/Account'
+import { type Label } from '@/utils/bip329'
+import { aesDecrypt } from '@/utils/crypto'
 
 export interface NostrKeys {
   nsec: string
@@ -21,12 +21,6 @@ export interface NostrMessage {
   pubkey: string
   decryptedContent?: string
   isSender?: boolean
-}
-
-interface NDKEventType {
-  content: string
-  created_at?: number
-  pubkey: string
 }
 
 export class NostrAPI {
@@ -171,8 +165,7 @@ export class NostrAPI {
             decryptedContent: decodedContent,
             isSender
           }
-        } catch (error) {
-          console.error('Error decrypting message:', error)
+        } catch {
           return {
             content: msg.content,
             created_at: msg.created_at ?? Math.floor(Date.now() / 1000),
@@ -205,7 +198,6 @@ export class NostrAPI {
     const labels = labelsApi.formatLabels(account)
 
     if (labels.length === 0) {
-      console.log('No labels to send')
       return
     }
 
@@ -231,11 +223,9 @@ export class NostrAPI {
       throw new Error('Account has no Nostr public key configured')
     }
 
-    // Get Nostr keys using createNsec
     const keys = await this.createNsec(account, account.nostrPassphrase || '')
     const { secretNostrKey, npub } = keys
 
-    // Fetch messages
     const messages = await this.fetchMessages(
       secretNostrKey,
       npub,
@@ -247,7 +237,6 @@ export class NostrAPI {
       return { labels: [], totalMessages: 0 }
     }
 
-    // Find the latest message that starts with {"label":
     const latestLabelMessage = messages.find((msg) =>
       msg.decryptedContent?.startsWith('{"label":')
     )
@@ -256,15 +245,13 @@ export class NostrAPI {
       return { labels: [], totalMessages: messages.length }
     }
 
-    // Initialize LabelsAPI for parsing
     const labelsApi = new LabelsAPI()
     let labels: Label[] = []
 
     try {
-      // Parse labels from the latest valid message
       labels = labelsApi.parseLabels(latestLabelMessage.decryptedContent)
-    } catch (error) {
-      console.error('Error parsing labels from message:', error)
+    } catch {
+      //
     }
 
     return {
