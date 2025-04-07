@@ -7,20 +7,11 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { NOSTR_RELAYS } from '@/constants/nostr'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-
-const POPULAR_RELAYS = [
-  { url: 'wss://nos.lol', name: 'Nos.lol' },
-  { url: 'wss://nostr.mom', name: 'Nostr Mom' },
-  { url: 'wss://nostr.wine', name: 'Nostr Wine' },
-  { url: 'wss://offchain.pub', name: 'Offchain' },
-  { url: 'wss://relay.damus.io', name: 'Damus' },
-  { url: 'wss://relay.primal.net', name: 'Primal' },
-  { url: 'wss://relay.snort.social', name: 'Snort' }
-]
 
 export default function SelectRelays() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -82,7 +73,7 @@ export default function SelectRelays() {
         }}
       />
       <SSVStack gap="md" style={{ padding: 20 }}>
-        {POPULAR_RELAYS.map((relay) => (
+        {NOSTR_RELAYS.map((relay) => (
           <SSVStack key={relay.url} gap="xxs">
             <SSCheckbox
               label={relay.url}
@@ -108,7 +99,7 @@ export default function SelectRelays() {
         </SSVStack>
 
         {selectedRelays
-          .filter((url) => !POPULAR_RELAYS.some((relay) => relay.url === url))
+          .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
           .map((url) => (
             <SSVStack key={url} gap="xxs">
               <SSCheckbox
