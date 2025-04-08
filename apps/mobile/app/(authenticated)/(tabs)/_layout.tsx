@@ -21,20 +21,22 @@ export default function TabLayout() {
   const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
 
+  function handleTabItemPress(props: any, segment: string) {
+    if (
+      segments.indexOf(segment) >= 0 &&
+      segments.indexOf(segment) < segments.length - 1
+    ) {
+      router.replace(`/(authenticated)/(tabs)/${segment}`)
+    } else {
+      props.onPress?.()
+    }
+  }
+
   const renderTabButton = (props: any, segment: string) => {
     return (
       <View style={props.style}>
         <TouchableWithoutFeedback
-          onPress={() => {
-            if (
-              segments.indexOf(segment) >= 0 &&
-              segments.indexOf(segment) < segments.length - 1
-            ) {
-              router.replace(`/(authenticated)/(tabs)/${segment}`)
-            } else {
-              props.onPress?.()
-            }
-          }}
+          onPress={() => handleTabItemPress(props, segment)}
         >
           {props.children}
         </TouchableWithoutFeedback>
