@@ -15,13 +15,13 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { pickFile } from '@/utils/filesystem'
 import {
+  type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
-  bip329parser,
-  type Bip329FileType
+  bip329parser
 } from '@/utils/bip329'
+import { pickFile } from '@/utils/filesystem'
 
 export default function ImportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()

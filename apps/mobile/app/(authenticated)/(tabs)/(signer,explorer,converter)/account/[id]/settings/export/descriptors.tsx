@@ -6,8 +6,10 @@ import { ScrollView, View } from 'react-native'
 import { getWalletData } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import { SSIconEyeOn } from '@/components/icons'
 import SSText from '@/components/SSText'
 import { PIN_KEY } from '@/config/auth'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
@@ -18,9 +20,6 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
-
-import SSHStack from '@/layouts/SSHStack'
-import { SSIconEyeOn } from '@/components/icons'
 
 export default function ExportDescriptors() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
