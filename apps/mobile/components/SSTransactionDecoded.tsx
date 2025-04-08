@@ -1,10 +1,9 @@
 import { Fragment, useMemo, useState } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
+import { TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import SSText from './SSText'

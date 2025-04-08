@@ -3,11 +3,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconEyeOn,
-  SSIconScriptsP2pkh,
-  SSIconWarning
-} from '@/components/icons'
+import { SSIconEyeOn, SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -369,7 +365,7 @@ export default function AccountSettings() {
         </SSVStack>
       </SSModal>
       <SSModal
-        fullOpacity={true}
+        fullOpacity
         visible={mnemonicModalVisible}
         onClose={() => setMnemonicModalVisible(false)}
         label={t('common.close')}

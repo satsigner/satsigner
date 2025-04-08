@@ -2,6 +2,7 @@ import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
+import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -14,17 +15,15 @@ import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   bip329export,
-  type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
   formatAddressLabels,
   formatTransactionLabels,
   formatUtxoLabels,
+  type Bip329FileType,
   type Label
 } from '@/utils/bip329'
 import { shareFile } from '@/utils/filesystem'
-
-import { SSIconEyeOn } from '@/components/icons'
 
 export default function ExportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()

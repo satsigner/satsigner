@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
@@ -14,15 +15,13 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { pickFile } from '@/utils/filesystem'
 import {
-  type Bip329FileType,
   bip329FileTypes,
   bip329mimes,
-  bip329parser
+  bip329parser,
+  type Bip329FileType
 } from '@/utils/bip329'
-import { pickFile } from '@/utils/filesystem'
-
-import { SSIconEyeOn } from '@/components/icons'
 
 export default function ImportLabels() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()

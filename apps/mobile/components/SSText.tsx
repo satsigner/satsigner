@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Platform, StyleSheet, Text } from 'react-native'
+import { StyleSheet, Text } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
