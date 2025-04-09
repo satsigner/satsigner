@@ -47,6 +47,10 @@ function SSNostrLabelSync() {
     ])
   )
 
+  function filterMessages(msg: NostrMessage) {
+    return msg.decryptedContent !== undefined && msg.decryptedContent !== ''
+  }
+
   async function fetchMessages(loadMore: boolean = false) {
     if (!npub || !secretNostrKey || !nostrApi) return
 
@@ -61,11 +65,13 @@ function SSNostrLabelSync() {
       // Ensure connection is established
       await nostrApi.connect()
 
-      const fetchedMessages = await nostrApi.fetchMessages(
-        secretNostrKey,
-        npub,
-        loadMore ? lastMessageTimestamp ?? undefined : undefined
-      )
+      const fetchedMessages = (
+        await nostrApi.fetchMessages(
+          secretNostrKey,
+          npub,
+          loadMore ? lastMessageTimestamp ?? undefined : undefined
+        )
+      ).filter(filterMessages)
 
       // If no messages returned, we've reached the end
       if (fetchedMessages.length === 0) {
