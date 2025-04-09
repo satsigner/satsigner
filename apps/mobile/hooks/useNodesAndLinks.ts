@@ -88,7 +88,7 @@ export const useNodesAndLinks = ({
 
       const { size, vsize } = estimateTransactionSize(
         inputs.size,
-        outputs.length + 2
+        outputs.length + 1
       )
       const minerFee = Math.round(feeRate * vsize)
       const miningFee = `${minerFee}`
