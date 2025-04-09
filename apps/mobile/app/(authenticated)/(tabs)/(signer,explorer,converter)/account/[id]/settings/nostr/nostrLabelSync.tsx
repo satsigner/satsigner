@@ -108,6 +108,14 @@ function SSNostrLabelSync() {
         throw new Error('Nostr API not initialized')
       }
 
+      const { npub, nsec, seckey } = account.nostr
+      if (npub && nsec && seckey) {
+        setSecretNostrKey(seckey)
+        setNsec(nsec)
+        setNpub(npub)
+        return
+      }
+
       const keys = await nostrApi.createNsec(account, passphrase)
       setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
@@ -117,7 +125,8 @@ function SSNostrLabelSync() {
         nostr: {
           ...account.nostr,
           seckey: keys.secretNostrKey,
-          pubkey: keys.npub
+          npub: keys.npub,
+          nsec: keys.nsec
         }
       })
     } catch (error) {

@@ -222,7 +222,8 @@ const useAccountBuilderStore = create<
       addresses: [],
       createdAt: new Date(),
       nostr: {
-        pubkey: '',
+        npub: '',
+        nsec: '',
         relays: [],
         autoSync: false,
         passphrase: undefined

@@ -65,7 +65,8 @@ export type Account = {
   createdAt: Date
   isSyncing?: boolean
   nostr: {
-    pubkey: string
+    npub: string
+    nsec: string
     seckey?: Uint8Array
     relays: string[]
     autoSync: boolean
