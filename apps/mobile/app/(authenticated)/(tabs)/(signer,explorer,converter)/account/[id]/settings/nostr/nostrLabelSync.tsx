@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { LabelsAPI } from '@/api/labels'
@@ -369,21 +369,16 @@ function SSNostrLabelSync() {
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
-    <SSMainLayout style={{ padding: 0 }}>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
+    <SSMainLayout style={{ paddingTop: 0 }}>
       <ScrollView>
-        <SSVStack gap="md">
+        <SSVStack gap="lg">
           <SSText center uppercase color="muted">
             {t('account.nostrlabels.title')}
           </SSText>
           {/* Keys display */}
           <SSVStack gap="xxs" style={styles.keysContainer}>
-            {nsec && (
-              <SSVStack gap="md">
+            {(nsec !== '' && npub !== '') ? (
+              <>
                 <SSVStack gap="xxs">
                   <SSText color="muted" center>
                     {t('account.nostrlabels.nsec')}
@@ -412,7 +407,12 @@ function SSNostrLabelSync() {
                     {npub}
                   </SSText>
                 </SSVStack>
-              </SSVStack>
+              </>
+            ) : (
+              <SSHStack style={styles.keyContainerLoading}>
+                <ActivityIndicator></ActivityIndicator>
+                <SSText uppercase>Loading keys</SSText>
+              </SSHStack>
             )}
           </SSVStack>
           {/* Passphrase field */}
@@ -548,8 +548,11 @@ const styles = StyleSheet.create({
   keysContainer: {
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 190
+    padding: 10
+  },
+  keyContainerLoading: {
+    justifyContent: 'center',
+    paddingVertical: 10,
   },
   keyText: {
     letterSpacing: 1
