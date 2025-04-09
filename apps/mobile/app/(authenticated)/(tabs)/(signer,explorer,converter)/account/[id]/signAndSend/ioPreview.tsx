@@ -27,7 +27,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { SATS_PER_BITCOIN } from '@/constants/btc'
+import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
@@ -39,13 +39,14 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-import { type Output } from '@/types/models/Output'
+// import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
-import { selectEfficientUtxos } from '@/utils/utxo'
+import { estimateTransactionSize } from '@/utils/transaction'
+// import { selectEfficientUtxos } from '@/utils/utxo'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
@@ -111,15 +112,15 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
-  const outputsValue = (outputs: Output[]): number =>
-    outputs.reduce((acc, output) => acc + output.amount, 0)
+  // const outputsValue = (outputs: Output[]): number =>
+  //   outputs.reduce((acc, output) => acc + output.amount, 0)
 
-  const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
+  // const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
   const [outputTo, setOutputTo] = useState('')
-  const [outputAmount, setOutputAmount] = useState(1)
+  const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
   const [outputLabel, setOutputLabel] = useState('')
 
   const remainingSats = useMemo(
@@ -127,6 +128,10 @@ export default function IOPreview() {
       utxosSelectedValue -
       outputs.reduce((acc, output) => acc + output.amount, 0),
     [utxosSelectedValue, outputs]
+  )
+  const transactionSize = useMemo(
+    () => estimateTransactionSize(inputs.size, outputs.length + 2),
+    [inputs.size, outputs.length]
   )
 
   const { nodes, links } = useNodesAndLinks({
@@ -215,7 +220,7 @@ export default function IOPreview() {
     setCurrentOutputLocalId(undefined)
     setCurrentOutputNumber(outputs.length + 1)
     setOutputTo('')
-    setOutputAmount(1)
+    setOutputAmount(DUST_LIMIT)
     setOutputLabel('')
   }
 
@@ -229,6 +234,9 @@ export default function IOPreview() {
 
     if (localId === 'minerFee') {
       changeFeeBottomSheetRef.current?.expand()
+      return
+    } else if (localId === 'remainingBalance') {
+      addOutputBottomSheetRef.current?.expand()
       return
     }
 
@@ -446,7 +454,7 @@ export default function IOPreview() {
       >
         <SSVStack>
           <SSNumberGhostInput
-            min={1}
+            min={DUST_LIMIT}
             max={remainingSats}
             suffix={t('bitcoin.sats')}
             value={String(outputAmount)}
@@ -458,7 +466,7 @@ export default function IOPreview() {
                 gap="xs"
                 style={{ alignItems: 'baseline', justifyContent: 'center' }}
               >
-                <SSText weight="medium">1</SSText>
+                <SSText weight="medium">{DUST_LIMIT}</SSText>
                 <SSText color="muted" size="sm">
                   {t('bitcoin.sats')}
                 </SSText>
@@ -474,7 +482,7 @@ export default function IOPreview() {
               </SSHStack>
             </SSHStack>
             <SSSlider
-              min={1}
+              min={DUST_LIMIT}
               max={remainingSats}
               value={outputAmount}
               step={100}
@@ -605,7 +613,7 @@ export default function IOPreview() {
         <SSFeeInput
           value={localFeeRate}
           onValueChange={setLocalFeeRate}
-          vbytes={250}
+          vbytes={transactionSize.vsize}
           max={40}
           estimatedBlock={Math.trunc(40 / localFeeRate)}
         />

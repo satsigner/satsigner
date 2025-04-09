@@ -35,7 +35,7 @@ function selectEfficientUtxos(
   feeRate: number,
   options?: UtxoOptions
 ): {
-  inputs: _Utxo[]
+  inputs: Utxo[]
   fee: number
   change: number
   error?: string
@@ -144,7 +144,7 @@ function branchAndBoundUtxoSelection(
   feeRate: number,
   opts: UtxoOptions
 ): {
-  inputs: _Utxo[]
+  inputs: Utxo[]
   fee: number
   change: number
 } | null {
@@ -263,7 +263,7 @@ function branchAndBoundUtxoSelection(
 /**
  * Find a subset of UTXOs that exactly match the target amount
  */
-function findExactMatch(utxos: _Utxo[], targetValue: number) {
+function findExactMatch(utxos: _Utxo[], targetValue: number): Utxo[] | null {
   // This uses dynamic programming to find subset sum
   const n = utxos.length
 
@@ -329,7 +329,14 @@ function selectStonewallUtxos(
   targetAmount: number,
   feeRate: number,
   options: StonewallOptions = {}
-) {
+): {
+  inputs: Utxo[]
+  outputs: ChangeOutput[]
+  fee: number
+  privacyScore: number
+  txSize: number
+  error?: string
+} {
   // Default options
   const defaultOptions = {
     dustThreshold: 546,
@@ -351,7 +358,14 @@ function selectStonewallUtxos(
   // Check for insufficient funds early
   const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
-    return { error: 'Insufficient funds' }
+    return {
+      inputs: [],
+      outputs: [],
+      fee: 0,
+      privacyScore: 0,
+      txSize: 0,
+      error: 'Insufficient funds'
+    }
   }
 
   // Filter UTXOs based on postmix option
@@ -580,7 +594,7 @@ function selectStonewallUtxos(
           {
             type: options.recipientType || 'p2pkh',
             value: targetAmount,
-            recipient: true
+            size: getOutputSize(options.recipientType || 'p2pkh')
           },
           ...changeOutputs
         ],
@@ -592,7 +606,14 @@ function selectStonewallUtxos(
   }
 
   if (!bestSolution) {
-    return { error: 'Could not find a suitable STONEWALL structure' }
+    return {
+      inputs: [],
+      outputs: [],
+      fee: 0,
+      privacyScore: 0,
+      txSize: 0,
+      error: 'Could not find a suitable STONEWALL structure'
+    }
   }
 
   return bestSolution
@@ -608,7 +629,7 @@ function selectStonewallUtxos(
 function calculateStonewallEntropy(solution: {
   inputs: _Utxo[]
   outputs: ChangeOutput[]
-}) {
+}): number {
   if (!solution || !solution.inputs || !solution.outputs) {
     return 0
   }
@@ -653,7 +674,7 @@ function distributeChangeWithPrivacy(
   totalChange: number,
   numOutputs: number,
   dustThreshold: number
-) {
+): number[] {
   if (numOutputs <= 0) return []
   if (numOutputs === 1) return [totalChange]
 
