@@ -312,7 +312,16 @@ function DerivedAddresses({
     if (minItems <= addressCount) return
 
     if (account.addresses.length >= addressCount) {
-      setAddresses(account.addresses.slice(0, addressCount))
+      let newAddresses = await getWalletAddresses(
+        wallet!,
+        network!,
+        addressCount
+      )
+      newAddresses = parseAccountAddressesDetails({
+        ...account,
+        addresses: newAddresses
+      })
+      setAddresses(newAddresses)
       return
     }
 
