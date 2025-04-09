@@ -11,13 +11,14 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
-export default function NostrSettings() {
-  const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
+function NostrLabelSync() {
+  const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [nsec, setNsec] = useState('')
   const [npub, setNpub] = useState('')
@@ -41,85 +42,10 @@ export default function NostrSettings() {
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account) => _account.id === currentAccountId),
+      state.accounts.find((_account) => _account.id === accountId),
       state.updateAccount
     ])
   )
-
-  // Initialize NostrAPI when relays change
-  useEffect(() => {
-    if (selectedRelays.length > 0) {
-      const api = new NostrAPI(selectedRelays)
-      setNostrApi(api)
-      // Connect immediately
-      api.connect().catch(() => {
-        setRelayError('Failed to connect to relays')
-      })
-    }
-  }, [selectedRelays])
-
-  useEffect(() => {
-    if (!account) return
-    // Load saved relays when component mounts
-    setSelectedRelays(account.nostr.relays)
-    setAutoSync(account.nostr.autoSync)
-
-    // Load passphrase
-    if (account.nostr.passphrase !== undefined) {
-      setPassphrase(account.nostr.passphrase)
-    }
-
-    // Initialize NostrAPI when component mounts if relays are available
-    if (account.nostr.relays.length > 0) {
-      const api = new NostrAPI(account.nostr.relays)
-      setNostrApi(api)
-      // Connect immediately
-      api.connect().catch(() => {
-        setRelayError('Failed to connect to relays')
-      })
-    }
-  }, [account])
-
-  // Modify the fetch messages useEffect to only run when autoSync is on
-  useEffect(() => {
-    if (autoSync && npub && selectedRelays.length > 0) {
-      fetchMessages()
-    }
-
-    if (autoSync && npub && selectedRelays.length > 0) {
-      // Initial sync
-      handleSendMessage()
-
-      // Set up interval for auto sync
-      const syncInterval = setInterval(() => {
-        fetchMessages()
-      }, 60000) // Sync every minute
-
-      // Cleanup interval on unmount or when auto sync is disabled
-      return () => clearInterval(syncInterval)
-    }
-  }, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (
-      autoSync &&
-      npub &&
-      selectedRelays.length > 0 &&
-      secretNostrKey &&
-      account &&
-      nostrApi
-    ) {
-      nostrApi.sendLabelsToNostr(secretNostrKey, npub, account)
-    }
-  }, [account, autoSync, nostrApi, npub, secretNostrKey, selectedRelays])
-
-  // Add new useEffect to auto-execute handleCreateNsec
-  useEffect(() => {
-    if (account && passphrase !== undefined && selectedRelays.length > 0) {
-      setNostrApi(new NostrAPI(selectedRelays))
-      handleCreateNsec()
-    }
-  }, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchMessages(loadMore: boolean = false) {
     if (!npub || !secretNostrKey || !nostrApi) return
@@ -218,6 +144,20 @@ export default function NostrSettings() {
     }
   }
 
+  async function handleImportLabels(content: string) {
+    try {
+      const labels = labelsApi.parseLabels(content)
+      const importCount = useAccountsStore
+        .getState()
+        .importLabels(accountId!, labels)
+      setImportCount(importCount)
+      setImportCountTotal(labels.length)
+      setSuccessMsgVisible(true)
+    } catch {
+      setRelayError('Failed to import labels')
+    }
+  }
+
   // Add function to toggle message expansion
   function toggleMessageExpansion(index: number) {
     setExpandedMessages((prev) =>
@@ -225,8 +165,7 @@ export default function NostrSettings() {
     )
   }
 
-  // Add function to format message content
-  function formatMessageContent(content: string, index: number) {
+  function MessageContent(content: string, index: number) {
     if (content.length <= 200 || expandedMessages.includes(index)) {
       return (
         <SSVStack gap="xxs">
@@ -303,19 +242,97 @@ export default function NostrSettings() {
     setSuccessMsgVisible(false)
   }
 
-  async function handleImportLabels(content: string) {
-    try {
-      const labels = labelsApi.parseLabels(content)
-      const importCount = useAccountsStore
-        .getState()
-        .importLabels(currentAccountId!, labels)
-      setImportCount(importCount)
-      setImportCountTotal(labels.length)
-      setSuccessMsgVisible(true)
-    } catch {
-      setRelayError('Failed to import labels')
+  function goToSelectRelaysPage() {
+    router.push({
+      pathname: `/account/${accountId}/settings/nostr/selectRelays`
+    })
+  }
+
+  function reloadApi() {
+    if (selectedRelays.length > 0) {
+      const api = new NostrAPI(selectedRelays)
+      setNostrApi(api)
+      // Connect immediately
+      api.connect().catch(() => {
+        setRelayError('Failed to connect to relays')
+      })
     }
   }
+
+  function loadNostrAccountData() {
+    if (!account) return
+
+    // Load saved relays when component mounts
+    setSelectedRelays(account.nostr.relays)
+    setAutoSync(account.nostr.autoSync)
+
+    // Load passphrase
+    if (account.nostr.passphrase !== undefined) {
+      setPassphrase(account.nostr.passphrase)
+    }
+
+    // Initialize NostrAPI when component mounts if relays are available
+    if (account.nostr.relays.length > 0) {
+      const api = new NostrAPI(account.nostr.relays)
+      setNostrApi(api)
+      // Connect immediately
+      api.connect().catch(() => {
+        setRelayError('Failed to connect to relays')
+      })
+    }
+  }
+
+  function handleFetchMessagesAutoSync() {
+    if (autoSync && npub && selectedRelays.length > 0) {
+      fetchMessages()
+    }
+
+    if (autoSync && npub && selectedRelays.length > 0) {
+      // Initial sync
+      handleSendMessage()
+
+      // Set up interval for auto sync
+      const syncInterval = setInterval(() => {
+        fetchMessages()
+      }, 60000) // Sync every minute
+
+      // Cleanup interval on unmount or when auto sync is disabled
+      return () => clearInterval(syncInterval)
+    }
+  }
+
+  function sendLabelsToRelays() {
+    if (
+      autoSync &&
+      npub &&
+      selectedRelays.length > 0 &&
+      secretNostrKey &&
+      account &&
+      nostrApi
+    ) {
+      nostrApi.sendLabelsToNostr(secretNostrKey, npub, account)
+    }
+  }
+
+  function autoCreateNsec() {
+    if (account && passphrase !== undefined && selectedRelays.length > 0) {
+      setNostrApi(new NostrAPI(selectedRelays))
+      handleCreateNsec()
+    }
+  }
+
+  useEffect(reloadApi, [selectedRelays])
+  useEffect(loadNostrAccountData, [account])
+  useEffect(autoCreateNsec, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(handleFetchMessagesAutoSync, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(sendLabelsToRelays, [
+    account,
+    autoSync,
+    nostrApi,
+    npub,
+    secretNostrKey,
+    selectedRelays
+  ])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -326,25 +343,20 @@ export default function NostrSettings() {
     }
   }, [nostrApi])
 
-  if (!currentAccountId || !account) return <Redirect href="/" />
+  if (!accountId || !account) return <Redirect href="/" />
 
   return (
-    <SSVStack style={{ flex: 1 }}>
+    <SSMainLayout>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
+      <ScrollView>
         <SSVStack gap="md">
           <SSText center uppercase color="muted" style={{ padding: 20 }}>
             {t('account.nostrlabels.title')}
           </SSText>
-
           {/* Keys display */}
           <SSVStack gap="xxs" style={styles.keysContainer}>
             {nsec && (
@@ -357,7 +369,7 @@ export default function NostrSettings() {
                     center
                     size="xl"
                     type="mono"
-                    style={{ letterSpacing: 1 }}
+                    style={styles.keyText}
                     selectable
                   >
                     {nsec}
@@ -371,7 +383,7 @@ export default function NostrSettings() {
                     center
                     size="xl"
                     type="mono"
-                    style={{ letterSpacing: 1 }}
+                    style={styles.keyText}
                     selectable
                   >
                     {npub}
@@ -380,7 +392,6 @@ export default function NostrSettings() {
               </SSVStack>
             )}
           </SSVStack>
-
           {/* Passphrase field */}
           <SSVStack gap="sm" style={{ paddingHorizontal: 20 }}>
             <SSText center>
@@ -393,7 +404,6 @@ export default function NostrSettings() {
               secureTextEntry
             />
           </SSVStack>
-
           {/* Top section with relay selection */}
           <SSVStack gap="md" style={{ padding: 20 }}>
             {selectedRelays.length === 0 && (
@@ -403,18 +413,12 @@ export default function NostrSettings() {
                 </SSText>
               </SSVStack>
             )}
-
             <SSButton
               variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
               label={`${t('account.nostrlabels.relays')} (${selectedRelays.length})`}
-              onPress={() => {
-                router.push({
-                  pathname: `/account/${currentAccountId}/settings/nostr/selectRelays`
-                })
-              }}
+              onPress={goToSelectRelaysPage}
             />
           </SSVStack>
-
           {/* Combined content */}
           <SSVStack gap="md" style={{ padding: 20 }}>
             {/* Message controls */}
@@ -432,7 +436,6 @@ export default function NostrSettings() {
                 />
               </>
             )}
-
             {/* Auto-sync section */}
             <SSVStack gap="sm">
               <SSHStack gap="md" style={styles.autoSyncContainer}>
@@ -447,7 +450,6 @@ export default function NostrSettings() {
                   </SSText>
                 )}
               </SSHStack>
-
               {autoSync && (
                 <SSButton
                   label="Sync now"
@@ -457,7 +459,6 @@ export default function NostrSettings() {
                 />
               )}
             </SSVStack>
-
             {/* Messages section */}
             {messages.length > 0 && (
               <SSVStack gap="md" style={styles.nostrMessageContainer}>
@@ -477,7 +478,7 @@ export default function NostrSettings() {
                     <SSText color={msg.isSender ? 'white' : 'muted'}>
                       {msg.isSender ? 'Content Sent' : 'Content Received'}:
                     </SSText>
-                    {formatMessageContent(msg.decryptedContent || '', index)}
+                    {MessageContent(msg.decryptedContent || '', index)}
                     {msg.decryptedContent?.startsWith('{"label":') && (
                       <SSButton
                         label={t('account.nostrlabels.importLabels')}
@@ -503,7 +504,6 @@ export default function NostrSettings() {
           </SSVStack>
         </SSVStack>
       </ScrollView>
-
       <SSModal visible={successMsgVisible} onClose={hideSuccessMsg}>
         <SSVStack gap="lg" style={styles.modalSuccessMessageContainer}>
           <SSText uppercase size="md" center weight="bold">
@@ -512,7 +512,7 @@ export default function NostrSettings() {
           <SSButton label={t('common.close')} onPress={hideSuccessMsg} />
         </SSVStack>
       </SSModal>
-    </SSVStack>
+    </SSMainLayout>
   )
 }
 
@@ -529,6 +529,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     height: 190
   },
+  keyText: {
+    letterSpacing: 1
+  },
   autoSyncContainer: {
     marginBottom: 10
   },
@@ -541,3 +544,5 @@ const styles = StyleSheet.create({
     borderRadius: 8
   }
 })
+
+export default NostrLabelSync

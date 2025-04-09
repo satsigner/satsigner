@@ -82,7 +82,6 @@ export default function SelectRelays() {
             />
           </SSVStack>
         ))}
-
         <SSVStack gap="sm">
           <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
           <SSTextInput
@@ -97,7 +96,6 @@ export default function SelectRelays() {
             disabled={!customRelayUrl.startsWith('wss://')}
           />
         </SSVStack>
-
         {selectedRelays
           .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
           .map((url) => (
