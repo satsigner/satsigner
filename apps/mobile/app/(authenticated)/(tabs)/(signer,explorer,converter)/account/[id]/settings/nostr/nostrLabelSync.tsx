@@ -11,12 +11,17 @@ import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Label } from '@/utils/bip329'
+import { aesDecrypt } from '@/utils/crypto'
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -104,20 +109,39 @@ function SSNostrLabelSync() {
   }
 
   async function handleCreateNsec() {
+    if (!account || !nostrApi) {
+      throw new Error('Nostr API not initialized')
+    }
+
+    const { npub, nsec, seckey } = account.nostr
+    if (npub && nsec && seckey) {
+      setSecretNostrKey(seckey)
+      setNsec(nsec)
+      setNpub(npub)
+      return
+    }
+
+    // Get PIN from secure storage
+    const pin = await getItem(PIN_KEY)
+    if (!pin) {
+      throw new Error('PIN not found')
+    }
+
+    // Get IV and encrypted secret from account
+    const iv = account.keys[0].iv
+    const encryptedSecret = account.keys[0].secret as string
+
+    // Decrypt the secret
+    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+    const accountSecret = JSON.parse(accountSecretString) as Secret
+    const mnemonic = accountSecret.mnemonic
+
+    if (!mnemonic) {
+      throw new Error('invalid mnemonic')
+    }
+
     try {
-      if (!account || !nostrApi) {
-        throw new Error('Nostr API not initialized')
-      }
-
-      const { npub, nsec, seckey } = account.nostr
-      if (npub && nsec && seckey) {
-        setSecretNostrKey(seckey)
-        setNsec(nsec)
-        setNpub(npub)
-        return
-      }
-
-      const keys = await nostrApi.createNsec(account, passphrase)
+      const keys = await nostrApi.generateNostrKeys(mnemonic, passphrase)
       setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
@@ -527,7 +551,6 @@ function SSNostrLabelSync() {
                 )}
               </SSVStack>
             )}
-
             {relayError && <SSText size="sm">{relayError}</SSText>}
           </SSVStack>
         </SSVStack>

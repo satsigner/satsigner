@@ -3,11 +3,7 @@ import * as bip39 from 'bip39'
 import { getPublicKey, nip04, nip19 } from 'nostr-tools'
 
 import { LabelsAPI } from '@/api/labels'
-import { PIN_KEY } from '@/config/auth'
-import { getItem } from '@/storage/encrypted'
-import { type Account, type Secret } from '@/types/models/Account'
-import { type Label } from '@/utils/bip329'
-import { aesDecrypt } from '@/utils/crypto'
+import { type Account } from '@/types/models/Account'
 
 export interface NostrKeys {
   nsec: string
@@ -35,32 +31,6 @@ export class NostrAPI {
       })
       await this.ndk.connect()
     }
-  }
-
-  async createNsec(account: Account, passphrase: string): Promise<NostrKeys> {
-    if (!account.keys[0].secret) {
-      throw new Error('No secret found')
-    }
-
-    // Get PIN from secure storage
-    const pin = await getItem(PIN_KEY)
-    if (!pin) {
-      throw new Error('PIN not found')
-    }
-
-    // Get IV and encrypted secret from account
-    const iv = account.keys[0].iv
-    const encryptedSecret = account.keys[0].secret as string
-
-    // Decrypt the secret
-    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
-    const accountSecret = JSON.parse(accountSecretString) as Secret
-    const mnemonic = accountSecret.mnemonic
-    if (!mnemonic) {
-      throw new Error('No mnemonic found in account secret')
-    }
-
-    return this.generateNostrKeys(mnemonic, passphrase)
   }
 
   async generateNostrKeys(
@@ -208,55 +178,5 @@ export class NostrAPI {
   async disconnect() {
     // NDK doesn't have a disconnect method, so we just nullify the instance
     this.ndk = null
-  }
-
-  async fetchAndImportLabels(
-    account: Account,
-    since?: number,
-    limit: number = 3
-  ): Promise<{ labels: Label[]; totalMessages: number }> {
-    if (!account) {
-      throw new Error('Account is required for fetching and importing labels')
-    }
-
-    if (!account.nostr?.npub) {
-      throw new Error('Account has no Nostr public key configured')
-    }
-
-    const keys = await this.createNsec(account, account.nostr.passphrase || '')
-    const { secretNostrKey, npub } = keys
-
-    const messages = await this.fetchMessages(
-      secretNostrKey,
-      npub,
-      since,
-      limit
-    )
-
-    if (messages.length === 0) {
-      return { labels: [], totalMessages: 0 }
-    }
-
-    const latestLabelMessage = messages.find((msg) =>
-      msg.decryptedContent?.startsWith('{"label":')
-    )
-
-    if (!latestLabelMessage?.decryptedContent) {
-      return { labels: [], totalMessages: messages.length }
-    }
-
-    const labelsApi = new LabelsAPI()
-    let labels: Label[] = []
-
-    try {
-      labels = labelsApi.parseLabels(latestLabelMessage.decryptedContent)
-    } catch {
-      //
-    }
-
-    return {
-      labels,
-      totalMessages: messages.length
-    }
   }
 }
