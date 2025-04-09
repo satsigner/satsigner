@@ -27,8 +27,10 @@ export default function TabLayout() {
       segments.indexOf(segment) >= 0 &&
       segments.indexOf(segment) < segments.length - 1
     ) {
+      // @ts-ignore
       router.replace(`/(authenticated)/(tabs)/${segment}`)
     } else {
+      // @ts-ignore
       props.onPress?.()
     }
   }
