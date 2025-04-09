@@ -1,3 +1,4 @@
+import { type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
 import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
@@ -21,7 +22,7 @@ export default function TabLayout() {
   const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
 
-  function handleTabItemPress(props: any, segment: string) {
+  function handleTabItemPress(props: BottomTabBarButtonProps, segment: string) {
     if (
       segments.indexOf(segment) >= 0 &&
       segments.indexOf(segment) < segments.length - 1
@@ -32,7 +33,7 @@ export default function TabLayout() {
     }
   }
 
-  const renderTabButton = (props: any, segment: string) => {
+  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => {
     return (
       <View style={props.style}>
         <TouchableWithoutFeedback
