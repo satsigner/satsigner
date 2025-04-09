@@ -1,8 +1,12 @@
 import { type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
 import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
+import {
+  type GestureResponderEvent,
+  Pressable,
+  StyleSheet,
+  View
+} from 'react-native'
 
 import {
   SSIconConverter,
@@ -22,27 +26,27 @@ export default function TabLayout() {
   const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
 
-  function handleTabItemPress(props: BottomTabBarButtonProps, segment: string) {
+  function handleTabItemPress(
+    props: BottomTabBarButtonProps,
+    segment: string,
+    e: GestureResponderEvent
+  ) {
     if (
       segments.indexOf(segment) >= 0 &&
       segments.indexOf(segment) < segments.length - 1
     ) {
-      // @ts-ignore
       router.replace(`/(authenticated)/(tabs)/${segment}`)
     } else {
-      // @ts-ignore
-      props.onPress?.()
+      props.onPress?.(e)
     }
   }
 
   const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => {
     return (
       <View style={props.style}>
-        <TouchableWithoutFeedback
-          onPress={() => handleTabItemPress(props, segment)}
-        >
+        <Pressable onPress={(e) => handleTabItemPress(props, segment, e)}>
           {props.children}
-        </TouchableWithoutFeedback>
+        </Pressable>
       </View>
     )
   }
