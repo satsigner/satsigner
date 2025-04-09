@@ -17,7 +17,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
-function NostrLabelSync() {
+function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [nsec, setNsec] = useState('')
@@ -346,7 +346,7 @@ function NostrLabelSync() {
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ padding: 0 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
@@ -354,7 +354,7 @@ function NostrLabelSync() {
       />
       <ScrollView>
         <SSVStack gap="md">
-          <SSText center uppercase color="muted" style={{ padding: 20 }}>
+          <SSText center uppercase color="muted">
             {t('account.nostrlabels.title')}
           </SSText>
           {/* Keys display */}
@@ -393,7 +393,7 @@ function NostrLabelSync() {
             )}
           </SSVStack>
           {/* Passphrase field */}
-          <SSVStack gap="sm" style={{ paddingHorizontal: 20 }}>
+          <SSVStack gap="sm">
             <SSText center>
               {t('account.nostrlabels.mnemonicPassphrase')}
             </SSText>
@@ -405,7 +405,7 @@ function NostrLabelSync() {
             />
           </SSVStack>
           {/* Top section with relay selection */}
-          <SSVStack gap="md" style={{ padding: 20 }}>
+          <SSVStack gap="md">
             {selectedRelays.length === 0 && (
               <SSVStack gap="sm">
                 <SSText color="white" weight="bold" center>
@@ -420,7 +420,7 @@ function NostrLabelSync() {
             />
           </SSVStack>
           {/* Combined content */}
-          <SSVStack gap="md" style={{ padding: 20 }}>
+          <SSVStack gap="md">
             {/* Message controls */}
             {npub && (
               <>
@@ -440,7 +440,7 @@ function NostrLabelSync() {
             <SSVStack gap="sm">
               <SSHStack gap="md" style={styles.autoSyncContainer}>
                 <SSCheckbox
-                  label={t('account.nostrlabels.autoSync')}
+                  label={t('account.nostrlabels.autoSync').toUpperCase()}
                   selected={autoSync}
                   onPress={handleToggleAutoSync}
                 />
@@ -523,10 +523,9 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   keysContainer: {
-    padding: 15,
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
-    marginHorizontal: 20,
+    paddingHorizontal: 10,
     height: 190
   },
   keyText: {
@@ -545,4 +544,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default NostrLabelSync
+export default SSNostrLabelSync

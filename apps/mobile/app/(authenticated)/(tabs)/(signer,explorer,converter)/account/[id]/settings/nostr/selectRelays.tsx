@@ -8,12 +8,13 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_RELAYS } from '@/constants/nostr'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
-export default function SelectRelays() {
+function SSNostrRelaysSelection() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [customRelayUrl, setCustomRelayUrl] = useState('')
 
@@ -72,42 +73,46 @@ export default function SelectRelays() {
           )
         }}
       />
-      <SSVStack gap="md" style={{ padding: 20 }}>
-        {NOSTR_RELAYS.map((relay) => (
-          <SSVStack key={relay.url} gap="xxs">
-            <SSCheckbox
-              label={relay.url}
-              selected={selectedRelays.includes(relay.url)}
-              onPress={() => handleRelayToggle(relay.url)}
-            />
-          </SSVStack>
-        ))}
-        <SSVStack gap="sm">
-          <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
-          <SSTextInput
-            placeholder="wss://your-relay.com"
-            value={customRelayUrl}
-            onChangeText={setCustomRelayUrl}
-          />
-          <SSButton
-            label={t('account.nostrlabels.addRelay')}
-            variant="secondary"
-            onPress={handleAddCustomRelay}
-            disabled={!customRelayUrl.startsWith('wss://')}
-          />
-        </SSVStack>
-        {selectedRelays
-          .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
-          .map((url) => (
-            <SSVStack key={url} gap="xxs">
+      <SSMainLayout>
+        <SSVStack gap="md">
+          {NOSTR_RELAYS.map((relay) => (
+            <SSVStack key={relay.url} gap="xxs">
               <SSCheckbox
-                label={url}
-                selected
-                onPress={() => handleRelayToggle(url)}
+                label={relay.url}
+                selected={selectedRelays.includes(relay.url)}
+                onPress={() => handleRelayToggle(relay.url)}
               />
             </SSVStack>
           ))}
-      </SSVStack>
+          <SSVStack gap="sm">
+            <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
+            <SSTextInput
+              placeholder="wss://your-relay.com"
+              value={customRelayUrl}
+              onChangeText={setCustomRelayUrl}
+            />
+            <SSButton
+              label={t('account.nostrlabels.addRelay')}
+              variant="secondary"
+              onPress={handleAddCustomRelay}
+              disabled={!customRelayUrl.startsWith('wss://')}
+            />
+          </SSVStack>
+          {selectedRelays
+            .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
+            .map((url) => (
+              <SSVStack key={url} gap="xxs">
+                <SSCheckbox
+                  label={url}
+                  selected
+                  onPress={() => handleRelayToggle(url)}
+                />
+              </SSVStack>
+            ))}
+        </SSVStack>
+      </SSMainLayout>
     </ScrollView>
   )
 }
+
+export default SSNostrRelaysSelection

@@ -219,7 +219,7 @@ export class NostrAPI {
       throw new Error('Account is required for fetching and importing labels')
     }
 
-    if (!account.nostr.pubkey) {
+    if (!account.nostr?.pubkey) {
       throw new Error('Account has no Nostr public key configured')
     }
 
