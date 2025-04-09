@@ -156,21 +156,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       setTags: (tags: string[]) => {
         set({ tags })
       },
-      setAddrLabel: (accountName, addr, label) => {
+      setAddrLabel: (accountId, addr, label) => {
         const account = get().accounts.find(
-          (account) => account.name === accountName
+          (account) => account.id === accountId
         )
         if (!account) return
-
-        // if (account.nostr.autoSync && account.nostr.pubkey) {
-        //   const nostrApi = new NostrAPI(account.nostr.relays)
-        //   nostrApi.sendLabelsToNostr(
-        //     account.keys[0].secret as Uint8Array,
-        //     account.nostr.pubkey,
-        //     account
-        //   )
-        //   toast('sent labels to nostr')
-        // }
 
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
@@ -180,7 +170,7 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
-              (account: Account) => account.name === accountName
+              (account: Account) => account.id === accountId
             )
             state.accounts[index].addresses[addrIndex].label = label
           })
