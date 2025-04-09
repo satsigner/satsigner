@@ -130,7 +130,7 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
   const transactionSize = useMemo(
-    () => estimateTransactionSize(inputs.size, outputs.length + 2),
+    () => estimateTransactionSize(inputs.size, outputs.length + 1),
     [inputs.size, outputs.length]
   )
 
