@@ -48,7 +48,7 @@ type Transaction = {
     vout?: number
   }[]
   depthH: number
-  status: { block_height?: string; block_time?: string }
+  status: { block_height?: number; block_time?: number }
 }
 
 type UseNodesAndLinksProps = {
