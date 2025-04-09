@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
+import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -12,10 +13,13 @@ import { type TxSearchParams } from '@/types/navigation/searchParams'
 
 import { SSTxDetailsHeader } from '.'
 
-export default function SSTxLabel() {
+function SSTransactionLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const [tx, setTxLabel] = useAccountsStore((state) => [
+  const { sendAccountLabelsToNostr } = useNostrLabelSync()
+
+  const [account, tx, setTxLabel] = useAccountsStore((state) => [
+    state.accounts.find((account: Account) => account.id === accountId),
     state.accounts
       .find((account: Account) => account.id === accountId)
       ?.transactions.find((tx: Transaction) => tx.id === txid),
@@ -24,6 +28,7 @@ export default function SSTxLabel() {
 
   function updateLabel(label: string) {
     setTxLabel(accountId!, txid!, label)
+    sendAccountLabelsToNostr(account!)
     router.back()
   }
 
@@ -45,3 +50,5 @@ export default function SSTxLabel() {
     </ScrollView>
   )
 }
+
+export default SSTransactionLabel

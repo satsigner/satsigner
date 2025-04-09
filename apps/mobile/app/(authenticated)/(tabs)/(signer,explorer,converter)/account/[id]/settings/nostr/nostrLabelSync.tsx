@@ -112,6 +112,14 @@ function SSNostrLabelSync() {
       setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
+      updateAccount({
+        ...account,
+        nostr: {
+          ...account.nostr,
+          seckey: keys.secretNostrKey,
+          pubkey: keys.npub
+        }
+      })
     } catch (error) {
       setRelayError(
         error instanceof Error ? error.message : 'Failed to create nsec'

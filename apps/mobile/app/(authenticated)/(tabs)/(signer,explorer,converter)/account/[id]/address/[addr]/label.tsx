@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
+import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -11,10 +12,13 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
 
-function AddressLabel() {
+function SSAddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
-  const [address, setAddrLabel] = useAccountsStore((state) => [
+  const { sendAccountLabelsToNostr } = useNostrLabelSync()
+
+  const [account, address, setAddrLabel] = useAccountsStore((state) => [
+    state.accounts.find((account: Account) => account.id === accountId),
     state.accounts
       .find((account: Account) => account.id === accountId)
       ?.addresses.find((address: Address) => address.address === addr),
@@ -23,6 +27,7 @@ function AddressLabel() {
 
   function updateLabel(label: string) {
     setAddrLabel(accountId!, addr!, label)
+    sendAccountLabelsToNostr(account!)
     router.back()
   }
 
@@ -52,4 +57,4 @@ function AddressLabel() {
   )
 }
 
-export default AddressLabel
+export default SSAddressLabel

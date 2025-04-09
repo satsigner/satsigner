@@ -66,6 +66,7 @@ export type Account = {
   isSyncing?: boolean
   nostr: {
     pubkey: string
+    seckey?: Uint8Array
     relays: string[]
     autoSync: boolean
     passphrase?: string
