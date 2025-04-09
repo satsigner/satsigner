@@ -1,9 +1,8 @@
-import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { LabelsAPI } from '@/api/labels'
 import { NostrAPI, type NostrMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -12,6 +11,7 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { PIN_KEY } from '@/config/auth'
+import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -20,7 +20,7 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Label } from '@/utils/bip329'
+import { JSONLtoLabels } from '@/utils/bip329'
 import { aesDecrypt } from '@/utils/crypto'
 
 function SSNostrLabelSync() {
@@ -44,7 +44,8 @@ function SSNostrLabelSync() {
   const [importCountTotal, setImportCountTotal] = useState(0)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
-  const [labelsApi] = useState(() => new LabelsAPI())
+
+  const { sendAccountLabelsToNostr } = useNostrLabelSync()
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -75,7 +76,7 @@ function SSNostrLabelSync() {
         await nostrApi.fetchMessages(
           secretNostrKey,
           npub,
-          loadMore ? (lastMessageTimestamp ?? undefined) : undefined
+          loadMore ? lastMessageTimestamp ?? undefined : undefined
         )
       ).filter(filterMessages)
 
@@ -171,20 +172,7 @@ function SSNostrLabelSync() {
     }
 
     try {
-      // Ensure connection is established
-      await nostrApi.connect()
-
-      // Format labels using the API
-      const labels = labelsApi.formatLabels(account)
-
-      // Create message content with labels in JSONL format using the API
-      const messageContent = labelsApi.exportLabels(labels)
-
-      // Send message using the API
-      await nostrApi.sendMessage(secretNostrKey, npub, messageContent)
-
-      // Refresh messages
-      await fetchMessages()
+      sendAccountLabelsToNostr(account)
     } catch (error) {
       setRelayError(
         error instanceof Error ? error.message : 'Failed to send message'
@@ -194,7 +182,7 @@ function SSNostrLabelSync() {
 
   async function handleImportLabels(content: string) {
     try {
-      const labels = labelsApi.parseLabels(content)
+      const labels = JSONLtoLabels(content)
       const importCount = useAccountsStore
         .getState()
         .importLabels(accountId!, labels)
@@ -349,17 +337,8 @@ function SSNostrLabelSync() {
     }
   }
 
-  function sendLabelsToRelays() {
-    if (
-      autoSync &&
-      npub &&
-      selectedRelays.length > 0 &&
-      secretNostrKey &&
-      account &&
-      nostrApi
-    ) {
-      nostrApi.sendLabelsToNostr(secretNostrKey, npub, account)
-    }
+  function sendLabelsToNostr() {
+    sendAccountLabelsToNostr(account!)
   }
 
   function autoCreateNsec() {
@@ -371,16 +350,9 @@ function SSNostrLabelSync() {
 
   useEffect(reloadApi, [selectedRelays])
   useEffect(loadNostrAccountData, [account])
+  useEffect(sendLabelsToNostr, [account]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(autoCreateNsec, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(handleFetchMessagesAutoSync, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(sendLabelsToRelays, [
-    account,
-    autoSync,
-    nostrApi,
-    npub,
-    secretNostrKey,
-    selectedRelays
-  ])
 
   // Cleanup on unmount
   useEffect(() => {

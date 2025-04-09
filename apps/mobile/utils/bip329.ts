@@ -5,6 +5,7 @@ import { type Utxo } from '@/types/models/Utxo'
 
 import { type PickFileProps } from './filesystem'
 import { getUtxoOutpoint } from './utxo'
+import { type Account } from '@/types/models/Account'
 
 export type LabelType = 'tx' | 'addr' | 'pubkey' | 'input' | 'output' | 'xpub'
 
@@ -111,6 +112,14 @@ export function formatUtxoLabels(utxos: Utxo[]): Label[] {
         spendable: true // TODO: allow the user to mark utxo as not spendable
       }
     })
+}
+
+export function formatAccountLabels(account: Account): Label[] {
+  return [
+    ...formatTransactionLabels(account.transactions),
+    ...formatUtxoLabels(account.utxos),
+    ...formatAddressLabels(account.addresses)
+  ]
 }
 
 export function labelsToCSV(labels: Label[]) {

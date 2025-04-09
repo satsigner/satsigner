@@ -2,9 +2,6 @@ import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
 import { getPublicKey, nip04, nip19 } from 'nostr-tools'
 
-import { LabelsAPI } from '@/api/labels'
-import { type Account } from '@/types/models/Account'
-
 export interface NostrKeys {
   nsec: string
   npub: string
@@ -152,27 +149,6 @@ export class NostrAPI {
       (a: NostrMessage, b: NostrMessage) =>
         (b.created_at ?? 0) - (a.created_at ?? 0)
     )
-  }
-
-  async sendLabelsToNostr(
-    secretNostrKey: Uint8Array,
-    recipientNpub: string,
-    account: Account
-  ): Promise<void> {
-    if (!secretNostrKey || !recipientNpub || !account) {
-      throw new Error('Missing required parameters for sending labels')
-    }
-
-    // Format labels using the LabelsAPI
-    const labelsApi = new LabelsAPI()
-    const labels = labelsApi.formatLabels(account)
-
-    if (labels.length === 0) {
-      return
-    }
-
-    const messageContent = labelsApi.exportLabels(labels)
-    await this.sendMessage(secretNostrKey, recipientNpub, messageContent)
   }
 
   async disconnect() {
