@@ -7,6 +7,7 @@ import { LabelsAPI } from '@/api/labels'
 import { NostrAPI, type NostrMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -69,7 +70,7 @@ function SSNostrLabelSync() {
         await nostrApi.fetchMessages(
           secretNostrKey,
           npub,
-          loadMore ? lastMessageTimestamp ?? undefined : undefined
+          loadMore ? (lastMessageTimestamp ?? undefined) : undefined
         )
       ).filter(filterMessages)
 
@@ -377,40 +378,44 @@ function SSNostrLabelSync() {
           </SSText>
           {/* Keys display */}
           <SSVStack gap="xxs" style={styles.keysContainer}>
-            {(nsec !== '' && npub !== '') ? (
+            {nsec !== '' && npub !== '' ? (
               <>
                 <SSVStack gap="xxs">
                   <SSText color="muted" center>
                     {t('account.nostrlabels.nsec')}
                   </SSText>
-                  <SSText
-                    center
-                    size="xl"
-                    type="mono"
-                    style={styles.keyText}
-                    selectable
-                  >
-                    {nsec}
-                  </SSText>
+                  <SSTextClipboard text={nsec}>
+                    <SSText
+                      center
+                      size="xl"
+                      type="mono"
+                      style={styles.keyText}
+                      selectable
+                    >
+                      {nsec}
+                    </SSText>
+                  </SSTextClipboard>
                 </SSVStack>
                 <SSVStack gap="xxs">
                   <SSText color="muted" center>
                     {t('account.nostrlabels.npub')}
                   </SSText>
-                  <SSText
-                    center
-                    size="xl"
-                    type="mono"
-                    style={styles.keyText}
-                    selectable
-                  >
-                    {npub}
-                  </SSText>
+                  <SSTextClipboard text={npub}>
+                    <SSText
+                      center
+                      size="xl"
+                      type="mono"
+                      style={styles.keyText}
+                      selectable
+                    >
+                      {npub}
+                    </SSText>
+                  </SSTextClipboard>
                 </SSVStack>
               </>
             ) : (
               <SSHStack style={styles.keyContainerLoading}>
-                <ActivityIndicator></ActivityIndicator>
+                <ActivityIndicator />
                 <SSText uppercase>Loading keys</SSText>
               </SSHStack>
             )}
@@ -552,7 +557,7 @@ const styles = StyleSheet.create({
   },
   keyContainerLoading: {
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 10
   },
   keyText: {
     letterSpacing: 1
