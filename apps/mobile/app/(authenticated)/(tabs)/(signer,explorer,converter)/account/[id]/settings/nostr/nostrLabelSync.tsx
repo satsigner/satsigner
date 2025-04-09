@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { LabelsAPI } from '@/api/labels'
@@ -18,6 +18,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function NostrSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
+
   const [nsec, setNsec] = useState('')
   const [npub, setNpub] = useState('')
   const [passphrase, setPassphrase] = useState('')
@@ -57,20 +58,19 @@ export default function NostrSettings() {
     }
   }, [selectedRelays])
 
-  // Load saved relays when component mounts
   useEffect(() => {
-    if (account) {
-      setSelectedRelays(account.nostr.relays)
-      setAutoSync(account.nostr.autoSync)
-    }
-    if (account && account.nostr.passphrase !== undefined) {
+    if (!account) return
+    // Load saved relays when component mounts
+    setSelectedRelays(account.nostr.relays)
+    setAutoSync(account.nostr.autoSync)
+
+    // Load passphrase
+    if (account.nostr.passphrase !== undefined) {
       setPassphrase(account.nostr.passphrase)
     }
-  }, [account])
 
-  // Initialize NostrAPI when component mounts if relays are available
-  useEffect(() => {
-    if (account && account.nostr.relays.length > 0) {
+    // Initialize NostrAPI when component mounts if relays are available
+    if (account.nostr.relays.length > 0) {
       const api = new NostrAPI(account.nostr.relays)
       setNostrApi(api)
       // Connect immediately
@@ -85,10 +85,7 @@ export default function NostrSettings() {
     if (autoSync && npub && selectedRelays.length > 0) {
       fetchMessages()
     }
-  }, [npub, selectedRelays, autoSync]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Modify the auto sync useEffect to include fetchMessages in the interval
-  useEffect(() => {
     if (autoSync && npub && selectedRelays.length > 0) {
       // Initial sync
       handleSendMessage()
@@ -103,7 +100,6 @@ export default function NostrSettings() {
     }
   }, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Add effect to handle label updates
   useEffect(() => {
     if (
       autoSync &&
@@ -115,7 +111,7 @@ export default function NostrSettings() {
     ) {
       nostrApi.sendLabelsToNostr(secretNostrKey, npub, account)
     }
-  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, autoSync, nostrApi, npub, secretNostrKey, selectedRelays])
 
   // Add new useEffect to auto-execute handleCreateNsec
   useEffect(() => {
@@ -223,14 +219,14 @@ export default function NostrSettings() {
   }
 
   // Add function to toggle message expansion
-  const toggleMessageExpansion = (index: number) => {
+  function toggleMessageExpansion(index: number) {
     setExpandedMessages((prev) =>
       prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     )
   }
 
   // Add function to format message content
-  const formatMessageContent = (content: string, index: number) => {
+  function formatMessageContent(content: string, index: number) {
     if (content.length <= 200 || expandedMessages.includes(index)) {
       return (
         <SSVStack gap="xxs">
@@ -264,7 +260,50 @@ export default function NostrSettings() {
     )
   }
 
-  const handleImportLabels = async (content: string) => {
+  function handlePassphraseChange(text: string) {
+    setPassphrase(text)
+    setRelayError(null)
+    // Clear messages when passphrase changes
+    setMessages([])
+    setLastMessageTimestamp(null)
+    setHasMoreMessages(true)
+    if (account) {
+      updateAccount({
+        ...account,
+        nostr: {
+          ...account.nostr,
+          passphrase: text
+        }
+      })
+    }
+  }
+
+  function handleToggleAutoSync() {
+    const newAutoSync = !autoSync
+    setAutoSync(newAutoSync)
+    setRelayError(null)
+    if (account) {
+      updateAccount({
+        ...account,
+        nostr: {
+          ...account.nostr,
+          autoSync: newAutoSync
+        }
+      })
+      // Fetch messages immediately when auto-sync is enabled
+      if (newAutoSync && npub && selectedRelays.length > 0) {
+        fetchMessages()
+      } else if (newAutoSync && selectedRelays.length === 0) {
+        setRelayError(t('account.nostrlabels.noRelaysWarning'))
+      }
+    }
+  }
+
+  function hideSuccessMsg() {
+    setSuccessMsgVisible(false)
+  }
+
+  async function handleImportLabels(content: string) {
     try {
       const labels = labelsApi.parseLabels(content)
       const importCount = useAccountsStore
@@ -307,16 +346,7 @@ export default function NostrSettings() {
           </SSText>
 
           {/* Keys display */}
-          <SSVStack
-            gap="xxs"
-            style={{
-              padding: 15,
-              backgroundColor: '#1a1a1a',
-              borderRadius: 8,
-              marginHorizontal: 20,
-              height: 190
-            }}
-          >
+          <SSVStack gap="xxs" style={styles.keysContainer}>
             {nsec && (
               <SSVStack gap="md">
                 <SSVStack gap="xxs">
@@ -359,23 +389,7 @@ export default function NostrSettings() {
             <SSTextInput
               placeholder="Enter passphrase"
               value={passphrase}
-              onChangeText={(text) => {
-                setPassphrase(text)
-                setRelayError(null)
-                // Clear messages when passphrase changes
-                setMessages([])
-                setLastMessageTimestamp(null)
-                setHasMoreMessages(true)
-                if (account) {
-                  updateAccount({
-                    ...account,
-                    nostr: {
-                      ...account.nostr,
-                      passphrase: text
-                    }
-                  })
-                }
-              }}
+              onChangeText={handlePassphraseChange}
               secureTextEntry
             />
           </SSVStack>
@@ -421,30 +435,11 @@ export default function NostrSettings() {
 
             {/* Auto-sync section */}
             <SSVStack gap="sm">
-              <SSHStack gap="md" style={{ marginBottom: 10 }}>
+              <SSHStack gap="md" style={styles.autoSyncContainer}>
                 <SSCheckbox
                   label={t('account.nostrlabels.autoSync')}
                   selected={autoSync}
-                  onPress={() => {
-                    const newAutoSync = !autoSync
-                    setAutoSync(newAutoSync)
-                    setRelayError(null)
-                    if (account) {
-                      updateAccount({
-                        ...account,
-                        nostr: {
-                          ...account.nostr,
-                          autoSync: newAutoSync
-                        }
-                      })
-                      // Fetch messages immediately when auto-sync is enabled
-                      if (newAutoSync && npub && selectedRelays.length > 0) {
-                        fetchMessages()
-                      } else if (newAutoSync && selectedRelays.length === 0) {
-                        setRelayError(t('account.nostrlabels.noRelaysWarning'))
-                      }
-                    }
-                  }}
+                  onPress={handleToggleAutoSync}
                 />
                 {autoSync && (
                   <SSText size="sm" color="muted">
@@ -465,7 +460,7 @@ export default function NostrSettings() {
 
             {/* Messages section */}
             {messages.length > 0 && (
-              <SSVStack gap="md" style={{ marginTop: 20 }}>
+              <SSVStack gap="md" style={styles.nostrMessageContainer}>
                 <SSHStack gap="md" justifyBetween>
                   <SSText>{t('account.nostrlabels.latestMessages')}</SSText>
                   {isLoading && (
@@ -475,15 +470,7 @@ export default function NostrSettings() {
                   )}
                 </SSHStack>
                 {messages.map((msg, index) => (
-                  <SSVStack
-                    key={index}
-                    gap="sm"
-                    style={{
-                      backgroundColor: '#1a1a1a',
-                      padding: 10,
-                      borderRadius: 8
-                    }}
-                  >
+                  <SSVStack key={index} gap="sm" style={styles.nostrMessage}>
                     <SSText size="sm" color="muted">
                       {new Date(msg.created_at * 1000).toLocaleString()}
                     </SSText>
@@ -517,23 +504,40 @@ export default function NostrSettings() {
         </SSVStack>
       </ScrollView>
 
-      <SSModal
-        visible={successMsgVisible}
-        onClose={() => setSuccessMsgVisible(false)}
-      >
-        <SSVStack
-          gap="lg"
-          style={{ justifyContent: 'center', height: '100%', width: '100%' }}
-        >
+      <SSModal visible={successMsgVisible} onClose={hideSuccessMsg}>
+        <SSVStack gap="lg" style={styles.modalSuccessMessageContainer}>
           <SSText uppercase size="md" center weight="bold">
             {t('import.success', { importCount, total: importCountTotal })}
           </SSText>
-          <SSButton
-            label={t('common.close')}
-            onPress={() => setSuccessMsgVisible(false)}
-          />
+          <SSButton label={t('common.close')} onPress={hideSuccessMsg} />
         </SSVStack>
       </SSModal>
     </SSVStack>
   )
 }
+
+const styles = StyleSheet.create({
+  modalSuccessMessageContainer: {
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%'
+  },
+  keysContainer: {
+    padding: 15,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    marginHorizontal: 20,
+    height: 190
+  },
+  autoSyncContainer: {
+    marginBottom: 10
+  },
+  nostrMessageContainer: {
+    marginTop: 20
+  },
+  nostrMessage: {
+    backgroundColor: '#1a1a1a',
+    padding: 10,
+    borderRadius: 8
+  }
+})
