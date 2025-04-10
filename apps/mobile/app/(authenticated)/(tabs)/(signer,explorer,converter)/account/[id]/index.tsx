@@ -79,6 +79,7 @@ import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 
 type TotalTransactionsProps = {
   account: Account
@@ -656,6 +657,7 @@ export default function AccountView() {
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
+  const { syncAccountLabelsFromNostr } = useNostrLabelSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -777,11 +779,17 @@ export default function AccountView() {
     }
   }
 
+  async function refreshAccountLabels() {
+    if (!account) return
+    syncAccountLabelsFromNostr(account)
+  }
+
   async function handleOnRefresh() {
     setRefreshing(true)
     await fetchPrices()
     await refreshBlockchainHeight()
     await refreshAccount()
+    await refreshAccountLabels()
     setRefreshing(false)
   }
 
