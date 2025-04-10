@@ -29,7 +29,7 @@ export const formatRelativeTime = (timestamp: number | undefined): string => {
 }
 
 export const formatDate = (timestamp: number | undefined): string => {
-  if (!timestamp) return ''
+  if (typeof timestamp !== 'number') return ''
 
   const date = new Date(timestamp * 1000)
 
