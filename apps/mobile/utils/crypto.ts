@@ -1,5 +1,9 @@
 import crypto from 'react-native-aes-crypto'
 
+function sha256(text: string) {
+  return crypto.sha256(text)
+}
+
 function aesEncrypt(text: string, key: string, iv: string) {
   return crypto.encrypt(text, key, iv, 'aes-256-cbc')
 }
@@ -24,4 +28,11 @@ async function doubleShaEncrypt(text: string) {
   return crypto.sha256(first)
 }
 
-export { aesDecrypt, aesEncrypt, doubleShaEncrypt, generateSalt, pbkdf2Encrypt }
+export {
+  aesDecrypt,
+  aesEncrypt,
+  doubleShaEncrypt,
+  generateSalt,
+  pbkdf2Encrypt,
+  sha256
+}

@@ -57,6 +57,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSHStack from '@/layouts/SSHStack'
@@ -79,7 +80,6 @@ import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 
 type TotalTransactionsProps = {
   account: Account

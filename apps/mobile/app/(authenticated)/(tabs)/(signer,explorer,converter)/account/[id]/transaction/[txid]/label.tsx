@@ -28,6 +28,7 @@ function SSTransactionLabel() {
 
   function updateLabel(label: string) {
     setTxLabel(accountId!, txid!, label)
+    // TODO: this does not have the updated label
     sendAccountLabelsToNostr(account!)
     router.back()
   }

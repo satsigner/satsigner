@@ -71,5 +71,7 @@ export type Account = {
     relays: string[]
     autoSync: boolean
     passphrase?: string
+    lastBackupFingerprint?: string
+    lastBackupTimestamp?: number
   }
 }
