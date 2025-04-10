@@ -74,7 +74,7 @@ function SSNostrLabelSync() {
 
       const fetchedMessages = (
         await nostrApi.fetchMessages(
-          secretNostrKey,
+          [...secretNostrKey] as any,
           npub,
           loadMore ? lastMessageTimestamp ?? undefined : undefined
         )
@@ -338,7 +338,7 @@ function SSNostrLabelSync() {
   }
 
   function sendLabelsToNostr() {
-    sendAccountLabelsToNostr(account!)
+    sendAccountLabelsToNostr(account)
   }
 
   function autoCreateNsec() {

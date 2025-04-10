@@ -18,8 +18,7 @@ function SSTransactionLabel() {
 
   const { sendAccountLabelsToNostr } = useNostrLabelSync()
 
-  const [account, tx, setTxLabel] = useAccountsStore((state) => [
-    state.accounts.find((account: Account) => account.id === accountId),
+  const [tx, setTxLabel] = useAccountsStore((state) => [
     state.accounts
       .find((account: Account) => account.id === accountId)
       ?.transactions.find((tx: Transaction) => tx.id === txid),
@@ -27,9 +26,8 @@ function SSTransactionLabel() {
   ])
 
   function updateLabel(label: string) {
-    setTxLabel(accountId!, txid!, label)
-    // TODO: this does not have the updated label
-    sendAccountLabelsToNostr(account!)
+    const updatedAccount = setTxLabel(accountId!, txid!, label)
+    sendAccountLabelsToNostr(updatedAccount)
     router.back()
   }
 

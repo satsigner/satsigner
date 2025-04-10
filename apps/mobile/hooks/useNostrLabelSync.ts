@@ -16,7 +16,9 @@ function useNostrLabelSync() {
     useShallow((state) => [state.importLabels, state.updateAccount])
   )
 
-  async function sendAccountLabelsToNostr(account: Account) {
+  async function sendAccountLabelsToNostr(account?: Account) {
+    if (!account || !account.nostr) return
+
     const { autoSync, seckey, npub, relays, lastBackupFingerprint } =
       account.nostr
 
@@ -38,7 +40,11 @@ function useNostrLabelSync() {
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
-    await nostrApi.sendMessage(seckey, npub, message)
+    await nostrApi.sendMessage(
+      [...seckey] as never as Uint8Array,
+      npub,
+      message
+    )
     await nostrApi.disconnect()
 
     const timestamp = new Date().getTime() / 1000
@@ -54,7 +60,9 @@ function useNostrLabelSync() {
   }
 
   // Sync last backup found
-  async function syncAccountLabelsFromNostr(account: Account) {
+  async function syncAccountLabelsFromNostr(account?: Account) {
+    if (!account || !account.nostr) return
+
     const { autoSync, seckey, npub, relays, lastBackupTimestamp } =
       account.nostr
 
@@ -68,7 +76,7 @@ function useNostrLabelSync() {
     const messageCount = 5
     const since = lastBackupTimestamp
     const messages = await nostrApi.fetchMessages(
-      seckey,
+      [...seckey] as never as Uint8Array,
       npub,
       since,
       messageCount
@@ -91,6 +99,7 @@ function useNostrLabelSync() {
 
     importLabels(account.id, labels)
   }
+
   return {
     sendAccountLabelsToNostr,
     syncAccountLabelsFromNostr

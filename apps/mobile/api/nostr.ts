@@ -2,6 +2,8 @@ import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
 import { getPublicKey, nip04, nip19 } from 'nostr-tools'
 
+import { bytesToHex } from '@/utils/scripts'
+
 export interface NostrKeys {
   nsec: string
   npub: string
@@ -55,7 +57,7 @@ export class NostrAPI {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
-    const ourPubkey = getPublicKey(secretNostrKey)
+    const ourPubkey = getPublicKey(secretNostrKey as any)
     const { data: recipientPubkey } = nip19.decode(recipientNpub)
 
     // Ensure proper encoding before encryption
@@ -78,9 +80,7 @@ export class NostrAPI {
     })
 
     // Convert secret key to hex string for NDKPrivateKeySigner
-    const secretNostrKeyHex = Array.from(secretNostrKey)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
+    const secretNostrKeyHex = bytesToHex(secretNostrKey as any)
     const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
     await event.sign(signer)
 

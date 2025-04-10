@@ -17,8 +17,7 @@ function SSAddressLabel() {
 
   const { sendAccountLabelsToNostr } = useNostrLabelSync()
 
-  const [account, address, setAddrLabel] = useAccountsStore((state) => [
-    state.accounts.find((account: Account) => account.id === accountId),
+  const [address, setAddrLabel] = useAccountsStore((state) => [
     state.accounts
       .find((account: Account) => account.id === accountId)
       ?.addresses.find((address: Address) => address.address === addr),
@@ -26,8 +25,8 @@ function SSAddressLabel() {
   ])
 
   function updateLabel(label: string) {
-    setAddrLabel(accountId!, addr!, label)
-    sendAccountLabelsToNostr(account!)
+    const updatedAccount = setAddrLabel(accountId!, addr!, label)
+    sendAccountLabelsToNostr(updatedAccount)
     router.back()
   }
 

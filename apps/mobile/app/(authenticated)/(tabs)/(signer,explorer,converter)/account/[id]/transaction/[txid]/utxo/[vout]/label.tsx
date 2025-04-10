@@ -7,7 +7,6 @@ import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 
 function SSUtxoLabel() {
@@ -15,8 +14,7 @@ function SSUtxoLabel() {
 
   const { sendAccountLabelsToNostr } = useNostrLabelSync()
 
-  const [account, utxo, setUtxoLabel] = useAccountsStore((state) => [
-    state.accounts.find((account: Account) => account.id === accountId),
+  const [utxo, setUtxoLabel] = useAccountsStore((state) => [
     state.accounts
       .find((account) => account.id === accountId)
       ?.utxos.find((utxo) => utxo.txid === txid && utxo.vout === Number(vout)),
@@ -24,8 +22,8 @@ function SSUtxoLabel() {
   ])
 
   function updateLabel(label: string) {
-    setUtxoLabel(accountId!, txid!, Number(vout!), label)
-    sendAccountLabelsToNostr(account!)
+    const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)
+    sendAccountLabelsToNostr(updatedAccount)
     router.back()
   }
 
