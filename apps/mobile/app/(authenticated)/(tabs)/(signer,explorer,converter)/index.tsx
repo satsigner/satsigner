@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
@@ -31,45 +31,52 @@ export default function Home() {
   )
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <SSMainLayout style={styles.mainLayout}>
-        <SSHStack>
-          <View style={styles.headerContainer}>
-            <SSText
-              uppercase
-              size="3xl"
-              weight="light"
-              style={styles.headerText}
-            >
-              {tab}
-            </SSText>
-          </View>
-        </SSHStack>
-        <SSVStack>
-          {pages?.map((page, index) => (
-            <SSHStack
-              style={styles.buttonRow}
-              key={`${index}-${tab}/${page.title}`}
-            >
-              <View style={styles.buttonContainer}>
-                <SSButton
-                  label={page.title}
-                  style={styles.button}
-                  textStyle={[
-                    styles.buttonText,
-                    page.isSoon && styles.buttonTextSoon
-                  ]}
-                  onPress={() => handlePress(page)}
-                  variant="gradient"
-                  gradientType="special"
-                  uppercase
-                />
-              </View>
-            </SSHStack>
-          ))}
-        </SSVStack>
-      </SSMainLayout>
-    </ScrollView>
+    <>
+      <Stack.Screen
+        options={{
+          headerBackVisible: false
+        }}
+      />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <SSMainLayout style={styles.mainLayout}>
+          <SSHStack>
+            <View style={styles.headerContainer}>
+              <SSText
+                uppercase
+                size="3xl"
+                weight="light"
+                style={styles.headerText}
+              >
+                {tab}
+              </SSText>
+            </View>
+          </SSHStack>
+          <SSVStack>
+            {pages?.map((page, index) => (
+              <SSHStack
+                style={styles.buttonRow}
+                key={`${index}-${tab}/${page.title}`}
+              >
+                <View style={styles.buttonContainer}>
+                  <SSButton
+                    label={page.title}
+                    style={styles.button}
+                    textStyle={[
+                      styles.buttonText,
+                      page.isSoon && styles.buttonTextSoon
+                    ]}
+                    onPress={() => handlePress(page)}
+                    variant="gradient"
+                    gradientType="special"
+                    uppercase
+                  />
+                </View>
+              </SSHStack>
+            ))}
+          </SSVStack>
+        </SSMainLayout>
+      </ScrollView>
+    </>
   )
 }
 
