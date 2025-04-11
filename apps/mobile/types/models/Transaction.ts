@@ -26,11 +26,13 @@ export type Transaction = {
     scriptSig: number[]
     witness: number[][]
     value?: number
+    label?: string
   }[]
   vout: {
     value: number
     address: string
     script: number[]
+    label?: string
   }[]
   prices: Prices
 }

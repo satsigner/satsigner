@@ -1,7 +1,7 @@
 import { type Utxo } from '@/types/models/Utxo'
 
 type _Utxo = Utxo & {
-  effectiveValue: number
+  effectiveValue?: number
   scriptType?: 'p2pkh' | 'p2wpkh' | 'p2sh-p2wpkh'
 }
 
@@ -34,7 +34,12 @@ function selectEfficientUtxos(
   targetAmount: number,
   feeRate: number,
   options?: UtxoOptions
-) {
+): {
+  inputs: Utxo[]
+  fee: number
+  change: number
+  error?: string
+} {
   // Default options
   const defaultOptions = {
     dustThreshold: 546, // Min UTXO value in satoshis (Bitcoin dust limit)
@@ -72,7 +77,7 @@ function selectEfficientUtxos(
     return Math.abs(netValue - targetAmount) < opts.dustThreshold
   })
 
-  if (exactMatch) {
+  if (exactMatch)
     return {
       inputs: [exactMatch],
       fee: (opts.inputSize + opts.changeOutputSize) * feeRate,
@@ -81,7 +86,6 @@ function selectEfficientUtxos(
         targetAmount -
         (opts.inputSize + opts.changeOutputSize) * feeRate
     }
-  }
 
   // Try branch and bound algorithm for optimal selection
   const result = branchAndBoundUtxoSelection(
@@ -90,9 +94,7 @@ function selectEfficientUtxos(
     feeRate,
     opts
   )
-  if (result) {
-    return result
-  }
+  if (result) return result
 
   // Fallback to coin selection with accumulative strategy
   // Start with largest UTXOs (reverse the sorted list) for fewer inputs
@@ -121,9 +123,8 @@ function selectEfficientUtxos(
   }
 
   // Insufficient funds
-  if (selectedAmount < targetAmount + estimatedFee) {
+  if (selectedAmount < targetAmount + estimatedFee)
     return { inputs: [], fee: 0, change: 0, error: 'Insufficient funds' }
-  }
 
   return {
     inputs: selectedUtxos,
@@ -135,13 +136,18 @@ function selectEfficientUtxos(
 /**
  * Branch and Bound UTXO selection algorithm
  * Selects UTXOs from a pool to meet a target value (payment amount) while keeping the transaction efficient by avoiding unnecessary change outputs when possible.
+ * effectiveValue - used to determine the actual value that can be utilized from a group of UTXOs once fees are deducted
  */
 function branchAndBoundUtxoSelection(
   utxos: _Utxo[],
   targetAmount: number,
   feeRate: number,
   opts: UtxoOptions
-) {
+): {
+  inputs: Utxo[]
+  fee: number
+  change: number
+} | null {
   const MAX_TRIES = 1000000
   const inputCost = opts.inputSize * feeRate
 
@@ -164,9 +170,7 @@ function branchAndBoundUtxoSelection(
   )
 
   // If total value is less than target, impossible to satisfy
-  if (totalEffectiveValue < targetAmount) {
-    return null
-  }
+  if (totalEffectiveValue < targetAmount) return null
 
   // If we have exact match, return it
   const exactMatchSet = findExactMatch(effectiveUtxos, targetAmount)
@@ -239,13 +243,12 @@ function branchAndBoundUtxoSelection(
       fee
 
     // If change is less than dust, add it to fee
-    if (change > 0 && change < opts.dustThreshold) {
+    if (change > 0 && change < opts.dustThreshold)
       return {
         inputs: bestSelection,
         fee: fee + change,
         change: 0
       }
-    }
 
     return {
       inputs: bestSelection,
@@ -260,7 +263,7 @@ function branchAndBoundUtxoSelection(
 /**
  * Find a subset of UTXOs that exactly match the target amount
  */
-function findExactMatch(utxos: _Utxo[], targetValue: number) {
+function findExactMatch(utxos: _Utxo[], targetValue: number): Utxo[] | null {
   // This uses dynamic programming to find subset sum
   const n = utxos.length
 
@@ -326,7 +329,14 @@ function selectStonewallUtxos(
   targetAmount: number,
   feeRate: number,
   options: StonewallOptions = {}
-) {
+): {
+  inputs: Utxo[]
+  outputs: ChangeOutput[]
+  fee: number
+  privacyScore: number
+  txSize: number
+  error?: string
+} {
   // Default options
   const defaultOptions = {
     dustThreshold: 546,
@@ -348,7 +358,14 @@ function selectStonewallUtxos(
   // Check for insufficient funds early
   const totalAvailable = utxos.reduce((sum, utxo) => sum + utxo.value, 0)
   if (totalAvailable < targetAmount) {
-    return { error: 'Insufficient funds' }
+    return {
+      inputs: [],
+      outputs: [],
+      fee: 0,
+      privacyScore: 0,
+      txSize: 0,
+      error: 'Insufficient funds'
+    }
   }
 
   // Filter UTXOs based on postmix option
@@ -577,7 +594,7 @@ function selectStonewallUtxos(
           {
             type: options.recipientType || 'p2pkh',
             value: targetAmount,
-            recipient: true
+            size: getOutputSize(options.recipientType || 'p2pkh')
           },
           ...changeOutputs
         ],
@@ -589,7 +606,14 @@ function selectStonewallUtxos(
   }
 
   if (!bestSolution) {
-    return { error: 'Could not find a suitable STONEWALL structure' }
+    return {
+      inputs: [],
+      outputs: [],
+      fee: 0,
+      privacyScore: 0,
+      txSize: 0,
+      error: 'Could not find a suitable STONEWALL structure'
+    }
   }
 
   return bestSolution
@@ -605,7 +629,7 @@ function selectStonewallUtxos(
 function calculateStonewallEntropy(solution: {
   inputs: _Utxo[]
   outputs: ChangeOutput[]
-}) {
+}): number {
   if (!solution || !solution.inputs || !solution.outputs) {
     return 0
   }
@@ -650,7 +674,7 @@ function distributeChangeWithPrivacy(
   totalChange: number,
   numOutputs: number,
   dustThreshold: number
-) {
+): number[] {
   if (numOutputs <= 0) return []
   if (numOutputs === 1) return [totalChange]
 

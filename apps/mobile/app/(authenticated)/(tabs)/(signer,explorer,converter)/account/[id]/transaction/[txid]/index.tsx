@@ -180,8 +180,11 @@ export default function TxDetails() {
           <SSText uppercase weight="bold" size="md">
             {t('transaction.decoded.title')}
           </SSText>
-          {raw && <SSTransactionDecoded txHex={raw} />}
-          {!raw && <SSText>{placeholder}</SSText>}
+          {raw !== '' ? (
+            <SSTransactionDecoded txHex={raw} />
+          ) : (
+            <SSText>{placeholder}</SSText>
+          )}
         </SSVStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="none">
