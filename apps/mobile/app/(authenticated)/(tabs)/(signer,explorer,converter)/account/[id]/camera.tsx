@@ -1,33 +1,66 @@
 import { type BarCodeScanningResult } from 'expo-camera'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { AppState, StyleSheet, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCameraOverlay from '@/components/SSCameraOverlay'
 import SSText from '@/components/SSText'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
-import { bip21decode } from '@/utils/bitcoin'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import {
   clearClipboard,
   getBitcoinAddressFromClipboard
 } from '@/utils/clipboard'
 
 export default function Camera() {
+  const { id } = useLocalSearchParams<AccountSearchParams>()
+  const router = useRouter()
   const [permission, requestPermission] = useCameraPermissions()
   const [shouldFreezeCamera, setShouldFreezeCamera] = useState(false)
+
+  const [clearTransaction, addOutput] = useTransactionBuilderStore(
+    useShallow((state) => [state.clearTransaction, state.addOutput])
+  )
 
   const appState = useRef(AppState.currentState)
   const [hasToPaste, setHasToPaste] = useState(false)
 
+  function handleAddress(address: string | void) {
+    if (!address) return
+
+    clearTransaction()
+    if (isBitcoinAddress(address)) {
+      addOutput({ amount: 1, label: 'Please update', to: address })
+    } else if (isBip21(address)) {
+      const decodedData = bip21decode(address)
+      if (!decodedData || typeof decodedData === 'string') return
+      addOutput({
+        amount: (decodedData.options.amount || 0) * SATS_PER_BITCOIN || 1,
+        label: decodedData.options.label || 'Please update',
+        to: decodedData.address
+      })
+    }
+
+    router.navigate({
+      pathname: '/account/[id]/signAndSend/selectUtxoList',
+      params: { id }
+    })
+  }
+
   useEffect(() => {
     ;(async () => {
       const text = await getBitcoinAddressFromClipboard()
+      handleAddress(text)
       setHasToPaste(!!text)
     })()
     const subscription = AppState.addEventListener(
@@ -48,7 +81,7 @@ export default function Camera() {
     return () => {
       subscription.remove()
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handlePaste() {
     const clipboard = await getBitcoinAddressFromClipboard()
@@ -64,7 +97,7 @@ export default function Camera() {
     }
 
     setShouldFreezeCamera(true)
-    const _decodedData = bip21decode(event.data)
+    handleAddress(event.data)
   }
 
   return (

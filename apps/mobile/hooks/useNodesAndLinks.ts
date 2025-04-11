@@ -10,6 +10,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 const MINING_FEE_VALUE = 1635
 
 type Node = {
+  localId?: string
   id: string
   type: string
   depthH: number
@@ -40,6 +41,7 @@ type Transaction = {
       value: number
     }
     indexV?: number
+    label?: string
   }[]
   vout?: {
     scriptpubkey_address: string
@@ -88,7 +90,7 @@ export const useNodesAndLinks = ({
 
       const { size, vsize } = estimateTransactionSize(
         inputs.size,
-        outputs.length + 2
+        outputs.length + 1
       )
       const minerFee = Math.round(feeRate * vsize)
       const miningFee = `${minerFee}`
@@ -111,7 +113,7 @@ export const useNodesAndLinks = ({
 
       outputNodes = outputs.map((output, index) => ({
         id: `vout-${blockDepth + 1}-${index + 1}`,
-        localId: output.localId ?? '',
+        localId: output.localId,
         type: 'text',
         depthH: blockDepth + 1,
         textInfo: [
@@ -154,6 +156,7 @@ export const useNodesAndLinks = ({
 
       return [
         {
+          localId: undefined,
           id: `block-${blockDepth}-0`,
           type: 'block',
           depthH: blockDepth,
@@ -218,7 +221,8 @@ export const useNodesAndLinks = ({
               depthH,
               textInfo: [
                 `${input.prevout.value}`,
-                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`
+                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
+                `${input.label ?? ''}`
               ],
               value: input.prevout.value,
               txId: tx.txid,
@@ -273,14 +277,23 @@ export const useNodesAndLinks = ({
                   vinTx.prevValue === output.value
               )?.txid || ''
 
+            const label =
+              Array.from(inputs.values()).find(
+                (input) =>
+                  input.vout === output.vout &&
+                  input.value === output.value &&
+                  input.addressTo === output.scriptpubkey_address
+              )?.label ?? ''
+
             const node = {
+              localId: undefined,
               id: `vout-${outputDepth}-${output.indexV}`,
               type: 'text',
               depthH: outputDepth,
               textInfo: [
                 `${output.value}`,
                 `${formatAddress(output.scriptpubkey_address, 6)}`,
-                ''
+                label
               ],
               value: output.value,
               txId: tx.txid,
@@ -302,7 +315,7 @@ export const useNodesAndLinks = ({
     return []
   }, [
     incomingAndOutgoingVinTxId,
-    inputs.size,
+    inputs,
     outputAddresses,
     outputValues,
     transactions
