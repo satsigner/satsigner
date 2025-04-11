@@ -92,10 +92,8 @@ function SSNostrLabelSync() {
       } else {
         setMessages(fetchedMessages)
       }
-    } catch (error) {
-      setRelayError(
-        error instanceof Error ? error.message : 'Failed to fetch messages'
-      )
+    } catch {
+      setRelayError(t('account.nostrLabels.errorLabelFetching'))
     } finally {
       setIsLoading(false)
     }
@@ -130,7 +128,7 @@ function SSNostrLabelSync() {
     const mnemonic = accountSecret.mnemonic
 
     if (!mnemonic) {
-      throw new Error('invalid mnemonic')
+      throw new Error(t('account.nostrLabels.errorMnemonic'))
     }
 
     try {
@@ -147,10 +145,8 @@ function SSNostrLabelSync() {
           nsec: keys.nsec
         }
       })
-    } catch (error) {
-      setRelayError(
-        error instanceof Error ? error.message : 'Failed to create nsec'
-      )
+    } catch {
+      setRelayError(t('account.nostrLabels.errorNsec'))
     }
   }
 
@@ -165,10 +161,8 @@ function SSNostrLabelSync() {
 
     try {
       sendAccountLabelsToNostr(account)
-    } catch (error) {
-      setRelayError(
-        error instanceof Error ? error.message : 'Failed to send message'
-      )
+    } catch {
+      setRelayError(t('account.nostrLabels.errorLabelSend'))
     }
   }
 
@@ -194,17 +188,19 @@ function SSNostrLabelSync() {
   }
 
   function MessageContent(content: string, index: number) {
-    if (content.length <= 200 || expandedMessages.includes(index)) {
+    const characterLimit = 200
+
+    if (content.length <= characterLimit || expandedMessages.includes(index)) {
       return (
         <SSVStack gap="xxs">
           <SSText style={{ fontFamily: 'System' }}>{content}</SSText>
-          {content.length > 200 && (
+          {content.length > characterLimit && (
             <SSText
               color="white"
               onPress={() => toggleMessageExpansion(index)}
               style={{ textDecorationLine: 'underline' }}
             >
-              See less
+              {t('account.nostrLabels.backupPreviewShowLess')}
             </SSText>
           )}
         </SSVStack>
@@ -214,14 +210,14 @@ function SSNostrLabelSync() {
     return (
       <SSVStack gap="xxs">
         <SSText style={{ fontFamily: 'System' }}>
-          {content.slice(0, 200)}...
+          {content.slice(0, characterLimit)}...
         </SSText>
         <SSText
           color="white"
           onPress={() => toggleMessageExpansion(index)}
           style={{ textDecorationLine: 'underline' }}
         >
-          See more
+          {t('account.nostrLabels.backupPreviewShowMore')}
         </SSText>
       </SSVStack>
     )

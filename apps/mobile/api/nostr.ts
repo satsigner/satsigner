@@ -80,7 +80,8 @@ export class NostrAPI {
     })
 
     // Convert secret key to hex string for NDKPrivateKeySigner
-    const secretNostrKeyHex = '0x' + bytesToHex(secretNostrKey as never as number[])
+    const secretNostrKeyHex =
+      '0x' + bytesToHex(secretNostrKey as never as number[])
     const signer = new NDKPrivateKeySigner(BigInt(secretNostrKeyHex) as any)
     await event.sign(signer)
 
