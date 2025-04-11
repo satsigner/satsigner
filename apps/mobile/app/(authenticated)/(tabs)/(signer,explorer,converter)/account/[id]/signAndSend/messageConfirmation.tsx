@@ -1,10 +1,10 @@
-import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -55,13 +55,9 @@ export default function MessageConfirmation() {
             <SSIconSuccess width={159} height={159} />
           </SSVStack>
           <SSVStack>
-            <SSButton
-              variant="outline"
-              label={t('sent.copyTransactionId')}
-              onPress={() =>
-                Clipboard.setStringAsync(txBuilderResult.txDetails.txid)
-              }
-            />
+            <SSClipboardCopy text={txBuilderResult.txDetails.txid}>
+              <SSButton variant="outline" label={t('sent.copyTransactionId')} />
+            </SSClipboardCopy>
             <SSButton
               variant="outline"
               label={t('sent.trackOnChain')}
