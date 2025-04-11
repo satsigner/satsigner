@@ -133,6 +133,63 @@ function NodeText({
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
   const minerFeeIconSvg = useSVG(require('@/assets/red-miner-fee.svg'))
 
+  const blockNodeParagraph = useMemo(() => {
+    if (!customFontManager) return null
+
+    const baseTextStyle = {
+      color: Skia.Color('white'),
+      fontFamilies: ['SF Pro Text'],
+      fontSize: BASE_FONT_SIZE,
+      fontStyle: {
+        weight: 500
+      }
+    }
+
+    const createParagraphBuilder = () => {
+      return Skia.ParagraphBuilder.Make(
+        {
+          maxLines: 3,
+          textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
+          strutStyle: {
+            strutEnabled: true,
+            forceStrutHeight: true,
+            heightMultiplier: 1,
+            leading: 0
+          }
+        },
+        customFontManager
+      )
+    }
+
+    const para = createParagraphBuilder()
+    // Split the datetime string into components
+    const [dateTime, fromNow] = textInfo[0].split(' (')
+    const formattedFromNow = fromNow ? `(${fromNow}` : '' // Add back the opening parenthesis
+    para
+      .pushStyle({
+        ...baseTextStyle,
+        fontSize: XS_FONT_SIZE,
+        color: Skia.Color(gray[500])
+      })
+      .addText(`${dateTime}\n`)
+      .pushStyle({
+        ...baseTextStyle,
+        fontSize: XS_FONT_SIZE,
+        color: Skia.Color(gray[500])
+      })
+      .addText(`${formattedFromNow}\n`)
+      .pushStyle({
+        ...baseTextStyle,
+        fontSize: SM_FONT_SIZE
+      })
+      .addText(`${textInfo[1]}`)
+      .pop()
+
+    const built = para.build()
+
+    return built
+  }, [customFontManager, isBlock, textInfo])
+
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
 
@@ -163,6 +220,7 @@ function NodeText({
 
     const buildBlockParagraph = () => {
       const para = createParagraphBuilder()
+
       para
         .pushStyle({
           ...baseTextStyle,
@@ -404,6 +462,14 @@ function NodeText({
 
   return (
     <Group>
+      {isBlock ? (
+        <Paragraph
+          paragraph={blockNodeParagraph}
+          x={x + 6}
+          y={paragraphY - (blockHeight + LINK_BLOCK_MAX_WIDTH + 40)}
+          width={87}
+        />
+      ) : null}
       <Paragraph
         paragraph={mainParagraph}
         x={paragraphX}

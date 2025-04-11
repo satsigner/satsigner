@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { t } from '@/locales'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
+import { formatDate, formatRelativeTime } from '@/utils/date'
 import { formatAddress } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
@@ -49,6 +50,7 @@ type Transaction = {
     vout?: number
   }[]
   depthH: number
+  status: { block_height?: number; block_time?: number }
 }
 
 type UseNodesAndLinksProps = {
@@ -236,6 +238,10 @@ export const useNodesAndLinks = ({
           const vsize = Math.ceil(tx.weight * 0.25)
           const blockDepth = tx.depthH
           const blockIndex = blockDepthIndices.get(blockDepth) || 0
+          const blockHeight = `${tx.status.block_height}`
+          const blockRelativeTime = formatRelativeTime(tx.status.block_time)
+          const blockTime = formatDate(tx.status.block_time)
+
           blockDepthIndices.set(blockDepth, blockIndex + 1)
 
           const blockNode = [
@@ -243,7 +249,12 @@ export const useNodesAndLinks = ({
               id: `block-${blockDepth}-${blockIndex}`,
               type: 'block',
               depthH: blockDepth,
-              textInfo: ['', '', `${tx.size} B`, `${vsize} vB`],
+              textInfo: [
+                `${blockTime} ${blockRelativeTime}`,
+                blockHeight,
+                `${tx.size} B`,
+                `${vsize} vB`
+              ],
               txId: tx.txid,
               indexV: blockIndex
             }
