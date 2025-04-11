@@ -1,5 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { ActivityIndicator } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -20,7 +21,6 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
-import { ActivityIndicator } from 'react-native'
 
 export default function SignMessage() {
   const router = useRouter()
@@ -112,14 +112,11 @@ export default function SignMessage() {
             <SSText size="lg">
               {formatAddress(txBuilderResult.txDetails.txid)}
             </SSText>
-            {(signed && !broadcasted) && (
+            {signed && !broadcasted && (
               <SSIconSuccess width={159} height={159} variant="outline" />
             )}
-            {(!signed && !broadcasted) && (
-              <ActivityIndicator
-                size={160}
-                color="#fff"
-              />
+            {!signed && !broadcasted && (
+              <ActivityIndicator size={160} color="#fff" />
             )}
             {broadcasted && (
               <SSIconSuccess width={159} height={159} variant="filled" />

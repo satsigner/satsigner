@@ -1,10 +1,10 @@
-import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -13,7 +13,6 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
-import SSClipboardCopy from '@/components/SSClipboardCopy'
 
 export default function MessageConfirmation() {
   const router = useRouter()
@@ -57,10 +56,7 @@ export default function MessageConfirmation() {
           </SSVStack>
           <SSVStack>
             <SSClipboardCopy text={txBuilderResult.txDetails.txid}>
-              <SSButton
-                variant="outline"
-                label={t('sent.copyTransactionId')}
-              />
+              <SSButton variant="outline" label={t('sent.copyTransactionId')} />
             </SSClipboardCopy>
             <SSButton
               variant="outline"
