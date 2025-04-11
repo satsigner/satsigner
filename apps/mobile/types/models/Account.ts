@@ -1,3 +1,4 @@
+import { type Network } from '../settings/blockchain'
 import { type Address } from './Address'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
@@ -45,6 +46,7 @@ export type Key = {
 export type Account = {
   id: string
   name: string
+  network: Network
   policyType: PolicyType
   /** Account keys. Default: [] */
   keys: Key[]

@@ -5,8 +5,9 @@ import {
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
+import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -18,6 +19,7 @@ import {
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
+import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
@@ -44,6 +46,7 @@ import {
 
 export default function AccountList() {
   const router = useRouter()
+  const { width } = useWindowDimensions()
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
@@ -91,10 +94,24 @@ export default function AccountList() {
 
   type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
+  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
+  const [tabIndex, setTabIndex] = useState(0)
+  const [filteredAccounts, setFilteredAccounts] = useState(
+    accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+  )
+
+  useEffect(() => {
+    setFilteredAccounts(
+      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+    )
+  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (connectionMode === 'auto') fetchPrices()
   }, [connectionMode, fetchPrices])
+
+  const [connectionState, connectionString, isPrivateConnection] =
+    useVerifyConnection()
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
@@ -164,8 +181,49 @@ export default function AccountList() {
     }
   }
 
-  const [connectionState, connectionString, isPrivateConnection] =
-    useVerifyConnection()
+  const renderTab = () => {
+    return (
+      <SSHStack
+        gap="none"
+        justifyEvenly
+        style={{
+          paddingVertical: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.gray[800]
+        }}
+      >
+        {tabs.map((tab, index) => (
+          <SSActionButton
+            key={tab.key}
+            style={{ width: '30%', height: 48 }}
+            onPress={() => setTabIndex(index)}
+          >
+            <SSVStack gap="none">
+              <SSText
+                center
+                uppercase
+                style={{ lineHeight: 20, letterSpacing: 3 }}
+              >
+                {tab.key}
+              </SSText>
+              {tabIndex === index && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: 1,
+                    bottom: -15,
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
+        ))}
+      </SSHStack>
+    )
+  }
 
   return (
     <>
@@ -234,35 +292,49 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingTop: 32, paddingRight: 2 }}>
-        <ScrollView style={{ paddingRight: '6%' }}>
-          <SSVStack>
-            <FlashList
-              data={accounts}
-              renderItem={({ item }) => (
-                <SSVStack>
-                  <SSAccountCard
-                    account={item}
-                    onPress={() => router.navigate(`/account/${item.id}`)}
-                  />
-                </SSVStack>
-              )}
-              estimatedItemSize={20}
-              ItemSeparatorComponent={() => (
-                <SSSeparator style={{ marginVertical: 16 }} color="gradient" />
-              )}
-              ListEmptyComponent={
-                <SSVStack
-                  itemsCenter
-                  style={{ paddingTop: 32, paddingBottom: 32 }}
-                >
-                  <SSText uppercase>{t('accounts.empty')}</SSText>
-                </SSVStack>
-              }
-              indicatorStyle="white"
-              showsVerticalScrollIndicator={false}
-            />
-          </SSVStack>
+      <SSMainLayout style={{ paddingTop: 32, paddingRight: 2, flexGrow: 1 }}>
+        <ScrollView
+          style={{ paddingRight: '6%' }}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <TabView
+            swipeEnabled={false}
+            navigationState={{ index: tabIndex, routes: tabs }}
+            renderScene={() => (
+              <SSVStack style={{ flexGrow: 1, marginTop: 16 }}>
+                <FlashList
+                  data={filteredAccounts}
+                  renderItem={({ item }) => (
+                    <SSVStack>
+                      <SSAccountCard
+                        account={item}
+                        onPress={() => router.navigate(`/account/${item.id}`)}
+                      />
+                    </SSVStack>
+                  )}
+                  estimatedItemSize={20}
+                  ItemSeparatorComponent={() => (
+                    <SSSeparator
+                      style={{ marginVertical: 16 }}
+                      color="gradient"
+                    />
+                  )}
+                  ListEmptyComponent={
+                    <SSVStack
+                      itemsCenter
+                      style={{ paddingTop: 32, paddingBottom: 32 }}
+                    >
+                      <SSText uppercase>{t('accounts.empty')}</SSText>
+                    </SSVStack>
+                  }
+                  showsVerticalScrollIndicator={false}
+                />
+              </SSVStack>
+            )}
+            onIndexChange={setTabIndex}
+            initialLayout={{ width }}
+            renderTabBar={renderTab}
+          />
           <SSVStack
             itemsCenter
             style={{
