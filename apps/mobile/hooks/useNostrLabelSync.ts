@@ -40,11 +40,7 @@ function useNostrLabelSync() {
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
-    await nostrApi.sendMessage(
-      [...seckey] as never as Uint8Array,
-      npub,
-      message
-    )
+    await nostrApi.sendMessage(Uint8Array.from(seckey), npub, message)
     await nostrApi.disconnect()
 
     const timestamp = new Date().getTime() / 1000
@@ -74,9 +70,9 @@ function useNostrLabelSync() {
     await nostrApi.connect()
 
     const messageCount = 5
-    const since = lastBackupTimestamp
+    const since = undefined // lastBackupTimestamp
     const messages = await nostrApi.fetchMessages(
-      [...seckey] as never as Uint8Array,
+      Uint8Array.from(seckey),
       npub,
       since,
       messageCount
@@ -89,7 +85,6 @@ function useNostrLabelSync() {
       try {
         if (!message.decryptedContent) continue
         labels.push(...JSONLtoLabels(message.decryptedContent))
-        break
       } catch {
         //
       }

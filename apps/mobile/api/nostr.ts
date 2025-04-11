@@ -57,7 +57,7 @@ export class NostrAPI {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
-    const ourPubkey = getPublicKey(secretNostrKey as any)
+    const ourPubkey = getPublicKey(secretNostrKey)
     const { data: recipientPubkey } = nip19.decode(recipientNpub)
 
     // Ensure proper encoding before encryption
@@ -80,8 +80,8 @@ export class NostrAPI {
     })
 
     // Convert secret key to hex string for NDKPrivateKeySigner
-    const secretNostrKeyHex = bytesToHex(secretNostrKey as any)
-    const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
+    const secretNostrKeyHex = '0x' + bytesToHex(secretNostrKey as never as number[])
+    const signer = new NDKPrivateKeySigner(BigInt(secretNostrKeyHex) as any)
     await event.sign(signer)
 
     await event.publish()

@@ -36,9 +36,6 @@ function SSNostrLabelSync() {
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
   const [autoSync, setAutoSync] = useState(false)
-  const [lastMessageTimestamp, setLastMessageTimestamp] = useState<
-    number | null
-  >(null)
   const [hasMoreMessages, setHasMoreMessages] = useState(true)
   const [importCount, setImportCount] = useState(0)
   const [importCountTotal, setImportCountTotal] = useState(0)
@@ -72,11 +69,13 @@ function SSNostrLabelSync() {
       // Ensure connection is established
       await nostrApi.connect()
 
+      const lastBackupTimestamp = account?.nostr.lastBackupTimestamp
+
       const fetchedMessages = (
         await nostrApi.fetchMessages(
-          [...secretNostrKey] as any,
+          Uint8Array.from(secretNostrKey),
           npub,
-          loadMore ? lastMessageTimestamp ?? undefined : undefined
+          lastBackupTimestamp
         )
       ).filter(filterMessages)
 
@@ -85,13 +84,6 @@ function SSNostrLabelSync() {
         setHasMoreMessages(false)
         setIsLoading(false)
         return
-      }
-
-      // Update last message timestamp for pagination
-      if (fetchedMessages.length > 0) {
-        setLastMessageTimestamp(
-          fetchedMessages[fetchedMessages.length - 1].created_at
-        )
       }
 
       // Update messages state based on whether we're loading more or not
@@ -240,7 +232,6 @@ function SSNostrLabelSync() {
     setRelayError(null)
     // Clear messages when passphrase changes
     setMessages([])
-    setLastMessageTimestamp(null)
     setHasMoreMessages(true)
     if (account) {
       updateAccount({
