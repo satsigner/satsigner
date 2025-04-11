@@ -159,7 +159,6 @@ export default function AccountSettings() {
             <SSButton
               style={{ flex: 1 }}
               label={t('account.export.descriptors')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/export/descriptors`
@@ -167,11 +166,13 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
+          <SSText style={{ marginTop: 15, flex: 0 }} center>
+            {t('account.labels')}
+          </SSText>
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
               label={t('account.export.labels')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/export/labels`
@@ -181,10 +182,20 @@ export default function AccountSettings() {
             <SSButton
               style={{ flex: 1 }}
               label={t('account.import.labels')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/import/labels`
+                )
+              }
+            />
+          </SSHStack>
+          <SSHStack>
+            <SSButton
+              style={{ flex: 1 }}
+              label={t('account.nostrlabels.sync')}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/nostr/nostrLabelSync`
                 )
               }
             />

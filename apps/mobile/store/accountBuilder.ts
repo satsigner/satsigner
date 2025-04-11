@@ -220,7 +220,14 @@ const useAccountBuilderStore = create<
       transactions: [],
       utxos: [],
       addresses: [],
-      createdAt: new Date()
+      createdAt: new Date(),
+      nostr: {
+        npub: '',
+        nsec: '',
+        relays: [],
+        autoSync: false,
+        passphrase: undefined
+      }
     }
 
     return account

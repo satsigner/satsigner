@@ -3,13 +3,16 @@ import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
+import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 
-export default function SSUtxoLabel() {
+function SSUtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
+
+  const { sendAccountLabelsToNostr } = useNostrLabelSync()
 
   const [utxo, setUtxoLabel] = useAccountsStore((state) => [
     state.accounts
@@ -19,7 +22,8 @@ export default function SSUtxoLabel() {
   ])
 
   function updateLabel(label: string) {
-    setUtxoLabel(accountId!, txid!, Number(vout!), label)
+    const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)
+    sendAccountLabelsToNostr(updatedAccount)
     router.back()
   }
 
@@ -48,3 +52,5 @@ export default function SSUtxoLabel() {
     </ScrollView>
   )
 }
+
+export default SSUtxoLabel
