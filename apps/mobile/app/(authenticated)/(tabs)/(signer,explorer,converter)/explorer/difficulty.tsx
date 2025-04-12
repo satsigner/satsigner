@@ -14,7 +14,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn } from '@/locales'
 import { Colors } from '@/styles'
 import {
   type BlockDifficulty,
@@ -68,9 +68,11 @@ function ExplorerDifficulty() {
     const response =
       (await mempoolOracle.getDifficultyAdjustment()) as DifficultyAdjustment
 
+    const t = tn('time')
+
     const avgTimeInSeconds = response.timeAvg / 1000
     const avgTimeInMinutes = avgTimeInSeconds / 60
-    const formattedAvgTime = t('time.minutes', {
+    const formattedAvgTime = t('minutes', {
       value: avgTimeInMinutes.toFixed(1)
     })
     setAverageBlockTime(`~${formattedAvgTime}`)
@@ -78,8 +80,8 @@ function ExplorerDifficulty() {
     const [time, timeUnit] = formatTimeFromNow(response.remainingTime)
     const timeFromAdjusment =
       time.toFixed(1) === '1.0'
-        ? t(`time.${timeUnit}`)
-        : t(`time.${timeUnit}s`, { value: time.toFixed(1) })
+        ? t(`${timeUnit}`)
+        : t(`${timeUnit}s`, { value: time.toFixed(4) })
     setRemainingTime(`~${timeFromAdjusment}`)
   }
 
@@ -156,12 +158,14 @@ function ExplorerDifficulty() {
     fetchData(Number(epoch))
   }
 
+  const t = tn('explorer.difficulty')
+
   return (
     <SSMainLayout style={styles.mainContainer}>
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('explorer.difficulty.title')}</SSText>
+            <SSText uppercase>{t('title')}</SSText>
           )
         }}
       />
@@ -169,7 +173,7 @@ function ExplorerDifficulty() {
         <SSVStack gap="none">
           <SSText weight="bold">{averageBlockTime}</SSText>
           <SSText color="muted" size="xs" style={[styles.headerCaption]}>
-            {t('explorer.difficulty.avgBlock')}
+            {t('avgBlock')}
           </SSText>
         </SSVStack>
         <SSVStack gap="none">
@@ -181,7 +185,7 @@ function ExplorerDifficulty() {
             size="xs"
             style={[styles.headerCaption, styles.headerRight]}
           >
-            {t('explorer.difficulty.nextAdjustment')}
+            {t('nextAdjustment')}
           </SSText>
         </SSVStack>
       </SSHStack>
@@ -198,16 +202,16 @@ function ExplorerDifficulty() {
       <SSVStack gap="none">
         <SSVStack gap="none" style={styles.footerContainer}>
           <SSHStack gap="xs" style={styles.dateContainer}>
-            <SSText color="muted">{t('explorer.difficulty.epoch')}</SSText>
+            <SSText color="muted">{t('epoch')}</SSText>
             <SSText weight="bold">{epoch}</SSText>
           </SSHStack>
           <SSText center weight="bold">
             {dateStart} - {dateEnd}
           </SSText>
           <SSHStack gap="xs" style={styles.dateContainer}>
-            <SSText color="muted">{t('explorer.difficulty.blockFrom')}</SSText>
+            <SSText color="muted">{t('blockFrom')}</SSText>
             <SSText weight="bold">{heightStart}</SSText>
-            <SSText color="muted">{t('explorer.difficulty.blockTo')}</SSText>
+            <SSText color="muted">{t('blockTo')}</SSText>
             <SSText weight="bold">{heightEnd}</SSText>
           </SSHStack>
         </SSVStack>
@@ -235,7 +239,7 @@ function ExplorerDifficulty() {
         </SSHStack>
         <SSVStack style={{ alignItems: 'center', marginTop: 10 }}>
           <SSButton
-            label={t('explorer.difficulty.fetch')}
+            label={t('fetch')}
             variant="outline"
             onPress={fetchEpoch}
             loading={loading}
@@ -273,27 +277,29 @@ function BlockDetails({ block }: BlockDetailsProps) {
     width: (width - horizontalPadding) / 3
   }
 
+  const t = tn('explorer.difficulty.blockDetails')
+
   return (
     <>
       <SSText center uppercase weight="bold">
-        {t('explorer.difficulty.blockDetails.title')}
+        {t('title')}
       </SSText>
       <SSHStack style={styles.blockDetailsSectionGroup}>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.height')}
+            {t('height')}
           </SSText>
           <SSText>{block.height}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.cycleHeight')}
+            {t('cycleHeight')}
           </SSText>
           <SSText>{block.cycleHeight}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.txs')}
+            {t('txs')}
           </SSText>
           <SSText>{block.txCount}</SSText>
         </SSVStack>
@@ -301,19 +307,19 @@ function BlockDetails({ block }: BlockDetailsProps) {
       <SSHStack style={styles.blockDetailsSectionGroup}>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.size')}
+            {t('size')}
           </SSText>
           <SSText>{block.size}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.vsize')}
+            {t('vsize')}
           </SSText>
           <SSText>{Math.trunc(block.weight / 4)}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.weight')}
+            {t('weight')}
           </SSText>
           <SSText>{block.weight}</SSText>
         </SSVStack>
@@ -321,19 +327,19 @@ function BlockDetails({ block }: BlockDetailsProps) {
       <SSHStack style={styles.blockDetailsSectionGroup}>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.nonce')}
+            {t('nonce')}
           </SSText>
           <SSText>{block.nonce}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.date')}
+            {t('date')}
           </SSText>
           <SSText>{formatDate(block.timestamp * 1000)}</SSText>
         </SSVStack>
         <SSVStack gap="none" style={columnStyle}>
           <SSText color="muted" uppercase>
-            {t('explorer.difficulty.blockDetails.time')}
+            {t('time')}
           </SSText>
           <SSText>{block.timeDifference}s</SSText>
         </SSVStack>
@@ -345,7 +351,7 @@ function BlockDetails({ block }: BlockDetailsProps) {
         }}
       >
         <SSText color="muted" uppercase>
-          {t('explorer.difficulty.blockDetails.chainWork')}
+          {t('chainWork')}
         </SSText>
         <SSText>{block.chainWork}</SSText>
       </SSVStack>
