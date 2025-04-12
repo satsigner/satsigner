@@ -16,9 +16,7 @@ const t_common = tn('common')
 
 function ImportOuputs() {
   const router = useRouter()
-  const [importedOutputs, setImportedOutputs] = useState(
-    t('emptyContent')
-  )
+  const [importedOutputs, setImportedOutputs] = useState(t('emptyContent'))
   const [validInput, setValidInput] = useState(false)
 
   async function readFromClibpoard() {

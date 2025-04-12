@@ -164,9 +164,7 @@ function ExplorerDifficulty() {
     <SSMainLayout style={styles.mainContainer}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('title')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{t('title')}</SSText>
         }}
       />
       <SSHStack gap="none" justifyBetween style={styles.headerContainer}>
