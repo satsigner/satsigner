@@ -70,7 +70,7 @@ function useNostrLabelSync() {
     await nostrApi.connect()
 
     const messageCount = 5
-    const since = undefined // lastBackupTimestamp
+    const since = lastBackupTimestamp
     const messages = await nostrApi.fetchMessages(
       Uint8Array.from(seckey),
       npub,
