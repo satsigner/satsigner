@@ -353,7 +353,7 @@ function SSNostrLabelSync() {
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
+    <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
       <ScrollView>
         <SSVStack gap="lg">
           <SSText center uppercase color="muted">
