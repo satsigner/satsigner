@@ -277,12 +277,17 @@ function SSSpiralBlocks({
             top: 0,
             right: 0,
             bottom: 0,
-            left: 0
+            left: 0,
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           <Animated.View
             style={[
-              { width: canvasWidth, height: canvasHeight },
+              {
+                width: canvasWidth,
+                height: canvasHeight
+              },
               animatedStyle
             ]}
             onLayout={onCanvasLayout}
@@ -345,7 +350,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000'
+    backgroundColor: '#000000',
+    borderColor: 'yellow',
+    borderWidth: 1
   },
   canvas: {
     position: 'relative',
