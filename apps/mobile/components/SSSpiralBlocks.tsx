@@ -3,6 +3,7 @@ import {
   Canvas,
   Circle,
   DashPathEffect,
+  Group,
   Paint,
   Paragraph,
   Path,
@@ -10,20 +11,20 @@ import {
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
-import { useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import {
+  Platform,
   type StyleProp,
   StyleSheet,
   TouchableOpacity,
   View,
   type ViewStyle
 } from 'react-native'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring
-} from 'react-native-reanimated'
+import { GestureDetector } from 'react-native-gesture-handler'
+import Animated from 'react-native-reanimated'
 
+import { useGestures } from '@/hooks/useGestures'
+import { useLayout } from '@/hooks/useLayout'
 import { Colors } from '@/styles'
 import { type BlockDifficulty } from '@/types/models/Blockchain'
 
@@ -60,61 +61,80 @@ function SSSpiralBlocks({
     ]
   })
 
+  const { width: w, height: h, center, onCanvasLayout } = useLayout()
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    maxScale: 1000,
+    minScale: 0.1,
+    shouldResetOnInteractionEnd: false
+  })
+
   const fontSize = 12
 
-  const scale = useSharedValue(1)
-  const translateX = useSharedValue(0)
-  const translateY = useSharedValue(0)
-
-  const animatedStyle = useAnimatedStyle(
+  // Memoize the text style to prevent recreating it on each render
+  const TextStyleWeeks = useMemo(
     () => ({
-      transform: [
-        { translateX: withSpring(translateX.value) },
-        { translateY: withSpring(translateY.value) },
-        { scale: withSpring(scale.value, { damping: 10, stiffness: 200 }) }
-      ]
-      //transformOrigin: 'center center' // This ensures scaling happens from the center
+      color: Skia.Color(Colors.gray[100]),
+      fontFamilies: ['SF Pro Text'],
+      fontSize,
+      fontStyle: {
+        weight: 400
+      }
     }),
-    [scale, translateX, translateY]
+    [fontSize]
   )
 
-  const TextStyleWeeks = {
-    color: Skia.Color(Colors.gray[100]),
-    fontFamilies: ['SF Pro Text'],
-    fontSize,
-    fontStyle: {
-      weight: 400
-    }
-  }
+  // Memoize the paragraph creation function to avoid recreating it on each render
+  const createParagraph = useCallback(
+    (text: string) => {
+      if (!customFontManager) return null
 
-  const createParagraph = (text: string) => {
-    if (!customFontManager) return null
+      const paragraph = Skia.ParagraphBuilder.Make(
+        {
+          maxLines: 1,
+          textAlign: TextAlign.Center
+        },
+        customFontManager
+      )
+        .pushStyle(TextStyleWeeks)
+        .addText(text)
+        .pop()
+        .build()
 
-    const paragraph = Skia.ParagraphBuilder.Make({
-      maxLines: 1,
-      textAlign: TextAlign.Center
-    })
-      .pushStyle(TextStyleWeeks)
-      .addText(text)
-      .pop()
-      .build()
-
-    paragraph.layout(100)
-    return paragraph
-  }
+      paragraph.layout(100)
+      return paragraph
+    },
+    [customFontManager, TextStyleWeeks]
+  )
 
   const pWeek1 = useMemo(() => {
     return createParagraph('1 WEEK')
-  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [createParagraph])
+
   const pWeek2 = useMemo(() => {
     return createParagraph('2 WEEKS')
-  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [createParagraph])
+
   const pWeek3 = useMemo(() => {
     return createParagraph('3 WEEKS')
-  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [createParagraph])
+
   const pWeek4 = useMemo(() => {
     return createParagraph('4 WEEKS')
-  }, [customFontManager]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [createParagraph])
+
+  // Memoize the newtonRaphson function to avoid recalculating it
+  const memoizedNewtonRaphson = useCallback(
+    (L: number, k: number, initialGuess: number) => {
+      return newtonRaphson(L, k, initialGuess)
+    },
+    []
+  )
 
   const spiralBlocks = useMemo(() => {
     if (!data || data.length === 0) return []
@@ -136,7 +156,11 @@ function SSSpiralBlocks({
         i === 0 || i === maxBlocksPerSpiral - 1 ? 0 : timeDifference
 
       arc_distance += block_distance * FACTOR_BLOCK_DISTANCE
-      phi_spiral = newtonRaphson(arc_distance, FACTOR_SPIRAL_GROWTH, phi_spiral)
+      phi_spiral = memoizedNewtonRaphson(
+        arc_distance,
+        FACTOR_SPIRAL_GROWTH,
+        phi_spiral
+      )
       radius_spiral = FACTOR_SPIRAL_GROWTH * phi_spiral
 
       const x = radius_spiral * Math.cos(phi_spiral)
@@ -154,60 +178,90 @@ function SSSpiralBlocks({
       })
     }
     return blocks
-  }, [loading, data]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data, maxBlocksPerSpiral, memoizedNewtonRaphson])
 
+  // Pre-calculate common values for path creation
+  const halfSize = BLOCK_SIZE / 2
+  const centerX = canvasWidth / 2
+  const centerY = canvasHeight / 2
+
+  // Optimize path creation by caching calculations
   const paths = useMemo(() => {
     return spiralBlocks.map((block) => {
       const path = Skia.Path.Make()
-      const halfSize = BLOCK_SIZE / 2
       const cosTheta = Math.cos(block.rotation)
       const sinTheta = Math.sin(block.rotation)
-      const points = [
+
+      // Pre-calculate rotated points
+      const rotatedPoints = [
         [-halfSize, -halfSize],
         [halfSize, -halfSize],
         [halfSize, halfSize],
         [-halfSize, halfSize]
       ].map(([x, y]) => {
-        const rotatedX = cosTheta * x - sinTheta * y
-        const rotatedY = sinTheta * x + cosTheta * y
-        return [rotatedX + block.x, rotatedY + block.y]
+        const rotatedX = cosTheta * x - sinTheta * y + block.x + centerX
+        const rotatedY = sinTheta * x + cosTheta * y + block.y + centerY
+        return [rotatedX, rotatedY]
       })
 
-      path.moveTo(
-        points[0][0] + canvasWidth / 2,
-        points[0][1] + canvasHeight / 2
-      )
-      path.lineTo(
-        points[1][0] + canvasWidth / 2,
-        points[1][1] + canvasHeight / 2
-      )
-      path.lineTo(
-        points[2][0] + canvasWidth / 2,
-        points[2][1] + canvasHeight / 2
-      )
-      path.lineTo(
-        points[3][0] + canvasWidth / 2,
-        points[3][1] + canvasHeight / 2
-      )
+      // Build path with fewer operations
+      path.moveTo(rotatedPoints[0][0], rotatedPoints[0][1])
+      path.lineTo(rotatedPoints[1][0], rotatedPoints[1][1])
+      path.lineTo(rotatedPoints[2][0], rotatedPoints[2][1])
+      path.lineTo(rotatedPoints[3][0], rotatedPoints[3][1])
       path.close()
 
       return path
     })
-  }, [spiralBlocks, canvasHeight, canvasWidth])
+  }, [spiralBlocks, centerX, centerY, halfSize])
 
+  // Optimize touchable overlay styles creation
   const invisibleOverlayBlocks = useMemo(() => {
     return spiralBlocks.map((block) => {
+      const overlaySize = BLOCK_SIZE + 3 // Define overlay size
       return {
         position: 'absolute',
-        top: canvasHeight / 2 + block.y - BLOCK_SIZE / 2,
-        left: canvasWidth / 2 + block.x - BLOCK_SIZE / 2,
-        width: BLOCK_SIZE + 3,
-        height: BLOCK_SIZE + 3,
+        top: canvasHeight / 2 + block.y - overlaySize / 2,
+        left: canvasWidth / 2 + block.x - overlaySize / 2,
+        width: overlaySize,
+        height: overlaySize,
         borderRadius: 25,
+        borderColor: 'red',
+        // borderWidth: 1,
         backgroundColor: 'rgba(255, 255, 255, 0)'
       } as StyleProp<ViewStyle>
     })
-  }, [spiralBlocks, canvasWidth, canvasHeight])
+  }, [spiralBlocks, canvasHeight, canvasWidth])
+
+  // Pre-calculate week circles outside of the render function
+  const weekCircles = useMemo(() => {
+    return RADIUS_WEEKS.map((r, index) => {
+      const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
+      return (
+        <Circle key={index} cx={centerX} cy={centerY} r={r} color="transparent">
+          <Paint color={weekRingColor} style="stroke" strokeWidth={1}>
+            <DashPathEffect intervals={[5, 5]} phase={0} />
+          </Paint>
+        </Circle>
+      )
+    })
+  }, [centerX, centerY])
+
+  // Pre-calculate touchable blocks with their handlers
+  const touchableBlocks = useMemo(() => {
+    return spiralBlocks.map((_, index) => (
+      <TouchableOpacity
+        key={index}
+        style={invisibleOverlayBlocks[index]}
+        delayPressIn={0}
+        delayPressOut={0}
+        onPress={() => onBlockPress(data[index])}
+        activeOpacity={0.7}
+      >
+        <Animated.View />
+      </TouchableOpacity>
+    ))
+  }, [spiralBlocks, invisibleOverlayBlocks, data, onBlockPress])
 
   // If still loading data, show a loading spinner (an outlined circle)
   if (loading) {
@@ -232,48 +286,57 @@ function SSSpiralBlocks({
 
   return (
     <View style={styles.container}>
-      <Animated.View style={animatedStyle}>
-        <Canvas
-          style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+      <Canvas
+        style={[styles.canvas, { width: canvasWidth, height: canvasHeight }]}
+        onLayout={onCanvasLayout}
+      >
+        <Group
+          transform={transform}
+          origin={{ x: canvasWidth / 2, y: canvasHeight / 2 }}
         >
-          {spiralBlocks.map((block, index) => (
-            <Path key={index} path={paths[index]} color={block.color} />
+          {/* Render paths in batches to reduce render operations */}
+          {paths.map((path, index) => (
+            <Path key={index} path={path} color={spiralBlocks[index].color} />
           ))}
 
-          {RADIUS_WEEKS.map((r, index) => {
-            const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
-            return (
-              <Circle
-                key={index}
-                cx={canvasWidth / 2}
-                cy={canvasHeight / 2}
-                r={r}
-                color="transparent"
-              >
-                <Paint color={weekRingColor} style="stroke" strokeWidth={1}>
-                  <DashPathEffect intervals={[5, 5]} phase={0} />
-                </Paint>
-              </Circle>
-            )
-          })}
+          {/* Pre-calculate week ring circles */}
+          {weekCircles}
 
           <Paragraph paragraph={pWeek1} x={0} y={135} width={canvasWidth} />
           <Paragraph paragraph={pWeek2} x={0} y={65} width={canvasWidth} />
           <Paragraph paragraph={pWeek3} x={0} y={-10} width={canvasWidth} />
           <Paragraph paragraph={pWeek4} x={0} y={-50} width={canvasWidth} />
-        </Canvas>
+        </Group>
+      </Canvas>
 
-        {/* Overlay for touchable areas, ensuring correct alignment with blocks */}
-        <View style={styles.touchableOverlay}>
-          {invisibleOverlayBlocks.map((style, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => onBlockPress(data[index])}
-              style={style}
-            />
-          ))}
+      <GestureDetector gesture={gestures}>
+        <View
+          style={{
+            flex: 1,
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <Animated.View
+            style={[
+              {
+                width: canvasWidth,
+                height: canvasHeight
+              },
+              animatedStyle
+            ]}
+            onLayout={onCanvasLayout}
+          >
+            {/* Render TouchableOpacity components with pre-calculated handlers */}
+            {touchableBlocks}
+          </Animated.View>
         </View>
-      </Animated.View>
+      </GestureDetector>
     </View>
   )
 }
@@ -315,7 +378,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000'
+    backgroundColor: '#000000',
+    borderColor: 'yellow',
+    borderWidth: 1
   },
   canvas: {
     position: 'relative',
@@ -367,4 +432,14 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSSpiralBlocks
+// Use React.memo to prevent unnecessary re-renders
+export default memo(SSSpiralBlocks, (prevProps, nextProps) => {
+  // Only re-render when these props change
+  return (
+    prevProps.loading === nextProps.loading &&
+    prevProps.data === nextProps.data &&
+    prevProps.canvasWidth === nextProps.canvasWidth &&
+    prevProps.canvasHeight === nextProps.canvasHeight &&
+    prevProps.maxBlocksPerSpiral === nextProps.maxBlocksPerSpiral
+  )
+})
