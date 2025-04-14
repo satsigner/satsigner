@@ -50,6 +50,7 @@ export default function AccountList() {
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
+  const network = useBlockchainStore((state) => state.network)
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -67,7 +68,8 @@ export default function AccountList() {
     setKeyCount,
     setKeysRequired,
     setPolicyType,
-    setKey
+    setKey,
+    setNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.clearAccount,
@@ -83,7 +85,8 @@ export default function AccountList() {
       state.setKeyCount,
       state.setKeysRequired,
       state.setPolicyType,
-      state.setKey
+      state.setKey,
+      state.setNetwork
     ])
   )
   const fetchPrices = usePriceStore((state) => state.fetchPrices)
@@ -123,6 +126,7 @@ export default function AccountList() {
     setName(`My Wallet (${type})`)
     setKeyCount(1)
     setKeysRequired(1)
+    setNetwork(network)
 
     switch (type) {
       case 'segwit':
