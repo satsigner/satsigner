@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 import { MempoolOracle } from '@/api/blockchain'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { type Currency, type Prices } from '@/types/models/Blockchain'
 
 type PriceState = {
@@ -15,8 +16,6 @@ type PriceAction = {
   fetchPrices: () => Promise<void>
   fetchFullPriceAt: (timestamps: number) => Promise<void>
 }
-
-const SATS_IN_BITCOIN = 100_000_000
 
 const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
   prices: {
@@ -33,7 +32,7 @@ const usePriceStore = create<PriceState & PriceAction>()((set, get) => ({
   satsToFiat: (sats, btcPrice = 0) => {
     const bitcoinPrice = btcPrice || get().btcPrice
 
-    return (sats / SATS_IN_BITCOIN) * bitcoinPrice
+    return (sats / SATS_PER_BITCOIN) * bitcoinPrice
   },
   fetchPrices: async () => {
     const oracle = new MempoolOracle()
