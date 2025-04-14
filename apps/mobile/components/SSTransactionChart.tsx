@@ -42,13 +42,13 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     txid: input.previousOutput.txid,
     value: input.value || defaultInputValue,
     valueIsKnown: input.value !== undefined,
-    label: ''
+    label: input.label || ''
   }))
 
   const outputs = transaction.vout.map((output) => ({
     address: output.address,
     value: output.value,
-    label: ''
+    label: output.label || ''
   }))
 
   let minerFee: number | undefined
