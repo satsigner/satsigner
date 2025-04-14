@@ -11,7 +11,7 @@ import {
   TextAlign,
   useFonts
 } from '@shopify/react-native-skia'
-import React, { useCallback, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import {
   Platform,
   type StyleProp,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
 })
 
 // Use React.memo to prevent unnecessary re-renders
-export default React.memo(SSSpiralBlocks, (prevProps, nextProps) => {
+export default memo(SSSpiralBlocks, (prevProps, nextProps) => {
   // Only re-render when these props change
   return (
     prevProps.loading === nextProps.loading &&
