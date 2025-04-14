@@ -7,6 +7,7 @@ import { type Account, type Key, type Secret } from '@/types/models/Account'
 
 type AccountBuilderState = {
   name: Account['name']
+  network: Account['network']
   policyType: Account['policyType']
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
@@ -26,6 +27,7 @@ type AccountBuilderState = {
 
 type AccountBuilderAction = {
   setName: (name: AccountBuilderState['name']) => void
+  setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
@@ -69,6 +71,7 @@ type AccountBuilderAction = {
 
 const initialState: AccountBuilderState = {
   name: '',
+  network: 'signet',
   policyType: 'singlesig',
   keyName: '',
   creationType: 'importMnemonic',
@@ -92,6 +95,9 @@ const useAccountBuilderStore = create<
   ...initialState,
   setName: (name) => {
     set({ name })
+  },
+  setNetwork: (network) => {
+    set({ network })
   },
   setPolicyType: (policyType) => {
     set({ policyType })
@@ -201,11 +207,12 @@ const useAccountBuilderStore = create<
     set({ keysRequired })
   },
   getAccountData: () => {
-    const { name, policyType, keys, keyCount, keysRequired } = get()
+    const { name, network, policyType, keys, keyCount, keysRequired } = get()
 
     const account: Account = {
       id: uuid.v4(),
       name,
+      network,
       policyType,
       keys,
       keyCount,
