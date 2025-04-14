@@ -8,14 +8,15 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn } from '@/locales'
 import { Colors } from '@/styles'
+
+const t = tn('transaction.build.options.importOutputs')
+const t_common = tn('common')
 
 function ImportOuputs() {
   const router = useRouter()
-  const [importedOutputs, setImportedOutputs] = useState(
-    t('transaction.build.options.importOutputs.emptyContent')
-  )
+  const [importedOutputs, setImportedOutputs] = useState(t('emptyContent'))
   const [validInput, setValidInput] = useState(false)
 
   async function readFromClibpoard() {
@@ -43,7 +44,7 @@ function ImportOuputs() {
         <SSVStack justifyBetween>
           <SSVStack>
             <SSText uppercase center size="lg">
-              {t('transaction.build.options.importOutputs.title')}
+              {t('title')}
             </SSText>
             <ScrollView>
               <View
@@ -75,14 +76,14 @@ function ImportOuputs() {
             </SSHStack>
             <SSButton
               uppercase
-              label={t('transaction.build.options.importOutputs.button')}
+              label={t('button')}
               variant="secondary"
               onPress={importOutputs}
               disabled={!validInput}
             />
             <SSButton
               uppercase
-              label={t('common.cancel')}
+              label={t_common('cancel')}
               variant="ghost"
               onPress={cancel}
             />

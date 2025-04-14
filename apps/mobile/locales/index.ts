@@ -39,4 +39,9 @@ i18n.store({ en: generateJson(en) })
 
 const t = (key: string, options?: TranslateOptions) => i18n.t(key, options)
 
-export { i18n, t }
+const tn = (namespace: string) =>
+  function (key: string, options?: TranslateOptions) {
+    return t(`${namespace}.${key}`, options)
+  }
+
+export { i18n, t, tn }
