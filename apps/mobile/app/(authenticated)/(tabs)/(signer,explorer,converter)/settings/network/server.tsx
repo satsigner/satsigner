@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -17,6 +17,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Backend, Network, ServerType } from '@/types/settings/blockchain'
+import SSActionButton from '@/components/SSActionButton'
+import { Colors } from '@/styles'
 
 const networks: Network[] = ['bitcoin', 'signet', 'testnet']
 const backends: Backend[] = ['esplora', 'electrum']
@@ -53,113 +55,50 @@ export default function NetworkSettings() {
 
   const defaultTabIndex = serverIndex !== -1 ? 1 : 0
   const [tabIndex, setTabIndex] = useState(defaultTabIndex)
-  const tabs = serverTypes.map((type) => ({ key: type }))
+  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
 
   const renderTab = () => {
     return (
-      <SSHStack style={{ marginBottom: 24 }}>
-        {serverTypes.map((type, index) => (
-          <SSButton
-            key={type}
-            variant="outline"
-            style={{
-              width: 'auto',
-              flexGrow: 1,
-              borderColor: type === serverType ? 'white' : 'gray'
-            }}
-            label={type}
-            onPress={() => {
-              setServerType(type)
-              setTabIndex(index)
-            }}
-          />
+      <SSHStack
+        gap="none"
+        justifyEvenly
+        style={{
+          paddingVertical: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.gray[800]
+        }}
+      >
+        {tabs.map((tab, index) => (
+          <SSActionButton
+            key={tab.key}
+            style={{ width: '30%', height: 48 }}
+            onPress={() => setTabIndex(index)}
+          >
+            <SSVStack gap="none">
+              <SSText
+                center
+                uppercase
+                style={{ lineHeight: 20, letterSpacing: 3 }}
+              >
+                {tab.key}
+              </SSText>
+              {tabIndex === index && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: 1,
+                    bottom: -15,
+                    alignSelf: 'center',
+                    backgroundColor: Colors.white
+                  }}
+                />
+              )}
+            </SSVStack>
+          </SSActionButton>
         ))}
       </SSHStack>
     )
-  }
-
-  const renderScene = ({
-    route
-  }: SceneRendererProps & { route: { key: string } }) => {
-    switch (route.key) {
-      case 'CUSTOM':
-        return (
-          <ScrollView>
-            <SSVStack gap="md">
-              <SSVStack>
-                <SSText uppercase>
-                  {t('settings.network.server.backend')}
-                </SSText>
-                {backends.map((backend) => (
-                  <SSCheckbox
-                    key={backend}
-                    label={backend}
-                    selected={selectedBackend === backend}
-                    onPress={() => setSelectedBackend(backend)}
-                  />
-                ))}
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>
-                  {t('settings.network.server.network')}
-                </SSText>
-                {networks.map((network: Network) => (
-                  <SSCheckbox
-                    key={network}
-                    label={network}
-                    selected={selectedNetwork === network}
-                    onPress={() => setSelectedNetwork(network)}
-                  />
-                ))}
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>{t('settings.network.server.url')}</SSText>
-                <SSTextInput
-                  value={selectedUrl}
-                  onChangeText={(url) => setSelectedUrl(url)}
-                />
-              </SSVStack>
-            </SSVStack>
-          </ScrollView>
-        )
-      case 'PUBLIC':
-        return (
-          <SSVStack gap="lg">
-            <SSVStack>
-              <SSHStack
-                gap="sm"
-                style={{ justifyContent: 'center', width: '100%' }}
-              >
-                <SSIconWarning
-                  height={30}
-                  width={30}
-                  fill="black"
-                  strokeExclamation="white"
-                  strokeTriangle="red"
-                />
-                <SSText uppercase>
-                  {t('settings.network.server.server.warning.title')}
-                </SSText>
-              </SSHStack>
-              <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
-                {t('settings.network.server.server.warning.text')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="md">
-              <SSButton
-                withSelect
-                label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
-                onPress={() => setServerModalVisible(true)}
-              />
-              <SSButton
-                label={t('settings.network.server.test').toUpperCase()}
-              />
-            </SSVStack>
-          </SSVStack>
-        )
-      default:
-        return null
-    }
   }
 
   function handleOnSave() {
@@ -187,11 +126,53 @@ export default function NetworkSettings() {
           headerRight: undefined
         }}
       />
-      <SSVStack gap="lg" justifyBetween>
+      <SSVStack gap="lg" justifyBetween style={{ flexGrow: 1 }}>
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}
-          renderScene={renderScene}
+          renderScene={() => (
+            <ScrollView
+              style={{ paddingVertical: 24 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <SSVStack gap="md">
+                {servers
+                  .filter((server) => server.network === tabs[tabIndex].key)
+                  .map((server, index) => (
+                    <SSHStack key={index}>
+                      <SSCheckbox
+                        onPress={() => setSelectedServer(server)}
+                        selected={
+                          selectedServer.url === server.url &&
+                          selectedServer.network === server.network
+                        }
+                      />
+                      <SSVStack gap="none" style={{ flexGrow: 1 }}>
+                        <SSText style={{ lineHeight: 16 }} size="md">
+                          {server.name}
+                        </SSText>
+                        <SSText style={{ lineHeight: 14 }} color="muted">
+                          {server.url}
+                        </SSText>
+                      </SSVStack>
+                      <SSText uppercase color="muted" size="xs">
+                        {server.backend}
+                      </SSText>
+                    </SSHStack>
+                  ))}
+              </SSVStack>
+              <SSVStack style={{ marginTop: 40 }} gap="sm">
+                <SSText>{t('common.custom')}</SSText>
+                <SSTextInput
+                  value={selectedUrl}
+                  onChangeText={(url) => setSelectedUrl(url)}
+                />
+                <SSButton
+                  label={t('settings.network.server.custom.add').toUpperCase()}
+                />
+              </SSVStack>
+            </ScrollView>
+          )}
           renderTabBar={renderTab}
           onIndexChange={setTabIndex}
         />
