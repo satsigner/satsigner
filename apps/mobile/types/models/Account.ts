@@ -64,4 +64,14 @@ export type Account = {
   addresses: Address[]
   createdAt: Date
   isSyncing?: boolean
+  nostr: {
+    npub: string
+    nsec: string
+    seckey?: Uint8Array
+    relays: string[]
+    autoSync: boolean
+    passphrase?: string
+    lastBackupFingerprint?: string
+    lastBackupTimestamp?: number
+  }
 }
