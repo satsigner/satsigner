@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { type Account } from '@/types/models/Account'
+import { type Account, type SyncStatus } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -17,10 +17,8 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
-  setIsSyncing: (
-    id: Account['id'],
-    isSyncing: NonNullable<Account['isSyncing']>
-  ) => void
+  setSyncDate: (id: Account['id'], date: Date) => void
+  setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
   loadTx: (accountId: Account['id'], tx: Transaction) => void
@@ -69,13 +67,23 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      setIsSyncing: (id, isSyncing) => {
+      setSyncDate: (id, date) => {
         set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].isSyncing = isSyncing
+            if (index !== -1) state.accounts[index].syncDate = date
+          })
+        )
+      },
+      setSyncStatus: (id, syncStatus) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) state.accounts[index].syncStatus = syncStatus
           })
         )
       },

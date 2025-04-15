@@ -14,7 +14,7 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
-  const setIsSyncing = useAccountsStore((state) => state.setIsSyncing)
+  const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
   const [backend, network, url] = useBlockchainStore(
     useShallow((state) => {
       const { server } = state.configs[state.selectedNetwork]
@@ -30,7 +30,7 @@ function useSyncAccountWithAddress() {
   ) {
     try {
       setLoading(true)
-      setIsSyncing(account.id, true)
+      setSyncStatus(account.id, 'syncking')
 
       // Labels backup
       const labelsBackup: Record<string, string> = {}
@@ -195,11 +195,12 @@ function useSyncAccountWithAddress() {
         updatedAccount.transactions[index].prices = { USD: prices[index] }
       }
 
-      updatedAccount.isSyncing = false
+      updatedAccount.syncStatus = 'synced'
+      updatedAccount.syncDate = new Date()
 
       return updatedAccount
     } catch {
-      setIsSyncing(account.id, false)
+      setSyncStatus(account.id, 'error')
       throw new Error('Error syncing wallet')
     } finally {
       setLoading(false)
