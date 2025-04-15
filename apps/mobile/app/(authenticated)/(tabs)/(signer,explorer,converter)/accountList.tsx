@@ -50,7 +50,7 @@ export default function AccountList() {
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -90,7 +90,9 @@ export default function AccountList() {
     ])
   )
   const fetchPrices = usePriceStore((state) => state.fetchPrices)
-  const connectionMode = useBlockchainStore((state) => state.connectionMode)
+  const connectionMode = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork].param.connectionMode
+  )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()

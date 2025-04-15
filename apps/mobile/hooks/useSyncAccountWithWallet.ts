@@ -16,14 +16,17 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 function useSyncAccountWithWallet() {
   const setIsSyncing = useAccountsStore((state) => state.setIsSyncing)
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
-    useShallow((state) => [
-      state.backend,
-      state.network,
-      state.retries,
-      state.stopGap,
-      state.timeout,
-      state.url
-    ])
+    useShallow((state) => {
+      const { server, param } = state.configs[state.selectedNetwork]
+      return [
+        server.backend,
+        server.network,
+        param.retries,
+        param.stopGap,
+        param.timeout,
+        server.url
+      ]
+    })
   )
 
   const [loading, setLoading] = useState(false)

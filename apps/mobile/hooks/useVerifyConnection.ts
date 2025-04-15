@@ -16,14 +16,17 @@ function useVerifyConnection() {
     connectionMode,
     connectionTestInterval
   ] = useBlockchainStore(
-    useShallow((state) => [
-      state.backend,
-      state.network,
-      state.url,
-      state.timeout * 1000,
-      state.connectionMode,
-      state.connectionTestInterval
-    ])
+    useShallow((state) => {
+      const { server, param } = state.configs[state.selectedNetwork]
+      return [
+        server.backend,
+        server.network,
+        server.url,
+        param.timeout * 1000,
+        param.connectionMode,
+        param.connectionTestInterval
+      ]
+    })
   )
 
   const isConnectionAvailable = useRef<boolean | null>(false)

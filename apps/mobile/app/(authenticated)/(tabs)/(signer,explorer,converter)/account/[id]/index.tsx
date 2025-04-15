@@ -259,7 +259,9 @@ function DerivedAddresses({
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useWalletsStore((state) => state.wallets[account.id])
-  const network = useBlockchainStore((state) => state.network) as Network
+  const network = useBlockchainStore(
+    (state) => state.selectedNetwork
+  ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
   const [addressPath, setAddressPath] = useState('')

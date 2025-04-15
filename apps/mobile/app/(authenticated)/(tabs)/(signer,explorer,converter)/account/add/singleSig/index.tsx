@@ -45,7 +45,7 @@ export default function SingleSig() {
       state.setCreationType
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
   const [localScriptVersion, setLocalScriptVersion] =

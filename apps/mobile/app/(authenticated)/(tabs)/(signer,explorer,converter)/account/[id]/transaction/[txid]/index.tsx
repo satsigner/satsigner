@@ -51,7 +51,10 @@ export default function TxDetails() {
   )
 
   const [backend, network, url] = useBlockchainStore(
-    useShallow((state) => [state.backend, state.network, state.url])
+    useShallow((state) => {
+      const { server } = state.configs[state.selectedNetwork]
+      return [server.backend, server.network, server.url]
+    })
   )
 
   const placeholder = '-'

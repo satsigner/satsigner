@@ -40,7 +40,7 @@ export default function PreviewMessage() {
     state.accounts.find((account) => account.id === id)
   )
   const wallet = useWalletsStore((state) => state.wallets[id!])
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)

@@ -68,7 +68,9 @@ export default function WatchOnly() {
       state.setKey
     ])
   )
-  const connectionMode = useBlockchainStore((state) => state.connectionMode)
+  const connectionMode = useBlockchainStore(
+    (state) => state.configs[state.selectedNetwork].param.connectionMode
+  )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()

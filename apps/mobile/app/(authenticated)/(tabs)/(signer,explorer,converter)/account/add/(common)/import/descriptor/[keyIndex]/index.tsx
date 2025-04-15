@@ -21,7 +21,7 @@ import { type ImportDescriptorSearchParams } from '@/types/navigation/searchPara
 export default function ImportDescriptor() {
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
   const router = useRouter()
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [loading, setLoading] = useState(false)
   const [localDescriptor, setLocalDescriptor] = useState('')
