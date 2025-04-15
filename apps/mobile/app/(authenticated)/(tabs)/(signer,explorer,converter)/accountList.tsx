@@ -36,7 +36,9 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
+import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
+import { type Network } from '@/types/settings/blockchain'
 import {
   sampleSignetAddress,
   sampleSignetWalletSeed,
@@ -50,7 +52,10 @@ export default function AccountList() {
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
-  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const [network, setSelectedNetwork] = useBlockchainStore((state) => [
+    state.selectedNetwork,
+    state.setSelectedNetwork
+  ])
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -93,6 +98,9 @@ export default function AccountList() {
   const connectionMode = useBlockchainStore(
     (state) => state.configs[state.selectedNetwork].param.connectionMode
   )
+  const [wallets, addresses] = useWalletsStore(
+    useShallow((state) => [state.wallets, state.addresses])
+  )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
@@ -104,23 +112,52 @@ export default function AccountList() {
   const [filteredAccounts, setFilteredAccounts] = useState(
     accounts.filter((acc) => acc.network === tabs[tabIndex].key)
   )
+  const [connectionState, connectionString, isPrivateConnection] =
+    useVerifyConnection()
 
   useEffect(() => {
+    setSelectedNetwork(tabs[tabIndex].key as Network)
     setFilteredAccounts(
       accounts.filter((acc) => acc.network === tabs[tabIndex].key)
     )
   }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    syncAccounts()
+  }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
     if (connectionMode === 'auto') fetchPrices()
   }, [connectionMode, fetchPrices])
-
-  const [connectionState, connectionString, isPrivateConnection] =
-    useVerifyConnection()
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
     router.navigate('/account/add')
+  }
+
+  async function syncAccounts() {
+    await Promise.all(
+      accounts
+        .filter((acc) => acc.network === tabs[tabIndex].key)
+        .map(async (account) => {
+          const isImportAddress =
+            account.keys[0].creationType === 'importAddress'
+          if (isImportAddress && !addresses[account.id]) return
+          else if (!isImportAddress && !wallets[account.id]) return
+
+          if (connectionMode === 'auto') {
+            const updatedAccount =
+              account.policyType !== 'watchonly'
+                ? await syncAccountWithWallet(account, wallets[account.id]!)
+                : await syncAccountWithAddress(
+                    account,
+                    `addr(${sampleSignetAddress})`
+                  )
+
+            updateAccount(updatedAccount)
+          }
+        })
+    )
   }
 
   async function loadSampleWallet(type: SampleWallet) {
