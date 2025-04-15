@@ -1,66 +1,54 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
-import SSActionButton from '@/components/SSActionButton'
-import { TabView } from 'react-native-tab-view'
+import { type Network, type Param } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [
-    connectionMode,
-    setConnectionMode,
-    connectionInterval,
-    setConnectionTnterval,
-    retries,
-    setRetries,
-    timeout,
-    setTimeout,
-    stopGap,
-    setStopGap
-  ] = useBlockchainStore(
-    useShallow((state) => [
-      state.connectionMode,
-      state.setConnectionMode,
-      state.connectionTestInterval,
-      state.setConnectionTestInterval,
-      state.retries,
-      state.setRetries,
-      state.timeout,
-      state.setTimeout,
-      state.stopGap,
-      state.setStopGap
-    ])
+  const [configs, updateParam] = useBlockchainStore(
+    useShallow((state) => [state.configs, state.updateParam])
   )
 
-  const [selectedRetries, setSelectedRetries] = useState(retries.toString())
-  const [selectedTimeout, setSelectedTimeout] = useState(timeout.toString())
-  const [selectedStopGap, setSelectedStopGap] = useState(stopGap.toString())
-  const [autoconnect, setAutoconnect] = useState(connectionMode === 'auto')
-  const [interval, setInterval] = useState(connectionInterval.toString())
+  const [params, setParams] = useState<Record<Network, Param>>({
+    bitcoin: configs.bitcoin.param,
+    testnet: configs.testnet.param,
+    signet: configs.signet.param
+  })
 
-  function handleOnSave() {
-    setConnectionMode(autoconnect ? 'auto' : 'manual')
-    setConnectionTnterval(Number(interval))
-    setRetries(Number(selectedRetries))
-    setStopGap(Number(selectedStopGap))
-    setTimeout(Number(selectedTimeout))
-    router.back()
+  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
+  const [tabIndex, setTabIndex] = useState(0)
+  const currentTab = tabs[tabIndex].key as Network
+
+  function handleParamChange<K extends keyof Param>(key: K, value: Param[K]) {
+    setParams((prev) => ({
+      ...prev,
+      [currentTab]: {
+        ...prev[currentTab],
+        [key]: value
+      }
+    }))
   }
 
-  const [tabIndex, setTabIndex] = useState(0)
-  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
+  function handleOnSave() {
+    updateParam('bitcoin', params['bitcoin'])
+    updateParam('testnet', params['testnet'])
+    updateParam('signet', params['signet'])
+    router.back()
+  }
 
   const renderTab = () => {
     return (
@@ -133,24 +121,39 @@ export default function NetworkSettings() {
                     {t('settings.network.params.connectionMode.label')}
                   </SSText>
                   <SSCheckbox
-                    label={(autoconnect
+                    label={(params[currentTab].connectionMode === 'auto'
                       ? t('settings.network.params.connectionMode.auto')
                       : t('settings.network.params.connectionMode.manual')
                     ).toUpperCase()}
-                    selected={autoconnect}
-                    onPress={() => setAutoconnect(!autoconnect)}
+                    selected={params[currentTab].connectionMode === 'auto'}
+                    onPress={() =>
+                      handleParamChange(
+                        'connectionMode',
+                        params[currentTab].connectionMode === 'auto'
+                          ? 'manual'
+                          : 'auto'
+                      )
+                    }
                   />
                 </SSVStack>
+
                 <SSVStack gap="xs">
                   <SSText uppercase>
                     {t('settings.network.params.connectionTestInterval')}
                   </SSText>
                   <SSVStack gap="none">
                     <SSNumberInput
-                      value={interval}
+                      value={params[
+                        currentTab
+                      ].connectionTestInterval.toString()}
                       min={10}
                       max={3600}
-                      onChangeText={setInterval}
+                      onChangeText={(text) =>
+                        handleParamChange(
+                          'connectionTestInterval',
+                          Number(text)
+                        )
+                      }
                     />
                     <SSText color="muted" size="xs">
                       {t(
@@ -159,37 +162,46 @@ export default function NetworkSettings() {
                     </SSText>
                   </SSVStack>
                 </SSVStack>
+
                 <SSVStack gap="xs">
                   <SSText uppercase>
                     {t('settings.network.params.retries')}
                   </SSText>
                   <SSNumberInput
-                    value={selectedRetries}
+                    value={params[currentTab].retries.toString()}
                     min={1}
                     max={10}
-                    onChangeText={setSelectedRetries}
+                    onChangeText={(text) =>
+                      handleParamChange('retries', Number(text))
+                    }
                   />
                 </SSVStack>
+
                 <SSVStack gap="xs">
                   <SSText uppercase>
                     {t('settings.network.params.timeout')}
                   </SSText>
                   <SSNumberInput
-                    value={selectedTimeout}
+                    value={params[currentTab].timeout.toString()}
                     min={1}
                     max={20}
-                    onChangeText={setSelectedTimeout}
+                    onChangeText={(text) =>
+                      handleParamChange('timeout', Number(text))
+                    }
                   />
                 </SSVStack>
+
                 <SSVStack gap="xs">
                   <SSText uppercase>
                     {t('settings.network.params.stopGap')}
                   </SSText>
                   <SSNumberInput
-                    value={selectedStopGap}
+                    value={params[currentTab].stopGap.toString()}
                     min={1}
                     max={30}
-                    onChangeText={setSelectedStopGap}
+                    onChangeText={(text) =>
+                      handleParamChange('stopGap', Number(text))
+                    }
                   />
                 </SSVStack>
               </SSVStack>

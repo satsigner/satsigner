@@ -1,13 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconWarning } from '@/components/icons'
+import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { servers } from '@/constants/servers'
@@ -16,46 +15,29 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Backend, Network, ServerType } from '@/types/settings/blockchain'
-import SSActionButton from '@/components/SSActionButton'
 import { Colors } from '@/styles'
-
-const networks: Network[] = ['bitcoin', 'signet', 'testnet']
-const backends: Backend[] = ['esplora', 'electrum']
-const serverTypes: ServerType[] = ['CUSTOM', 'PUBLIC']
+import { type Network, type Server } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [backend, setBackend, network, setNetwork, url, setUrl] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.backend,
-        state.setBackend,
-        state.network,
-        state.setNetwork,
-        state.url,
-        state.setUrl
-      ])
-    )
+  const [configs, updateServer] = useBlockchainStore(
+    useShallow((state) => [state.configs, state.updateServer])
+  )
 
-  const [selectedBackend, setSelectedBackend] = useState(backend)
-  const [selectedNetwork, setSelectedNetwork] = useState(network)
-  const [selectedUrl, setSelectedUrl] = useState(url)
-
-  const serverIndex = servers.findIndex((s) => {
-    return s.url === url && s.backend === backend && s.network === network
-  })
-  const defaultServer = serverIndex !== -1 ? servers[serverIndex] : servers[0]
-  const defaultServerType = serverIndex !== -1 ? 'PUBLIC' : 'CUSTOM'
-
-  const [serverType, setServerType] = useState<ServerType>(defaultServerType)
-  const [selectedServer, setSelectedServer] = useState(defaultServer)
-  const [confirmedServer, setConfirmedServer] = useState(defaultServer)
-  const [serverModalVisible, setServerModalVisible] = useState(false)
-
-  const defaultTabIndex = serverIndex !== -1 ? 1 : 0
-  const [tabIndex, setTabIndex] = useState(defaultTabIndex)
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
+  const [tabIndex, setTabIndex] = useState(0)
+
+  const [selectedServers, setSelectedServers] = useState<
+    Record<Network, Server>
+  >({
+    bitcoin: configs.bitcoin.server,
+    testnet: configs.testnet.server,
+    signet: configs.signet.server
+  })
+
+  const currentTab = tabs[tabIndex].key
+  const currentSelectedServer = selectedServers[currentTab as Network]
+  const [selectedUrl, setSelectedUrl] = useState(currentSelectedServer.url)
 
   const renderTab = () => {
     return (
@@ -101,16 +83,17 @@ export default function NetworkSettings() {
     )
   }
 
+  function handleSelectServer(server: Server) {
+    setSelectedServers((prev) => ({
+      ...prev,
+      [currentTab]: server
+    }))
+  }
+
   function handleOnSave() {
-    if (serverType === 'CUSTOM') {
-      setBackend(selectedBackend)
-      setNetwork(selectedNetwork)
-      setUrl(selectedUrl)
-    } else {
-      setBackend(confirmedServer.backend)
-      setNetwork(confirmedServer.network)
-      setUrl(confirmedServer.url)
-    }
+    updateServer('bitcoin', selectedServers['bitcoin'])
+    updateServer('testnet', selectedServers['testnet'])
+    updateServer('signet', selectedServers['signet'])
     router.back()
   }
 
@@ -141,10 +124,10 @@ export default function NetworkSettings() {
                   .map((server, index) => (
                     <SSHStack key={index}>
                       <SSCheckbox
-                        onPress={() => setSelectedServer(server)}
+                        onPress={() => handleSelectServer(server)}
                         selected={
-                          selectedServer.url === server.url &&
-                          selectedServer.network === server.network
+                          currentSelectedServer.url === server.url &&
+                          currentSelectedServer.network === server.network
                         }
                       />
                       <SSVStack gap="none" style={{ flexGrow: 1 }}>
@@ -189,50 +172,6 @@ export default function NetworkSettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
-        visible={serverModalVisible}
-        title={t('settings.network.server.server.modal.title').toUpperCase()}
-        onCancel={() => setServerModalVisible(false)}
-        onSelect={() => {
-          setConfirmedServer(selectedServer)
-          setServerModalVisible(false)
-        }}
-      >
-        {networks.map((network) => (
-          <SSVStack key={network} gap="sm">
-            <SSVStack gap="none">
-              <SSText uppercase>{network}</SSText>
-              <SSText color="muted">
-                {t(`settings.network.server.type.${network}`)}
-              </SSText>
-            </SSVStack>
-            {servers
-              .filter((server) => server.network === network)
-              .map((server, index) => (
-                <SSHStack key={index}>
-                  <SSCheckbox
-                    onPress={() => setSelectedServer(server)}
-                    selected={
-                      selectedServer.url === server.url &&
-                      selectedServer.network === server.network
-                    }
-                  />
-                  <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                    <SSText style={{ lineHeight: 16 }} size="md">
-                      {server.name}
-                    </SSText>
-                    <SSText style={{ lineHeight: 14 }} color="muted">
-                      {server.url}
-                    </SSText>
-                  </SSVStack>
-                  <SSText uppercase color="muted" size="xs">
-                    {server.backend}
-                  </SSText>
-                </SSHStack>
-              ))}
-          </SSVStack>
-        ))}
-      </SSSelectModal>
     </SSMainLayout>
   )
 }
