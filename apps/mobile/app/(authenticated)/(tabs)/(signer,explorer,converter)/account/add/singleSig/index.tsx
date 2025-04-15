@@ -31,7 +31,8 @@ export default function SingleSig() {
     setFingerprint,
     setKeyCount,
     setKeysRequired,
-    setCreationType
+    setCreationType,
+    setNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -42,7 +43,8 @@ export default function SingleSig() {
       state.setFingerprint,
       state.setKeyCount,
       state.setKeysRequired,
-      state.setCreationType
+      state.setCreationType,
+      state.setNetwork
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -68,6 +70,7 @@ export default function SingleSig() {
     setMnemonicWordCount(localMnemonicWordCount)
     setKeyCount(1)
     setKeysRequired(1)
+    setNetwork(network)
 
     if (type === 'generateMnemonic') {
       switch (localEntropyType) {
