@@ -227,7 +227,9 @@ const useAccountBuilderStore = create<
       transactions: [],
       utxos: [],
       addresses: [],
-      createdAt: new Date()
+      createdAt: new Date(),
+      syncDate: new Date(),
+      syncStatus: 'syncking'
     }
 
     return account
