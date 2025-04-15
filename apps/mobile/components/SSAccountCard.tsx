@@ -1,4 +1,4 @@
-import { TouchableOpacity, View } from 'react-native'
+import { TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -11,7 +11,6 @@ import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
-import SSEllipsisAnimation from './SSEllipsisAnimation'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
@@ -25,6 +24,72 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+
+  function renderSyncStatus(
+    status: Account['syncStatus'],
+    date: Account['syncDate']
+  ) {
+    let color = Colors.white
+    let text = ''
+
+    switch (status) {
+      case 'synced': {
+        color = Colors.mainGreen
+        text = t('account.sync.status.synced')
+
+        if (date !== undefined) {
+          const now = Math.floor(Date.now() / 1000)
+          const diff = now - new Date(date).getTime() / 1000
+
+          const hours = Math.floor(diff / 3600)
+          const days = Math.floor(hours / 24)
+          const months = Math.floor(days / 30)
+          const years = Math.floor(days / 365)
+
+          if (hours >= 1) {
+            color = Colors.gray[75]
+            text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.hour', { value: hours })}`
+            if (days >= 1)
+              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.day', { value: days })}`
+            if (months >= 1)
+              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.month', { value: months })}`
+            if (years >= 1)
+              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.year', { value: years })}`
+          }
+        }
+
+        break
+      }
+      case 'syncking':
+        color = Colors.white
+        text = t('account.sync.status.syncking')
+        break
+      case 'error':
+        color = Colors.mainRed
+        text = t('account.sync.status.error')
+        break
+      case 'timeout':
+        color = Colors.mainRed
+        text = t('account.sync.status.timeout')
+        break
+    }
+
+    return (
+      <SSText
+        size="xs"
+        uppercase
+        style={{
+          color,
+          opacity: 0.6,
+          position: 'absolute',
+          top: 0,
+          right: 6
+        }}
+      >
+        {text}
+      </SSText>
+    )
+  }
 
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
@@ -105,11 +170,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           </SSHStack>
         </SSVStack>
         <SSIconChevronRight height={11.6} width={6} />
-        {account.isSyncing && (
-          <View style={{ position: 'absolute', top: 0, right: 6 }}>
-            <SSEllipsisAnimation size={2.8} />
-          </View>
-        )}
+        {renderSyncStatus(account.syncStatus, account.syncDate)}
       </SSHStack>
     </TouchableOpacity>
   )
