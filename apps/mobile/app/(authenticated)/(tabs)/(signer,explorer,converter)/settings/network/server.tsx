@@ -1,14 +1,11 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, View } from 'react-native'
-import { TabView } from 'react-native-tab-view'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -20,12 +17,13 @@ import { type Network, type Server } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [configs, updateServer] = useBlockchainStore(
-    useShallow((state) => [state.configs, state.updateServer])
+  const [selectedNetwork, configs, updateServer] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.configs,
+      state.updateServer
+    ])
   )
-
-  const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
-  const [tabIndex, setTabIndex] = useState(0)
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -35,58 +33,12 @@ export default function NetworkSettings() {
     signet: configs.signet.server
   })
 
-  const currentTab = tabs[tabIndex].key
-  const currentSelectedServer = selectedServers[currentTab as Network]
-  const [selectedUrl, setSelectedUrl] = useState(currentSelectedServer.url)
+  const networks: Network[] = ['bitcoin', 'testnet', 'signet']
 
-  const renderTab = () => {
-    return (
-      <SSHStack
-        gap="none"
-        justifyEvenly
-        style={{
-          paddingVertical: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: Colors.gray[800]
-        }}
-      >
-        {tabs.map((tab, index) => (
-          <SSActionButton
-            key={tab.key}
-            style={{ width: '30%', height: 48 }}
-            onPress={() => setTabIndex(index)}
-          >
-            <SSVStack gap="none">
-              <SSText
-                center
-                uppercase
-                style={{ lineHeight: 20, letterSpacing: 3 }}
-              >
-                {tab.key}
-              </SSText>
-              {tabIndex === index && (
-                <View
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: 1,
-                    bottom: -15,
-                    alignSelf: 'center',
-                    backgroundColor: Colors.white
-                  }}
-                />
-              )}
-            </SSVStack>
-          </SSActionButton>
-        ))}
-      </SSHStack>
-    )
-  }
-
-  function handleSelectServer(server: Server) {
+  function handleSelectServer(network: Network, server: Server) {
     setSelectedServers((prev) => ({
       ...prev,
-      [currentTab]: server
+      [network]: server
     }))
   }
 
@@ -109,56 +61,79 @@ export default function NetworkSettings() {
           headerRight: undefined
         }}
       />
-      <SSVStack gap="lg" justifyBetween style={{ flexGrow: 1 }}>
-        <TabView
-          swipeEnabled={false}
-          navigationState={{ index: tabIndex, routes: tabs }}
-          renderScene={() => (
-            <ScrollView
-              style={{ paddingVertical: 24 }}
-              showsVerticalScrollIndicator={false}
-            >
-              <SSVStack gap="md">
-                {servers
-                  .filter((server) => server.network === tabs[tabIndex].key)
-                  .map((server, index) => (
-                    <SSHStack key={index}>
-                      <SSCheckbox
-                        onPress={() => handleSelectServer(server)}
-                        selected={
-                          currentSelectedServer.url === server.url &&
-                          currentSelectedServer.network === server.network
-                        }
-                      />
-                      <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                        <SSText style={{ lineHeight: 16 }} size="md">
-                          {server.name}
-                        </SSText>
-                        <SSText style={{ lineHeight: 14 }} color="muted">
-                          {server.url}
-                        </SSText>
-                      </SSVStack>
-                      <SSText uppercase color="muted" size="xs">
-                        {server.backend}
-                      </SSText>
-                    </SSHStack>
-                  ))}
+      <SSVStack gap="lg" justifyBetween>
+        <ScrollView
+          style={{ marginBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <SSVStack gap="xl">
+            {networks.map((network) => (
+              <SSVStack gap="md" key={network}>
+                <SSVStack gap="none">
+                  <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
+                  <SSText color="muted">
+                    {t(`settings.network.server.type.${network}`)}
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="md">
+                  <SSVStack gap="md">
+                    {servers
+                      .filter((server) => server.network === network)
+                      .map((server, index) => (
+                        <SSHStack key={index}>
+                          <SSCheckbox
+                            onPress={() => handleSelectServer(network, server)}
+                            selected={
+                              selectedServers[network].url === server.url &&
+                              selectedServers[network].network ===
+                                server.network
+                            }
+                          />
+                          <SSVStack gap="none" style={{ flexGrow: 1 }}>
+                            <SSText
+                              style={{
+                                lineHeight: 16,
+                                textTransform: 'capitalize'
+                              }}
+                              size="md"
+                            >
+                              {`${server.name} (${server.backend})`}
+                            </SSText>
+                            <SSHStack gap="xs">
+                              {selectedServers[network].url === server.url &&
+                                selectedServers[network].network ===
+                                  server.network &&
+                                server.network === selectedNetwork && (
+                                  <SSText
+                                    style={{
+                                      lineHeight: 14,
+                                      color: Colors.mainGreen,
+                                      opacity: 0.6
+                                    }}
+                                  >
+                                    {t('common.connected')}
+                                  </SSText>
+                                )}
+                              <SSText style={{ lineHeight: 14 }} color="muted">
+                                {server.url}
+                              </SSText>
+                            </SSHStack>
+                          </SSVStack>
+                        </SSHStack>
+                      ))}
+                  </SSVStack>
+                  <SSVStack style={{ marginTop: 20 }}>
+                    <SSButton
+                      label={t(
+                        'settings.network.server.custom.add'
+                      ).toUpperCase()}
+                    />
+                  </SSVStack>
+                </SSVStack>
               </SSVStack>
-              <SSVStack style={{ marginTop: 40 }} gap="sm">
-                <SSText>{t('common.custom')}</SSText>
-                <SSTextInput
-                  value={selectedUrl}
-                  onChangeText={(url) => setSelectedUrl(url)}
-                />
-                <SSButton
-                  label={t('settings.network.server.custom.add').toUpperCase()}
-                />
-              </SSVStack>
-            </ScrollView>
-          )}
-          renderTabBar={renderTab}
-          onIndexChange={setTabIndex}
-        />
+            ))}
+          </SSVStack>
+        </ScrollView>
         <SSVStack>
           <SSButton
             variant="secondary"
