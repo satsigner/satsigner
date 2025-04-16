@@ -271,7 +271,7 @@ function SSSankeyLinks({
                         targetNode.type === 'block' ? points.x2 : points.x1,
                         (points.y1 + points.y2) / 2
                       )}
-                      colors={[gray[800], isCurrentInput ? gray[500] : 'white']}
+                      colors={[gray[900], isCurrentInput ? gray[500] : 'white']}
                       positions={[0, 0.7]}
                     />
                   </Paint>

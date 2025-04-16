@@ -16,7 +16,7 @@ import { useMemo } from 'react'
 
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { gray, mainRed } from '@/styles/colors'
+import { gray, mainRed, white } from '@/styles/colors'
 
 import { type Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
@@ -80,7 +80,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           Skia.Shader.MakeLinearGradient(
             vec(x, y + height / 2), // start point
             vec(x + BLOCK_WIDTH, y + height / 2), // end point
-            [Skia.Color(gray[200]), Skia.Color('#FFFFFF')], // colors
+            [Skia.Color(gray[200]), Skia.Color(white)], // colors
             [0, 1], // positions
             0, // Clamp mode
             Skia.Matrix()
@@ -95,7 +95,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
               width={BLOCK_WIDTH}
               height={height}
               opacity={0.9}
-              color={isCurrentTxBlockNode ? gray[100] : gray[500]}
+              color={isCurrentTxBlockNode ? gray[200] : gray[500]}
             />
             <Rect
               x={x}
