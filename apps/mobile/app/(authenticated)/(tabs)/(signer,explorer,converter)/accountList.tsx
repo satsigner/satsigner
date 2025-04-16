@@ -40,10 +40,13 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
+  sampleSalvadrorAddress,
+  sampleSegwitAddress,
   sampleSignetAddress,
   sampleSignetWalletSeed,
   sampleSignetXpub,
-  sampleSignetXpubFingerprint
+  sampleSignetXpubFingerprint,
+  sampleTestnet4Address
 } from '@/utils/samples'
 
 export default function AccountList() {
@@ -105,7 +108,14 @@ export default function AccountList() {
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
-  type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
+  type SampleWallet =
+    | 'segwit'
+    | 'legacy'
+    | 'watchonlyXpub'
+    | 'watchonlyAddress'
+    | 'watchonlySalvadror'
+    | 'watchonlySegwit'
+    | 'watchonlyTest4'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
@@ -122,10 +132,10 @@ export default function AccountList() {
     const currentNetwork = tabs[tabIndex].key as Network
     if (currentNetwork !== network) {
       setSelectedNetwork(currentNetwork)
-      setFilteredAccounts(
-        accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-      )
     }
+    setFilteredAccounts(
+      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+    )
   }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -157,7 +167,7 @@ export default function AccountList() {
                 ? await syncAccountWithWallet(account, wallets[account.id]!)
                 : await syncAccountWithAddress(
                     account,
-                    `addr(${sampleSignetAddress})`
+                    `addr(${addresses[account.id]!})`
                   )
 
             updateAccount(updatedAccount)
@@ -172,6 +182,7 @@ export default function AccountList() {
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
+    let sampleAddress
 
     switch (type) {
       case 'segwit':
@@ -196,9 +207,28 @@ export default function AccountList() {
         setFingerprint(sampleSignetXpubFingerprint)
         break
       case 'watchonlyAddress':
+        sampleAddress = sampleSignetAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
+        break
+      case 'watchonlySalvadror':
+        sampleAddress = sampleSalvadrorAddress
+        setPolicyType('watchonly')
+        setCreationType('importAddress')
+        setExternalDescriptor(`addr(${sampleSalvadrorAddress})`)
+        break
+      case 'watchonlySegwit':
+        sampleAddress = sampleSegwitAddress
+        setPolicyType('watchonly')
+        setCreationType('importAddress')
+        setExternalDescriptor(`addr(${sampleSegwitAddress})`)
+        break
+      case 'watchonlyTest4':
+        sampleAddress = sampleTestnet4Address
+        setPolicyType('watchonly')
+        setCreationType('importAddress')
+        setExternalDescriptor(`addr(${sampleTestnet4Address})`)
         break
     }
 
@@ -210,16 +240,17 @@ export default function AccountList() {
 
     try {
       if (connectionMode === 'auto') {
-        const updatedAccount =
-          type !== 'watchonlyAddress'
-            ? await syncAccountWithWallet(
-                data.accountWithEncryptedSecret,
-                data.wallet!
-              )
-            : await syncAccountWithAddress(
-                data.accountWithEncryptedSecret,
-                `addr(${sampleSignetAddress})`
-              )
+        const updatedAccount = ['segwit', 'legacy', 'watchonlyXpub'].includes(
+          type
+        )
+          ? await syncAccountWithWallet(
+              data.accountWithEncryptedSecret,
+              data.wallet!
+            )
+          : await syncAccountWithAddress(
+              data.accountWithEncryptedSecret,
+              `addr(${sampleAddress})`
+            )
         updateAccount(updatedAccount)
       }
     } catch (error) {
@@ -277,11 +308,49 @@ export default function AccountList() {
   const renderSamplewallets = () => {
     switch (network) {
       case 'bitcoin':
-        return <></>
-        break
+        return (
+          <SSVStack
+            itemsCenter
+            style={{
+              paddingVertical: 32
+            }}
+          >
+            <SSText color="muted" uppercase>
+              {t('accounts.samples')}
+            </SSText>
+            <SSButton
+              label={t('account.load.sample.bitcoin.address.salvadror')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlySalvadror')}
+              loading={loadingWallet === 'watchonlySalvadror'}
+            />
+            <SSButton
+              label={t('account.load.sample.bitcoin.address.segwit')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlySegwit')}
+              loading={loadingWallet === 'watchonlySegwit'}
+            />
+          </SSVStack>
+        )
       case 'testnet':
-        return <></>
-        break
+        return (
+          <SSVStack
+            itemsCenter
+            style={{
+              paddingVertical: 32
+            }}
+          >
+            <SSText color="muted" uppercase>
+              {t('accounts.samples')}
+            </SSText>
+            <SSButton
+              label={t('account.load.sample.testnet.address')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyTest4')}
+              loading={loadingWallet === 'watchonlyTest4'}
+            />
+          </SSVStack>
+        )
       case 'signet':
         return (
           <SSVStack
@@ -294,32 +363,31 @@ export default function AccountList() {
               {t('accounts.samples')}
             </SSText>
             <SSButton
-              label={t('account.load.sample.segwit')}
+              label={t('account.load.sample.signet.segwit')}
               variant="subtle"
               onPress={() => loadSampleWallet('segwit')}
               loading={loadingWallet === 'segwit'}
             />
             <SSButton
-              label={t('account.load.sample.legacy')}
+              label={t('account.load.sample.signet.legacy')}
               variant="subtle"
               onPress={() => loadSampleWallet('legacy')}
               loading={loadingWallet === 'legacy'}
             />
             <SSButton
-              label={t('account.load.sample.xpub')}
+              label={t('account.load.sample.signet.xpub')}
               variant="subtle"
               onPress={() => loadSampleWallet('watchonlyXpub')}
               loading={loadingWallet === 'watchonlyXpub'}
             />
             <SSButton
-              label={t('account.load.sample.address')}
+              label={t('account.load.sample.signet.address')}
               variant="subtle"
               onPress={() => loadSampleWallet('watchonlyAddress')}
               loading={loadingWallet === 'watchonlyAddress'}
             />
           </SSVStack>
         )
-        break
     }
   }
 
@@ -397,7 +465,6 @@ export default function AccountList() {
           renderScene={() => (
             <ScrollView
               style={{ marginTop: 16 }}
-              contentContainerStyle={{ flexGrow: 1 }}
               showsVerticalScrollIndicator={false}
             >
               <FlashList
