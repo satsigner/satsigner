@@ -179,6 +179,7 @@
     "confirmations.unconfirmed": "Unconfirmed",
     "cpfp": "Child Pays For Parents",
     "fingerprint": "Fingerprint",
+    "network.bitcoin": "Bitcoin",
     "network.mainnet": "Mainnet",
     "network.signet": "Signet",
     "network.testnet": "Testnet",
