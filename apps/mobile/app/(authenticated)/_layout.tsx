@@ -89,7 +89,9 @@ export default function AuthenticatedLayout() {
       const pin = await getItem(PIN_KEY)
       if (!pin) return
       try {
-        for (const account of accounts) {
+        for (const account of accounts.filter(
+          (acc) => acc.network === network
+        )) {
           const isImportAddress =
             account.keys[0].creationType === 'importAddress'
           const existsWallet = !isImportAddress
@@ -145,7 +147,7 @@ export default function AuthenticatedLayout() {
 
   useEffect(() => {
     if (connectionMode === 'auto') loadWallets()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [network, connectionMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Do not push index route
   useEffect(() => {
