@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useWindowDimensions, View } from 'react-native'
 
 import { useLayout } from '@/hooks/useLayout'
+import { t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress } from '@/utils/format'
 
@@ -101,7 +102,7 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       textInfo: [
         input.valueIsKnown ? `${input.value}` : '',
         `${formatAddress(input.txid, 3)}`,
-        input.label ?? ''
+        input.label ?? t('common.noLabel')
       ],
       value: input.value
     }))
@@ -123,7 +124,7 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       textInfo: [
         `${output.value}`,
         `${formatAddress(output.address, 3)}`,
-        output.label ?? ''
+        output.label ?? t('common.noLabel')
       ],
       value: output.value
     }))
