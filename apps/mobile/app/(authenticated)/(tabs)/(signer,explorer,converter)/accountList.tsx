@@ -52,10 +52,13 @@ export default function AccountList() {
   const nav = useNavigation<DrawerNavigationProp<any>>()
   const isDrawerOpen = useDrawerStatus() === 'open'
 
-  const [network, setSelectedNetwork] = useBlockchainStore((state) => [
-    state.selectedNetwork,
-    state.setSelectedNetwork
-  ])
+  const [network, setSelectedNetwork, connectionMode] = useBlockchainStore(
+    (state) => [
+      state.selectedNetwork,
+      state.setSelectedNetwork,
+      state.configs[state.selectedNetwork].param.connectionMode
+    ]
+  )
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -95,9 +98,6 @@ export default function AccountList() {
     ])
   )
   const fetchPrices = usePriceStore((state) => state.fetchPrices)
-  const connectionMode = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork].param.connectionMode
-  )
   const [wallets, addresses] = useWalletsStore(
     useShallow((state) => [state.wallets, state.addresses])
   )
@@ -108,7 +108,10 @@ export default function AccountList() {
   type SampleWallet = 'segwit' | 'legacy' | 'watchonlyXpub' | 'watchonlyAddress'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
-  const [tabIndex, setTabIndex] = useState(0)
+  const [tabIndex, setTabIndex] = useState(() => {
+    const index = tabs.findIndex((tab) => tab.key === network)
+    return index > 0 ? index : 0
+  })
   const [filteredAccounts, setFilteredAccounts] = useState(
     accounts.filter((acc) => acc.network === tabs[tabIndex].key)
   )
