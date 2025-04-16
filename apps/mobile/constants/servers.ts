@@ -73,7 +73,7 @@ export const servers: Server[] = [
     name: 'Mempool',
     backend: 'esplora',
     network: 'testnet',
-    url: 'https://mempool.space/testnet/api'
+    url: 'https://mempool.space/testnet4/api'
   },
   {
     name: 'Blockstream',
