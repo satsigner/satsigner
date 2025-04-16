@@ -274,6 +274,55 @@ export default function AccountList() {
     )
   }
 
+  const renderSamplewallets = () => {
+    switch (network) {
+      case 'bitcoin':
+        return <></>
+        break
+      case 'testnet':
+        return <></>
+        break
+      case 'signet':
+        return (
+          <SSVStack
+            itemsCenter
+            style={{
+              paddingVertical: 32
+            }}
+          >
+            <SSText color="muted" uppercase>
+              {t('accounts.samples')}
+            </SSText>
+            <SSButton
+              label={t('account.load.sample.segwit')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('segwit')}
+              loading={loadingWallet === 'segwit'}
+            />
+            <SSButton
+              label={t('account.load.sample.legacy')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('legacy')}
+              loading={loadingWallet === 'legacy'}
+            />
+            <SSButton
+              label={t('account.load.sample.xpub')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyXpub')}
+              loading={loadingWallet === 'watchonlyXpub'}
+            />
+            <SSButton
+              label={t('account.load.sample.address')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyAddress')}
+              loading={loadingWallet === 'watchonlyAddress'}
+            />
+          </SSVStack>
+        )
+        break
+    }
+  }
+
   return (
     <>
       <Stack.Screen
@@ -341,85 +390,50 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingTop: 32, paddingRight: 2, flexGrow: 1 }}>
-        <ScrollView
-          style={{ paddingRight: '6%' }}
-          contentContainerStyle={{ flexGrow: 1 }}
-        >
-          <TabView
-            swipeEnabled={false}
-            navigationState={{ index: tabIndex, routes: tabs }}
-            renderScene={() => (
-              <SSVStack style={{ flexGrow: 1, marginTop: 16 }}>
-                <FlashList
-                  data={filteredAccounts}
-                  renderItem={({ item }) => (
-                    <SSVStack>
-                      <SSAccountCard
-                        account={item}
-                        onPress={() => router.navigate(`/account/${item.id}`)}
-                      />
-                    </SSVStack>
-                  )}
-                  estimatedItemSize={20}
-                  ItemSeparatorComponent={() => (
-                    <SSSeparator
-                      style={{ marginVertical: 16 }}
-                      color="gradient"
+      <SSMainLayout style={{ paddingTop: 32, paddingHorizontal: '6%' }}>
+        <TabView
+          swipeEnabled={false}
+          navigationState={{ index: tabIndex, routes: tabs }}
+          renderScene={() => (
+            <ScrollView
+              style={{ marginTop: 16 }}
+              contentContainerStyle={{ flexGrow: 1 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <FlashList
+                data={filteredAccounts}
+                renderItem={({ item }) => (
+                  <SSVStack>
+                    <SSAccountCard
+                      account={item}
+                      onPress={() => router.navigate(`/account/${item.id}`)}
                     />
-                  )}
-                  ListEmptyComponent={
-                    <SSVStack
-                      itemsCenter
-                      style={{ paddingTop: 32, paddingBottom: 32 }}
-                    >
-                      <SSText uppercase>{t('accounts.empty')}</SSText>
-                    </SSVStack>
-                  }
-                  showsVerticalScrollIndicator={false}
-                />
-              </SSVStack>
-            )}
-            onIndexChange={setTabIndex}
-            initialLayout={{ width }}
-            renderTabBar={renderTab}
-          />
-          <SSVStack
-            itemsCenter
-            style={{
-              paddingBottom: 100,
-              paddingTop: 32
-            }}
-          >
-            <SSText color="muted" uppercase>
-              {t('accounts.samples')}
-            </SSText>
-            <SSButton
-              label={t('account.load.sample.segwit')}
-              variant="subtle"
-              onPress={() => loadSampleWallet('segwit')}
-              loading={loadingWallet === 'segwit'}
-            />
-            <SSButton
-              label={t('account.load.sample.legacy')}
-              variant="subtle"
-              onPress={() => loadSampleWallet('legacy')}
-              loading={loadingWallet === 'legacy'}
-            />
-            <SSButton
-              label={t('account.load.sample.xpub')}
-              variant="subtle"
-              onPress={() => loadSampleWallet('watchonlyXpub')}
-              loading={loadingWallet === 'watchonlyXpub'}
-            />
-            <SSButton
-              label={t('account.load.sample.address')}
-              variant="subtle"
-              onPress={() => loadSampleWallet('watchonlyAddress')}
-              loading={loadingWallet === 'watchonlyAddress'}
-            />
-          </SSVStack>
-        </ScrollView>
+                  </SSVStack>
+                )}
+                estimatedItemSize={20}
+                ItemSeparatorComponent={() => (
+                  <SSSeparator
+                    style={{ marginVertical: 16 }}
+                    color="gradient"
+                  />
+                )}
+                ListEmptyComponent={
+                  <SSVStack
+                    itemsCenter
+                    style={{ paddingTop: 32, paddingBottom: 32 }}
+                  >
+                    <SSText uppercase>{t('accounts.empty')}</SSText>
+                  </SSVStack>
+                }
+                showsVerticalScrollIndicator={false}
+              />
+              {renderSamplewallets()}
+            </ScrollView>
+          )}
+          onIndexChange={setTabIndex}
+          initialLayout={{ width }}
+          renderTabBar={renderTab}
+        />
       </SSMainLayout>
     </>
   )
