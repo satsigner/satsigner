@@ -67,7 +67,7 @@ export default function NetworkSettings() {
         >
           <SSVStack gap="xl">
             {networks.map((network) => (
-              <SSVStack gap="md">
+              <SSVStack gap="md" key={network}>
                 <SSVStack gap="none">
                   <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
                   <SSText color="muted">
