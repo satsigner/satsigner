@@ -119,10 +119,13 @@ export default function AccountList() {
     useVerifyConnection()
 
   useEffect(() => {
-    setSelectedNetwork(tabs[tabIndex].key as Network)
-    setFilteredAccounts(
-      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-    )
+    const currentNetwork = tabs[tabIndex].key as Network
+    if (currentNetwork !== network) {
+      setSelectedNetwork(currentNetwork)
+      setFilteredAccounts(
+        accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+      )
+    }
   }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
