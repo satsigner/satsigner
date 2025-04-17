@@ -8,7 +8,7 @@ import { type Backend } from '@/types/settings/blockchain'
 const ELECTRUM_BLOCKSTREAM_URL = 'ssl://electrum.blockstream.info:60002'
 const BLOCKSTREAM_BITCOIN_URL = 'ssl://blockstream.info:700'
 const MEMPOOL_SIGNET_URL = 'ssl://mempool.space:60602'
-const MEMPOOL_TESTNET_URL = 'https://mempool.space/testnet/api'
+const MEMPOOL_TESTNET_URL = 'https://mempool.space/testnet4/api'
 const DEFAULT_TIME_OUT = 6
 const DEFAULT_RETRIES = 5
 const DEFAULT_STOP_GAP = 20
