@@ -17,7 +17,7 @@ const sansSerif = require('@/assets/fonts/SF-Pro-Text-Medium.otf')
 
 const mVBLabels = ['18', '15', '12', '9', '6', '3', '0']
 
-type SSFeeRateChartProps = {
+export type SSFeeRateChartProps = {
   mempoolStatistics: MempoolStatistics[] | undefined
   timeRange: 'week' | 'day' | '2hours'
   boxPosition?: Animated.Value

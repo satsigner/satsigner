@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconEyeOn, SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
-import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
@@ -412,11 +412,9 @@ export default function AccountSettings() {
                 </SSSeedLayout>
               )}
             </SSHStack>
-            <SSHStack>
-              <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
-                <SSButton variant="secondary" label={t('common.copy')} />
-              </SSTextClipboard>
-            </SSHStack>
+            <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
+              <SSButton label={t('common.copy')} />
+            </SSTextClipboard>
           </SSVStack>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
