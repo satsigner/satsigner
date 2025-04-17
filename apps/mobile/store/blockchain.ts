@@ -27,12 +27,14 @@ type NetworkConfig = {
 type BlockchainState = {
   selectedNetwork: Network
   configs: Record<Network, NetworkConfig>
+  customServers: Server[]
 }
 
 type BlockchainAction = {
   setSelectedNetwork: (network: Network) => void
   updateServer: (network: Network, server: Partial<Server>) => void
   updateParam: (network: Network, param: Partial<Param>) => void
+  addCustomServer: (server: Server) => void
   getBlockchain: (network?: Network) => Promise<Blockchain>
   getBlockchainHeight: (network?: Network) => Promise<number>
 }
@@ -78,6 +80,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
           'Mempool'
         )
       },
+      customServers: [],
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateServer: (network, server) => {
         const { configs } = get()
@@ -102,6 +105,10 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
             }
           }
         })
+      },
+      addCustomServer: (server) => {
+        const { customServers } = get()
+        set({ customServers: [...customServers, server] })
       },
       getBlockchain: async (network = get().selectedNetwork) => {
         const { server, param } = get().configs[network]
