@@ -14,6 +14,7 @@ import {
 } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
 import {
+  type Backend,
   type Network,
   type Param,
   type Server
@@ -42,11 +43,12 @@ type BlockchainAction = {
 
 const createDefaultNetworkConfig = (
   network: Network,
+  backend: Backend,
   url: string = '',
   name: string = `Default ${network}`
 ): NetworkConfig => ({
   server: {
-    backend: 'electrum',
+    backend,
     url,
     name,
     network
@@ -67,16 +69,19 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       configs: {
         bitcoin: createDefaultNetworkConfig(
           'bitcoin',
+          'electrum',
           BLOCKSTREAM_BITCOIN_URL,
           'Blockstream'
         ),
         signet: createDefaultNetworkConfig(
           'signet',
+          'electrum',
           MEMPOOL_SIGNET_URL,
           'Mempool'
         ),
         testnet: createDefaultNetworkConfig(
           'testnet',
+          'esplora',
           MEMPOOL_TESTNET_URL,
           'Mempool'
         )

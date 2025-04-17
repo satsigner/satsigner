@@ -1,3 +1,5 @@
+import { type Network } from '../settings/blockchain'
+
 export type MultiSigKeySettingsSearchParams = {
   index: string
 }
@@ -34,3 +36,7 @@ export type TxSearchParams = {
 export type UtxoSearchParams = {
   vout: string
 } & TxSearchParams
+
+export type NetworkSearchParam = {
+  network: Network
+}

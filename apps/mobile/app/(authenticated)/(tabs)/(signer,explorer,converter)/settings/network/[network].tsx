@@ -20,6 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import { type NetworkSearchParam } from '@/types/navigation/searchParams'
 import {
   type Backend,
   type Network,
@@ -27,7 +28,7 @@ import {
 } from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
-  const { network } = useLocalSearchParams<{ network: Network }>()
+  const { network } = useLocalSearchParams<NetworkSearchParam>()
 
   const router = useRouter()
   const [
