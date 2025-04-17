@@ -1,32 +1,30 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Alert, ScrollView } from 'react-native'
+import { ScrollView } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSButton from '@/components/SSButton'
-import SSCheckbox from '@/components/SSCheckbox'
-import SSNumberInput from '@/components/SSNumberInput'
-import SSText from '@/components/SSText'
-import SSMainLayout from '@/layouts/SSMainLayout'
-import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
-import { useBlockchainStore } from '@/store/blockchain'
-import {
-  Backend,
-  Server,
-  type Network,
-  type Param
-} from '@/types/settings/blockchain'
-import SSTextInput from '@/components/SSTextInput'
-import SSHStack from '@/layouts/SSHStack'
-import { toast } from 'sonner-native'
-import useVerifyConnection from '@/hooks/useVerifyConnection'
 import {
   SSIconBlackIndicator,
   SSIconGreenIndicator,
   SSIconYellowIndicator
 } from '@/components/icons'
+import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
+import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
+import {
+  type Backend,
+  type Network,
+  type Server
+} from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
   const { network } = useLocalSearchParams<{ network: Network }>()
@@ -55,13 +53,12 @@ export default function CustomNetwork() {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [testing, setTesting] = useState(false)
-  const [oldNetwork, setOldNetwork] = useState<Network>(selectedNetwork)
-  const [oldServer, setOldServer] = useState<Server>(configs[network].server)
+  const [oldNetwork] = useState<Network>(selectedNetwork)
+  const [oldServer] = useState<Server>(configs[network].server)
 
   const backends: Backend[] = ['electrum', 'esplora']
 
   useEffect(() => {
-    console.log('debug -> connectionState : ', connectionState)
     if (testing && !connectionState) toast.error(t('error.invalid.backend'))
   }, [testing, connectionState])
 
@@ -77,13 +74,11 @@ export default function CustomNetwork() {
     }
 
     if (backend === 'electrum' && !url.startsWith('ssl://')) {
-      console.log('debug -> electrum / backend : ', backend)
       toast.warning(t('error.invalid.url'))
       return false
     }
 
     if (backend === 'esplora' && !url.startsWith('https://')) {
-      console.log('debug -> esplora / backend : ', backend)
       toast.warning(t('error.invalid.url'))
       return false
     }

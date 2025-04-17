@@ -60,9 +60,8 @@ export default function AuthenticatedLayout() {
         state.addAccountAddress
       ])
     )
-  const [network, connectionMode] = useBlockchainStore(
+  const [connectionMode] = useBlockchainStore(
     useShallow((state) => [
-      state.selectedNetwork,
       state.configs[state.selectedNetwork].param.connectionMode
     ])
   )
