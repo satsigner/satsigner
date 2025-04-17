@@ -3,8 +3,10 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconCloseThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
@@ -17,15 +19,21 @@ import { type Network, type Server } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [selectedNetwork, configs, customServers, updateServer] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.selectedNetwork,
-        state.configs,
-        state.customServers,
-        state.updateServer
-      ])
-    )
+  const [
+    selectedNetwork,
+    configs,
+    customServers,
+    updateServer,
+    removeCustomServer
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.configs,
+      state.customServers,
+      state.updateServer,
+      state.removeCustomServer
+    ])
+  )
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -42,6 +50,10 @@ export default function NetworkSettings() {
       ...prev,
       [network]: server
     }))
+  }
+
+  function handleRemove(server: Server) {
+    removeCustomServer(server)
   }
 
   function handleOnSave() {
@@ -122,6 +134,19 @@ export default function NetworkSettings() {
                               </SSText>
                             </SSHStack>
                           </SSVStack>
+                          {customServers.includes(server) && (
+                            <SSIconButton
+                              style={{
+                                padding: 6,
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderColor: Colors.gray[200]
+                              }}
+                              onPress={() => handleRemove(server)}
+                            >
+                              <SSIconCloseThin color={Colors.white} />
+                            </SSIconButton>
+                          )}
                         </SSHStack>
                       ))}
                   </SSVStack>
