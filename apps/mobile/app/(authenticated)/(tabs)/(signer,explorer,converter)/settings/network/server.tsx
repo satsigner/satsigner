@@ -17,13 +17,15 @@ import { type Network, type Server } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [selectedNetwork, configs, updateServer] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.configs,
-      state.updateServer
-    ])
-  )
+  const [selectedNetwork, configs, customServers, updateServer] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.configs,
+        state.customServers,
+        state.updateServer
+      ])
+    )
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -78,6 +80,7 @@ export default function NetworkSettings() {
                 <SSVStack gap="md">
                   <SSVStack gap="md">
                     {servers
+                      .concat(customServers)
                       .filter((server) => server.network === network)
                       .map((server, index) => (
                         <SSHStack key={index}>
@@ -127,6 +130,7 @@ export default function NetworkSettings() {
                       label={t(
                         'settings.network.server.custom.add'
                       ).toUpperCase()}
+                      onPress={() => router.push(`./${network}`)}
                     />
                   </SSVStack>
                 </SSVStack>

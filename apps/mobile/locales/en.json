@@ -209,6 +209,7 @@
   },
   "common": {
     "acknowledge": "Acknowledge",
+    "add": "Add",
     "addTag": "Add tag",
     "amount": "Amount",
     "areYouSure": "Are you sure?",
@@ -241,6 +242,7 @@
     "loading": "Loading",
     "max": "Max",
     "more": "More",
+    "name": "Name",
     "next": "Next",
     "no": "No",
     "noLabel": "No label",
@@ -289,7 +291,11 @@
     "years": "years"
   },
   "error": {
-    "notFound.wallet": "Wallet not found"
+    "invalid.backend": "Invalid Backend",
+    "invalid.url": "Invalid URL",
+    "notFound.wallet": "Wallet not found",
+    "require.name": "Name is required",
+    "require.url": "URL is required"
   },
   "explorer": {
     "block.date": "Date (from header)",
@@ -526,6 +532,9 @@
     "features.currencyFormatting.title": "Currency Formatting",
     "features.description": "Reveal more or less information about the app and the bitcoin protocol.",
     "features.title": "Features",
+    "network.backend.electrum.description": "Node connection",
+    "network.backend.esplora.description": "Data exchange",
+    "network.custom.title": "Custom Backend",
     "network.description": "Connect to a node to communicate with the bitcoin main network, testnet or signet",
     "network.params.connectionMode.auto": "Auto",
     "network.params.connectionMode.label": "Connection mode",
