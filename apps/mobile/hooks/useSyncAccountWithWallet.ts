@@ -101,7 +101,7 @@ function useSyncAccountWithWallet() {
       return updatedAccount
     } catch {
       setSyncStatus(account.id, 'error')
-      throw new Error('Error syncing wallet')
+      return account
     } finally {
       setLoading(false)
     }
