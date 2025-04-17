@@ -20,7 +20,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type NetworkSearchParam } from '@/types/navigation/searchParams'
 import {
   type Backend,
   type Network,
@@ -28,7 +27,7 @@ import {
 } from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
-  const { network } = useLocalSearchParams<NetworkSearchParam>()
+  const { network_param } = useLocalSearchParams()
 
   const router = useRouter()
   const [
@@ -50,6 +49,7 @@ export default function CustomNetwork() {
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
+  const [network] = useState<Network>(network_param as Network)
   const [backend, setBackend] = useState<Backend>('electrum')
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
