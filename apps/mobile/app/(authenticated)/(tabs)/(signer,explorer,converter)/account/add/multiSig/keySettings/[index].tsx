@@ -34,7 +34,8 @@ export default function MultiSigKeySettings() {
     setMnemonicWordCount,
     setMnemonic,
     setFingerprint,
-    setCreationType
+    setCreationType,
+    setNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -45,10 +46,11 @@ export default function MultiSigKeySettings() {
       state.setMnemonicWordCount,
       state.setMnemonic,
       state.setFingerprint,
-      state.setCreationType
+      state.setCreationType,
+      state.setNetwork
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
 
@@ -72,6 +74,7 @@ export default function MultiSigKeySettings() {
     setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
+    setNetwork(network)
 
     if (type === 'generateMnemonic') {
       switch (localEntropyType) {

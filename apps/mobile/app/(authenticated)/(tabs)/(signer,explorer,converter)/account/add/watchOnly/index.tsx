@@ -51,7 +51,8 @@ export default function WatchOnly() {
     setInternalDescriptor,
     setExtendedPublicKey,
     setScriptVersion,
-    setKey
+    setKey,
+    setNetwork
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -65,10 +66,14 @@ export default function WatchOnly() {
       state.setInternalDescriptor,
       state.setExtendedPublicKey,
       state.setScriptVersion,
-      state.setKey
+      state.setKey,
+      state.setNetwork
     ])
   )
-  const connectionMode = useBlockchainStore((state) => state.connectionMode)
+  const [network, connectionMode] = useBlockchainStore((state) => [
+    state.selectedNetwork,
+    state.configs[state.selectedNetwork].config.connectionMode
+  ])
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
@@ -146,6 +151,7 @@ export default function WatchOnly() {
     else if (selectedOption === 'importAddress')
       setExternalDescriptor(`addr(${address})`)
 
+    setNetwork(network)
     setKey(0)
     const account = getAccountData()
 

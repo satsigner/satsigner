@@ -8,64 +8,63 @@ import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const [
-    backend,
-    network,
-    url,
-    timeout,
-    connectionMode,
-    connectionTestInterval
-  ] = useBlockchainStore(
-    useShallow((state) => [
-      state.backend,
-      state.network,
-      state.url,
-      state.timeout * 1000,
-      state.connectionMode,
-      state.connectionTestInterval
-    ])
+  const [selectedNetwork, configs] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configs])
   )
+
+  const { server, config } = configs[selectedNetwork]
 
   const isConnectionAvailable = useRef<boolean | null>(false)
   const [connectionState, setConnectionState] = useState<boolean>(false)
   const connectionString = useMemo(() => {
-    if (connectionMode === 'auto') return `${network} - ${url}`
+    if (config.connectionMode === 'auto')
+      return `${server.network} - ${server.url}`
 
-    return `${network} - ${url} (${connectionMode})`
-  }, [network, url, connectionMode])
+    return `${server.network} - ${server.url} (${config.connectionMode})`
+  }, [server.network, server.url, config.connectionMode])
 
   const isPrivateConnection = useMemo(() => {
-    if (servers.findIndex((val) => val.url === url) === -1) {
+    if (servers.findIndex((val) => val.url === server.url) === -1) {
       return false
     }
     return true
-  }, [url])
+  }, [server.url])
 
   const verifyConnection = useCallback(async () => {
-    if (!isConnectionAvailable.current || connectionMode === 'manual') {
+    if (!isConnectionAvailable.current || config.connectionMode === 'manual') {
       setConnectionState(false)
       return
     }
     try {
       const result =
-        backend === 'electrum'
-          ? await ElectrumClient.test(url, network, timeout)
-          : await Esplora.test(url, timeout)
+        server.backend === 'electrum'
+          ? await ElectrumClient.test(
+              server.url,
+              server.network,
+              config.timeout * 1000
+            )
+          : await Esplora.test(server.url, config.timeout * 1000)
       setConnectionState(result)
     } catch {
       setConnectionState(false)
     }
-  }, [backend, network, timeout, url, connectionMode])
+  }, [
+    server.backend,
+    server.network,
+    config.timeout,
+    server.url,
+    config.connectionMode
+  ])
 
   const checkConnection = useCallback(async () => {
-    if (connectionMode === 'manual') return
+    if (config.connectionMode === 'manual') return
 
     const state = await NetInfo.fetch()
     isConnectionAvailable.current = state.isConnected
-  }, [connectionMode])
+  }, [config.connectionMode])
 
   useEffect(() => {
-    if (connectionMode === 'manual') return
+    if (config.connectionMode === 'manual') return
     ;(async () => {
       await checkConnection()
       verifyConnection()
@@ -75,7 +74,7 @@ function useVerifyConnection() {
       verifyConnection()
       // INFO: we store the interval in seconds but the function expects the
       // timeout interval to be in miliseconds
-    }, connectionTestInterval * 1000)
+    }, config.connectionTestInterval * 1000)
 
     const unsubscribe = NetInfo.addEventListener((state) => {
       if (
@@ -100,13 +99,13 @@ function useVerifyConnection() {
   }, [
     checkConnection,
     verifyConnection,
-    connectionMode,
-    connectionTestInterval
+    config.connectionMode,
+    config.connectionTestInterval
   ])
 
   useEffect(() => {
     verifyConnection()
-  }, [url, verifyConnection])
+  }, [server.url, verifyConnection])
 
   return [connectionState, connectionString, isPrivateConnection]
 }

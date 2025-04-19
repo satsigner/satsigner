@@ -1,177 +1,65 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconWarning } from '@/components/icons'
+import { SSIconCloseThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
-import SSSelectModal from '@/components/SSSelectModal'
+import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import type { Backend, Network, ServerType } from '@/types/settings/blockchain'
-
-const networks: Network[] = ['bitcoin', 'signet', 'testnet']
-const backends: Backend[] = ['esplora', 'electrum']
-const serverTypes: ServerType[] = ['CUSTOM', 'PUBLIC']
+import { Colors } from '@/styles'
+import { type Network, type Server } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [backend, setBackend, network, setNetwork, url, setUrl] =
-    useBlockchainStore(
-      useShallow((state) => [
-        state.backend,
-        state.setBackend,
-        state.network,
-        state.setNetwork,
-        state.url,
-        state.setUrl
-      ])
-    )
+  const [
+    selectedNetwork,
+    configs,
+    customServers,
+    updateServer,
+    removeCustomServer
+  ] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.configs,
+      state.customServers,
+      state.updateServer,
+      state.removeCustomServer
+    ])
+  )
 
-  const [selectedBackend, setSelectedBackend] = useState(backend)
-  const [selectedNetwork, setSelectedNetwork] = useState(network)
-  const [selectedUrl, setSelectedUrl] = useState(url)
-
-  const serverIndex = servers.findIndex((s) => {
-    return s.url === url && s.backend === backend && s.network === network
+  const [selectedServers, setSelectedServers] = useState<
+    Record<Network, Server>
+  >({
+    bitcoin: configs.bitcoin.server,
+    testnet: configs.testnet.server,
+    signet: configs.signet.server
   })
-  const defaultServer = serverIndex !== -1 ? servers[serverIndex] : servers[0]
-  const defaultServerType = serverIndex !== -1 ? 'PUBLIC' : 'CUSTOM'
 
-  const [serverType, setServerType] = useState<ServerType>(defaultServerType)
-  const [selectedServer, setSelectedServer] = useState(defaultServer)
-  const [confirmedServer, setConfirmedServer] = useState(defaultServer)
-  const [serverModalVisible, setServerModalVisible] = useState(false)
+  const networks: Network[] = ['bitcoin', 'testnet', 'signet']
 
-  const defaultTabIndex = serverIndex !== -1 ? 1 : 0
-  const [tabIndex, setTabIndex] = useState(defaultTabIndex)
-  const tabs = serverTypes.map((type) => ({ key: type }))
-
-  const renderTab = () => {
-    return (
-      <SSHStack style={{ marginBottom: 24 }}>
-        {serverTypes.map((type, index) => (
-          <SSButton
-            key={type}
-            variant="outline"
-            style={{
-              width: 'auto',
-              flexGrow: 1,
-              borderColor: type === serverType ? 'white' : 'gray'
-            }}
-            label={type}
-            onPress={() => {
-              setServerType(type)
-              setTabIndex(index)
-            }}
-          />
-        ))}
-      </SSHStack>
-    )
+  function handleSelectServer(network: Network, server: Server) {
+    setSelectedServers((prev) => ({
+      ...prev,
+      [network]: server
+    }))
   }
 
-  const renderScene = ({
-    route
-  }: SceneRendererProps & { route: { key: string } }) => {
-    switch (route.key) {
-      case 'CUSTOM':
-        return (
-          <ScrollView>
-            <SSVStack gap="md">
-              <SSVStack>
-                <SSText uppercase>
-                  {t('settings.network.server.backend')}
-                </SSText>
-                {backends.map((backend) => (
-                  <SSCheckbox
-                    key={backend}
-                    label={backend}
-                    selected={selectedBackend === backend}
-                    onPress={() => setSelectedBackend(backend)}
-                  />
-                ))}
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>
-                  {t('settings.network.server.network')}
-                </SSText>
-                {networks.map((network: Network) => (
-                  <SSCheckbox
-                    key={network}
-                    label={network}
-                    selected={selectedNetwork === network}
-                    onPress={() => setSelectedNetwork(network)}
-                  />
-                ))}
-              </SSVStack>
-              <SSVStack>
-                <SSText uppercase>{t('settings.network.server.url')}</SSText>
-                <SSTextInput
-                  value={selectedUrl}
-                  onChangeText={(url) => setSelectedUrl(url)}
-                />
-              </SSVStack>
-            </SSVStack>
-          </ScrollView>
-        )
-      case 'PUBLIC':
-        return (
-          <SSVStack gap="lg">
-            <SSVStack>
-              <SSHStack
-                gap="sm"
-                style={{ justifyContent: 'center', width: '100%' }}
-              >
-                <SSIconWarning
-                  height={30}
-                  width={30}
-                  fill="black"
-                  strokeExclamation="white"
-                  strokeTriangle="red"
-                />
-                <SSText uppercase>
-                  {t('settings.network.server.server.warning.title')}
-                </SSText>
-              </SSHStack>
-              <SSText center color="muted" style={{ paddingHorizontal: '10%' }}>
-                {t('settings.network.server.server.warning.text')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="md">
-              <SSButton
-                withSelect
-                label={`${confirmedServer.name} (${confirmedServer.network})`.toUpperCase()}
-                onPress={() => setServerModalVisible(true)}
-              />
-              <SSButton
-                label={t('settings.network.server.test').toUpperCase()}
-              />
-            </SSVStack>
-          </SSVStack>
-        )
-      default:
-        return null
-    }
+  function handleRemove(server: Server) {
+    removeCustomServer(server)
   }
 
   function handleOnSave() {
-    if (serverType === 'CUSTOM') {
-      setBackend(selectedBackend)
-      setNetwork(selectedNetwork)
-      setUrl(selectedUrl)
-    } else {
-      setBackend(confirmedServer.backend)
-      setNetwork(confirmedServer.network)
-      setUrl(confirmedServer.url)
-    }
+    updateServer('bitcoin', selectedServers['bitcoin'])
+    updateServer('testnet', selectedServers['testnet'])
+    updateServer('signet', selectedServers['signet'])
     router.back()
   }
 
@@ -188,13 +76,93 @@ export default function NetworkSettings() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <TabView
-          swipeEnabled={false}
-          navigationState={{ index: tabIndex, routes: tabs }}
-          renderScene={renderScene}
-          renderTabBar={renderTab}
-          onIndexChange={setTabIndex}
-        />
+        <ScrollView
+          style={{ marginBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <SSVStack gap="xl">
+            {networks.map((network) => (
+              <SSVStack gap="md" key={network}>
+                <SSVStack gap="none">
+                  <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
+                  <SSText color="muted">
+                    {t(`settings.network.server.type.${network}`)}
+                  </SSText>
+                </SSVStack>
+                <SSVStack gap="md">
+                  <SSVStack gap="md">
+                    {servers
+                      .concat(customServers)
+                      .filter((server) => server.network === network)
+                      .map((server, index) => (
+                        <SSHStack key={index}>
+                          <SSCheckbox
+                            onPress={() => handleSelectServer(network, server)}
+                            selected={
+                              selectedServers[network].url === server.url &&
+                              selectedServers[network].network ===
+                                server.network
+                            }
+                          />
+                          <SSVStack gap="none" style={{ flexGrow: 1 }}>
+                            <SSText
+                              style={{
+                                lineHeight: 16,
+                                textTransform: 'capitalize'
+                              }}
+                              size="md"
+                            >
+                              {`${server.name} (${server.backend})`}
+                            </SSText>
+                            <SSHStack gap="xs">
+                              {selectedServers[network].url === server.url &&
+                                selectedServers[network].network ===
+                                  server.network &&
+                                server.network === selectedNetwork && (
+                                  <SSText
+                                    style={{
+                                      lineHeight: 14,
+                                      color: Colors.mainGreen,
+                                      opacity: 0.6
+                                    }}
+                                  >
+                                    {t('common.connected')}
+                                  </SSText>
+                                )}
+                              <SSText style={{ lineHeight: 14 }} color="muted">
+                                {server.url}
+                              </SSText>
+                            </SSHStack>
+                          </SSVStack>
+                          {customServers.includes(server) && (
+                            <SSIconButton
+                              style={{
+                                padding: 6,
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                borderColor: Colors.gray[200]
+                              }}
+                              onPress={() => handleRemove(server)}
+                            >
+                              <SSIconCloseThin color={Colors.white} />
+                            </SSIconButton>
+                          )}
+                        </SSHStack>
+                      ))}
+                  </SSVStack>
+                  <SSVStack style={{ marginTop: 20 }}>
+                    <SSButton
+                      label={t(
+                        'settings.network.server.custom.add'
+                      ).toUpperCase()}
+                      onPress={() => router.push(`./${network}`)}
+                    />
+                  </SSVStack>
+                </SSVStack>
+              </SSVStack>
+            ))}
+          </SSVStack>
+        </ScrollView>
         <SSVStack>
           <SSButton
             variant="secondary"
@@ -208,50 +176,6 @@ export default function NetworkSettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
-        visible={serverModalVisible}
-        title={t('settings.network.server.server.modal.title').toUpperCase()}
-        onCancel={() => setServerModalVisible(false)}
-        onSelect={() => {
-          setConfirmedServer(selectedServer)
-          setServerModalVisible(false)
-        }}
-      >
-        {networks.map((network) => (
-          <SSVStack key={network} gap="sm">
-            <SSVStack gap="none">
-              <SSText uppercase>{network}</SSText>
-              <SSText color="muted">
-                {t(`settings.network.server.type.${network}`)}
-              </SSText>
-            </SSVStack>
-            {servers
-              .filter((server) => server.network === network)
-              .map((server, index) => (
-                <SSHStack key={index}>
-                  <SSCheckbox
-                    onPress={() => setSelectedServer(server)}
-                    selected={
-                      selectedServer.url === server.url &&
-                      selectedServer.network === server.network
-                    }
-                  />
-                  <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                    <SSText style={{ lineHeight: 16 }} size="md">
-                      {server.name}
-                    </SSText>
-                    <SSText style={{ lineHeight: 14 }} color="muted">
-                      {server.url}
-                    </SSText>
-                  </SSVStack>
-                  <SSText uppercase color="muted" size="xs">
-                    {server.backend}
-                  </SSText>
-                </SSHStack>
-              ))}
-          </SSVStack>
-        ))}
-      </SSSelectModal>
     </SSMainLayout>
   )
 }

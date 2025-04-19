@@ -27,11 +27,14 @@ function useAccountBuilderFinish() {
       state.updateKeySecret
     ])
   )
-  const addAccount = useAccountsStore((state) => state.addAccount)
+  const [addAccount, setSyncStatus] = useAccountsStore(
+    useShallow((state) => [state.addAccount, state.setSyncStatus])
+  )
+
   const [addAccountWallet, addAccountAddress] = useWalletsStore(
     useShallow((state) => [state.addAccountWallet, state.addAccountAddress])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [loading, setLoading] = useState(false)
 
@@ -77,6 +80,7 @@ function useAccountBuilderFinish() {
       )
 
     setLoading(false)
+    setSyncStatus(account.id, 'unsynced')
 
     return { wallet: walletData?.wallet, accountWithEncryptedSecret }
   }

@@ -2,6 +2,12 @@ import type { Server } from '@/types/settings/blockchain'
 
 export const servers: Server[] = [
   {
+    name: 'Mempool',
+    backend: 'esplora',
+    url: 'https://mempool.space/api',
+    network: 'bitcoin'
+  },
+  {
     name: 'Blockstream',
     backend: 'electrum',
     url: 'ssl://blockstream.info:700',
@@ -73,7 +79,7 @@ export const servers: Server[] = [
     name: 'Mempool',
     backend: 'esplora',
     network: 'testnet',
-    url: 'https://mempool.space/testnet/api'
+    url: 'https://mempool.space/testnet4/api'
   },
   {
     name: 'Blockstream',

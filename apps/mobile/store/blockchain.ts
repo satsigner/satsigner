@@ -1,85 +1,130 @@
 import { type Blockchain } from 'bdk-rn'
+import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getBlockchain } from '@/api/bdk'
 import {
+  BLOCKSTREAM_BITCOIN_URL,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
   DEFAULT_TIME_OUT,
   getBlockchainConfig,
-  MEMPOOL_SIGNET_URL
+  MEMPOOL_SIGNET_URL,
+  MEMPOOL_TESTNET_URL
 } from '@/config/servers'
 import mmkvStorage from '@/storage/mmkv'
-import { type Backend, type Network } from '@/types/settings/blockchain'
+import {
+  type Backend,
+  type Config,
+  type Network,
+  type Server
+} from '@/types/settings/blockchain'
+
+type NetworkConfig = {
+  server: Server
+  config: Config
+}
 
 type BlockchainState = {
-  backend: Backend
-  network: Network
-  url: string
-  timeout: number
-  retries: number
-  stopGap: number
-  connectionMode: 'auto' | 'manual'
-  connectionTestInterval: number
+  selectedNetwork: Network
+  configs: Record<Network, NetworkConfig>
+  customServers: Server[]
 }
 
 type BlockchainAction = {
-  setBackend: (backend: Backend) => void
-  setConnectionMode: (mode: BlockchainState['connectionMode']) => void
-  setConnectionTestInterval: (interval: number) => void
-  setNetwork: (network: Network) => void
-  setUrl: (url: string) => void
-  setTimeout: (timeout: number) => void
-  setStopGap: (stopGap: number) => void
-  setRetries: (retries: number) => void
-  getBlockchain: () => Promise<Blockchain>
-  getBlockchainHeight: () => Promise<number>
+  setSelectedNetwork: (network: Network) => void
+  updateServer: (network: Network, server: Partial<Server>) => void
+  updateConfig: (network: Network, config: Partial<Config>) => void
+  addCustomServer: (server: Server) => void
+  removeCustomServer: (server: Server) => void
+  getBlockchain: (network?: Network) => Promise<Blockchain>
+  getBlockchainHeight: (network?: Network) => Promise<number>
 }
+
+const createDefaultNetworkConfig = (
+  network: Network,
+  backend: Backend,
+  url: string = '',
+  name: string = `Default ${network}`
+): NetworkConfig => ({
+  server: {
+    backend,
+    url,
+    name,
+    network
+  },
+  config: {
+    timeout: DEFAULT_TIME_OUT,
+    retries: DEFAULT_RETRIES,
+    stopGap: DEFAULT_STOP_GAP,
+    connectionMode: 'auto',
+    connectionTestInterval: 60
+  }
+})
 
 const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
   persist(
     (set, get) => ({
-      backend: 'electrum',
-      network: 'signet',
-      url: MEMPOOL_SIGNET_URL,
-      timeout: DEFAULT_TIME_OUT,
-      retries: DEFAULT_RETRIES,
-      stopGap: DEFAULT_STOP_GAP,
-      connectionMode: 'auto',
-      connectionTestInterval: 60,
-      setBackend: (backend) => {
-        set({ backend })
+      selectedNetwork: 'signet',
+      configs: {
+        bitcoin: createDefaultNetworkConfig(
+          'bitcoin',
+          'electrum',
+          BLOCKSTREAM_BITCOIN_URL,
+          'Blockstream'
+        ),
+        signet: createDefaultNetworkConfig(
+          'signet',
+          'electrum',
+          MEMPOOL_SIGNET_URL,
+          'Mempool'
+        ),
+        testnet: createDefaultNetworkConfig(
+          'testnet',
+          'esplora',
+          MEMPOOL_TESTNET_URL,
+          'Mempool'
+        )
       },
-      setConnectionMode: (connectionMode) => {
-        set({ connectionMode })
+      customServers: [],
+      setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
+      updateServer: (network, server) => {
+        set(
+          produce((state: BlockchainState) => {
+            state.configs[network].server = server as Server
+          })
+        )
       },
-      setConnectionTestInterval: (connectionTestInterval) => {
-        set({ connectionTestInterval })
+      updateConfig: (network, config) => {
+        set(
+          produce((state: BlockchainState) => {
+            state.configs[network].config = config as Config
+          })
+        )
       },
-      setNetwork: (network) => {
-        set({ network })
+      addCustomServer: (server) => {
+        const { customServers } = get()
+        set({ customServers: [...customServers, server] })
       },
-      setUrl: (url) => {
-        set({ url })
+      removeCustomServer: (server) => {
+        const { customServers } = get()
+        set({
+          customServers: customServers.filter((sv) => sv !== server)
+        })
       },
-      setTimeout: (timeout) => {
-        set({ timeout })
+      getBlockchain: async (network = get().selectedNetwork) => {
+        const { server, config } = get().configs[network]
+        const blockchainConfig = getBlockchainConfig(
+          server.backend,
+          server.url,
+          config
+        )
+        return getBlockchain(server.backend, blockchainConfig)
       },
-      setStopGap: (stopGap) => {
-        set({ stopGap })
-      },
-      setRetries: (retries) => {
-        set({ retries })
-      },
-      getBlockchain: async () => {
-        const { backend, retries, stopGap, timeout, url } = get()
-        const opts = { retries, stopGap, timeout }
-        const config = getBlockchainConfig(backend, url, opts)
-        return getBlockchain(backend, config)
-      },
-      getBlockchainHeight: async () => {
-        return (await get().getBlockchain()).getHeight()
+
+      getBlockchainHeight: async (network = get().selectedNetwork) => {
+        return (await get().getBlockchain(network)).getHeight()
       }
     }),
     {

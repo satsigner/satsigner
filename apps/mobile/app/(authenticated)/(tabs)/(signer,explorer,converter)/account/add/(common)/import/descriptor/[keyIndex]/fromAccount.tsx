@@ -43,7 +43,7 @@ function ImportDescriptorFromAccount() {
       state.clearKeyState
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const singleSignatureAccounts = useMemo(() => {
     return accounts.filter((account) => account.policyType === 'singlesig')

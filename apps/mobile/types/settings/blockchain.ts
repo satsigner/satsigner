@@ -10,3 +10,11 @@ export type Server = {
   network: Network
   url: string
 }
+
+export type Config = {
+  timeout: number
+  retries: number
+  stopGap: number
+  connectionMode: 'auto' | 'manual'
+  connectionTestInterval: number
+}

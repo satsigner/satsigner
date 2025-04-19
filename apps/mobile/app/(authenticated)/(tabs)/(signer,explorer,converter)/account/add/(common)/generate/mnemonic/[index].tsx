@@ -43,7 +43,7 @@ export default function GenerateMnemonic() {
       state.setFingerprint
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [checksumValid, setChecksumValid] = useState(true)
 

@@ -60,9 +60,9 @@ export default function AuthenticatedLayout() {
         state.addAccountAddress
       ])
     )
-  const [network, connectionMode] = useBlockchainStore(
-    useShallow((state) => [state.network, state.connectionMode])
-  )
+  const [connectionMode] = useBlockchainStore((state) => [
+    state.configs[state.selectedNetwork].config.connectionMode
+  ])
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
@@ -109,7 +109,7 @@ export default function AuthenticatedLayout() {
           }
 
           const walletData = !isImportAddress
-            ? await getWalletData(temporaryAccount, network as Network)
+            ? await getWalletData(temporaryAccount, account.network as Network)
             : undefined
 
           if (walletData) addAccountWallet(account.id, walletData.wallet)
