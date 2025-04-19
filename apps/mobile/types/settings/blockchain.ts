@@ -11,7 +11,7 @@ export type Server = {
   url: string
 }
 
-export type Param = {
+export type Config = {
   timeout: number
   retries: number
   stopGap: number

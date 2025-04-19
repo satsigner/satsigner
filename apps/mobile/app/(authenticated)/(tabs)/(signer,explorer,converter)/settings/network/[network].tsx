@@ -27,7 +27,7 @@ import {
 } from '@/types/settings/blockchain'
 
 export default function CustomNetwork() {
-  const { network_param } = useLocalSearchParams()
+  const { network } = useLocalSearchParams()
 
   const router = useRouter()
   const [
@@ -49,13 +49,12 @@ export default function CustomNetwork() {
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
-  const [network] = useState<Network>(network_param as Network)
   const [backend, setBackend] = useState<Backend>('electrum')
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [testing, setTesting] = useState(false)
   const [oldNetwork] = useState<Network>(selectedNetwork)
-  const [oldServer] = useState<Server>(configs[network].server)
+  const [oldServer] = useState<Server>(configs[network as Network].server)
 
   const backends: Backend[] = ['electrum', 'esplora']
 
@@ -92,8 +91,8 @@ export default function CustomNetwork() {
 
     if (!isValid()) return
 
-    setSelectedNetwork(network)
-    updateServer(network, { name, backend, network, url } as Server)
+    setSelectedNetwork(network as Network)
+    updateServer(network as Network, { name, backend, network, url } as Server)
 
     setTesting(true)
   }

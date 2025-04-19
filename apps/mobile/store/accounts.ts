@@ -17,7 +17,7 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
-  setSyncDate: (id: Account['id'], date: Date) => void
+  setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
@@ -67,13 +67,13 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
-      setSyncDate: (id, date) => {
+      setLastSyncedAt: (id, date) => {
         set(
           produce((state: AccountsState) => {
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].syncDate = date
+            if (index !== -1) state.accounts[index].lastSyncedAt = date
           })
         )
       },

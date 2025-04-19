@@ -35,12 +35,12 @@ export default function SignMessage() {
   const wallet = useWalletsStore((state) => state.wallets[id!])
   const [backend, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => {
-      const { server, param } = state.configs[state.selectedNetwork]
+      const { server, config } = state.configs[state.selectedNetwork]
       return [
         server.backend,
-        param.retries,
-        param.stopGap,
-        param.timeout,
+        config.retries,
+        config.stopGap,
+        config.timeout,
         server.url
       ]
     })

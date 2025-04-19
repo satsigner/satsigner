@@ -30,7 +30,7 @@ function useSyncAccountWithAddress() {
   ) {
     try {
       setLoading(true)
-      setSyncStatus(account.id, 'syncking')
+      setSyncStatus(account.id, 'syncing')
 
       // Labels backup
       const labelsBackup: Record<string, string> = {}
@@ -196,7 +196,7 @@ function useSyncAccountWithAddress() {
       }
 
       updatedAccount.syncStatus = 'synced'
-      updatedAccount.syncDate = new Date()
+      updatedAccount.lastSyncedAt = new Date()
 
       return updatedAccount
     } catch {

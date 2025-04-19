@@ -22,7 +22,7 @@ export default function ConfirmScreen() {
   const getAccountData = useAccountBuilderStore((state) => state.getAccountData)
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const connectionMode = useBlockchainStore(
-    (state) => state.configs[state.selectedNetwork].param.connectionMode
+    (state) => state.configs[state.selectedNetwork].config.connectionMode
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { accountBuilderFinish } = useAccountBuilderFinish()

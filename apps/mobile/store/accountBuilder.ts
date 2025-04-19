@@ -228,8 +228,8 @@ const useAccountBuilderStore = create<
       utxos: [],
       addresses: [],
       createdAt: new Date(),
-      syncDate: new Date(),
-      syncStatus: 'syncking'
+      lastSyncedAt: new Date(),
+      syncStatus: 'syncing'
     }
 
     return account

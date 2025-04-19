@@ -59,7 +59,7 @@ export default function AccountList() {
     (state) => [
       state.selectedNetwork,
       state.setSelectedNetwork,
-      state.configs[state.selectedNetwork].param.connectionMode
+      state.configs[state.selectedNetwork].config.connectionMode
     ]
   )
   const [accounts, updateAccount] = useAccountsStore(

@@ -11,28 +11,28 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Network, type Param } from '@/types/settings/blockchain'
+import { type Network, type Config } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
-  const [configs, updateParam] = useBlockchainStore(
-    useShallow((state) => [state.configs, state.updateParam])
+  const [configs, updateConfig] = useBlockchainStore(
+    useShallow((state) => [state.configs, state.updateConfig])
   )
 
-  const [params, setParams] = useState<Record<Network, Param>>({
-    bitcoin: configs.bitcoin.param,
-    testnet: configs.testnet.param,
-    signet: configs.signet.param
+  const [tempConfigs, setTempConfigs] = useState<Record<Network, Config>>({
+    bitcoin: configs.bitcoin.config,
+    testnet: configs.testnet.config,
+    signet: configs.signet.config
   })
 
   const networks: Network[] = ['bitcoin', 'testnet', 'signet']
 
-  function handleParamChange<K extends keyof Param>(
+  function handleParamChange<K extends keyof Config>(
     network: Network,
     key: K,
-    value: Param[K]
+    value: Config[K]
   ) {
-    setParams((prev) => ({
+    setTempConfigs((prev) => ({
       ...prev,
       [network]: {
         ...prev[network],
@@ -42,9 +42,9 @@ export default function NetworkSettings() {
   }
 
   function handleOnSave() {
-    updateParam('bitcoin', params['bitcoin'])
-    updateParam('testnet', params['testnet'])
-    updateParam('signet', params['signet'])
+    updateConfig('bitcoin', tempConfigs['bitcoin'])
+    updateConfig('testnet', tempConfigs['testnet'])
+    updateConfig('signet', tempConfigs['signet'])
     router.back()
   }
 
@@ -53,7 +53,7 @@ export default function NetworkSettings() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('settings.network.params.title')}</SSText>
+            <SSText uppercase>{t('settings.network.config.title')}</SSText>
           ),
           headerBackVisible: true,
           headerLeft: () => <></>,
@@ -77,19 +77,19 @@ export default function NetworkSettings() {
                 <SSVStack gap="sm">
                   <SSVStack gap="xs">
                     <SSText uppercase>
-                      {t('settings.network.params.connectionMode.label')}
+                      {t('settings.network.config.connectionMode.label')}
                     </SSText>
                     <SSCheckbox
-                      label={(params[network].connectionMode === 'auto'
-                        ? t('settings.network.params.connectionMode.auto')
-                        : t('settings.network.params.connectionMode.manual')
+                      label={(tempConfigs[network].connectionMode === 'auto'
+                        ? t('settings.network.config.connectionMode.auto')
+                        : t('settings.network.config.connectionMode.manual')
                       ).toUpperCase()}
-                      selected={params[network].connectionMode === 'auto'}
+                      selected={tempConfigs[network].connectionMode === 'auto'}
                       onPress={() =>
                         handleParamChange(
                           network,
                           'connectionMode',
-                          params[network].connectionMode === 'auto'
+                          tempConfigs[network].connectionMode === 'auto'
                             ? 'manual'
                             : 'auto'
                         )
@@ -98,11 +98,11 @@ export default function NetworkSettings() {
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText uppercase>
-                      {t('settings.network.params.connectionTestInterval')}
+                      {t('settings.network.config.connectionTestInterval')}
                     </SSText>
                     <SSVStack gap="none">
                       <SSNumberInput
-                        value={params[
+                        value={tempConfigs[
                           network
                         ].connectionTestInterval.toString()}
                         min={10}
@@ -117,17 +117,17 @@ export default function NetworkSettings() {
                       />
                       <SSText color="muted" size="xs">
                         {t(
-                          'settings.network.params.connectionTestIntervalNotice'
+                          'settings.network.config.connectionTestIntervalNotice'
                         )}
                       </SSText>
                     </SSVStack>
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText uppercase>
-                      {t('settings.network.params.retries')}
+                      {t('settings.network.config.retries')}
                     </SSText>
                     <SSNumberInput
-                      value={params[network].retries.toString()}
+                      value={tempConfigs[network].retries.toString()}
                       min={1}
                       max={10}
                       onChangeText={(text) =>
@@ -137,10 +137,10 @@ export default function NetworkSettings() {
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText uppercase>
-                      {t('settings.network.params.timeout')}
+                      {t('settings.network.config.timeout')}
                     </SSText>
                     <SSNumberInput
-                      value={params[network].timeout.toString()}
+                      value={tempConfigs[network].timeout.toString()}
                       min={1}
                       max={20}
                       onChangeText={(text) =>
@@ -150,10 +150,10 @@ export default function NetworkSettings() {
                   </SSVStack>
                   <SSVStack gap="xs">
                     <SSText uppercase>
-                      {t('settings.network.params.stopGap')}
+                      {t('settings.network.config.stopGap')}
                     </SSText>
                     <SSNumberInput
-                      value={params[network].stopGap.toString()}
+                      value={tempConfigs[network].stopGap.toString()}
                       min={1}
                       max={30}
                       onChangeText={(text) =>

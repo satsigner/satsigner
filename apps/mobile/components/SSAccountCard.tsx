@@ -27,7 +27,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
   function renderSyncStatus(
     status: Account['syncStatus'],
-    date: Account['syncDate']
+    date: Account['lastSyncedAt']
   ) {
     let color = Colors.white
     let text = ''
@@ -60,9 +60,9 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
         break
       }
-      case 'syncking':
+      case 'syncing':
         color = Colors.white
-        text = t('account.sync.status.syncking')
+        text = t('account.sync.status.syncing')
         break
       case 'error':
         color = Colors.mainRed
@@ -170,7 +170,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           </SSHStack>
         </SSVStack>
         <SSIconChevronRight height={11.6} width={6} />
-        {renderSyncStatus(account.syncStatus, account.syncDate)}
+        {renderSyncStatus(account.syncStatus, account.lastSyncedAt)}
       </SSHStack>
     </TouchableOpacity>
   )

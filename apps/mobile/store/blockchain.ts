@@ -16,13 +16,13 @@ import mmkvStorage from '@/storage/mmkv'
 import {
   type Backend,
   type Network,
-  type Param,
+  type Config,
   type Server
 } from '@/types/settings/blockchain'
 
 type NetworkConfig = {
   server: Server
-  param: Param
+  config: Config
 }
 
 type BlockchainState = {
@@ -34,7 +34,7 @@ type BlockchainState = {
 type BlockchainAction = {
   setSelectedNetwork: (network: Network) => void
   updateServer: (network: Network, server: Partial<Server>) => void
-  updateParam: (network: Network, param: Partial<Param>) => void
+  updateConfig: (network: Network, config: Partial<Config>) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
   getBlockchain: (network?: Network) => Promise<Blockchain>
@@ -53,7 +53,7 @@ const createDefaultNetworkConfig = (
     name,
     network
   },
-  param: {
+  config: {
     timeout: DEFAULT_TIME_OUT,
     retries: DEFAULT_RETRIES,
     stopGap: DEFAULT_STOP_GAP,
@@ -100,14 +100,14 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
           }
         })
       },
-      updateParam: (network, param) => {
+      updateConfig: (network, config) => {
         const { configs } = get()
         set({
           configs: {
             ...configs,
             [network]: {
               ...configs[network],
-              param: { ...configs[network].param, ...param }
+              param: { ...configs[network].config, ...config }
             }
           }
         })
@@ -123,9 +123,13 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         })
       },
       getBlockchain: async (network = get().selectedNetwork) => {
-        const { server, param } = get().configs[network]
-        const config = getBlockchainConfig(server.backend, server.url, param)
-        return getBlockchain(server.backend, config)
+        const { server, config } = get().configs[network]
+        const blockchainConfig = getBlockchainConfig(
+          server.backend,
+          server.url,
+          config
+        )
+        return getBlockchain(server.backend, blockchainConfig)
       },
 
       getBlockchainHeight: async (network = get().selectedNetwork) => {

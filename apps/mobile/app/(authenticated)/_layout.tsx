@@ -62,7 +62,7 @@ export default function AuthenticatedLayout() {
     )
   const [connectionMode] = useBlockchainStore(
     useShallow((state) => [
-      state.configs[state.selectedNetwork].param.connectionMode
+      state.configs[state.selectedNetwork].config.connectionMode
     ])
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()

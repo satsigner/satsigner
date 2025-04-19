@@ -17,13 +17,13 @@ function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
     useShallow((state) => {
-      const { server, param } = state.configs[state.selectedNetwork]
+      const { server, config } = state.configs[state.selectedNetwork]
       return [
         server.backend,
         server.network,
-        param.retries,
-        param.stopGap,
-        param.timeout,
+        config.retries,
+        config.stopGap,
+        config.timeout,
         server.url
       ]
     })
@@ -34,7 +34,7 @@ function useSyncAccountWithWallet() {
   async function syncAccountWithWallet(account: Account, wallet: Wallet) {
     try {
       setLoading(true)
-      setSyncStatus(account.id, 'syncking')
+      setSyncStatus(account.id, 'syncing')
 
       // Labels backup
       const labelsBackup: Record<string, string> = {}
@@ -96,7 +96,7 @@ function useSyncAccountWithWallet() {
       }
 
       updatedAccount.syncStatus = 'synced'
-      updatedAccount.syncDate = new Date()
+      updatedAccount.lastSyncedAt = new Date()
 
       return updatedAccount
     } catch {

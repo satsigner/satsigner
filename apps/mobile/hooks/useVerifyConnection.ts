@@ -17,14 +17,14 @@ function useVerifyConnection() {
     connectionTestInterval
   ] = useBlockchainStore(
     useShallow((state) => {
-      const { server, param } = state.configs[state.selectedNetwork]
+      const { server, config } = state.configs[state.selectedNetwork]
       return [
         server.backend,
         server.network,
         server.url,
-        param.timeout * 1000,
-        param.connectionMode,
-        param.connectionTestInterval
+        config.timeout * 1000,
+        config.connectionMode,
+        config.connectionTestInterval
       ]
     })
   )
