@@ -1,4 +1,4 @@
-import { TouchableOpacity } from 'react-native'
+import { Animated, Easing, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -11,6 +11,7 @@ import { type Account } from '@/types/models/Account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
+import SSIconSync from './icons/SSIconSync'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 
@@ -25,12 +26,29 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
+  const rotateAnim = new Animated.Value(0)
+
+  Animated.loop(
+    Animated.timing(rotateAnim, {
+      toValue: 1,
+      duration: 1500,
+      easing: Easing.linear,
+      useNativeDriver: true
+    })
+  ).start()
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg']
+  })
+
   function renderSyncStatus(
     status: Account['syncStatus'],
     date: Account['lastSyncedAt']
   ) {
     let color = Colors.white
     let text = ''
+    let icon: React.ReactNode = null
 
     switch (status) {
       case 'synced': {
@@ -60,10 +78,16 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
         break
       }
-      case 'syncing':
+      case 'syncing': {
         color = Colors.white
         text = t('account.sync.status.syncing')
+        icon = (
+          <Animated.View style={{ transform: [{ rotate }] }}>
+            <SSIconSync width={10} height={9} />
+          </Animated.View>
+        )
         break
+      }
       case 'error':
         color = Colors.mainRed
         text = t('account.sync.status.error')
@@ -75,19 +99,20 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     }
 
     return (
-      <SSText
-        size="xs"
-        uppercase
+      <SSHStack
+        gap="xs"
         style={{
-          color,
-          opacity: 0.6,
           position: 'absolute',
           top: 0,
-          right: 6
+          right: 6,
+          opacity: 0.6
         }}
       >
-        {text}
-      </SSText>
+        <SSText size="xs" uppercase style={{ color }}>
+          {text}
+        </SSText>
+        {icon}
+      </SSHStack>
     )
   }
 
