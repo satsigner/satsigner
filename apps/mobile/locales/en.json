@@ -105,6 +105,7 @@
     "sync.status.synced": "Synced",
     "sync.status.syncing": "Syncing",
     "sync.status.timeout": "Can't sync\nTimeout",
+    "sync.status.unsynced": "Unsynced",
     "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
     "utxos": "UTXOs",
     "viewMnemonic": "View mnemonic"

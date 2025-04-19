@@ -41,9 +41,9 @@ function useVerifyConnection() {
           ? await ElectrumClient.test(
               server.url,
               server.network,
-              config.timeout
+              config.timeout * 1000
             )
-          : await Esplora.test(server.url, config.timeout)
+          : await Esplora.test(server.url, config.timeout * 1000)
       setConnectionState(result)
     } catch {
       setConnectionState(false)

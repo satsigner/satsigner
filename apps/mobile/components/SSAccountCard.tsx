@@ -51,6 +51,10 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     let icon: React.ReactNode = null
 
     switch (status) {
+      case 'unsynced':
+        color = Colors.gray[200]
+        text = t('account.sync.status.unsynced')
+        break
       case 'synced': {
         color = Colors.mainGreen
         text = t('account.sync.status.synced')

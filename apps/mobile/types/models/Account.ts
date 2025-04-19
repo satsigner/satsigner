@@ -9,7 +9,7 @@ export type MnemonicCount = 12 | 15 | 18 | 21 | 24
 
 export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
 
-export type SyncStatus = 'synced' | 'syncing' | 'error' | 'timeout'
+export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
 export type CreationType =
   | 'generateMnemonic'
@@ -67,6 +67,6 @@ export type Account = {
   utxos: Utxo[]
   addresses: Address[]
   createdAt: Date
-  lastSyncedAt: Date
+  lastSyncedAt?: Date
   syncStatus: SyncStatus
 }
