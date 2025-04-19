@@ -80,7 +80,6 @@ function useAccountBuilderFinish() {
       )
 
     setLoading(false)
-    setSyncStatus(account.id, 'unsynced')
 
     return { wallet: walletData?.wallet, accountWithEncryptedSecret }
   }
