@@ -27,9 +27,7 @@ function useAccountBuilderFinish() {
       state.updateKeySecret
     ])
   )
-  const [addAccount, setSyncStatus] = useAccountsStore(
-    useShallow((state) => [state.addAccount, state.setSyncStatus])
-  )
+  const addAccount = useAccountsStore((state) => state.addAccount)
 
   const [addAccountWallet, addAccountAddress] = useWalletsStore(
     useShallow((state) => [state.addAccountWallet, state.addAccountAddress])
