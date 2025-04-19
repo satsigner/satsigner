@@ -15,8 +15,8 @@ import {
 import mmkvStorage from '@/storage/mmkv'
 import {
   type Backend,
-  type Network,
   type Config,
+  type Network,
   type Server
 } from '@/types/settings/blockchain'
 

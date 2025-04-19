@@ -11,7 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Network, type Config } from '@/types/settings/blockchain'
+import { type Config, type Network } from '@/types/settings/blockchain'
 
 export default function NetworkSettings() {
   const router = useRouter()
