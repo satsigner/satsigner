@@ -39,7 +39,7 @@ export default function DiceEntropy() {
         state.setFingerprint
       ])
     )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const length = 32 * (mnemonicWordCount / 3)
   const approxRolls = Math.round(length / Math.log2(6))

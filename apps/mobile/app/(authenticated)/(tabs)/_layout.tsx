@@ -35,7 +35,7 @@ export default function TabLayout() {
       segments.indexOf(segment) >= 0 &&
       segments.indexOf(segment) < segments.length - 1
     ) {
-      router.replace(`/(authenticated)/(tabs)/${segment}`)
+      router.navigate(`/(authenticated)/(tabs)/${segment}`)
     } else {
       props.onPress?.(e)
     }

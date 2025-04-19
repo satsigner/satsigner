@@ -1,3 +1,4 @@
+import { type Network } from '../settings/blockchain'
 import { type Address } from './Address'
 import { type Transaction } from './Transaction'
 import { type Utxo } from './Utxo'
@@ -7,6 +8,8 @@ export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 export type MnemonicCount = 12 | 15 | 18 | 21 | 24
 
 export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
+
+export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
 export type CreationType =
   | 'generateMnemonic'
@@ -45,6 +48,7 @@ export type Key = {
 export type Account = {
   id: string
   name: string
+  network: Network
   policyType: PolicyType
   /** Account keys. Default: [] */
   keys: Key[]
@@ -63,5 +67,6 @@ export type Account = {
   utxos: Utxo[]
   addresses: Address[]
   createdAt: Date
-  isSyncing?: boolean
+  lastSyncedAt?: Date
+  syncStatus: SyncStatus
 }
