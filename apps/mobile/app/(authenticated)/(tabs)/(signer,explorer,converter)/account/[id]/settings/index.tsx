@@ -412,9 +412,9 @@ export default function AccountSettings() {
                 </SSSeedLayout>
               )}
             </SSHStack>
-            <SSTextClipboard text={localMnemonic.replaceAll(',', ' ')}>
+            <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
               <SSButton label={t('common.copy')} />
-            </SSTextClipboard>
+            </SSClipboardCopy>
           </SSVStack>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}

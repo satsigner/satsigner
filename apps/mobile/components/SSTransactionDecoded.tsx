@@ -1,4 +1,4 @@
-import React, { Fragment, useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -31,48 +31,6 @@ function SSTransactionDecoded({
 }: SSTransactionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
   const [display, setDisplay] = useState<'list' | 'bytes'>(defaultDisplay)
-  const [selectedItem, setSelectedItem] = useState(0)
-  const [textSize, setTextSize] = useState<TextSize>('md')
-
-  const handleZoomIn = () => {
-    const currentIndex = TEXT_SIZES.indexOf(textSize)
-    if (currentIndex < TEXT_SIZES.length - 1) {
-      setTextSize(TEXT_SIZES[currentIndex + 1])
-    }
-  }
-
-  const handleZoomOut = () => {
-    const currentIndex = TEXT_SIZES.indexOf(textSize)
-    if (currentIndex > 0) {
-      setTextSize(TEXT_SIZES[currentIndex - 1])
-    }
-  }
-
-  const colors: Record<TxField, string> = {
-    [TxField.Version]: '#fff',
-    [TxField.Marker]: '#888',
-    [TxField.Flag]: '#fff',
-    [TxField.TxInVarInt]: '#888',
-    [TxField.TxInHash]: '#E01919',
-    [TxField.TxInIndex]: '#860B0B',
-    [TxField.TxInScriptVarInt]: '#DD9595',
-    [TxField.TxInScript]: '#860B0B',
-    [TxField.TxInSequence]: '#860B0B',
-    [TxField.TxOutVarInt]: '#aaa',
-    [TxField.TxOutValue]: '#07BC03',
-    [TxField.TxOutScriptVarInt]: '#93CC92',
-    [TxField.TxOutScript]: '#C13939',
-    [TxField.WitnessVarInt]: '#fff',
-    [TxField.WitnessItemsVarInt]: '#888',
-    [TxField.WitnessItem]: '#555',
-    [TxField.WitnessItemEmpty]: '#694040',
-    [TxField.WitnessItemPubkey]: '#C13939',
-    [TxField.WitnessItemSignature]: '#8F5252',
-    [TxField.WitnessItemScript]: '#694040',
-    [TxField.Locktime]: '#eee',
-    [TxField.TxOutScriptStandard]: '#608A64',
-    [TxField.TxOutScriptNonStandard]: '#608A64'
-  }
 
   function toggleDisplay() {
     setDisplay(display === 'list' ? 'bytes' : 'list')
@@ -81,7 +39,14 @@ function SSTransactionDecoded({
   return (
     <>
       <TouchableOpacity onPress={toggleDisplay}>
-        <SSHStack gap="sm" style={{ justifyContent: 'flex-end' }}>
+        <SSHStack
+          gap="sm"
+          style={{
+            justifyContent: 'flex-end',
+            marginTop: -30,
+            marginBottom: 16
+          }}
+        >
           <SSText color="muted">
             {display === 'list'
               ? t('transaction.decoded.btnCollapse')
@@ -215,7 +180,9 @@ function SSTransactionDecodedBytes({
           )
         })}
       </SSHStack>
-      {selectedItem !== -1 && <SSTransactionDecodedItem {...decoded[selectedItem]} />}
+      {selectedItem !== -1 && (
+        <SSTransactionDecodedItem {...decoded[selectedItem]} />
+      )}
     </SSVStack>
   )
 }
