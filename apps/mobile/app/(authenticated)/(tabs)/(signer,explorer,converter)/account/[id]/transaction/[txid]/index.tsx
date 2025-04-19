@@ -50,12 +50,14 @@ export default function TxDetails() {
     ])
   )
 
-  const [backend, network, url] = useBlockchainStore(
-    useShallow((state) => {
-      const { server } = state.configs[state.selectedNetwork]
-      return [server.backend, server.network, server.url]
-    })
+  const { selectedNetwork, configs } = useBlockchainStore(
+    useShallow((state) => ({
+      selectedNetwork: state.selectedNetwork,
+      configs: state.configs
+    }))
   )
+
+  const currentServer = configs[selectedNetwork].server
 
   const placeholder = '-'
 
@@ -97,7 +99,12 @@ export default function TxDetails() {
     if (tx.raw) setRaw(bytesToHex(tx.raw))
 
     if (tx.vin.some((input) => input.value === undefined)) {
-      const vin = await getTransactionInputValues(tx, backend, network, url)
+      const vin = await getTransactionInputValues(
+        tx,
+        currentServer.backend,
+        currentServer.network,
+        currentServer.url
+      )
       loadTx(accountId!, { ...tx, vin })
     }
   }

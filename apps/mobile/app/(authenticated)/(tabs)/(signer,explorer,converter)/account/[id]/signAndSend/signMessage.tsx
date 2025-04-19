@@ -33,18 +33,14 @@ export default function SignMessage() {
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
   const wallet = useWalletsStore((state) => state.wallets[id!])
-  const [backend, retries, stopGap, timeout, url] = useBlockchainStore(
-    useShallow((state) => {
-      const { server, config } = state.configs[state.selectedNetwork]
-      return [
-        server.backend,
-        config.retries,
-        config.stopGap,
-        config.timeout,
-        server.url
-      ]
-    })
+  const { selectedNetwork, configs } = useBlockchainStore(
+    useShallow((state) => ({
+      selectedNetwork: state.selectedNetwork,
+      configs: state.configs
+    }))
   )
+
+  const currentConfig = configs[selectedNetwork]
 
   const [signed, setSigned] = useState(false)
   const [broadcasting, setBroadcasting] = useState(false)
@@ -56,9 +52,20 @@ export default function SignMessage() {
     if (!psbt) return
     setBroadcasting(true)
 
-    const opts = { retries, stopGap, timeout }
-    const blockchainConfig = getBlockchainConfig(backend, url, opts)
-    const blockchain = await getBlockchain(backend, blockchainConfig)
+    const opts = {
+      retries: currentConfig.config.retries,
+      stopGap: currentConfig.config.stopGap,
+      timeout: currentConfig.config.timeout
+    }
+    const blockchainConfig = getBlockchainConfig(
+      currentConfig.server.backend,
+      currentConfig.server.url,
+      opts
+    )
+    const blockchain = await getBlockchain(
+      currentConfig.server.backend,
+      blockchainConfig
+    )
 
     try {
       const broadcasted = await broadcastTransaction(psbt, blockchain)
