@@ -4,7 +4,7 @@ import {
 } from '@react-navigation/drawer'
 import { FlashList } from '@shopify/flash-list'
 import { Stack, useNavigation, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import { TabView } from 'react-native-tab-view'
@@ -56,11 +56,11 @@ export default function AccountList() {
   const isDrawerOpen = useDrawerStatus() === 'open'
 
   const [network, setSelectedNetwork, connectionMode] = useBlockchainStore(
-    (state) => [
+    useShallow((state) => [
       state.selectedNetwork,
       state.setSelectedNetwork,
       state.configs[state.selectedNetwork].config.connectionMode
-    ]
+    ])
   )
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
@@ -115,16 +115,19 @@ export default function AccountList() {
     | 'watchonlyAddress'
     | 'watchonlySalvadror'
     | 'watchonlySegwit'
-    | 'watchonlyTest4'
+    | 'watchonlyTestnet4'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
+
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
   const [tabIndex, setTabIndex] = useState(() => {
     const index = tabs.findIndex((tab) => tab.key === network)
     return index > 0 ? index : 0
   })
-  const [filteredAccounts, setFilteredAccounts] = useState(
-    accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-  )
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter((acc) => acc.network === tabs[tabIndex].key)
+  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
@@ -133,10 +136,7 @@ export default function AccountList() {
     if (currentNetwork !== network) {
       setSelectedNetwork(currentNetwork)
     }
-    setFilteredAccounts(
-      accounts.filter((acc) => acc.network === tabs[tabIndex].key)
-    )
-  }, [accounts, tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tabIndex]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     syncAccounts()
@@ -224,7 +224,7 @@ export default function AccountList() {
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSegwitAddress})`)
         break
-      case 'watchonlyTest4':
+      case 'watchonlyTestnet4':
         sampleAddress = sampleTestnet4Address
         setPolicyType('watchonly')
         setCreationType('importAddress')
@@ -346,8 +346,8 @@ export default function AccountList() {
             <SSButton
               label={t('account.load.sample.testnet.address')}
               variant="subtle"
-              onPress={() => loadSampleWallet('watchonlyTest4')}
-              loading={loadingWallet === 'watchonlyTest4'}
+              onPress={() => loadSampleWallet('watchonlyTestnet4')}
+              loading={loadingWallet === 'watchonlyTestnet4'}
             />
           </SSVStack>
         )

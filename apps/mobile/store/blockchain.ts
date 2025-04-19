@@ -1,4 +1,5 @@
 import { type Blockchain } from 'bdk-rn'
+import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
@@ -89,28 +90,18 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
       customServers: [],
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateServer: (network, server) => {
-        const { configs } = get()
-        set({
-          configs: {
-            ...configs,
-            [network]: {
-              ...configs[network],
-              server: { ...configs[network].server, ...server }
-            }
-          }
-        })
+        set(
+          produce((state: BlockchainState) => {
+            state.configs[network].server = server as Server
+          })
+        )
       },
       updateConfig: (network, config) => {
-        const { configs } = get()
-        set({
-          configs: {
-            ...configs,
-            [network]: {
-              ...configs[network],
-              param: { ...configs[network].config, ...config }
-            }
-          }
-        })
+        set(
+          produce((state: BlockchainState) => {
+            state.configs[network].config = config as Config
+          })
+        )
       },
       addCustomServer: (server) => {
         const { customServers } = get()
