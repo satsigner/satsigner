@@ -50,11 +50,8 @@ export default function TxDetails() {
     ])
   )
 
-  const { selectedNetwork, configs } = useBlockchainStore(
-    useShallow((state) => ({
-      selectedNetwork: state.selectedNetwork,
-      configs: state.configs
-    }))
+  const [selectedNetwork, configs] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
   const currentServer = configs[selectedNetwork].server

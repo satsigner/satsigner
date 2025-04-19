@@ -33,11 +33,8 @@ export default function SignMessage() {
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
   const wallet = useWalletsStore((state) => state.wallets[id!])
-  const { selectedNetwork, configs } = useBlockchainStore(
-    useShallow((state) => ({
-      selectedNetwork: state.selectedNetwork,
-      configs: state.configs
-    }))
+  const [selectedNetwork, configs] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
   const currentConfig = configs[selectedNetwork]

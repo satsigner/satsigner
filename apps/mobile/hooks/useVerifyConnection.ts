@@ -8,11 +8,8 @@ import { servers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
 
 function useVerifyConnection() {
-  const { selectedNetwork, configs } = useBlockchainStore(
-    useShallow((state) => ({
-      selectedNetwork: state.selectedNetwork,
-      configs: state.configs
-    }))
+  const [selectedNetwork, configs] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configs])
   )
 
   const { server, config } = configs[selectedNetwork]
