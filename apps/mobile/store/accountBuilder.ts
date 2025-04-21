@@ -236,7 +236,7 @@ const useAccountBuilderStore = create<
         relays: [],
         autoSync: false,
         passphrase: undefined
-      }    
+      }
     }
 
     return account
