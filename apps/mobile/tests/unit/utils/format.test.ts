@@ -48,4 +48,12 @@ describe('format utils', () => {
       expect(formatDate(1711639918000)).toBe('Mar 28, 2024')
     })
   })
+
+  describe('formatAddress', () => {
+    it('should return first and last six characters of the address', () => {
+      expect(formatAddress('1111111111111111111114oLvT2')).toBe(
+        '111111...4oLvT2'
+      )
+    })
+  })
 })
