@@ -140,8 +140,8 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               <SSIconEyeOn height={16} width={16} />
             )}
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline'}}>
-            <SSText size="3xl" color="white" >
+          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+            <SSText size="3xl" color="white">
               <SSStyledSatText
                 amount={account?.summary.balance || 0}
                 decimals={0}
@@ -155,7 +155,10 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               {t('bitcoin.sats').toLowerCase()}
             </SSText>
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline', paddingVertical: 1 }}>
+          <SSHStack
+            gap="xs"
+            style={{ alignItems: 'baseline', paddingVertical: 1 }}
+          >
             <SSText color="muted">
               {formatNumber(satsToFiat(account.summary.balance), 2)}
             </SSText>
