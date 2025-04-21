@@ -4,11 +4,23 @@ export type NostrRelay = {
 }
 
 export const NOSTR_RELAYS: NostrRelay[] = [
-  { url: 'wss://nos.lol', name: 'Nos.lol' },
-  { url: 'wss://nostr.mom', name: 'Nostr Mom' },
-  { url: 'wss://nostr.wine', name: 'Nostr Wine' },
-  { url: 'wss://offchain.pub', name: 'Offchain' },
-  { url: 'wss://relay.damus.io', name: 'Damus' },
-  { url: 'wss://relay.primal.net', name: 'Primal' },
-  { url: 'wss://relay.snort.social', name: 'Snort' }
+  { name: 'Angani', url: 'wss://nostr-1.nbo.angani.co' },
+  { name: 'Btc Library', url: 'wss://nostr.btc-library.com' },
+  { name: 'Damus', url: 'wss://relay.damus.io' },
+  { name: 'Data Haus', url: 'wss://nostr.data.haus' },
+  { name: 'Dwadziesciajeden', url: 'wss://relay.dwadziesciajeden.pl' },
+  { name: 'Einundzwanzig Space', url: 'wss://nostr.einundzwanzig.space' },
+  { name: 'Nos lol', url: 'wss://nos.lol' },
+  { name: 'Nostr Mom', url: 'wss://nostr.mom' },
+  { name: 'Nostr Wine', url: 'wss://nostr.wine' },
+  { name: 'Nostromo', url: 'wss://relay.nostromo.social' },
+  { name: 'Nostrue', url: 'wss://nostrue.com' },
+  { name: 'Offchain', url: 'wss://offchain.pub' },
+  { name: 'Primal', url: 'wss://relay.primal.net' },
+  { name: 'Purple Relay', url: 'wss://ch.purplerelay.com' },
+  { name: 'Sathoarder', url: 'wss://nostr.sathoarder.com' },
+  { name: 'Schneimi', url: 'wss://nostr.schneimi.de' },
+  { name: 'Snort', url: 'wss://relay.snort.social' },
+  { name: 'Swiss Enigma', url: 'wss://nostr.swiss-enigma.ch' },
+  { name: 'Vulpem', url: 'wss://nostr.vulpem.com' }
 ]
