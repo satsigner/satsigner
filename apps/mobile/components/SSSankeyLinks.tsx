@@ -7,13 +7,13 @@ import {
 } from '@shopify/react-native-skia'
 import { useCallback } from 'react'
 
+import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
 
 interface Node {
   id: string
   depthH: number
   type: string
-  textInfo: string[]
   x0?: number
   x1?: number
   y0?: number
@@ -24,6 +24,7 @@ interface Node {
   txId?: string
   nextTx?: string
   localId?: string
+  ioData: TxNode['ioData']
 }
 
 interface Link {
@@ -200,7 +201,7 @@ function SSSankeyLinks({
       {links.map((link, index) => {
         const sourceNode = nodes.find((n) => n.id === link.source) as Node
         const targetNode = nodes.find((n) => n.id === link.target) as Node
-        const isUnspent = targetNode.textInfo[0] === 'Unspent'
+        const isUnspent = targetNode.ioData?.isUnspent
         const isRemainingBalance = targetNode.localId === 'remainingBalance'
         const isMinerFee = targetNode.localId === 'minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))

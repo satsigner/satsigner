@@ -18,6 +18,7 @@ import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
 
 import { SSIconEllipsis } from './icons'
 import SSSankeyLinks from './SSSankeyLinks'
@@ -36,7 +37,7 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   depthH: number
   address?: string
   type: string
-  textInfo: string[]
+  ioData: TxNode['ioData']
   value?: number
   txId?: string
   nextTx?: string
@@ -58,7 +59,6 @@ function SSMultipleSankeyDiagram({
   onPressOutput
 }: SSMultipleSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-
   // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(() => {
     return sankeyNodes.reduce((max, node) => {
@@ -178,9 +178,9 @@ function SSMultipleSankeyDiagram({
   const nodeStyles = useMemo(() => {
     return nodes.map((node) => {
       const isBlock = (node as Node).type === 'block'
-      const blockHeight =
-        isBlock && (node as Node).textInfo[2]
-          ? parseInt((node as Node).textInfo[2].split(' ')[0], 10) * 0.1
+      const blockNodeHeight =
+        isBlock && (node as Node).ioData?.txSize
+          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
           : 0
 
       return {
@@ -190,7 +190,7 @@ function SSMultipleSankeyDiagram({
           : node.x0 ?? 0,
         y: node.y0 ?? 0,
         width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        height: isBlock ? Math.max(blockHeight, LINK_MAX_WIDTH) : 80
+        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
       }
     })
   }, [nodes])
@@ -278,9 +278,9 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'absolute',
-    top: 5, // Adjust as needed
-    right: 5, // Adjust as needed
-    padding: 5 // Add padding for easier pressing
+    top: 5,
+    right: 5,
+    padding: 5
   }
 })
 

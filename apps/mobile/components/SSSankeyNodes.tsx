@@ -14,11 +14,12 @@ import {
 } from '@shopify/react-native-skia'
 import { useMemo } from 'react'
 
+import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainRed, white } from '@/styles/colors'
 
-import { type Node } from './SSMultipleSankeyDiagram'
+import type { Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
 
 interface ISSankeyNodes {
@@ -49,31 +50,22 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   }, [nodes])
 
   const renderNode = (node: Node, index: number) => {
-    const dataNode = node as {
-      type: string
-      textInfo: string[]
-      x0?: number
-      y0?: number
-    }
-
     // Calculate dynamic height for block nodes
-    const getBlockHeight = () => {
-      if (dataNode.textInfo[2]) {
-        const sizeStr = dataNode.textInfo[2]
-        const size = parseInt(sizeStr.split(' ')[0], 10)
-        return size * 0.1
+    const getBlockNodeHeight = () => {
+      if (node?.ioData?.txSize && node?.type === 'block') {
+        return node?.ioData?.txSize * 0.1
       }
       return 0
     }
 
     const blockNode = () => {
-      if (dataNode.type === 'block') {
+      if (node.type === 'block') {
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
         const isTransactionChart = node.depthH === 1 && maxDepth === 2
 
         const x = (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
         const y = node.y0 ?? 0
-        const height = getBlockHeight()
+        const height = getBlockNodeHeight()
 
         const gradientPaint = Skia.Paint()
         gradientPaint.setShader(
@@ -124,9 +116,10 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           width={sankeyGenerator.nodeWidth()}
           x={node.x0 ?? 0}
           y={(node.y0 ?? 0) - 1.6}
-          textInfo={dataNode.textInfo}
+          ioData={node.ioData}
           customFontManager={customFontManager}
-          blockHeight={getBlockHeight()}
+          blockNodeHeight={getBlockNodeHeight()}
+          localId={node?.localId ?? ''}
         />
         {blockNode()}
       </Group>
@@ -139,27 +132,26 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
 }
 
 function NodeText({
+  localId,
   isBlock,
   width,
   x,
   y,
-  textInfo,
   customFontManager,
-  blockHeight
+  blockNodeHeight,
+  ioData
 }: {
+  localId: string
   isBlock: boolean
   width: number
   x: number
   y: number
-  textInfo: string[]
   customFontManager: SkTypefaceFontProvider | null
-  blockHeight: number
+  blockNodeHeight: number
+  ioData: TxNode['ioData']
 }) {
-  const isMiningFee = textInfo[0].includes('/vB')
-  const isAddress = textInfo[1].includes('...')
-  const isUnspent = textInfo[0].includes('Unspent')
-  const isNumeric = (text: string) => /^[0-9]+$/.test(text)
-  const amount = textInfo[0].replace(/\s*sats\s*/g, '')
+  const isMiningFee = localId === 'minerFee'
+  const isUnspent = ioData?.isUnspent
 
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
@@ -180,7 +172,7 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          maxLines: 3,
+          maxLines: 4,
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
@@ -194,33 +186,43 @@ function NodeText({
     }
 
     const para = createParagraphBuilder()
-    // Split the datetime string into components
-    const [dateTime, fromNow] = textInfo[0].split(' (')
-    const formattedFromNow = fromNow ? `(${fromNow}` : '' // Add back the opening parenthesis
+
     para
       .pushStyle({
         ...baseTextStyle,
-        fontSize: XS_FONT_SIZE,
-        color: Skia.Color(gray[500])
+        fontSize: XS_FONT_SIZE
       })
-      .addText(`${dateTime}\n`)
+      .addText(`${ioData?.blockHeight}\n`)
       .pushStyle({
         ...baseTextStyle,
         fontSize: XS_FONT_SIZE,
         color: Skia.Color(gray[500])
       })
-      .addText(`${formattedFromNow}\n`)
+      .addText(`${ioData?.blockTime}\n`)
+      .pushStyle({
+        ...baseTextStyle,
+        fontSize: XS_FONT_SIZE,
+        color: Skia.Color(gray[500])
+      })
+      .addText(`${ioData?.blockRelativeTime}\n`)
       .pushStyle({
         ...baseTextStyle,
         fontSize: SM_FONT_SIZE
       })
-      .addText(`${textInfo[1]}`)
+      .addText(ioData?.txId ? `${ioData?.txId}` : '')
       .pop()
 
     const built = para.build()
 
     return built
-  }, [customFontManager, isBlock, textInfo])
+  }, [
+    customFontManager,
+    ioData?.blockHeight,
+    ioData?.blockRelativeTime,
+    ioData?.blockTime,
+    ioData?.txId,
+    isBlock
+  ])
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
@@ -258,13 +260,13 @@ function NodeText({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(textInfo[2])
+        .addText(`${ioData?.txSize} B`)
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`\n${textInfo[3] ?? ''}`)
+        .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`) // Already has nullish coalescing
         .pop()
 
       return para.build()
@@ -277,7 +279,7 @@ function NodeText({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE
         })
-        .addText(textInfo[0].replace('sats/vB', ''))
+        .addText(`${ioData?.feeRate}`) // Add optional chaining and nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -289,7 +291,7 @@ function NodeText({
           fontSize: BASE_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`${Number(textInfo[1]).toLocaleString()} `)
+        .addText(`${ioData?.value.toLocaleString()} `) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE,
@@ -313,8 +315,8 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(` ${textInfo[2].toLowerCase()}\n`) // Add space before text
-        .pop() // Pop the red style
+        .addText(` ${(ioData?.text ?? '').toLowerCase()}\n`) // Add optional chaining and nullish coalescing
+        .pop()
 
       return para.build()
     }
@@ -326,13 +328,13 @@ function NodeText({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE
         })
-        .addText(textInfo[0])
+        .addText(ioData?.text ?? '') // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`\n${Number(textInfo[1]).toLocaleString()} `)
+        .addText(`\n${ioData?.value.toLocaleString()} `) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
@@ -344,13 +346,13 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        .addText(textInfo[2] ? `${t('common.to').toLowerCase()} ` : '')
+        .addText(ioData?.address ? `${t('common.to').toLowerCase()} ` : '')
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(textInfo[2] ? `${textInfo[2]}\n` : '')
+        .addText(ioData?.address ? `${ioData?.address}\n` : '')
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
@@ -364,21 +366,21 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(textInfo[3] ?? t('transaction.build.change'))
+        .addText(t('transaction.build.change')) // Already has nullish coalescing
         .pop()
 
       return para.build()
     }
 
-    const buildNumericParagraph = () => {
-      const hasLabel = textInfo?.[2]
+    const buildSpentParagraph = () => {
+      const hasLabel = ioData?.label
       const para = createParagraphBuilder()
       para
         .pushStyle({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE
         })
-        .addText(`${Number(amount).toLocaleString()}`)
+        .addText(`${(ioData?.value ?? 0).toLocaleString()}`) // Already has optional chaining and nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           color: Skia.Color(Colors.gray[200]),
@@ -390,56 +392,21 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        .addText(isAddress ? `${t('common.from')} ` : '')
+        .addText(`${t('common.from')} `)
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`${textInfo[1]}\n`)
+        .addText(`${ioData?.address ?? ''}\n`) // Add nullish coalescing
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
           color: hasLabel ? Skia.Color('white') : Skia.Color(gray[300])
         })
-        .addText(hasLabel ? `${textInfo[2]}\n` : `${t('common.noLabel')}\n`)
-        .pop()
-
-      return para.build()
-    }
-
-    const buildDefaultParagraph = () => {
-      const para = createParagraphBuilder()
-      para
-        .pushStyle({
-          ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE
-        })
-        .addText(textInfo[0])
-        .pushStyle({
-          ...baseTextStyle,
-          color: Skia.Color(Colors.gray[200]),
-          fontSize: SM_FONT_SIZE
-        })
-        .addText('\n')
-        .pushStyle({
-          ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
-        })
-        .addText(isAddress ? `${t('common.from')} ` : '')
-        .pushStyle({
-          ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color('white')
-        })
-        .addText(`${textInfo[1]}\n`)
-        .pushStyle({
-          ...baseTextStyle,
-          fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
-        })
-        .addText(`"${textInfo[2]}"\n`)
+        .addText(
+          hasLabel ? `${ioData.label ?? ''}\n` : `${t('common.noLabel')}\n`
+        ) // Add nullish coalescing
         .pop()
 
       return para.build()
@@ -452,10 +419,8 @@ function NodeText({
       para = buildMiningFeeParagraph()
     } else if (isUnspent) {
       para = buildUnspentParagraph()
-    } else if (isNumeric(textInfo[0])) {
-      para = buildNumericParagraph()
     } else {
-      para = buildDefaultParagraph()
+      para = buildSpentParagraph()
     }
 
     para.layout(isBlock ? width * 0.6 : width - PADDING_LEFT)
@@ -465,15 +430,21 @@ function NodeText({
     isBlock,
     isMiningFee,
     isUnspent,
-    isAddress,
-    textInfo,
     width,
-    amount
+    ioData?.txSize,
+    ioData.vSize,
+    ioData?.feeRate,
+    ioData?.value,
+    ioData?.text,
+    ioData?.address,
+    ioData.label
   ])
 
   // Calculate position for the paragraph and potentially the icon
   const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
-  const paragraphY = isBlock ? y + blockHeight - Y_OFFSET_BLOCK_NODE_TEXT : y
+  const paragraphY = isBlock
+    ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
+    : y
 
   // Get placeholder rects if it's a mining fee node
   const placeholderRectsMinerIcon = useMemo(() => {
@@ -498,7 +469,7 @@ function NodeText({
         <Paragraph
           paragraph={blockNodeParagraph}
           x={x + 6}
-          y={paragraphY - (blockHeight + LINK_BLOCK_MAX_WIDTH + 40)}
+          y={paragraphY - (blockNodeHeight + LINK_BLOCK_MAX_WIDTH + 56)}
           width={87}
         />
       ) : null}
@@ -511,7 +482,7 @@ function NodeText({
       {isUnspent &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
-        textInfo[3] && (
+        ioData?.label && (
           <ImageSVG
             svg={labelIconSvg}
             x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
@@ -523,7 +494,7 @@ function NodeText({
       {isUnspent &&
         changeIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
-        !textInfo[3] && (
+        !ioData?.label && (
           <ImageSVG
             svg={changeIconSvg}
             x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
