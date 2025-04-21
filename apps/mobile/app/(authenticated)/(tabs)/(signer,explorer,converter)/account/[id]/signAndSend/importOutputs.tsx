@@ -8,11 +8,10 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { tn } from '@/locales'
+import { t as T, tn } from '@/locales'
 import { Colors } from '@/styles'
 
 const t = tn('transaction.build.options.importOutputs')
-const t_common = tn('common')
 
 function ImportOuputs() {
   const router = useRouter()
@@ -83,7 +82,7 @@ function ImportOuputs() {
             />
             <SSButton
               uppercase
-              label={t_common('cancel')}
+              label={T('common.cancel')}
               variant="ghost"
               onPress={cancel}
             />
