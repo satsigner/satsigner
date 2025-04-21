@@ -35,7 +35,7 @@ import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { aesDecrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
 
-export default function AccountSettings() {
+function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, updateAccountName, deleteAccount] = useAccountsStore(
@@ -448,3 +448,5 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   }
 })
+
+export default AccountSettings
