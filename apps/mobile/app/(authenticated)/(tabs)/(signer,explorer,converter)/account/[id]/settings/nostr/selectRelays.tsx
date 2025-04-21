@@ -13,6 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import SSHStack from '@/layouts/SSHStack'
 
 function SSNostrRelaysSelection() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -73,16 +74,19 @@ function SSNostrRelaysSelection() {
           )
         }}
       />
-      <SSMainLayout>
+      <SSMainLayout style={{ paddingTop: 10, paddingBottom: 20 }}>
         <SSVStack gap="md">
           {NOSTR_RELAYS.map((relay) => (
-            <SSVStack key={relay.url} gap="xxs">
+            <SSHStack key={relay.url} gap="sm">
               <SSCheckbox
-                label={relay.url}
                 selected={selectedRelays.includes(relay.url)}
                 onPress={() => handleRelayToggle(relay.url)}
               />
-            </SSVStack>
+              <SSVStack gap="none">
+                <SSText weight='bold'>{relay.name}</SSText>
+                <SSText size="xs" color="muted">{relay.url}</SSText>
+              </SSVStack>
+            </SSHStack>
           ))}
           <SSVStack gap="sm">
             <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
@@ -103,7 +107,6 @@ function SSNostrRelaysSelection() {
             .map((url) => (
               <SSVStack key={url} gap="xxs">
                 <SSCheckbox
-                  label={url}
                   selected
                   onPress={() => handleRelayToggle(url)}
                 />
