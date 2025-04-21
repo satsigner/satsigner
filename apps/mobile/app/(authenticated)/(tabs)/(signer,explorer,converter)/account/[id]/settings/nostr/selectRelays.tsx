@@ -49,8 +49,6 @@ function SSNostrRelaysSelection() {
   }
 
   function handleRelayToggle(relayUrl: string) {
-    if (!account) return
-
     const newSelectedRelays = selectedRelays.includes(relayUrl)
       ? selectedRelays.filter((url) => url !== relayUrl)
       : [...selectedRelays, relayUrl]
@@ -59,7 +57,7 @@ function SSNostrRelaysSelection() {
   }
 
   function handleAddCustomRelay() {
-    if (!customRelayUrl || !account) return
+    if (!customRelayUrl) return
 
     const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
 
@@ -83,7 +81,7 @@ function SSNostrRelaysSelection() {
         <SSVStack gap="lg">
           <SSVStack gap="sm">
             <SSText uppercase weight="bold" size="md">
-              Public Relays
+              {t('account.nostrlabels.relays.public')}
             </SSText>
             {NOSTR_RELAYS.map((relay) => (
               <SSNostrRelay
@@ -96,7 +94,7 @@ function SSNostrRelaysSelection() {
           </SSVStack>
           <SSVStack gap="sm">
             <SSText uppercase weight="bold" size="md">
-              CUSTOM RELAYS
+              {t('account.nostrlabels.relays.custom')}
             </SSText>
             {selectedRelays
               .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
@@ -112,14 +110,15 @@ function SSNostrRelaysSelection() {
                 />
               ))}
             <SSVStack gap="sm">
-              <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
               <SSHStack gap="xs">
                 <SSText color="muted" size="lg" style={styles.relayInputAddOn}>
                   {RELAY_PROTOCOL_PREFIX}
                 </SSText>
                 <View style={styles.relayInputContainer}>
                   <SSTextInput
-                    placeholder="your-relay.com"
+                    placeholder={t(
+                      'account.nostrlabels.relays.inputPlaceholder'
+                    )}
                     value={customRelayUrl}
                     align="left"
                     onChangeText={setCustomRelayUrl}
@@ -127,7 +126,7 @@ function SSNostrRelaysSelection() {
                 </View>
               </SSHStack>
               <SSButton
-                label={t('account.nostrlabels.addRelay')}
+                label={t('account.nostrlabels.relays.addCustomRelay')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
                 disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+$/i)}

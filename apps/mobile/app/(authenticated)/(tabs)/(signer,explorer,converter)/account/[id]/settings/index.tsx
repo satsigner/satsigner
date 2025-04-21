@@ -147,28 +147,23 @@ export default function AccountSettings() {
         <SSVStack>
           {(account.keys[0].creationType === 'generateMnemonic' ||
             account.keys[0].creationType === 'importMnemonic') && (
-            <SSHStack>
-              <SSButton
-                style={{ flex: 1 }}
-                label={t('account.viewMnemonic')}
-                onPress={() => setMnemonicModalVisible(true)}
-              />
-            </SSHStack>
-          )}
-          <SSHStack>
             <SSButton
               style={{ flex: 1 }}
-              label={t('account.export.descriptors')}
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccountId}/settings/export/descriptors`
-                )
-              }
+              label={t('account.viewMnemonic')}
+              onPress={() => setMnemonicModalVisible(true)}
             />
-          </SSHStack>
-          <SSText style={{ marginTop: 15, flex: 0 }} center>
-            {t('account.labels')}
-          </SSText>
+          )}
+          <SSButton
+            style={{ flex: 1 }}
+            label={t('account.export.descriptors')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/export/descriptors`
+              )
+            }
+          />
+        </SSVStack>
+        <SSVStack>
           <SSHStack>
             <SSButton
               style={{ flex: 1 }}
@@ -189,17 +184,15 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
-          <SSHStack>
-            <SSButton
-              style={{ flex: 1 }}
-              label={t('account.nostrlabels.sync')}
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccountId}/settings/nostr/nostrLabelSync`
-                )
-              }
-            />
-          </SSHStack>
+          <SSButton
+            style={{ flex: 1 }}
+            label={t('account.nostrlabels.sync')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/nostr/nostrLabelSync`
+              )
+            }
+          />
         </SSVStack>
         <SSFormLayout>
           <SSFormLayout.Item>

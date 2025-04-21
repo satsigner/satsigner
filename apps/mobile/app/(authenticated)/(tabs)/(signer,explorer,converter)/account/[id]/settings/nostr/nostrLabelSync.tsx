@@ -426,7 +426,7 @@ function SSNostrLabelSync() {
             )}
             <SSButton
               variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
-              label={`${t('account.nostrlabels.relays')} (${selectedRelays.length})`}
+              label={`${t('account.nostrlabels.manageRelays')} (${selectedRelays.length})`}
               onPress={goToSelectRelaysPage}
             />
           </SSVStack>
