@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useWindowDimensions, View } from 'react-native'
 
 import { useLayout } from '@/hooks/useLayout'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress } from '@/utils/format'
@@ -17,9 +18,9 @@ interface Node extends SankeyNodeMinimal<object, object> {
   depthH: number
   address?: string
   type: string
-  textInfo: string[]
   value?: number
   txId?: string
+  ioData: TxNode['ioData']
   nextTx?: string
 }
 
@@ -99,11 +100,11 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       id: String(index + 1),
       type: 'text',
       depthH: 0,
-      textInfo: [
-        input.valueIsKnown ? `${input.value}` : '',
-        `${formatAddress(input.txid, 3)}`,
-        input.label ?? t('common.noLabel')
-      ],
+      ioData: {
+        address: `${formatAddress(input.txid, 3)}`,
+        label: input.label ?? t('common.noLabel'),
+        value: input.valueIsKnown ? `${input.value}` : ''
+      },
       value: input.value
     }))
 
@@ -112,7 +113,10 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         id: String(inputs.length + 1),
         type: 'block',
         depthH: 1,
-        textInfo: ['', '', `${txSize} B`, `${txVsize} vB`],
+        ioData: {
+          txSize,
+          vSize: txVsize
+        },
         y0: 0
       }
     ]
@@ -121,11 +125,11 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       id: String(index + 2 + inputs.length),
       type: 'text',
       depthH: 2,
-      textInfo: [
-        `${output.value}`,
-        `${formatAddress(output.address, 3)}`,
-        output.label ?? t('common.noLabel')
-      ],
+      ioData: {
+        value: `${output.value}`,
+        address: `${formatAddress(output.address, 3)}`,
+        label: output.label ?? t('common.noLabel')
+      },
       value: output.value
     }))
 
@@ -134,7 +138,10 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         id: String(inputs.length + outputs.length + 2),
         type: 'text',
         depthH: 2,
-        textInfo: [`${minerFee}`, 'Miner fee', ''],
+        ioData: {
+          value: `${minerFee}`,
+          text: t('transaction.build.minerFee')
+        },
         value: minerFee
       })
     }

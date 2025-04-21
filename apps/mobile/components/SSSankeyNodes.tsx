@@ -120,6 +120,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           customFontManager={customFontManager}
           blockNodeHeight={getBlockNodeHeight()}
           localId={node?.localId ?? ''}
+          depthH={node?.depthH}
         />
         {blockNode()}
       </Group>
@@ -139,7 +140,8 @@ function NodeText({
   y,
   customFontManager,
   blockNodeHeight,
-  ioData
+  ioData,
+  depthH
 }: {
   localId: string
   isBlock: boolean
@@ -149,6 +151,7 @@ function NodeText({
   customFontManager: SkTypefaceFontProvider | null
   blockNodeHeight: number
   ioData: TxNode['ioData']
+  depthH: number
 }) {
   const isMiningFee = localId === 'minerFee'
   const isUnspent = ioData?.isUnspent
@@ -465,7 +468,7 @@ function NodeText({
 
   return (
     <Group>
-      {isBlock ? (
+      {isBlock && depthH !== 0 ? (
         <Paragraph
           paragraph={blockNodeParagraph}
           x={x + 6}
