@@ -1,6 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -13,6 +13,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 type SSNostrRelayProps = {
@@ -20,6 +21,8 @@ type SSNostrRelayProps = {
   selected: boolean
   onPress: () => void
 }
+
+const RELAY_PROTOCOL_PREFIX = 'wss://'
 
 function SSNostrRelaysSelection() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -58,12 +61,10 @@ function SSNostrRelaysSelection() {
   function handleAddCustomRelay() {
     if (!customRelayUrl || !account) return
 
-    if (!customRelayUrl.startsWith('wss://')) {
-      return
-    }
+    const relayUrl = RELAY_PROTOCOL_PREFIX + customRelayUrl
 
-    if (!selectedRelays.includes(customRelayUrl)) {
-      setSelectedRelays([...selectedRelays, customRelayUrl])
+    if (!selectedRelays.includes(relayUrl)) {
+      setSelectedRelays([...selectedRelays, relayUrl])
     }
 
     setCustomRelayUrl('')
@@ -78,7 +79,7 @@ function SSNostrRelaysSelection() {
           )
         }}
       />
-      <SSMainLayout style={{ paddingTop: 10, paddingBottom: 20 }}>
+      <SSMainLayout style={styles.mainLayout}>
         <SSVStack gap="lg">
           <SSVStack gap="sm">
             <SSText uppercase weight="bold" size="md">
@@ -103,22 +104,33 @@ function SSNostrRelaysSelection() {
                 <SSNostrRelay
                   key={url}
                   selected
-                  relay={{ name: 'CUSTOM', url }}
+                  relay={{
+                    name: url.replace(RELAY_PROTOCOL_PREFIX, ''),
+                    url
+                  }}
                   onPress={() => handleRelayToggle(url)}
                 />
               ))}
             <SSVStack gap="sm">
               <SSText>{t('account.nostrlabels.addCustomRelay')}</SSText>
-              <SSTextInput
-                placeholder="wss://your-relay.com"
-                value={customRelayUrl}
-                onChangeText={setCustomRelayUrl}
-              />
+              <SSHStack gap="xs">
+                <SSText color="muted" size="lg" style={styles.relayInputAddOn}>
+                  {RELAY_PROTOCOL_PREFIX}
+                </SSText>
+                <View style={styles.relayInputContainer}>
+                  <SSTextInput
+                    placeholder="your-relay.com"
+                    value={customRelayUrl}
+                    align="left"
+                    onChangeText={setCustomRelayUrl}
+                  />
+                </View>
+              </SSHStack>
               <SSButton
                 label={t('account.nostrlabels.addRelay')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
-                disabled={!customRelayUrl.startsWith('wss://')}
+                disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+$/i)}
               />
             </SSVStack>
           </SSVStack>
@@ -146,5 +158,21 @@ function SSNostrRelay({ relay, selected, onPress }: SSNostrRelayProps) {
     </SSHStack>
   )
 }
+
+const styles = StyleSheet.create({
+  mainLayout: {
+    paddingBottom: 20,
+    paddingTop: 10
+  },
+  relayInputAddOn: {
+    backgroundColor: Colors.barGray,
+    paddingVertical: 14,
+    paddingHorizontal: 7,
+    borderRadius: 2
+  },
+  relayInputContainer: {
+    flexGrow: 1
+  }
+})
 
 export default SSNostrRelaysSelection
