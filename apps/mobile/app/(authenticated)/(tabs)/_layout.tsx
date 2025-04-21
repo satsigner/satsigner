@@ -120,11 +120,13 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     backgroundColor: '#1F1F1F',
-    borderColor: '#323232',
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 64,
-    alignItems: 'center'
+    borderTopColor: '#323232',
+    paddingTop: 10,
+    paddingBottom: 16,
+    height: 74,
+    alignItems: 'center',
+    elevation: 0,
+    shadowOpacity: 0
   },
   tabBarItem: {
     marginHorizontal: 16,
