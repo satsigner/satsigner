@@ -82,7 +82,10 @@ export default function ImportMnemonic() {
     ])
   )
   const [network, connectionMode] = useBlockchainStore(
-    useShallow((state) => [state.network, state.connectionMode])
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.configs[state.selectedNetwork].config.connectionMode
+    ])
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()

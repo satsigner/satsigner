@@ -36,7 +36,7 @@ export default function CoinEntropy() {
         state.setFingerprint
       ])
     )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const length = 32 * (mnemonicWordCount / 3)
 
