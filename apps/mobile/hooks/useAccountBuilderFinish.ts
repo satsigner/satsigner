@@ -28,10 +28,11 @@ function useAccountBuilderFinish() {
     ])
   )
   const addAccount = useAccountsStore((state) => state.addAccount)
+
   const [addAccountWallet, addAccountAddress] = useWalletsStore(
     useShallow((state) => [state.addAccountWallet, state.addAccountAddress])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [loading, setLoading] = useState(false)
 

@@ -32,17 +32,20 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import {
+  SSIconBlackIndicator,
   SSIconBubbles,
   SSIconCamera,
   SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
   SSIconEyeOn,
+  SSIconGreenIndicator,
   SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
   SSIconMenu,
-  SSIconRefresh
+  SSIconRefresh,
+  SSIconYellowIndicator
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
@@ -60,6 +63,7 @@ import SSUtxoCard from '@/components/SSUtxoCard'
 import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -260,7 +264,9 @@ function DerivedAddresses({
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useWalletsStore((state) => state.wallets[account.id])
-  const network = useBlockchainStore((state) => state.network) as Network
+  const network = useBlockchainStore(
+    (state) => state.selectedNetwork
+  ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
   const [addressPath, setAddressPath] = useState('')
@@ -692,6 +698,9 @@ export default function AccountView() {
     outputRange: [190, 0]
   })
 
+  const [connectionState, connectionString, isPrivateConnection] =
+    useVerifyConnection()
+
   useEffect(() => {
     if (wallet) handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -965,6 +974,32 @@ export default function AccountView() {
           )
         }}
       />
+      <TouchableOpacity
+        onPress={() => router.navigate('/settings/network/server')}
+      >
+        <SSHStack
+          style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
+        >
+          {connectionState ? (
+            isPrivateConnection ? (
+              <SSIconYellowIndicator height={24} width={24} />
+            ) : (
+              <SSIconGreenIndicator height={24} width={24} />
+            )
+          ) : (
+            <SSIconBlackIndicator height={24} width={24} />
+          )}
+          <SSText
+            size="xxs"
+            uppercase
+            style={{
+              color: connectionState ? Colors.gray['200'] : Colors.gray['450']
+            }}
+          >
+            {connectionString}
+          </SSText>
+        </SSHStack>
+      </TouchableOpacity>
       <Animated.View style={{ height: gradientHeight }}>
         <SSVStack itemsCenter gap="none">
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
