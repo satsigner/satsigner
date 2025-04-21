@@ -123,7 +123,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween style={{ position: 'relative' }}>
-        <SSVStack gap="none">
+        <SSVStack gap="xxs">
           {account.policyType === 'watchonly' ? null : (
             <SSText
               size="xs"
@@ -140,8 +140,8 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               <SSIconEyeOn height={16} width={16} />
             )}
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" color="white" style={{ lineHeight: 24 }}>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline'}}>
+            <SSText size="3xl" color="white" >
               <SSStyledSatText
                 amount={account?.summary.balance || 0}
                 decimals={0}
@@ -155,7 +155,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               {t('bitcoin.sats').toLowerCase()}
             </SSText>
           </SSHStack>
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+          <SSHStack gap="xs" style={{ alignItems: 'baseline', paddingVertical: 1 }}>
             <SSText color="muted">
               {formatNumber(satsToFiat(account.summary.balance), 2)}
             </SSText>
@@ -163,7 +163,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               {fiatCurrency}
             </SSText>
           </SSHStack>
-          <SSHStack style={{ marginTop: 8 }}>
+          <SSHStack>
             <SSVStack gap="none">
               <SSText color="white" size="md">
                 {formatNumber(account.summary.numberOfTransactions)}
