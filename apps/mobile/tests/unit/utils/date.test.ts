@@ -102,31 +102,33 @@ describe('date utils', () => {
   })
 
   describe('formatDate', () => {
-    // Helper to force UTC for consistent testing regardless of runner's timezone
     const runInUTC = (fn: () => void) => {
-      const originalGetFullYear = Date.prototype.getFullYear
-      const originalGetMonth = Date.prototype.getMonth
-      const originalGetDate = Date.prototype.getDate
-      const originalGetHours = Date.prototype.getHours
-      const originalGetMinutes = Date.prototype.getMinutes
-      const originalGetSeconds = Date.prototype.getSeconds
+      const originalDate = global.Date
+      global.Date = class extends Date {
+        getFullYear() {
+          return this.getUTCFullYear()
+        }
+        getMonth() {
+          return this.getUTCMonth()
+        }
+        getDate() {
+          return this.getUTCDate()
+        }
+        getHours() {
+          return this.getUTCHours()
+        }
+        getMinutes() {
+          return this.getUTCMinutes()
+        }
+        getSeconds() {
+          return this.getUTCSeconds()
+        }
+      } as DateConstructor
 
       try {
-        Date.prototype.getFullYear = Date.prototype.getUTCFullYear
-        Date.prototype.getMonth = Date.prototype.getUTCMonth
-        Date.prototype.getDate = Date.prototype.getUTCDate
-        Date.prototype.getHours = Date.prototype.getUTCHours
-        Date.prototype.getMinutes = Date.prototype.getUTCMinutes
-        Date.prototype.getSeconds = Date.prototype.getUTCSeconds
         fn()
       } finally {
-        // Restore original methods
-        Date.prototype.getFullYear = originalGetFullYear
-        Date.prototype.getMonth = originalGetMonth
-        Date.prototype.getDate = originalGetDate
-        Date.prototype.getHours = originalGetHours
-        Date.prototype.getMinutes = originalGetMinutes
-        Date.prototype.getSeconds = originalGetSeconds
+        global.Date = originalDate
       }
     }
 
