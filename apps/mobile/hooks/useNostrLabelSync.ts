@@ -1,15 +1,17 @@
 import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import type { Account, Secret } from '@/types/models/Account'
 import {
   formatAccountLabels,
   JSONLtoLabels,
   type Label,
   labelsToJSONL
 } from '@/utils/bip329'
-import { sha256 } from '@/utils/crypto'
+import { aesDecrypt, sha256 } from '@/utils/crypto'
 
 function useNostrLabelSync() {
   const [importLabels, updateAccount] = useAccountsStore(
@@ -95,9 +97,37 @@ function useNostrLabelSync() {
     importLabels(account.id, labels)
   }
 
+  async function generateAccountNostrKeys(account?: Account, passphrase = '') {
+    if (!account || !account.nostr) {
+      throw new Error('undefined account')
+    }
+
+    const pin = await getItem(PIN_KEY)
+    if (!pin) {
+      throw new Error('PIN not found')
+    }
+
+    // Get IV and encrypted secret from account
+    const iv = account.keys[0].iv
+    const encryptedSecret = account.keys[0].secret as string
+
+    // Decrypt the secret
+    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
+    const accountSecret = JSON.parse(accountSecretString) as Secret
+    const mnemonic = accountSecret.mnemonic
+
+    if (!mnemonic) {
+      throw new Error('invalid mnemonic')
+    }
+
+    const keys = await NostrAPI.generateNostrKeys(mnemonic, passphrase)
+    return keys
+  }
+
   return {
     sendAccountLabelsToNostr,
-    syncAccountLabelsFromNostr
+    syncAccountLabelsFromNostr,
+    generateAccountNostrKeys
   }
 }
 

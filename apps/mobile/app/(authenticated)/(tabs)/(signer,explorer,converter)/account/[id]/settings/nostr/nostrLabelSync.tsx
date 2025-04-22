@@ -10,19 +10,15 @@ import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { PIN_KEY } from '@/config/auth'
 import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
-import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { JSONLtoLabels } from '@/utils/bip329'
-import { aesDecrypt } from '@/utils/crypto'
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -43,7 +39,8 @@ function SSNostrLabelSync() {
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const { sendAccountLabelsToNostr } = useNostrLabelSync()
+  const { sendAccountLabelsToNostr, generateAccountNostrKeys } =
+    useNostrLabelSync()
 
   const [account, updateAccount] = useAccountsStore(
     useShallow((state) => [
@@ -111,27 +108,8 @@ function SSNostrLabelSync() {
       return
     }
 
-    // Get PIN from secure storage
-    const pin = await getItem(PIN_KEY)
-    if (!pin) {
-      throw new Error('PIN not found')
-    }
-
-    // Get IV and encrypted secret from account
-    const iv = account.keys[0].iv
-    const encryptedSecret = account.keys[0].secret as string
-
-    // Decrypt the secret
-    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
-    const accountSecret = JSON.parse(accountSecretString) as Secret
-    const mnemonic = accountSecret.mnemonic
-
-    if (!mnemonic) {
-      throw new Error(t('account.nostrLabels.errorMnemonic'))
-    }
-
     try {
-      const keys = await NostrAPI.generateNostrKeys(mnemonic, passphrase)
+      const keys = await generateAccountNostrKeys(account, passphrase)
       setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
@@ -267,6 +245,12 @@ function SSNostrLabelSync() {
   function goToSelectRelaysPage() {
     router.push({
       pathname: `/account/${accountId}/settings/nostr/selectRelays`
+    })
+  }
+
+  function goToNostrKeyPage() {
+    router.push({
+      pathname: `/account/${accountId}/settings/nostr/nostrKey`
     })
   }
 
@@ -408,6 +392,7 @@ function SSNostrLabelSync() {
             <SSButton
               variant="subtle"
               label={t('account.nostrlabels.setKeys')}
+              onPress={goToNostrKeyPage}
             />
           </SSVStack>
           {/* Passphrase field */}
