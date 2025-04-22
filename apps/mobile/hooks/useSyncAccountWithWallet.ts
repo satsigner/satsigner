@@ -14,16 +14,19 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 function useSyncAccountWithWallet() {
-  const setIsSyncing = useAccountsStore((state) => state.setIsSyncing)
+  const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
   const [backend, network, retries, stopGap, timeout, url] = useBlockchainStore(
-    useShallow((state) => [
-      state.backend,
-      state.network,
-      state.retries,
-      state.stopGap,
-      state.timeout,
-      state.url
-    ])
+    useShallow((state) => {
+      const { server, config } = state.configs[state.selectedNetwork]
+      return [
+        server.backend,
+        server.network,
+        config.retries,
+        config.stopGap,
+        config.timeout,
+        server.url
+      ]
+    })
   )
 
   const [loading, setLoading] = useState(false)
@@ -31,7 +34,7 @@ function useSyncAccountWithWallet() {
   async function syncAccountWithWallet(account: Account, wallet: Wallet) {
     try {
       setLoading(true)
-      setIsSyncing(account.id, true)
+      setSyncStatus(account.id, 'syncing')
 
       // Labels backup
       const labelsBackup: Record<string, string> = {}
@@ -92,12 +95,13 @@ function useSyncAccountWithWallet() {
         updatedAccount.transactions[index].prices = { USD: prices[index] }
       }
 
-      updatedAccount.isSyncing = false
+      updatedAccount.syncStatus = 'synced'
+      updatedAccount.lastSyncedAt = new Date()
 
       return updatedAccount
     } catch {
-      setIsSyncing(account.id, false)
-      throw new Error('Error syncing wallet')
+      setSyncStatus(account.id, 'error')
+      return account
     } finally {
       setLoading(false)
     }

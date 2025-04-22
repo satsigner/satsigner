@@ -26,7 +26,7 @@ export function usePreviousTransactions(
   const [previousTransactions, addTransactions] = usePreviousTransactionsStore(
     useShallow((state) => [state.transactions, state.addTransactions])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [transactions, setTransactions] = useState<
     Map<string, ExtendedEsploraTx>

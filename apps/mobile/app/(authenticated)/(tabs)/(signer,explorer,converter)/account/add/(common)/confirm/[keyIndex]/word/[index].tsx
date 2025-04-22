@@ -50,7 +50,7 @@ export default function Confirm() {
       state.clearKeyState
     ])
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const candidateWords = useMemo(() => {

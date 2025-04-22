@@ -208,7 +208,9 @@ function DateBlock({
   }
 
   useEffect(() => {
-    snapScrollToIndex(value - digits[0])
+    setTimeout(() => {
+      snapScrollToIndex(value - digits[0])
+    }, 0)
   }, [scrollRef.current]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleMomentumScrollEnd = ({ nativeEvent }: any) => {
