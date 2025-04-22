@@ -91,7 +91,7 @@ function SSNostrLabelSync() {
         setMessages(fetchedMessages)
       }
     } catch {
-      setRelayError(t('account.nostrLabels.errorLabelFetching'))
+      setRelayError(t('account.nostrlabels.errorLabelFetching'))
     } finally {
       setIsLoading(false)
     }
@@ -135,7 +135,7 @@ function SSNostrLabelSync() {
     try {
       sendAccountLabelsToNostr(account)
     } catch {
-      setRelayError(t('account.nostrLabels.errorLabelSend'))
+      setRelayError(t('account.nostrlabels.errorLabelSend'))
     }
   }
 
