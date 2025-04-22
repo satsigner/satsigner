@@ -312,6 +312,7 @@ export default function AccountList() {
           <SSVStack
             itemsCenter
             style={{
+              marginTop: 48,
               paddingVertical: 32
             }}
           >
@@ -337,6 +338,7 @@ export default function AccountList() {
           <SSVStack
             itemsCenter
             style={{
+              marginTop: 48,
               paddingVertical: 32
             }}
           >
@@ -356,6 +358,7 @@ export default function AccountList() {
           <SSVStack
             itemsCenter
             style={{
+              marginTop: 48,
               paddingVertical: 32
             }}
           >
@@ -458,7 +461,7 @@ export default function AccountList() {
           />
         </View>
       </SSHStack>
-      <SSMainLayout style={{ paddingTop: 32, paddingHorizontal: '6%' }}>
+      <SSMainLayout style={{ paddingTop: 32, paddingHorizontal: '5%' }}>
         <TabView
           swipeEnabled={false}
           navigationState={{ index: tabIndex, routes: tabs }}

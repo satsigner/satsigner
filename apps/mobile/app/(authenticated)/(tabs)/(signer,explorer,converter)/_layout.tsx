@@ -134,7 +134,8 @@ export default function StackLayout(params: any) {
             </SSIconButton>
           ),
           headerTitleAlign: 'center',
-          headerTintColor: Colors.gray[200]
+          headerTintColor: Colors.gray[200],
+          headerBackTitleVisible: false
         }}
       >
         {homeScreen}

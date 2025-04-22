@@ -100,7 +100,10 @@ export default function Converter() {
           headerBackVisible: false
         }}
       />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
         <SSVStack gap="none" justifyBetween>
           <SSVStack>
             <SSVStack itemsCenter style={styles.inputContainer}>
