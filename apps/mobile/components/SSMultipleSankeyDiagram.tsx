@@ -1,5 +1,5 @@
 import { useHeaderHeight } from '@react-navigation/elements'
-import { Canvas, Group } from '@shopify/react-native-skia'
+import { Canvas, Circle, Group } from '@shopify/react-native-skia'
 import {
   sankey,
   type SankeyLinkMinimal,
@@ -20,7 +20,6 @@ import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 
-import { SSIconEllipsis } from './icons'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -213,6 +212,27 @@ function SSMultipleSankeyDiagram({
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
           <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          {nodes.map((node, index) => {
+            const typedNode = node as Node
+            const style = nodeStyles[index] // Get corresponding style for width/height
+
+            if (typedNode.depthH === maxDepthH) {
+              const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
+
+              const circle1Cx = style.x + style.width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
+              const circle2Cx = style.x + style.width - 35 // style.x + style.width - 16 + 5.48926
+              const circle3Cx = style.x + style.width - 39 // style.x + style.width - 16 + 9.48926
+
+              return (
+                <Group key={`ellipsis-${typedNode.id}`}>
+                  <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
+                  <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
+                  <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
+                </Group>
+              )
+            }
+            return null
+          })}
         </Group>
       </Canvas>
       <GestureDetector gesture={gestures}>
@@ -243,13 +263,7 @@ function SSMultipleSankeyDiagram({
                     ? () => onPressOutput(style.localId)
                     : undefined
                 }
-              >
-                {(nodes[index] as Node).depthH === maxDepthH && (
-                  <View style={styles.iconContainer}>
-                    <SSIconEllipsis />
-                  </View>
-                )}
-              </TouchableOpacity>
+              />
             ))}
           </Animated.View>
         </View>
