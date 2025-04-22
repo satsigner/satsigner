@@ -18,6 +18,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { JSONLtoLabels } from '@/utils/bip329'
@@ -100,9 +101,7 @@ function SSNostrLabelSync() {
   }
 
   async function handleCreateNsec() {
-    if (!account || !nostrApi) {
-      throw new Error('Nostr API not initialized')
-    }
+    if (!account) return
 
     const { npub, nsec, seckey } = account.nostr
     if (npub && nsec && seckey) {
@@ -132,7 +131,7 @@ function SSNostrLabelSync() {
     }
 
     try {
-      const keys = await nostrApi.generateNostrKeys(mnemonic, passphrase)
+      const keys = await NostrAPI.generateNostrKeys(mnemonic, passphrase)
       setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
@@ -329,7 +328,7 @@ function SSNostrLabelSync() {
   }
 
   function autoCreateNsec() {
-    if (account && passphrase !== undefined && selectedRelays.length > 0) {
+    if (account && passphrase !== undefined) {
       setNostrApi(new NostrAPI(selectedRelays))
       handleCreateNsec()
     }
@@ -360,51 +359,59 @@ function SSNostrLabelSync() {
             {t('account.nostrlabels.title')}
           </SSText>
           {/* Keys display */}
-          <SSVStack gap="xxs" style={styles.keysContainer}>
-            {nsec !== '' && npub !== '' ? (
-              <>
-                <SSVStack gap="xxs">
-                  <SSText color="muted" center>
-                    {t('account.nostrlabels.nsec')}
-                  </SSText>
-                  <SSTextClipboard text={nsec}>
-                    <SSText
-                      center
-                      size="xl"
-                      type="mono"
-                      style={styles.keyText}
-                      selectable
-                    >
-                      {nsec}
+          <SSVStack gap="sm">
+            <SSVStack gap="xxs" style={styles.keysContainer}>
+              {nsec !== '' && npub !== '' ? (
+                <>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrlabels.nsec')}
                     </SSText>
-                  </SSTextClipboard>
-                </SSVStack>
-                <SSVStack gap="xxs">
-                  <SSText color="muted" center>
-                    {t('account.nostrlabels.npub')}
-                  </SSText>
-                  <SSTextClipboard text={npub}>
-                    <SSText
-                      center
-                      size="xl"
-                      type="mono"
-                      style={styles.keyText}
-                      selectable
-                    >
-                      {npub}
+                    <SSTextClipboard text={nsec}>
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
+                      >
+                        {nsec}
+                      </SSText>
+                    </SSTextClipboard>
+                  </SSVStack>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrlabels.npub')}
                     </SSText>
-                  </SSTextClipboard>
-                </SSVStack>
-              </>
-            ) : (
-              <SSHStack style={styles.keyContainerLoading}>
-                <ActivityIndicator />
-                <SSText uppercase>Loading keys</SSText>
-              </SSHStack>
-            )}
+                    <SSTextClipboard text={npub}>
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
+                      >
+                        {npub}
+                      </SSText>
+                    </SSTextClipboard>
+                  </SSVStack>
+                </>
+              ) : (
+                <SSHStack style={styles.keyContainerLoading}>
+                  <ActivityIndicator />
+                  <SSText uppercase>
+                    {t('account.nostrlabels.loadingKeys')}
+                  </SSText>
+                </SSHStack>
+              )}
+            </SSVStack>
+            <SSButton
+              variant="subtle"
+              label={t('account.nostrlabels.setKeys')}
+            />
           </SSVStack>
           {/* Passphrase field */}
-          <SSVStack gap="sm">
+          <SSVStack gap="xs">
             <SSText center>
               {t('account.nostrlabels.mnemonicPassphrase')}
             </SSText>
@@ -415,23 +422,22 @@ function SSNostrLabelSync() {
               secureTextEntry
             />
           </SSVStack>
-          {/* Top section with relay selection */}
-          <SSVStack gap="md">
-            {selectedRelays.length === 0 && (
-              <SSVStack gap="sm">
+          <SSVStack gap="sm">
+            {/* Top section with relay selection */}
+            <SSVStack gap="sm">
+              {selectedRelays.length === 0 && (
                 <SSText color="white" weight="bold" center>
                   {t('account.nostrlabels.noRelaysWarning')}
                 </SSText>
-              </SSVStack>
-            )}
-            <SSButton
-              variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
-              label={`${t('account.nostrlabels.manageRelays')} (${selectedRelays.length})`}
-              onPress={goToSelectRelaysPage}
-            />
-          </SSVStack>
-          {/* Combined content */}
-          <SSVStack gap="md">
+              )}
+              <SSButton
+                variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
+                label={t('account.nostrlabels.manageRelays', {
+                  count: selectedRelays.length
+                })}
+                onPress={goToSelectRelaysPage}
+              />
+            </SSVStack>
             {/* Message controls */}
             {npub && (
               <>
@@ -535,6 +541,7 @@ const styles = StyleSheet.create({
   keysContainer: {
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
+    borderColor: Colors.white,
     padding: 10
   },
   keyContainerLoading: {

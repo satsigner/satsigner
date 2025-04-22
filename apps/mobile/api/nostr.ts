@@ -32,7 +32,7 @@ export class NostrAPI {
     }
   }
 
-  async generateNostrKeys(
+  static async generateNostrKeys(
     mnemonic: string,
     passphrase: string
   ): Promise<NostrKeys> {
