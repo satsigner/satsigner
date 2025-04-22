@@ -15,10 +15,10 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 function NostrKeys() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
-  const [account, updateAccount] = useAccountsStore(
+  const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((_account) => _account.id === accountId),
-      state.updateAccount
+      state.updateAccountNostr
     ])
   )
 
@@ -39,11 +39,8 @@ function NostrKeys() {
   }
 
   function saveChanges() {
-    if (!account) return
-    updateAccount({
-      ...account,
-      nostr: { ...account.nostr, npub, nsec }
-    })
+    if (!accountId) return
+    updateAccountNostr(accountId, { nsec, npub })
     router.back()
   }
 

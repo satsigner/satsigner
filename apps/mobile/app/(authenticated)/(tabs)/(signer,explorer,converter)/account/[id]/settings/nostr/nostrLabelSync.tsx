@@ -42,10 +42,10 @@ function SSNostrLabelSync() {
   const { sendAccountLabelsToNostr, generateAccountNostrKeys } =
     useNostrLabelSync()
 
-  const [account, updateAccount] = useAccountsStore(
+  const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((_account) => _account.id === accountId),
-      state.updateAccount
+      state.updateAccountNostr
     ])
   )
 
@@ -113,14 +113,10 @@ function SSNostrLabelSync() {
       setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
-      updateAccount({
-        ...account,
-        nostr: {
-          ...account.nostr,
-          seckey: keys.secretNostrKey,
-          npub: keys.npub,
-          nsec: keys.nsec
-        }
+      updateAccountNostr(accountId, {
+        seckey: keys.secretNostrKey,
+        npub: keys.npub,
+        nsec: keys.nsec
       })
     } catch {
       setRelayError(t('account.nostrLabels.errorNsec'))
@@ -203,17 +199,10 @@ function SSNostrLabelSync() {
   function handlePassphraseChange(text: string) {
     setPassphrase(text)
     setRelayError(null)
-    // Clear messages when passphrase changes
     setMessages([])
     setHasMoreMessages(true)
-    if (account) {
-      updateAccount({
-        ...account,
-        nostr: {
-          ...account.nostr,
-          passphrase: text
-        }
-      })
+    if (accountId) {
+      updateAccountNostr(accountId, { passphrase: text })
     }
   }
 
@@ -221,14 +210,9 @@ function SSNostrLabelSync() {
     const newAutoSync = !autoSync
     setAutoSync(newAutoSync)
     setRelayError(null)
-    if (account) {
-      updateAccount({
-        ...account,
-        nostr: {
-          ...account.nostr,
-          autoSync: newAutoSync
-        }
-      })
+    if (accountId) {
+      updateAccountNostr(accountId, { autoSync: newAutoSync })
+
       // Fetch messages immediately when auto-sync is enabled
       if (newAutoSync && npub && selectedRelays.length > 0) {
         fetchMessages()

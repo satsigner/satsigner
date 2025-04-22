@@ -28,10 +28,10 @@ function SSNostrRelaysSelection() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [customRelayUrl, setCustomRelayUrl] = useState('')
 
-  const [account, updateAccount] = useAccountsStore(
+  const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((_account) => _account.id === accountId),
-      state.updateAccount
+      state.updateAccountNostr
     ])
   )
 
@@ -40,11 +40,8 @@ function SSNostrRelaysSelection() {
   )
 
   function saveChanges() {
-    if (!account) return
-    updateAccount({
-      ...account,
-      nostr: { ...account.nostr, relays: selectedRelays }
-    })
+    if (!accountId) return
+    updateAccountNostr(accountId, { relays: selectedRelays })
     router.back()
   }
 
