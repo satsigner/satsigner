@@ -17,7 +17,7 @@ import { useMemo } from 'react'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { gray, mainRed, white } from '@/styles/colors'
+import { gray, mainGreen, mainRed, white } from '@/styles/colors'
 
 import type { Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
@@ -33,7 +33,7 @@ const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 const BLOCK_WIDTH = 50
 const Y_OFFSET_BLOCK_NODE_TEXT = -10
-const ICON_SIZE = 10
+const ICON_SIZE = 8
 
 function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
   const customFontManager = useFonts({
@@ -153,6 +153,7 @@ function NodeText({
   isTransactionChart: boolean
 }) {
   const isMiningFee = localId === 'minerFee'
+  const isChange = localId === 'remainingBalance'
   const isUnspent = ioData?.isUnspent
 
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
@@ -317,7 +318,7 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(` ${(ioData?.text ?? '').toLowerCase()}\n`) // Add optional chaining and nullish coalescing
+        .addText(` ${ioData?.text ?? ''}\n`) // Add optional chaining and nullish coalescing
         .pop()
 
       return para.build()
@@ -358,7 +359,10 @@ function NodeText({
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
-          color: Skia.Color(gray[300])
+          fontStyle: {
+            weight: 800
+          },
+          color: Skia.Color(isChange ? mainGreen : gray[300])
         })
         // Add placeholder for the svg icon
         .addPlaceholder(
@@ -368,7 +372,9 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(t('transaction.build.change')) // Already has nullish coalescing
+        .addText(
+          isChange ? ` ${t('transaction.build.change')}` : ` ${ioData.label}`
+        )
         .pop()
 
       return para.build()
@@ -439,7 +445,8 @@ function NodeText({
     ioData?.value,
     ioData?.text,
     ioData?.address,
-    ioData.label
+    ioData.label,
+    isChange
   ])
 
   // Calculate position for the paragraph and potentially the icon
