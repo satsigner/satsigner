@@ -152,28 +152,34 @@ export default function AccountList() {
   }
 
   async function syncAccounts() {
-    await Promise.all(
-      accounts
-        .filter((acc) => acc.network === tabs[tabIndex].key)
-        .map(async (account) => {
-          const isImportAddress =
-            account.keys[0].creationType === 'importAddress'
-          if (isImportAddress && !addresses[account.id]) return
-          else if (!isImportAddress && !wallets[account.id]) return
+    for (const account of accounts) {
+      if (account.network !== tabs[tabIndex].key) continue
 
-          if (connectionMode === 'auto') {
-            const updatedAccount =
-              account.policyType !== 'watchonly'
-                ? await syncAccountWithWallet(account, wallets[account.id]!)
-                : await syncAccountWithAddress(
-                    account,
-                    `addr(${addresses[account.id]!})`
-                  )
+      const isImportAddress = account.keys[0].creationType === 'importAddress'
 
-            updateAccount(updatedAccount)
-          }
-        })
-    )
+      if (isImportAddress && !addresses[account.id]) continue
+      if (!isImportAddress && !wallets[account.id]) continue
+
+      if (connectionMode === 'auto' && account.syncStatus !== 'syncing') {
+        let updatedAccount
+
+        if (account.policyType !== 'watchonly') {
+          updatedAccount = await syncAccountWithWallet(
+            account,
+            wallets[account.id]!
+          )
+        } else {
+          const addressDescriptor = `addr(${addresses[account.id]!})`
+          updatedAccount = await syncAccountWithAddress(
+            account,
+            addressDescriptor
+          )
+        }
+
+        updateAccount(updatedAccount)
+      }
+    }
+    // TO DO: Try Promise.all() method instead Sequential one.
   }
 
   async function loadSampleWallet(type: SampleWallet) {
