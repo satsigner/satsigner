@@ -348,7 +348,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        .addText(ioData?.address ? `${t('common.to').toLowerCase()} ` : '')
+        .addText(ioData?.address ? `${t('common.to')} ` : '')
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,
@@ -394,7 +394,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
-        .addText(`${t('common.from')} `)
+        .addText(`${ioData?.text} `)
         .pushStyle({
           ...baseTextStyle,
           fontSize: XS_FONT_SIZE,

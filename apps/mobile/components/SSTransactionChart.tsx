@@ -63,6 +63,11 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
   const txSize = transaction.size
   const txVsize = transaction.vsize
 
+  let feeRate: number | undefined
+  if (minerFee !== undefined && txVsize !== undefined && txVsize > 0) {
+    feeRate = minerFee / txVsize
+  }
+
   const { width: w, height: h, onCanvasLayout } = useLayout()
   const { width } = useWindowDimensions()
 
@@ -103,7 +108,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       ioData: {
         address: formatAddress(input.txid, 3),
         label: input.label ?? t('common.noLabel'),
-        value: input.valueIsKnown ? input.value : 0
+        value: input.valueIsKnown ? input.value : 0,
+        text: t('common.from')
       },
       value: input.value
     }))
@@ -128,7 +134,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       ioData: {
         value: output.value,
         address: formatAddress(output.address, 3),
-        label: output.label ?? t('common.noLabel')
+        label: output.label ?? t('common.noLabel'),
+        text: t('common.to')
       },
       value: output.value
     }))
@@ -140,14 +147,16 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         depthH: 2,
         ioData: {
           value: minerFee,
+          feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
           text: t('transaction.build.minerFee')
         },
-        value: minerFee
+        value: minerFee,
+        localId: 'minerFee'
       })
     }
 
     return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
-  }, [inputs, outputs, txSize, txVsize, minerFee])
+  }, [inputs, outputs, txSize, txVsize, minerFee, feeRate])
 
   const sankeyLinks = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) return []

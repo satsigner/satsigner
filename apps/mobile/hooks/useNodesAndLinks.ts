@@ -323,7 +323,8 @@ export const useNodesAndLinks = ({
               ioData: {
                 label,
                 address: formatAddress(output.scriptpubkey_address, 4),
-                value: output.value
+                value: output.value,
+                text: t('common.from')
               },
               value: output.value,
               txId: tx.txid,
