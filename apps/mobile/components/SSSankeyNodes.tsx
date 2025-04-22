@@ -57,11 +57,10 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
       }
       return 0
     }
-
+    const isTransactionChart = node.depthH === 1 && maxDepth === 2
     const blockNode = () => {
       if (node.type === 'block') {
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
-        const isTransactionChart = node.depthH === 1 && maxDepth === 2
 
         const x = (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
         const y = node.y0 ?? 0
@@ -120,7 +119,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           customFontManager={customFontManager}
           blockNodeHeight={getBlockNodeHeight()}
           localId={node?.localId ?? ''}
-          depthH={node?.depthH}
+          isTransactionChart={isTransactionChart}
         />
         {blockNode()}
       </Group>
@@ -141,7 +140,7 @@ function NodeText({
   customFontManager,
   blockNodeHeight,
   ioData,
-  depthH
+  isTransactionChart
 }: {
   localId: string
   isBlock: boolean
@@ -151,7 +150,7 @@ function NodeText({
   customFontManager: SkTypefaceFontProvider | null
   blockNodeHeight: number
   ioData: TxNode['ioData']
-  depthH: number
+  isTransactionChart: boolean
 }) {
   const isMiningFee = localId === 'minerFee'
   const isUnspent = ioData?.isUnspent
@@ -294,7 +293,7 @@ function NodeText({
           fontSize: BASE_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`${ioData?.value.toLocaleString()} `) // Add nullish coalescing
+        .addText(`${ioData?.value.toLocaleString()} `)
         .pushStyle({
           ...baseTextStyle,
           fontSize: BASE_FONT_SIZE,
@@ -468,7 +467,7 @@ function NodeText({
 
   return (
     <Group>
-      {isBlock && depthH !== 0 ? (
+      {isBlock && !isTransactionChart ? (
         <Paragraph
           paragraph={blockNodeParagraph}
           x={x + 6}

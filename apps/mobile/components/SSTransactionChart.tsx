@@ -60,8 +60,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     minerFee = totalInputValue - totalOutputValue
   }
 
-  const txSize = transaction.size || '?'
-  const txVsize = transaction.vsize || '?'
+  const txSize = transaction.size
+  const txVsize = transaction.vsize
 
   const { width: w, height: h, onCanvasLayout } = useLayout()
   const { width } = useWindowDimensions()
@@ -96,38 +96,38 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
   const sankeyNodes = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) return []
 
-    const inputNodes = inputs.map((input, index) => ({
+    const inputNodes: TxNode[] = inputs.map((input, index) => ({
       id: String(index + 1),
       type: 'text',
       depthH: 0,
       ioData: {
-        address: `${formatAddress(input.txid, 3)}`,
+        address: formatAddress(input.txid, 3),
         label: input.label ?? t('common.noLabel'),
-        value: input.valueIsKnown ? `${input.value}` : ''
+        value: input.valueIsKnown ? input.value : 0
       },
       value: input.value
     }))
 
-    const blockNode = [
+    const blockNode: TxNode[] = [
       {
         id: String(inputs.length + 1),
         type: 'block',
         depthH: 1,
         ioData: {
           txSize,
-          vSize: txVsize
-        },
-        y0: 0
+          vSize: txVsize,
+          value: 0
+        }
       }
     ]
 
-    const outputNodes = outputs.map((output, index) => ({
+    const outputNodes: TxNode[] = outputs.map((output, index) => ({
       id: String(index + 2 + inputs.length),
       type: 'text',
       depthH: 2,
       ioData: {
-        value: `${output.value}`,
-        address: `${formatAddress(output.address, 3)}`,
+        value: output.value,
+        address: formatAddress(output.address, 3),
         label: output.label ?? t('common.noLabel')
       },
       value: output.value
@@ -139,17 +139,14 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         type: 'text',
         depthH: 2,
         ioData: {
-          value: `${minerFee}`,
+          value: minerFee,
           text: t('transaction.build.minerFee')
         },
         value: minerFee
       })
     }
 
-    return [...inputNodes, ...blockNode, ...outputNodes] as SankeyNodeMinimal<
-      object,
-      object
-    >[]
+    return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
   }, [inputs, outputs, txSize, txVsize, minerFee])
 
   const sankeyLinks = useMemo(() => {
