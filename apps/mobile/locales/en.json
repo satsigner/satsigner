@@ -231,6 +231,7 @@
     "description": "Description",
     "descriptor": "Descriptor",
     "deselectAll": "Deselect All",
+    "dismiss": "Dismiss",
     "download": "Download",
     "downloadFile": "Download file",
     "from": "From",
@@ -627,6 +628,11 @@
     "build.options.timeLock": "Time Lock",
     "build.options.timelock": "Timelock",
     "build.options.title": "Options",
+    "build.preview.contents": "Contents",
+    "build.preview.decoded": "Decoded",
+    "build.preview.keyInput": "Input your secret private key to sign the transaction",
+    "build.preview.noKey": "Missing private key",
+    "build.preview.psbt": "PSBT: Share partially signed bitcoin transaction on external hardware",
     "build.remove.output.title": "Remove output",
     "build.save.output.title": "Save output",
     "build.select.customAmount": "Custom amount",
@@ -634,6 +640,10 @@
     "build.set.fee": "Set fee",
     "build.set.highestFeePossible": "Set Highest Fee Possible",
     "build.set.minimumAutomaticFee": "Set Minimum Automatic Fee",
+    "build.sign.message": "Message",
+    "build.sign.messageId": "Message Id",
+    "build.sign.signed": "Message Signed",
+    "build.sign.signing": "Signing message",
     "build.type.customAmount": "Type custom amount for automatic selection",
     "build.type.label": "Type label",
     "build.unspent": "Unspent",
@@ -799,6 +809,11 @@
     "number.greater": "The value must be greather than %{value}",
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
+  },
+  "warning": {
+    "content": "Copyright (c) 2025 SatSigner\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+    "subtitle": "Don't trust, verify",
+    "title": "This is an experimental app, use responsibly."
   },
   "watchonly": {
     "fingerprint.label": "Master Fingerprint",

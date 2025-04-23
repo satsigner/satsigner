@@ -13,6 +13,7 @@ import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
+import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Layout } from '@/styles'
 import { pbkdf2Encrypt } from '@/utils/crypto'
@@ -40,6 +41,7 @@ export default function Unlock() {
       state.setJustUnlocked
     ])
   )
+  const showWarning = useSettingsStore((state) => state.showWarning)
   const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
   const { shake, shakeStyle } = useAnimatedShake()
@@ -73,7 +75,8 @@ export default function Unlock() {
       // for (const page of pages) {
       //   router.push(page as any)
       // }
-      router.push('/')
+      if (showWarning) router.push('./warning')
+      else router.push('/')
     } else {
       shake()
       clearPin()
