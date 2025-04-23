@@ -11,6 +11,7 @@ import {
   UIManager
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import NfcManager from 'react-native-nfc-manager'
 import { Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -61,6 +62,11 @@ export default function RootLayout() {
       subscription.remove()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // Initialize NFC manager
+    NfcManager.start()
+  }, [])
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {
     if (nextAppState === 'background' && requiresAuth) {

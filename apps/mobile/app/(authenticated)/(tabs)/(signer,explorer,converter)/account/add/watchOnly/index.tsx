@@ -13,6 +13,7 @@ import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { useNFCReader } from '@/hooks/useNFCReader'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -77,6 +78,7 @@ export default function WatchOnly() {
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
+  const { isAvailable, isReading, readNFCTag } = useNFCReader()
 
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
@@ -215,6 +217,55 @@ export default function WatchOnly() {
     }
   }
 
+  async function handleNFCRead() {
+    try {
+      const nfcData = await readNFCTag()
+
+      if (!nfcData) {
+        toast.error(t('watchonly.nfc.noData'))
+        return
+      }
+
+      let text = nfcData
+        .trim()
+        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .normalize('NFKC') // Normalize unicode characters
+        .replace(/^en/, '')
+
+      if (selectedOption === 'importDescriptor') {
+        let externalDescriptor = text
+        let internalDescriptor = ''
+        if (text.match(/<0[,;]1>/)) {
+          externalDescriptor = text
+            .replace(/<0[,;]1>/, '0')
+            .replace(/#[a-z0-9]+$/, '')
+          internalDescriptor = text
+            .replace(/<0[,;]1>/, '1')
+            .replace(/#[a-z0-9]+$/, '')
+        }
+        if (text.includes('\n')) {
+          const lines = text.split('\n')
+          externalDescriptor = lines[0]
+          internalDescriptor = lines[1]
+        }
+        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      }
+
+      if (selectedOption === 'importExtendedPub') {
+        updateXpub(text)
+      }
+
+      if (selectedOption === 'importAddress') {
+        updateAddress(text)
+      }
+    } catch (error) {
+      toast.error((error as Error).message)
+    }
+  }
+
   return (
     <SSMainLayout>
       <Stack.Screen
@@ -343,7 +394,12 @@ export default function WatchOnly() {
                   onPress={pasteFromClipboard}
                 />
                 <SSButton label={t('watchonly.read.qrcode')} disabled />
-                <SSButton label={t('watchonly.read.nfc')} disabled />
+                <SSButton
+                  label={t('watchonly.read.nfc')}
+                  onPress={handleNFCRead}
+                  loading={isReading}
+                  disabled={!isAvailable || isReading}
+                />
                 <SSButton label={t('watchonly.read.computerVision')} disabled />
               </SSVStack>
             </SSVStack>

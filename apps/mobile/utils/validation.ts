@@ -18,11 +18,44 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 export function validateDescriptor(descriptor: string) {
-  // TODO: this validates simple descriptors, but not complex ones
-  const r = new RegExp(
-    /^(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)\((\[([a-fA-F0-9]{8})?(\/[0-9]+[h']?)+\])?[a-z0-9]+(\/[0-9*])*\)(#[a-z0-9]{8})?$/gim
+  // Basic descriptor format validation
+  const basicRegex = new RegExp(
+    /^(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)(\((\[([a-fA-F0-9]{8})?(\/[0-9]+[h']?)+\])?[a-z0-9]+(\/[0-9*])*\))?(\/[0-9*])*(#[a-z0-9]{8})?$/gim
   )
-  return descriptor.match(r) !== null
+  basicRegex.lastIndex = 0
+  const basicTest = basicRegex.test(descriptor)
+
+  // Special handling for nested descriptors with xpub keys
+  if (descriptor.startsWith('sh') || descriptor.startsWith('wsh')) {
+    // Step 1: Check basic structure
+    if (!descriptor.match(/^(sh|wsh)\(wpkh\(.*\)\)$/)) {
+      return false
+    }
+
+    // Step 2: Extract inner content
+    const innerContent = descriptor.match(/^(sh|wsh)\(wpkh\((.*)\)\)$/)?.[2]
+    if (!innerContent) {
+      return false
+    }
+
+    // Step 3: Check fingerprint and derivation path
+    const fingerprintMatch = innerContent.match(
+      /\[([a-fA-F0-9]{8})(\/[0-9]+[h']?)+\]/
+    )
+    if (!fingerprintMatch) {
+      return false
+    }
+
+    // Step 4: Check xpub key and final derivation
+    const xpubMatch = innerContent.match(/\]([a-zA-Z0-9]+)(\/[0-9*]+)*$/)
+    if (!xpubMatch) {
+      return false
+    }
+
+    return true
+  }
+
+  return basicTest
 }
 
 export function validateAddress(address: string) {
@@ -36,7 +69,7 @@ export function validateAddress(address: string) {
       bitcoinjs.address.toOutputScript(address, network)
       return true
     } catch {
-      //
+      // Continue to next network if validation fails
     }
   }
   return false
