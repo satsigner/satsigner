@@ -49,6 +49,7 @@ export default function SetPin() {
   async function handleSetPinLater() {
     setFirstTime(false)
     await setPin(DEFAULT_PIN)
+
     if (showWarning) router.push('./warning')
     else router.replace('/')
   }
@@ -70,8 +71,10 @@ export default function SetPin() {
     setLoading(true)
     await setPin(pinArray.join(''))
     setLoading(false)
+
     if (showWarning) router.push('./warning')
     else router.replace('/')
+
     setFirstTime(false)
     setRequiresAuth(true)
   }
