@@ -60,83 +60,116 @@ function SSSankeyLinks({
   BLOCK_WIDTH
 }: SSSankeyLinksProps) {
   const getLinkWidth = useCallback(
-    (sourceNode: Node, targetNode: Node, type: string) => {
-      // Helper function to get total incoming value for a block node
-      const getTotalIncomingValueForBlock = (blockNode: Node) => {
-        return links
-          .filter((link) => {
-            const targetNode = nodes.find((n) => n.id === link.target)
-            return targetNode?.id === blockNode.id
-          })
-          .reduce((sum, link) => sum + (link.value ?? 0), 0)
-      }
-
-      // Helper function to get total outgoing value from a block node
-      const getTotalOutgoingValueFromBlock = (blockNode: Node) => {
-        return links
-          .filter((link) => {
-            const sourceNode = nodes.find((n) => n.id === link.source)
-            return sourceNode?.id === blockNode.id
-          })
-          .reduce((sum, link) => sum + (link.value ?? 0), 0)
-      }
+    (sourceNode: Node, targetNode: Node, type: string): number => {
       const node = type === 'source' ? sourceNode : targetNode
 
-      if (node.type === 'block' && type === 'source') {
-        // For incoming connections to block, get value from the source node
-        const targetNodeSats = targetNode.value ?? 0
+      // Calculate total width from the block node
+      let totalWidthFromBlock = 0
+      if (node.type === 'block') {
+        const relevantLinks = links.filter((link) => {
+          if (type === 'source') {
+            return link.source === node.id
+          } else {
+            return link.target === node.id
+          }
+        })
 
-        const totalOutgoing = getTotalOutgoingValueFromBlock(node)
+        for (const link of relevantLinks) {
+          const currentSourceNode = nodes.find(
+            (n) => n.id === link.source
+          ) as Node
+          const currentTargetNode = nodes.find(
+            (n) => n.id === link.target
+          ) as Node
 
-        return (targetNodeSats / totalOutgoing) * LINK_BLOCK_MAX_WIDTH
-        // return (targetNodeSats / totalOutgoing) * LINK_BLOCK_MAX_WIDTH
-      } else if (node.type === 'block' && type === 'target') {
-        const sourceNodeSats = sourceNode.value ?? 0
+          let linkWidth = 2 // Default for 1 sat or less
+          const otherNode =
+            type === 'source' ? currentTargetNode : currentSourceNode
+          const value = otherNode.value ?? 0
 
-        const totalIncoming = getTotalIncomingValueForBlock(node)
-
-        return (sourceNodeSats / totalIncoming) * LINK_BLOCK_MAX_WIDTH
+          if (value >= 100000) {
+            linkWidth = 32
+          } else if (value >= 1000) {
+            linkWidth = 16
+          } else if (value >= 100) {
+            linkWidth = 12
+          } else if (value >= 10) {
+            linkWidth = 6
+          } else if (value >= 1) {
+            linkWidth = 2
+          }
+          totalWidthFromBlock += linkWidth
+        }
       }
+      if (type === 'source') {
+        if (node.type === 'block') {
+          let width = 2 // Default for 1 sat or less
+          if (targetNode.value! >= 100000) {
+            width = 32
+          } else if (targetNode.value! >= 1000) {
+            width = 16
+          } else if (targetNode.value! >= 100) {
+            width = 12
+          } else if (targetNode.value! >= 10) {
+            width = 6
+          } else if (targetNode.value! >= 1) {
+            width = 2
+          }
+          const w = (width / totalWidthFromBlock) * LINK_BLOCK_MAX_WIDTH
+          // console.log('value', targetNode.value, node.id, width)
+          return w
+        } else if (node.type === 'text') {
+          let width = 2 // Default for 1 sat or less
+          if (node.value! >= 100000) {
+            width = 32
+          } else if (node.value! >= 1000) {
+            width = 16
+          } else if (node.value! >= 100) {
+            width = 12
+          } else if (node.value! >= 10) {
+            width = 6
+          } else if (node.value! >= 1) {
+            width = 2
+          }
+          return width
+        }
+      } else if (type === 'target') {
+        if (node.type === 'block') {
+          const value = sourceNode.value ?? 0
 
-      // Get current node's sats
-      const nodeSats = node?.value ?? 0
-
-      // Determine if this node connects to a block node
-      const connectedBlockNode = nodes.find((n) => {
-        if (n.type !== 'block') return false
-
-        // Check if this node is connected to the block node
-        return links.some(
-          (link) =>
-            (link.source === node.id && link.target === n.id) ||
-            (link.source === n.id && link.target === node.id)
-        )
-      })
-
-      // Calculate width based on whether this node is sending to or receiving from the block
-      const isSourceToBlock = links.some(
-        (link) =>
-          link.source === node.id && link.target === connectedBlockNode?.id
-      )
-
-      let calculatedWidth
-      if (isSourceToBlock) {
-        // Node is sending to block - use total incoming value of block
-        const totalIncoming = connectedBlockNode
-          ? getTotalIncomingValueForBlock(connectedBlockNode)
-          : LINK_MAX_WIDTH
-        calculatedWidth = (nodeSats / totalIncoming) * LINK_MAX_WIDTH
-      } else {
-        // Node is receiving from block - use total outgoing value from block
-        const totalOutgoing = connectedBlockNode
-          ? getTotalOutgoingValueFromBlock(connectedBlockNode)
-          : LINK_MAX_WIDTH
-        calculatedWidth = (nodeSats / totalOutgoing) * LINK_MAX_WIDTH
+          let width = 2 // Default for 1 sat or less
+          if (value >= 100000) {
+            width = 32
+          } else if (value >= 1000) {
+            width = 16
+          } else if (value >= 100) {
+            width = 12
+          } else if (value >= 10) {
+            width = 6
+          } else if (value >= 1) {
+            width = 2
+          }
+          const w = (width / totalWidthFromBlock) * LINK_BLOCK_MAX_WIDTH
+          return w
+        } else if (node.type === 'text') {
+          let width = 2 // Default for 1 sat or less
+          if (node.value! >= 100000) {
+            width = 32
+          } else if (node.value! >= 1000) {
+            width = 16
+          } else if (node.value! >= 100) {
+            width = 12
+          } else if (node.value! >= 10) {
+            width = 6
+          } else if (node.value! >= 1) {
+            width = 2
+          }
+          return width
+        }
       }
-
-      return calculatedWidth
+      return 0 // Add default return value to ensure number is always returned
     },
-    [links, nodes, LINK_MAX_WIDTH]
+    [links, nodes] // Add dependencies
   )
 
   // Add new helper functions to track cumulative heights
@@ -193,7 +226,6 @@ function SSSankeyLinks({
     },
     [links, nodes, getLinkWidth]
   )
-
   if (links.length === 0) return null
 
   return (
@@ -214,12 +246,12 @@ function SSSankeyLinks({
 
         const y1 =
           sourceNode.type === 'block'
-            ? getStackedYPosition(sourceNode, true, link)
+            ? getStackedYPosition(sourceNode, true, link)!
             : sourceNode.y1 ?? 0
 
         const y2 =
           targetNode.type === 'block'
-            ? getStackedYPosition(targetNode, false, link)
+            ? getStackedYPosition(targetNode, false, link)!
             : targetNode.y0 ?? 0
 
         const points: LinkPoints = {
@@ -239,6 +271,10 @@ function SSSankeyLinks({
           y2
         }
         const path1 = generateCustomLink(points)
+
+        if (targetNode.value === 0 && targetNode.depthH === maxDepthH) {
+          return null
+        }
 
         return (
           <Group key={index}>

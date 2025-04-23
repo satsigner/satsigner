@@ -325,6 +325,7 @@ function NodeText({
     }
 
     const buildUnspentParagraph = () => {
+      console.log('is it here', ioData?.value.toLocaleString())
       const para = createParagraphBuilder()
       para
         .pushStyle({
@@ -422,12 +423,16 @@ function NodeText({
 
     let para
     if (isBlock) {
+      console.log('block', ioData.value)
       para = buildBlockParagraph()
     } else if (isMiningFee) {
+      // console.log('mining', ioData.value)
       para = buildMiningFeeParagraph()
     } else if (isUnspent) {
+      // console.log('unsepnt', ioData.value)
       para = buildUnspentParagraph()
     } else {
+      // console.log('sepnt', ioData.value)
       para = buildSpentParagraph()
     }
 

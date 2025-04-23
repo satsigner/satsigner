@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import ElectrumClient from '@/api/electrum'
-import EsploraClient from '@/api/esplora'
+import { MempoolOracle } from '@/api/blockchain'
 import type { EsploraTx } from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePreviousTransactionsStore } from '@/store/previousTransactions'
 import type { Utxo } from '@/types/models/Utxo'
 import { recalculateDepthH } from '@/utils/transaction'
-import { TxDecoded } from '@/utils/txDecoded'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { type Network } from '@/types/settings/blockchain' // Import Network type
+
+const SIGNET_URL = 'https://mempool.space/signet/api'
+const TESTNET_URL = 'https://mempool.space/testnet/api'
+const BITCOIN_URL = 'https://mempool.space/api'
 
 type ExtendedEsploraTx = EsploraTx & {
   depthH: number
@@ -21,14 +21,12 @@ type ExtendedEsploraTx = EsploraTx & {
 export function usePreviousTransactions(
   inputs: Map<string, Utxo>,
   levelDeep: number = 2,
-  skipCache: boolean = false
+  skipCache: boolean = true
 ) {
   const [previousTransactions, addTransactions] = usePreviousTransactionsStore(
     useShallow((state) => [state.transactions, state.addTransactions])
   )
-  const [selectedNetwork, configs] = useBlockchainStore(
-    useShallow((state) => [state.selectedNetwork, state.configs])
-  )
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [transactions, setTransactions] = useState<
     Map<string, ExtendedEsploraTx>
@@ -102,83 +100,22 @@ export function usePreviousTransactions(
     setLoading(true)
     setError(null)
 
-    const currentConfig = configs[selectedNetwork]
-
-    if (!currentConfig) {
-      setError(
-        new Error(
-          `No blockchain configuration found for network: ${selectedNetwork}`
-        )
-      )
-      setLoading(false)
-      return
-    }
-
-    let oracle: EsploraClient | ElectrumClient | null = null
-
-    if (currentConfig.server.backend === 'esplora') {
-      oracle = new EsploraClient(currentConfig.server.url)
-    } else if (currentConfig.server.backend === 'electrum') {
-      // ElectrumClient requires network and potentially other options
-      // Assuming currentConfig.server.url format is protocol://host:port
-      const urlParts = currentConfig.server.url.match(/(.*):\/\/(.*):(.*)/)
-      if (urlParts && urlParts.length === 4) {
-        const protocol = urlParts[1] as 'tcp' | 'tls' | 'ssl'
-        const host = urlParts[2]
-        const port = parseInt(urlParts[3], 10)
-        oracle = new ElectrumClient({
-          host,
-          port,
-          protocol,
-          network: selectedNetwork as Network // Cast to Network type
-        })
-        await (oracle as ElectrumClient).init() // Initialize Electrum client
-      } else {
-        setError(
-          new Error(`Invalid Electrum URL format: ${currentConfig.server.url}`)
-        )
-        setLoading(false)
-        return
-      }
-    } else {
-      setError(
-        new Error(`Unsupported backend: ${currentConfig.server.backend}`)
-      )
-      setLoading(false)
-      return
-    }
+    const oracle = new MempoolOracle(
+      (() => {
+        switch (network) {
+          case 'signet':
+            return SIGNET_URL
+          case 'testnet':
+            return TESTNET_URL
+          default:
+            return BITCOIN_URL
+        }
+      })()
+    )
 
     const newTransactions = new Map<string, ExtendedEsploraTx>()
-    const txidToBlockInfo = new Map<string, { height: number; time: number }>() // Map to store block height and time
 
     try {
-      if (oracle instanceof ElectrumClient) {
-        const uniqueAddresses = Array.from(
-          new Set(
-            Array.from(inputs.values())
-              .map((input) => input.addressTo)
-              .filter(Boolean)
-          )
-        ) as string[]
-        for (const address of uniqueAddresses) {
-          const history = await oracle.getAddressTransactions(address)
-          for (const tx of history) {
-            if (tx.height > 0) {
-              // Only include confirmed transactions
-              try {
-                const blockTimestamp = await oracle.getBlockTimestamp(tx.height)
-                txidToBlockInfo.set(tx.tx_hash, {
-                  height: tx.height,
-                  time: blockTimestamp
-                })
-              } catch {
-                // console.error(`Error fetching block timestamp for height ${tx.height}:`, e); // Commented out console.error
-              }
-            }
-          }
-        }
-      }
-
       const queue = Array.from(inputs.values()).map((input) => ({
         txid: input.txid,
         level: 1 // Track which level in the chain this tx is
@@ -210,7 +147,7 @@ export function usePreviousTransactions(
                 newTransactions.set(txid, { ...cachedTx, depthH: 0 })
 
                 // Collect output addresses
-                cachedTx.vout?.forEach((vout: EsploraTx['vout'][0]) => {
+                cachedTx.vout?.forEach((vout) => {
                   if (vout.scriptpubkey_address) {
                     allOutputAddresses.add(vout.scriptpubkey_address)
                   }
@@ -218,7 +155,7 @@ export function usePreviousTransactions(
 
                 // Store input addresses
                 const inputAddresses = new Set<string>()
-                cachedTx.vin?.forEach((vin: EsploraTx['vin'][0]) => {
+                cachedTx.vin?.forEach((vin) => {
                   if (vin.prevout?.scriptpubkey_address) {
                     inputAddresses.add(vin.prevout.scriptpubkey_address)
                   }
@@ -227,7 +164,7 @@ export function usePreviousTransactions(
 
                 // Queue parent transactions only if we haven't reached max levelDeep
                 if (level < levelDeep && cachedTx.vin) {
-                  cachedTx.vin.forEach((vin: EsploraTx['vin'][0]) => {
+                  cachedTx.vin.forEach((vin) => {
                     const parentTxid = vin.txid
                     if (
                       parentTxid &&
@@ -245,49 +182,13 @@ export function usePreviousTransactions(
               }
             }
 
-            if (!oracle) {
-              setError(new Error('Blockchain oracle not initialized'))
-              setLoading(false)
-              return
-            }
-
-            let tx: EsploraTx | null = null
-            if (currentConfig.server.backend === 'esplora') {
-              tx = await (oracle as EsploraClient)
-                .getTxInfo(txid)
-                .catch(() => null)
-            } else if (currentConfig.server.backend === 'electrum') {
-              try {
-                const rawTxHex = await (
-                  oracle as ElectrumClient
-                ).client.blockchainTransaction_get(txid, false)
-
-                const blockInfo = txidToBlockInfo.get(txid)
-                const blockHeight = blockInfo?.height || 0
-                const blockTime = blockInfo?.time || 0
-                const confirmed = blockHeight > 0
-                const blockHash = '' // Electrum doesn't provide block hash directly in history or getBlockTimestamp result
-
-                tx = mapElectrumTxToEsploraTx(
-                  rawTxHex,
-                  selectedNetwork as Network,
-                  confirmed,
-                  blockHeight,
-                  blockHash,
-                  blockTime
-                )
-              } catch {
-                // console.error(`Error fetching or mapping Electrum transaction ${txid}:`, e) // Commented out console.error
-                tx = null
-              }
-            }
-
+            const tx = await oracle.getTransaction(txid).catch(() => null)
             if (!tx) return
 
-            newTransactions.set(txid, { ...tx, depthH: 0 })
+            newTransactions.set(txid, { ...(tx as EsploraTx), depthH: 0 })
 
             // Collect output addresses
-            tx.vout?.forEach((vout: EsploraTx['vout'][0]) => {
+            tx.vout?.forEach((vout) => {
               if (vout.scriptpubkey_address) {
                 allOutputAddresses.add(vout.scriptpubkey_address)
               }
@@ -295,7 +196,7 @@ export function usePreviousTransactions(
 
             // Store input addresses
             const inputAddresses = new Set<string>()
-            tx.vin?.forEach((vin: EsploraTx['vin'][0]) => {
+            tx.vin?.forEach((vin) => {
               if (vin.prevout?.scriptpubkey_address) {
                 inputAddresses.add(vin.prevout.scriptpubkey_address)
               }
@@ -304,7 +205,7 @@ export function usePreviousTransactions(
 
             // Queue parent transactions only if we haven't reached max levelDeep
             if (level < levelDeep && tx.vin) {
-              tx.vin.forEach((vin: EsploraTx['vin'][0]) => {
+              tx.vin.forEach((vin) => {
                 const parentTxid = vin.txid
                 if (
                   parentTxid &&
@@ -414,80 +315,7 @@ export function usePreviousTransactions(
       setError(err instanceof Error ? err : new Error(String(err)))
       setLoading(false)
     }
-  }, [inputs, selectedNetwork, configs, levelDeep, skipCache, addTransactions]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Helper function to map Electrum raw transaction hex to EsploraTx format
-  const mapElectrumTxToEsploraTx = (
-    rawTxHex: string,
-    network: Network,
-    confirmed: boolean,
-    block_height: number,
-    block_hash: string,
-    block_time: number
-  ): EsploraTx => {
-    const decodedTx = TxDecoded.fromHex(rawTxHex)
-    const txid = decodedTx.getId()
-    const version = decodedTx.version
-    const locktime = decodedTx.locktime
-    const size = decodedTx.byteLength()
-    const weight = decodedTx.weight()
-    const fee = 0 // Electrum raw tx doesn't include fee directly, would need to calculate
-
-    // Map vin
-    const vin = decodedTx.ins.map((input) => ({
-      txid: input.hash.reverse().toString('hex'), // TxDecoded hash is reversed
-      vout: input.index,
-      prevout: {
-        scriptpubkey: '', // Not available in TxDecoded vin
-        scriptpubkey_asm: '', // Not available in TxDecoded vin
-        scriptpubkey_type: '', // Not available in TxDecoded vin
-        scriptpubkey_address: '', // Not available in TxDecoded vin
-        value: 0 // Not available in TxDecoded vin
-      },
-      scriptsig: input.script.toString('hex'),
-      scriptsig_asm: '', // Not available in TxDecoded vin
-      witness: input.witness.map((w) => w.toString('hex')),
-      is_coinbase:
-        input.hash.toString('hex') ===
-          '0000000000000000000000000000000000000000000000000000000000000000' &&
-        input.index === 0xffffffff, // Check for coinbase
-      sequence: input.sequence
-    }))
-
-    // Map vout
-    const vout = decodedTx.outs.map((output, index) => ({
-      scriptpubkey: output.script.toString('hex'),
-      scriptpubkey_asm: '', // Not available in TxDecoded vout
-      scriptpubkey_type: '', // Not available in TxDecoded vout
-      scriptpubkey_address:
-        decodedTx.generateOutputScriptAddress(
-          index,
-          bitcoinjsNetwork(network)
-        ) || '', // Use helper to get address and convert network string
-      value: output.value,
-      n: index
-    }))
-
-    // Status information is now available for confirmed transactions
-    const status = {
-      confirmed,
-      block_height,
-      block_hash,
-      block_time
-    }
-
-    return {
-      txid,
-      version,
-      locktime,
-      vin,
-      vout,
-      size,
-      weight,
-      fee,
-      status
-    }
-  }
+  }, [inputs, network, levelDeep, skipCache, addTransactions]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchInputTransactions()
