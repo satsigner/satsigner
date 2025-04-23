@@ -132,6 +132,12 @@ function formatTimeFromNow(milliseconds: number): TimeFromNow {
   return [seconds, 'second']
 }
 
+function formatTxId(txid: string, character: number = 6) {
+  const beginning = txid.substring(0, character)
+  const end = txid.substring(txid.length - character, txid.length)
+  return `${beginning}...${end}`
+}
+
 export {
   formatAddress,
   formatConfirmations,
@@ -142,5 +148,6 @@ export {
   formatPercentualChange,
   formatTime,
   formatTimeFromNow,
-  formatTimestamp
+  formatTimestamp,
+  formatTxId
 }
