@@ -2,7 +2,7 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -14,7 +14,7 @@ import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -27,7 +27,9 @@ import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
 
-export default function PreviewMessage() {
+const tn = _tn('transaction.build.preview')
+
+function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
@@ -156,7 +158,7 @@ export default function PreviewMessage() {
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
         }}
       />
-      <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
+      <SSMainLayout style={styles.mainLayout}>
         <SSVStack justifyBetween>
           <ScrollView>
             <SSVStack>
@@ -170,7 +172,7 @@ export default function PreviewMessage() {
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
-                  Contents
+                  {tn('contents')}
                 </SSText>
                 <SSTransactionChart transaction={transaction} />
               </SSVStack>
@@ -181,7 +183,7 @@ export default function PreviewMessage() {
                   color="muted"
                   style={{ marginBottom: -22 }}
                 >
-                  Decoded
+                  {tn('decoded')}
                 </SSText>
                 {transactionHex !== '' && (
                   <SSTransactionDecoded txHex={transactionHex} />
@@ -189,7 +191,6 @@ export default function PreviewMessage() {
               </SSVStack>
             </SSVStack>
           </ScrollView>
-
           <SSButton
             variant="secondary"
             disabled={!messageId}
@@ -206,28 +207,17 @@ export default function PreviewMessage() {
         >
           <SSVStack style={{ marginTop: 16 }}>
             <SSText color="muted" size="lg" uppercase>
-              Missing Private Key
+              {tn('noKey')}
             </SSText>
           </SSVStack>
-          <SSVStack
-            itemsCenter
-            style={{ marginVertical: 32, width: '100%', paddingHorizontal: 32 }}
-          >
-            <SSText center>
-              Input your secret private key to sign the transaction
-            </SSText>
+          <SSVStack itemsCenter style={styles.modalStack}>
+            <SSText center>{tn('keyInput')}</SSText>
             <SSButton label="Seed" />
             <SSButton label="WIF" />
             <SSButton label="NFC Card" />
           </SSVStack>
-          <SSVStack
-            itemsCenter
-            style={{ marginVertical: 32, width: '100%', paddingHorizontal: 32 }}
-          >
-            <SSText center>
-              PSBT: Share partially signed bitcoin transaction on external
-              hardware
-            </SSText>
+          <SSVStack itemsCenter style={styles.modalStack}>
+            <SSText center>{tn('psbt')}</SSText>
             <SSButton label="QR Code" />
             <SSButton label="NFC" />
             <SSButton label="Share" />
@@ -237,3 +227,17 @@ export default function PreviewMessage() {
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  mainLayout: {
+    paddingTop: 0,
+    paddingBottom: 20
+  },
+  modalStack: {
+    marginVertical: 32,
+    width: '100%',
+    paddingHorizontal: 32
+  }
+})
+
+export default PreviewMessage
