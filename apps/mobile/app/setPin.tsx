@@ -13,6 +13,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
+import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
 import { generateSalt, pbkdf2Encrypt } from '@/utils/crypto'
 
@@ -23,6 +24,7 @@ export default function SetPin() {
   const [setFirstTime, setRequiresAuth] = useAuthStore(
     useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
   )
+  const showWarning = useSettingsStore((state) => state.showWarning)
 
   const [loading, setLoading] = useState(false)
   const [stage, setStage] = useState<Stage>('set')
@@ -47,7 +49,8 @@ export default function SetPin() {
   async function handleSetPinLater() {
     setFirstTime(false)
     await setPin(DEFAULT_PIN)
-    router.replace('/')
+    if (showWarning) router.push('./warning')
+    else router.replace('/')
   }
 
   async function handleConfirmPin() {
@@ -67,7 +70,8 @@ export default function SetPin() {
     setLoading(true)
     await setPin(pinArray.join(''))
     setLoading(false)
-    router.replace('/')
+    if (showWarning) router.push('./warning')
+    else router.replace('/')
     setFirstTime(false)
     setRequiresAuth(true)
   }
