@@ -55,6 +55,19 @@ export function validateDescriptor(descriptor: string) {
     return true
   }
 
+  // Handle simple descriptors with public keys
+  if (
+    descriptor.startsWith('pk(') ||
+    descriptor.startsWith('pkh(') ||
+    descriptor.startsWith('wpkh(')
+  ) {
+    const keyMatch = descriptor.match(/^(pk|pkh|wpkh)\(([0-9a-fA-F]+)\)/)
+    if (!keyMatch) {
+      return false
+    }
+    return true
+  }
+
   return basicTest
 }
 
