@@ -3,11 +3,14 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 import { TxDecoded, type TxDecodedField } from '@/utils/txDecoded'
 
+import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
+
+const tn = _tn('transaction.decoded')
 
 function byteChunks(hex: string) {
   const chunk = []
@@ -17,14 +20,53 @@ function byteChunks(hex: string) {
   return chunk
 }
 
-type SSTranssctionDecodedProps = {
+type SSTransactionDecodedProps = {
   txHex: string
+  defaultDisplay?: 'list' | 'bytes'
 }
 
-function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
+function SSTransactionDecoded({
+  txHex,
+  defaultDisplay = 'bytes'
+}: SSTransactionDecodedProps) {
   const decoded = useMemo(() => TxDecoded.decodeFromHex(txHex), [txHex])
-  const [selectedItem, setSelectedItem] = useState(0)
+  const [display, setDisplay] = useState<'list' | 'bytes'>(defaultDisplay)
 
+  function toggleDisplay() {
+    setDisplay(display === 'list' ? 'bytes' : 'list')
+  }
+
+  return (
+    <>
+      <TouchableOpacity onPress={toggleDisplay}>
+        <SSHStack gap="sm" style={{ justifyContent: 'flex-end' }}>
+          <SSText color="muted">
+            {display === 'list' ? tn('btnCollapse') : tn('btnExpand')}
+          </SSText>
+          {display === 'list' ? (
+            <SSIconChevronUp height={5} width={12} />
+          ) : (
+            <SSIconChevronDown height={5} width={12} />
+          )}
+        </SSHStack>
+      </TouchableOpacity>
+      {display === 'bytes' ? (
+        <SSTransactionDecodedBytes decoded={decoded} />
+      ) : (
+        <SSTransactionDecodedList decoded={decoded} />
+      )}
+    </>
+  )
+}
+
+type SSTransactionDecodedDisplayProps = {
+  decoded: TxDecodedField[]
+}
+
+function SSTransactionDecodedBytes({
+  decoded
+}: SSTransactionDecodedDisplayProps) {
+  const [selectedItem, setSelectedItem] = useState(0)
   return (
     <SSVStack gap="md">
       <SSHStack style={{ flexWrap: 'wrap' }} gap="none">
@@ -63,20 +105,34 @@ function SSTransactionDecoded({ txHex }: SSTranssctionDecodedProps) {
           )
         })}
       </SSHStack>
-      <SSTxDecodedField {...decoded[selectedItem]} />
+      <SSTransactionDecodedItem {...decoded[selectedItem]} />
     </SSVStack>
   )
 }
 
-function SSTxDecodedField({ field, value, placeholders }: TxDecodedField) {
+function SSTransactionDecodedList({
+  decoded
+}: SSTransactionDecodedDisplayProps) {
   return (
-    <SSVStack gap="xs">
-      <SSText color="muted" type="mono">
-        {t(`transaction.decoded.label.${field}`, { ...placeholders })}
-      </SSText>
-      <SSText type="mono">{value}</SSText>
-      <SSText color="muted">
-        {t(`transaction.decoded.description.${field}`, { ...placeholders })}
+    <SSVStack>
+      {decoded.map((item, index) => {
+        return <SSTransactionDecodedItem key={index} {...item} />
+      })}
+    </SSVStack>
+  )
+}
+
+function SSTransactionDecodedItem({
+  field,
+  value,
+  placeholders
+}: TxDecodedField) {
+  return (
+    <SSVStack gap="none">
+      <SSText weight="bold">{tn(`label.${field}`, { ...placeholders })}</SSText>
+      <SSText color="muted">{value}</SSText>
+      <SSText color="muted" size="xxs">
+        {tn(`description.${field}`, { ...placeholders })}
       </SSText>
     </SSVStack>
   )

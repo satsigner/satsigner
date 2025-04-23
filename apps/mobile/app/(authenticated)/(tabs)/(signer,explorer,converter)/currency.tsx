@@ -7,14 +7,13 @@ import SSButton from '@/components/SSButton'
 import SSCurrencyInput from '@/components/SSCurrencyInput'
 import SSDatePicker from '@/components/SSDatePicker'
 import SSText from '@/components/SSText'
+import { SATS_PER_BITCOIN } from '@/constants/btc'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
-
-const SATS_PER_BITCOIN = 100_000_000
 
 export default function Converter() {
   const hasInitializedRef = useRef(false)
@@ -101,7 +100,10 @@ export default function Converter() {
           headerBackVisible: false
         }}
       />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
         <SSVStack gap="none" justifyBetween>
           <SSVStack>
             <SSVStack itemsCenter style={styles.inputContainer}>

@@ -2,13 +2,16 @@ import { produce } from 'immer'
 import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
+import { type EntropyType } from '@/types/logic/entropy'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 
 type AccountBuilderState = {
   name: Account['name']
+  network: Account['network']
   policyType: Account['policyType']
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
+  entropy: EntropyType
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']
@@ -24,9 +27,11 @@ type AccountBuilderState = {
 
 type AccountBuilderAction = {
   setName: (name: AccountBuilderState['name']) => void
+  setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
+  setEntropy: (entropy: AccountBuilderState['entropy']) => void
   setMnemonicWordCount: (
     mnemonicWordCount: AccountBuilderState['mnemonicWordCount']
   ) => void
@@ -66,9 +71,11 @@ type AccountBuilderAction = {
 
 const initialState: AccountBuilderState = {
   name: '',
+  network: 'signet',
   policyType: 'singlesig',
   keyName: '',
   creationType: 'importMnemonic',
+  entropy: 'none',
   mnemonicWordCount: 24,
   mnemonic: '',
   passphrase: undefined,
@@ -89,6 +96,9 @@ const useAccountBuilderStore = create<
   setName: (name) => {
     set({ name })
   },
+  setNetwork: (network) => {
+    set({ network })
+  },
   setPolicyType: (policyType) => {
     set({ policyType })
   },
@@ -97,6 +107,9 @@ const useAccountBuilderStore = create<
   },
   setCreationType: (creationType) => {
     set({ creationType })
+  },
+  setEntropy: (entropy) => {
+    set({ entropy })
   },
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
@@ -194,11 +207,12 @@ const useAccountBuilderStore = create<
     set({ keysRequired })
   },
   getAccountData: () => {
-    const { name, policyType, keys, keyCount, keysRequired } = get()
+    const { name, network, policyType, keys, keyCount, keysRequired } = get()
 
     const account: Account = {
       id: uuid.v4(),
       name,
+      network,
       policyType,
       keys,
       keyCount,
@@ -213,7 +227,9 @@ const useAccountBuilderStore = create<
       transactions: [],
       utxos: [],
       addresses: [],
-      createdAt: new Date()
+      createdAt: new Date(),
+      lastSyncedAt: new Date(),
+      syncStatus: 'unsynced'
     }
 
     return account
@@ -222,6 +238,7 @@ const useAccountBuilderStore = create<
     set({
       keyName: '',
       creationType: 'importMnemonic',
+      entropy: 'none',
       mnemonicWordCount: 24,
       mnemonic: '',
       passphrase: undefined,

@@ -5,6 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "android": "expo run:android",
+    "format": "cd ../.. && yarn format",
+    "format:fix": "cd ../.. && yarn format:fix",
     "ios": "expo run:ios",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

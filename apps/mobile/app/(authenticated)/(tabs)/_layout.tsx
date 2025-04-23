@@ -1,6 +1,12 @@
-import { Tabs, usePathname, useSegments } from 'expo-router'
+import { type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs'
+import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { StyleSheet, View } from 'react-native'
+import {
+  type GestureResponderEvent,
+  Pressable,
+  StyleSheet,
+  View
+} from 'react-native'
 
 import {
   SSIconConverter,
@@ -16,8 +22,34 @@ import { showNavigation } from '@/utils/navigation'
 
 export default function TabLayout() {
   const currentPath = usePathname()
-  const segments = useSegments()
+  const router = useRouter()
+  const segments = useSegments() as string[]
   const [isShowTab, setShowTab] = useState(false)
+
+  function handleTabItemPress(
+    props: BottomTabBarButtonProps,
+    segment: string,
+    e: GestureResponderEvent
+  ) {
+    if (
+      segments.indexOf(segment) >= 0 &&
+      segments.indexOf(segment) < segments.length - 1
+    ) {
+      router.navigate(`/(authenticated)/(tabs)/${segment}`)
+    } else {
+      props.onPress?.(e)
+    }
+  }
+
+  const renderTabButton = (props: BottomTabBarButtonProps, segment: string) => {
+    return (
+      <View style={props.style}>
+        <Pressable onPress={(e) => handleTabItemPress(props, segment, e)}>
+          {props.children}
+        </Pressable>
+      </View>
+    )
+  }
 
   useEffect(() => {
     setShowTab(showNavigation(currentPath, segments.length))
@@ -37,13 +69,15 @@ export default function TabLayout() {
           tabBarActiveBackgroundColor: 'black',
           tabBarActiveTintColor: 'white'
         }}
+        backBehavior="history"
       >
         <Tabs.Screen
           name="(signer)"
           options={{
             title: 'Signer',
             tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconSignerActive, SSIconSigner)
+              renderTabIcon(focused, SSIconSignerActive, SSIconSigner),
+            tabBarButton: (props) => renderTabButton(props, '(signer)')
           }}
         />
         <Tabs.Screen
@@ -51,7 +85,8 @@ export default function TabLayout() {
           options={{
             title: 'Explorer',
             tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer)
+              renderTabIcon(focused, SSIconExplorerActive, SSIconExplorer),
+            tabBarButton: (props) => renderTabButton(props, '(explorer)')
           }}
         />
         <Tabs.Screen
@@ -59,7 +94,8 @@ export default function TabLayout() {
           options={{
             title: 'Converter',
             tabBarIcon: ({ focused }) =>
-              renderTabIcon(focused, SSIconConverterActive, SSIconConverter)
+              renderTabIcon(focused, SSIconConverterActive, SSIconConverter),
+            tabBarButton: (props) => renderTabButton(props, '(converter)')
           }}
         />
       </Tabs>
@@ -84,11 +120,13 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     backgroundColor: '#1F1F1F',
-    borderColor: '#323232',
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 64,
-    alignItems: 'center'
+    borderTopColor: '#323232',
+    paddingTop: 10,
+    paddingBottom: 16,
+    height: 74,
+    alignItems: 'center',
+    elevation: 0,
+    shadowOpacity: 0
   },
   tabBarItem: {
     marginHorizontal: 16,
