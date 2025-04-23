@@ -139,7 +139,12 @@ export default function SignMessage() {
               </SSVStack>
 
               <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
+                <SSText
+                  color="muted"
+                  size="sm"
+                  uppercase
+                  style={{ marginBottom: -22 }}
+                >
                   Message
                 </SSText>
                 {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
