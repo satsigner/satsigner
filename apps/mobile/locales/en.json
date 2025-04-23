@@ -818,6 +818,7 @@
     "read.clipboard": "Paste from clibpoard",
     "read.computerVision": "Computer Vision text",
     "read.nfc": "Tap NFC",
+    "read.nfcErrorNoData": "No data found on NFC tag",
     "read.qrcode": "Scan qrcode",
     "titleModal": "Watch-only wallet"
   }

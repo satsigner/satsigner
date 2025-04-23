@@ -222,7 +222,7 @@ export default function WatchOnly() {
       const nfcData = await readNFCTag()
 
       if (!nfcData) {
-        toast.error(t('watchonly.nfc.noData'))
+        toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
 
