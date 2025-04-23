@@ -400,7 +400,6 @@ export default function WatchOnly() {
                   loading={isReading}
                   disabled={!isAvailable || isReading}
                 />
-                <SSButton label={t('watchonly.read.computerVision')} disabled />
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">
