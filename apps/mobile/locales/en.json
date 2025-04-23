@@ -820,6 +820,8 @@
     "read.nfc": "Scan NFC",
     "read.nfcErrorNoData": "No data found on NFC tag",
     "read.qrcode": "Scan qrcode",
+    "read.scanning": "Scanning NFC",
+    "read.scanning": "Scanning NFC",
     "titleModal": "Watch-only wallet"
   }
 }

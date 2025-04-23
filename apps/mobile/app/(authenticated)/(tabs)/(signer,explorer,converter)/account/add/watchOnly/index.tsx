@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
-import { useState } from 'react'
-import { Keyboard, ScrollView, StyleSheet } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Keyboard, ScrollView, StyleSheet, Animated } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -78,7 +78,7 @@ export default function WatchOnly() {
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { isAvailable, isReading, readNFCTag } = useNFCReader()
+  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
 
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
@@ -101,6 +101,53 @@ export default function WatchOnly() {
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
 
   const [loadingWallet, setLoadingWallet] = useState(false)
+
+  const pulseAnim = useRef(new Animated.Value(0)).current
+  const scaleAnim = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (isReading) {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: false
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: false
+          })
+        ])
+      )
+
+      const scaleAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 0.98,
+            duration: 500,
+            useNativeDriver: false
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: false
+          })
+        ])
+      )
+
+      pulseAnimation.start()
+      scaleAnimation.start()
+      return () => {
+        pulseAnimation.stop()
+        scaleAnimation.stop()
+      }
+    } else {
+      pulseAnim.setValue(0)
+      scaleAnim.setValue(1)
+    }
+  }, [isReading, pulseAnim, scaleAnim])
 
   function updateAddress(address: string) {
     const validAddress = validateAddress(address)
@@ -175,7 +222,10 @@ export default function WatchOnly() {
         updateAccount(updatedAccount)
       }
     } catch (error) {
-      toast.error((error as Error).message)
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      }
     } finally {
       clearAccount()
       setLoadingWallet(false)
@@ -218,6 +268,11 @@ export default function WatchOnly() {
   }
 
   async function handleNFCRead() {
+    if (isReading) {
+      await cancelNFCScan()
+      return
+    }
+
     try {
       const nfcData = await readNFCTag()
 
@@ -262,7 +317,10 @@ export default function WatchOnly() {
         updateAddress(text)
       }
     } catch (error) {
-      toast.error((error as Error).message)
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      }
     }
   }
 
@@ -394,12 +452,26 @@ export default function WatchOnly() {
                   onPress={pasteFromClipboard}
                 />
                 <SSButton label={t('watchonly.read.qrcode')} disabled />
-                <SSButton
-                  label={t('watchonly.read.nfc')}
-                  onPress={handleNFCRead}
-                  loading={isReading}
-                  disabled={!isAvailable || isReading}
-                />
+                <Animated.View
+                  style={{
+                    opacity: pulseAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 0.7]
+                    }),
+                    transform: [{ scale: scaleAnim }],
+                    overflow: 'hidden'
+                  }}
+                >
+                  <SSButton
+                    label={
+                      isReading
+                        ? t('watchonly.read.scanning')
+                        : t('watchonly.read.nfc')
+                    }
+                    onPress={handleNFCRead}
+                    disabled={!isAvailable}
+                  />
+                </Animated.View>
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">

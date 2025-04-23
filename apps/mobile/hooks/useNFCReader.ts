@@ -44,9 +44,17 @@ export function useNFCReader() {
     }
   }
 
+  async function cancelNFCScan() {
+    if (isReading) {
+      setIsReading(false)
+      await NfcManager.cancelTechnologyRequest()
+    }
+  }
+
   return {
     isAvailable,
     isReading,
-    readNFCTag
+    readNFCTag,
+    cancelNFCScan
   }
 }
