@@ -14,8 +14,8 @@ import {
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 
 function useNostrLabelSync() {
-  const [importLabels, updateAccount] = useAccountsStore(
-    useShallow((state) => [state.importLabels, state.updateAccount])
+  const [importLabels, updateAccountNostr] = useAccountsStore(
+    useShallow((state) => [state.importLabels, state.updateAccountNostr])
   )
 
   async function sendAccountLabelsToNostr(account?: Account) {
@@ -24,9 +24,7 @@ function useNostrLabelSync() {
     const { autoSync, seckey, npub, relays, lastBackupFingerprint } =
       account.nostr
 
-    if (!autoSync || !seckey || npub === '' || relays.length === 0) {
-      return
-    }
+    if (!autoSync || !seckey || npub === '' || relays.length === 0) return
 
     const labels = formatAccountLabels(account)
 
@@ -36,9 +34,7 @@ function useNostrLabelSync() {
     const hash = await sha256(message)
     const fingerprint = hash.slice(0, 8)
 
-    if (fingerprint === lastBackupFingerprint) {
-      return
-    }
+    if (fingerprint === lastBackupFingerprint) return
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
@@ -47,13 +43,9 @@ function useNostrLabelSync() {
 
     const timestamp = new Date().getTime() / 1000
 
-    updateAccount({
-      ...account,
-      nostr: {
-        ...account.nostr,
-        lastBackupFingerprint: fingerprint,
-        lastBackupTimestamp: timestamp
-      }
+    updateAccountNostr(account.id, {
+      lastBackupFingerprint: fingerprint,
+      lastBackupTimestamp: timestamp
     })
   }
 
@@ -64,9 +56,7 @@ function useNostrLabelSync() {
     const { autoSync, seckey, npub, relays, lastBackupTimestamp } =
       account.nostr
 
-    if (!autoSync || !seckey || npub === '' || relays.length === 0) {
-      return
-    }
+    if (!autoSync || !seckey || npub === '' || relays.length === 0) return
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
