@@ -4,23 +4,35 @@ import { t } from '@/locales'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
-import { formatAddress } from '@/utils/format'
+import { formatAddress, formatTxId } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
-const MINING_FEE_VALUE = 1635
-
-type Node = {
+export interface TxNode {
   localId?: string
   id: string
   type: string
   depthH: number
-  textInfo: string[]
   value?: number
   txId?: string
   nextTx?: string
   indexV?: number
   vout?: number
   prevout?: any
+  ioData: {
+    label?: string
+    feeRate?: number
+    address?: string
+    minerFee?: number
+    text?: string
+    blockTime?: string
+    blockHeight?: string
+    blockRelativeTime?: string
+    txSize?: number
+    txId?: number
+    vSize?: number
+    isUnspent?: boolean
+    value: number
+  }
 }
 
 type Link = {
@@ -93,8 +105,6 @@ export const useNodesAndLinks = ({
         outputs.length + 1
       )
       const minerFee = Math.round(feeRate * vsize)
-      const miningFee = `${minerFee}`
-      const priority = `${Math.round(feeRate)} sats/vB`
 
       // Calculate total input value
       const totalInputValue = Array.from(inputs.values()).reduce(
@@ -109,19 +119,20 @@ export const useNodesAndLinks = ({
       )
 
       // Create output nodes
-      let outputNodes = []
+      let outputNodes: TxNode[] = []
 
       outputNodes = outputs.map((output, index) => ({
         id: `vout-${blockDepth + 1}-${index + 1}`,
         localId: output.localId,
         type: 'text',
         depthH: blockDepth + 1,
-        textInfo: [
-          t('transaction.build.unspent'),
-          `${output.amount}`,
-          `${formatAddress(output.to, 4)}`,
-          `${output.label}`
-        ],
+        ioData: {
+          isUnspent: true,
+          label: output.label,
+          address: formatAddress(output.to, 4),
+          text: t('transaction.build.unspent'),
+          value: output.amount
+        },
         value: output.amount,
         indexV: index,
         vout: index
@@ -134,7 +145,11 @@ export const useNodesAndLinks = ({
           id: `vout-${blockDepth + 1}-${outputs.length + 1}`,
           type: 'text',
           depthH: blockDepth + 1,
-          textInfo: [t('transaction.build.unspent'), `${remainingBalance}`],
+          ioData: {
+            value: remainingBalance,
+            text: t('transaction.build.unspent'),
+            isUnspent: true
+          },
           value: remainingBalance,
           indexV: outputs.length,
           vout: outputs.length,
@@ -147,8 +162,13 @@ export const useNodesAndLinks = ({
         id: `vout-${blockDepth + 1}-0}`,
         type: 'text',
         depthH: blockDepth + 1,
-        textInfo: [priority, miningFee, t('transaction.build.minerFee')],
-        value: MINING_FEE_VALUE,
+        value: minerFee,
+        ioData: {
+          feeRate: Math.round(feeRate),
+          minerFee,
+          text: t('transaction.build.minerFee'),
+          value: minerFee
+        },
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
         localId: 'minerFee'
@@ -161,9 +181,16 @@ export const useNodesAndLinks = ({
           type: 'block',
           depthH: blockDepth,
           value: 0,
-          textInfo: ['', '', `${size} B`, `${Math.ceil(vsize)} vB`],
+          ioData: {
+            blockHeight: '',
+            blockRelativeTime: '',
+            blockTime: '',
+            txSize: size,
+            vSize: vsize,
+            value: 0
+          },
           indexV: 0
-        },
+        } as TxNode,
         ...outputNodes
       ]
     } else {
@@ -182,13 +209,13 @@ export const useNodesAndLinks = ({
     (tx) =>
       tx.vin.map((input) => ({
         txid: tx.txid,
-        inputTxid: input.txid,
+        inputTxId: input.txid,
         vout: input.vout,
         prevValue: input.prevout?.value
       }))
   )
 
-  const previousConfirmedNodes: Node[] = useMemo(() => {
+  const previousConfirmedNodes: TxNode[] = useMemo(() => {
     if (transactions.size > 0 && inputs.size > 0) {
       const depthIndices = new Map<number, number>()
       const blockDepthIndices = new Map<number, number>()
@@ -219,11 +246,12 @@ export const useNodesAndLinks = ({
               id: `vin-${depthH}-${currentIndex}`,
               type: 'text',
               depthH,
-              textInfo: [
-                `${input.prevout.value}`,
-                `${formatAddress(input.prevout.scriptpubkey_address, 6)}`,
-                `${input.label ?? ''}`
-              ],
+              ioData: {
+                value: input.prevout.value,
+                address: `${formatAddress(input.prevout.scriptpubkey_address, 4)}`,
+                label: `${input.label ?? ''}`,
+                txId: tx.txid
+              },
               value: input.prevout.value,
               txId: tx.txid,
               prevout: input.prevout,
@@ -249,12 +277,14 @@ export const useNodesAndLinks = ({
               id: `block-${blockDepth}-${blockIndex}`,
               type: 'block',
               depthH: blockDepth,
-              textInfo: [
-                `${blockTime} ${blockRelativeTime}`,
+              ioData: {
+                blockTime,
                 blockHeight,
-                `${tx.size} B`,
-                `${vsize} vB`
-              ],
+                blockRelativeTime,
+                txSize: tx.size,
+                vSize: vsize,
+                txId: formatTxId(tx?.txid, 6)
+              },
               txId: tx.txid,
               indexV: blockIndex
             }
@@ -272,7 +302,7 @@ export const useNodesAndLinks = ({
             const nextTx =
               incomingAndOutgoingVinTxId.find(
                 (vinTx) =>
-                  vinTx.inputTxid === tx.txid &&
+                  vinTx.inputTxId === tx.txid &&
                   vinTx.vout === output.vout &&
                   vinTx.prevValue === output.value
               )?.txid || ''
@@ -290,11 +320,12 @@ export const useNodesAndLinks = ({
               id: `vout-${outputDepth}-${output.indexV}`,
               type: 'text',
               depthH: outputDepth,
-              textInfo: [
-                `${output.value}`,
-                `${formatAddress(output.scriptpubkey_address, 6)}`,
-                label
-              ],
+              ioData: {
+                label,
+                address: formatAddress(output.scriptpubkey_address, 4),
+                value: output.value,
+                text: t('common.from')
+              },
               value: output.value,
               txId: tx.txid,
               nextTx,
@@ -326,11 +357,11 @@ export const useNodesAndLinks = ({
   )
 
   const links = useMemo(() => {
-    function generateSankeyLinks(nodes: Node[]) {
+    function generateSankeyLinks(nodes: TxNode[]) {
       const links: Link[] = []
       const depthMap = new Map()
 
-      nodes.forEach((node: Node) => {
+      nodes.forEach((node: TxNode) => {
         const depth = node.depthH
         if (!depthMap.has(depth)) {
           depthMap.set(depth, [])
@@ -338,12 +369,12 @@ export const useNodesAndLinks = ({
         depthMap.get(depth).push(node)
       })
 
-      nodes.forEach((node: Node) => {
+      nodes.forEach((node: TxNode) => {
         if (node.type === 'text' && node.depthH === 0) {
           // vin node in the first depth
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
-            (n: Node) => n.type === 'block' && n.txId === node.txId
+            (n: TxNode) => n.type === 'block' && n.txId === node.txId
           )
           if (targetBlock) {
             links.push({
@@ -356,15 +387,15 @@ export const useNodesAndLinks = ({
           // block node
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const vouts = nextDepthNodes.filter(
-            (n: Node) => n.type === 'text' && n.txId === node.txId
+            (n: TxNode) => n.type === 'text' && n.txId === node.txId
           )
-          vouts.forEach((vout: Node) => {
+          vouts.forEach((vout: TxNode) => {
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
         } else if (node.type === 'text' && node.nextTx) {
           // vout node that has connection to block
           const targetBlock = nodes.find(
-            (n: Node) => n.type === 'block' && n.txId === node.nextTx
+            (n: TxNode) => n.type === 'block' && n.txId === node.nextTx
           )
           if (targetBlock) {
             links.push({
@@ -399,7 +430,7 @@ export const useNodesAndLinks = ({
         ) {
           const nextDepthNodes = depthMap.get(node.depthH + 1) || []
           const targetBlock = nextDepthNodes.find(
-            (n: Node) => n.type === 'block' && n.txId === node.txId
+            (n: TxNode) => n.type === 'block' && n.txId === node.txId
           )
           links.push({
             source: node.id,
@@ -423,6 +454,5 @@ export const useNodesAndLinks = ({
 
     return generateSankeyLinks(previousConfirmedNodes)
   }, [nodes?.length, previousConfirmedNodes, ingoingNodes, inputs])
-
   return { nodes, links }
 }

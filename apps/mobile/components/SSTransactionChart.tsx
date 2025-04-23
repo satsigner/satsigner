@@ -4,6 +4,8 @@ import { useMemo } from 'react'
 import { useWindowDimensions, View } from 'react-native'
 
 import { useLayout } from '@/hooks/useLayout'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { t } from '@/locales'
 import { type Transaction } from '@/types/models/Transaction'
 import { formatAddress } from '@/utils/format'
 
@@ -16,9 +18,9 @@ interface Node extends SankeyNodeMinimal<object, object> {
   depthH: number
   address?: string
   type: string
-  textInfo: string[]
   value?: number
   txId?: string
+  ioData: TxNode['ioData']
   nextTx?: string
 }
 
@@ -58,8 +60,13 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     minerFee = totalInputValue - totalOutputValue
   }
 
-  const txSize = transaction.size || '?'
-  const txVsize = transaction.vsize || '?'
+  const txSize = transaction.size
+  const txVsize = transaction.vsize
+
+  let feeRate: number | undefined
+  if (minerFee !== undefined && txVsize !== undefined && txVsize > 0) {
+    feeRate = minerFee / txVsize
+  }
 
   const { width: w, height: h, onCanvasLayout } = useLayout()
   const { width } = useWindowDimensions()
@@ -94,37 +101,42 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
   const sankeyNodes = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) return []
 
-    const inputNodes = inputs.map((input, index) => ({
+    const inputNodes: TxNode[] = inputs.map((input, index) => ({
       id: String(index + 1),
       type: 'text',
       depthH: 0,
-      textInfo: [
-        input.valueIsKnown ? `${input.value}` : '',
-        `${formatAddress(input.txid, 3)}`,
-        input.label ?? ''
-      ],
+      ioData: {
+        address: formatAddress(input.txid, 3),
+        label: input.label ?? t('common.noLabel'),
+        value: input.valueIsKnown ? input.value : 0,
+        text: t('common.from')
+      },
       value: input.value
     }))
 
-    const blockNode = [
+    const blockNode: TxNode[] = [
       {
         id: String(inputs.length + 1),
         type: 'block',
         depthH: 1,
-        textInfo: ['', '', `${txSize} B`, `${txVsize} vB`],
-        y0: 0
+        ioData: {
+          txSize,
+          vSize: txVsize,
+          value: 0
+        }
       }
     ]
 
-    const outputNodes = outputs.map((output, index) => ({
+    const outputNodes: TxNode[] = outputs.map((output, index) => ({
       id: String(index + 2 + inputs.length),
       type: 'text',
       depthH: 2,
-      textInfo: [
-        `${output.value}`,
-        `${formatAddress(output.address, 3)}`,
-        output.label ?? ''
-      ],
+      ioData: {
+        value: output.value,
+        address: formatAddress(output.address, 3),
+        label: output.label ?? t('common.noLabel'),
+        text: t('common.to')
+      },
       value: output.value
     }))
 
@@ -133,16 +145,18 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         id: String(inputs.length + outputs.length + 2),
         type: 'text',
         depthH: 2,
-        textInfo: [`${minerFee}`, 'Miner fee', ''],
-        value: minerFee
+        ioData: {
+          value: minerFee,
+          feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
+          text: t('transaction.build.minerFee')
+        },
+        value: minerFee,
+        localId: 'minerFee'
       })
     }
 
-    return [...inputNodes, ...blockNode, ...outputNodes] as SankeyNodeMinimal<
-      object,
-      object
-    >[]
-  }, [inputs, outputs, txSize, txVsize, minerFee])
+    return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
+  }, [inputs, outputs, txSize, txVsize, minerFee, feeRate])
 
   const sankeyLinks = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) return []
