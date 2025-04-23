@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 import { Image, ScrollView } from 'react-native'
 
-import { SSIconWarning } from '@/components/icons'
+import SSIconWarningSharp from '@/components/icons/SSIconWarningSharp'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -56,7 +56,7 @@ export default function Warning() {
                 {t('common.warning')}
               </SSText>
             </SSVStack>
-            <SSIconWarning
+            <SSIconWarningSharp
               width={120}
               height={120}
               fill="black"
