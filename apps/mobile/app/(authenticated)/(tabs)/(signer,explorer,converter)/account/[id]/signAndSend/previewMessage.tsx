@@ -1,6 +1,8 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import * as bitcoinjs from 'bitcoinjs-lib'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
+import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +11,7 @@ import SSButton from '@/components/SSButton'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
+import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -20,6 +23,8 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 export default function PreviewMessage() {
@@ -44,6 +49,25 @@ export default function PreviewMessage() {
   const [messageId, setMessageId] = useState('')
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
+
+  const transactionHex = useMemo(() => {
+    if (!account) return ''
+
+    const transaction = new bitcoinjs.Transaction()
+    const network = bitcoinjsNetwork(account.network)
+
+    for (const input of inputs.values()) {
+      const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
+      transaction.addInput(hashBuffer, input.vout)
+    }
+
+    for (const output of outputs) {
+      const outputScript = bitcoinjs.address.toOutputScript(output.to, network)
+      transaction.addOutput(outputScript, output.amount)
+    }
+
+    return transaction.toHex()
+  }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
@@ -134,22 +158,38 @@ export default function PreviewMessage() {
       />
       <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
         <SSVStack justifyBetween>
-          <SSVStack>
-            <SSVStack gap="xxs">
-              <SSText color="muted" size="sm" uppercase>
-                {t('transaction.id')}
-              </SSText>
-              <SSText size="lg">
-                {messageId || `${t('common.loading')}...`}
-              </SSText>
+          <ScrollView>
+            <SSVStack>
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  {t('transaction.id')}
+                </SSText>
+                <SSText size="lg">
+                  {messageId || `${t('common.loading')}...`}
+                </SSText>
+              </SSVStack>
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  Contents
+                </SSText>
+                <SSTransactionChart transaction={transaction} />
+              </SSVStack>
+              <SSVStack gap="xxs">
+                <SSText
+                  uppercase
+                  size="sm"
+                  color="muted"
+                  style={{ marginBottom: -22 }}
+                >
+                  Decoded
+                </SSText>
+                {transactionHex !== '' && (
+                  <SSTransactionDecoded txHex={transactionHex} />
+                )}
+              </SSVStack>
             </SSVStack>
-            <SSVStack gap="xxs">
-              <SSText color="muted" size="sm" uppercase>
-                Contents
-              </SSText>
-              <SSTransactionChart transaction={transaction} />
-            </SSVStack>
-          </SSVStack>
+          </ScrollView>
+
           <SSButton
             variant="secondary"
             disabled={!messageId}
