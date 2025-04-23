@@ -152,21 +152,13 @@ export default function AccountList() {
       if (!isImportAddress && !wallets[account.id]) continue
 
       if (connectionMode === 'auto' && account.syncStatus !== 'syncing') {
-        let updatedAccount
-
-        if (account.policyType !== 'watchonly') {
-          updatedAccount = await syncAccountWithWallet(
-            account,
-            wallets[account.id]!
-          )
-        } else {
-          const addressDescriptor = `addr(${addresses[account.id]!})`
-          updatedAccount = await syncAccountWithAddress(
-            account,
-            addressDescriptor
-          )
-        }
-
+        const updatedAccount =
+          account.policyType !== 'watchonly'
+            ? await syncAccountWithWallet(account, wallets[account.id]!)
+            : await syncAccountWithAddress(
+                account,
+                `addr(${addresses[account.id]!})`
+              )
         updateAccount(updatedAccount)
       }
     }
