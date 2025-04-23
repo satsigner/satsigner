@@ -1,5 +1,5 @@
 import { useHeaderHeight } from '@react-navigation/elements'
-import { Canvas, Group } from '@shopify/react-native-skia'
+import { Canvas, Circle, Group } from '@shopify/react-native-skia'
 import {
   sankey,
   type SankeyLinkMinimal,
@@ -18,8 +18,8 @@ import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
+import type { TxNode } from '@/hooks/useNodesAndLinks'
 
-import { SSIconEllipsis } from './icons'
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
@@ -36,7 +36,7 @@ export interface Node extends SankeyNodeMinimal<object, object> {
   depthH: number
   address?: string
   type: string
-  textInfo: string[]
+  ioData: TxNode['ioData']
   value?: number
   txId?: string
   nextTx?: string
@@ -58,7 +58,6 @@ function SSMultipleSankeyDiagram({
   onPressOutput
 }: SSMultipleSankeyDiagramProps) {
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
-
   // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(() => {
     return sankeyNodes.reduce((max, node) => {
@@ -178,9 +177,9 @@ function SSMultipleSankeyDiagram({
   const nodeStyles = useMemo(() => {
     return nodes.map((node) => {
       const isBlock = (node as Node).type === 'block'
-      const blockHeight =
-        isBlock && (node as Node).textInfo[2]
-          ? parseInt((node as Node).textInfo[2].split(' ')[0], 10) * 0.1
+      const blockNodeHeight =
+        isBlock && (node as Node).ioData?.txSize
+          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
           : 0
 
       return {
@@ -190,7 +189,7 @@ function SSMultipleSankeyDiagram({
           : node.x0 ?? 0,
         y: node.y0 ?? 0,
         width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
-        height: isBlock ? Math.max(blockHeight, LINK_MAX_WIDTH) : 80
+        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
       }
     })
   }, [nodes])
@@ -213,6 +212,27 @@ function SSMultipleSankeyDiagram({
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
           <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          {nodes.map((node, index) => {
+            const typedNode = node as Node
+            const style = nodeStyles[index] // Get corresponding style for width/height
+
+            if (typedNode.depthH === maxDepthH) {
+              const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
+
+              const circle1Cx = style.x + style.width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
+              const circle2Cx = style.x + style.width - 35 // style.x + style.width - 16 + 5.48926
+              const circle3Cx = style.x + style.width - 39 // style.x + style.width - 16 + 9.48926
+
+              return (
+                <Group key={`ellipsis-${typedNode.id}`}>
+                  <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
+                  <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
+                  <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
+                </Group>
+              )
+            }
+            return null
+          })}
         </Group>
       </Canvas>
       <GestureDetector gesture={gestures}>
@@ -243,13 +263,7 @@ function SSMultipleSankeyDiagram({
                     ? () => onPressOutput(style.localId)
                     : undefined
                 }
-              >
-                {(nodes[index] as Node).depthH === maxDepthH && (
-                  <View style={styles.iconContainer}>
-                    <SSIconEllipsis />
-                  </View>
-                )}
-              </TouchableOpacity>
+              />
             ))}
           </Animated.View>
         </View>
@@ -278,9 +292,9 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     position: 'absolute',
-    top: 5, // Adjust as needed
-    right: 5, // Adjust as needed
-    padding: 5 // Add padding for easier pressing
+    top: 5,
+    right: 5,
+    padding: 5
   }
 })
 
