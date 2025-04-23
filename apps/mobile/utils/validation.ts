@@ -68,6 +68,15 @@ export function validateDescriptor(descriptor: string) {
     return true
   }
 
+  // Handle descriptors with checksums
+  if (descriptor.includes('#')) {
+    const [desc, checksum] = descriptor.split('#')
+    if (!desc || !checksum || checksum.length !== 8) {
+      return false
+    }
+    return basicRegex.test(desc)
+  }
+
   return basicTest
 }
 
