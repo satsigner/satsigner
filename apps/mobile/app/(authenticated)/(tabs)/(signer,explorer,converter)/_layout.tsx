@@ -157,6 +157,6 @@ export default function StackLayout(params: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray[900]
+    backgroundColor: Colors.gray[950]
   }
 })

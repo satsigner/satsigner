@@ -228,7 +228,7 @@ function TotalTransactions({
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleOnRefresh}
-                colors={[Colors.gray[900]]}
+                colors={[Colors.gray[950]]}
                 progressBackgroundColor={Colors.white}
               />
             }
@@ -600,7 +600,7 @@ function SpendableOutputs({
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleOnRefresh}
-              colors={[Colors.gray[900]]}
+              colors={[Colors.gray[950]]}
               progressBackgroundColor={Colors.white}
             />
           }

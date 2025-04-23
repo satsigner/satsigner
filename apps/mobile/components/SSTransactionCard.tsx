@@ -237,7 +237,7 @@ function SSTransactionCard({
                 style={[
                   { textAlign: 'right', color: Colors.gray[500] },
                   {
-                    backgroundColor: Colors.gray[900],
+                    backgroundColor: Colors.gray[950],
                     paddingVertical: expand ? 0 : 2,
                     paddingHorizontal: expand ? 4 : 6,
                     borderRadius: 4

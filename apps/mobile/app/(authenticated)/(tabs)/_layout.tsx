@@ -116,7 +116,7 @@ const renderTabIcon = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray[900]
+    backgroundColor: Colors.gray[950]
   },
   tabBar: {
     backgroundColor: '#1F1F1F',

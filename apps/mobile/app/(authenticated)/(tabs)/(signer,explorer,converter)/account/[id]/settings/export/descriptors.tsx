@@ -98,7 +98,7 @@ export default function ExportDescriptors() {
         <View
           style={{
             padding: 10,
-            backgroundColor: Colors.gray[900],
+            backgroundColor: Colors.gray[950],
             borderRadius: 5
           }}
         >
