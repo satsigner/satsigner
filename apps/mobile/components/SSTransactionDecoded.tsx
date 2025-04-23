@@ -3,12 +3,14 @@ import { StyleSheet, TouchableOpacity } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 import { TxDecoded, type TxDecodedField } from '@/utils/txDecoded'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
+
+const tn = _tn('transaction.decoded')
 
 function byteChunks(hex: string) {
   const chunk = []
@@ -39,9 +41,7 @@ function SSTransactionDecoded({
       <TouchableOpacity onPress={toggleDisplay}>
         <SSHStack gap="sm" style={{ justifyContent: 'flex-end' }}>
           <SSText color="muted">
-            {display === 'list'
-              ? t('transaction.decoded.btnCollapse')
-              : t('transaction.decoded.btnExpand')}
+            {display === 'list' ? tn('btnCollapse') : tn('btnExpand')}
           </SSText>
           {display === 'list' ? (
             <SSIconChevronUp height={5} width={12} />
@@ -129,12 +129,10 @@ function SSTransactionDecodedItem({
 }: TxDecodedField) {
   return (
     <SSVStack gap="none">
-      <SSText weight="bold">
-        {t(`transaction.decoded.label.${field}`, { ...placeholders })}
-      </SSText>
+      <SSText weight="bold">{tn(`label.${field}`, { ...placeholders })}</SSText>
       <SSText color="muted">{value}</SSText>
       <SSText color="muted" size="xxs">
-        {t(`transaction.decoded.description.${field}`, { ...placeholders })}
+        {tn(`description.${field}`, { ...placeholders })}
       </SSText>
     </SSVStack>
   )

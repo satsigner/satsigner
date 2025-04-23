@@ -7,13 +7,13 @@ import {
 } from '@shopify/react-native-skia'
 import { useCallback } from 'react'
 
+import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
 
 interface Node {
   id: string
   depthH: number
   type: string
-  textInfo: string[]
   x0?: number
   x1?: number
   y0?: number
@@ -24,6 +24,7 @@ interface Node {
   txId?: string
   nextTx?: string
   localId?: string
+  ioData: TxNode['ioData']
 }
 
 interface Link {
@@ -200,13 +201,16 @@ function SSSankeyLinks({
       {links.map((link, index) => {
         const sourceNode = nodes.find((n) => n.id === link.source) as Node
         const targetNode = nodes.find((n) => n.id === link.target) as Node
-        const isUnspent = targetNode.textInfo[0] === 'Unspent'
+        const isUnspent = targetNode.ioData?.isUnspent
         const isRemainingBalance = targetNode.localId === 'remainingBalance'
         const isMinerFee = targetNode.localId === 'minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
-        const isCurrentInput =
+        const isCurrentTx =
           targetNode.depthH === maxDepthH - 1 ||
           sourceNode.depthH === maxDepthH - 1
+
+        const isFromTransactionChart = maxDepthH === 2
+        const isCurrentInput = isFromTransactionChart && sourceNode.depthH === 0
 
         const y1 =
           sourceNode.type === 'block'
@@ -242,10 +246,10 @@ function SSSankeyLinks({
               key={index}
               path={path1}
               style="fill"
-              color={isCurrentInput || isUnspent ? 'white' : gray[700]}
-              opacity={isCurrentInput || isUnspent ? 1 : 0.8}
+              color={isCurrentTx || isUnspent ? 'white' : gray[700]}
+              opacity={isCurrentTx || isUnspent ? 1 : 0.8}
             >
-              {(isCurrentInput || isMinerFee) &&
+              {(isCurrentTx || isMinerFee) &&
               !isRemainingBalance &&
               !isUnspent ? (
                 <>
@@ -268,7 +272,7 @@ function SSSankeyLinks({
                         targetNode.type === 'block' ? points.x2 : points.x1,
                         (points.y1 + points.y2) / 2
                       )}
-                      colors={['#2C2C2C', '#FFFFFF']}
+                      colors={[gray[900], isCurrentInput ? gray[500] : 'white']}
                       positions={[0, 0.7]}
                     />
                   </Paint>
