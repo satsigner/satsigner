@@ -13,7 +13,7 @@ import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { getBlockchainConfig } from '@/config/servers'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
@@ -21,6 +21,8 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+
+const tn = _tn('transaction.build.sign')
 
 export default function SignMessage() {
   const router = useRouter()
@@ -111,10 +113,10 @@ export default function SignMessage() {
         <SSVStack itemsCenter justifyBetween>
           <SSVStack itemsCenter>
             <SSText size="lg" weight="bold">
-              {signed ? 'Message Signed' : 'Signing Message'}
+              {tn(signed ? 'signed' : 'signing')}
             </SSText>
             <SSText color="muted" size="sm" weight="bold" uppercase>
-              Message Id
+              {tn('messageId')}
             </SSText>
             <SSText size="lg">
               {formatAddress(txBuilderResult.txDetails.txid)}
@@ -133,14 +135,19 @@ export default function SignMessage() {
             <SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
-                  Message Id
+                  {tn('messageId')}
                 </SSText>
                 <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
               </SSVStack>
 
               <SSVStack gap="xxs">
-                <SSText color="muted" size="sm" uppercase>
-                  Message
+                <SSText
+                  color="muted"
+                  size="sm"
+                  uppercase
+                  style={{ marginBottom: -22 }}
+                >
+                  {tn('message')}
                 </SSText>
                 {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
               </SSVStack>
