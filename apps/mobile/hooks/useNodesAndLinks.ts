@@ -250,7 +250,8 @@ export const useNodesAndLinks = ({
                 value: input.prevout.value,
                 address: `${formatAddress(input.prevout.scriptpubkey_address, 4)}`,
                 label: `${input.label ?? ''}`,
-                txId: tx.txid
+                txId: tx.txid,
+                text: t('common.from')
               },
               value: input.prevout.value,
               txId: tx.txid,
