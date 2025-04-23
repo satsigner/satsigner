@@ -22,61 +22,6 @@ export function validateDescriptor(descriptor: string) {
   const basicRegex = new RegExp(
     /^(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)(\((\[([a-fA-F0-9]{8})?(\/[0-9]+[h']?)+\])?[a-z0-9]+(\/[0-9*])*\))?(\/[0-9*])*(#[a-z0-9]{8})?$/gim
   )
-  basicRegex.lastIndex = 0
-
-  // Special handling for nested descriptors with xpub keys
-  if (descriptor.startsWith('sh') || descriptor.startsWith('wsh')) {
-    // Step 1: Check basic structure
-    if (!descriptor.match(/^(sh|wsh)\(wpkh\(.*\)\)$/)) {
-      return false
-    }
-
-    // Step 2: Extract inner content
-    const innerContent = descriptor.match(/^(sh|wsh)\(wpkh\((.*)\)\)$/)?.[2]
-    if (!innerContent) {
-      return false
-    }
-
-    // Step 3: Check fingerprint and derivation path
-    const fingerprintMatch = innerContent.match(
-      /\[([a-fA-F0-9]{8})(\/[0-9]+[h']?)+\]/
-    )
-    if (!fingerprintMatch) {
-      return false
-    }
-
-    // Step 4: Check xpub key and final derivation
-    const xpubMatch = innerContent.match(/\]([a-zA-Z0-9]+)(\/[0-9*]+)*$/)
-    if (!xpubMatch) {
-      return false
-    }
-
-    return true
-  }
-
-  // Handle simple descriptors with public keys
-  if (
-    descriptor.startsWith('pk(') ||
-    descriptor.startsWith('pkh(') ||
-    descriptor.startsWith('wpkh(')
-  ) {
-    const keyMatch = descriptor.match(/^(pk|pkh|wpkh)\(([0-9a-fA-F]+)\)/)
-    if (!keyMatch) {
-      return false
-    }
-    return true
-  }
-
-  // Handle descriptors with checksums
-  if (descriptor.includes('#')) {
-    const [desc, checksum] = descriptor.split('#')
-    if (!desc || !checksum || checksum.length !== 8) {
-      return false
-    }
-    return basicRegex.test(desc)
-  }
-
-  // Handle basic descriptors
   return basicRegex.test(descriptor)
 }
 
