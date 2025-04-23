@@ -1,9 +1,5 @@
-import {
-  type DrawerNavigationProp,
-  useDrawerStatus
-} from '@react-navigation/drawer'
 import { FlashList } from '@shopify/flash-list'
-import { Stack, useNavigation, useRouter } from 'expo-router'
+import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -13,15 +9,12 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconBlackIndicator,
-  SSIconCloseThin,
   SSIconGreenIndicator,
-  SSIconHamburger,
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSAccountCard from '@/components/SSAccountCard'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
-import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
@@ -52,8 +45,6 @@ import {
 export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
-  const nav = useNavigation<DrawerNavigationProp<any>>()
-  const isDrawerOpen = useDrawerStatus() === 'open'
 
   const [network, setSelectedNetwork, connectionMode] = useBlockchainStore(
     useShallow((state) => [
@@ -408,20 +399,7 @@ export default function AccountList() {
             <SSText uppercase style={{ letterSpacing: 1 }}>
               {t('app.name')}
             </SSText>
-          ),
-          headerLeft: () => (
-            <SSIconButton
-              style={{ marginLeft: 8 }}
-              onPress={() => nav.openDrawer()}
-            >
-              {isDrawerOpen ? (
-                <SSIconCloseThin height={20} width={20} />
-              ) : (
-                <SSIconHamburger height={18} width={18} />
-              )}
-            </SSIconButton>
-          ),
-          headerBackVisible: false
+          )
         }}
       />
       <TouchableOpacity
