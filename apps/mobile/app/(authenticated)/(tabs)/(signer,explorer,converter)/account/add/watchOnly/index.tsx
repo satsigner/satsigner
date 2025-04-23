@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Keyboard, ScrollView, StyleSheet, Animated } from 'react-native'
+import { Animated, Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -281,7 +281,7 @@ export default function WatchOnly() {
         return
       }
 
-      let text = nfcData
+      const text = nfcData
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
