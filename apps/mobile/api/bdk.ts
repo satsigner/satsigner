@@ -273,22 +273,22 @@ async function getWalletFromMnemonic(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const [externalDescriptor, internalDescriptor] = await Promise.all([
-    getDescriptor(
-      mnemonic,
-      scriptVersion,
-      KeychainKind.External,
-      passphrase,
-      network
-    ),
-    getDescriptor(
-      mnemonic,
-      scriptVersion,
-      KeychainKind.Internal,
-      passphrase,
-      network
-    )
-  ])
+  const externalDescriptor = await getDescriptor(
+    mnemonic,
+    scriptVersion,
+    KeychainKind.External,
+    passphrase,
+    network
+  )
+
+  const internalDescriptor = await getDescriptor(
+    mnemonic,
+    scriptVersion,
+    KeychainKind.Internal,
+    passphrase,
+    network
+  )
+  // TO DO: Try Promise.all() method instead Sequential one.
 
   const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
     parseDescriptor(externalDescriptor),
@@ -473,21 +473,27 @@ async function getWalletOverview(
       wallet.listUnspent()
     ])
 
-  const transactions = await Promise.all(
-    (transactionsDetails || []).map((transactionDetails) =>
-      parseTransactionDetailsToTransaction(
-        transactionDetails,
-        localUtxos,
-        network
-      )
+  const transactions: Transaction[] = []
+  for (const transactionDetails of transactionsDetails || []) {
+    const tx = await parseTransactionDetailsToTransaction(
+      transactionDetails,
+      localUtxos,
+      network
     )
-  )
+    transactions.push(tx)
+  }
+  // TO DO: Try Promise.all() method instead Sequential one.
 
-  const utxos = await Promise.all(
-    (localUtxos || []).map((localUtxo) =>
-      parseLocalUtxoToUtxo(localUtxo, transactionsDetails, network)
+  const utxos: Utxo[] = []
+  for (const localUtxo of localUtxos || []) {
+    const utxo = await parseLocalUtxoToUtxo(
+      localUtxo,
+      transactionsDetails,
+      network
     )
-  )
+    utxos.push(utxo)
+  }
+  // TO DO: Try Promise.all() method instead Sequential one.
 
   let addresses = await getWalletAddresses(wallet, network)
   addresses = parseAccountAddressesDetails({

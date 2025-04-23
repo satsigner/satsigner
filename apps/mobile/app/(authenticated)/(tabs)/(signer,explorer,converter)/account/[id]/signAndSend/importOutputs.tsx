@@ -49,7 +49,7 @@ function ImportOuputs() {
               <View
                 style={{
                   padding: 10,
-                  backgroundColor: Colors.gray[900],
+                  backgroundColor: Colors.gray[950],
                   borderRadius: 5,
                   minHeight: 400
                 }}

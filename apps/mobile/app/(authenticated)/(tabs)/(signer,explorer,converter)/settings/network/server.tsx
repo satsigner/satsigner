@@ -70,8 +70,6 @@ export default function NetworkSettings() {
           headerTitle: () => (
             <SSText uppercase>{t('settings.network.server.title')}</SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />

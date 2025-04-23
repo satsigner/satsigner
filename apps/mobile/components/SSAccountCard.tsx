@@ -1,4 +1,4 @@
-import { Animated, Easing, TouchableOpacity } from 'react-native'
+import { Animated, Easing, Platform, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -21,6 +21,7 @@ type SSAccountCardProps = {
 }
 
 function SSAccountCard({ account, onPress }: SSAccountCardProps) {
+  const platform = Platform.OS
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -123,7 +124,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   return (
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween style={{ position: 'relative' }}>
-        <SSVStack gap="xxs">
+        <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
           {account.policyType === 'watchonly' ? null : (
             <SSText
               size="xs"
@@ -141,7 +142,11 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
             )}
           </SSHStack>
           <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            <SSText size="3xl" color="white">
+            <SSText
+              size="3xl"
+              color="white"
+              style={{ lineHeight: platform === 'android' ? 24 : undefined }}
+            >
               <SSStyledSatText
                 amount={account?.summary.balance || 0}
                 decimals={0}
@@ -157,7 +162,10 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
           </SSHStack>
           <SSHStack
             gap="xs"
-            style={{ alignItems: 'baseline', paddingVertical: 1 }}
+            style={{
+              alignItems: 'baseline',
+              paddingVertical: platform === 'android' ? 0 : 1
+            }}
           >
             <SSText color="muted">
               {formatNumber(satsToFiat(account.summary.balance), 2)}

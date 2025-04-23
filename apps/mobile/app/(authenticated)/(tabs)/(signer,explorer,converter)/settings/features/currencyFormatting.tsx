@@ -27,8 +27,6 @@ export default function CurrencyFormatting() {
               {t('settings.features.currencyFormatting.title')}
             </SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />
