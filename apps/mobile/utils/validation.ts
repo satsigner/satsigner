@@ -23,7 +23,6 @@ export function validateDescriptor(descriptor: string) {
     /^(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)(\((\[([a-fA-F0-9]{8})?(\/[0-9]+[h']?)+\])?[a-z0-9]+(\/[0-9*])*\))?(\/[0-9*])*(#[a-z0-9]{8})?$/gim
   )
   basicRegex.lastIndex = 0
-  const basicTest = basicRegex.test(descriptor)
 
   // Special handling for nested descriptors with xpub keys
   if (descriptor.startsWith('sh') || descriptor.startsWith('wsh')) {
@@ -77,7 +76,8 @@ export function validateDescriptor(descriptor: string) {
     return basicRegex.test(desc)
   }
 
-  return basicTest
+  // Handle basic descriptors
+  return basicRegex.test(descriptor)
 }
 
 export function validateAddress(address: string) {
