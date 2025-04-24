@@ -4,16 +4,14 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
-import { Colors } from '@/styles'
 import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSText from './SSText'
 
+const tn = _tn('transaction.decoded')
 const TEXT_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl'] as const
 type TextSize = (typeof TEXT_SIZES)[number]
-
-const tn = _tn('transaction.decoded')
 
 function byteChunks(hex: string) {
   const chunk = []
