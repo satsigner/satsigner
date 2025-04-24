@@ -15,8 +15,6 @@ export default function About() {
           headerTitle: () => (
             <SSText uppercase>{t('settings.about.title')}</SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />

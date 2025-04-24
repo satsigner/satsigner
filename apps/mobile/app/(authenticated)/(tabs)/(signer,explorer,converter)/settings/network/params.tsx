@@ -55,8 +55,6 @@ export default function NetworkSettings() {
           headerTitle: () => (
             <SSText uppercase>{t('settings.network.config.title')}</SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />

@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
@@ -32,11 +32,6 @@ export default function Home() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerBackVisible: false
-        }}
-      />
       <ScrollView showsVerticalScrollIndicator={false}>
         <SSMainLayout style={styles.mainLayout}>
           <SSHStack>

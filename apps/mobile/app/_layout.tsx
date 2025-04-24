@@ -94,7 +94,7 @@ export default function RootLayout() {
           position="top-center"
           style={{
             borderRadius: 8,
-            backgroundColor: Colors.gray[900],
+            backgroundColor: Colors.gray[950],
             borderWidth: 1,
             borderColor: Colors.gray[800]
           }}
@@ -107,6 +107,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray[900]
+    backgroundColor: Colors.gray[950]
   }
 })

@@ -114,7 +114,7 @@ export default function DiceEntropy() {
             borderRadius: 8,
             paddingVertical: 16,
             paddingHorizontal: 8,
-            backgroundColor: Colors.gray[900]
+            backgroundColor: Colors.gray[950]
           }}
         >
           <SSBinaryDisplay binary={bits} />

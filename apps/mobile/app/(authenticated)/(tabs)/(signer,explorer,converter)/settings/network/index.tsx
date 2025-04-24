@@ -15,8 +15,6 @@ export default function Features() {
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>Network</SSText>,
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />

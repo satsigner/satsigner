@@ -986,6 +986,10 @@ PODS:
     - React
     - React-callinvoker
     - React-Core
+  - react-native-slider (4.5.6):
+    - glog
+    - RCT-Folly (= 2022.05.16.00)
+    - React-Core
   - react-native-tcp-socket (6.2.0):
     - CocoaAsyncSocket
     - React-Core
@@ -1156,6 +1160,10 @@ PODS:
     - React-jsi (= 0.73.6)
     - React-logger (= 0.73.6)
     - React-perflogger (= 0.73.6)
+  - RNCAsyncStorage (2.1.2):
+    - React-Core
+  - RNDateTimePicker (8.3.0):
+    - React-Core
   - RNDeviceInfo (11.1.0):
     - React-Core
   - RNFlashList (1.7.3):
@@ -1254,6 +1262,7 @@ DEPENDENCIES:
   - react-native-pager-view (from `../../../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../../../node_modules/react-native-safe-area-context`)
   - "react-native-skia (from `../../../node_modules/@shopify/react-native-skia`)"
+  - "react-native-slider (from `../../../node_modules/@react-native-community/slider`)"
   - react-native-tcp-socket (from `../../../node_modules/react-native-tcp-socket`)
   - React-nativeconfig (from `../../../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../../../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
@@ -1275,6 +1284,8 @@ DEPENDENCIES:
   - React-runtimescheduler (from `../../../node_modules/react-native/ReactCommon/react/renderer/runtimescheduler`)
   - React-utils (from `../../../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCommon/turbomodule/core (from `../../../node_modules/react-native/ReactCommon`)
+  - "RNCAsyncStorage (from `../../../node_modules/@react-native-async-storage/async-storage`)"
+  - "RNDateTimePicker (from `../../../node_modules/@react-native-community/datetimepicker`)"
   - RNDeviceInfo (from `../../../node_modules/react-native-device-info`)
   - "RNFlashList (from `../../../node_modules/@shopify/flash-list`)"
   - RNFS (from `../../../node_modules/react-native-fs`)
@@ -1408,6 +1419,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native-safe-area-context"
   react-native-skia:
     :path: "../../../node_modules/@shopify/react-native-skia"
+  react-native-slider:
+    :path: "../../../node_modules/@react-native-community/slider"
   react-native-tcp-socket:
     :path: "../../../node_modules/react-native-tcp-socket"
   React-nativeconfig:
@@ -1450,6 +1463,10 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/react-native/ReactCommon/react/utils"
   ReactCommon:
     :path: "../../../node_modules/react-native/ReactCommon"
+  RNCAsyncStorage:
+    :path: "../../../node_modules/@react-native-async-storage/async-storage"
+  RNDateTimePicker:
+    :path: "../../../node_modules/@react-native-community/datetimepicker"
   RNDeviceInfo:
     :path: "../../../node_modules/react-native-device-info"
   RNFlashList:
@@ -1529,6 +1546,7 @@ SPEC CHECKSUMS:
   react-native-pager-view: d5f3adb58a4e6e0d200055e9a4afdcda9b9022ce
   react-native-safe-area-context: 0ee144a6170530ccc37a0fd9388e28d06f516a89
   react-native-skia: e84b4767fa97af573f7b52d71d7e785ec643fef1
+  react-native-slider: 814abf5bd1fe10ffc7bce917ed977bb1fc3f9ec8
   react-native-tcp-socket: 8c3e8bef909ab06c557eeb95363fe029391ff09d
   React-nativeconfig: b4d4e9901d4cabb57be63053fd2aa6086eb3c85f
   React-NativeModulesApple: cd26e56d56350e123da0c1e3e4c76cb58a05e1ee
@@ -1550,6 +1568,8 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 9636eee762c699ca7c85751a359101797e4c8b3b
   React-utils: d16c1d2251c088ad817996621947d0ac8167b46c
   ReactCommon: 2aa35648354bd4c4665b9a5084a7d37097b89c10
+  RNCAsyncStorage: addfc2cb6511dbe199c56c6b26ede383b6c38919
+  RNDateTimePicker: a793ed8822283f576dd0a205a0916c5098c2611f
   RNDeviceInfo: b899ce37a403a4dea52b7cb85e16e49c04a5b88e
   RNFlashList: 445061c7da2ff509b80cb1990470b37a8bc37cb4
   RNFS: 4ac0f0ea233904cb798630b3c077808c06931688

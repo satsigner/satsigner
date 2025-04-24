@@ -66,8 +66,6 @@ export default function HistoryChart() {
               {t('settings.features.charts.historyChart.title')}
             </SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />
