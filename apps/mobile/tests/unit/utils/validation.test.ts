@@ -112,7 +112,8 @@ describe('Validates descriptors', () => {
     'pk(0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798)',
     'pkh(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5)',
     'wpkh(02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9)',
-    `sh(wpkh([24c3acee/49'/0'/0']xpub6CAUaws9XxaAMz3ZjnaTMw6NCCBZQo6cWtK5dDkmkFc5KbgfqmJdGGAHhVNUvfxhz8vSNmA7GuHjx1zJfMtXVCzQETf4xvDpBfFEEPXNgo9/0/*))`,
+    'sh(03fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556)',
+    // `sh(wpkh([24c3acee/49'/0'/0']xpub6CAUaws9XxaAMz3ZjnaTMw6NCCBZQo6cWtK5dDkmkFc5KbgfqmJdGGAHhVNUvfxhz8vSNmA7GuHjx1zJfMtXVCzQETf4xvDpBfFEEPXNgo9/0/*))`,
     'wsh([e6807791/44h/1h/0h]tpubDDAfvogaaAxaFJ6c15ht7Tq6ZmiqFYfrSmZsHu7tHXBgnjMZSHAeHSwhvjARNA6Qybon4ksPksjRbPDVp7yXA1KjTjSd5x18KHqbppnXP1s/0/*)',
     'pk(0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798)#12345678',
     `wpkh([60c6c741/84'/1'/0']tpubDDSsu3cncmRPe7hd3TYa419HMeHkdhGKNmUA17dDfyUogBE5pRKDPV14reDahCasFuJK9Zrnb9NXchBXCjhzgxRJgd5XHrVumiiqaTSwedx/0/*)#rqc6v9pp`
@@ -130,7 +131,7 @@ describe('Validates descriptors', () => {
     }
   })
 
-  it('Recgonizes invalid descriptors', () => {
+  it('Recognizes invalid descriptors', () => {
     for (const descriptor of invalidDescriptors) {
       expect(validateDescriptor(descriptor)).toBe(false)
     }

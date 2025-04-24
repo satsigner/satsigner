@@ -18,11 +18,17 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 export function validateDescriptor(descriptor: string) {
-  // Basic descriptor format validation
-  const basicRegex = new RegExp(
-    /^(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)(\((\[([a-fA-F0-9]{8})?(\/[0-9]+[h']?)+\])?[a-z0-9]+(\/[0-9*])*\))?(\/[0-9*])*(#[a-z0-9]{8})?$/gim
-  )
-  return basicRegex.test(descriptor)
+  const kind = `(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)`
+  const fingerprint = `[a-fA-F0-9]{8}`
+  const keyDerivationPath = `\\/[0-9]+[h']?`
+  const fullFingerprint = `\\[(${fingerprint})?(${keyDerivationPath})+\\]`
+  const content = `[a-zA-Z0-9]+`
+  const addressDerivationPath = `(\\/[0-9*])*`
+  const checksum = `#[a-z0-9]{8}`
+  const basicRegex = `^${kind}\\((${fullFingerprint})?${content}${addressDerivationPath}\\)(${checksum})?$`
+
+  const r = new RegExp(basicRegex, 'gm')
+  return r.test(descriptor)
 }
 
 export function validateAddress(address: string) {
