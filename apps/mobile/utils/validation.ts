@@ -48,19 +48,17 @@ export function validateDescriptor(descriptor: string) {
   let currentItem = descriptor.replace(checksumRegex, '')
 
   // Extract nested descriptor.
-  // For example: wsh(sh(pkh(...))) -> pkh(...)
+  // Example: wsh(sh(pkh(...))) -> pkh(...)
   while (nestedRegex.test(currentItem)) {
-    // first, check if the current item is a simple single key sh/wsh item
+    // first, check if the current item is a single key sh/wsh descriptor
     if (singleKeyRegex.test(currentItem)) return true
 
+    // extract it
     currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
   }
 
   // It must be either single key or multi key
-  if (singleKeyRegex.test(currentItem)) return true
-  if (multiKeyRegex.test(currentItem)) return true
-
-  return false
+  return singleKeyRegex.test(currentItem) || multiKeyRegex.test(currentItem)
 }
 
 export function validateAddress(address: string) {
