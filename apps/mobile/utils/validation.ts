@@ -18,17 +18,49 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 export function validateDescriptor(descriptor: string) {
-  const kind = `(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)`
-  const fingerprint = `[a-fA-F0-9]{8}`
+  // regex expressions building blocks
+  const kind = '(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)'
+  const nestedKind = '(sh|wsh)'
+  const multiKind = `(multi|sortedmulti)`
+  const fingerprint = '[a-fA-F0-9]{8}'
   const keyDerivationPath = `\\/[0-9]+[h']?`
   const fullFingerprint = `\\[(${fingerprint})?(${keyDerivationPath})+\\]`
-  const content = `[a-zA-Z0-9]+`
-  const addressDerivationPath = `(\\/[0-9*])*`
-  const checksum = `#[a-z0-9]{8}`
-  const basicRegex = `^${kind}\\((${fullFingerprint})?${content}${addressDerivationPath}\\)(${checksum})?$`
+  const content = '[a-zA-Z0-9]+'
+  const addressDerivationPath = '(\\/[0-9*])*'
+  const checksum = '#[a-z0-9]{8}'
+  const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
+  const singleKey = `^${kind}\\(${key}\\)$`
+  const multiKey = `^${multiKind}\\([1-9][0-9]*,(${key},)+${key}\\)$`
+  const nestedDescriptor = `^${nestedKind}\\(.+\\)$`
 
-  const r = new RegExp(basicRegex, 'gm')
-  return r.test(descriptor)
+  // auxiliary regex to extract nested items
+  const checksumRegex = new RegExp(`${checksum}$`)
+  const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
+
+  // main regex to parse the descriptor
+  const singleKeyRegex = new RegExp(singleKey, 'gm')
+  const multiKeyRegex = new RegExp(multiKey, 'gm')
+  const nestedRegex = new RegExp(nestedDescriptor, 'gm')
+
+  // Remove checksum if any.
+  // Nested descriptor have only 1 checksum, that is why we remove it first.
+  // Because we remove it, we also do not need to check it again.
+  let currentItem = descriptor.replace(checksumRegex, '')
+
+  // Extract nested descriptor.
+  // For example: wsh(sh(pkh(...))) -> pkh(...)
+  while (nestedRegex.test(currentItem)) {
+    // first, check if the current item is a simple single key sh/wsh item
+    if (singleKeyRegex.test(currentItem)) return true
+
+    currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
+  }
+
+  // It must be either single key or multi key
+  if (singleKeyRegex.test(currentItem)) return true
+  if (multiKeyRegex.test(currentItem)) return true
+
+  return false
 }
 
 export function validateAddress(address: string) {
