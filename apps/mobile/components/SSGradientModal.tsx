@@ -25,7 +25,7 @@ function SSGradientModal({
       <SSMainLayout style={styles.containerBase}>
         <LinearGradient
           style={styles.gradientContainerBase}
-          colors={[Colors.gray[900], Colors.gray[800]]}
+          colors={[Colors.gray[950], Colors.gray[800]]}
           start={{ x: 1, y: 1 }}
           end={{ x: 0, y: 0 }}
         >
