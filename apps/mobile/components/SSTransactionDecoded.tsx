@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
-import { TouchableOpacity } from 'react-native'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -45,9 +45,7 @@ function SSTransactionDecoded({
         <SSHStack
           gap="sm"
           style={{
-            justifyContent: 'flex-end',
-            marginTop: -30,
-            marginBottom: 16
+            justifyContent: 'flex-end'
           }}
         >
           <SSText color="muted">
@@ -77,7 +75,7 @@ function SSTransactionDecodedBytes({
   decoded
 }: SSTransactionDecodedDisplayProps) {
   const [selectedItem, setSelectedItem] = useState(0)
-  const [textSize, setTextSize] = useState<TextSize>('md')
+  const [textSize, setTextSize] = useState<TextSize>('xs')
 
   const handleZoomIn = () => {
     const currentIndex = TEXT_SIZES.indexOf(textSize)
@@ -120,26 +118,36 @@ function SSTransactionDecodedBytes({
   }
 
   return (
-    <SSVStack gap="md">
-      <SSHStack gap="md" style={{ marginTop: -30, justifyContent: 'flex-end' }}>
+    <SSVStack gap="none">
+      <SSHStack gap="none" style={styles.zoomContainer}>
         <TouchableOpacity
           onPress={handleZoomOut}
           disabled={textSize === TEXT_SIZES[0]}
-          style={{ opacity: textSize === TEXT_SIZES[0] ? 0.5 : 1 }}
+          style={[
+            styles.zoomButton,
+            { opacity: textSize === TEXT_SIZES[0] ? 0.5 : 1 }
+          ]}
         >
-          <SSText size="xl">-</SSText>
+          <SSText size="xl" style={styles.zoomText}>
+            -
+          </SSText>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={handleZoomIn}
           disabled={textSize === TEXT_SIZES[TEXT_SIZES.length - 1]}
-          style={{
-            opacity: textSize === TEXT_SIZES[TEXT_SIZES.length - 1] ? 0.5 : 1
-          }}
+          style={[
+            styles.zoomButton,
+            {
+              opacity: textSize === TEXT_SIZES[TEXT_SIZES.length - 1] ? 0.5 : 1
+            }
+          ]}
         >
-          <SSText size="xl">+</SSText>
+          <SSText size="xl" style={styles.zoomText}>
+            +
+          </SSText>
         </TouchableOpacity>
       </SSHStack>
-      <SSHStack style={{ flexWrap: 'wrap' }} gap="none">
+      <SSHStack style={styles.bytesContainer} gap="none">
         {decoded.map((item, i) => {
           return (
             <Fragment key={i}>
@@ -155,21 +163,17 @@ function SSTransactionDecodedBytes({
                       size={textSize}
                       style={
                         selected
-                          ? [
-                              {
-                                backgroundColor: 'white',
-                                color: 'black',
-                                padding: 2.6,
-                                marginBottom: -1
-                              }
-                            ]
-                          : [
-                              {
-                                color: colors[item.field as TxField],
-                                padding: 2.6,
-                                marginBottom: -1
-                              }
-                            ]
+                          ? {
+                              backgroundColor: 'white',
+                              color: 'black',
+                              padding: 2.6,
+                              marginBottom: -1
+                            }
+                          : {
+                              color: colors[item.field as TxField],
+                              padding: 2.6,
+                              marginBottom: -1
+                            }
                       }
                     >
                       {byte}
@@ -181,9 +185,11 @@ function SSTransactionDecodedBytes({
           )
         })}
       </SSHStack>
-      {selectedItem !== -1 && (
-        <SSTransactionDecodedItem {...decoded[selectedItem]} />
-      )}
+      <View style={styles.selectedItemContainer}>
+        {selectedItem !== -1 && (
+          <SSTransactionDecodedItem {...decoded[selectedItem]} />
+        )}
+      </View>
     </SSVStack>
   )
 }
@@ -216,5 +222,28 @@ function SSTransactionDecodedItem({
     </SSVStack>
   )
 }
+
+const styles = StyleSheet.create({
+  bytesContainer: {
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    alignContent: 'center',
+    width: 'auto',
+    justifyContent: 'flex-start',
+    marginLeft: 'auto'
+  },
+  selectedItemContainer: {
+    marginTop: 10
+  },
+  zoomButton: {
+    padding: 5
+  },
+  zoomContainer: {
+    justifyContent: 'flex-end'
+  },
+  zoomText: {
+    lineHeight: 14
+  }
+})
 
 export default SSTransactionDecoded
