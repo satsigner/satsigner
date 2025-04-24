@@ -11,11 +11,12 @@ import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
+import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { PIN_KEY } from '@/config/auth'
+import { PIN_KEY, SALT_KEY } from '@/config/auth'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
@@ -28,7 +29,7 @@ import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
-import { aesDecrypt } from '@/utils/crypto'
+import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
 
 export default function AccountSettings() {
@@ -58,6 +59,8 @@ export default function AccountSettings() {
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
+  const [pin, setPin] = useState<string[]>(Array(4).fill(''))
+  const [showPinEntry, setShowPinEntry] = useState(false)
 
   function getPolicyTypeButtonLabel() {
     switch (account?.policyType) {
@@ -72,9 +75,28 @@ export default function AccountSettings() {
     }
   }
 
+  function handleOnViewMnemonic() {
+    setPin(Array(4).fill(''))
+    setShowPinEntry(true)
+  }
+
   function handleOnSelectScriptVersion() {
     setScriptVersion(scriptVersion)
     setScriptVersionModalVisible(false)
+  }
+
+  async function handlePinEntry(pinString: string) {
+    const salt = await getItem(SALT_KEY)
+    const storedEncryptedPin = await getItem(PIN_KEY)
+    if (!salt || !storedEncryptedPin) return
+
+    const encryptedPin = await pbkdf2Encrypt(pinString, salt)
+    const isPinValid = encryptedPin === storedEncryptedPin
+
+    if (isPinValid) {
+      setShowPinEntry(false)
+      setMnemonicModalVisible(true)
+    }
   }
 
   async function saveChanges() {
@@ -147,7 +169,7 @@ export default function AccountSettings() {
               <SSButton
                 style={{ flex: 1 }}
                 label={t('account.viewMnemonic')}
-                onPress={() => setMnemonicModalVisible(true)}
+                onPress={() => handleOnViewMnemonic()}
               />
             </SSHStack>
           )}
@@ -418,6 +440,14 @@ export default function AccountSettings() {
           </SSVStack>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
+      </SSModal>
+      <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
+        <SSPinEntry
+          title={t('account.enter.pin')}
+          pin={pin}
+          setPin={setPin}
+          onFillEnded={handlePinEntry}
+        />
       </SSModal>
     </ScrollView>
   )

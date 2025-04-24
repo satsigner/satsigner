@@ -18,8 +18,6 @@ export default function Features() {
           headerTitle: () => (
             <SSText uppercase>{t('settings.features.title')}</SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />

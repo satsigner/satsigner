@@ -35,7 +35,7 @@ export default function TabLayout() {
       segments.indexOf(segment) >= 0 &&
       segments.indexOf(segment) < segments.length - 1
     ) {
-      router.replace(`/(authenticated)/(tabs)/${segment}`)
+      router.navigate(`/(authenticated)/(tabs)/${segment}`)
     } else {
       props.onPress?.(e)
     }
@@ -56,7 +56,7 @@ export default function TabLayout() {
   }, [currentPath, segments])
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: isShowTab ? 0 : 24 }]}>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -116,15 +116,17 @@ const renderTabIcon = (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray[900]
+    backgroundColor: Colors.gray[950]
   },
   tabBar: {
     backgroundColor: '#1F1F1F',
-    borderColor: '#323232',
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 64,
-    alignItems: 'center'
+    borderTopColor: '#323232',
+    paddingTop: 10,
+    paddingBottom: 16,
+    height: 74,
+    alignItems: 'center',
+    elevation: 0,
+    shadowOpacity: 0
   },
   tabBarItem: {
     marginHorizontal: 16,

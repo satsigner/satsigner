@@ -15,8 +15,6 @@ export default function Features() {
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>Network</SSText>,
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />
@@ -33,8 +31,8 @@ export default function Features() {
                 }}
               />
               <SSSettingsCards
-                title={t('settings.network.params.title')}
-                description={t('settings.network.params.description')}
+                title={t('settings.network.config.title')}
+                description={t('settings.network.config.description')}
                 icon={<SSIconServerOptions width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/params')

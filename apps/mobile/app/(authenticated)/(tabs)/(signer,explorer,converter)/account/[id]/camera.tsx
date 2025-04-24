@@ -114,7 +114,7 @@ export default function Camera() {
                 justifyContent: 'center',
                 alignItems: 'center'
               }}
-              colors={[Colors.gray[900], Colors.gray[800]]}
+              colors={[Colors.gray[950], Colors.gray[800]]}
               start={{ x: 0.86, y: 1.0 }}
               end={{ x: 0.14, y: 1 }}
             />

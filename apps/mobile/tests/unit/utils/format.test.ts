@@ -2,7 +2,8 @@ import {
   formatAddress,
   formatDate,
   formatNumber,
-  formatTime
+  formatTime,
+  formatTxId
 } from '@/utils/format'
 
 describe('format utils', () => {
@@ -46,6 +47,12 @@ describe('format utils', () => {
 
     it('should work with number date', () => {
       expect(formatDate(1711639918000)).toBe('Mar 28, 2024')
+    })
+  })
+
+  describe('formatTxId', () => {
+    it('should return first and last six characters of the address', () => {
+      expect(formatTxId('1111111111111111111114oLvT2')).toBe('111111...4oLvT2')
     })
   })
 })

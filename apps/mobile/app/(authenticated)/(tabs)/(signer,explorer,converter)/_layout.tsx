@@ -20,6 +20,7 @@ import {
   SSIconHamburger,
   SSIconSettings
 } from '@/components/icons'
+import SSIconBackArrow from '@/components/icons/SSIconBackArrow'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
@@ -124,7 +125,14 @@ export default function StackLayout(params: any) {
                   )}
                 </SSIconButton>
               )
-            : undefined,
+            : () => (
+                <SSIconButton
+                  style={{ marginLeft: 8, width: 20 }}
+                  onPress={() => router.back()}
+                >
+                  <SSIconBackArrow height={16} width={7} />
+                </SSIconButton>
+              ),
           headerRight: () => (
             <SSIconButton
               style={{ marginRight: 8 }}
@@ -134,7 +142,9 @@ export default function StackLayout(params: any) {
             </SSIconButton>
           ),
           headerTitleAlign: 'center',
-          headerTintColor: Colors.gray[200]
+          headerTintColor: Colors.gray[200],
+          headerBackTitleVisible: false,
+          headerBackVisible: false
         }}
       >
         {homeScreen}
@@ -147,6 +157,6 @@ export default function StackLayout(params: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray[900]
+    backgroundColor: Colors.gray[950]
   }
 })

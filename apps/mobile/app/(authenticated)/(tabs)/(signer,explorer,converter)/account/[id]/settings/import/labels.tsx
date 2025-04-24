@@ -128,10 +128,10 @@ export default function ImportLabels() {
             <View
               style={{
                 padding: 10,
-                backgroundColor: Colors.gray[900],
+                backgroundColor: Colors.gray[950],
                 borderRadius: 5,
                 borderWidth: 1,
-                borderColor: invalidContent ? Colors.error : Colors.gray[900]
+                borderColor: invalidContent ? Colors.error : Colors.gray[950]
               }}
             >
               <SSText color="white" size="md" type="mono">

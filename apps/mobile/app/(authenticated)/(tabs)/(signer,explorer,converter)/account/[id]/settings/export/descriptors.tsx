@@ -27,7 +27,7 @@ export default function ExportDescriptors() {
   const account = useAccountsStore((state) =>
     state.accounts.find((_account) => _account.id === accountId)
   )
-  const network = useBlockchainStore((state) => state.network)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [exportContent, setExportContent] = useState('')
 
@@ -107,7 +107,7 @@ export default function ExportDescriptors() {
         <View
           style={{
             padding: 10,
-            backgroundColor: Colors.gray[900],
+            backgroundColor: Colors.gray[950],
             borderRadius: 5
           }}
         >
