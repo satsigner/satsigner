@@ -12,6 +12,13 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
+// Configure networks
+const networks = {
+  mainnet: bitcoin.networks.bitcoin,
+  testnet: bitcoin.networks.testnet,
+  signet: bitcoin.networks.testnet // Signet uses testnet address format
+}
+
 const isValidBitcoinAddress = (address: string): boolean => {
   try {
     // Try to decode the address
@@ -33,6 +40,36 @@ const isValidBitcoinAddress = (address: string): boolean => {
     }
   }
   return false
+}
+
+const getNetworkType = (
+  address: string
+): 'mainnet' | 'testnet' | 'signet' | null => {
+  try {
+    // Try to decode the address
+    const decoded = bitcoin.address.fromBech32(address)
+    if (decoded) {
+      // Check the prefix for network type
+      if (decoded.prefix === 'tb') return 'testnet'
+      if (decoded.prefix === 'sb') return 'signet'
+      if (decoded.prefix === 'bc') return 'mainnet'
+    }
+  } catch {
+    try {
+      // Try to decode as base58 (legacy or P2SH)
+      const decoded = bitcoin.address.fromBase58Check(address)
+      if (decoded) {
+        // Check version for network type
+        if (decoded.version === 0 || decoded.version === 5) return 'mainnet'
+        // For testnet/signet, we need to check the network type from the node
+        // since they share the same address versions
+        return 'testnet' // Default to testnet for now
+      }
+    } catch {
+      return null
+    }
+  }
+  return null
 }
 
 export default function Energy() {
@@ -110,38 +147,90 @@ export default function Energy() {
     setTemplateError('')
     setTemplateData('')
     try {
+      const rules = ['segwit']
+
+      // First try to get the network type from the node
+      try {
+        const networkResponse = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
+          },
+          body: JSON.stringify({
+            jsonrpc: '1.0',
+            id: '1',
+            method: 'getblockchaininfo',
+            params: []
+          })
+        })
+
+        if (networkResponse.ok) {
+          const networkData = await networkResponse.json()
+          if (networkData.result && networkData.result.chain) {
+            if (networkData.result.chain === 'signet') {
+              rules.push('signet')
+            } else if (networkData.result.chain === 'test') {
+              rules.push('testnet')
+            }
+          }
+        }
+      } catch (_error) {
+        // Ignore network type detection errors
+      }
+
+      const requestBody = {
+        jsonrpc: '1.0',
+        id: '1',
+        method: 'getblocktemplate',
+        params: [
+          {
+            rules: rules
+          }
+        ]
+      }
+
       const response = await fetch(rpcUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
         },
-        body: JSON.stringify({
-          jsonrpc: '1.0',
-          id: '1',
-          method: 'getblocktemplate',
-          params: [
-            {
-              rules: ['segwit']
-            }
-          ]
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch block template')
+        const errorText = await response.text()
+        throw new Error(`HTTP error ${response.status}: ${errorText}`)
       }
 
       const data = await response.json()
       if (data.error) {
-        throw new Error(data.error.message || 'RPC error')
+        let errorMessage = data.error.message || 'RPC error'
+        if (data.error.code === -32601) {
+          errorMessage =
+            'getblocktemplate RPC method not found. Make sure your node supports mining.'
+        } else if (data.error.code === -32603) {
+          errorMessage =
+            'Node is not ready for mining. Check if your node is fully synced.'
+        } else if (data.error.code === -32602) {
+          errorMessage =
+            'Invalid parameters. Check if your node supports the requested rules.'
+        }
+        throw new Error(errorMessage)
+      }
+
+      if (!data.result) {
+        throw new Error('No block template data received from node')
       }
 
       setBlockTemplate(data.result)
       // Format and set the template data
       setTemplateData(_formatTemplateData(data.result))
-    } catch (_error) {
-      setTemplateError('Failed to fetch block template')
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred'
+      setTemplateError(`Failed to fetch block template: ${errorMessage}`)
     } finally {
       setIsLoadingTemplate(false)
     }
@@ -314,25 +403,37 @@ export default function Energy() {
         return null
       }
 
-      const tx = new bitcoin.Transaction()
-      tx.version = 1
-      tx.locktime = 0
-      tx.addInput(
-        Buffer.alloc(32),
-        0xffffffff,
-        0xffffffff,
-        Buffer.from(`Satsigner ${Date.now()}`)
-      )
-      tx.addOutput(
-        bitcoin.address.toOutputScript(miningAddress),
-        template.coinbasevalue
-      )
-      if (opReturnContent) {
-        const data = Buffer.from(opReturnContent)
-        const script = bitcoin.script.compile([bitcoin.opcodes.OP_RETURN, data])
-        tx.addOutput(script, 0)
+      try {
+        const tx = new bitcoin.Transaction()
+        tx.version = 1
+        tx.locktime = 0
+        tx.addInput(
+          Buffer.alloc(32),
+          0xffffffff,
+          0xffffffff,
+          Buffer.from(`Satsigner ${Date.now()}`)
+        )
+
+        // Use testnet network for signet addresses
+        const outputScript = bitcoin.address.toOutputScript(
+          miningAddress,
+          networks.testnet
+        )
+
+        tx.addOutput(outputScript, template.coinbasevalue)
+        if (opReturnContent) {
+          const data = Buffer.from(opReturnContent)
+          const script = bitcoin.script.compile([
+            bitcoin.opcodes.OP_RETURN,
+            data
+          ])
+          tx.addOutput(script, 0)
+        }
+
+        return tx
+      } catch (error) {
+        throw error
       }
-      return tx
     },
     [miningAddress, opReturnContent]
   )
@@ -473,6 +574,57 @@ export default function Energy() {
     }
 
     try {
+      // First check if the address matches the node's network
+      const networkResponse = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
+        },
+        body: JSON.stringify({
+          jsonrpc: '1.0',
+          id: '1',
+          method: 'getblockchaininfo',
+          params: []
+        })
+      })
+
+      if (!networkResponse.ok) {
+        throw new Error('Failed to get node network information')
+      }
+
+      const networkData = await networkResponse.json()
+      if (networkData.error) {
+        throw new Error(
+          networkData.error.message || 'Failed to get node network information'
+        )
+      }
+
+      const nodeNetwork = networkData.result?.chain
+      if (!nodeNetwork) {
+        throw new Error('Could not determine node network type')
+      }
+
+      // Check address prefix against node network
+      const addressPrefix = miningAddress.substring(0, 2)
+      if (nodeNetwork === 'main' && addressPrefix !== 'bc') {
+        throw new Error(
+          `Address ${miningAddress} has the wrong prefix for mainnet network. Use an address starting with 'bc'`
+        )
+      } else if (
+        nodeNetwork === 'signet' &&
+        addressPrefix !== 'sb' &&
+        addressPrefix !== 'tb'
+      ) {
+        throw new Error(
+          `Address ${miningAddress} has the wrong prefix for signet network. Use an address starting with 'sb' or 'tb'`
+        )
+      } else if (nodeNetwork === 'test' && addressPrefix !== 'tb') {
+        throw new Error(
+          `Address ${miningAddress} has the wrong prefix for testnet network. Use an address starting with 'tb'`
+        )
+      }
+
       setIsMining(true)
       isMiningRef.current = true
 
@@ -574,7 +726,10 @@ export default function Energy() {
     _createCoinbaseTransaction,
     _createBlockHeader,
     _createMerkleRoot,
-    _submitBlock
+    _submitBlock,
+    rpcUrl,
+    rpcUser,
+    rpcPassword
   ])
 
   const _stopMining = useCallback(() => {
