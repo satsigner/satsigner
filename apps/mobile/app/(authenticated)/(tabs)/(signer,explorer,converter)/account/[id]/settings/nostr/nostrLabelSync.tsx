@@ -29,7 +29,6 @@ function SSNostrLabelSync() {
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [secretNostrKey, setSecretNostrKey] = useState<Uint8Array | null>(null)
   const [expandedMessages, setExpandedMessages] = useState<number[]>([])
   const [relayError, setRelayError] = useState<string | null>(null)
   const [autoSync, setAutoSync] = useState(false)
@@ -54,7 +53,7 @@ function SSNostrLabelSync() {
   }
 
   async function fetchMessages(loadMore: boolean = false) {
-    if (!npub || !secretNostrKey || !nostrApi) return
+    if (!npub || !nsec || !nostrApi) return
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
@@ -64,14 +63,11 @@ function SSNostrLabelSync() {
 
     setIsLoading(true)
     try {
-      // Ensure connection is established
-      await nostrApi.connect()
-
       const lastBackupTimestamp = account?.nostr.lastBackupTimestamp
 
       const fetchedMessages = (
         await nostrApi.fetchMessages(
-          Uint8Array.from(secretNostrKey),
+          nsec,
           npub,
           lastBackupTimestamp
         )
@@ -100,9 +96,8 @@ function SSNostrLabelSync() {
   async function handleCreateNsec() {
     if (!account) return
 
-    const { npub, nsec, seckey } = account.nostr
-    if (npub && nsec && seckey) {
-      setSecretNostrKey(seckey)
+    const { npub, nsec } = account.nostr
+    if (npub && nsec) {
       setNsec(nsec)
       setNpub(npub)
       return
@@ -110,11 +105,9 @@ function SSNostrLabelSync() {
 
     try {
       const keys = await generateAccountNostrKeys(account, passphrase)
-      setSecretNostrKey(keys.secretNostrKey)
       setNsec(keys.nsec)
       setNpub(keys.npub)
       updateAccountNostr(accountId, {
-        seckey: keys.secretNostrKey,
         npub: keys.npub,
         nsec: keys.nsec
       })
@@ -124,7 +117,7 @@ function SSNostrLabelSync() {
   }
 
   async function handleSendMessage() {
-    if (!secretNostrKey || !npub || !account || !nostrApi) return
+    if (!nsec || !npub || !account || !nostrApi) return
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {

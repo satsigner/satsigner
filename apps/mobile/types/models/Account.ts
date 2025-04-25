@@ -73,7 +73,6 @@ export type Account = {
   nostr: {
     npub: string
     nsec: string
-    seckey?: Uint8Array
     relays: string[]
     autoSync: boolean
     passphrase?: string

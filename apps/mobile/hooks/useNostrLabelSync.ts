@@ -21,10 +21,9 @@ function useNostrLabelSync() {
   async function sendAccountLabelsToNostr(account?: Account) {
     if (!account || !account.nostr) return
 
-    const { seckey, npub, relays, lastBackupFingerprint } =
-      account.nostr
+    const { nsec, npub, relays, lastBackupFingerprint } = account.nostr
 
-    if (!seckey || npub === '' || relays.length === 0) return
+    if (!nsec || npub === '' || relays.length === 0) return
 
     const labels = formatAccountLabels(account)
 
@@ -40,8 +39,7 @@ function useNostrLabelSync() {
     await nostrApi.connect()
 
     try {
-      console.log('hook -> ', Uint8Array.from([...seckey]))
-      await nostrApi.sendMessage(Uint8Array.from([...seckey]), npub, message)
+      await nostrApi.sendMessage(nsec, npub, message)
 
       const timestamp = new Date().getTime() / 1000
 
@@ -60,18 +58,16 @@ function useNostrLabelSync() {
   async function syncAccountLabelsFromNostr(account?: Account) {
     if (!account || !account.nostr) return
 
-    const { autoSync, seckey, npub, relays, lastBackupTimestamp } =
-      account.nostr
+    const { autoSync, nsec, npub, relays, lastBackupTimestamp } = account.nostr
 
-    if (!autoSync || !seckey || npub === '' || relays.length === 0) return
+    if (!autoSync || !nsec || !npub || relays.length === 1) return
 
     const nostrApi = new NostrAPI(relays)
-    await nostrApi.connect()
 
     const messageCount = 5
     const since = lastBackupTimestamp
     const messages = await nostrApi.fetchMessages(
-      Uint8Array.from(seckey),
+      nsec,
       npub,
       since,
       messageCount

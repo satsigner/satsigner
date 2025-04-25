@@ -48,53 +48,75 @@ export class NostrAPI {
   }
 
   async sendMessage(
-    secretNostrKey: Uint8Array,
+    nsec: string,
     recipientNpub: string,
     content: string
   ): Promise<void> {
     await this.connect()
-    if (!this.ndk) throw new Error('Failed to connect to relays')
+    if (!this.ndk) {
+      throw new Error('Failed to connect to relays')
+    }
+
+    // Decode the nsec
+    const { type, data: secretNostrKey } = nip19.decode(nsec)
+
+    // Check if the decoded type is 'nsec'
+    if (type !== 'nsec') {
+      throw new Error('Input is not a valid nsec')
+    }
 
     // Convert secretNostrKey (Uint8Array) to hex string
-    console.log("DEBUGPRINT[39]: nostr.ts:58 (after // Convert secretNostrKey (Uint8Array) t…)")
     const secretNostrKeyHex = Buffer.from(secretNostrKey).toString('hex')
-    console.log("DEBUGPRINT[45]: nostr.ts:60 (after const secretNostrKeyHex = Buffer.from(se…)")
-    console.log('this is it', secretNostrKey)
-    const ourPubkey = getPublicKey(secretNostrKey)
-    console.log("DEBUGPRINT[44]: nostr.ts:61 (after const ourPubkey = getPublicKey(secretNos…)")
+    const ourPubkey = getPublicKey(secretNostrKeyHex)
 
     // Decode recipient's npub to hex pubkey
-    console.log("DEBUGPRINT[40]: nostr.ts:63 (after // Decode recipients npub to hex pubkey)")
+    console.log(recipientNpub)
     const recipientPubkey = nip19.decode(recipientNpub).data as string
+    console.log(recipientPubkey)
 
     // Ensure proper encoding before encryption
-    console.log("DEBUGPRINT[41]: nostr.ts:67 (after // Ensure proper encoding before encrypt…)")
     const encodedContent = unescape(encodeURIComponent(content))
 
     // Create signer
-    console.log("DEBUGPRINT[42]: nostr.ts:71 (after // Create signer)")
     const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
 
     // Create NDKUser for recipient
-    console.log("DEBUGPRINT[43]: nostr.ts:75 (after // Create NDKUser for recipient)")
-    const recipientUser = new NDKUser({ npub: recipientPubkey })
+    const recipientUser = new NDKUser({
+      npub: recipientPubkey,
+      relayUrls: this.relays
+    })
     recipientUser.ndk = this.ndk
 
     // Step 1: Create the kind:14 chat message event
-    console.log("DEBUGPRINT[34]: nostr.ts:75 (after // Step 1: Create the kind:14 chat messa…)")
     const kind14Event = new NDKEvent(this.ndk, {
       kind: 14,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: new Date().getTime() / 1000,
       tags: [['p', recipientPubkey]], // Reference recipient
       content: encodedContent
     })
 
     // Step 2: Encrypt the kind:14 event using NIP-44
-    console.log("DEBUGPRINT[35]: nostr.ts:85 (after // Step 2: Encrypt the kind:14 event usi…)")
-    await kind14Event.encrypt(recipientUser, signer)
+
+    // Debug: Log event before encryption
+    console.log(
+      'Kind:14 event before encryption:',
+      await kind14Event.toNostrEvent()
+    )
+
+    // Encrypt kind:14 event using NIP-44
+    try {
+      await kind14Event.encrypt(recipientUser, signer)
+      console.log('Kind:14 event encrypted successfully')
+    } catch (error) {
+      console.error('Encryption failed for kind:14:', error)
+      throw new Error('Failed to encrypt kind:14 event: ' + error.message)
+    }
 
     // Create sealed kind:13 event
+    console.log(
+      'DEBUGPRINT[48]: nostr.ts:99 (after // Create sealed kind:13 event)'
+    )
     const kind13Event = new NDKEvent(this.ndk, {
       kind: 13,
       pubkey: ourPubkey,
@@ -104,12 +126,10 @@ export class NostrAPI {
     })
 
     // Sign kind:13 event
-    console.log("DEBUGPRINT[36]: nostr.ts:98 (after // Sign kind:13 event)")
     await kind13Event.sign(signer)
     await kind13Event.encrypt(recipientUser, signer)
 
     // Step 3: Create kind:1059 gift-wrap event for recipient
-    console.log("DEBUGPRINT[37]: nostr.ts:103 (after // Step 3: Create kind:1059 gift-wrap ev…)")
     const kind1059Event = new NDKEvent(this.ndk, {
       kind: 1059,
       pubkey: ourPubkey,
@@ -120,20 +140,25 @@ export class NostrAPI {
     await kind1059Event.sign(signer)
 
     // Step 5: Publish events
-    console.log("DEBUGPRINT[38]: nostr.ts:114 (after // Step 5: Publish events)")
-    console.log('all right until now')
     await kind1059Event.publish()
-    console.log('Recipient gift-wrap published successfully')
   }
 
   async fetchMessages(
-    secretNostrKey: Uint8Array,
+    nsec: string,
     recipientNpub: string,
     since?: number,
     limit: number = 3
   ): Promise<NostrMessage[]> {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
+
+    // Decode the nsec
+    const { type, data: secretNostrKey } = nip19.decode(nsec)
+
+    // Check if the decoded type is 'nsec'
+    if (type !== 'nsec') {
+      throw new Error('Input is not a valid nsec')
+    }
 
     const user = this.ndk.getUser({ npub: recipientNpub })
     const ourPubkey = getPublicKey(secretNostrKey)
