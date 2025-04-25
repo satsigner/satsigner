@@ -56,7 +56,7 @@ function SSSankeyLinks({
   links,
   nodes,
   sankeyGenerator,
-  LINK_MAX_WIDTH,
+  // LINK_MAX_WIDTH,
   BLOCK_WIDTH
 }: SSSankeyLinksProps) {
   const getLinkWidth = useCallback(
@@ -82,88 +82,31 @@ function SSSankeyLinks({
             (n) => n.id === link.target
           ) as Node
 
-          let linkWidth = 2 // Default for 1 sat or less
           const otherNode =
             type === 'source' ? currentTargetNode : currentSourceNode
           const value = otherNode.value ?? 0
-
-          if (value >= 100000) {
-            linkWidth = 32
-          } else if (value >= 1000) {
-            linkWidth = 16
-          } else if (value >= 100) {
-            linkWidth = 12
-          } else if (value >= 10) {
-            linkWidth = 6
-          } else if (value >= 1) {
-            linkWidth = 2
-          }
+          const linkWidth = logAttenuation(value)
           totalWidthFromBlock += linkWidth
         }
       }
       if (type === 'source') {
         if (node.type === 'block') {
-          let width = 2 // Default for 1 sat or less
-          if (targetNode.value! >= 100000) {
-            width = 32
-          } else if (targetNode.value! >= 1000) {
-            width = 16
-          } else if (targetNode.value! >= 100) {
-            width = 12
-          } else if (targetNode.value! >= 10) {
-            width = 6
-          } else if (targetNode.value! >= 1) {
-            width = 2
-          }
+          const width = logAttenuation(targetNode.value ?? 0)
           const w = (width / totalWidthFromBlock) * LINK_BLOCK_MAX_WIDTH
           // console.log('value', targetNode.value, node.id, width)
           return w
         } else if (node.type === 'text') {
-          let width = 2 // Default for 1 sat or less
-          if (node.value! >= 100000) {
-            width = 32
-          } else if (node.value! >= 1000) {
-            width = 16
-          } else if (node.value! >= 100) {
-            width = 12
-          } else if (node.value! >= 10) {
-            width = 6
-          } else if (node.value! >= 1) {
-            width = 2
-          }
+          const width = logAttenuation(node.value ?? 0)
           return width
         }
       } else if (type === 'target') {
         if (node.type === 'block') {
           const value = sourceNode.value ?? 0
-
-          let width = 2 // Default for 1 sat or less
-          if (value >= 100000) {
-            width = 32
-          } else if (value >= 1000) {
-            width = 16
-          } else if (value >= 100) {
-            width = 12
-          } else if (value >= 10) {
-            width = 6
-          } else if (value >= 1) {
-            width = 2
-          }
+          const width = logAttenuation(value)
           const w = (width / totalWidthFromBlock) * LINK_BLOCK_MAX_WIDTH
           return w
         } else if (node.type === 'text') {
-          let width = 2 // Default for 1 sat or less
-          if (node.value! >= 100000) {
-            width = 32
-          } else if (node.value! >= 1000) {
-            width = 16
-          } else if (node.value! >= 100) {
-            width = 12
-          } else if (node.value! >= 10) {
-            width = 6
-          } else if (node.value! >= 1) {
-            width = 2
-          }
+          const width = logAttenuation(node.value ?? 0)
           return width
         }
       }
@@ -363,6 +306,14 @@ function SSSankeyLinks({
       })}
     </>
   )
+}
+
+const logAttenuation = (value: number): number => {
+  const intensity = 0.8
+  if (value <= 0) {
+    return 0
+  }
+  return Math.log(value + 1) ** (1 / intensity)
 }
 
 const generateCustomLink = (points: LinkPoints) => {
