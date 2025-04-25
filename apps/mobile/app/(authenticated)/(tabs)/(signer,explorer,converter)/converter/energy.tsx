@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { Stack } from 'expo-router'
 import * as bitcoin from 'bitcoinjs-lib'
+import Slider from '@react-native-community/slider'
 
 import { Colors } from '@/styles'
 import SSButton from '@/components/SSButton'
@@ -79,6 +80,7 @@ export default function Energy() {
   const [energyRate, _setEnergyRate] = useState('0')
   const [totalSats, _setTotalSats] = useState('0')
   const [isMining, setIsMining] = useState(false)
+  const [miningIntensity, setMiningIntensity] = useState(500)
   const isMiningRef = useRef(false)
   const miningIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [rpcUrl, setRpcUrl] = useState('')
@@ -91,7 +93,6 @@ export default function Energy() {
   const [_isLoadingInfo, setIsLoadingInfo] = useState(false)
   const [blockTemplate, setBlockTemplate] = useState<any>(null)
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false)
-  const [templateError, setTemplateError] = useState('')
   const [templateData, setTemplateData] = useState<string>('')
   const [miningAddress, setMiningAddress] = useState('')
   const [isValidAddress, setIsValidAddress] = useState(false)
@@ -104,8 +105,14 @@ export default function Energy() {
   const lastHashRef = useRef('')
   const [difficultyProgress, setDifficultyProgress] = useState(0)
   const [networkHashRate, setNetworkHashRate] = useState('0')
+  const [isStopping, setIsStopping] = useState(false)
+  const [txId, setTxId] = useState('')
+  const [isLoadingTx, setIsLoadingTx] = useState(false)
+  const [txError, setTxError] = useState('')
+  const lastTemplateUpdateRef = useRef<number>(0)
+  const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const _formatTemplateData = (data: any) => {
+  const _formatTemplateData = useCallback((data: any) => {
     try {
       // Only show essential fields to reduce data size
       const essentialData = {
@@ -139,14 +146,18 @@ export default function Energy() {
     } catch (_error) {
       return 'Error formatting template data'
     }
-  }
+  }, [])
 
   const _fetchBlockTemplate = useCallback(async () => {
     if (!isConnected) return
 
+    // Prevent too frequent updates (minimum 30 seconds between updates)
+    const now = Date.now()
+    if (now - lastTemplateUpdateRef.current < 30000) {
+      return
+    }
+
     setIsLoadingTemplate(true)
-    setTemplateError('')
-    setTemplateData('')
     try {
       const rules = ['segwit']
 
@@ -225,17 +236,27 @@ export default function Energy() {
         throw new Error('No block template data received from node')
       }
 
-      setBlockTemplate(data.result)
-      // Format and set the template data
-      setTemplateData(_formatTemplateData(data.result))
+      // Update template only if it's different
+      if (JSON.stringify(data.result) !== JSON.stringify(blockTemplate)) {
+        setBlockTemplate(data.result)
+        setTemplateData(_formatTemplateData(data.result))
+        lastTemplateUpdateRef.current = now
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred'
-      setTemplateError(`Failed to fetch block template: ${errorMessage}`)
+      toast.error(`Failed to fetch block template: ${errorMessage}`)
     } finally {
       setIsLoadingTemplate(false)
     }
-  }, [isConnected, rpcUrl, rpcUser, rpcPassword])
+  }, [
+    isConnected,
+    rpcUrl,
+    rpcUser,
+    rpcPassword,
+    _formatTemplateData,
+    blockTemplate
+  ])
 
   const _fetchBlockchainInfo = useCallback(async () => {
     if (!isConnected) return
@@ -334,6 +355,36 @@ export default function Energy() {
     return () => clearInterval(intervalId)
   }, [_fetchNetworkHashRate])
 
+  // Set up template refresh interval
+  useEffect(() => {
+    if (isConnected) {
+      // Initial fetch
+      _fetchBlockTemplate()
+
+      // Set up interval for auto-refresh (every 2 minutes)
+      templateUpdateIntervalRef.current = setInterval(() => {
+        _fetchBlockTemplate()
+      }, 120000)
+    }
+
+    return () => {
+      if (templateUpdateIntervalRef.current) {
+        clearInterval(templateUpdateIntervalRef.current)
+        templateUpdateIntervalRef.current = null
+      }
+    }
+  }, [isConnected, _fetchBlockTemplate])
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (templateUpdateIntervalRef.current) {
+        clearInterval(templateUpdateIntervalRef.current)
+        templateUpdateIntervalRef.current = null
+      }
+    }
+  }, [])
+
   const _connectToNode = async () => {
     if (!rpcUrl || !rpcUser || !rpcPassword) {
       setConnectionError('Please fill in all RPC credentials')
@@ -415,10 +466,17 @@ export default function Energy() {
           Buffer.from(`Satsigner ${Date.now()}`)
         )
 
-        // Use testnet network for signet addresses
+        // Determine the correct network based on the address prefix
+        let network = networks.mainnet
+        if (miningAddress.startsWith('tb')) {
+          network = networks.testnet
+        } else if (miningAddress.startsWith('sb')) {
+          network = networks.testnet // Signet uses testnet address format
+        }
+
         const outputScript = bitcoin.address.toOutputScript(
           miningAddress,
-          networks.testnet
+          network
         )
 
         tx.addOutput(outputScript, template.coinbasevalue)
@@ -570,7 +628,7 @@ export default function Energy() {
 
   const _startMining = useCallback(async () => {
     if (!blockTemplate || !miningAddress) {
-      setTemplateError('Missing block template or mining address')
+      toast.error('Missing block template or mining address')
       return
     }
 
@@ -608,22 +666,23 @@ export default function Energy() {
 
       // Check address prefix against node network
       const addressPrefix = miningAddress.substring(0, 2)
-      if (nodeNetwork === 'main' && addressPrefix !== 'bc') {
-        throw new Error(
-          `Address ${miningAddress} has the wrong prefix for mainnet network. Use an address starting with 'bc'`
-        )
-      } else if (
-        nodeNetwork === 'signet' &&
-        addressPrefix !== 'sb' &&
-        addressPrefix !== 'tb'
-      ) {
-        throw new Error(
-          `Address ${miningAddress} has the wrong prefix for signet network. Use an address starting with 'sb' or 'tb'`
-        )
-      } else if (nodeNetwork === 'test' && addressPrefix !== 'tb') {
-        throw new Error(
-          `Address ${miningAddress} has the wrong prefix for testnet network. Use an address starting with 'tb'`
-        )
+
+      // For mainnet, we need to handle both 'bc' and 'bc1' prefixes
+      if (nodeNetwork === 'main') {
+        if (addressPrefix !== 'bc' && !miningAddress.startsWith('bc1')) {
+          toast.error(
+            `Address ${miningAddress} has the wrong prefix for mainnet network. Use an address starting with 'bc' or 'bc1'`
+          )
+          return
+        }
+      } else if (nodeNetwork === 'test' || nodeNetwork === 'signet') {
+        // Both testnet and signet use the same address format
+        if (addressPrefix !== 'tb' && !miningAddress.startsWith('tb1')) {
+          toast.error(
+            `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with 'tb' or 'tb1'`
+          )
+          return
+        }
       }
 
       setIsMining(true)
@@ -654,8 +713,12 @@ export default function Energy() {
         }
 
         try {
-          // Increase iterations per interval for higher hash rate
-          for (let i = 0; i < 10000; i++) {
+          for (let i = 0; i < miningIntensity; i++) {
+            if (!isMiningRef.current) {
+              clearInterval(miningInterval)
+              return
+            }
+
             const timestamp = Math.floor(Date.now() / 1000)
             const header = _createBlockHeader(
               blockTemplate,
@@ -664,14 +727,13 @@ export default function Energy() {
               nonce++
             )
 
-            // Optimize hash calculation by reusing buffers
             const hash = bitcoin.crypto.sha256(
               bitcoin.crypto.sha256(header as unknown as Buffer)
             )
             const hashHex = (hash as Buffer).reverse().toString('hex')
 
             hashes++
-            // Only update lastHash every 1000 hashes to reduce state updates
+
             if (hashes % 1000 === 0) {
               lastHashRef.current = hashHex
             }
@@ -686,47 +748,48 @@ export default function Energy() {
                 _setTotalSats((prev) =>
                   (Number(prev) + blockTemplate.coinbasevalue).toString()
                 )
+                toast.success('Block found and submitted successfully!')
               }
               clearInterval(miningInterval)
-              toast.success('Block submitted successfully')
               isMiningRef.current = false
               setIsMining(false)
               return
             }
           }
 
-          const now = Date.now()
-          const elapsed = (now - startTime) / 1000
-          const hashesPerSecond = Math.floor(hashes / elapsed)
-          const powerConsumption = isNaN(hashesPerSecond)
-            ? '0'
-            : (hashesPerSecond * 0.0001).toFixed(2)
-          _setEnergyRate(powerConsumption)
+          if (hashes % 2000 === 0) {
+            const now = Date.now()
+            const elapsed = (now - startTime) / 1000
+            const hashesPerSecond = Math.floor(hashes / elapsed)
+            const powerConsumption = isNaN(hashesPerSecond)
+              ? '0'
+              : (hashesPerSecond * 0.0001).toFixed(2)
 
-          // Update stats less frequently to reduce overhead
-          if (hashes % 10000 === 0) {
-            setMiningStats((prev) => ({
-              ...prev,
-              hashesPerSecond,
-              attempts: hashes,
-              lastHash: lastHashRef.current
-            }))
+            requestAnimationFrame(() => {
+              _setEnergyRate(powerConsumption)
+              setMiningStats((prev) => ({
+                ...prev,
+                hashesPerSecond,
+                attempts: hashes,
+                lastHash: lastHashRef.current
+              }))
+            })
           }
         } catch (error) {
           clearInterval(miningInterval)
           isMiningRef.current = false
           setIsMining(false)
-          setTemplateError(
+          toast.error(
             'Error during mining: ' +
               (error instanceof Error ? error.message : 'Unknown error')
           )
         }
-      }, 100) // Reduce interval to 100ms for more frequent updates
+      }, 200)
       miningIntervalRef.current = miningInterval
     } catch (error) {
       isMiningRef.current = false
       setIsMining(false)
-      setTemplateError(
+      toast.error(
         'Error starting mining: ' +
           (error instanceof Error ? error.message : 'Unknown error')
       )
@@ -740,18 +803,25 @@ export default function Energy() {
     _submitBlock,
     rpcUrl,
     rpcUser,
-    rpcPassword
+    rpcPassword,
+    miningIntensity
   ])
 
   const _stopMining = useCallback(() => {
-    isMiningRef.current = false
+    // Set loading state immediately
+    setIsStopping(true)
     setIsMining(false)
-    // Clear any existing mining interval
+
+    // Immediately set ref to false to stop mining loop
+    isMiningRef.current = false
+
+    // Clear interval immediately
     if (miningIntervalRef.current) {
       clearInterval(miningIntervalRef.current)
       miningIntervalRef.current = null
     }
-    // Reset all mining-related values
+
+    // Reset mining values immediately
     _setHashRate('0')
     _setEnergyRate('0')
     _setTotalSats('0')
@@ -760,12 +830,80 @@ export default function Energy() {
       lastHash: '',
       attempts: 0
     })
+
+    // Show toast and clear loading state in next frame
+    requestAnimationFrame(() => {
+      toast.info('Mining stopped')
+      setIsStopping(false)
+    })
   }, [])
 
   const handleMiningAddressChange = (address: string) => {
     setMiningAddress(address)
     setIsValidAddress(isValidBitcoinAddress(address))
   }
+
+  const _fetchTransaction = useCallback(async () => {
+    if (!txId || !isConnected) return
+
+    setIsLoadingTx(true)
+    setTxError('')
+
+    try {
+      const response = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
+        },
+        body: JSON.stringify({
+          jsonrpc: '1.0',
+          id: '1',
+          method: 'getrawtransaction',
+          params: [txId, true]
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch transaction')
+      }
+
+      const data = await response.json()
+      if (data.error) {
+        throw new Error(data.error.message || 'RPC error')
+      }
+
+      if (!data.result) {
+        throw new Error('No transaction data received')
+      }
+
+      // Add transaction to template
+      if (blockTemplate) {
+        const newTemplate = {
+          ...blockTemplate,
+          transactions: [...(blockTemplate.transactions || []), data.result]
+        }
+        setBlockTemplate(newTemplate)
+        setTemplateData(_formatTemplateData(newTemplate))
+        toast.success('Transaction added to template')
+      }
+    } catch (error) {
+      setTxError(
+        error instanceof Error ? error.message : 'Failed to fetch transaction'
+      )
+      toast.error('Failed to fetch transaction')
+    } finally {
+      setIsLoadingTx(false)
+    }
+  }, [
+    txId,
+    isConnected,
+    rpcUrl,
+    rpcUser,
+    rpcPassword,
+    blockTemplate,
+    _formatTemplateData
+  ])
 
   return (
     <>
@@ -825,11 +963,58 @@ export default function Energy() {
           <View style={styles.graphPlaceholder} />
 
           <SSVStack gap="md" style={styles.buttonContainer}>
+            <SSVStack gap="sm" style={{ width: '100%' }}>
+              <SSHStack justifyBetween>
+                <SSText size="sm" color="muted">
+                  Mining Intensity
+                </SSText>
+                <SSText size="sm" color="muted">
+                  {miningIntensity} hashes/interval
+                </SSText>
+              </SSHStack>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={2000}
+                step={miningIntensity > 200 ? 100 : 10}
+                value={miningIntensity}
+                onValueChange={setMiningIntensity}
+                disabled={isMining}
+                minimumTrackTintColor={
+                  miningIntensity > 500
+                    ? Colors.error
+                    : miningIntensity > 300
+                      ? Colors.warning
+                      : miningIntensity > 200
+                        ? Colors.success
+                        : Colors.white
+                }
+                maximumTrackTintColor={Colors.gray[500]}
+                thumbTintColor={
+                  miningIntensity > 500
+                    ? Colors.error
+                    : miningIntensity > 300
+                      ? Colors.warning
+                      : miningIntensity > 200
+                        ? Colors.success
+                        : Colors.white
+                }
+              />
+            </SSVStack>
             <SSButton
-              label={isMining ? 'STOP MINING' : 'START MINING'}
+              label={
+                isMining
+                  ? isStopping
+                    ? 'STOPPING...'
+                    : 'STOP MINING'
+                  : 'START MINING'
+              }
               onPress={() => (isMining ? _stopMining() : _startMining())}
               variant={isMining ? 'danger' : 'secondary'}
-              disabled={!isConnected || !miningAddress || !isValidAddress}
+              disabled={
+                !isConnected || !miningAddress || !isValidAddress || isStopping
+              }
+              loading={isStopping}
             />
             <SSButton
               label="JOIN POOL"
@@ -1108,12 +1293,6 @@ export default function Energy() {
               <SSVStack style={styles.loadingContainer}>
                 <SSText color="muted">Loading block template...</SSText>
               </SSVStack>
-            ) : templateError ? (
-              <SSVStack style={styles.errorContainer}>
-                <SSText color="muted" style={styles.errorText}>
-                  {templateError}
-                </SSText>
-              </SSVStack>
             ) : templateData ? (
               <ScrollView style={styles.templateScroll}>
                 <SSText size="xs" type="mono" style={styles.templateText}>
@@ -1121,12 +1300,35 @@ export default function Energy() {
                 </SSText>
               </ScrollView>
             ) : null}
-            <SSButton
-              label="REFRESH TEMPLATE"
-              onPress={_fetchBlockTemplate}
-              variant="outline"
-              disabled={isLoadingTemplate}
-            />
+            <SSVStack gap="sm">
+              <SSButton
+                label="REFRESH TEMPLATE"
+                onPress={_fetchBlockTemplate}
+                variant="outline"
+                disabled={isLoadingTemplate}
+              />
+              <SSVStack gap="sm">
+                <SSTextInput
+                  placeholder="Enter mempool TX ID"
+                  value={txId}
+                  onChangeText={setTxId}
+                  variant="outline"
+                  align="center"
+                />
+                {txError && (
+                  <SSText size="sm" color="muted" style={styles.errorText}>
+                    {txError}
+                  </SSText>
+                )}
+                <SSButton
+                  label="ADD TRANSACTION"
+                  onPress={_fetchTransaction}
+                  variant="outline"
+                  disabled={!txId || isLoadingTx || !isConnected}
+                  loading={isLoadingTx}
+                />
+              </SSVStack>
+            </SSVStack>
           </SSVStack>
         )}
       </ScrollView>
@@ -1218,5 +1420,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 100
+  },
+  slider: {
+    width: '100%',
+    height: 60,
+    marginHorizontal: 0,
+    backgroundColor: Colors.gray[850]
   }
 })
