@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { Stack } from 'expo-router'
 import * as bitcoin from 'bitcoinjs-lib'
 import Slider from '@react-native-community/slider'
+import { toast } from 'sonner-native'
 
 import { Colors } from '@/styles'
 import SSButton from '@/components/SSButton'
@@ -12,7 +13,6 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { toast } from 'sonner-native'
 
 // Configure networks
 const networks = {
@@ -42,36 +42,6 @@ const isValidBitcoinAddress = (address: string): boolean => {
     }
   }
   return false
-}
-
-const getNetworkType = (
-  address: string
-): 'mainnet' | 'testnet' | 'signet' | null => {
-  try {
-    // Try to decode the address
-    const decoded = bitcoin.address.fromBech32(address)
-    if (decoded) {
-      // Check the prefix for network type
-      if (decoded.prefix === 'tb') return 'testnet'
-      if (decoded.prefix === 'sb') return 'signet'
-      if (decoded.prefix === 'bc') return 'mainnet'
-    }
-  } catch {
-    try {
-      // Try to decode as base58 (legacy or P2SH)
-      const decoded = bitcoin.address.fromBase58Check(address)
-      if (decoded) {
-        // Check version for network type
-        if (decoded.version === 0 || decoded.version === 5) return 'mainnet'
-        // For testnet/signet, we need to check the network type from the node
-        // since they share the same address versions
-        return 'testnet' // Default to testnet for now
-      }
-    } catch {
-      return null
-    }
-  }
-  return null
 }
 
 export default function Energy() {
@@ -1308,6 +1278,14 @@ export default function Energy() {
                 disabled={isLoadingTemplate}
               />
               <SSVStack gap="sm">
+                <SSText
+                  size="sm"
+                  color="muted"
+                  uppercase
+                  style={[styles.sectionTitle, { marginTop: 40 }]}
+                >
+                  Include Arbitrary Transaction
+                </SSText>
                 <SSTextInput
                   placeholder="Enter mempool TX ID"
                   value={txId}
@@ -1326,6 +1304,35 @@ export default function Energy() {
                   variant="outline"
                   disabled={!txId || isLoadingTx || !isConnected}
                   loading={isLoadingTx}
+                />
+              </SSVStack>
+
+              <SSVStack gap="sm">
+                <SSText
+                  size="sm"
+                  color="muted"
+                  uppercase
+                  style={[styles.sectionTitle, { marginTop: 40 }]}
+                >
+                  Template
+                </SSText>
+                <SSButton
+                  label="SELECT TEMPLATE A"
+                  onPress={() => {}}
+                  variant="outline"
+                  disabled
+                />
+                <SSButton
+                  label="SELECT TEMPLATE B"
+                  onPress={() => {}}
+                  variant="outline"
+                  disabled
+                />
+                <SSButton
+                  label="SELECT TEMPLATE C"
+                  onPress={() => {}}
+                  variant="outline"
+                  disabled
                 />
               </SSVStack>
             </SSVStack>
