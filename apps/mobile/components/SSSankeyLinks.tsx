@@ -9,6 +9,7 @@ import { useCallback } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
+import { logAttenuation } from '@/utils/math'
 
 interface Node {
   id: string
@@ -306,14 +307,6 @@ function SSSankeyLinks({
       })}
     </>
   )
-}
-
-const logAttenuation = (value: number): number => {
-  const intensity = 0.8
-  if (value <= 0) {
-    return 0
-  }
-  return Math.log(value + 1) ** (1 / intensity)
 }
 
 const generateCustomLink = (points: LinkPoints) => {

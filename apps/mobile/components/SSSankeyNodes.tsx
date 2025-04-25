@@ -18,6 +18,7 @@ import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, white } from '@/styles/colors'
+import { logAttenuation } from '@/utils/math'
 
 import type { Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
@@ -92,7 +93,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
               x={x}
               y={y}
               width={BLOCK_WIDTH}
-              height={LINK_BLOCK_MAX_WIDTH}
+              height={logAttenuation(node.value ?? 0)}
               color={
                 isTransactionChart
                   ? Skia.Color('#818181')
