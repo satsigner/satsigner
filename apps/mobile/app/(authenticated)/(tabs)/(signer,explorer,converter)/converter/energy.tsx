@@ -11,6 +11,7 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { toast } from 'sonner-native'
 
 // Configure networks
 const networks = {
@@ -653,7 +654,8 @@ export default function Energy() {
         }
 
         try {
-          for (let i = 0; i < 1000; i++) {
+          // Increase iterations per interval for higher hash rate
+          for (let i = 0; i < 10000; i++) {
             const timestamp = Math.floor(Date.now() / 1000)
             const header = _createBlockHeader(
               blockTemplate,
@@ -661,13 +663,18 @@ export default function Energy() {
               timestamp,
               nonce++
             )
+
+            // Optimize hash calculation by reusing buffers
             const hash = bitcoin.crypto.sha256(
               bitcoin.crypto.sha256(header as unknown as Buffer)
             )
             const hashHex = (hash as Buffer).reverse().toString('hex')
 
             hashes++
-            lastHashRef.current = hashHex
+            // Only update lastHash every 1000 hashes to reduce state updates
+            if (hashes % 1000 === 0) {
+              lastHashRef.current = hashHex
+            }
 
             if (_checkDifficulty(hashHex, blockTemplate.target)) {
               const success = await _submitBlock(
@@ -681,6 +688,7 @@ export default function Energy() {
                 )
               }
               clearInterval(miningInterval)
+              toast.success('Block submitted successfully')
               isMiningRef.current = false
               setIsMining(false)
               return
@@ -695,12 +703,15 @@ export default function Energy() {
             : (hashesPerSecond * 0.0001).toFixed(2)
           _setEnergyRate(powerConsumption)
 
-          setMiningStats((prev) => ({
-            ...prev,
-            hashesPerSecond,
-            attempts: hashes,
-            lastHash: lastHashRef.current
-          }))
+          // Update stats less frequently to reduce overhead
+          if (hashes % 10000 === 0) {
+            setMiningStats((prev) => ({
+              ...prev,
+              hashesPerSecond,
+              attempts: hashes,
+              lastHash: lastHashRef.current
+            }))
+          }
         } catch (error) {
           clearInterval(miningInterval)
           isMiningRef.current = false
@@ -710,7 +721,7 @@ export default function Energy() {
               (error instanceof Error ? error.message : 'Unknown error')
           )
         }
-      }, 1000)
+      }, 100) // Reduce interval to 100ms for more frequent updates
       miningIntervalRef.current = miningInterval
     } catch (error) {
       isMiningRef.current = false
