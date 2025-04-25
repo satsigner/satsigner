@@ -1,7 +1,9 @@
-import { Stack } from 'expo-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
+import { Stack } from 'expo-router'
+import * as bitcoin from 'bitcoinjs-lib'
 
+import { Colors } from '@/styles'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -9,14 +11,38 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+
+const isValidBitcoinAddress = (address: string): boolean => {
+  try {
+    // Try to decode the address
+    const decoded = bitcoin.address.fromBech32(address)
+    if (decoded) {
+      // Valid bech32 address (native segwit)
+      return true
+    }
+  } catch {
+    try {
+      // Try to decode as base58 (legacy or P2SH)
+      const decoded = bitcoin.address.fromBase58Check(address)
+      if (decoded) {
+        // Check if it's a valid version (0 for legacy, 5 for P2SH)
+        return decoded.version === 0 || decoded.version === 5
+      }
+    } catch {
+      return false
+    }
+  }
+  return false
+}
 
 export default function Energy() {
   const [blocksFound, _setBlocksFound] = useState(0)
-  const [hashRate, _setHashRate] = useState('##,###')
-  const [energyRate, _setEnergyRate] = useState('##.##')
+  const [_hashRate, _setHashRate] = useState('0')
+  const [energyRate, _setEnergyRate] = useState('0')
   const [totalSats, _setTotalSats] = useState('0')
   const [isMining, setIsMining] = useState(false)
+  const isMiningRef = useRef(false)
+  const miningIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [rpcUrl, setRpcUrl] = useState('')
   const [rpcUser, setRpcUser] = useState('')
   const [rpcPassword, setRpcPassword] = useState('')
@@ -29,6 +55,17 @@ export default function Energy() {
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false)
   const [templateError, setTemplateError] = useState('')
   const [templateData, setTemplateData] = useState<string>('')
+  const [miningAddress, setMiningAddress] = useState('')
+  const [isValidAddress, setIsValidAddress] = useState(false)
+  const [opReturnContent, setOpReturnContent] = useState('')
+  const [miningStats, setMiningStats] = useState({
+    hashesPerSecond: 0,
+    lastHash: '',
+    attempts: 0
+  })
+  const lastHashRef = useRef('')
+  const [difficultyProgress, setDifficultyProgress] = useState(0)
+  const [networkHashRate, setNetworkHashRate] = useState('0')
 
   const _formatTemplateData = (data: any) => {
     try {
@@ -148,6 +185,26 @@ export default function Energy() {
     }
   }, [isConnected, rpcUrl, rpcUser, rpcPassword, _fetchBlockTemplate])
 
+  const _fetchNetworkHashRate = useCallback(async () => {
+    try {
+      const response = await fetch(
+        'https://mempool.space/api/v1/mining/hashrate/1m'
+      )
+      if (!response.ok) {
+        throw new Error('Failed to fetch network hash rate')
+      }
+      const data = await response.json()
+      // Get the latest hash rate from the hashrates array
+      const latestHashRate =
+        data.hashrates[data.hashrates.length - 1].avgHashrate
+      // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
+      const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
+      setNetworkHashRate(hashRateInEH)
+    } catch (_error) {
+      setNetworkHashRate('0')
+    }
+  }, [])
+
   useEffect(() => {
     let intervalId: NodeJS.Timeout
 
@@ -168,6 +225,24 @@ export default function Energy() {
       }
     }
   }, [isConnected, _fetchBlockchainInfo]) // Dependencies for the effect
+
+  useEffect(() => {
+    if (blockchainInfo) {
+      // Calculate progress of current difficulty adjustment period
+      const blocksInPeriod = 2016 // Bitcoin's difficulty adjustment period
+      const currentBlock = blockchainInfo.blocks
+      const progress = (currentBlock % blocksInPeriod) / blocksInPeriod
+      setDifficultyProgress(progress)
+    }
+  }, [blockchainInfo])
+
+  useEffect(() => {
+    // Initial fetch
+    _fetchNetworkHashRate()
+    // Set up interval for auto-refresh
+    const intervalId = setInterval(_fetchNetworkHashRate, 60000) // Update every minute
+    return () => clearInterval(intervalId)
+  }, [_fetchNetworkHashRate])
 
   const _connectToNode = async () => {
     if (!rpcUrl || !rpcUser || !rpcPassword) {
@@ -233,14 +308,305 @@ export default function Energy() {
     }
   }
 
+  const _createCoinbaseTransaction = useCallback(
+    (template: any) => {
+      if (!template || !miningAddress) {
+        return null
+      }
+
+      const tx = new bitcoin.Transaction()
+      tx.version = 1
+      tx.locktime = 0
+      tx.addInput(
+        Buffer.alloc(32),
+        0xffffffff,
+        0xffffffff,
+        Buffer.from(`Satsigner ${Date.now()}`)
+      )
+      tx.addOutput(
+        bitcoin.address.toOutputScript(miningAddress),
+        template.coinbasevalue
+      )
+      if (opReturnContent) {
+        const data = Buffer.from(opReturnContent)
+        const script = bitcoin.script.compile([bitcoin.opcodes.OP_RETURN, data])
+        tx.addOutput(script, 0)
+      }
+      return tx
+    },
+    [miningAddress, opReturnContent]
+  )
+
+  const _createMerkleRoot = useCallback((transactions: any[]) => {
+    if (!transactions || transactions.length === 0) {
+      return ''
+    }
+
+    try {
+      let hashes = transactions.map((tx) => {
+        if (!tx) {
+          throw new Error('Invalid transaction')
+        }
+        if (tx.getHash) {
+          return tx.getHash()
+        } else if (tx.txid) {
+          return Buffer.from(tx.txid, 'hex').reverse()
+        } else {
+          throw new Error('Invalid transaction format')
+        }
+      })
+
+      while (hashes.length > 1) {
+        const newHashes = []
+        for (let i = 0; i < hashes.length; i += 2) {
+          const left = hashes[i]
+          const right = i + 1 < hashes.length ? hashes[i + 1] : left
+          const concat = Buffer.concat([left, right])
+          const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
+          newHashes.push(hash)
+        }
+        hashes = newHashes
+      }
+
+      if (!hashes[0]) {
+        throw new Error('Failed to create merkle root: no hash generated')
+      }
+
+      return hashes[0].reverse().toString('hex')
+    } catch (error) {
+      throw new Error(
+        'Failed to create merkle root: ' +
+          (error instanceof Error ? error.message : 'Unknown error')
+      )
+    }
+  }, [])
+
+  const _createBlockHeader = useCallback(
+    (template: any, merkleRoot: string, timestamp: number, nonce: number) => {
+      const header = Buffer.alloc(80) as unknown as Uint8Array
+
+      // Version (4 bytes)
+      const versionView = new DataView(header.buffer)
+      versionView.setUint32(0, template.version, true)
+
+      // Previous block hash (32 bytes)
+      const prevHash = Buffer.from(
+        template.previousblockhash,
+        'hex'
+      ).reverse() as unknown as Uint8Array
+      header.set(prevHash, 4)
+
+      // Merkle root (32 bytes)
+      const merkle = Buffer.from(
+        merkleRoot,
+        'hex'
+      ).reverse() as unknown as Uint8Array
+      header.set(merkle, 36)
+
+      // Timestamp (4 bytes)
+      versionView.setUint32(68, timestamp, true)
+
+      // Bits (4 bytes)
+      const bits = Buffer.from(template.bits, 'hex') as unknown as Uint8Array
+      header.set(bits, 72)
+
+      // Nonce (4 bytes)
+      versionView.setUint32(76, nonce, true)
+
+      return header
+    },
+    []
+  )
+
+  const _checkDifficulty = (hash: string, target: string) => {
+    const hashNum = BigInt('0x' + hash)
+    const targetNum = BigInt('0x' + target)
+    return hashNum <= targetNum
+  }
+
+  const _submitBlock = useCallback(
+    async (blockHeader: Uint8Array, coinbaseTx: any, transactions: any[]) => {
+      try {
+        const response = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
+          },
+          body: JSON.stringify({
+            jsonrpc: '1.0',
+            id: '1',
+            method: 'submitblock',
+            params: [
+              Buffer.concat([
+                new Uint8Array(blockHeader),
+                new Uint8Array(
+                  Buffer.from(JSON.stringify([coinbaseTx, ...transactions]))
+                )
+              ]).toString('hex')
+            ]
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to submit block')
+        }
+
+        const data = await response.json()
+        if (data.error) {
+          throw new Error(data.error.message || 'RPC error')
+        }
+
+        _setBlocksFound((prev) => prev + 1)
+        return true
+      } catch (_error) {
+        return false
+      }
+    },
+    [rpcUrl, rpcUser, rpcPassword]
+  )
+
+  const _startMining = useCallback(async () => {
+    if (!blockTemplate || !miningAddress) {
+      setTemplateError('Missing block template or mining address')
+      return
+    }
+
+    try {
+      setIsMining(true)
+      isMiningRef.current = true
+
+      const coinbaseTx = _createCoinbaseTransaction(blockTemplate)
+      if (!coinbaseTx) {
+        throw new Error('Failed to create coinbase transaction')
+      }
+
+      const allTransactions = [
+        coinbaseTx,
+        ...(blockTemplate.transactions || [])
+      ]
+      const merkleRoot = _createMerkleRoot(allTransactions)
+      if (!merkleRoot) {
+        throw new Error('Failed to create merkle root')
+      }
+
+      let nonce = 0
+      const startTime = Date.now()
+      let hashes = 0
+
+      const miningInterval = setInterval(async () => {
+        if (!isMiningRef.current) {
+          clearInterval(miningInterval)
+          return
+        }
+
+        try {
+          for (let i = 0; i < 1000; i++) {
+            const timestamp = Math.floor(Date.now() / 1000)
+            const header = _createBlockHeader(
+              blockTemplate,
+              merkleRoot,
+              timestamp,
+              nonce++
+            )
+            const hash = bitcoin.crypto.sha256(
+              bitcoin.crypto.sha256(header as unknown as Buffer)
+            )
+            const hashHex = (hash as Buffer).reverse().toString('hex')
+
+            hashes++
+            lastHashRef.current = hashHex
+
+            if (_checkDifficulty(hashHex, blockTemplate.target)) {
+              const success = await _submitBlock(
+                header as unknown as Uint8Array,
+                coinbaseTx,
+                allTransactions
+              )
+              if (success) {
+                _setTotalSats((prev) =>
+                  (Number(prev) + blockTemplate.coinbasevalue).toString()
+                )
+              }
+              clearInterval(miningInterval)
+              isMiningRef.current = false
+              setIsMining(false)
+              return
+            }
+          }
+
+          const now = Date.now()
+          const elapsed = (now - startTime) / 1000
+          const hashesPerSecond = Math.floor(hashes / elapsed)
+          const powerConsumption = isNaN(hashesPerSecond)
+            ? '0'
+            : (hashesPerSecond * 0.0001).toFixed(2)
+          _setEnergyRate(powerConsumption)
+
+          setMiningStats((prev) => ({
+            ...prev,
+            hashesPerSecond,
+            attempts: hashes,
+            lastHash: lastHashRef.current
+          }))
+        } catch (error) {
+          clearInterval(miningInterval)
+          isMiningRef.current = false
+          setIsMining(false)
+          setTemplateError(
+            'Error during mining: ' +
+              (error instanceof Error ? error.message : 'Unknown error')
+          )
+        }
+      }, 1000)
+      miningIntervalRef.current = miningInterval
+    } catch (error) {
+      isMiningRef.current = false
+      setIsMining(false)
+      setTemplateError(
+        'Error starting mining: ' +
+          (error instanceof Error ? error.message : 'Unknown error')
+      )
+    }
+  }, [
+    blockTemplate,
+    miningAddress,
+    _createCoinbaseTransaction,
+    _createBlockHeader,
+    _createMerkleRoot,
+    _submitBlock
+  ])
+
+  const _stopMining = useCallback(() => {
+    isMiningRef.current = false
+    setIsMining(false)
+    // Clear any existing mining interval
+    if (miningIntervalRef.current) {
+      clearInterval(miningIntervalRef.current)
+      miningIntervalRef.current = null
+    }
+    // Reset all mining-related values
+    _setHashRate('0')
+    _setEnergyRate('0')
+    _setTotalSats('0')
+    setMiningStats({
+      hashesPerSecond: 0,
+      lastHash: '',
+      attempts: 0
+    })
+  }, [])
+
+  const handleMiningAddressChange = (address: string) => {
+    setMiningAddress(address)
+    setIsValidAddress(isValidBitcoinAddress(address))
+  }
+
   return (
     <>
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase style={styles.headerTitle}>
-              {t('converter.energy.title')}
-            </SSText>
+            <SSText uppercase>{t('converter.energy.title')}</SSText>
           )
         }}
       />
@@ -249,7 +615,7 @@ export default function Energy() {
         showsVerticalScrollIndicator={false}
       >
         <SSVStack
-          gap="xl"
+          gap="sm"
           style={[styles.mainContent, { alignItems: 'center' }]}
         >
           <SSVStack gap="sm" style={{ alignItems: 'center' }}>
@@ -257,23 +623,32 @@ export default function Energy() {
               {blocksFound} Blocks Found
             </SSText>
             <SSText size="lg" color="muted">
-              Not Mining
+              {isMining ? 'Mining' : 'Not Mining'}
             </SSText>
           </SSVStack>
 
-          <SSHStack gap="xl" style={{ alignItems: 'center' }}>
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSText size="2xl" style={styles.bigNumber}>
-                {hashRate}
+          <SSHStack gap="xl">
+            <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
+              <SSText size="3xl" style={styles.bigNumber}>
+                {totalSats}
+              </SSText>
+              <SSText size="sm" color="muted">
+                sats
+              </SSText>
+            </SSVStack>
+
+            <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
+              <SSText size="3xl" style={styles.bigNumber}>
+                {miningStats.hashesPerSecond.toLocaleString()}
               </SSText>
               <SSText size="sm" color="muted">
                 hash/s
               </SSText>
             </SSVStack>
 
-            <SSVStack style={{ alignItems: 'center' }}>
-              <SSText size="2xl" style={styles.bigNumber}>
-                {energyRate}
+            <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
+              <SSText size="3xl" style={styles.bigNumber}>
+                ~{energyRate}
               </SSText>
               <SSText size="sm" color="muted">
                 mAh/min
@@ -283,63 +658,71 @@ export default function Energy() {
 
           <View style={styles.graphPlaceholder} />
 
-          <SSVStack style={{ alignItems: 'center' }} gap="sm">
-            <SSText size="3xl" style={styles.bigNumber}>
-              {totalSats}
-            </SSText>
-            <SSText size="lg" color="muted">
-              sats
-            </SSText>
+          <SSVStack gap="md" style={styles.buttonContainer}>
+            <SSButton
+              label={isMining ? 'STOP MINING' : 'START MINING'}
+              onPress={() => (isMining ? _stopMining() : _startMining())}
+              variant={isMining ? 'danger' : 'secondary'}
+              disabled={!isConnected || !miningAddress || !isValidAddress}
+            />
+            <SSButton
+              label="JOIN POOL"
+              onPress={() => {}}
+              variant="outline"
+              disabled
+            />
           </SSVStack>
 
           <SSVStack gap="md" style={styles.statsContainer}>
             <SSVStack gap="sm">
-              <SSText color="muted">Current Block Hash</SSText>
-              <SSText size="xs" type="mono" color="muted">
-                411fdcad41fdcde7b28f645ef86ca3c9dba92283ad41fdcfe7b931d6b77c2
+              <SSText color="muted">Latest Hashes</SSText>
+              <SSText size="xl" type="mono">
+                {miningStats.lastHash || '-'}
               </SSText>
             </SSVStack>
 
             <SSVStack gap="sm">
               <SSText color="muted">Best Block Hash</SSText>
-              <SSText size="xs" type="mono" color="muted">
-                000000ad41fdcde7b28f645ef86ca3c9dba92283ad41fdcfe7b931d6b77c2
+              <SSText size="xl" type="mono">
+                {blockchainInfo?.bestblockhash || '-'}
               </SSText>
             </SSVStack>
-
-            <SSVStack gap="sm">
-              <SSText color="muted">Difficulty Target</SSText>
-              <SSText size="xs" type="mono" color="muted">
-                00000000000000000000########################################
+            <SSVStack gap="xs">
+              <SSText color="muted">Difficulty Adjustment Progress</SSText>
+              <View style={styles.difficultyBar}>
+                <View
+                  style={[
+                    styles.difficultyProgress,
+                    { width: `${difficultyProgress * 100}%` }
+                  ]}
+                />
+              </View>
+              <SSText size="xs" color="muted">
+                {Math.floor(difficultyProgress * 100)}% of {2016} blocks
               </SSText>
             </SSVStack>
-
-            <View style={styles.difficultyBar}>
-              <View style={styles.difficultyProgress} />
-            </View>
-            <SSText size="xs" color="muted" style={styles.centered}>
-              Difficulty Adjustment
-            </SSText>
           </SSVStack>
 
           <SSVStack gap="lg" style={styles.statsGrid}>
             <SSHStack justifyBetween>
-              <SSVStack style={{ alignItems: 'center' }}>
+              <SSVStack gap="xxs">
                 <SSText size="xl">{blockchainInfo?.blocks || '0'}</SSText>
                 <SSText size="xs" color="muted">
                   Block Candidate
                 </SSText>
               </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }}>
+              <SSVStack style={{ alignItems: 'center' }} gap="xxs">
                 <SSText size="xl">
-                  {(blockTemplate?.coinbasevalue / 100000000).toFixed(4) || '0'}{' '}
+                  {blockTemplate?.coinbasevalue
+                    ? (blockTemplate.coinbasevalue / 100000000).toFixed(4)
+                    : '0.0000'}{' '}
                   BTC
                 </SSText>
                 <SSText size="xs" color="muted">
                   Reward
                 </SSText>
               </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }}>
+              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                 <SSText size="xl">
                   {blockTemplate?.transactions?.length || '0'}
                 </SSText>
@@ -350,7 +733,7 @@ export default function Energy() {
             </SSHStack>
 
             <SSHStack justifyBetween>
-              <SSVStack style={{ alignItems: 'center' }}>
+              <SSVStack gap="xxs">
                 <SSText size="xl">
                   {blockTemplate?.transactions?.length || '0'}
                 </SSText>
@@ -358,13 +741,18 @@ export default function Energy() {
                   Transactions
                 </SSText>
               </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }}>
-                <SSText size="xl">{blockTemplate?.sizelimit || '0'}</SSText>
+              <SSVStack style={{ alignItems: 'center' }} gap="xxs">
+                <SSText size="xl">
+                  {blockTemplate?.sizelimit
+                    ? (blockTemplate.sizelimit / (1024 * 1024)).toFixed(2)
+                    : '0.00'}{' '}
+                  MB
+                </SSText>
                 <SSText size="xs" color="muted">
                   Size
                 </SSText>
               </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }}>
+              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                 <SSText size="xl">
                   {Math.floor(
                     (Date.now() / 1000 - blockTemplate?.curtime) / 60
@@ -377,13 +765,21 @@ export default function Energy() {
             </SSHStack>
 
             <SSHStack justifyBetween>
-              <SSVStack style={{ alignItems: 'center' }}>
+              <SSVStack gap="xxs">
                 <SSText size="xl">n/a</SSText>
                 <SSText size="xs" color="muted">
                   Template
                 </SSText>
               </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }}>
+
+              <SSVStack style={{ alignItems: 'center' }} gap="xxs">
+                <SSText size="xl">{networkHashRate} EH/s</SSText>
+                <SSText size="xs" color="muted">
+                  Hash Rate
+                </SSText>
+              </SSVStack>
+
+              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                 <SSText size="xl">
                   {blockchainInfo?.total_supply?.toFixed(4) || '0'}
                 </SSText>
@@ -412,7 +808,7 @@ export default function Energy() {
                 value={rpcUrl}
                 onChangeText={setRpcUrl}
                 variant="outline"
-                align="left"
+                align="center"
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
@@ -422,7 +818,7 @@ export default function Energy() {
                 value={rpcUser}
                 onChangeText={setRpcUser}
                 variant="outline"
-                align="left"
+                align="center"
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
@@ -432,8 +828,43 @@ export default function Energy() {
                 value={rpcPassword}
                 onChangeText={setRpcPassword}
                 variant="outline"
-                align="left"
+                align="center"
                 secureTextEntry
+              />
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label="Mining Address" />
+              <SSTextInput
+                placeholder="Address to receive rewards"
+                value={miningAddress}
+                onChangeText={handleMiningAddressChange}
+                variant="outline"
+                align="center"
+                style={
+                  miningAddress
+                    ? {
+                        borderColor: isValidAddress
+                          ? Colors.success
+                          : Colors.error
+                      }
+                    : undefined
+                }
+              />
+              {miningAddress && !isValidAddress && (
+                <SSText size="sm" color="muted" style={styles.errorText}>
+                  Invalid Bitcoin address. Please enter a valid legacy, P2SH, or
+                  SegWit address.
+                </SSText>
+              )}
+            </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label="OP_RETURN Content" />
+              <SSTextInput
+                placeholder="Optional OP_RETURN"
+                value={opReturnContent}
+                onChangeText={setOpReturnContent}
+                variant="outline"
+                align="center"
               />
             </SSFormLayout.Item>
             {connectionError ? (
@@ -448,19 +879,17 @@ export default function Energy() {
               disabled={_isConnecting}
             />
           </SSFormLayout>
-        </SSVStack>
 
-        {isConnected && blockchainInfo && (
-          <SSVStack gap="md" style={styles.infoContainer}>
-            <SSText
-              size="sm"
-              color="muted"
-              uppercase
-              style={styles.sectionTitle}
-            >
-              Node Information
-            </SSText>
-            <SSVStack gap="sm" style={styles.infoGrid}>
+          {isConnected && blockchainInfo && (
+            <SSVStack gap="sm">
+              <SSText
+                size="sm"
+                color="muted"
+                uppercase
+                style={styles.sectionTitle}
+              >
+                Node Information
+              </SSText>
               <SSHStack justifyBetween>
                 <SSText color="muted">Chain</SSText>
                 <SSText>{blockchainInfo.chain}</SSText>
@@ -473,12 +902,12 @@ export default function Energy() {
                 <SSText color="muted">Headers</SSText>
                 <SSText>{blockchainInfo.headers}</SSText>
               </SSHStack>
-              <SSHStack justifyBetween>
+              <SSVStack justifyBetween gap="xxs">
                 <SSText color="muted">Best Block Hash</SSText>
                 <SSText size="xs" type="mono">
                   {blockchainInfo.bestblockhash}
                 </SSText>
-              </SSHStack>
+              </SSVStack>
               <SSHStack justifyBetween>
                 <SSText color="muted">Difficulty</SSText>
                 <SSText>{blockchainInfo.difficulty}</SSText>
@@ -489,29 +918,14 @@ export default function Energy() {
                   {(blockchainInfo.verificationprogress * 100).toFixed(2)}%
                 </SSText>
               </SSHStack>
+              <SSButton
+                label="REFRESH INFO"
+                onPress={_fetchBlockchainInfo}
+                variant="outline"
+                disabled={_isLoadingInfo}
+              />
             </SSVStack>
-            <SSButton
-              label="REFRESH INFO"
-              onPress={_fetchBlockchainInfo}
-              variant="outline"
-              disabled={_isLoadingInfo}
-            />
-          </SSVStack>
-        )}
-
-        <SSVStack gap="md" style={styles.buttonContainer}>
-          <SSButton
-            label={isMining ? 'STOP MINING' : 'START MINING'}
-            onPress={() => setIsMining(!isMining)}
-            variant={isMining ? 'danger' : 'default'}
-            disabled={!isConnected}
-          />
-          <SSButton
-            label="JOIN POOL"
-            onPress={() => {}}
-            variant="outline"
-            disabled
-          />
+          )}
         </SSVStack>
 
         {isConnected && (
@@ -555,25 +969,27 @@ export default function Energy() {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
-    letterSpacing: 1
-  },
   container: {
     flexGrow: 1,
-    backgroundColor: Colors.black
+    paddingBottom: 200
   },
   mainContent: {
     flex: 1,
     padding: 20
   },
   bigNumber: {
-    fontWeight: '200'
+    fontWeight: '100',
+    marginBottom: -10
   },
   graphPlaceholder: {
     width: '100%',
-    height: 100,
+    height: 50,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[800]
+    borderBottomColor: Colors.gray[900]
+  },
+  buttonContainer: {
+    width: '100%',
+    paddingVertical: 20
   },
   statsContainer: {
     width: '100%',
@@ -581,46 +997,31 @@ const styles = StyleSheet.create({
   },
   difficultyBar: {
     width: '100%',
-    height: 4,
+    height: 8,
     backgroundColor: Colors.gray[900],
-    borderRadius: 2,
+    borderRadius: 4,
     marginVertical: 10
   },
   difficultyProgress: {
-    width: '30%',
+    width: '0%',
     height: '100%',
     backgroundColor: Colors.white,
-    borderRadius: 2
-  },
-  centered: {
-    textAlign: 'center'
+    borderRadius: 4
   },
   statsGrid: {
     width: '100%'
-  },
-  buttonContainer: {
-    padding: 20,
-    paddingBottom: 40
   },
   formContainer: {
     paddingHorizontal: 20,
     paddingTop: 20
   },
   sectionTitle: {
-    marginBottom: 16
+    marginBottom: 16,
+    textAlign: 'center'
   },
   errorText: {
     marginTop: 8,
     textAlign: 'center'
-  },
-  infoContainer: {
-    padding: 20,
-    paddingTop: 0
-  },
-  infoGrid: {
-    backgroundColor: Colors.gray[900],
-    padding: 16,
-    borderRadius: 8
   },
   templateContainer: {
     padding: 20,
@@ -634,7 +1035,7 @@ const styles = StyleSheet.create({
   },
   templateText: {
     fontFamily: 'monospace',
-    fontSize: 10 // Smaller font size for better performance
+    fontSize: 8
   },
   loadingContainer: {
     backgroundColor: Colors.gray[900],

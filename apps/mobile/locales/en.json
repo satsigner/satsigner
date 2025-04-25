@@ -276,6 +276,7 @@
     "currency.jpy": "JPY",
     "currency.sats": "sats",
     "currency.usd": "USD",
+    "energy.title": "Energy",
     "title": "Converter"
   },
   "date": {
