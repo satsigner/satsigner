@@ -21,10 +21,10 @@ function useNostrLabelSync() {
   async function sendAccountLabelsToNostr(account?: Account) {
     if (!account || !account.nostr) return
 
-    const { autoSync, seckey, npub, relays, lastBackupFingerprint } =
+    const { seckey, npub, relays, lastBackupFingerprint } =
       account.nostr
 
-    if (!autoSync || !seckey || npub === '' || relays.length === 0) return
+    if (!seckey || npub === '' || relays.length === 0) return
 
     const labels = formatAccountLabels(account)
 
@@ -38,15 +38,22 @@ function useNostrLabelSync() {
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
-    await nostrApi.sendMessage(Uint8Array.from(seckey), npub, message)
-    await nostrApi.disconnect()
 
-    const timestamp = new Date().getTime() / 1000
+    try {
+      console.log('hook -> ', Uint8Array.from([...seckey]))
+      await nostrApi.sendMessage(Uint8Array.from([...seckey]), npub, message)
 
-    updateAccountNostr(account.id, {
-      lastBackupFingerprint: fingerprint,
-      lastBackupTimestamp: timestamp
-    })
+      const timestamp = new Date().getTime() / 1000
+
+      updateAccountNostr(account.id, {
+        lastBackupFingerprint: fingerprint,
+        lastBackupTimestamp: timestamp
+      })
+    } catch {
+      //
+    } finally {
+      await nostrApi.disconnect()
+    }
   }
 
   // Sync last backup found

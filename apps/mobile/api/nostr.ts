@@ -1,8 +1,6 @@
-import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
 import { getPublicKey, nip04, nip19 } from 'nostr-tools'
-
-import { bytesToHex } from '@/utils/scripts'
 
 export interface NostrKeys {
   nsec: string
@@ -57,35 +55,75 @@ export class NostrAPI {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
+    // Convert secretNostrKey (Uint8Array) to hex string
+    console.log("DEBUGPRINT[39]: nostr.ts:58 (after // Convert secretNostrKey (Uint8Array) t…)")
+    const secretNostrKeyHex = Buffer.from(secretNostrKey).toString('hex')
+    console.log("DEBUGPRINT[45]: nostr.ts:60 (after const secretNostrKeyHex = Buffer.from(se…)")
+    console.log('this is it', secretNostrKey)
     const ourPubkey = getPublicKey(secretNostrKey)
-    const { data: recipientPubkey } = nip19.decode(recipientNpub)
+    console.log("DEBUGPRINT[44]: nostr.ts:61 (after const ourPubkey = getPublicKey(secretNos…)")
+
+    // Decode recipient's npub to hex pubkey
+    console.log("DEBUGPRINT[40]: nostr.ts:63 (after // Decode recipients npub to hex pubkey)")
+    const recipientPubkey = nip19.decode(recipientNpub).data as string
 
     // Ensure proper encoding before encryption
+    console.log("DEBUGPRINT[41]: nostr.ts:67 (after // Ensure proper encoding before encrypt…)")
     const encodedContent = unescape(encodeURIComponent(content))
 
-    // Create nip04 encrypted message
-    const encryptedMessage = await nip04.encrypt(
-      secretNostrKey,
-      recipientPubkey as string,
-      encodedContent
-    )
+    // Create signer
+    console.log("DEBUGPRINT[42]: nostr.ts:71 (after // Create signer)")
+    const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
 
-    // Create and publish the event
-    const event = new NDKEvent(this.ndk, {
-      kind: 4, // nip04 encrypted message
+    // Create NDKUser for recipient
+    console.log("DEBUGPRINT[43]: nostr.ts:75 (after // Create NDKUser for recipient)")
+    const recipientUser = new NDKUser({ npub: recipientPubkey })
+    recipientUser.ndk = this.ndk
+
+    // Step 1: Create the kind:14 chat message event
+    console.log("DEBUGPRINT[34]: nostr.ts:75 (after // Step 1: Create the kind:14 chat messa…)")
+    const kind14Event = new NDKEvent(this.ndk, {
+      kind: 14,
       pubkey: ourPubkey,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [['p', recipientPubkey as string]], // recipient's pubkey
-      content: encryptedMessage
+      tags: [['p', recipientPubkey]], // Reference recipient
+      content: encodedContent
     })
 
-    // Convert secret key to hex string for NDKPrivateKeySigner
-    const secretNostrKeyHex =
-      '0x' + bytesToHex(secretNostrKey as never as number[])
-    const signer = new NDKPrivateKeySigner(BigInt(secretNostrKeyHex) as any)
-    await event.sign(signer)
+    // Step 2: Encrypt the kind:14 event using NIP-44
+    console.log("DEBUGPRINT[35]: nostr.ts:85 (after // Step 2: Encrypt the kind:14 event usi…)")
+    await kind14Event.encrypt(recipientUser, signer)
 
-    await event.publish()
+    // Create sealed kind:13 event
+    const kind13Event = new NDKEvent(this.ndk, {
+      kind: 13,
+      pubkey: ourPubkey,
+      created_at: Date.now(),
+      tags: [],
+      content: kind14Event.content
+    })
+
+    // Sign kind:13 event
+    console.log("DEBUGPRINT[36]: nostr.ts:98 (after // Sign kind:13 event)")
+    await kind13Event.sign(signer)
+    await kind13Event.encrypt(recipientUser, signer)
+
+    // Step 3: Create kind:1059 gift-wrap event for recipient
+    console.log("DEBUGPRINT[37]: nostr.ts:103 (after // Step 3: Create kind:1059 gift-wrap ev…)")
+    const kind1059Event = new NDKEvent(this.ndk, {
+      kind: 1059,
+      pubkey: ourPubkey,
+      created_at: Date.now(),
+      tags: [['p', recipientPubkey]], // Recipient's pubkey
+      content: JSON.stringify(await kind13Event.toNostrEvent())
+    })
+    await kind1059Event.sign(signer)
+
+    // Step 5: Publish events
+    console.log("DEBUGPRINT[38]: nostr.ts:114 (after // Step 5: Publish events)")
+    console.log('all right until now')
+    await kind1059Event.publish()
+    console.log('Recipient gift-wrap published successfully')
   }
 
   async fetchMessages(
