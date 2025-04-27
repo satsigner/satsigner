@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
 import type { EsploraTx } from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
-import { usePreviousTransactionsStore } from '@/store/previousTransactions'
 import type { Utxo } from '@/types/models/Utxo'
 import { recalculateDepthH } from '@/utils/transaction'
 
@@ -20,12 +18,8 @@ type ExtendedEsploraTx = EsploraTx & {
 
 export function usePreviousTransactions(
   inputs: Map<string, Utxo>,
-  levelDeep: number = 2,
-  skipCache: boolean = true
+  levelDeep: number = 2
 ) {
-  const [previousTransactions, addTransactions] = usePreviousTransactionsStore(
-    useShallow((state) => [state.transactions, state.addTransactions])
-  )
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [transactions, setTransactions] = useState<
@@ -140,48 +134,6 @@ export function usePreviousTransactions(
             if (processed.has(txid)) return
             processed.add(txid)
 
-            // Check cache first if skipCache is false
-            if (!skipCache) {
-              const cachedTx = previousTransactions[txid]
-              if (cachedTx) {
-                newTransactions.set(txid, { ...cachedTx, depthH: 0 })
-
-                // Collect output addresses
-                cachedTx.vout?.forEach((vout) => {
-                  if (vout.scriptpubkey_address) {
-                    allOutputAddresses.add(vout.scriptpubkey_address)
-                  }
-                })
-
-                // Store input addresses
-                const inputAddresses = new Set<string>()
-                cachedTx.vin?.forEach((vin) => {
-                  if (vin.prevout?.scriptpubkey_address) {
-                    inputAddresses.add(vin.prevout.scriptpubkey_address)
-                  }
-                })
-                transactionInputAddresses.set(txid, inputAddresses)
-
-                // Queue parent transactions only if we haven't reached max levelDeep
-                if (level < levelDeep && cachedTx.vin) {
-                  cachedTx.vin.forEach((vin) => {
-                    const parentTxid = vin.txid
-                    if (
-                      parentTxid &&
-                      !processed.has(parentTxid) &&
-                      !queue.some((item) => item.txid === parentTxid)
-                    ) {
-                      queue.push({
-                        txid: parentTxid,
-                        level: level + 1
-                      })
-                    }
-                  })
-                }
-                return
-              }
-            }
-
             const tx = await oracle.getTransaction(txid).catch(() => null)
             if (!tx) return
 
@@ -294,18 +246,8 @@ export function usePreviousTransactions(
         // Assign indexV to vins and vouts
         const transactionsWithIndexV = assignIndexV(transactionsWithDepthH)
 
-        // Cache the filtered transactions
-        if (transactionsWithIndexV.size > 0) {
-          // Convert the array of transactions back to a Map for addTransactions
-          const txMap = new Map<string, EsploraTx>()
-          for (const [txid, tx] of transactionsWithIndexV.entries()) {
-            txMap.set(txid, tx)
-          }
-          addTransactions(txMap)
-
-          // Update state
-          setTransactions(transactionsWithIndexV)
-        }
+        // Update state
+        setTransactions(transactionsWithIndexV)
       } else {
         setTransactions(new Map())
       }
@@ -315,7 +257,7 @@ export function usePreviousTransactions(
       setError(err instanceof Error ? err : new Error(String(err)))
       setLoading(false)
     }
-  }, [inputs, network, levelDeep, skipCache, addTransactions]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [inputs, network, levelDeep]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchInputTransactions()
