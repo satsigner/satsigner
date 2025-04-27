@@ -2,9 +2,10 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
+import * as Clipboard from 'expo-clipboard'
 
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
@@ -26,6 +27,10 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
+import SSQRCode from '@/components/SSQRCode'
+import SSHStack from '@/layouts/SSHStack'
+import SSTextInput from '@/components/SSTextInput'
+import { Colors } from '@/styles'
 
 const tn = _tn('transaction.build.preview')
 
@@ -33,14 +38,15 @@ function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [inputs, outputs, feeRate, rbf, setTxBuilderResult] =
+  const [inputs, outputs, feeRate, rbf, setTxBuilderResult, txBuilderResult] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.outputs,
         state.feeRate,
         state.rbf,
-        state.setTxBuilderResult
+        state.setTxBuilderResult,
+        state.txBuilderResult
       ])
     )
   const account = useAccountsStore((state) =>
@@ -51,6 +57,7 @@ function PreviewMessage() {
   const [messageId, setMessageId] = useState('')
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
+  const [psbtString, setPsbtString] = useState('')
 
   const transactionHex = useMemo(() => {
     if (!account) return ''
@@ -149,6 +156,16 @@ function PreviewMessage() {
     getTransactionMessage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    async function getPsbtString() {
+      if (txBuilderResult?.psbt) {
+        const serialized = await txBuilderResult.psbt.serialize()
+        setPsbtString(serialized)
+      }
+    }
+    getPsbtString()
+  }, [txBuilderResult])
+
   if (!id || !account) return <Redirect href="/" />
 
   return (
@@ -189,38 +206,135 @@ function PreviewMessage() {
                   <SSTransactionDecoded txHex={transactionHex} />
                 )}
               </SSVStack>
+              {account.policyType !== 'watchonly' ? (
+                <SSButton
+                  variant="secondary"
+                  disabled={!messageId}
+                  label={t('sign.transaction')}
+                  onPress={() =>
+                    router.navigate(`/account/${id}/signAndSend/signMessage`)
+                  }
+                />
+              ) : (
+                (account.keys[0].creationType === 'importDescriptor' ||
+                  account.keys[0].creationType === 'importExtendedPub') && (
+                  <>
+                    <SSText
+                      center
+                      color="muted"
+                      size="sm"
+                      uppercase
+                      style={{ marginTop: 16 }}
+                    >
+                      {t('sign.exportUnsigned')}
+                    </SSText>
+                    <SSHStack gap="xxs" justifyBetween>
+                      <SSButton
+                        variant="outline"
+                        disabled={!messageId}
+                        label={t('common.copy')}
+                        style={{ width: '48%' }}
+                        onPress={() => {
+                          if (transactionHex) {
+                            Clipboard.setStringAsync(transactionHex)
+                            toast(t('common.copied'))
+                          }
+                        }}
+                      />
+                      <SSButton
+                        variant="outline"
+                        disabled={!messageId}
+                        label={t('common.QR')}
+                        style={{ width: '48%' }}
+                        onPress={() => {
+                          setNoKeyModalVisible(true)
+                        }}
+                      />
+                    </SSHStack>
+                    <SSHStack gap="xxs" justifyBetween>
+                      <SSButton
+                        label="NFC"
+                        style={{ width: '48%' }}
+                        variant="outline"
+                        disabled
+                      />
+                      <SSButton
+                        label="USB"
+                        style={{ width: '48%' }}
+                        variant="outline"
+                        disabled
+                      />
+                    </SSHStack>
+                    <SSText
+                      center
+                      color="muted"
+                      size="sm"
+                      uppercase
+                      style={{ marginTop: 16 }}
+                    >
+                      {t('sign.importSigned')}
+                    </SSText>
+                    <SSTextInput
+                      placeholder={t('sign.signedPsbt')}
+                      editable={false}
+                      style={{ marginVertical: 8 }}
+                    />
+                    <SSHStack gap="xxs" justifyBetween>
+                      <SSButton
+                        label="Paste"
+                        style={{ width: '48%' }}
+                        variant="outline"
+                      />
+                      <SSButton
+                        label="Scan QR"
+                        style={{ width: '48%' }}
+                        variant="outline"
+                      />
+                    </SSHStack>
+                    <SSHStack gap="xxs" justifyBetween>
+                      <SSButton
+                        label="USB"
+                        style={{ width: '48%' }}
+                        variant="outline"
+                        disabled
+                      />
+                      <SSButton
+                        label="NFC"
+                        style={{ width: '48%' }}
+                        variant="outline"
+                        disabled
+                      />
+                    </SSHStack>
+                  </>
+                )
+              )}
             </SSVStack>
           </ScrollView>
-          <SSButton
-            variant="secondary"
-            disabled={!messageId}
-            label={t('sign.transaction')}
-            onPress={() =>
-              router.navigate(`/account/${id}/signAndSend/signMessage`)
-            }
-          />
         </SSVStack>
         <SSGradientModal
           visible={noKeyModalVisible}
           closeText={t('common.cancel')}
           onClose={() => setNoKeyModalVisible(false)}
         >
-          <SSVStack style={{ marginTop: 16 }}>
+          <SSVStack style={{ marginTop: 16 }} itemsCenter>
             <SSText color="muted" size="lg" uppercase>
-              {tn('noKey')}
+              {tn('psbt')}
             </SSText>
-          </SSVStack>
-          <SSVStack itemsCenter style={styles.modalStack}>
-            <SSText center>{tn('keyInput')}</SSText>
-            <SSButton label="Seed" />
-            <SSButton label="WIF" />
-            <SSButton label="NFC Card" />
-          </SSVStack>
-          <SSVStack itemsCenter style={styles.modalStack}>
-            <SSText center>{tn('psbt')}</SSText>
-            <SSButton label="QR Code" />
-            <SSButton label="NFC" />
-            <SSButton label="Share" />
+            {psbtString && (
+              <View
+                style={{
+                  padding: 10,
+                  backgroundColor: Colors.white,
+                  width: '100%'
+                }}
+              >
+                <SSQRCode
+                  value={psbtString}
+                  color={Colors.black}
+                  backgroundColor={Colors.white}
+                />
+              </View>
+            )}
           </SSVStack>
         </SSGradientModal>
       </SSMainLayout>
