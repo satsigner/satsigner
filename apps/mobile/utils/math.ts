@@ -1,5 +1,5 @@
 export const logAttenuation = (value: number): number => {
-  const intensity = 0.8
+  const intensity = 0.7
   if (value <= 0) {
     return 0
   }
