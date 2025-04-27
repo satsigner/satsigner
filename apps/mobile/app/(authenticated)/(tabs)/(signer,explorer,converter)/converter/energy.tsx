@@ -81,6 +81,8 @@ export default function Energy() {
   const [txError, setTxError] = useState('')
   const lastTemplateUpdateRef = useRef<number>(0)
   const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const [blockHeader, setBlockHeader] = useState('')
+  const currentHeaderRef = useRef<Uint8Array | null>(null)
 
   const _formatTemplateData = useCallback((data: any) => {
     try {
@@ -542,7 +544,6 @@ export default function Energy() {
 
       // Nonce (4 bytes)
       versionView.setUint32(76, nonce, true)
-
       return header
     },
     []
@@ -696,6 +697,7 @@ export default function Energy() {
               timestamp,
               nonce++
             )
+            currentHeaderRef.current = header
 
             const hash = bitcoin.crypto.sha256(
               bitcoin.crypto.sha256(header as unknown as Buffer)
@@ -743,6 +745,11 @@ export default function Energy() {
                 attempts: hashes,
                 lastHash: lastHashRef.current
               }))
+              if (currentHeaderRef.current) {
+                setBlockHeader(
+                  Buffer.from(currentHeaderRef.current).toString('hex')
+                )
+              }
             })
           }
         } catch (error) {
@@ -996,7 +1003,16 @@ export default function Energy() {
 
           <SSVStack gap="md" style={styles.statsContainer}>
             <SSVStack gap="sm">
-              <SSText color="muted">Latest Hashes</SSText>
+              <SSText color="muted">Block Candidate Header</SSText>
+              <ScrollView style={styles.headerScroll}>
+                <SSText size="xs" type="mono">
+                  {blockHeader || '-'}
+                </SSText>
+              </ScrollView>
+            </SSVStack>
+
+            <SSVStack gap="sm">
+              <SSText color="muted">Latest Hash</SSText>
               <SSText size="xl" type="mono">
                 {miningStats.lastHash || '-'}
               </SSText>
@@ -1433,5 +1449,11 @@ const styles = StyleSheet.create({
     height: 60,
     marginHorizontal: 0,
     backgroundColor: Colors.gray[850]
+  },
+  headerScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    maxHeight: 100
   }
 })
