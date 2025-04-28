@@ -11,10 +11,13 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { tn as _tn } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 
 const tn = _tn('converter.energy')
+
+const BTC_UNIT = 'BTC'
+const BLOCK_SIZE_UNIT = 'MB'
 
 // Configure networks
 const networks = {
@@ -907,26 +910,23 @@ export default function Energy() {
               {tn(isMining ? 'mining' : 'notMining')}
             </SSText>
           </SSVStack>
-
           <SSHStack gap="xl">
             <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
               <SSText size="3xl" style={styles.bigNumber}>
                 {totalSats}
               </SSText>
               <SSText size="sm" color="muted">
-                sats
+                {t('bitcoin.sats')}
               </SSText>
             </SSVStack>
-
             <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
               <SSText size="3xl" style={styles.bigNumber}>
                 {miningStats.hashesPerSecond.toLocaleString()}
               </SSText>
               <SSText size="sm" color="muted">
-                {tn('hashRate')}
+                {tn('hashesPerSecond')}
               </SSText>
             </SSVStack>
-
             <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
               <SSText size="3xl" style={styles.bigNumber}>
                 ~{energyRate}
@@ -936,9 +936,7 @@ export default function Energy() {
               </SSText>
             </SSVStack>
           </SSHStack>
-
           <View style={styles.graphPlaceholder} />
-
           <SSVStack gap="md" style={styles.buttonContainer}>
             <SSVStack gap="sm" style={{ width: '100%' }}>
               <SSHStack justifyBetween>
@@ -946,7 +944,7 @@ export default function Energy() {
                   {tn('miningIntensity')}
                 </SSText>
                 <SSText size="sm" color="muted">
-                  {miningIntensity} hashes/interval
+                  {tn('miningIntensityRate', { intensity: miningIntensity })}
                 </SSText>
               </SSHStack>
               <Slider
@@ -1000,7 +998,6 @@ export default function Energy() {
               disabled
             />
           </SSVStack>
-
           <SSVStack gap="md" style={styles.statsContainer}>
             <SSVStack gap="sm">
               <SSText color="muted">{tn('blockHeaderCandidate')}</SSText>
@@ -1010,14 +1007,12 @@ export default function Energy() {
                 </SSText>
               </ScrollView>
             </SSVStack>
-
             <SSVStack gap="sm">
               <SSText color="muted">{tn('latestHash')}</SSText>
               <SSText size="xl" type="mono">
                 {miningStats.lastHash || '-'}
               </SSText>
             </SSVStack>
-
             <SSVStack gap="sm">
               <SSText color="muted">{tn('bestHash')}</SSText>
               <SSText size="xl" type="mono">
@@ -1035,11 +1030,13 @@ export default function Energy() {
                 />
               </View>
               <SSText size="xs" color="muted">
-                {Math.floor(difficultyProgress * 100)}% of {2016} blocks
+                {tn('adjustmentProgressPercentage', {
+                  percentage: Math.floor(difficultyProgress * 100),
+                  blocks: 2016
+                })}
               </SSText>
             </SSVStack>
           </SSVStack>
-
           <SSVStack gap="lg" style={styles.statsGrid}>
             <SSHStack justifyBetween>
               <SSVStack gap="xxs">
@@ -1053,7 +1050,7 @@ export default function Energy() {
                   {blockTemplate?.coinbasevalue
                     ? (blockTemplate.coinbasevalue / 100000000).toFixed(4)
                     : '0.0000'}{' '}
-                  BTC
+                  {BTC_UNIT}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {tn('reward')}
@@ -1064,18 +1061,17 @@ export default function Energy() {
                   {blockTemplate?.transactions?.length || '0'}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  Transactions
+                  {tn('template.transactions')}
                 </SSText>
               </SSVStack>
             </SSHStack>
-
             <SSHStack justifyBetween>
               <SSVStack gap="xxs">
                 <SSText size="xl">
                   {blockTemplate?.transactions?.length || '0'}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  Transactions
+                  {tn('template.transactions')}
                 </SSText>
               </SSVStack>
               <SSVStack style={{ alignItems: 'center' }} gap="xxs">
@@ -1083,10 +1079,10 @@ export default function Energy() {
                   {blockTemplate?.sizelimit
                     ? (blockTemplate.sizelimit / (1024 * 1024)).toFixed(2)
                     : '0.00'}{' '}
-                  MB
+                  {BLOCK_SIZE_UNIT}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  Size
+                  {tn('blockSize')}
                 </SSText>
               </SSVStack>
               <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
@@ -1096,38 +1092,36 @@ export default function Energy() {
                   ) || '0'}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  mins ago
+                  {tn('blockMinedMinutesAgo')}
                 </SSText>
               </SSVStack>
             </SSHStack>
-
             <SSHStack justifyBetween>
               <SSVStack gap="xxs">
                 <SSText size="xl">n/a</SSText>
                 <SSText size="xs" color="muted">
-                  Template
+                  {tn('template.template')}
                 </SSText>
               </SSVStack>
-
               <SSVStack style={{ alignItems: 'center' }} gap="xxs">
-                <SSText size="xl">{networkHashRate} EH/s</SSText>
+                <SSText size="xl">
+                  {tn('networkHashRate', { rate: networkHashRate })}
+                </SSText>
                 <SSText size="xs" color="muted">
-                  Hash Rate
+                  {tn('hashRate')}
                 </SSText>
               </SSVStack>
-
               <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                 <SSText size="xl">
                   {blockchainInfo?.total_supply?.toFixed(4) || '0'}
                 </SSText>
                 <SSText size="xs" color="muted">
-                  Total Bitcoin
+                  {tn('totalBitcoin')}
                 </SSText>
               </SSVStack>
             </SSHStack>
           </SSVStack>
         </SSVStack>
-
         <SSVStack gap="md" style={styles.formContainer}>
           <SSFormLayout>
             <SSText
@@ -1255,7 +1249,7 @@ export default function Energy() {
                 </SSText>
               </SSHStack>
               <SSButton
-                label={(tn('node.refresh'), toUpperCase())}
+                label={tn('node.refresh').toUpperCase()}
                 onPress={fetchBlockchainInfo}
                 variant="outline"
                 disabled={isLoadingInfo}
@@ -1263,7 +1257,6 @@ export default function Energy() {
             </SSVStack>
           )}
         </SSVStack>
-
         {isConnected && (
           <SSVStack gap="md" style={styles.templateContainer}>
             <SSText
@@ -1321,7 +1314,6 @@ export default function Energy() {
                   loading={isLoadingTx}
                 />
               </SSVStack>
-
               <SSVStack gap="sm">
                 <SSText
                   size="sm"
@@ -1332,19 +1324,19 @@ export default function Energy() {
                   {tn('template.select')}
                 </SSText>
                 <SSButton
-                  label="template.selectA"
+                  label={tn('template.selectA')}
                   onPress={() => {}}
                   variant="outline"
                   disabled
                 />
                 <SSButton
-                  label="template.selectB"
+                  label={tn('template.selectB')}
                   onPress={() => {}}
                   variant="outline"
                   disabled
                 />
                 <SSButton
-                  label="template.selectC"
+                  label={tn('template.selectC')}
                   onPress={() => {}}
                   variant="outline"
                   disabled
