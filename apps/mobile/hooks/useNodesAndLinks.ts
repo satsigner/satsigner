@@ -7,6 +7,8 @@ import { formatDate, formatRelativeTime } from '@/utils/date'
 import { formatAddress, formatTxId } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
+import type { ExtendedTransaction } from './useInputTransactions'
+
 export interface TxNode {
   localId?: string
   id: string
@@ -41,32 +43,32 @@ type Link = {
   value: number | undefined
 }
 
-type Transaction = {
-  txid: string
-  size: number
-  weight: number
-  vin: {
-    txid: string
-    vout: number
-    prevout: {
-      scriptpubkey_address: string
-      value: number
-    }
-    indexV?: number
-    label?: string
-  }[]
-  vout?: {
-    scriptpubkey_address: string
-    value: number
-    indexV?: number
-    vout?: number
-  }[]
-  depthH: number
-  status: { block_height?: number; block_time?: number }
-}
+// type Transaction = {
+//   txid: string
+//   size: number
+//   weight: number
+//   vin: {
+//     txid: string
+//     vout: number
+//     prevout: {
+//       scriptpubkey_address: string
+//       value: number
+//     }
+//     indexV?: number
+//     label?: string
+//   }[]
+//   vout?: {
+//     scriptpubkey_address: string
+//     value: number
+//     indexV?: number
+//     vout?: number
+//   }[]
+//   depthH: number
+//   status: { block_height?: number; block_time?: number }
+// }
 
 type UseNodesAndLinksProps = {
-  transactions: Map<string, Transaction>
+  transactions: Map<string, ExtendedTransaction>
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
@@ -79,18 +81,18 @@ export const useNodesAndLinks = ({
   feeRate
 }: UseNodesAndLinksProps) => {
   // Ensure all transaction outputs have the vout property set
-  Array.from(transactions.values()).forEach((tx) => {
-    if (tx.vout) {
-      tx.vout.forEach((output, idx) => {
-        if (output.vout === undefined) {
-          output.vout = idx
-        }
-        if (output.indexV === undefined) {
-          output.indexV = idx
-        }
-      })
-    }
-  })
+  // Array.from(transactions.values()).forEach((tx) => {
+  //   if (tx.vout) {
+  //     tx.vout.forEach((output, idx) => {
+  //       if (output.vout === undefined) {
+  //         output.vout = idx
+  //       }
+  //       if (output.indexV === undefined) {
+  //         output.indexV = idx
+  //       }
+  //     })
+  //   }
+  // })
 
   const maxExistingDepth =
     transactions.size > 0
@@ -199,7 +201,7 @@ export const useNodesAndLinks = ({
   }, [inputs, maxExistingDepth, outputs, feeRate])
 
   const outputAddresses = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
+    (tx) => tx.vout?.map((output) => output.address) ?? []
   )
   const outputValues = Array.from(transactions.values()).flatMap(
     (tx) => tx.vout?.map((output) => output.value) ?? []
@@ -208,10 +210,10 @@ export const useNodesAndLinks = ({
   const incomingAndOutgoingVinTxId = Array.from(transactions.values()).flatMap(
     (tx) =>
       tx.vin.map((input) => ({
-        txid: tx.txid,
-        inputTxId: input.txid,
-        vout: input.vout,
-        prevValue: input.prevout?.value
+        txid: tx.id,
+        inputTxId: input.previousOutput.txid,
+        vout: input.previousOutput.vout,
+        prevValue: input.value
       }))
   )
 
@@ -226,8 +228,8 @@ export const useNodesAndLinks = ({
           const allInputNodes = tx.vin.reduce((nodes, input) => {
             // Only process inputs that pass the filter condition
             if (
-              outputAddresses.includes(input.prevout.scriptpubkey_address) &&
-              outputValues.includes(input.prevout.value)
+              outputAddresses.includes(input.address) &&
+              outputValues.includes(input.value ?? 0)
             ) {
               return nodes
             }
@@ -237,39 +239,40 @@ export const useNodesAndLinks = ({
             const currentIndex = depthIndices.get(depthH) || 0
             depthIndices.set(depthH, currentIndex + 1)
 
-            // Set the indexV property if not already set
-            if (input.indexV === undefined) {
-              input.indexV = currentIndex
-            }
+            // // Set the indexV property if not already set
+            // if (input.indexV === undefined) {
+            //   input.indexV = currentIndex
+            // }
 
             const node = {
               id: `vin-${depthH}-${currentIndex}`,
               type: 'text',
               depthH,
               ioData: {
-                value: input.prevout.value,
-                address: `${formatAddress(input.prevout.scriptpubkey_address, 4)}`,
+                value: input.value,
+                address: `${formatAddress(input.address, 4)}`,
                 label: `${input.label ?? ''}`,
-                txId: tx.txid,
+                txId: tx.id,
                 text: t('common.from')
               },
-              value: input.prevout.value,
-              txId: tx.txid,
-              prevout: input.prevout,
-              indexV: input.indexV,
-              vout: input.vout
+              value: input.value,
+              txId: tx.id,
+              prevout: input.previousOutput,
+              vout: input.previousOutput.vout
             }
 
             nodes.push(node)
             return nodes
           }, [] as any[])
 
-          const vsize = Math.ceil(tx.weight * 0.25)
+          const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
           const blockDepth = tx.depthH
           const blockIndex = blockDepthIndices.get(blockDepth) || 0
-          const blockHeight = `${tx.status.block_height}`
-          const blockRelativeTime = formatRelativeTime(tx.status.block_time)
-          const blockTime = formatDate(tx.status.block_time)
+          const blockHeight = `${tx.blockHeight}`
+          const blockRelativeTime = formatRelativeTime(
+            tx.timestamp?.getTime() ?? 0
+          )
+          const blockTime = formatDate(tx.timestamp?.getTime() ?? 0)
 
           blockDepthIndices.set(blockDepth, blockIndex + 1)
 
@@ -284,9 +287,9 @@ export const useNodesAndLinks = ({
                 blockRelativeTime,
                 txSize: tx.size,
                 vSize: vsize,
-                txId: formatTxId(tx?.txid, 6)
+                txId: formatTxId(tx?.id, 6)
               },
-              txId: tx.txid,
+              txId: tx.id,
               indexV: blockIndex
             }
           ]
@@ -294,44 +297,43 @@ export const useNodesAndLinks = ({
           const outputNodes = tx.vout.map((output, idx) => {
             const outputDepth = tx.depthH + 1
 
-            // Set the vout property to the array index if not already set
-            if (output.vout === undefined) {
-              output.vout = idx
-            }
+            // // Set the vout property to the array index if not already set
+            // if (output.vout === undefined) {
+            //   output.vout = idx
+            // }
 
             // Find transactions that use this output as an input
             const nextTx =
               incomingAndOutgoingVinTxId.find(
                 (vinTx) =>
-                  vinTx.inputTxId === tx.txid &&
-                  vinTx.vout === output.vout &&
+                  vinTx.inputTxId === tx.id &&
+                  vinTx.vout === idx &&
                   vinTx.prevValue === output.value
               )?.txid || ''
 
             const label =
               Array.from(inputs.values()).find(
                 (input) =>
-                  input.vout === output.vout &&
+                  input.vout === idx &&
                   input.value === output.value &&
-                  input.addressTo === output.scriptpubkey_address
+                  input.addressTo === output.address
               )?.label ?? ''
 
             const node = {
               localId: undefined,
-              id: `vout-${outputDepth}-${output.indexV}`,
+              id: `vout-${outputDepth}-${idx}`,
               type: 'text',
               depthH: outputDepth,
               ioData: {
                 label,
-                address: formatAddress(output.scriptpubkey_address, 4),
+                address: formatAddress(output.address, 4),
                 value: output.value,
                 text: t('common.from')
               },
               value: output.value,
-              txId: tx.txid,
+              txId: tx.id,
               nextTx,
-              indexV: output.indexV,
-              vout: output.vout
+              vout: idx
             }
             return node
           })

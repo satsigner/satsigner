@@ -28,6 +28,7 @@ import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
@@ -82,10 +83,23 @@ export default function IOPreview() {
     ])
   )
 
-  const { transactions, loading, error } = usePreviousTransactions(
+  // const { transactions, loading, error } = useInputTransactions(
+  //   inputs,
+  //   DEEP_LEVEL
+  // )
+
+  const { transactions, loading, error } = useInputTransactions(
     inputs,
     DEEP_LEVEL
   )
+  console.log(
+    JSON.stringify(
+      { Transactions: Array.from(transactions.entries()) },
+      null,
+      2
+    )
+  )
+  console.log('txCount', transactions.size)
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -140,6 +154,7 @@ export default function IOPreview() {
     outputs,
     feeRate
   })
+  // console.log(JSON.stringify({ nodes }, null, 2))
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
@@ -303,7 +318,7 @@ export default function IOPreview() {
     )
   }
 
-  if (!nodes.length || !links.length) return <Redirect href="/" />
+  // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
     <View style={{ flex: 1 }}>

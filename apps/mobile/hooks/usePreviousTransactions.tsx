@@ -4,7 +4,7 @@ import { MempoolOracle } from '@/api/blockchain'
 import type { EsploraTx } from '@/api/esplora'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Utxo } from '@/types/models/Utxo'
-import { recalculateDepthH } from '@/utils/transaction'
+import { recalculateDepthH } from '@/utils/transaction-copy'
 
 const SIGNET_URL = 'https://mempool.space/signet/api'
 const TESTNET_URL = 'https://mempool.space/testnet/api'

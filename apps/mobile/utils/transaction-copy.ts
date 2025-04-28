@@ -1,5 +1,3 @@
-import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
-
 export function estimateTransactionSize(
   inputCount: number,
   outputCount: number
@@ -18,54 +16,6 @@ export function estimateTransactionSize(
   return { size: totalSize, vsize }
 }
 
-type InputOutputMapping = {
-  value: number
-  address: string
-  txid: string
-  vout: number
-}
-
-export function mapTransactionInputsToOutputs<T extends ExtendedTransaction>(
-  transactions: Map<string, T>
-): Map<string, InputOutputMapping> {
-  const inputToOutputMap = new Map<string, InputOutputMapping>()
-
-  // First pass: create a map of all outputs for quick lookup
-  const outputsMap = new Map<string, { value: number; address: string }>()
-  for (const [txid, tx] of transactions.entries()) {
-    tx.vout.forEach((output, index) => {
-      const outputKey = `${txid}:${index}`
-      outputsMap.set(outputKey, {
-        value: output.value,
-        address: output.address
-      })
-    })
-  }
-
-  // Second pass: map inputs to their corresponding outputs
-  for (const [txid, tx] of transactions.entries()) {
-    tx.vin.forEach((input, inputIndex) => {
-      const prevTxId = input.previousOutput.txid
-      const prevVout = input.previousOutput.vout
-      const outputKey = `${prevTxId}:${prevVout}`
-      const output = outputsMap.get(outputKey)
-
-      if (output) {
-        // Create a unique key for this input
-        const inputKey = `${txid}:${inputIndex}`
-        inputToOutputMap.set(inputKey, {
-          value: output.value,
-          address: output.address,
-          txid: prevTxId,
-          vout: prevVout
-        })
-      }
-    })
-  }
-
-  return inputToOutputMap
-}
-
 /**
  * Recalculates the depthH value for each transaction based on its dependencies.
  *
@@ -79,8 +29,14 @@ export function mapTransactionInputsToOutputs<T extends ExtendedTransaction>(
  * @param selectedInputs Map of selected input UTXOs
  * @returns The updated map of transactions with recalculated depthH values
  */
-
-export function recalculateDepthH<T extends ExtendedTransaction>(
+export function recalculateDepthH<
+  T extends {
+    txid: string
+    vin: { txid: string; vout: number }[]
+    vout?: { value: number; scriptpubkey_address: string }[]
+    depthH: number
+  }
+>(
   transactions: Map<string, T>,
   selectedInputs?: Map<string, { value: number; scriptpubkey_address: string }>
 ): Map<string, T> {
@@ -98,7 +54,7 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
   // Populate the dependency graph
   for (const [txid, tx] of updatedTransactions.entries()) {
     for (const input of tx.vin) {
-      const inputTxid = input.previousOutput.txid
+      const inputTxid = input.txid
       // Only add dependencies for transactions in our set
       if (updatedTransactions.has(inputTxid)) {
         dependencyGraph.get(txid)?.add(inputTxid)
@@ -170,17 +126,14 @@ export function recalculateDepthH<T extends ExtendedTransaction>(
           Array.from(selectedInputs.values()).some(
             (input) =>
               input.value === output.value &&
-              input.scriptpubkey_address === output.address
+              input.scriptpubkey_address === output.scriptpubkey_address
           )
         )
 
       // Check if this transaction is not an input to any other transaction in our set
       const isNotConnectedToOtherTx = Array.from(
         updatedTransactions.values()
-      ).every(
-        (otherTx) =>
-          !otherTx.vin.some((input) => input.previousOutput.txid === txid)
-      )
+      ).every((otherTx) => !otherTx.vin.some((input) => input.txid === txid))
 
       // Set depthH based on whether it's connected to selected inputs and not to other transactions
       tx.depthH =
