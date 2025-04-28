@@ -11,8 +11,10 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
+
+const tn = _tn('converter.energy')
 
 // Configure networks
 const networks = {
@@ -411,7 +413,7 @@ export default function Energy() {
         setConnectionError(error.message)
       } else {
         setConnectionError(
-          'Failed to connect to Bitcoin node. Please check your credentials.'
+          'Failed to connect to Bitcoin node. Please check your params.'
         )
       }
       setIsConnected(false)
@@ -886,9 +888,7 @@ export default function Energy() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('converter.energy.title')}</SSText>
-          )
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>
         }}
       />
       <ScrollView
@@ -901,10 +901,10 @@ export default function Energy() {
         >
           <SSVStack gap="sm" style={{ alignItems: 'center' }}>
             <SSText size="sm" color="muted">
-              {blocksFound} Blocks Found
+              {tn('blocksFound', { blocks: blocksFound })}
             </SSText>
             <SSText size="lg" color="muted">
-              {isMining ? 'Mining' : 'Not Mining'}
+              {tn(isMining ? 'mining' : 'notMining')}
             </SSText>
           </SSVStack>
 
@@ -923,7 +923,7 @@ export default function Energy() {
                 {miningStats.hashesPerSecond.toLocaleString()}
               </SSText>
               <SSText size="sm" color="muted">
-                hash/s
+                {tn('hashRate')}
               </SSText>
             </SSVStack>
 
@@ -932,7 +932,7 @@ export default function Energy() {
                 ~{energyRate}
               </SSText>
               <SSText size="sm" color="muted">
-                mAh/min
+                {tn('energyRate')}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -943,7 +943,7 @@ export default function Energy() {
             <SSVStack gap="sm" style={{ width: '100%' }}>
               <SSHStack justifyBetween>
                 <SSText size="sm" color="muted">
-                  Mining Intensity
+                  {tn('miningIntensity')}
                 </SSText>
                 <SSText size="sm" color="muted">
                   {miningIntensity} hashes/interval
@@ -979,13 +979,13 @@ export default function Energy() {
               />
             </SSVStack>
             <SSButton
-              label={
+              label={tn(
                 isMining
                   ? isStopping
-                    ? 'STOPPING...'
-                    : 'STOP MINING'
-                  : 'START MINING'
-              }
+                    ? 'stoppingMining'
+                    : 'stopMining'
+                  : 'startMining'
+              ).toUpperCase()}
               onPress={() => (isMining ? stopMining() : startMining())}
               variant={isMining ? 'danger' : 'secondary'}
               disabled={
@@ -994,7 +994,7 @@ export default function Energy() {
               loading={isStopping}
             />
             <SSButton
-              label="JOIN POOL"
+              label={tn('joinPool').toUpperCase()}
               onPress={() => {}}
               variant="outline"
               disabled
@@ -1003,7 +1003,7 @@ export default function Energy() {
 
           <SSVStack gap="md" style={styles.statsContainer}>
             <SSVStack gap="sm">
-              <SSText color="muted">Block Candidate Header</SSText>
+              <SSText color="muted">{tn('blockHeaderCandidate')}</SSText>
               <ScrollView style={styles.headerScroll}>
                 <SSText size="xs" type="mono">
                   {blockHeader || '-'}
@@ -1012,20 +1012,20 @@ export default function Energy() {
             </SSVStack>
 
             <SSVStack gap="sm">
-              <SSText color="muted">Latest Hash</SSText>
+              <SSText color="muted">{tn('latestHash')}</SSText>
               <SSText size="xl" type="mono">
                 {miningStats.lastHash || '-'}
               </SSText>
             </SSVStack>
 
             <SSVStack gap="sm">
-              <SSText color="muted">Best Block Hash</SSText>
+              <SSText color="muted">{tn('bestHash')}</SSText>
               <SSText size="xl" type="mono">
                 {blockchainInfo?.bestblockhash || '-'}
               </SSText>
             </SSVStack>
             <SSVStack gap="xs">
-              <SSText color="muted">Difficulty Adjustment Progress</SSText>
+              <SSText color="muted">{tn('adjustmentProgress')}</SSText>
               <View style={styles.difficultyBar}>
                 <View
                   style={[
@@ -1045,7 +1045,7 @@ export default function Energy() {
               <SSVStack gap="xxs">
                 <SSText size="xl">{blockchainInfo?.blocks || '0'}</SSText>
                 <SSText size="xs" color="muted">
-                  Block Candidate
+                  {tn('blockCandidate')}
                 </SSText>
               </SSVStack>
               <SSVStack style={{ alignItems: 'center' }} gap="xxs">
@@ -1056,7 +1056,7 @@ export default function Energy() {
                   BTC
                 </SSText>
                 <SSText size="xs" color="muted">
-                  Reward
+                  {tn('reward')}
                 </SSText>
               </SSVStack>
               <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
@@ -1131,15 +1131,15 @@ export default function Energy() {
         <SSVStack gap="md" style={styles.formContainer}>
           <SSFormLayout>
             <SSText
+              style={styles.sectionTitle}
               size="sm"
               color="muted"
               uppercase
-              style={styles.sectionTitle}
             >
-              Bitcoin Node Credentials
+              {tn('params.title')}
             </SSText>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label="RPC URL" />
+              <SSFormLayout.Label label={tn('params.rpcUrl')} />
               <SSTextInput
                 placeholder="http://127.0.0.1:8332"
                 value={rpcUrl}
@@ -1149,9 +1149,9 @@ export default function Energy() {
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label="RPC Username" />
+              <SSFormLayout.Label label={tn('params.rpcUser')} />
               <SSTextInput
-                placeholder="Enter RPC username"
+                placeholder={tn('params.rpcUserPlaceholder')}
                 value={rpcUser}
                 onChangeText={setRpcUser}
                 variant="outline"
@@ -1159,9 +1159,9 @@ export default function Energy() {
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label="RPC Password" />
+              <SSFormLayout.Label label={tn('params.rpcPassword')} />
               <SSTextInput
-                placeholder="Enter RPC password"
+                placeholder={tn('params.rpcPasswordPlaceholder')}
                 value={rpcPassword}
                 onChangeText={setRpcPassword}
                 variant="outline"
@@ -1170,9 +1170,9 @@ export default function Energy() {
               />
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label="Mining Address" />
+              <SSFormLayout.Label label={tn('params.address')} />
               <SSTextInput
-                placeholder="Address to receive rewards"
+                placeholder={tn('params.addressPlaceholder')}
                 value={miningAddress}
                 onChangeText={handleMiningAddressChange}
                 variant="outline"
@@ -1189,15 +1189,14 @@ export default function Energy() {
               />
               {miningAddress && !isValidAddress && (
                 <SSText size="sm" color="muted" style={styles.errorText}>
-                  Invalid Bitcoin address. Please enter a valid legacy, P2SH, or
-                  SegWit address.
+                  {tn('params.addressInvalid')}
                 </SSText>
               )}
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label="OP_RETURN Content" />
+              <SSFormLayout.Label label={tn('params.opReturn')} />
               <SSTextInput
-                placeholder="Optional OP_RETURN"
+                placeholder={tn('params.opReturnPlaceholder')}
                 value={opReturnContent}
                 onChangeText={setOpReturnContent}
                 variant="outline"
@@ -1210,7 +1209,7 @@ export default function Energy() {
               </SSText>
             ) : null}
             <SSButton
-              label="TEST CONNECTION"
+              label={tn('params.test')}
               onPress={connectToNode}
               variant="outline"
               disabled={isConnecting}
@@ -1225,38 +1224,38 @@ export default function Energy() {
                 uppercase
                 style={styles.sectionTitle}
               >
-                Node Information
+                {tn('node.title')}
               </SSText>
               <SSHStack justifyBetween>
-                <SSText color="muted">Chain</SSText>
+                <SSText color="muted">{tn('node.chain')}</SSText>
                 <SSText>{blockchainInfo.chain}</SSText>
               </SSHStack>
               <SSHStack justifyBetween>
-                <SSText color="muted">Blocks</SSText>
+                <SSText color="muted">{tn('node.blocks')}</SSText>
                 <SSText>{blockchainInfo.blocks}</SSText>
               </SSHStack>
               <SSHStack justifyBetween>
-                <SSText color="muted">Headers</SSText>
+                <SSText color="muted">{tn('node.headers')}</SSText>
                 <SSText>{blockchainInfo.headers}</SSText>
               </SSHStack>
               <SSVStack justifyBetween gap="xxs">
-                <SSText color="muted">Best Block Hash</SSText>
+                <SSText color="muted">{tn('bestHash')}</SSText>
                 <SSText size="xs" type="mono">
                   {blockchainInfo.bestblockhash}
                 </SSText>
               </SSVStack>
               <SSHStack justifyBetween>
-                <SSText color="muted">Difficulty</SSText>
+                <SSText color="muted">{tn('node.difficulty')}</SSText>
                 <SSText>{blockchainInfo.difficulty}</SSText>
               </SSHStack>
               <SSHStack justifyBetween>
-                <SSText color="muted">Verification Progress</SSText>
+                <SSText color="muted">{tn('node.progress')}</SSText>
                 <SSText>
                   {(blockchainInfo.verificationprogress * 100).toFixed(2)}%
                 </SSText>
               </SSHStack>
               <SSButton
-                label="REFRESH INFO"
+                label={(tn('node.refresh'), toUpperCase())}
                 onPress={fetchBlockchainInfo}
                 variant="outline"
                 disabled={isLoadingInfo}
@@ -1273,11 +1272,11 @@ export default function Energy() {
               uppercase
               style={styles.sectionTitle}
             >
-              Block Template
+              {tn('template.title')}
             </SSText>
             {isLoadingTemplate ? (
               <SSVStack style={styles.loadingContainer}>
-                <SSText color="muted">Loading block template...</SSText>
+                <SSText color="muted">{tn('template.loading')}</SSText>
               </SSVStack>
             ) : templateData ? (
               <ScrollView style={styles.templateScroll}>
@@ -1288,7 +1287,7 @@ export default function Energy() {
             ) : null}
             <SSVStack gap="sm">
               <SSButton
-                label="REFRESH TEMPLATE"
+                label={tn('template.refresh').toUpperCase()}
                 onPress={fetchBlockTemplate}
                 variant="outline"
                 disabled={isLoadingTemplate}
@@ -1300,10 +1299,10 @@ export default function Energy() {
                   uppercase
                   style={[styles.sectionTitle, { marginTop: 40 }]}
                 >
-                  Include Arbitrary Transaction
+                  {tn('template.addTransaction')}
                 </SSText>
                 <SSTextInput
-                  placeholder="Enter mempool TX ID"
+                  placeholder={tn('template.addTransactionPlaceholder')}
                   value={txId}
                   onChangeText={setTxId}
                   variant="outline"
@@ -1315,7 +1314,7 @@ export default function Energy() {
                   </SSText>
                 )}
                 <SSButton
-                  label="ADD TRANSACTION"
+                  label={tn('template.addTransactionBtn')}
                   onPress={fetchTransaction}
                   variant="outline"
                   disabled={!txId || isLoadingTx || !isConnected}
@@ -1330,22 +1329,22 @@ export default function Energy() {
                   uppercase
                   style={[styles.sectionTitle, { marginTop: 40 }]}
                 >
-                  Template
+                  {tn('template.select')}
                 </SSText>
                 <SSButton
-                  label="SELECT TEMPLATE A"
+                  label="template.selectA"
                   onPress={() => {}}
                   variant="outline"
                   disabled
                 />
                 <SSButton
-                  label="SELECT TEMPLATE B"
+                  label="template.selectB"
                   onPress={() => {}}
                   variant="outline"
                   disabled
                 />
                 <SSButton
-                  label="SELECT TEMPLATE C"
+                  label="template.selectC"
                   onPress={() => {}}
                   variant="outline"
                   disabled
