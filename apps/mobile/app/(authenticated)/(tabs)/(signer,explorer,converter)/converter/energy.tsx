@@ -45,10 +45,10 @@ const isValidBitcoinAddress = (address: string): boolean => {
 }
 
 export default function Energy() {
-  const [blocksFound, _setBlocksFound] = useState(0)
-  const [_hashRate, _setHashRate] = useState('0')
-  const [energyRate, _setEnergyRate] = useState('0')
-  const [totalSats, _setTotalSats] = useState('0')
+  const [blocksFound, setBlocksFound] = useState(0)
+  const [_hashRate, setHashRate] = useState('0')
+  const [energyRate, setEnergyRate] = useState('0')
+  const [totalSats, setTotalSats] = useState('0')
   const [isMining, setIsMining] = useState(false)
   const [miningIntensity, setMiningIntensity] = useState(500)
   const isMiningRef = useRef(false)
@@ -56,11 +56,11 @@ export default function Energy() {
   const [rpcUrl, setRpcUrl] = useState('')
   const [rpcUser, setRpcUser] = useState('')
   const [rpcPassword, setRpcPassword] = useState('')
-  const [_isConnecting, setIsConnecting] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
   const [connectionError, setConnectionError] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [blockchainInfo, setBlockchainInfo] = useState<any>(null)
-  const [_isLoadingInfo, setIsLoadingInfo] = useState(false)
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false)
   const [blockTemplate, setBlockTemplate] = useState<any>(null)
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false)
   const [templateData, setTemplateData] = useState<string>('')
@@ -84,7 +84,7 @@ export default function Energy() {
   const [blockHeader, setBlockHeader] = useState('')
   const currentHeaderRef = useRef<Uint8Array | null>(null)
 
-  const _formatTemplateData = useCallback((data: any) => {
+  const formatTemplateData = useCallback((data: any) => {
     try {
       // Only show essential fields to reduce data size
       const essentialData = {
@@ -115,12 +115,12 @@ export default function Energy() {
           })) || []
       }
       return JSON.stringify(essentialData, null, 2)
-    } catch (_error) {
+    } catch {
       return 'Error formatting template data'
     }
   }, [])
 
-  const _fetchBlockTemplate = useCallback(async () => {
+  const fetchBlockTemplate = useCallback(async () => {
     if (!isConnected) return
 
     // Prevent too frequent updates (minimum 30 seconds between updates)
@@ -159,7 +159,7 @@ export default function Energy() {
             }
           }
         }
-      } catch (_error) {
+      } catch {
         // Ignore network type detection errors
       }
 
@@ -211,7 +211,7 @@ export default function Energy() {
       // Update template only if it's different
       if (JSON.stringify(data.result) !== JSON.stringify(blockTemplate)) {
         setBlockTemplate(data.result)
-        setTemplateData(_formatTemplateData(data.result))
+        setTemplateData(formatTemplateData(data.result))
         lastTemplateUpdateRef.current = now
       }
     } catch (error) {
@@ -226,11 +226,11 @@ export default function Energy() {
     rpcUrl,
     rpcUser,
     rpcPassword,
-    _formatTemplateData,
+    formatTemplateData,
     blockTemplate
   ])
 
-  const _fetchBlockchainInfo = useCallback(async () => {
+  const fetchBlockchainInfo = useCallback(async () => {
     if (!isConnected) return
 
     setIsLoadingInfo(true)
@@ -260,15 +260,15 @@ export default function Energy() {
 
       setBlockchainInfo(data.result)
       // Fetch block template after successful blockchain info
-      _fetchBlockTemplate()
-    } catch (_error) {
+      fetchBlockTemplate()
+    } catch {
       setConnectionError('Failed to fetch blockchain info')
     } finally {
       setIsLoadingInfo(false)
     }
-  }, [isConnected, rpcUrl, rpcUser, rpcPassword, _fetchBlockTemplate])
+  }, [isConnected, rpcUrl, rpcUser, rpcPassword, fetchBlockTemplate])
 
-  const _fetchNetworkHashRate = useCallback(async () => {
+  const fetchNetworkHashRate = useCallback(async () => {
     try {
       const response = await fetch(
         'https://mempool.space/api/v1/mining/hashrate/1m'
@@ -283,7 +283,7 @@ export default function Energy() {
       // Convert to exahashes per second (1 EH/s = 10^18 hashes per second)
       const hashRateInEH = (latestHashRate / 1e18).toFixed(2)
       setNetworkHashRate(hashRateInEH)
-    } catch (_error) {
+    } catch {
       setNetworkHashRate('0')
     }
   }, [])
@@ -293,11 +293,11 @@ export default function Energy() {
 
     if (isConnected) {
       // Initial fetch
-      _fetchBlockchainInfo()
+      fetchBlockchainInfo()
 
       // Set up interval for auto-refresh
       intervalId = setInterval(() => {
-        _fetchBlockchainInfo()
+        fetchBlockchainInfo()
       }, 30000) // 30 seconds
     }
 
@@ -307,7 +307,7 @@ export default function Energy() {
         clearInterval(intervalId)
       }
     }
-  }, [isConnected, _fetchBlockchainInfo]) // Dependencies for the effect
+  }, [isConnected, fetchBlockchainInfo]) // Dependencies for the effect
 
   useEffect(() => {
     if (blockchainInfo) {
@@ -321,21 +321,21 @@ export default function Energy() {
 
   useEffect(() => {
     // Initial fetch
-    _fetchNetworkHashRate()
+    fetchNetworkHashRate()
     // Set up interval for auto-refresh
-    const intervalId = setInterval(_fetchNetworkHashRate, 60000) // Update every minute
+    const intervalId = setInterval(fetchNetworkHashRate, 60000) // Update every minute
     return () => clearInterval(intervalId)
-  }, [_fetchNetworkHashRate])
+  }, [fetchNetworkHashRate])
 
   // Set up template refresh interval
   useEffect(() => {
     if (isConnected) {
       // Initial fetch
-      _fetchBlockTemplate()
+      fetchBlockTemplate()
 
       // Set up interval for auto-refresh (every 2 minutes)
       templateUpdateIntervalRef.current = setInterval(() => {
-        _fetchBlockTemplate()
+        fetchBlockTemplate()
       }, 120000)
     }
 
@@ -345,7 +345,7 @@ export default function Energy() {
         templateUpdateIntervalRef.current = null
       }
     }
-  }, [isConnected, _fetchBlockTemplate])
+  }, [isConnected, fetchBlockTemplate])
 
   // Clean up on unmount
   useEffect(() => {
@@ -357,7 +357,7 @@ export default function Energy() {
     }
   }, [])
 
-  const _connectToNode = async () => {
+  const connectToNode = async () => {
     if (!rpcUrl || !rpcUser || !rpcPassword) {
       setConnectionError('Please fill in all RPC credentials')
       return
@@ -406,9 +406,9 @@ export default function Energy() {
       setConnectionError('')
       setIsConnected(true)
       setBlockchainInfo(data.result)
-    } catch (_error) {
-      if (_error instanceof Error) {
-        setConnectionError(_error.message)
+    } catch (error) {
+      if (error instanceof Error) {
+        setConnectionError(error.message)
       } else {
         setConnectionError(
           'Failed to connect to Bitcoin node. Please check your credentials.'
@@ -421,7 +421,7 @@ export default function Energy() {
     }
   }
 
-  const _createCoinbaseTransaction = useCallback(
+  const createCoinbaseTransaction = useCallback(
     (template: any) => {
       if (!template || !miningAddress) {
         return null
@@ -469,7 +469,7 @@ export default function Energy() {
     [miningAddress, opReturnContent]
   )
 
-  const _createMerkleRoot = useCallback((transactions: any[]) => {
+  const createMerkleRoot = useCallback((transactions: any[]) => {
     if (!transactions || transactions.length === 0) {
       return ''
     }
@@ -513,7 +513,7 @@ export default function Energy() {
     }
   }, [])
 
-  const _createBlockHeader = useCallback(
+  const createBlockHeader = useCallback(
     (template: any, merkleRoot: string, timestamp: number, nonce: number) => {
       const header = Buffer.alloc(80) as unknown as Uint8Array
 
@@ -549,13 +549,13 @@ export default function Energy() {
     []
   )
 
-  const _checkDifficulty = (hash: string, target: string) => {
+  const checkDifficulty = (hash: string, target: string) => {
     const hashNum = BigInt('0x' + hash)
     const targetNum = BigInt('0x' + target)
     return hashNum <= targetNum
   }
 
-  const _submitBlock = useCallback(
+  const submitBlock = useCallback(
     async (blockHeader: Uint8Array, coinbaseTx: any, transactions: any[]) => {
       try {
         const response = await fetch(rpcUrl, {
@@ -588,16 +588,16 @@ export default function Energy() {
           throw new Error(data.error.message || 'RPC error')
         }
 
-        _setBlocksFound((prev) => prev + 1)
+        setBlocksFound((prev) => prev + 1)
         return true
-      } catch (_error) {
+      } catch {
         return false
       }
     },
     [rpcUrl, rpcUser, rpcPassword]
   )
 
-  const _startMining = useCallback(async () => {
+  const startMining = useCallback(async () => {
     if (!blockTemplate || !miningAddress) {
       toast.error('Missing block template or mining address')
       return
@@ -659,7 +659,7 @@ export default function Energy() {
       setIsMining(true)
       isMiningRef.current = true
 
-      const coinbaseTx = _createCoinbaseTransaction(blockTemplate)
+      const coinbaseTx = createCoinbaseTransaction(blockTemplate)
       if (!coinbaseTx) {
         throw new Error('Failed to create coinbase transaction')
       }
@@ -668,7 +668,7 @@ export default function Energy() {
         coinbaseTx,
         ...(blockTemplate.transactions || [])
       ]
-      const merkleRoot = _createMerkleRoot(allTransactions)
+      const merkleRoot = createMerkleRoot(allTransactions)
       if (!merkleRoot) {
         throw new Error('Failed to create merkle root')
       }
@@ -691,7 +691,7 @@ export default function Energy() {
             }
 
             const timestamp = Math.floor(Date.now() / 1000)
-            const header = _createBlockHeader(
+            const header = createBlockHeader(
               blockTemplate,
               merkleRoot,
               timestamp,
@@ -710,14 +710,14 @@ export default function Energy() {
               lastHashRef.current = hashHex
             }
 
-            if (_checkDifficulty(hashHex, blockTemplate.target)) {
-              const success = await _submitBlock(
+            if (checkDifficulty(hashHex, blockTemplate.target)) {
+              const success = await submitBlock(
                 header as unknown as Uint8Array,
                 coinbaseTx,
                 allTransactions
               )
               if (success) {
-                _setTotalSats((prev) =>
+                setTotalSats((prev) =>
                   (Number(prev) + blockTemplate.coinbasevalue).toString()
                 )
                 toast.success('Block found and submitted successfully!')
@@ -738,7 +738,7 @@ export default function Energy() {
               : (hashesPerSecond * 0.0001).toFixed(2)
 
             requestAnimationFrame(() => {
-              _setEnergyRate(powerConsumption)
+              setEnergyRate(powerConsumption)
               setMiningStats((prev) => ({
                 ...prev,
                 hashesPerSecond,
@@ -774,17 +774,17 @@ export default function Energy() {
   }, [
     blockTemplate,
     miningAddress,
-    _createCoinbaseTransaction,
-    _createBlockHeader,
-    _createMerkleRoot,
-    _submitBlock,
+    createCoinbaseTransaction,
+    createBlockHeader,
+    createMerkleRoot,
+    submitBlock,
     rpcUrl,
     rpcUser,
     rpcPassword,
     miningIntensity
   ])
 
-  const _stopMining = useCallback(() => {
+  const stopMining = useCallback(() => {
     // Set loading state immediately
     setIsStopping(true)
     setIsMining(false)
@@ -799,9 +799,9 @@ export default function Energy() {
     }
 
     // Reset mining values immediately
-    _setHashRate('0')
-    _setEnergyRate('0')
-    _setTotalSats('0')
+    setHashRate('0')
+    setEnergyRate('0')
+    setTotalSats('0')
     setMiningStats({
       hashesPerSecond: 0,
       lastHash: '',
@@ -820,7 +820,7 @@ export default function Energy() {
     setIsValidAddress(isValidBitcoinAddress(address))
   }
 
-  const _fetchTransaction = useCallback(async () => {
+  const fetchTransaction = useCallback(async () => {
     if (!txId || !isConnected) return
 
     setIsLoadingTx(true)
@@ -861,7 +861,7 @@ export default function Energy() {
           transactions: [...(blockTemplate.transactions || []), data.result]
         }
         setBlockTemplate(newTemplate)
-        setTemplateData(_formatTemplateData(newTemplate))
+        setTemplateData(formatTemplateData(newTemplate))
         toast.success('Transaction added to template')
       }
     } catch (error) {
@@ -879,7 +879,7 @@ export default function Energy() {
     rpcUser,
     rpcPassword,
     blockTemplate,
-    _formatTemplateData
+    formatTemplateData
   ])
 
   return (
@@ -986,7 +986,7 @@ export default function Energy() {
                     : 'STOP MINING'
                   : 'START MINING'
               }
-              onPress={() => (isMining ? _stopMining() : _startMining())}
+              onPress={() => (isMining ? stopMining() : startMining())}
               variant={isMining ? 'danger' : 'secondary'}
               disabled={
                 !isConnected || !miningAddress || !isValidAddress || isStopping
@@ -1211,9 +1211,9 @@ export default function Energy() {
             ) : null}
             <SSButton
               label="TEST CONNECTION"
-              onPress={_connectToNode}
+              onPress={connectToNode}
               variant="outline"
-              disabled={_isConnecting}
+              disabled={isConnecting}
             />
           </SSFormLayout>
 
@@ -1257,9 +1257,9 @@ export default function Energy() {
               </SSHStack>
               <SSButton
                 label="REFRESH INFO"
-                onPress={_fetchBlockchainInfo}
+                onPress={fetchBlockchainInfo}
                 variant="outline"
-                disabled={_isLoadingInfo}
+                disabled={isLoadingInfo}
               />
             </SSVStack>
           )}
@@ -1289,7 +1289,7 @@ export default function Energy() {
             <SSVStack gap="sm">
               <SSButton
                 label="REFRESH TEMPLATE"
-                onPress={_fetchBlockTemplate}
+                onPress={fetchBlockTemplate}
                 variant="outline"
                 disabled={isLoadingTemplate}
               />
@@ -1316,7 +1316,7 @@ export default function Energy() {
                 )}
                 <SSButton
                   label="ADD TRANSACTION"
-                  onPress={_fetchTransaction}
+                  onPress={fetchTransaction}
                   variant="outline"
                   disabled={!txId || isLoadingTx || !isConnected}
                   loading={isLoadingTx}
