@@ -1,11 +1,10 @@
+import Slider from '@react-native-community/slider'
+import * as bitcoin from 'bitcoinjs-lib'
+import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { Stack } from 'expo-router'
-import * as bitcoin from 'bitcoinjs-lib'
-import Slider from '@react-native-community/slider'
 import { toast } from 'sonner-native'
 
-import { Colors } from '@/styles'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -13,6 +12,7 @@ import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { Colors } from '@/styles'
 
 // Configure networks
 const networks = {
@@ -169,7 +169,7 @@ export default function Energy() {
         method: 'getblocktemplate',
         params: [
           {
-            rules: rules
+            rules
           }
         ]
       }
