@@ -1362,7 +1362,7 @@ export default function Energy() {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    paddingBottom: 200
+    paddingBottom: 20
   },
   mainContent: {
     flex: 1,
