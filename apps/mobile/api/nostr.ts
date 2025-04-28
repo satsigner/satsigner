@@ -109,15 +109,19 @@ export class NostrAPI {
 
     // Create NDKUser for recipient
     console.log('create recipient user')
-    const recipientUser = new NDKUser({ npub: recipientPubkey });
+    const recipientUser = new NDKUser({
+      npub: recipientPubkey,
+      relayUrls: this.relays
+    });
     console.log('created')
+    console.log('Recipient user created:', recipientUser.npub);
     recipientUser.ndk = this.ndk;
-    console.log('Recipient user created:', recipientUser.pubkey);
 
     // Ensure proper encoding before encryption
     const encodedContent = unescape(encodeURIComponent(content));
 
     // Create signer
+    console.log('creating signer', secretNostrKeyHex)
     const signer = new NDKPrivateKeySigner(secretNostrKeyHex);
     if (!signer) throw new Error('Failed to create NDKPrivateKeySigner');
     console.log('Signer created');
