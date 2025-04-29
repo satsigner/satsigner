@@ -275,7 +275,6 @@ export const useNodesAndLinks = ({
           const blockTime = formatDate(tx.timestamp?.getTime() ?? 0)
 
           blockDepthIndices.set(blockDepth, blockIndex + 1)
-
           const blockNode = [
             {
               id: `block-${blockDepth}-${blockIndex}`,
@@ -321,7 +320,7 @@ export const useNodesAndLinks = ({
 
             const node = {
               localId: undefined,
-              id: `vout-${outputDepth}-${idx}`,
+              id: `vout-${outputDepth}-${output.index}`,
               type: 'text',
               depthH: outputDepth,
               ioData: {
@@ -392,7 +391,11 @@ export const useNodesAndLinks = ({
           const vouts = nextDepthNodes.filter(
             (n: TxNode) => n.type === 'text' && n.txId === node.txId
           )
+
           vouts.forEach((vout: TxNode) => {
+            console.log(
+              JSON.stringify({ source: node.id, target: vout.id }, null, 2)
+            )
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
         } else if (node.type === 'text' && node.nextTx) {
@@ -457,5 +460,6 @@ export const useNodesAndLinks = ({
 
     return generateSankeyLinks(previousConfirmedNodes)
   }, [nodes?.length, previousConfirmedNodes, ingoingNodes, inputs])
+  // console.log(JSON.stringify({ nodes }, null, 2))
   return { nodes, links }
 }

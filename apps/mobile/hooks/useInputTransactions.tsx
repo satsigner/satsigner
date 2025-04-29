@@ -12,12 +12,20 @@ import { TxDecoded } from '@/utils/txDecoded' // Import TxDecoded
 // Define the extended Vin type
 type ExtendedVin = Transaction['vin'][number] & {
   address: string
+  index?: number // Add optional index
+}
+
+// Define the ExtendedVout type with optional index and vout
+type ExtendedVout = Transaction['vout'][number] & {
+  index?: number
+  vout?: number // Add optional vout index
 }
 
 // Define the ExtendedTransaction type using Omit and intersection
-export type ExtendedTransaction = Omit<Transaction, 'vin'> & {
+export type ExtendedTransaction = Omit<Transaction, 'vin' | 'vout'> & {
   depthH: number
   vin: ExtendedVin[]
+  vout: ExtendedVout[] // Use ExtendedVout
 }
 
 export function useInputTransactions(
@@ -35,6 +43,66 @@ export function useInputTransactions(
   >(new Map())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+
+  const assignIOIndex = (transactions: Map<string, ExtendedTransaction>) => {
+    if (transactions.size === 0) {
+      return transactions
+    }
+
+    // Group vins and vouts by depthH
+    const vinsByDepth = new Map<number, { txid: string; index: number }[]>()
+    const voutsByDepth = new Map<number, { txid: string; index: number }[]>()
+
+    // First pass: group by depthH
+    for (const [txid, tx] of transactions.entries()) {
+      if (tx.vin) {
+        tx.vin.forEach((_, index) => {
+          if (!vinsByDepth.has(tx.depthH)) {
+            vinsByDepth.set(tx.depthH, [])
+          }
+          vinsByDepth.get(tx.depthH)?.push({ txid, index })
+        })
+      }
+
+      if (tx.vout) {
+        tx.vout.forEach((_, index) => {
+          if (!voutsByDepth.has(tx.depthH)) {
+            voutsByDepth.set(tx.depthH, [])
+          }
+          voutsByDepth.get(tx.depthH)?.push({ txid, index })
+        })
+      }
+    }
+
+    // Second pass: assign index
+    for (const [_depthH, vins] of vinsByDepth.entries()) {
+      let currentIndex = 0
+      vins.forEach(({ txid, index }) => {
+        const tx = transactions.get(txid)
+        if (tx?.vin?.[index]) {
+          tx.vin[index] = { ...tx.vin[index], index: currentIndex }
+          currentIndex++
+        }
+      })
+    }
+
+    for (const [_depthH, vouts] of voutsByDepth.entries()) {
+      let currentIndex = 0
+      vouts.forEach(({ txid, index }) => {
+        const tx = transactions.get(txid)
+        if (tx?.vout?.[index]) {
+          tx.vout[index] = {
+            ...tx.vout[index],
+            index: currentIndex,
+            vout: index // Set vout to the original array index
+          }
+          currentIndex++
+        }
+      })
+    }
+
+    return transactions
+  }
 
   const fetchInputTransactions = useCallback(async () => {
     if (inputs.size === 0) return
@@ -309,8 +377,11 @@ export function useInputTransactions(
           mappedInputs
         )
 
+        // Assign index to vins and vouts
+        const transactionsWithIOIndex = assignIOIndex(transactionsWithDepthH)
+
         // Update state
-        setTransactions(transactionsWithDepthH)
+        setTransactions(transactionsWithIOIndex)
       } else {
         setTransactions(new Map())
       }
