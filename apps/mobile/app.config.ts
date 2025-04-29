@@ -20,14 +20,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.satsigner.satsigner'
+    bundleIdentifier: 'com.satsigner.satsigner',
+    infoPlist: {
+      NFCReaderUsageDescription:
+        'This app uses NFC to read and write data from NFC tags',
+      'com.apple.developer.nfc.readersession.formats': ['NDEF', 'TAG']
+    }
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff'
     },
-    package: 'com.satsigner.satsigner'
+    package: 'com.satsigner.satsigner',
+    permissions: ['NFC']
   },
   androidStatusBar: {
     barStyle: 'light-content'
