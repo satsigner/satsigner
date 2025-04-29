@@ -227,7 +227,7 @@ function SSSankeyLinks({
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={isCurrentTx || isUnspent ? 1 : 0.8}
+              opacity={isCurrentTx || isUnspent ? 1 : 0.6}
             >
               {(isCurrentTx || isMinerFee) &&
               !isRemainingBalance &&
