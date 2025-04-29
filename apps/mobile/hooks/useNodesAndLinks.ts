@@ -225,6 +225,17 @@ export const useNodesAndLinks = ({
         ([, tx]) => {
           if (!tx.vin || !tx.vout) return []
 
+          // Calculate total input and output values for *this* transaction
+          const totalInputValue = tx.vin.reduce(
+            (sum, input) => sum + (input.value ?? 0),
+            0
+          )
+          const totalOutputValue = tx.vout.reduce(
+            (sum, output) => sum + (output.value ?? 0),
+            0
+          )
+          const minerFee = totalInputValue - totalOutputValue
+
           const allInputNodes = tx.vin.reduce((nodes, input) => {
             // Only process inputs that pass the filter condition
             if (
@@ -296,11 +307,6 @@ export const useNodesAndLinks = ({
           const outputNodes = tx.vout.map((output, idx) => {
             const outputDepth = tx.depthH + 1
 
-            // // Set the vout property to the array index if not already set
-            // if (output.vout === undefined) {
-            //   output.vout = idx
-            // }
-
             // Find transactions that use this output as an input
             const nextTx =
               incomingAndOutgoingVinTxId.find(
@@ -337,9 +343,36 @@ export const useNodesAndLinks = ({
             return node
           })
 
-          return [...allInputNodes, ...blockNode, ...outputNodes].sort(
-            (a, b) => a.depthH - b.depthH
-          )
+          // Create miner fee node if applicable
+          const feeNode: TxNode[] = []
+          if (minerFee > 0) {
+            const feeOutputDepth = tx.depthH + 1
+            // Use vout length as index, similar to ingoingNodes fee calculation
+            const feeVoutIndex = tx.vout.length
+            const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
+            feeNode.push({
+              id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
+              type: 'text',
+              depthH: feeOutputDepth,
+              value: minerFee,
+              txId: tx.id,
+              vout: feeVoutIndex,
+              ioData: {
+                feeRate: minerFeeRate,
+                value: minerFee,
+                minerFee,
+                text: t('transaction.build.minerFee')
+              },
+              localId: 'minerFee'
+            })
+          }
+
+          return [
+            ...allInputNodes,
+            ...blockNode,
+            ...outputNodes,
+            ...feeNode
+          ].sort((a, b) => a.depthH - b.depthH)
         }
       )
 
@@ -393,9 +426,6 @@ export const useNodesAndLinks = ({
           )
 
           vouts.forEach((vout: TxNode) => {
-            console.log(
-              JSON.stringify({ source: node.id, target: vout.id }, null, 2)
-            )
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
         } else if (node.type === 'text' && node.nextTx) {
