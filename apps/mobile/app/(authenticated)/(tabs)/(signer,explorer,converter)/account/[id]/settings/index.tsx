@@ -177,13 +177,6 @@ function AccountSettings() {
               />
             </SSHStack>
           )}
-          <SSHStack>
-            <SSButton
-              style={styles.button}
-              label={t('account.viewMnemonic')}
-              onPress={() => setMnemonicModalVisible(true)}
-            />
-          )}
           <SSButton
             style={styles.button}
             label={t('account.export.descriptors')}
