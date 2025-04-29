@@ -23,7 +23,7 @@ function SSBottomSheet(
       index={-1}
       snapPoints={snapPoints}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: Colors.gray[900] }}
+      backgroundStyle={{ backgroundColor: Colors.gray[950] }}
       handleStyle={{ display: 'none' }}
     >
       <BottomSheetScrollView

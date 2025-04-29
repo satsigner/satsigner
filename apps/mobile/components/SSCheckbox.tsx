@@ -55,7 +55,7 @@ function SSCheckbox({
 const styles = StyleSheet.create({
   containerBase: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Sizes.checkbox.height / 2
   },
   iconStyleBase: {

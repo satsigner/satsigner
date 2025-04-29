@@ -10,6 +10,7 @@
     "delete.title": "Delete account",
     "derivationPath": "Derivation path",
     "duplicate.title": "Duplicate account",
+    "enter.pin": "Enter pin",
     "entropy.coin.desc.12": "To achieve 128 bits of entropy, you need to flip a fair coin about 128 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.15": "To achieve 160 bits of entropy, you need to flip a fair coin about 160 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.18": "To achieve 192 bits of entropy, you need to flip a fair coin about 192 times, as each flip provides 1 bit of randomness.",
@@ -264,6 +265,7 @@
     "description": "Description",
     "descriptor": "Descriptor",
     "deselectAll": "Deselect All",
+    "dismiss": "Dismiss",
     "download": "Download",
     "downloadFile": "Download file",
     "from": "From",
@@ -842,6 +844,11 @@
     "number.smaller": "The value must be smaller than %{value}",
     "required": "*required*"
   },
+  "warning": {
+    "content": "Copyright (c) 2025 SatSigner\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+    "subtitle": "Don't trust, verify",
+    "title": "This is an experimental app, use responsibly."
+  },
   "watchonly": {
     "fingerprint.label": "Master Fingerprint",
     "fingerprint.text": "Fingerprint",
@@ -859,8 +866,11 @@
     "inputPlaceholder": "Enter %{option}",
     "read.clipboard": "Paste from clibpoard",
     "read.computerVision": "Computer Vision text",
-    "read.nfc": "Tap NFC",
+    "read.nfc": "Scan NFC",
+    "read.nfcErrorNoData": "No data found on NFC tag",
     "read.qrcode": "Scan qrcode",
+    "read.scanning": "Scanning NFC",
+    "read.scanning": "Scanning NFC",
     "titleModal": "Watch-only wallet"
   }
 }

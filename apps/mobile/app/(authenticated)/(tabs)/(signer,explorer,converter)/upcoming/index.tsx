@@ -36,8 +36,7 @@ export default function UpComing() {
             <SSText uppercase style={styles.headerTitle}>
               {t('upcoming.name')}
             </SSText>
-          ),
-          headerBackVisible: false
+          )
         }}
       />
 

@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   scrollBackgroundBase: {
     position: 'absolute',
     width: '100%',
-    backgroundColor: Colors.gray[900],
+    backgroundColor: Colors.gray[950],
     top: 2,
     height: 1000
   },
