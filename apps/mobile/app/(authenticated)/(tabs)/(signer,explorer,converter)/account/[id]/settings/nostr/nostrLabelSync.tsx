@@ -66,11 +66,7 @@ function SSNostrLabelSync() {
       const lastBackupTimestamp = account?.nostr.lastBackupTimestamp
 
       const fetchedMessages = (
-        await nostrApi.fetchMessages(
-          nsec,
-          npub,
-          lastBackupTimestamp
-        )
+        await nostrApi.fetchMessages(nsec, npub, lastBackupTimestamp)
       ).filter(filterMessages)
 
       // If no messages returned, we've reached the end

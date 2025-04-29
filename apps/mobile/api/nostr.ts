@@ -1,6 +1,6 @@
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
-import { getPublicKey, nip04, nip19 } from 'nostr-tools'
+import { getPublicKey, nip04, nip19, nip44 } from 'nostr-tools'
 
 export interface NostrKeys {
   nsec: string
@@ -62,49 +62,56 @@ export class NostrAPI {
 
     // Validate inputs
     if (!secretNostrKey || secretNostrKey.length !== 32) {
-      throw new Error('Invalid secretNostrKey: must be a 32-byte Uint8Array');
+      throw new Error('Invalid secretNostrKey: must be a 32-byte Uint8Array')
     }
     if (!recipientNpub) {
-      throw new Error('Invalid recipientNpub: must be a non-empty string');
+      throw new Error('Invalid recipientNpub: must be a non-empty string')
     }
 
     // Validate npub or hex format
-    const isNpub = recipientNpub.startsWith('npub') && recipientNpub.length === 63 && /^[a-z0-9]+$/.test(recipientNpub);
-    const isHex = /^[0-9a-f]{64}$/.test(recipientNpub);
+    const isNpub =
+      recipientNpub.startsWith('npub') &&
+      recipientNpub.length === 63 &&
+      /^[a-z0-9]+$/.test(recipientNpub)
+    const isHex = /^[0-9a-f]{64}$/.test(recipientNpub)
     if (!isNpub && !isHex) {
       throw new Error(
         'Invalid recipientNpub: must be a valid npub (63 characters, lowercase) or 64-character hex public key'
-      );
+      )
     }
-    console.log('Input recipientNpub:', recipientNpub);
+    console.log('Input recipientNpub:', recipientNpub)
 
     // Connect to relays
-    await this.connect();
-    if (!this.ndk) throw new Error('Failed to connect to relays');
-    console.log('Connected to relays:', Array.from(this.ndk.pool.relays.keys()));
+    await this.connect()
+    if (!this.ndk) throw new Error('Failed to connect to relays')
+    console.log('Connected to relays:', Array.from(this.ndk.pool.relays.keys()))
 
     // Convert secretNostrKey (Uint8Array) to hex string
-    const secretNostrKeyHex = Buffer.from(secretNostrKey).toString('hex');
-    const ourPubkey = getPublicKey(secretNostrKeyHex);
-    console.log('Sender pubkey:', ourPubkey);
+    const secretNostrKeyHex = Buffer.from(secretNostrKey).toString('hex')
+    const ourPubkey = getPublicKey(secretNostrKeyHex)
+    console.log('Sender pubkey:', ourPubkey)
 
     // Decode recipient's npub or use hex directly
-    let recipientPubkey: string;
+    let recipientPubkey: string
     if (isNpub) {
       try {
-        const { data } = nip19.decode(recipientNpub) as { data: string };
-        recipientPubkey = data;
+        const { data } = nip19.decode(recipientNpub) as { data: string }
+        recipientPubkey = data
         if (!/^[0-9a-f]{64}$/.test(recipientPubkey)) {
-          throw new Error('Decoded recipientPubkey is not a valid 64-character hex string');
+          throw new Error(
+            'Decoded recipientPubkey is not a valid 64-character hex string'
+          )
         }
-        console.log('Decoded recipientPubkey:', recipientPubkey);
+        console.log('Decoded recipientPubkey:', recipientPubkey)
       } catch (error) {
-        console.error('Failed to decode recipientNpub:', error);
-        throw new Error('Invalid recipientNpub (checksum error): ' + error.message);
+        console.error('Failed to decode recipientNpub:', error)
+        throw new Error(
+          'Invalid recipientNpub (checksum error): ' + error.message
+        )
       }
     } else {
-      recipientPubkey = recipientNpub; // Use hex directly
-      console.log('Using recipientPubkey as hex:', recipientPubkey);
+      recipientPubkey = recipientNpub // Use hex directly
+      console.log('Using recipientPubkey as hex:', recipientPubkey)
     }
 
     // Create NDKUser for recipient
@@ -112,48 +119,63 @@ export class NostrAPI {
     const recipientUser = new NDKUser({
       npub: recipientPubkey,
       relayUrls: this.relays
-    });
+    })
     console.log('created')
-    console.log('Recipient user created:', recipientUser.npub);
-    recipientUser.ndk = this.ndk;
+    console.log('Recipient user created:', recipientUser.npub)
+    recipientUser.ndk = this.ndk
 
     // Ensure proper encoding before encryption
-    const encodedContent = unescape(encodeURIComponent(content));
+    const encodedContent = unescape(encodeURIComponent(content))
 
     // Create signer
     console.log('creating signer', secretNostrKeyHex)
-    const signer = new NDKPrivateKeySigner(secretNostrKeyHex);
-    if (!signer) throw new Error('Failed to create NDKPrivateKeySigner');
-    console.log('Signer created');
+    const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
+    if (!signer) throw new Error('Failed to create NDKPrivateKeySigner')
+    console.log('Signer created')
 
     // Step 1: Create the kind:14 chat message event
     const kind14Event = new NDKEvent(this.ndk, {
       kind: 14,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: Date.now() / 1000,
       tags: [], // Temporarily remove p tag to test checksum issue
-      content: encodedContent,
-    });
+      content: encodedContent
+    })
 
     // Debug: Log event before encryption
-    console.log('Kind:14 event before encryption:', await kind14Event.toNostrEvent());
+    console.log(
+      'Kind:14 event before encryption:',
+      await kind14Event.toNostrEvent()
+    )
 
     // Encrypt kind:14 event using NIP-44
     try {
-      await kind14Event.encrypt(recipientUser, signer);
-      console.log('Kind:14 event encrypted successfully, content:', kind14Event.content);
+      await kind14Event.encrypt(recipientUser, signer)
+      console.log(
+        'Kind:14 event encrypted successfully, content:',
+        kind14Event.content
+      )
     } catch (error) {
-      console.error('Encryption failed for kind:14:', error, error.stack);
+      console.error('Encryption failed for kind:14:', error, error.stack)
       // Fallback: Use nostr-tools nip44.encrypt
-      console.log('Attempting fallback encryption with nostr-tools nip44');
+      console.log('Attempting fallback encryption with nostr-tools nip44')
       try {
-        const conversationKey = nip44.getConversationKey(secretNostrKeyHex, recipientPubkey);
-        const encryptedContent = nip44.encrypt(encodedContent, conversationKey);
-        kind14Event.content = encryptedContent;
-        console.log('Fallback encryption successful, content:', kind14Event.content);
+        const conversationKey = nip44.getConversationKey(
+          secretNostrKeyHex,
+          recipientPubkey
+        )
+        const encryptedContent = nip44.encrypt(encodedContent, conversationKey)
+        kind14Event.content = encryptedContent
+        console.log(
+          'Fallback encryption successful, content:',
+          kind14Event.content
+        )
       } catch (fallbackError) {
-        console.error('Fallback encryption failed:', fallbackError);
-        throw new Error('Failed to encrypt kind:14 event (both NDK and fallback): ' + error.message);
+        console.error('Fallback encryption failed:', fallbackError)
+        throw new Error(
+          'Failed to encrypt kind:14 event (both NDK and fallback): ' +
+            error.message
+        )
       }
     }
 
@@ -161,63 +183,68 @@ export class NostrAPI {
     const kind13Event = new NDKEvent(this.ndk, {
       kind: 13,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 172800), // Randomize timestamp
+      created_at: Date.now() / 1000,
       tags: [['p', recipientPubkey]], // Add p tag here for NIP-17 compatibility
-      content: kind14Event.content, // Use encrypted content from kind:14
-    });
+      content: kind14Event.content // Use encrypted content from kind:14
+    })
 
     // Sign kind:13 event
     try {
-      await kind13Event.sign(signer);
-      console.log('Kind:13 event signed successfully');
+      await kind13Event.sign(signer)
+      console.log('Kind:13 event signed successfully')
     } catch (error) {
-      console.error('Signing failed for kind:13:', error);
-      throw new Error('Failed to sign kind:13 event: ' + error.message);
+      console.error('Signing failed for kind:13:', error)
+      throw new Error('Failed to sign kind:13 event: ' + error.message)
     }
 
     // Step 3: Create kind:1059 gift-wrap event for recipient
     const kind1059Event = new NDKEvent(this.ndk, {
       kind: 1059,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 172800),
+      created_at: Date.now() / 1000,
       tags: [['p', recipientPubkey]], // Recipient's pubkey
-      content: JSON.stringify(await kind13Event.toNostrEvent()),
-    });
+      content: JSON.stringify(await kind13Event.toNostrEvent())
+    })
 
     try {
-      await kind1059Event.sign(signer);
-      console.log('Kind:1059 event (recipient) signed successfully');
+      await kind1059Event.sign(signer)
+      console.log('Kind:1059 event (recipient) signed successfully')
     } catch (error) {
-      console.error('Signing failed for kind:1059 (recipient):', error);
-      throw new Error('Failed to sign kind:1059 event (recipient): ' + error.message);
+      console.error('Signing failed for kind:1059 (recipient):', error)
+      throw new Error(
+        'Failed to sign kind:1059 event (recipient): ' + error.message
+      )
     }
 
     // Step 4: Optionally create a copy for the sender (for backup)
     const senderKind1059Event = new NDKEvent(this.ndk, {
       kind: 1059,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 172800),
+      created_at: Date.now() / 1000,
       tags: [['p', ourPubkey]], // Sender's pubkey
-      content: JSON.stringify(await kind13Event.toNostrEvent()),
-    });
+      content: JSON.stringify(await kind13Event.toNostrEvent())
+    })
 
     try {
-      await senderKind1059Event.sign(signer);
-      console.log('Kind:1059 event (sender) signed successfully');
+      await senderKind1059Event.sign(signer)
+      console.log('Kind:1059 event (sender) signed successfully')
     } catch (error) {
-      console.error('Signing failed for kind:1059 (sender):', error);
-      throw new Error('Failed to sign kind:1059 event (sender): ' + error.message);
+      console.error('Signing failed for kind:1059 (sender):', error)
+      throw new Error(
+        'Failed to sign kind:1059 event (sender): ' + error.message
+      )
     }
 
     // Step 5: Publish events
     try {
-      await kind1059Event.publish();
-      console.log('Recipient gift-wrap published successfully');
-      await senderKind1059Event.publish();
-      console.log('Sender gift-wrap published successfully');
+      console.log('sending events')
+      await kind1059Event.publish()
+      console.log('Recipient gift-wrap published successfully')
+      await senderKind1059Event.publish()
+      console.log('Sender gift-wrap published successfully')
     } catch (error) {
-      console.error('Error publishing events:', error);
-      throw new Error('Failed to publish events: ' + error.message);
+      console.error('Error publishing events:', error)
+      throw new Error('Failed to publish events: ' + error.message)
     }
   }
 
