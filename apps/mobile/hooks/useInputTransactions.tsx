@@ -79,7 +79,7 @@ export function useInputTransactions(
                   sent: 0, // Not needed
                   received: 0, // Not needed
                   timestamp: tx.status.block_time
-                    ? new Date(tx.status.block_time * 1000)
+                    ? new Date(tx.status.block_time)
                     : undefined,
                   blockHeight: tx.status.block_height,
                   address: undefined, // Not directly available in EsploraTx
