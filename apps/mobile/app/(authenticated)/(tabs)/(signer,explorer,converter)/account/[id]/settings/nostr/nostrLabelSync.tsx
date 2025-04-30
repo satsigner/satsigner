@@ -18,7 +18,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { JSONLtoLabels } from '@/utils/bip329'
+import { JSONLtoLabels, formatAccountLabels } from '@/utils/bip329'
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -38,8 +38,7 @@ function SSNostrLabelSync() {
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const { sendAccountLabelsToNostr, generateAccountNostrKeys } =
-    useNostrLabelSync()
+  const { generateAccountNostrKeys } = useNostrLabelSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -53,7 +52,10 @@ function SSNostrLabelSync() {
   }
 
   async function fetchMessages(loadMore: boolean = false) {
-    if (!npub || !nsec || !nostrApi) return
+    if (!npub || !nsec || !nostrApi) {
+      setRelayError(t('account.nostrlabels.errorMissingData'))
+      return
+    }
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
@@ -65,13 +67,10 @@ function SSNostrLabelSync() {
     try {
       const lastBackupTimestamp = account?.nostr.lastBackupTimestamp
 
-      const fetchedMessages = (
-        await nostrApi.fetchMessages(
-          nsec,
-          npub,
-          lastBackupTimestamp
-        )
-      ).filter(filterMessages)
+      const fetchedMessages =
+        // REMOVED lastBackupTimestamp because it was causing no messages to be fetched
+        // await nostrApi.fetchMessages(nsec, npub, lastBackupTimestamp)
+        (await nostrApi.fetchMessages(nsec, npub)).filter(filterMessages)
 
       // If no messages returned, we've reached the end
       if (fetchedMessages.length === 0) {
@@ -86,7 +85,8 @@ function SSNostrLabelSync() {
       } else {
         setMessages(fetchedMessages)
       }
-    } catch {
+    } catch (error) {
+      console.error('Error fetching messages:', error)
       setRelayError(t('account.nostrlabels.errorLabelFetching'))
     } finally {
       setIsLoading(false)
@@ -117,18 +117,26 @@ function SSNostrLabelSync() {
   }
 
   async function handleSendMessage() {
-    if (!nsec || !npub || !account || !nostrApi) return
-
-    // Add relay check at the start
-    if (selectedRelays.length === 0) {
-      setRelayError(t('account.nostrlabels.noRelaysWarning'))
+    if (!nsec || !npub || !account || !nostrApi) {
+      setRelayError(t('account.nostrlabels.errorMissingData'))
       return
     }
 
     try {
-      sendAccountLabelsToNostr(account)
-    } catch {
-      setRelayError(t('account.nostrlabels.errorLabelSend'))
+      // Get all labels from the account in BIP-329 format
+      const labels = formatAccountLabels(account)
+      console.log('labels: ', labels.length)
+      if (labels.length === 0) {
+        setRelayError(t('account.nostrlabels.noLabelsToSync'))
+        return
+      }
+
+      const labelContent = JSON.stringify(labels)
+
+      // Send labels as message content
+      nostrApi.sendMessage(nsec, npub, labelContent)
+    } catch (_error) {
+      setRelayError(t('account.nostrlabels.errorSendingMessage'))
     }
   }
 
@@ -206,9 +214,9 @@ function SSNostrLabelSync() {
     if (accountId) {
       updateAccountNostr(accountId, { autoSync: newAutoSync })
 
-      // Fetch messages immediately when auto-sync is enabled
+      // Send labels immediately when auto-sync is enabled
       if (newAutoSync && npub && selectedRelays.length > 0) {
-        fetchMessages()
+        handleSendMessage()
       } else if (newAutoSync && selectedRelays.length === 0) {
         setRelayError(t('account.nostrlabels.noRelaysWarning'))
       }
@@ -271,9 +279,6 @@ function SSNostrLabelSync() {
     }
 
     if (autoSync && npub && selectedRelays.length > 0) {
-      // Initial sync
-      handleSendMessage()
-
       // Set up interval for auto sync
       const syncInterval = setInterval(() => {
         fetchMessages()
@@ -284,21 +289,14 @@ function SSNostrLabelSync() {
     }
   }
 
-  function sendLabelsToNostr() {
-    sendAccountLabelsToNostr(account)
-  }
-
-  function autoCreateNsec() {
+  useEffect(reloadApi, [selectedRelays])
+  useEffect(loadNostrAccountData, [account])
+  useEffect(() => {
     if (account && passphrase !== undefined) {
       setNostrApi(new NostrAPI(selectedRelays))
       handleCreateNsec()
     }
-  }
-
-  useEffect(reloadApi, [selectedRelays])
-  useEffect(loadNostrAccountData, [account])
-  useEffect(sendLabelsToNostr, [account]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(autoCreateNsec, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(handleFetchMessagesAutoSync, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount

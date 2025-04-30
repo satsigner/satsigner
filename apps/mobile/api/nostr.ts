@@ -1,6 +1,7 @@
+import type { NDKKind } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import * as bip39 from 'bip39'
-import { getPublicKey, nip04, nip19 } from 'nostr-tools'
+import { getPublicKey, nip19, nip44 } from 'nostr-tools'
 
 export interface NostrKeys {
   nsec: string
@@ -19,14 +20,71 @@ export interface NostrMessage {
 export class NostrAPI {
   private ndk: NDK | null = null
 
-  constructor(private relays: string[]) {}
+  constructor(private relays: string[]) {
+    // Add default reliable relays if none provided
+    if (!relays || relays.length === 0) {
+      this.relays = [
+        'wss://relay.damus.io',
+        'wss://nostr.bitcoiner.social',
+        'wss://relay.nostr.band',
+        'wss://nos.lol'
+      ]
+    }
+  }
 
   async connect() {
     if (!this.ndk) {
       this.ndk = new NDK({
         explicitRelayUrls: this.relays
       })
-      await this.ndk.connect()
+
+      try {
+        await this.ndk.connect()
+
+        // Verify relay connections
+        const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+
+        if (connectedRelays.length === 0) {
+          throw new Error(
+            'No relays could be connected. Please check your relay URLs and internet connection.'
+          )
+        }
+
+        // Test each relay's connection
+        const relayStatus = await Promise.all(
+          connectedRelays.map(async (url) => {
+            try {
+              const relay = this.ndk?.pool.relays.get(url)
+              if (!relay) return { url, status: 'not_found' }
+
+              // Try to fetch a simple event to test the connection
+              const testEvent = await this.ndk?.fetchEvent(
+                { kinds: [1], limit: 1 },
+                // @ts-ignore - relayUrl is used by NDK but not in types
+                { relayUrl: url }
+              )
+              return { url, status: 'connected', testEvent: testEvent !== null }
+            } catch (_err) {
+              return { url, status: 'error' }
+            }
+          })
+        )
+
+        // If no relays are working, throw an error
+        const workingRelays = relayStatus.filter(
+          (r) => r.status === 'connected'
+        )
+        if (workingRelays.length === 0) {
+          throw new Error(
+            'No relays are responding. Please check your internet connection and try again.'
+          )
+        }
+      } catch (error) {
+        throw new Error(
+          'Failed to connect to relays: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        )
+      }
     }
   }
 
@@ -62,98 +120,100 @@ export class NostrAPI {
 
     // Validate inputs
     if (!secretNostrKey || secretNostrKey.length !== 32) {
-      throw new Error('Invalid secretNostrKey: must be a 32-byte Uint8Array');
+      throw new Error('Invalid secretNostrKey: must be a 32-byte Uint8Array')
     }
     if (!recipientNpub) {
-      throw new Error('Invalid recipientNpub: must be a non-empty string');
+      throw new Error('Invalid recipientNpub: must be a non-empty string')
     }
 
     // Validate npub or hex format
-    const isNpub = recipientNpub.startsWith('npub') && recipientNpub.length === 63 && /^[a-z0-9]+$/.test(recipientNpub);
-    const isHex = /^[0-9a-f]{64}$/.test(recipientNpub);
+    const isNpub =
+      recipientNpub.startsWith('npub') &&
+      recipientNpub.length === 63 &&
+      /^[a-z0-9]+$/.test(recipientNpub)
+    const isHex = /^[0-9a-f]{64}$/.test(recipientNpub)
     if (!isNpub && !isHex) {
       throw new Error(
         'Invalid recipientNpub: must be a valid npub (63 characters, lowercase) or 64-character hex public key'
-      );
+      )
     }
-    console.log('Input recipientNpub:', recipientNpub);
 
     // Connect to relays
-    await this.connect();
-    if (!this.ndk) throw new Error('Failed to connect to relays');
-    console.log('Connected to relays:', Array.from(this.ndk.pool.relays.keys()));
+    await this.connect()
+    if (!this.ndk) throw new Error('Failed to connect to relays')
 
     // Convert secretNostrKey (Uint8Array) to hex string
-    const secretNostrKeyHex = Buffer.from(secretNostrKey).toString('hex');
-    const ourPubkey = getPublicKey(secretNostrKeyHex);
-    console.log('Sender pubkey:', ourPubkey);
+    const secretNostrKeyHex = Buffer.from(secretNostrKey).toString('hex')
+    const ourPubkey = getPublicKey(secretNostrKey)
 
     // Decode recipient's npub or use hex directly
-    let recipientPubkey: string;
+    let recipientPubkey: string
     if (isNpub) {
+      console.log('🔴 isNpub:', recipientNpub)
       try {
-        const { data } = nip19.decode(recipientNpub) as { data: string };
-        recipientPubkey = data;
+        const { data } = nip19.decode(recipientNpub) as { data: string }
+        recipientPubkey = data
         if (!/^[0-9a-f]{64}$/.test(recipientPubkey)) {
-          throw new Error('Decoded recipientPubkey is not a valid 64-character hex string');
+          throw new Error(
+            'Decoded recipientPubkey is not a valid 64-character hex string'
+          )
         }
-        console.log('Decoded recipientPubkey:', recipientPubkey);
       } catch (error) {
-        console.error('Failed to decode recipientNpub:', error);
-        throw new Error('Invalid recipientNpub (checksum error): ' + error.message);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(
+          'Invalid recipientNpub (checksum error): ' + errorMessage
+        )
       }
     } else {
-      recipientPubkey = recipientNpub; // Use hex directly
-      console.log('Using recipientPubkey as hex:', recipientPubkey);
+      recipientPubkey = recipientNpub // Use hex directly
     }
 
-    // Create NDKUser for recipient
-    console.log('create recipient user')
+    // Create NDKUser for recipient with proper pubkey format
     const recipientUser = new NDKUser({
-      npub: recipientPubkey,
+      npub: nip19.npubEncode(recipientPubkey),
       relayUrls: this.relays
-    });
-    console.log('created')
-    console.log('Recipient user created:', recipientUser.npub);
-    recipientUser.ndk = this.ndk;
+    })
+    recipientUser.ndk = this.ndk
 
     // Ensure proper encoding before encryption
-    const encodedContent = unescape(encodeURIComponent(content));
+    const encodedContent = unescape(encodeURIComponent(content))
 
-    // Create signer
-    console.log('creating signer', secretNostrKeyHex)
-    const signer = new NDKPrivateKeySigner(secretNostrKeyHex);
-    if (!signer) throw new Error('Failed to create NDKPrivateKeySigner');
-    console.log('Signer created');
+    // Create signer with proper key format
+    const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
+    if (!signer) throw new Error('Failed to create NDKPrivateKeySigner')
 
     // Step 1: Create the kind:14 chat message event
     const kind14Event = new NDKEvent(this.ndk, {
       kind: 14,
       pubkey: ourPubkey,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [], // Temporarily remove p tag to test checksum issue
-      content: encodedContent,
-    });
-
-    // Debug: Log event before encryption
-    console.log('Kind:14 event before encryption:', await kind14Event.toNostrEvent());
+      tags: [['p', recipientPubkey]],
+      content: encodedContent
+    })
 
     // Encrypt kind:14 event using NIP-44
     try {
-      await kind14Event.encrypt(recipientUser, signer);
-      console.log('Kind:14 event encrypted successfully, content:', kind14Event.content);
+      await kind14Event.encrypt(recipientUser, signer)
     } catch (error) {
-      console.error('Encryption failed for kind:14:', error, error.stack);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
       // Fallback: Use nostr-tools nip44.encrypt
-      console.log('Attempting fallback encryption with nostr-tools nip44');
       try {
-        const conversationKey = nip44.getConversationKey(secretNostrKeyHex, recipientPubkey);
-        const encryptedContent = nip44.encrypt(encodedContent, conversationKey);
-        kind14Event.content = encryptedContent;
-        console.log('Fallback encryption successful, content:', kind14Event.content);
+        const conversationKey = nip44.getConversationKey(
+          secretNostrKey,
+          recipientPubkey
+        )
+        const encryptedContent = nip44.encrypt(encodedContent, conversationKey)
+        kind14Event.content = encryptedContent
       } catch (fallbackError) {
-        console.error('Fallback encryption failed:', fallbackError);
-        throw new Error('Failed to encrypt kind:14 event (both NDK and fallback): ' + error.message);
+        const fallbackErrorMessage =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : 'Unknown error'
+        throw new Error(
+          `Failed to encrypt kind:14 event (both NDK and fallback): ${errorMessage}, ${fallbackErrorMessage}`
+        )
       }
     }
 
@@ -161,63 +221,106 @@ export class NostrAPI {
     const kind13Event = new NDKEvent(this.ndk, {
       kind: 13,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 172800), // Randomize timestamp
-      tags: [['p', recipientPubkey]], // Add p tag here for NIP-17 compatibility
-      content: kind14Event.content, // Use encrypted content from kind:14
-    });
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['p', recipientPubkey]],
+      content: kind14Event.content
+    })
 
     // Sign kind:13 event
     try {
-      await kind13Event.sign(signer);
-      console.log('Kind:13 event signed successfully');
+      await kind13Event.sign(signer)
     } catch (error) {
-      console.error('Signing failed for kind:13:', error);
-      throw new Error('Failed to sign kind:13 event: ' + error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      throw new Error('Failed to sign kind:13 event: ' + errorMessage)
     }
 
-    // Step 3: Create kind:1059 gift-wrap event for recipient
+    // Step 3: Create kind:1059 gift-wrap event for recipient only
     const kind1059Event = new NDKEvent(this.ndk, {
-      kind: 1059,
+      kind: 1059 as NDKKind,
       pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 172800),
-      tags: [['p', recipientPubkey]], // Recipient's pubkey
-      content: JSON.stringify(await kind13Event.toNostrEvent()),
-    });
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['p', recipientPubkey]],
+      content: JSON.stringify(await kind13Event.toNostrEvent())
+    })
 
     try {
-      await kind1059Event.sign(signer);
-      console.log('Kind:1059 event (recipient) signed successfully');
+      await kind1059Event.sign(signer)
     } catch (error) {
-      console.error('Signing failed for kind:1059 (recipient):', error);
-      throw new Error('Failed to sign kind:1059 event (recipient): ' + error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      throw new Error('Failed to sign kind:1059 event: ' + errorMessage)
     }
 
-    // Step 4: Optionally create a copy for the sender (for backup)
-    const senderKind1059Event = new NDKEvent(this.ndk, {
-      kind: 1059,
-      pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000) + Math.floor(Math.random() * 172800),
-      tags: [['p', ourPubkey]], // Sender's pubkey
-      content: JSON.stringify(await kind13Event.toNostrEvent()),
-    });
-
+    // Step 4: Publish event
     try {
-      await senderKind1059Event.sign(signer);
-      console.log('Kind:1059 event (sender) signed successfully');
-    } catch (error) {
-      console.error('Signing failed for kind:1059 (sender):', error);
-      throw new Error('Failed to sign kind:1059 event (sender): ' + error.message);
-    }
+      // Verify we have connected relays before publishing
+      if (!this.ndk || Array.from(this.ndk.pool.relays.keys()).length === 0) {
+        throw new Error('No connected relays available for publishing')
+      }
 
-    // Step 5: Publish events
-    try {
-      await kind1059Event.publish();
-      console.log('Recipient gift-wrap published successfully');
-      await senderKind1059Event.publish();
-      console.log('Sender gift-wrap published successfully');
+      // Publish with timeout and retry
+      const publishWithRetry = async (event: NDKEvent, retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            await event.publish()
+            return true
+          } catch (err) {
+            if (i === retries - 1) throw err
+            await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
+          }
+
+          // Verify event was published by checking relays
+          const verifyPublished = async (event: NDKEvent): Promise<boolean> => {
+            try {
+              if (!this.ndk) return false
+
+              // Check each relay individually
+              const relayStatus = await Promise.all(
+                Array.from(this.ndk.pool.relays.entries()).map(
+                  async ([url]) => {
+                    try {
+                      const publishedEvent = await this.ndk?.fetchEvent(
+                        {
+                          kinds: [event.kind as NDKKind],
+                          authors: [event.pubkey],
+                          ids: [event.id]
+                        },
+                        { relayUrl: url }
+                      )
+
+                      return { url, success: publishedEvent !== null }
+                    } catch (_err) {
+                      return { url, success: false }
+                    }
+                  }
+                )
+              )
+
+              // Check if any relay has the event
+              return relayStatus.some((status) => status.success)
+            } catch (_err) {
+              return false
+            }
+          }
+
+          // Wait briefly then verify the event was published
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+          const isPublished = await verifyPublished(event)
+          if (!isPublished) {
+            throw new Error('Event not published successfully')
+          }
+        }
+        return false
+      }
+
+      await publishWithRetry(kind1059Event)
     } catch (error) {
-      console.error('Error publishing events:', error);
-      throw new Error('Failed to publish events: ' + error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(
+        `Failed to publish event: ${errorMessage}. Please check your relay connections and try again.`
+      )
     }
   }
 
@@ -241,60 +344,142 @@ export class NostrAPI {
     const user = this.ndk.getUser({ npub: recipientNpub })
     const ourPubkey = getPublicKey(secretNostrKey)
 
-    // Get nip04 encrypted messages with pagination
-    const messages = await this.ndk.fetchEvents({
-      kinds: [4], // nip04 encrypted messages
-      authors: [ourPubkey, user.pubkey],
-      limit,
-      since
-    })
+    try {
+      // First try to fetch from each relay individually to see which ones work
+      const relayResults = await Promise.all(
+        Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
+          try {
+            // Create a subscription to fetch events
+            const subscription = this.ndk?.subscribe(
+              {
+                kinds: [1059 as NDKKind],
+                authors: [ourPubkey, user.pubkey],
+                limit,
+                since
+              },
+              // @ts-ignore - relayUrl is used by NDK but not in types
+              { relayUrl: url }
+            )
 
-    // Decrypt messages
-    const decryptedMessages = await Promise.all(
-      Array.from(messages).map(async (msg: NDKEvent) => {
-        try {
-          // Determine if we're the sender or recipient
-          const isSender = msg.pubkey === ourPubkey
-          const otherPubkey = isSender ? user.pubkey : ourPubkey
+            // Collect events from the subscription
+            const events = new Set<NDKEvent>()
+            subscription?.on('event', (event) => {
+              events.add(event)
+            })
 
-          // Decrypt the message
-          const decryptedContent = await nip04.decrypt(
-            secretNostrKey,
-            otherPubkey,
-            msg.content
-          )
+            // Wait for the subscription to complete
+            await new Promise((resolve) => {
+              subscription?.on('eose', () => {
+                resolve(true)
+              })
+              // Add timeout
+              setTimeout(resolve, 5000)
+            })
 
-          // Ensure proper encoding of decrypted content
-          const decodedContent = decodeURIComponent(escape(decryptedContent))
-
-          return {
-            content: msg.content,
-            created_at: msg.created_at ?? Math.floor(Date.now() / 1000),
-            pubkey: msg.pubkey,
-            decryptedContent: decodedContent,
-            isSender
+            return { url, success: true, events }
+          } catch (_err) {
+            console.log(`Failed to fetch from relay ${url}:`, _err)
+            return { url, success: false }
           }
-        } catch {
-          return {
-            content: msg.content,
-            created_at: msg.created_at ?? Math.floor(Date.now() / 1000),
-            pubkey: msg.pubkey,
-            decryptedContent: '[Failed to decrypt]',
-            isSender: msg.pubkey === ourPubkey
-          }
+        })
+      )
+
+      // Combine all successful results
+      const giftWrapEvents = new Set<NDKEvent>()
+      relayResults.forEach((result) => {
+        if (result.success && result.events) {
+          result.events.forEach((event) => giftWrapEvents.add(event))
         }
       })
-    )
 
-    // Sort messages by timestamp, newest first
-    return decryptedMessages.sort(
-      (a: NostrMessage, b: NostrMessage) =>
-        (b.created_at ?? 0) - (a.created_at ?? 0)
-    )
+      if (giftWrapEvents.size === 0) {
+        // Check if relays are responding at all
+        const relayStatus = await Promise.all(
+          Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
+            try {
+              const testEvent = await this.ndk?.fetchEvent(
+                { kinds: [1], limit: 1 },
+                // @ts-ignore - relayUrl is used by NDK but not in types
+                { relayUrl: url }
+              )
+              return {
+                url,
+                status: 'connected',
+                testEvent: testEvent !== null
+              }
+            } catch (_err) {
+              return { url, status: 'error' }
+            }
+          })
+        )
+
+        if (relayStatus.every((r) => r.status === 'error')) {
+          throw new Error('No relays are responding')
+        }
+      }
+
+      // Process gift wrap messages
+      const decryptedMessages = await Promise.all(
+        Array.from(giftWrapEvents).map(async (giftWrapEvent: NDKEvent) => {
+          try {
+            // Parse the gift wrap content which contains the kind:13 event
+            const kind13Event = JSON.parse(giftWrapEvent.content)
+
+            // Determine if we're the sender or recipient
+            const isSender = giftWrapEvent.pubkey === ourPubkey
+            const otherPubkey = isSender ? user.pubkey : ourPubkey
+
+            // Decrypt the kind:13 event content using NIP-44
+            const conversationKey = nip44.getConversationKey(
+              secretNostrKey,
+              otherPubkey
+            )
+
+            const decryptedContent = nip44.decrypt(
+              kind13Event.content,
+              conversationKey
+            )
+
+            // Ensure proper encoding of decrypted content
+            const decodedContent = decodeURIComponent(escape(decryptedContent))
+
+            return {
+              content: kind13Event.content,
+              created_at:
+                kind13Event.created_at ?? Math.floor(Date.now() / 1000),
+              pubkey: kind13Event.pubkey,
+              decryptedContent: decodedContent,
+              isSender
+            }
+          } catch (_error) {
+            return {
+              content: giftWrapEvent.content,
+              created_at:
+                giftWrapEvent.created_at ?? Math.floor(Date.now() / 1000),
+              pubkey: giftWrapEvent.pubkey,
+              decryptedContent: '[Failed to decrypt]',
+              isSender: giftWrapEvent.pubkey === ourPubkey
+            }
+          }
+        })
+      )
+
+      // Sort messages by timestamp, newest first
+      return decryptedMessages.sort(
+        (a: NostrMessage, b: NostrMessage) =>
+          (b.created_at ?? 0) - (a.created_at ?? 0)
+      )
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+
+      throw new Error(
+        `Failed to fetch messages: ${errorMessage}. Please check your relay connections and try again.`
+      )
+    }
   }
 
   async disconnect() {
-    // NDK doesn't have a disconnect method, so we just nullify the instance
     this.ndk = null
   }
 }

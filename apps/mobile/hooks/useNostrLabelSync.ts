@@ -19,8 +19,9 @@ function useNostrLabelSync() {
   )
 
   async function sendAccountLabelsToNostr(account?: Account) {
+    if (!account?.nostr?.autoSync) return
     if (!account || !account.nostr) return
-
+    console.log('🔴 sendAccountLabelsToNostr')
     const { nsec, npub, relays, lastBackupFingerprint } = account.nostr
 
     if (!nsec || npub === '' || relays.length === 0) return
@@ -61,7 +62,7 @@ function useNostrLabelSync() {
     const { autoSync, nsec, npub, relays, lastBackupTimestamp } = account.nostr
 
     if (!autoSync || !nsec || !npub || relays.length === 1) return
-
+    console.log('🔵 syncAccountLabelsFromNostr')
     const nostrApi = new NostrAPI(relays)
 
     const messageCount = 5
