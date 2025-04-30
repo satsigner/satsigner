@@ -149,7 +149,6 @@ export class NostrAPI {
     // Decode recipient's npub or use hex directly
     let recipientPubkey: string
     if (isNpub) {
-      console.log('🔴 isNpub:', recipientNpub)
       try {
         const { data } = nip19.decode(recipientNpub) as { data: string }
         recipientPubkey = data
@@ -280,14 +279,11 @@ export class NostrAPI {
                 Array.from(this.ndk.pool.relays.entries()).map(
                   async ([url]) => {
                     try {
-                      const publishedEvent = await this.ndk?.fetchEvent(
-                        {
-                          kinds: [event.kind as NDKKind],
-                          authors: [event.pubkey],
-                          ids: [event.id]
-                        },
-                        { relayUrl: url }
-                      )
+                      const publishedEvent = await this.ndk?.fetchEvent({
+                        kinds: [event.kind as NDKKind],
+                        authors: [event.pubkey],
+                        ids: [event.id]
+                      })
 
                       return { url, success: publishedEvent !== null }
                     } catch (_err) {
@@ -350,16 +346,12 @@ export class NostrAPI {
         Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
           try {
             // Create a subscription to fetch events
-            const subscription = this.ndk?.subscribe(
-              {
-                kinds: [1059 as NDKKind],
-                authors: [ourPubkey, user.pubkey],
-                limit,
-                since
-              },
-              // @ts-ignore - relayUrl is used by NDK but not in types
-              { relayUrl: url }
-            )
+            const subscription = this.ndk?.subscribe({
+              kinds: [1059 as NDKKind],
+              authors: [ourPubkey, user.pubkey],
+              limit,
+              since
+            })
 
             // Collect events from the subscription
             const events = new Set<NDKEvent>()
@@ -397,11 +389,10 @@ export class NostrAPI {
         const relayStatus = await Promise.all(
           Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
             try {
-              const testEvent = await this.ndk?.fetchEvent(
-                { kinds: [1], limit: 1 },
-                // @ts-ignore - relayUrl is used by NDK but not in types
-                { relayUrl: url }
-              )
+              const testEvent = await this.ndk?.fetchEvent({
+                kinds: [1],
+                limit: 1
+              })
               return {
                 url,
                 status: 'connected',
