@@ -19,6 +19,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { JSONLtoLabels, formatAccountLabels } from '@/utils/bip329'
+import { toast } from 'sonner-native'
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -37,8 +38,10 @@ function SSNostrLabelSync() {
   const [importCountTotal, setImportCountTotal] = useState(0)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
+  const [commonNostrKeys, setCommonNostrKeys] = useState<any>(null)
 
-  const { generateAccountNostrKeys } = useNostrLabelSync()
+  const { generateAccountNostrKeys, generateCommonNostrKeys } =
+    useNostrLabelSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -46,6 +49,17 @@ function SSNostrLabelSync() {
       state.updateAccountNostr
     ])
   )
+
+  // Load common Nostr keys once when component mounts
+  if (account && !commonNostrKeys) {
+    generateCommonNostrKeys(account)
+      .then((keys) => {
+        setCommonNostrKeys(keys)
+      })
+      .catch((error) => {
+        throw new Error('Error loading common Nostr keys:', error)
+      })
+  }
 
   function filterMessages(msg: NostrMessage) {
     return msg.decryptedContent !== undefined && msg.decryptedContent !== ''
@@ -86,8 +100,7 @@ function SSNostrLabelSync() {
         setMessages(fetchedMessages)
       }
     } catch (error) {
-      console.error('Error fetching messages:', error)
-      setRelayError(t('account.nostrlabels.errorLabelFetching'))
+      throw new Error('Error fetching messages:', error)
     } finally {
       setIsLoading(false)
     }
@@ -125,7 +138,7 @@ function SSNostrLabelSync() {
     try {
       // Get all labels from the account in BIP-329 format
       const labels = formatAccountLabels(account)
-      console.log('labels: ', labels.length)
+      toast.success(`Sending ${labels.length} labels to relays`)
       if (labels.length === 0) {
         setRelayError(t('account.nostrlabels.noLabelsToSync'))
         return

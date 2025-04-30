@@ -370,8 +370,7 @@ export class NostrAPI {
 
             return { url, success: true, events }
           } catch (_err) {
-            console.log(`Failed to fetch from relay ${url}:`, _err)
-            return { url, success: false }
+            throw new Error(`Failed to fetch from relay ${url}: ${_err}`)
           }
         })
       )
