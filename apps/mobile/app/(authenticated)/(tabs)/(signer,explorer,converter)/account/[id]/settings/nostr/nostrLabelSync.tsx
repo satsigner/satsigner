@@ -18,7 +18,11 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { JSONLtoLabels, formatAccountLabels } from '@/utils/bip329'
+import {
+  JSONLtoLabels,
+  formatAccountLabels,
+  labelsToJSONL
+} from '@/utils/bip329'
 import { toast } from 'sonner-native'
 
 function SSNostrLabelSync() {
@@ -117,12 +121,17 @@ function SSNostrLabelSync() {
     }
 
     try {
-      const keys = await generateAccountNostrKeys(account, passphrase)
-      setNsec(keys.nsec)
-      setNpub(keys.npub)
+      //const keys = await generateAccountNostrKeys(account, passphrase)
+      const keys = await generateCommonNostrKeys(account)
+      if (!keys) {
+        throw new Error('Failed to generate Nostr keys')
+      }
+      console.log('keys: ', keys.nsec)
+      setNsec(keys.nsec as string)
+      setNpub(keys.npub as string)
       updateAccountNostr(accountId, {
-        npub: keys.npub,
-        nsec: keys.nsec
+        npub: keys.npub as string,
+        nsec: keys.nsec as string
       })
     } catch {
       setRelayError(t('account.nostrLabels.errorNsec'))
@@ -138,17 +147,31 @@ function SSNostrLabelSync() {
     try {
       // Get all labels from the account in BIP-329 format
       const labels = formatAccountLabels(account)
+      console.log('Sending labels:', labels)
       toast.success(`Sending ${labels.length} labels to relays`)
+
       if (labels.length === 0) {
         setRelayError(t('account.nostrlabels.noLabelsToSync'))
         return
       }
 
-      const labelContent = JSON.stringify(labels)
+      // Convert labels to JSONL format
+      const labelContent = labelsToJSONL(labels)
+      console.log('Label content:', labelContent)
 
-      // Send labels as message content
-      nostrApi.sendMessage(nsec, npub, labelContent)
-    } catch (_error) {
+      // Send labels as message content and wait for completion
+      await nostrApi.sendMessage(nsec, npub, labelContent)
+      console.log('Message sent successfully')
+
+      // Update last backup timestamp
+      const timestamp = Math.floor(Date.now() / 1000)
+      updateAccountNostr(accountId, {
+        lastBackupTimestamp: timestamp
+      })
+
+      toast.success('Labels sent successfully')
+    } catch (error) {
+      console.error('Error sending message:', error)
       setRelayError(t('account.nostrlabels.errorSendingMessage'))
     }
   }

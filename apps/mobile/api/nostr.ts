@@ -43,6 +43,7 @@ export class NostrAPI {
 
         // Verify relay connections
         const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+        console.log('Connected relays:', connectedRelays)
 
         if (connectedRelays.length === 0) {
           throw new Error(
@@ -70,6 +71,8 @@ export class NostrAPI {
           })
         )
 
+        console.log('Relay status:', relayStatus)
+
         // If no relays are working, throw an error
         const workingRelays = relayStatus.filter(
           (r) => r.status === 'connected'
@@ -80,6 +83,7 @@ export class NostrAPI {
           )
         }
       } catch (error) {
+        console.error('Relay connection error:', error)
         throw new Error(
           'Failed to connect to relays: ' +
             (error instanceof Error ? error.message : 'Unknown error')
@@ -182,12 +186,18 @@ export class NostrAPI {
     const signer = new NDKPrivateKeySigner(secretNostrKeyHex)
     if (!signer) throw new Error('Failed to create NDKPrivateKeySigner')
 
-    // Step 1: Create the kind:14 chat message event
+    // Step 1: Create the kind:14 chat message event (unsigned as per NIP-17)
     const kind14Event = new NDKEvent(this.ndk, {
       kind: 14,
       pubkey: ourPubkey,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [['p', recipientPubkey]],
+      tags: [
+        [
+          'p',
+          recipientPubkey,
+          this.relays[Math.floor(Math.random() * this.relays.length)]
+        ]
+      ],
       content: encodedContent
     })
 
@@ -221,11 +231,17 @@ export class NostrAPI {
       kind: 13,
       pubkey: ourPubkey,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [['p', recipientPubkey]],
+      tags: [
+        [
+          'p',
+          recipientPubkey,
+          this.relays[Math.floor(Math.random() * this.relays.length)]
+        ]
+      ],
       content: kind14Event.content
     })
 
-    // Sign kind:13 event
+    // Sign kind:13 event (this is required as per NIP-59)
     try {
       await kind13Event.sign(signer)
     } catch (error) {
@@ -234,15 +250,25 @@ export class NostrAPI {
       throw new Error('Failed to sign kind:13 event: ' + errorMessage)
     }
 
-    // Step 3: Create kind:1059 gift-wrap event for recipient only
+    // Step 3: Create kind:1059 gift-wrap event with random pubkey and timestamp
+    const randomRelay =
+      this.relays[Math.floor(Math.random() * this.relays.length)]
+    const randomTimestamp = Math.floor(
+      Date.now() / 1000 - Math.random() * 172800
+    ) // Random time up to 2 days ago
+    const randomPubkey = getPublicKey(
+      new Uint8Array(32).fill(Math.floor(Math.random() * 256))
+    )
+
     const kind1059Event = new NDKEvent(this.ndk, {
       kind: 1059 as NDKKind,
-      pubkey: ourPubkey,
-      created_at: Math.floor(Date.now() / 1000),
-      tags: [['p', recipientPubkey]],
+      pubkey: randomPubkey, // Random pubkey for privacy
+      created_at: randomTimestamp,
+      tags: [['p', recipientPubkey, randomRelay]],
       content: JSON.stringify(await kind13Event.toNostrEvent())
     })
 
+    // Sign the gift wrap event
     try {
       await kind1059Event.sign(signer)
     } catch (error) {
@@ -258,56 +284,74 @@ export class NostrAPI {
         throw new Error('No connected relays available for publishing')
       }
 
+      // Log the raw event in pretty format
+      console.log(
+        'Raw event:',
+        JSON.stringify(await kind1059Event.toNostrEvent(), null, 2)
+      )
+
       // Publish with timeout and retry
       const publishWithRetry = async (event: NDKEvent, retries = 3) => {
         for (let i = 0; i < retries; i++) {
           try {
+            console.log(`Attempt ${i + 1} to publish event...`)
             await event.publish()
-            return true
+
+            // Wait a bit longer for the event to propagate
+            await new Promise((resolve) => setTimeout(resolve, 3000))
+
+            // Verify event was published by checking relays
+            const isPublished = await verifyPublished(event)
+            if (isPublished) {
+              console.log('Event published successfully')
+              return true
+            }
+
+            console.log('Event not found on relays, retrying...')
+            if (i === retries - 1) {
+              throw new Error('Event not published successfully')
+            }
+
+            // Wait before retry
+            await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
           } catch (err) {
+            console.error(`Publish attempt ${i + 1} failed:`, err)
             if (i === retries - 1) throw err
             await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
           }
-
-          // Verify event was published by checking relays
-          const verifyPublished = async (event: NDKEvent): Promise<boolean> => {
-            try {
-              if (!this.ndk) return false
-
-              // Check each relay individually
-              const relayStatus = await Promise.all(
-                Array.from(this.ndk.pool.relays.entries()).map(
-                  async ([url]) => {
-                    try {
-                      const publishedEvent = await this.ndk?.fetchEvent({
-                        kinds: [event.kind as NDKKind],
-                        authors: [event.pubkey],
-                        ids: [event.id]
-                      })
-
-                      return { url, success: publishedEvent !== null }
-                    } catch (_err) {
-                      return { url, success: false }
-                    }
-                  }
-                )
-              )
-
-              // Check if any relay has the event
-              return relayStatus.some((status) => status.success)
-            } catch (_err) {
-              return false
-            }
-          }
-
-          // Wait briefly then verify the event was published
-          await new Promise((resolve) => setTimeout(resolve, 2000))
-          const isPublished = await verifyPublished(event)
-          if (!isPublished) {
-            throw new Error('Event not published successfully')
-          }
         }
         return false
+      }
+
+      // Verify event was published by checking relays
+      const verifyPublished = async (event: NDKEvent): Promise<boolean> => {
+        try {
+          if (!this.ndk) return false
+
+          // Check each relay individually
+          const relayStatus = await Promise.all(
+            Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
+              try {
+                console.log(`Checking relay ${url} for event...`)
+                const publishedEvent = await this.ndk?.fetchEvent({
+                  kinds: [event.kind as NDKKind],
+                  authors: [event.pubkey],
+                  ids: [event.id]
+                })
+
+                return { url, success: publishedEvent !== null }
+              } catch (_err) {
+                return { url, success: false }
+              }
+            })
+          )
+
+          console.log('Relay verification status:', relayStatus)
+          // Check if any relay has the event
+          return relayStatus.some((status) => status.success)
+        } catch (_err) {
+          return false
+        }
       }
 
       await publishWithRetry(kind1059Event)
@@ -324,7 +368,7 @@ export class NostrAPI {
     nsec: string,
     recipientNpub: string,
     since?: number,
-    limit: number = 3
+    limit: number = 30
   ): Promise<NostrMessage[]> {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
@@ -341,76 +385,67 @@ export class NostrAPI {
     const ourPubkey = getPublicKey(secretNostrKey)
 
     try {
-      // First try to fetch from each relay individually to see which ones work
-      const relayResults = await Promise.all(
-        Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
-          try {
-            // Create a subscription to fetch events
-            const subscription = this.ndk?.subscribe({
-              kinds: [1059 as NDKKind],
-              authors: [ourPubkey, user.pubkey],
-              limit,
-              since
-            })
+      // Create a subscription to fetch events
+      const subscriptionQuery = {
+        kinds: [1059 as NDKKind],
+        '#p': [ourPubkey], // Events where we are the recipient
+        authors: [user.pubkey], // Events from the other user
+        limit
+      }
+      console.log('Subscription query:', subscriptionQuery)
+      const subscription = this.ndk?.subscribe(subscriptionQuery)
 
-            // Collect events from the subscription
-            const events = new Set<NDKEvent>()
-            subscription?.on('event', (event) => {
-              events.add(event)
-            })
+      // Also subscribe to our own sent messages
+      const sentMessagesQuery = {
+        kinds: [1059 as NDKKind],
+        authors: [ourPubkey], // Our sent messages
+        '#p': [user.pubkey], // Where the other user is the recipient
+        limit
+      }
+      console.log('Sent messages query:', sentMessagesQuery)
+      const sentSubscription = this.ndk?.subscribe(sentMessagesQuery)
 
-            // Wait for the subscription to complete
-            await new Promise((resolve) => {
-              subscription?.on('eose', () => {
-                resolve(true)
-              })
-              // Add timeout
-              setTimeout(resolve, 5000)
-            })
+      // Subscribe to self-messages (where we are both sender and recipient)
+      const selfMessagesQuery = {
+        kinds: [1059 as NDKKind],
+        authors: [ourPubkey], // We are the sender
+        '#p': [ourPubkey], // We are also the recipient
+        limit
+      }
+      console.log('Self messages query:', selfMessagesQuery)
+      const selfSubscription = this.ndk?.subscribe(selfMessagesQuery)
 
-            return { url, success: true, events }
-          } catch (_err) {
-            throw new Error(`Failed to fetch from relay ${url}: ${_err}`)
-          }
-        })
-      )
-
-      // Combine all successful results
-      const giftWrapEvents = new Set<NDKEvent>()
-      relayResults.forEach((result) => {
-        if (result.success && result.events) {
-          result.events.forEach((event) => giftWrapEvents.add(event))
-        }
+      // Collect events from all subscriptions
+      const events = new Set<NDKEvent>()
+      subscription?.on('event', (event) => {
+        events.add(event)
+      })
+      sentSubscription?.on('event', (event) => {
+        events.add(event)
+      })
+      selfSubscription?.on('event', (event) => {
+        events.add(event)
       })
 
-      if (giftWrapEvents.size === 0) {
-        // Check if relays are responding at all
-        const relayStatus = await Promise.all(
-          Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
-            try {
-              const testEvent = await this.ndk?.fetchEvent({
-                kinds: [1],
-                limit: 1
-              })
-              return {
-                url,
-                status: 'connected',
-                testEvent: testEvent !== null
-              }
-            } catch (_err) {
-              return { url, status: 'error' }
-            }
-          })
-        )
-
-        if (relayStatus.every((r) => r.status === 'error')) {
-          throw new Error('No relays are responding')
-        }
-      }
+      // Wait for all subscriptions to complete
+      await Promise.all([
+        new Promise((resolve) => {
+          subscription?.on('eose', () => resolve(true))
+          setTimeout(resolve, 5000)
+        }),
+        new Promise((resolve) => {
+          sentSubscription?.on('eose', () => resolve(true))
+          setTimeout(resolve, 5000)
+        }),
+        new Promise((resolve) => {
+          selfSubscription?.on('eose', () => resolve(true))
+          setTimeout(resolve, 5000)
+        })
+      ])
 
       // Process gift wrap messages
       const decryptedMessages = await Promise.all(
-        Array.from(giftWrapEvents).map(async (giftWrapEvent: NDKEvent) => {
+        Array.from(events).map(async (giftWrapEvent: NDKEvent) => {
           try {
             // Parse the gift wrap content which contains the kind:13 event
             const kind13Event = JSON.parse(giftWrapEvent.content)

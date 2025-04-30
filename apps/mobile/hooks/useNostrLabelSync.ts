@@ -22,38 +22,64 @@ function useNostrLabelSync() {
   )
 
   async function sendAccountLabelsToNostr(account?: Account) {
-    if (!account?.nostr?.autoSync) return
-    if (!account || !account.nostr) return
+    if (!account?.nostr?.autoSync) {
+      console.log('Auto sync is disabled')
+      return
+    }
+    if (!account || !account.nostr) {
+      console.log('Account or nostr data is missing')
+      return
+    }
     const { nsec, npub, relays, lastBackupFingerprint } = account.nostr
 
-    if (!nsec || npub === '' || relays.length === 0) return
+    if (!nsec || npub === '' || relays.length === 0) {
+      console.log('Missing required nostr data:', {
+        nsec: !!nsec,
+        npub: !!npub,
+        relaysCount: relays.length
+      })
+      return
+    }
 
     const labels = formatAccountLabels(account)
+    console.log('Formatted labels count:', labels.length)
 
-    if (labels.length === 0) return
+    if (labels.length === 0) {
+      console.log('No labels to send')
+      return
+    }
 
     const message = labelsToJSONL(labels)
     const hash = await sha256(message)
     const fingerprint = hash.slice(0, 8)
+    console.log('Message fingerprint:', fingerprint)
+    console.log('Last backup fingerprint:', lastBackupFingerprint)
 
-    if (fingerprint === lastBackupFingerprint) return
+    if (fingerprint === lastBackupFingerprint) {
+      console.log('Labels unchanged, skipping send')
+      return
+    }
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
+    console.log('Connected to relays:', relays)
 
     try {
+      console.log('Sending message to relays...')
       await nostrApi.sendMessage(nsec, npub, message)
+      console.log('Message sent successfully')
 
       const timestamp = new Date().getTime() / 1000
-
       updateAccountNostr(account.id, {
         lastBackupFingerprint: fingerprint,
         lastBackupTimestamp: timestamp
       })
-    } catch {
-      //
+      console.log('Updated backup timestamp:', timestamp)
+    } catch (error) {
+      console.error('Failed to send message:', error)
     } finally {
       await nostrApi.disconnect()
+      console.log('Disconnected from relays')
     }
   }
 
@@ -180,9 +206,11 @@ function useNostrLabelSync() {
       const nsec = nip19.nsecEncode(privateKeyBytes)
       const npub = nip19.npubEncode(publicKey)
 
+      const keys = { nsec, npub, privateKeyBytes }
       return {
         nsec,
-        npub
+        npub,
+        privateKeyBytes
       }
     } catch (error) {
       throw error
