@@ -92,9 +92,10 @@ function SSSankeyLinks({
       }
       if (type === 'source') {
         if (node.type === 'block') {
-          const width = logAttenuation(targetNode.value ?? 0)
-          const w = (width / totalWidthFromBlock) * LINK_BLOCK_MAX_WIDTH
-          // console.log('value', targetNode.value, node.id, width)
+          const txWidth = logAttenuation(node.value ?? 0)
+          const targetWidth = logAttenuation(targetNode.value ?? 0)
+
+          const w = (targetWidth / totalWidthFromBlock) * txWidth
           return w
         } else if (node.type === 'text') {
           const width = logAttenuation(node.value ?? 0)
@@ -103,9 +104,11 @@ function SSSankeyLinks({
       } else if (type === 'target') {
         if (node.type === 'block') {
           const value = sourceNode.value ?? 0
+          const txWidth = logAttenuation(node.value ?? 0)
           const width = logAttenuation(value)
-          const w = (width / totalWidthFromBlock) * LINK_BLOCK_MAX_WIDTH
+          const w = (width / totalWidthFromBlock) * txWidth
           return w
+          // return width
         } else if (node.type === 'text') {
           const width = logAttenuation(node.value ?? 0)
           return width
@@ -227,7 +230,7 @@ function SSSankeyLinks({
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={isCurrentTx || isUnspent ? 1 : 0.6}
+              opacity={isCurrentTx || isUnspent ? 1 : 0.5}
             >
               {(isCurrentTx || isMinerFee) &&
               !isRemainingBalance &&

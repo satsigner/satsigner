@@ -30,7 +30,7 @@ import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
-import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
+// import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -92,14 +92,14 @@ export default function IOPreview() {
     inputs,
     DEEP_LEVEL
   )
-  console.log(
-    JSON.stringify(
-      { Transactions: Array.from(transactions.entries()) },
-      null,
-      2
-    )
-  )
-  console.log('txCount', transactions.size)
+  // console.log(
+  //   JSON.stringify(
+  //     { Transactions: Array.from(transactions.entries()) },
+  //     null,
+  //     2
+  //   )
+  // )
+  // console.log('txCount', transactions.size)
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])

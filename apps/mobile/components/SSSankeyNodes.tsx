@@ -85,14 +85,6 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
               x={x}
               y={y}
               width={BLOCK_WIDTH}
-              height={height}
-              opacity={0.9}
-              color={isCurrentTxBlockNode ? gray[200] : gray[500]}
-            />
-            <Rect
-              x={x}
-              y={y}
-              width={BLOCK_WIDTH}
               height={logAttenuation(node.value ?? 0)}
               color={
                 isTransactionChart
@@ -102,6 +94,14 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
                     : gray[400]
               }
               paint={isTransactionChart ? gradientPaint : undefined}
+            />
+            <Rect
+              x={x}
+              y={y}
+              width={BLOCK_WIDTH}
+              height={height}
+              opacity={0.7}
+              color={isCurrentTxBlockNode ? gray[200] : gray[500]}
             />
           </Group>
         )
@@ -176,7 +176,7 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          maxLines: 4,
+          maxLines: 5,
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
@@ -270,7 +270,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color('white')
         })
-        .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`) // Already has nullish coalescing
+        .addText(`\n${Math.ceil(ioData.vSize ?? 0)} vB`)
         .pop()
 
       return para.build()
