@@ -19,6 +19,7 @@ type AccountsAction = {
   updateAccountName: (id: Account['id'], newName: string) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
+  setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
   loadTx: (accountId: Account['id'], tx: Transaction) => void
@@ -84,6 +85,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.id === id
             )
             if (index !== -1) state.accounts[index].syncStatus = syncStatus
+          })
+        )
+      },
+      setSyncProgress: (id, syncProgress) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) state.accounts[index].syncProgress = syncProgress
           })
         )
       },
