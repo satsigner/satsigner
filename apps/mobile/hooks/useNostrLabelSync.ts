@@ -1,6 +1,6 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { getPublicKey, nip19 } from 'nostr-tools'
-import { toast } from 'sonner-native/lib/typescript/commonjs/src/types'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
