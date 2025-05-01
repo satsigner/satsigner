@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+//import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
@@ -22,26 +22,37 @@ function NostrKeys() {
     ])
   )
 
-  const { generateCommonNostrKeys } = useNostrLabelSync()
+  //const { generateNostrKeys } = useNostrLabelSync()
 
-  const [nsec, setNsec] = useState<string>(account?.nostr.commonNsec || '')
-  const [npub, setNpub] = useState<string>(account?.nostr.commonNpub || '')
+  const [deviceNsec, setNsec] = useState<string>(
+    account?.nostr.deviceNsec || ''
+  )
+  const [deviceNpub, setNpub] = useState<string>(
+    account?.nostr.deviceNpub || ''
+  )
   const [loadingDefaultKeys, setLoadingDefaultKeys] = useState(false)
 
   async function loadDefaultNostrKeys() {
     if (loadingDefaultKeys || !account) return
+
+    /*
     setLoadingDefaultKeys(true)
-    const keys = await generateCommonNostrKeys(account)
+    const keys = await generateNostrKeys(account)
     if (keys) {
       setNsec(keys.nsec as string)
       setNpub(keys.npub as string)
     }
+    
+    */
     setLoadingDefaultKeys(false)
   }
 
   function saveChanges() {
     if (!accountId) return
-    updateAccountNostr(accountId, { commonNsec: nsec, commonNpub: npub })
+    updateAccountNostr(accountId, {
+      deviceNsec,
+      deviceNpub
+    })
     router.back()
   }
 
@@ -57,7 +68,7 @@ function NostrKeys() {
             <SSVStack gap="none">
               <SSText color="muted">npub</SSText>
               <SSTextInput
-                value={npub}
+                value={deviceNpub}
                 onChangeText={setNpub}
                 multiline
                 numberOfLines={3}
@@ -69,7 +80,7 @@ function NostrKeys() {
             <SSVStack gap="none">
               <SSText color="muted">nsec</SSText>
               <SSTextInput
-                value={nsec}
+                value={deviceNsec}
                 onChangeText={setNsec}
                 multiline
                 numberOfLines={3}

@@ -1,8 +1,8 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-import { nip19 } from 'nostr-tools'
 
 import { NostrAPI, type NostrMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
@@ -10,7 +10,6 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -20,11 +19,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
-  JSONLtoLabels,
   formatAccountLabels,
+  JSONLtoLabels,
   labelsToJSONL
 } from '@/utils/bip329'
-import { toast } from 'sonner-native'
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -164,7 +162,7 @@ function SSNostrLabelSync() {
       })
 
       toast.success('Labels sent successfully')
-    } catch (error) {
+    } catch (_error) {
       setRelayError(t('account.nostrlabels.errorSendingMessage'))
     }
   }
@@ -443,12 +441,39 @@ function SSNostrLabelSync() {
                     JSON.stringify({
                       created_at: Math.floor(Date.now() / 1000),
                       public_key_bech32: deviceNpub
+                      //please_trust_public_key_bech32: deviceNpub
                     })
                   )
 
                   toast.success('Trust request sent')
                 } catch (_error) {
                   setRelayError('Failed to send trust request')
+                }
+              }}
+            />
+
+            <SSButton
+              variant="subtle"
+              label="Send Sample Message"
+              onPress={async () => {
+                if (!commonNsec || !commonNpub || !nostrApi) {
+                  setRelayError(t('account.nostrlabels.errorMissingData'))
+                  return
+                }
+                try {
+                  await nostrApi.sendMessage(
+                    commonNsec,
+                    commonNpub,
+                    JSON.stringify({
+                      created_at: Math.floor(Date.now() / 1000),
+                      label: 1,
+                      description: 'Hello'
+                    })
+                  )
+
+                  toast.success('Sample message sent')
+                } catch (_error) {
+                  setRelayError('Failed to send Sample message')
                 }
               }}
             />

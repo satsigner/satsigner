@@ -1,12 +1,14 @@
+import { type Network } from 'bdk-rn/lib/lib/enums'
+import { getPublicKey, nip19 } from 'nostr-tools'
+import { toast } from 'sonner-native/lib/typescript/commonjs/src/types'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
 import { getWalletData } from '@/api/bdk'
+import { NostrAPI } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import type { Account, Secret } from '@/types/models/Account'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import {
   formatAccountLabels,
   JSONLtoLabels,
@@ -14,7 +16,6 @@ import {
   labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
-import { getPublicKey, nip19 } from 'nostr-tools'
 
 function useNostrLabelSync() {
   const [importLabels, updateAccountNostr] = useAccountsStore(
@@ -23,64 +24,50 @@ function useNostrLabelSync() {
 
   async function sendAccountLabelsToNostr(account?: Account) {
     if (!account?.nostr?.autoSync) {
-      console.log('Auto sync is disabled')
       return
     }
     if (!account || !account.nostr) {
-      console.log('Account or nostr data is missing')
       return
     }
     const { commonNsec, commonNpub, relays, lastBackupFingerprint } =
       account.nostr
 
     if (!commonNsec || commonNpub === '' || relays.length === 0) {
-      console.log('Missing required nostr data:', {
-        commonNsec: !!commonNsec,
-        commonNpub: !!commonNpub,
-        relaysCount: relays.length
-      })
       return
     }
 
     const labels = formatAccountLabels(account)
-    console.log('Formatted labels count:', labels.length)
 
     if (labels.length === 0) {
-      console.log('No labels to send')
+      toast.error('No labels to send')
       return
     }
 
     const message = labelsToJSONL(labels)
     const hash = await sha256(message)
     const fingerprint = hash.slice(0, 8)
-    console.log('Message fingerprint:', fingerprint)
-    console.log('Last backup fingerprint:', lastBackupFingerprint)
 
     if (fingerprint === lastBackupFingerprint) {
-      console.log('Labels unchanged, skipping send')
       return
     }
 
     const nostrApi = new NostrAPI(relays)
     await nostrApi.connect()
-    console.log('Connected to relays:', relays)
 
     try {
-      console.log('Sending message to relays...')
+      toast.info('Sending message to relays...')
       await nostrApi.sendMessage(commonNsec, commonNpub, message)
-      console.log('Message sent successfully')
+      toast.success('Message sent successfully')
 
       const timestamp = new Date().getTime() / 1000
       updateAccountNostr(account.id, {
         lastBackupFingerprint: fingerprint,
         lastBackupTimestamp: timestamp
       })
-      console.log('Updated backup timestamp:', timestamp)
-    } catch (error) {
-      console.error('Failed to send message:', error)
+    } catch (_error) {
+      toast.error('Failed to send message')
     } finally {
       await nostrApi.disconnect()
-      console.log('Disconnected from relays')
     }
   }
 
@@ -181,7 +168,6 @@ function useNostrLabelSync() {
       const commonNsec = nip19.nsecEncode(privateKeyBytes)
       const commonNpub = nip19.npubEncode(publicKey)
 
-      const keys = { commonNsec, commonNpub, privateKeyBytes }
       return {
         commonNsec,
         commonNpub,

@@ -52,7 +52,6 @@ export class NostrAPI {
 
       // Verify relay connections
       const connectedRelays = Array.from(this.ndk.pool.relays.keys())
-      console.log('Connected relays:', connectedRelays)
 
       if (connectedRelays.length === 0) {
         throw new Error(
@@ -91,8 +90,6 @@ export class NostrAPI {
         })
       )
 
-      console.log('Relay status:', relayStatus)
-
       // If no relays are working, throw an error
       const workingRelays = relayStatus.filter((r) => r.status === 'connected')
       if (workingRelays.length === 0) {
@@ -103,7 +100,6 @@ export class NostrAPI {
 
       return true
     } catch (error) {
-      console.error('Relay connection error:', error)
       this.ndk = null // Reset ndk on error
       throw new Error(
         'Failed to connect to relays: ' +
@@ -303,16 +299,17 @@ export class NostrAPI {
       }
 
       // Log the raw event in pretty format
+      /*
       console.log(
         'Raw event:',
         JSON.stringify(await kind1059Event.toNostrEvent(), null, 2)
       )
+      */
 
       // Publish with timeout and retry
       const publishWithRetry = async (event: NDKEvent, retries = 3) => {
         for (let i = 0; i < retries; i++) {
           try {
-            console.log(`Attempt ${i + 1} to publish event...`)
             await event.publish()
 
             // Wait a bit longer for the event to propagate
@@ -321,11 +318,9 @@ export class NostrAPI {
             // Verify event was published by checking relays
             const isPublished = await verifyPublished(event)
             if (isPublished) {
-              console.log('Event published successfully')
               return true
             }
 
-            console.log('Event not found on relays, retrying...')
             if (i === retries - 1) {
               throw new Error('Event not published successfully')
             }
@@ -333,7 +328,6 @@ export class NostrAPI {
             // Wait before retry
             await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
           } catch (err) {
-            console.error(`Publish attempt ${i + 1} failed:`, err)
             if (i === retries - 1) throw err
             await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
           }
@@ -350,7 +344,6 @@ export class NostrAPI {
           const relayStatus = await Promise.all(
             Array.from(this.ndk.pool.relays.entries()).map(async ([url]) => {
               try {
-                console.log(`Checking relay ${url} for event...`)
                 const publishedEvent = await this.ndk?.fetchEvent({
                   kinds: [event.kind as NDKKind],
                   authors: [event.pubkey],
@@ -364,7 +357,6 @@ export class NostrAPI {
             })
           )
 
-          console.log('Relay verification status:', relayStatus)
           // Check if any relay has the event
           return relayStatus.some((status) => status.success)
         } catch (_err) {
@@ -410,7 +402,7 @@ export class NostrAPI {
         authors: [user.pubkey], // Events from the other user
         limit
       }
-      console.log('Subscription query:', subscriptionQuery)
+
       const subscription = this.ndk?.subscribe(subscriptionQuery)
 
       // Also subscribe to our own sent messages
@@ -420,7 +412,7 @@ export class NostrAPI {
         '#p': [user.pubkey], // Where the other user is the recipient
         limit
       }
-      console.log('Sent messages query:', sentMessagesQuery)
+
       const sentSubscription = this.ndk?.subscribe(sentMessagesQuery)
 
       // Subscribe to self-messages (where we are both sender and recipient)
@@ -430,7 +422,7 @@ export class NostrAPI {
         '#p': [ourPubkey], // We are also the recipient
         limit
       }
-      console.log('Self messages query:', selfMessagesQuery)
+
       const selfSubscription = this.ndk?.subscribe(selfMessagesQuery)
 
       // Collect events from all subscriptions
