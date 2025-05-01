@@ -264,6 +264,25 @@ function SSNostrLabelSync() {
       api.connect().catch(() => {
         setRelayError('Failed to connect to relays')
       })
+
+      // Subscribe to kind 1059 messages
+      if (commonNpub && commonNsec) {
+        api
+          .subscribeToKind1059(commonNpub, commonNsec, (message) => {
+            if (message.decryptedContent) {
+              console.log('🔵 New message received:', {
+                content: message.decryptedContent,
+                created_at: message.created_at,
+                isSender: message.isSender
+              })
+              setMessages((prev) => [message, ...prev])
+              toast.info('New message received')
+            }
+          })
+          .catch(() => {
+            setRelayError('Failed to subscribe to kind 1059 messages')
+          })
+      }
     }
   }
 
@@ -301,7 +320,7 @@ function SSNostrLabelSync() {
     }
   }
 
-  useEffect(reloadApi, [selectedRelays])
+  useEffect(reloadApi, [selectedRelays, commonNpub, commonNsec])
   useEffect(loadNostrAccountData, [account])
   useEffect(handleFetchMessagesAutoSync, [autoSync, commonNpub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 

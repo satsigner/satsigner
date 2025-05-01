@@ -299,12 +299,10 @@ export class NostrAPI {
       }
 
       // Log the raw event in pretty format
-      /*
       console.log(
         'Raw event:',
         JSON.stringify(await kind1059Event.toNostrEvent(), null, 2)
       )
-      */
 
       // Publish with timeout and retry
       const publishWithRetry = async (event: NDKEvent, retries = 3) => {
@@ -425,6 +423,13 @@ export class NostrAPI {
 
       const selfSubscription = this.ndk?.subscribe(selfMessagesQuery)
 
+      // Log the relay queries
+      console.log('Relay Queries:', {
+        received: subscriptionQuery,
+        sent: sentMessagesQuery,
+        self: selfMessagesQuery
+      })
+
       // Collect events from all subscriptions
       const events = new Set<NDKEvent>()
       subscription?.on('event', (event) => {
@@ -516,5 +521,94 @@ export class NostrAPI {
 
   async disconnect() {
     this.ndk = null
+  }
+
+  async subscribeToKind1059(
+    npub: string,
+    nsec: string,
+    callback: (message: NostrMessage) => void
+  ): Promise<void> {
+    await this.connect()
+    if (!this.ndk) throw new Error('Failed to connect to relays')
+
+    // Decode the nsec
+    const { type, data: secretNostrKey } = nip19.decode(nsec)
+
+    // Check if the decoded type is 'nsec'
+    if (type !== 'nsec') {
+      throw new Error('Input is not a valid nsec')
+    }
+
+    const user = this.ndk.getUser({ npub })
+    const ourPubkey = getPublicKey(secretNostrKey)
+
+    // Create a subscription to fetch events
+    const subscriptionQuery = {
+      kinds: [1059 as NDKKind],
+      '#p': [ourPubkey], // Events where we are the recipient
+      limit: 1
+    }
+
+    const subscription = this.ndk?.subscribe(subscriptionQuery)
+
+    subscription?.on('event', async (event) => {
+      try {
+        // Log the raw event content for debugging
+        console.log('Raw event content:', event.content)
+
+        // First parse the outer JSON which contains the kind:13 event
+        let kind13Event
+        try {
+          kind13Event = JSON.parse(event.content)
+          console.log('Parsed kind13Event:', kind13Event)
+        } catch (parseError) {
+          console.error('Failed to parse outer event content as JSON:', {
+            content: event.content,
+            error: parseError
+          })
+          return
+        }
+
+        // Now decrypt the inner content
+        const isSender = event.pubkey === ourPubkey
+        const otherPubkey = isSender ? user.pubkey : event.pubkey
+
+        // Decrypt the inner content using NIP-44
+        const conversationKey = nip44.getConversationKey(
+          secretNostrKey,
+          otherPubkey
+        )
+        const decryptedContent = nip44.decrypt(
+          kind13Event.content,
+          conversationKey
+        )
+
+        console.log('Decrypted content:', decryptedContent)
+
+        // Create a NostrMessage object with the decrypted content
+        const message: NostrMessage = {
+          content: kind13Event.content,
+          created_at: kind13Event.created_at ?? Math.floor(Date.now() / 1000),
+          pubkey: kind13Event.pubkey,
+          decryptedContent: decryptedContent,
+          isSender
+        }
+
+        callback(message)
+      } catch (error) {
+        console.error('Error processing kind:1059 event:', {
+          error,
+          eventContent: event.content,
+          eventPubkey: event.pubkey
+        })
+      }
+    })
+
+    // Return a promise that resolves when the subscription is set up
+    return new Promise((resolve) => {
+      subscription?.on('eose', () => resolve())
+      // Also resolve after a timeout to prevent hanging
+      setTimeout(resolve, 5000)
+    })
   }
 }
