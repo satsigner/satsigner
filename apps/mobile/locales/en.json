@@ -98,7 +98,7 @@
     "nostrlabels.relays.public": "Public relays",
     "nostrlabels.selectRelays": "Select Relays",
     "nostrlabels.sendLabels": "Send Labels to Relays",
-    "nostrlabels.setKeys": "Set NOSTR keys",
+    "nostrlabels.setKeys": "Set Custom NOSTR keys",
     "nostrlabels.success": "Labels sent to relays",
     "nostrlabels.sync": "Nostr Label Sync",
     "nostrlabels.syncNow": "Sync now",

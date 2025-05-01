@@ -28,8 +28,10 @@ import { toast } from 'sonner-native'
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
-  const [nsec, setNsec] = useState('')
-  const [npub, setNpub] = useState('')
+  const [commonNsec, setCommonNsec] = useState('')
+  const [commonNpub, setCommonNpub] = useState('')
+  const [deviceNsec, setDeviceNsec] = useState('')
+  const [deviceNpub, setDeviceNpub] = useState('')
   const [passphrase, setPassphrase] = useState('')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [messages, setMessages] = useState<NostrMessage[]>([])
@@ -42,10 +44,8 @@ function SSNostrLabelSync() {
   const [importCountTotal, setImportCountTotal] = useState(0)
   const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
-  const [commonNostrKeys, setCommonNostrKeys] = useState<any>(null)
 
-  const { generateAccountNostrKeys, generateCommonNostrKeys } =
-    useNostrLabelSync()
+  const { generateCommonNostrKeys } = useNostrLabelSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -55,13 +55,34 @@ function SSNostrLabelSync() {
   )
 
   // Load common Nostr keys once when component mounts
-  if (account && !commonNostrKeys) {
+  if (account && !commonNsec) {
     generateCommonNostrKeys(account)
       .then((keys) => {
-        setCommonNostrKeys(keys)
+        if (keys) {
+          setCommonNsec(keys.nsec as string)
+          setCommonNpub(keys.npub as string)
+        }
       })
       .catch((error) => {
         throw new Error('Error loading common Nostr keys:', error)
+      })
+  }
+
+  // Load device Nostr keys once when component mounts
+  if (account && !deviceNsec) {
+    NostrAPI.generateNostrKeys()
+      .then((keys) => {
+        if (keys) {
+          setDeviceNsec(keys.nsec)
+          setDeviceNpub(keys.npub)
+          updateAccountNostr(accountId, {
+            npub: keys.npub,
+            nsec: keys.nsec
+          })
+        }
+      })
+      .catch((error) => {
+        throw new Error('Error loading device Nostr keys:', error)
       })
   }
 
@@ -70,7 +91,7 @@ function SSNostrLabelSync() {
   }
 
   async function fetchMessages(loadMore: boolean = false) {
-    if (!npub || !nsec || !nostrApi) {
+    if (!commonNsec || !commonNpub || !nostrApi) {
       setRelayError(t('account.nostrlabels.errorMissingData'))
       return
     }
@@ -83,12 +104,9 @@ function SSNostrLabelSync() {
 
     setIsLoading(true)
     try {
-      const lastBackupTimestamp = account?.nostr.lastBackupTimestamp
-
-      const fetchedMessages =
-        // REMOVED lastBackupTimestamp because it was causing no messages to be fetched
-        // await nostrApi.fetchMessages(nsec, npub, lastBackupTimestamp)
-        (await nostrApi.fetchMessages(nsec, npub)).filter(filterMessages)
+      const fetchedMessages = (
+        await nostrApi.fetchMessages(commonNsec, commonNpub)
+      ).filter(filterMessages)
 
       // If no messages returned, we've reached the end
       if (fetchedMessages.length === 0) {
@@ -104,42 +122,14 @@ function SSNostrLabelSync() {
         setMessages(fetchedMessages)
       }
     } catch (error) {
-      throw new Error('Error fetching messages:', error)
+      throw new Error('Error fetching messages:', error as Error)
     } finally {
       setIsLoading(false)
     }
   }
 
-  async function handleCreateNsec() {
-    if (!account) return
-
-    const { npub, nsec } = account.nostr
-    if (npub && nsec) {
-      setNsec(nsec)
-      setNpub(npub)
-      return
-    }
-
-    try {
-      //const keys = await generateAccountNostrKeys(account, passphrase)
-      const keys = await generateCommonNostrKeys(account)
-      if (!keys) {
-        throw new Error('Failed to generate Nostr keys')
-      }
-      console.log('keys: ', keys.nsec)
-      setNsec(keys.nsec as string)
-      setNpub(keys.npub as string)
-      updateAccountNostr(accountId, {
-        npub: keys.npub as string,
-        nsec: keys.nsec as string
-      })
-    } catch {
-      setRelayError(t('account.nostrLabels.errorNsec'))
-    }
-  }
-
   async function handleSendMessage() {
-    if (!nsec || !npub || !account || !nostrApi) {
+    if (!commonNsec || !commonNpub || !account || !nostrApi) {
       setRelayError(t('account.nostrlabels.errorMissingData'))
       return
     }
@@ -147,7 +137,6 @@ function SSNostrLabelSync() {
     try {
       // Get all labels from the account in BIP-329 format
       const labels = formatAccountLabels(account)
-      console.log('Sending labels:', labels)
       toast.success(`Sending ${labels.length} labels to relays`)
 
       if (labels.length === 0) {
@@ -157,11 +146,9 @@ function SSNostrLabelSync() {
 
       // Convert labels to JSONL format
       const labelContent = labelsToJSONL(labels)
-      console.log('Label content:', labelContent)
 
       // Send labels as message content and wait for completion
-      await nostrApi.sendMessage(nsec, npub, labelContent)
-      console.log('Message sent successfully')
+      await nostrApi.sendMessage(commonNsec, commonNpub, labelContent)
 
       // Update last backup timestamp
       const timestamp = Math.floor(Date.now() / 1000)
@@ -171,7 +158,6 @@ function SSNostrLabelSync() {
 
       toast.success('Labels sent successfully')
     } catch (error) {
-      console.error('Error sending message:', error)
       setRelayError(t('account.nostrlabels.errorSendingMessage'))
     }
   }
@@ -233,16 +219,6 @@ function SSNostrLabelSync() {
     )
   }
 
-  function handlePassphraseChange(text: string) {
-    setPassphrase(text)
-    setRelayError(null)
-    setMessages([])
-    setHasMoreMessages(true)
-    if (accountId) {
-      updateAccountNostr(accountId, { passphrase: text })
-    }
-  }
-
   function handleToggleAutoSync() {
     const newAutoSync = !autoSync
     setAutoSync(newAutoSync)
@@ -251,7 +227,7 @@ function SSNostrLabelSync() {
       updateAccountNostr(accountId, { autoSync: newAutoSync })
 
       // Send labels immediately when auto-sync is enabled
-      if (newAutoSync && npub && selectedRelays.length > 0) {
+      if (newAutoSync && commonNpub && selectedRelays.length > 0) {
         handleSendMessage()
       } else if (newAutoSync && selectedRelays.length === 0) {
         setRelayError(t('account.nostrlabels.noRelaysWarning'))
@@ -310,11 +286,11 @@ function SSNostrLabelSync() {
   }
 
   function handleFetchMessagesAutoSync() {
-    if (autoSync && npub && selectedRelays.length > 0) {
+    if (autoSync && commonNpub && selectedRelays.length > 0) {
       fetchMessages()
     }
 
-    if (autoSync && npub && selectedRelays.length > 0) {
+    if (autoSync && commonNpub && selectedRelays.length > 0) {
       // Set up interval for auto sync
       const syncInterval = setInterval(() => {
         fetchMessages()
@@ -330,10 +306,10 @@ function SSNostrLabelSync() {
   useEffect(() => {
     if (account && passphrase !== undefined) {
       setNostrApi(new NostrAPI(selectedRelays))
-      handleCreateNsec()
+      //handleCreateCommonNsec()
     }
   }, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(handleFetchMessagesAutoSync, [autoSync, npub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(handleFetchMessagesAutoSync, [autoSync, commonNpub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {
@@ -355,14 +331,15 @@ function SSNostrLabelSync() {
           </SSText>
           {/* Keys display */}
           <SSVStack gap="sm">
+            <SSText center>{t('account.nostrlabels.commonNostrKeys')}</SSText>
             <SSVStack gap="xxs" style={styles.keysContainer}>
-              {nsec !== '' && npub !== '' ? (
+              {commonNsec !== '' && commonNpub !== '' ? (
                 <>
                   <SSVStack gap="xxs">
                     <SSText color="muted" center>
                       {t('account.nostrlabels.nsec')}
                     </SSText>
-                    <SSTextClipboard text={nsec}>
+                    <SSTextClipboard text={commonNsec}>
                       <SSText
                         center
                         size="xl"
@@ -370,7 +347,7 @@ function SSNostrLabelSync() {
                         style={styles.keyText}
                         selectable
                       >
-                        {nsec}
+                        {commonNsec}
                       </SSText>
                     </SSTextClipboard>
                   </SSVStack>
@@ -378,7 +355,7 @@ function SSNostrLabelSync() {
                     <SSText color="muted" center>
                       {t('account.nostrlabels.npub')}
                     </SSText>
-                    <SSTextClipboard text={npub}>
+                    <SSTextClipboard text={commonNpub}>
                       <SSText
                         center
                         size="xl"
@@ -386,7 +363,7 @@ function SSNostrLabelSync() {
                         style={styles.keyText}
                         selectable
                       >
-                        {npub}
+                        {commonNpub}
                       </SSText>
                     </SSTextClipboard>
                   </SSVStack>
@@ -400,24 +377,63 @@ function SSNostrLabelSync() {
                 </SSHStack>
               )}
             </SSVStack>
+          </SSVStack>
+
+          <SSVStack gap="sm">
+            <SSText center>{t('account.nostrlabels.deviceKeys')}</SSText>
+            <SSVStack gap="xxs" style={styles.keysContainer}>
+              {deviceNsec !== '' && deviceNpub !== '' ? (
+                <>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrlabels.nsec')}
+                    </SSText>
+                    <SSTextClipboard text={deviceNsec}>
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
+                      >
+                        {deviceNsec}
+                      </SSText>
+                    </SSTextClipboard>
+                  </SSVStack>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrlabels.npub')}
+                    </SSText>
+                    <SSTextClipboard text={deviceNpub}>
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
+                      >
+                        {deviceNpub}
+                      </SSText>
+                    </SSTextClipboard>
+                  </SSVStack>
+                </>
+              ) : (
+                <SSHStack style={styles.keyContainerLoading}>
+                  <ActivityIndicator />
+                  <SSText uppercase>
+                    {t('account.nostrlabels.loadingKeys')}
+                  </SSText>
+                </SSHStack>
+              )}
+            </SSVStack>
+
             <SSButton
               variant="subtle"
               label={t('account.nostrlabels.setKeys')}
               onPress={goToNostrKeyPage}
             />
           </SSVStack>
-          {/* Passphrase field */}
-          <SSVStack gap="xs">
-            <SSText center>
-              {t('account.nostrlabels.mnemonicPassphrase')}
-            </SSText>
-            <SSTextInput
-              placeholder="Enter passphrase"
-              value={passphrase}
-              onChangeText={handlePassphraseChange}
-              secureTextEntry
-            />
-          </SSVStack>
+
           <SSVStack gap="sm">
             {/* Top section with relay selection */}
             <SSVStack gap="sm">
@@ -435,7 +451,7 @@ function SSNostrLabelSync() {
               />
             </SSVStack>
             {/* Message controls */}
-            {npub && (
+            {commonNpub && (
               <>
                 <SSButton
                   label={t('account.nostrlabels.checkForMessages')}
@@ -468,7 +484,9 @@ function SSNostrLabelSync() {
                   label="Sync now"
                   variant="secondary"
                   onPress={handleSendMessage}
-                  disabled={isLoading || !npub || selectedRelays.length === 0}
+                  disabled={
+                    isLoading || !commonNpub || selectedRelays.length === 0
+                  }
                 />
               )}
             </SSVStack>
@@ -538,7 +556,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
     borderColor: Colors.white,
-    padding: 10
+    padding: 10,
+    paddingBottom: 30
   },
   keyContainerLoading: {
     justifyContent: 'center',

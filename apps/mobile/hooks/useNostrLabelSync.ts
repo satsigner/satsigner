@@ -118,33 +118,6 @@ function useNostrLabelSync() {
     importLabels(account.id, labels)
   }
 
-  async function generateAccountNostrKeys(account?: Account, passphrase = '') {
-    if (!account || !account.nostr) {
-      throw new Error('undefined account')
-    }
-
-    const pin = await getItem(PIN_KEY)
-    if (!pin) {
-      throw new Error('PIN not found')
-    }
-
-    // Get IV and encrypted secret from account
-    const iv = account.keys[0].iv
-    const encryptedSecret = account.keys[0].secret as string
-
-    // Decrypt the secret
-    const accountSecretString = await aesDecrypt(encryptedSecret, pin, iv)
-    const accountSecret = JSON.parse(accountSecretString) as Secret
-    const mnemonic = accountSecret.mnemonic
-
-    if (!mnemonic) {
-      throw new Error('invalid mnemonic')
-    }
-
-    const keys = await NostrAPI.generateNostrKeys(mnemonic, passphrase)
-    return keys
-  }
-
   async function generateCommonNostrKeys(account?: Account) {
     if (!account) return
     const pin = await getItem(PIN_KEY)
@@ -220,7 +193,7 @@ function useNostrLabelSync() {
   return {
     sendAccountLabelsToNostr,
     syncAccountLabelsFromNostr,
-    generateAccountNostrKeys,
+
     generateCommonNostrKeys
   }
 }

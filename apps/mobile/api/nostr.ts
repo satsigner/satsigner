@@ -1,6 +1,5 @@
 import type { NDKKind } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
-import * as bip39 from 'bip39'
 import { getPublicKey, nip19, nip44 } from 'nostr-tools'
 
 export interface NostrKeys {
@@ -92,15 +91,14 @@ export class NostrAPI {
     }
   }
 
-  static async generateNostrKeys(
-    mnemonic: string,
-    passphrase: string
-  ): Promise<NostrKeys> {
-    const seed = await bip39.mnemonicToSeed(mnemonic, passphrase)
-    const secretNostrKey = new Uint8Array(seed.slice(0, 32))
+  static async generateNostrKeys(): Promise<NostrKeys> {
+    const signer = NDKPrivateKeySigner.generate()
+    const user = await signer.user()
+    const secretNostrKey = new Uint8Array(
+      Buffer.from(signer.privateKey!, 'hex')
+    )
     const nsec = nip19.nsecEncode(secretNostrKey)
-    const publicKey = getPublicKey(secretNostrKey)
-    const npub = nip19.npubEncode(publicKey)
+    const npub = user.npub
 
     return {
       nsec,
