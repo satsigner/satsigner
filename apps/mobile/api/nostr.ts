@@ -32,27 +32,38 @@ export class NostrAPI {
   }
 
   async connect() {
-    if (!this.ndk) {
-      this.ndk = new NDK({
-        explicitRelayUrls: this.relays
-      })
+    try {
+      // Initialize NDK if not already initialized
+      if (!this.ndk) {
+        this.ndk = new NDK({
+          explicitRelayUrls: this.relays
+        })
+      }
 
-      try {
-        await this.ndk.connect()
+      // Ensure NDK is connected
+      await this.ndk.connect()
 
-        // Verify relay connections
-        const connectedRelays = Array.from(this.ndk.pool.relays.keys())
-        console.log('Connected relays:', connectedRelays)
+      // Ensure pool is initialized and connected
+      if (!this.ndk.pool) {
+        throw new Error('NDK pool not initialized')
+      }
 
-        if (connectedRelays.length === 0) {
-          throw new Error(
-            'No relays could be connected. Please check your relay URLs and internet connection.'
-          )
-        }
+      await this.ndk.pool.connect()
 
-        // Test each relay's connection
-        const relayStatus = await Promise.all(
-          connectedRelays.map(async (url) => {
+      // Verify relay connections
+      const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+      console.log('Connected relays:', connectedRelays)
+
+      if (connectedRelays.length === 0) {
+        throw new Error(
+          'No relays could be connected. Please check your relay URLs and internet connection.'
+        )
+      }
+
+      // Test each relay's connection with retries
+      const relayStatus = await Promise.all(
+        connectedRelays.map(async (url) => {
+          for (let attempt = 0; attempt < 3; attempt++) {
             try {
               const relay = this.ndk?.pool.relays.get(url)
               if (!relay) return { url, status: 'not_found' }
@@ -63,31 +74,41 @@ export class NostrAPI {
                 // @ts-ignore - relayUrl is used by NDK but not in types
                 { relayUrl: url }
               )
+
+              // If we get here, the relay is working
               return { url, status: 'connected', testEvent: testEvent !== null }
-            } catch (_err) {
-              return { url, status: 'error' }
+            } catch (_error) {
+              if (attempt === 2) {
+                return { url, status: 'error' }
+              }
+              // Wait before retry
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * (attempt + 1))
+              )
             }
-          })
-        )
+          }
+          return { url, status: 'error' }
+        })
+      )
 
-        console.log('Relay status:', relayStatus)
+      console.log('Relay status:', relayStatus)
 
-        // If no relays are working, throw an error
-        const workingRelays = relayStatus.filter(
-          (r) => r.status === 'connected'
-        )
-        if (workingRelays.length === 0) {
-          throw new Error(
-            'No relays are responding. Please check your internet connection and try again.'
-          )
-        }
-      } catch (error) {
-        console.error('Relay connection error:', error)
+      // If no relays are working, throw an error
+      const workingRelays = relayStatus.filter((r) => r.status === 'connected')
+      if (workingRelays.length === 0) {
         throw new Error(
-          'Failed to connect to relays: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+          'No relays are responding. Please check your internet connection and try again.'
         )
       }
+
+      return true
+    } catch (error) {
+      console.error('Relay connection error:', error)
+      this.ndk = null // Reset ndk on error
+      throw new Error(
+        'Failed to connect to relays: ' +
+          (error instanceof Error ? error.message : 'Unknown error')
+      )
     }
   }
 
@@ -205,7 +226,6 @@ export class NostrAPI {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
-      // Fallback: Use nostr-tools nip44.encrypt
       try {
         const conversationKey = nip44.getConversationKey(
           secretNostrKey,

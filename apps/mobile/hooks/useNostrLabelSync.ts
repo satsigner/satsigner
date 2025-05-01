@@ -30,12 +30,13 @@ function useNostrLabelSync() {
       console.log('Account or nostr data is missing')
       return
     }
-    const { nsec, npub, relays, lastBackupFingerprint } = account.nostr
+    const { commonNsec, commonNpub, relays, lastBackupFingerprint } =
+      account.nostr
 
-    if (!nsec || npub === '' || relays.length === 0) {
+    if (!commonNsec || commonNpub === '' || relays.length === 0) {
       console.log('Missing required nostr data:', {
-        nsec: !!nsec,
-        npub: !!npub,
+        commonNsec: !!commonNsec,
+        commonNpub: !!commonNpub,
         relaysCount: relays.length
       })
       return
@@ -66,7 +67,7 @@ function useNostrLabelSync() {
 
     try {
       console.log('Sending message to relays...')
-      await nostrApi.sendMessage(nsec, npub, message)
+      await nostrApi.sendMessage(commonNsec, commonNpub, message)
       console.log('Message sent successfully')
 
       const timestamp = new Date().getTime() / 1000
@@ -87,16 +88,17 @@ function useNostrLabelSync() {
   async function syncAccountLabelsFromNostr(account?: Account) {
     if (!account || !account.nostr) return
 
-    const { autoSync, nsec, npub, relays, lastBackupTimestamp } = account.nostr
+    const { autoSync, commonNsec, commonNpub, relays, lastBackupTimestamp } =
+      account.nostr
 
-    if (!autoSync || !nsec || !npub || relays.length === 1) return
+    if (!autoSync || !commonNsec || !commonNpub || relays.length === 1) return
     const nostrApi = new NostrAPI(relays)
 
     const messageCount = 5
     const since = lastBackupTimestamp
     const messages = await nostrApi.fetchMessages(
-      nsec,
-      npub,
+      commonNsec,
+      commonNpub,
       since,
       messageCount
     )
@@ -176,13 +178,13 @@ function useNostrLabelSync() {
       // Generate Nostr keys using doubleHash as private key
       const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
       const publicKey = getPublicKey(privateKeyBytes)
-      const nsec = nip19.nsecEncode(privateKeyBytes)
-      const npub = nip19.npubEncode(publicKey)
+      const commonNsec = nip19.nsecEncode(privateKeyBytes)
+      const commonNpub = nip19.npubEncode(publicKey)
 
-      const keys = { nsec, npub, privateKeyBytes }
+      const keys = { commonNsec, commonNpub, privateKeyBytes }
       return {
-        nsec,
-        npub,
+        commonNsec,
+        commonNpub,
         privateKeyBytes
       }
     } catch (error) {

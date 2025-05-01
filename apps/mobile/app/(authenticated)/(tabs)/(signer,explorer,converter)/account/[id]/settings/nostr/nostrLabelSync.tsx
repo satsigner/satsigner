@@ -2,6 +2,7 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
+import { nip19 } from 'nostr-tools'
 
 import { NostrAPI, type NostrMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
@@ -32,7 +33,6 @@ function SSNostrLabelSync() {
   const [commonNpub, setCommonNpub] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
-  const [passphrase, setPassphrase] = useState('')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -59,8 +59,8 @@ function SSNostrLabelSync() {
     generateCommonNostrKeys(account)
       .then((keys) => {
         if (keys) {
-          setCommonNsec(keys.nsec as string)
-          setCommonNpub(keys.npub as string)
+          setCommonNsec(keys.commonNsec as string)
+          setCommonNpub(keys.commonNpub as string)
         }
       })
       .catch((error) => {
@@ -70,20 +70,27 @@ function SSNostrLabelSync() {
 
   // Load device Nostr keys once when component mounts
   if (account && !deviceNsec) {
-    NostrAPI.generateNostrKeys()
-      .then((keys) => {
-        if (keys) {
-          setDeviceNsec(keys.nsec)
-          setDeviceNpub(keys.npub)
-          updateAccountNostr(accountId, {
-            npub: keys.npub,
-            nsec: keys.nsec
-          })
-        }
-      })
-      .catch((error) => {
-        throw new Error('Error loading device Nostr keys:', error)
-      })
+    if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+    } else {
+      NostrAPI.generateNostrKeys()
+        .then((keys) => {
+          if (keys) {
+            setDeviceNsec(keys.nsec)
+            setDeviceNpub(keys.npub)
+            updateAccountNostr(accountId, {
+              commonNpub: keys.npub,
+              commonNsec: keys.nsec,
+              deviceNpub: keys.npub,
+              deviceNsec: keys.nsec
+            })
+          }
+        })
+        .catch((error) => {
+          throw new Error('Error loading device Nostr keys:', error)
+        })
+    }
   }
 
   function filterMessages(msg: NostrMessage) {
@@ -137,7 +144,7 @@ function SSNostrLabelSync() {
     try {
       // Get all labels from the account in BIP-329 format
       const labels = formatAccountLabels(account)
-      toast.success(`Sending ${labels.length} labels to relays`)
+      toast.info(`Sending ${labels.length} labels to relays`)
 
       if (labels.length === 0) {
         setRelayError(t('account.nostrlabels.noLabelsToSync'))
@@ -269,11 +276,6 @@ function SSNostrLabelSync() {
     setSelectedRelays(account.nostr.relays)
     setAutoSync(account.nostr.autoSync)
 
-    // Load passphrase
-    if (account.nostr.passphrase !== undefined) {
-      setPassphrase(account.nostr.passphrase)
-    }
-
     // Initialize NostrAPI when component mounts if relays are available
     if (account.nostr.relays.length > 0) {
       const api = new NostrAPI(account.nostr.relays)
@@ -303,12 +305,6 @@ function SSNostrLabelSync() {
 
   useEffect(reloadApi, [selectedRelays])
   useEffect(loadNostrAccountData, [account])
-  useEffect(() => {
-    if (account && passphrase !== undefined) {
-      setNostrApi(new NostrAPI(selectedRelays))
-      //handleCreateCommonNsec()
-    }
-  }, [account, passphrase, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(handleFetchMessagesAutoSync, [autoSync, commonNpub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
@@ -431,6 +427,30 @@ function SSNostrLabelSync() {
               variant="subtle"
               label={t('account.nostrlabels.setKeys')}
               onPress={goToNostrKeyPage}
+            />
+            <SSButton
+              variant="subtle"
+              label="Send Trust Request"
+              onPress={async () => {
+                if (!commonNsec || !commonNpub || !nostrApi) {
+                  setRelayError(t('account.nostrlabels.errorMissingData'))
+                  return
+                }
+                try {
+                  await nostrApi.sendMessage(
+                    commonNsec,
+                    commonNpub,
+                    JSON.stringify({
+                      created_at: Math.floor(Date.now() / 1000),
+                      public_key_bech32: deviceNpub
+                    })
+                  )
+
+                  toast.success('Trust request sent')
+                } catch (_error) {
+                  setRelayError('Failed to send trust request')
+                }
+              }}
             />
           </SSVStack>
 

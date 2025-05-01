@@ -22,25 +22,26 @@ function NostrKeys() {
     ])
   )
 
-  const { generateAccountNostrKeys } = useNostrLabelSync()
+  const { generateCommonNostrKeys } = useNostrLabelSync()
 
-  const [nsec, setNsec] = useState<string>(account?.nostr.nsec || '')
-  const [npub, setNpub] = useState<string>(account?.nostr.npub || '')
+  const [nsec, setNsec] = useState<string>(account?.nostr.commonNsec || '')
+  const [npub, setNpub] = useState<string>(account?.nostr.commonNpub || '')
   const [loadingDefaultKeys, setLoadingDefaultKeys] = useState(false)
 
   async function loadDefaultNostrKeys() {
     if (loadingDefaultKeys || !account) return
     setLoadingDefaultKeys(true)
-    const { passphrase } = account.nostr
-    const keys = await generateAccountNostrKeys(account, passphrase || '')
-    setNsec(keys.nsec)
-    setNpub(keys.npub)
+    const keys = await generateCommonNostrKeys(account)
+    if (keys) {
+      setNsec(keys.nsec as string)
+      setNpub(keys.npub as string)
+    }
     setLoadingDefaultKeys(false)
   }
 
   function saveChanges() {
     if (!accountId) return
-    updateAccountNostr(accountId, { nsec, npub })
+    updateAccountNostr(accountId, { commonNsec: nsec, commonNpub: npub })
     router.back()
   }
 

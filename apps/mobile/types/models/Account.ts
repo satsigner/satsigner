@@ -71,12 +71,13 @@ export type Account = {
   lastSyncedAt?: Date
   syncStatus: SyncStatus
   nostr: {
-    npub: string
-    nsec: string
+    commonNpub: string
+    commonNsec: string
     relays: string[]
     autoSync: boolean
-    passphrase?: string
     lastBackupFingerprint?: string
     lastBackupTimestamp?: number
+    deviceNpub?: string
+    deviceNsec?: string
   }
 }
