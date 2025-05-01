@@ -1,6 +1,8 @@
 import type { NDKKind } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import { getPublicKey, nip19, nip44 } from 'nostr-tools'
+import { Buffer } from 'buffer'
+import pako from 'pako'
 
 export interface NostrKeys {
   nsec: string
@@ -218,7 +220,13 @@ export class NostrAPI {
 
     // Encrypt kind:14 event using NIP-44
     try {
-      await kind14Event.encrypt(recipientUser, signer)
+      const conversationKey = nip44.getConversationKey(
+        secretNostrKey,
+        recipientPubkey
+      )
+      const encryptedContent = nip44.encrypt(encodedContent, conversationKey)
+      console.log('Encrypted content:', encryptedContent)
+      kind14Event.content = encryptedContent
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
@@ -546,61 +554,97 @@ export class NostrAPI {
     const subscriptionQuery = {
       kinds: [1059 as NDKKind],
       '#p': [ourPubkey], // Events where we are the recipient
-      limit: 1
+      limit: 10
     }
 
     const subscription = this.ndk?.subscribe(subscriptionQuery)
 
     subscription?.on('event', async (event) => {
       try {
-        // Log the raw event content for debugging
-        console.log('Raw event content:', event.content)
-
-        // First parse the outer JSON which contains the kind:13 event
+        // Check if content is valid JSON
         let kind13Event
         try {
           kind13Event = JSON.parse(event.content)
-          console.log('Parsed kind13Event:', kind13Event)
-        } catch (parseError) {
-          console.error('Failed to parse outer event content as JSON:', {
-            content: event.content,
-            error: parseError
-          })
+        } catch (_parseError) {
+          console.log('❌ Content is not valid JSON, skipping decryption')
+          console.log('🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡', event.content)
+
+          // Try to decrypt the gift wrap content to get the seal
+          try {
+            const conversationKey = nip44.getConversationKey(
+              secretNostrKey,
+              event.pubkey
+            )
+            const decryptedSeal = nip44.decrypt(event.content, conversationKey)
+            console.log(
+              '✅ Successfully decrypted gift wrap to get seal:',
+              decryptedSeal
+            )
+
+            // Parse the seal event and decrypt its content to get the rumor
+            try {
+              const sealEvent = JSON.parse(decryptedSeal)
+              // Use the seal's pubkey (real author) for the second layer decryption
+              const sealConversationKey = nip44.getConversationKey(
+                secretNostrKey,
+                sealEvent.pubkey
+              )
+              const rumorContent = nip44.decrypt(
+                sealEvent.content,
+                sealConversationKey
+              )
+              console.log(
+                '✅ Successfully decrypted seal to get rumor:',
+                rumorContent
+              )
+
+              // Parse the rumor and decrypt its NIP-44 content
+              try {
+                const rumor = JSON.parse(rumorContent)
+
+                if (
+                  typeof rumor.content === 'string' &&
+                  rumor.content.startsWith('c$')
+                ) {
+                  const finalContent = nip44.decrypt(
+                    rumor.content,
+                    sealConversationKey
+                  )
+                  console.log(
+                    '✅ Successfully decrypted final content:',
+                    finalContent
+                  )
+                } else {
+                  // Not encrypted, just print as is
+                  console.log(
+                    '✅ Final content is not encrypted, value:',
+                    rumor.content
+                  )
+                }
+              } catch (finalError) {
+                console.log('❌ Failed to decrypt final content:', finalError)
+              }
+            } catch (rumorError) {
+              console.log('❌ Failed to decrypt rumor:', rumorError)
+            }
+          } catch (decryptError) {
+            console.log('❌ Failed to decrypt gift wrap:', decryptError)
+          }
           return
         }
 
-        // Now decrypt the inner content
-        const isSender = event.pubkey === ourPubkey
-        const otherPubkey = isSender ? user.pubkey : event.pubkey
-
-        // Decrypt the inner content using NIP-44
         const conversationKey = nip44.getConversationKey(
           secretNostrKey,
-          otherPubkey
+          event.pubkey
         )
         const decryptedContent = nip44.decrypt(
           kind13Event.content,
           conversationKey
         )
 
-        console.log('Decrypted content:', decryptedContent)
-
-        // Create a NostrMessage object with the decrypted content
-        const message: NostrMessage = {
-          content: kind13Event.content,
-          created_at: kind13Event.created_at ?? Math.floor(Date.now() / 1000),
-          pubkey: kind13Event.pubkey,
-          decryptedContent: decryptedContent,
-          isSender
-        }
-
-        callback(message)
-      } catch (error) {
-        console.error('Error processing kind:1059 event:', {
-          error,
-          eventContent: event.content,
-          eventPubkey: event.pubkey
-        })
+        console.log('🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢', decryptedContent)
+      } catch (_error) {
+        console.log('❌ Error processing event:', _error)
       }
     })
 

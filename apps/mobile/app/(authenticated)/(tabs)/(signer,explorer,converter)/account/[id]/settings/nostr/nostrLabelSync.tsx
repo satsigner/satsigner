@@ -270,11 +270,13 @@ function SSNostrLabelSync() {
         api
           .subscribeToKind1059(commonNpub, commonNsec, (message) => {
             if (message.decryptedContent) {
+              /*
               console.log('🔵 New message received:', {
                 content: message.decryptedContent,
                 created_at: message.created_at,
                 isSender: message.isSender
               })
+              */
               setMessages((prev) => [message, ...prev])
               toast.info('New message received')
             }
