@@ -776,7 +776,7 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account) return
+    if (!account || refreshing) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     if (isImportAddress && !watchOnlyWalletAddress) return
