@@ -125,7 +125,6 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           customFontManager={customFontManager}
           localId={node?.localId ?? ''}
           isTransactionChart={isTransactionChart}
-          blockNodeMaxHeight={Math.max(txSizeHeight, heightBasedOnFlow)}
         />
       </Group>
     )
@@ -143,10 +142,8 @@ function NodeText({
   x,
   y,
   customFontManager,
-
   ioData,
-  isTransactionChart,
-  blockNodeMaxHeight
+  isTransactionChart
 }: {
   localId: string
   isBlock: boolean
@@ -156,7 +153,6 @@ function NodeText({
   customFontManager: SkTypefaceFontProvider | null
   ioData: TxNode['ioData']
   isTransactionChart: boolean
-  blockNodeMaxHeight: number
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'

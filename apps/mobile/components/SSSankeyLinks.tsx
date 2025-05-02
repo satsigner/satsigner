@@ -55,7 +55,6 @@ function SSSankeyLinks({
   links,
   nodes,
   sankeyGenerator,
-  // LINK_MAX_WIDTH,
   BLOCK_WIDTH
 }: SSSankeyLinksProps) {
   const getLinkWidth = useCallback(
@@ -180,7 +179,7 @@ function SSSankeyLinks({
         const targetNode = nodes.find((n) => n.id === link.target) as Node
         const isUnspent = targetNode.ioData?.isUnspent
         const isRemainingBalance = targetNode.localId === 'remainingBalance'
-        const isMinerFee = targetNode.localId === 'minerFee'
+        const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
           targetNode.depthH === maxDepthH - 1 ||
@@ -230,7 +229,7 @@ function SSSankeyLinks({
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
               opacity={isCurrentTx || isUnspent ? 1 : 0.5}
             >
-              {(isCurrentTx || isMinerFee) &&
+              {(isCurrentTx || isCurrentTxMinerFee) &&
               !isRemainingBalance &&
               !isUnspent ? (
                 <>
