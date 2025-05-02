@@ -62,7 +62,7 @@ function SSNostrLabelSync() {
         }
       })
       .catch((error) => {
-        throw new Error('Error loading common Nostr keys:', error)
+        throw new Error(`Error loading common Nostr keys: ${error}`)
       })
   }
 
@@ -86,7 +86,7 @@ function SSNostrLabelSync() {
           }
         })
         .catch((error) => {
-          throw new Error('Error loading device Nostr keys:', error)
+          throw new Error(`Error loading device Nostr keys: ${error}`)
         })
     }
   }
@@ -127,7 +127,7 @@ function SSNostrLabelSync() {
         setMessages(fetchedMessages)
       }
     } catch (error) {
-      throw new Error('Error fetching messages:', error as Error)
+      throw new Error(`Error fetching messages: ${error}`)
     } finally {
       setIsLoading(false)
     }
@@ -153,7 +153,12 @@ function SSNostrLabelSync() {
       const labelContent = labelsToJSONL(labels)
 
       // Send labels as message content and wait for completion
-      await nostrApi.sendMessage(commonNsec, commonNpub, labelContent)
+      const event = await nostrApi.createKind1059WrappedEvent(
+        commonNsec,
+        commonNpub,
+        labelContent
+      )
+      await nostrApi.sendMessage(event)
 
       // Update last backup timestamp
       const timestamp = Math.floor(Date.now() / 1000)
@@ -266,9 +271,9 @@ function SSNostrLabelSync() {
       })
 
       // Subscribe to kind 1059 messages
-      if (commonNpub && commonNsec) {
+      if (deviceNsec && commonNsec && !account) {
         api
-          .subscribeToKind1059(commonNpub, commonNsec, (message) => {
+          .subscribeToKind1059New(commonNsec, deviceNsec, (message) => {
             if (message.decryptedContent) {
               /*
               console.log('🔵 New message received:', {
@@ -447,27 +452,31 @@ function SSNostrLabelSync() {
               label={t('account.nostrlabels.setKeys')}
               onPress={goToNostrKeyPage}
             />
+
             <SSButton
               variant="subtle"
               label="Send Trust Request"
               onPress={async () => {
+                console.log('Sending Trust Request')
                 if (!commonNsec || !commonNpub || !nostrApi) {
                   setRelayError(t('account.nostrlabels.errorMissingData'))
                   return
                 }
                 try {
-                  await nostrApi.sendMessage(
-                    commonNsec,
-                    commonNpub,
-                    JSON.stringify({
-                      created_at: Math.floor(Date.now() / 1000),
-                      public_key_bech32: deviceNpub
-                      //please_trust_public_key_bech32: deviceNpub
-                    })
-                  )
-
+                  const messageContent = JSON.stringify({
+                    created_at: Math.floor(Date.now() / 1000),
+                    public_key_bech32: deviceNpub
+                  })
+                  const eventKind1059 =
+                    await nostrApi.createKind1059WrappedEvent(
+                      commonNsec,
+                      commonNpub,
+                      messageContent
+                    )
+                  await nostrApi.sendMessage(eventKind1059)
                   toast.success('Trust request sent')
                 } catch (_error) {
+                  console.log('Failed to send trust request', _error)
                   setRelayError('Failed to send trust request')
                 }
               }}
@@ -482,7 +491,7 @@ function SSNostrLabelSync() {
                   return
                 }
                 try {
-                  await nostrApi.sendMessage(
+                  const event = await nostrApi.createKind1059WrappedEvent(
                     commonNsec,
                     commonNpub,
                     JSON.stringify({
@@ -491,6 +500,7 @@ function SSNostrLabelSync() {
                       description: 'Hello'
                     })
                   )
+                  await nostrApi.sendMessage(event)
 
                   toast.success('Sample message sent')
                 } catch (_error) {

@@ -56,7 +56,12 @@ function useNostrLabelSync() {
 
     try {
       toast.info('Sending message to relays...')
-      await nostrApi.sendMessage(commonNsec, commonNpub, message)
+      const event = await nostrApi.createKind1059WrappedEvent(
+        commonNsec,
+        commonNpub,
+        message
+      )
+      await nostrApi.sendMessage(event)
       toast.success('Message sent successfully')
 
       const timestamp = new Date().getTime() / 1000
