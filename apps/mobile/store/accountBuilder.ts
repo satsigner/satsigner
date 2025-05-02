@@ -230,7 +230,10 @@ const useAccountBuilderStore = create<
       createdAt: new Date(),
       lastSyncedAt: new Date(),
       syncStatus: 'unsynced',
-      syncProgress: 0
+      syncProgress: {
+        tasksDone: 0,
+        totalTasks: 0
+      }
     }
 
     return account

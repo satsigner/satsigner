@@ -3,7 +3,11 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { type Account, type SyncStatus } from '@/types/models/Account'
+import {
+  type Account,
+  type SyncProgress,
+  type SyncStatus
+} from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
