@@ -43,7 +43,7 @@ export interface Node extends SankeyNodeMinimal<object, object> {
 }
 
 const LINK_MAX_WIDTH = 100
-const BLOCK_WIDTH = 50
+export const BLOCK_WIDTH = 80
 const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {

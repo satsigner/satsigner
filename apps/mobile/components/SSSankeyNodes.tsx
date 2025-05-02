@@ -20,7 +20,7 @@ import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, white } from '@/styles/colors'
 import { logAttenuation } from '@/utils/math'
 
-import type { Node } from './SSMultipleSankeyDiagram'
+import { BLOCK_WIDTH, type Node } from './SSMultipleSankeyDiagram'
 import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
 
 interface ISSankeyNodes {
@@ -32,8 +32,7 @@ const BASE_FONT_SIZE = 13
 const SM_FONT_SIZE = 10
 const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
-const BLOCK_WIDTH = 50
-const Y_OFFSET_BLOCK_NODE_TEXT = -10
+// const Y_OFFSET_BLOCK_NODE_TEXT = 12
 const ICON_SIZE = 8
 
 function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
@@ -63,9 +62,10 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
       if (node.type === 'block') {
         const isCurrentTxBlockNode = node.depthH === maxDepth - 1
 
-        const x = (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - 50) / 2
+        const x =
+          (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
         const y = node.y0 ?? 0
-        const height = getBlockNodeHeight()
+        const height = Math.max(getBlockNodeHeight(), 34)
 
         const gradientPaint = Skia.Paint()
         gradientPaint.setShader(
@@ -78,6 +78,10 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
             Skia.Matrix()
           )
         )
+
+        // if (isCurrentTxBlockNode) {
+        console.log('h', height)
+        // }
 
         return (
           <Group>
@@ -96,9 +100,9 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
               paint={isTransactionChart ? gradientPaint : undefined}
             />
             <Rect
-              x={x}
+              x={x + BLOCK_WIDTH / 6}
               y={y}
-              width={BLOCK_WIDTH}
+              width={BLOCK_WIDTH / 1.5}
               height={height}
               opacity={0.7}
               color={isCurrentTxBlockNode ? gray[200] : gray[500]}
@@ -111,6 +115,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
 
     return (
       <Group key={index}>
+        {blockNode()}
         <NodeText
           isBlock={node.depthH % 2 !== 0}
           width={sankeyGenerator.nodeWidth()}
@@ -122,7 +127,6 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           localId={node?.localId ?? ''}
           isTransactionChart={isTransactionChart}
         />
-        {blockNode()}
       </Group>
     )
   }
@@ -262,7 +266,7 @@ function NodeText({
       para
         .pushStyle({
           ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE
+          fontSize: SM_FONT_SIZE
         })
         .addText(`${ioData?.txSize} B`)
         .pushStyle({
@@ -456,8 +460,9 @@ function NodeText({
   // Calculate position for the paragraph and potentially the icon
   const paragraphX = isBlock ? x + width * 0.2 : x + PADDING_LEFT
   const paragraphY = isBlock
-    ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
-    : y
+    ? y + 4
+    : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
+      y
 
   // Get placeholder rects if it's a mining fee node
   const placeholderRectsMinerIcon = useMemo(() => {
