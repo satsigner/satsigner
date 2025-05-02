@@ -173,7 +173,7 @@ export const useNodesAndLinks = ({
         },
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        localId: 'minerFee'
+        localId: 'current-minerFee'
       })
 
       return [
@@ -363,7 +363,7 @@ export const useNodesAndLinks = ({
                 minerFee,
                 text: t('transaction.build.minerFee')
               },
-              localId: 'minerFee'
+              localId: 'past-minerFee'
             })
           }
 

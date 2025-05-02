@@ -51,8 +51,6 @@ interface SSSankeyLinksProps {
   BLOCK_WIDTH: number
 }
 
-export const LINK_BLOCK_MAX_WIDTH = 16
-
 function SSSankeyLinks({
   links,
   nodes,

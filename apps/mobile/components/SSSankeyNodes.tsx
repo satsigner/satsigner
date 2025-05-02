@@ -21,7 +21,6 @@ import { gray, mainGreen, mainRed, white } from '@/styles/colors'
 import { logAttenuation } from '@/utils/math'
 
 import { BLOCK_WIDTH, type Node } from './SSMultipleSankeyDiagram'
-import { LINK_BLOCK_MAX_WIDTH } from './SSSankeyLinks'
 
 interface ISSankeyNodes {
   nodes: any[]
@@ -51,12 +50,18 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
 
   const renderNode = (node: Node, index: number) => {
     // Calculate dynamic height for block nodes
+
     const getBlockNodeHeight = () => {
       if (node?.ioData?.txSize && node?.type === 'block') {
         return node?.ioData?.txSize * 0.1
       }
       return 0
     }
+
+    const txSizeHeight = Math.max(getBlockNodeHeight(), 34)
+
+    const heightBasedOnFlow = logAttenuation(node.value ?? 0)
+
     const isTransactionChart = node.depthH === 1 && maxDepth === 2
     const blockNode = () => {
       if (node.type === 'block') {
@@ -65,13 +70,12 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
         const x =
           (node.x0 ?? 0) + (sankeyGenerator.nodeWidth() - BLOCK_WIDTH) / 2
         const y = node.y0 ?? 0
-        const height = Math.max(getBlockNodeHeight(), 34)
 
         const gradientPaint = Skia.Paint()
         gradientPaint.setShader(
           Skia.Shader.MakeLinearGradient(
-            vec(x, y + height / 2), // start point
-            vec(x + BLOCK_WIDTH, y + height / 2), // end point
+            vec(x, y + txSizeHeight / 2), // start point
+            vec(x + BLOCK_WIDTH, y + txSizeHeight / 2), // end point
             [Skia.Color(gray[200]), Skia.Color(white)], // colors
             [0, 1], // positions
             0, // Clamp mode
@@ -79,17 +83,13 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           )
         )
 
-        // if (isCurrentTxBlockNode) {
-        console.log('h', height)
-        // }
-
         return (
           <Group>
             <Rect
               x={x}
               y={y}
               width={BLOCK_WIDTH}
-              height={logAttenuation(node.value ?? 0)}
+              height={heightBasedOnFlow}
               color={
                 isTransactionChart
                   ? Skia.Color('#818181')
@@ -103,7 +103,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
               x={x + BLOCK_WIDTH / 6}
               y={y}
               width={BLOCK_WIDTH / 1.5}
-              height={height}
+              height={txSizeHeight}
               opacity={0.7}
               color={isCurrentTxBlockNode ? gray[200] : gray[500]}
             />
@@ -123,9 +123,9 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           y={(node.y0 ?? 0) - 1.6}
           ioData={node.ioData}
           customFontManager={customFontManager}
-          blockNodeHeight={getBlockNodeHeight()}
           localId={node?.localId ?? ''}
           isTransactionChart={isTransactionChart}
+          blockNodeMaxHeight={Math.max(txSizeHeight, heightBasedOnFlow)}
         />
       </Group>
     )
@@ -143,9 +143,10 @@ function NodeText({
   x,
   y,
   customFontManager,
-  blockNodeHeight,
+
   ioData,
-  isTransactionChart
+  isTransactionChart,
+  blockNodeMaxHeight
 }: {
   localId: string
   isBlock: boolean
@@ -153,18 +154,18 @@ function NodeText({
   x: number
   y: number
   customFontManager: SkTypefaceFontProvider | null
-  blockNodeHeight: number
   ioData: TxNode['ioData']
   isTransactionChart: boolean
+  blockNodeMaxHeight: number
 }) {
-  const isMiningFee = localId === 'minerFee'
+  const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
   const isUnspent = ioData?.isUnspent
 
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
-  const minerFeeIconSvg = useSVG(require('@/assets/red-miner-fee.svg'))
-
+  const minerFeeIconSvg = useSVG(require('@/assets/red-miner.svg'))
+  const pastTxMinerFeeIconSvg = useSVG(require('@/assets/gray-miner.svg'))
   const blockNodeParagraph = useMemo(() => {
     if (!customFontManager) return null
 
@@ -231,6 +232,8 @@ function NodeText({
     ioData?.txId,
     isBlock
   ])
+
+  const isPastTx = localId === 'past-minerFee'
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
@@ -313,7 +316,7 @@ function NodeText({
           fontStyle: {
             weight: 800
           },
-          color: Skia.Color(mainRed)
+          color: isPastTx ? Skia.Color(gray[300]) : Skia.Color(mainRed)
         })
         // Add placeholder for the miner svg icon
         .addPlaceholder(
@@ -454,6 +457,7 @@ function NodeText({
     ioData?.text,
     ioData?.address,
     ioData.label,
+    isPastTx,
     isChange
   ])
 
@@ -487,7 +491,9 @@ function NodeText({
         <Paragraph
           paragraph={blockNodeParagraph}
           x={x + 6}
-          y={paragraphY - (blockNodeHeight + LINK_BLOCK_MAX_WIDTH + 56)}
+          // y={paragraphY - blockNodeMaxHeight}
+          y={paragraphY - 62}
+          // y={y}
           width={87}
         />
       ) : null}
@@ -523,9 +529,10 @@ function NodeText({
         )}
       {isMiningFee &&
         minerFeeIconSvg &&
+        pastTxMinerFeeIconSvg &&
         placeholderRectsMinerIcon.length > 0 && (
           <ImageSVG
-            svg={minerFeeIconSvg}
+            svg={isPastTx ? pastTxMinerFeeIconSvg : minerFeeIconSvg}
             x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
             y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
             width={placeholderRectsMinerIcon[0].rect.width}
