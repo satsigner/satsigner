@@ -1,3 +1,9 @@
+/*
+declare module 'cbor-js' {
+  export function encode(data: any): Uint8Array
+  export function decode(data: Uint8Array): any
+}
+*/
 import type { NDKKind } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import {
@@ -10,8 +16,84 @@ import {
 } from 'nostr-tools'
 import { Buffer } from 'buffer'
 import * as pako from 'pako'
-
+import * as CBOR from 'cbor-js'
+/*
 import * as base85 from 'base85'
+import * as ascii85 from 'ascii85'
+import basex from 'base-x'
+import * as zlib from 'react-zlib-js'
+import { json } from 'stream/consumers'
+*/
+
+/*
+// Custom Ascii85 implementation
+function ascii85Encode(data: Uint8Array): string {
+  const base85Chars =
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
+  let result = ''
+
+  // Process data in chunks of 4 bytes
+  for (let i = 0; i < data.length; i += 4) {
+    // Get 4 bytes or pad with zeros
+    const chunk = new Uint8Array(4)
+    for (let j = 0; j < 4; j++) {
+      chunk[j] = i + j < data.length ? data[i + j] : 0
+    }
+
+    // Convert to 32-bit integer (network byte order)
+    let value = 0
+    for (let j = 0; j < 4; j++) {
+      value = (value << 8) | chunk[j]
+    }
+
+    // Convert to base85 (5 characters)
+    let temp = ''
+    for (let j = 0; j < 5; j++) {
+      const charIndex = value % 85
+      if (charIndex >= 0 && charIndex < base85Chars.length) {
+        temp = base85Chars[charIndex] + temp
+      }
+      value = Math.floor(value / 85)
+    }
+    result += temp
+  }
+
+  return result
+}
+
+function ascii85Decode(encoded: string): Uint8Array {
+  const base85Chars =
+    '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
+  const result: number[] = []
+
+  // Process encoded string in chunks of 5 characters
+  for (let i = 0; i < encoded.length; i += 5) {
+    // Get 5 characters or pad with 'u' (equivalent to 0)
+    let chunk = encoded.slice(i, i + 5)
+    while (chunk.length < 5) {
+      chunk += 'u'
+    }
+
+    // Convert from base85 to 32-bit integer
+    let value = 0
+    for (let j = 0; j < 5; j++) {
+      const charIndex = base85Chars.indexOf(chunk[j])
+      if (charIndex === -1) {
+        throw new Error(`Invalid character in base85 string: ${chunk[j]}`)
+      }
+      value = value * 85 + charIndex
+    }
+
+    // Convert 32-bit integer to 4 bytes (network byte order)
+    result.push((value >> 24) & 0xff)
+    result.push((value >> 16) & 0xff)
+    result.push((value >> 8) & 0xff)
+    result.push(value & 0xff)
+  }
+
+  return new Uint8Array(result)
+}
+*/
 
 export interface NostrKeys {
   nsec: string
@@ -567,6 +649,25 @@ export class NostrAPI {
   }
 }
 
+/*
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  */
+
 function encodeBase85(data: Uint8Array): Uint8Array {
   const base85Chars =
     '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
@@ -617,10 +718,12 @@ export function compressMessageContent(content: any): string {
 function decodeBase85(encoded: string): Uint8Array {
   const base85Chars =
     '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
-  const result = new Uint8Array(Math.floor((encoded.length * 4) / 5))
+  const result: number[] = []
   let value = 0
   let count = 0
-  let pos = 0
+
+  // Remove c$ prefix if present
+  encoded = encoded.replace('c$', '')
 
   for (let i = 0; i < encoded.length; i++) {
     const char = encoded[i]
@@ -631,24 +734,25 @@ function decodeBase85(encoded: string): Uint8Array {
     count++
 
     if (count === 5) {
-      result[pos++] = (value >> 24) & 0xff
-      result[pos++] = (value >> 16) & 0xff
-      result[pos++] = (value >> 8) & 0xff
-      result[pos++] = value & 0xff
+      // Extract bytes in the same order as encoding (most significant first)
+      result.push((value >> 24) & 0xff)
+      result.push((value >> 16) & 0xff)
+      result.push((value >> 8) & 0xff)
+      result.push(value & 0xff)
       value = 0
       count = 0
     }
   }
 
-  return result
+  return new Uint8Array(result)
 }
 
 export function decompressMessageContent(compressed: string): any {
   try {
-    // Decode base85
+    // First decode base85
     const decoded = decodeBase85(compressed)
 
-    // Decompress with pako
+    // Then decompress with zlib
     const decompressed = pako.inflate(decoded)
 
     // Convert to string and parse JSON
@@ -660,42 +764,27 @@ export function decompressMessageContent(compressed: string): any {
   }
 }
 
-function formatBinaryOutput(data: Uint8Array): string {
-  let output = "b'"
-  for (let i = 0; i < data.length; i++) {
-    const byte = data[i]
-    if (byte >= 32 && byte <= 126 && byte !== 39) {
-      // Printable ASCII except single quote
-      output += String.fromCharCode(byte)
-    } else {
-      output += `\\x${byte.toString(16).padStart(2, '0')}`
-    }
-  }
-  output += "'"
-  return output
-}
+/*
 
-function parseBinaryString(binaryStr: string): Uint8Array {
-  // Remove b' and ' from the string
-  const content = binaryStr.slice(2, -1)
-  const bytes: number[] = []
-  let i = 0
-  while (i < content.length) {
-    if (content[i] === '\\' && content[i + 1] === 'x') {
-      // Handle hex escape sequence
-      const hex = content.slice(i + 2, i + 4)
-      bytes.push(parseInt(hex, 16))
-      i += 4
-    } else {
-      // Handle regular ASCII character
-      bytes.push(content.charCodeAt(i))
-      i++
-    }
-  }
-  return new Uint8Array(bytes)
-}
 
-export function cborSerialize(content: any): string {
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  */
+
+// Incase we don't want to call the CBOR library
+export function cborSerialize(content: any): Uint8Array {
   // Helper function to encode a string
   function encodeString(str: string): Uint8Array {
     const encoder = new TextEncoder()
@@ -800,68 +889,274 @@ export function cborSerialize(content: any): string {
       offset += entry.length
     }
 
-    return formatBinaryOutput(result)
+    return result
+    //return formatBinaryOutput(result)
   }
 
   throw new Error('Unsupported content type for CBOR serialization')
 }
 
-console.log('--------------------------------')
-const d = JSON.parse('{"created_at": 1746003358}')
-
-const cborSerialized = cborSerialize(d)
-console.log('cborSerialized -----------', cborSerialized)
-
-// Convert the binary string representation to actual binary data
-const binaryData = parseBinaryString(cborSerialized)
-
-// Compress the binary data
-const zlibCompressedData = pako.deflate(binaryData)
-console.log('zlibCompressedData -------', zlibCompressedData)
-
-const zlibCompressedDataX = Buffer.from(cborSerialized, 'base64')
-console.log('zlibCompressedData 64 ----', zlibCompressedDataX)
-
-const zlibCompressedDataBinaryOutput = formatBinaryOutput(zlibCompressedData)
-console.log('zlib formatBinaryOutput  -', zlibCompressedDataBinaryOutput)
-
-// Convert binary data to base64 first, then to string
-//const base64String = Buffer.from(zlibCompressedData).toString('base64')
-//const base85EncodedX = base85.encode(base64String)
-//console.log('base85EncodedX -----------', base85EncodedX)
-
-// Use our custom base85 encoder
-const base85Encoded = encodeBase85(zlibCompressedData)
-console.log('base85Encoded ------------', base85Encoded)
-
-const base85Decoded = base85.decode(Buffer.from(base85Encoded))
-console.log('base85Decoded ------------', base85Decoded)
-
-console.log("expected ----------------- 'c${09m0XmXSdy9&pI9Q5A^3D206?AxE&'")
-
-/*
-d = {"created_at": 1746003358}
-cbor_serialized = cbor2.dumps(d)	# b'\xa1jcreated_at\x1ah\x11\xe5\x9e'
-compressed_data = zlib.compress(cbor_serialized)	# b'x\x9c[\x98\x95\\\x94\x9aX\x92\x9a\x12\x9fX"\x95!\xf8t\x1e\x00@\x9e\x07.'
-message_content = base64.b85encode(compressed_data).decode()	# 'c${09m0XmXSdy9&pI9Q5A^3D206?AxE&'
-*/
-
 /*
 
-const zlibExpaned = pako.inflate(decodeBase85(base85Encoded))
-console.log('zlibExpaned ---------------', zlibExpaned)
+
+
+
+
+
+
+
+
+
+
+
+
 */
 
-console.log('- - - - - - - - - - - - - - -')
+// Python's base85 alphabet for b85encode:
+const BASE85 =
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
 
-const text = 'Hello,d!!!!'
-const hello = base85.encode(text)
-console.log(hello) // nm=QNz.92Pz/PV8aT50L
+function base85EncodeX(buf: Buffer): string {
+  // pad to 4-byte boundary
+  const pad = (4 - (buf.length % 4)) % 4
+  const data = pad
+    ? Buffer.concat([buf, Buffer.alloc(pad)], buf.length + pad)
+    : buf
 
-const helloDecoded = base85.decode(hello)
-console.log(helloDecoded.toString('utf8')) // Hello, world!!!!
+  let out = ''
+  for (let i = 0; i < data.length; i += 4) {
+    // read 4 bytes as a big-endian uint32
+    let acc = data.readUInt32BE(i)
+    let chunk = ''
+    // turn into 5 base-85 chars
+    for (let j = 0; j < 5; j++) {
+      chunk = BASE85[acc % 85] + chunk
+      acc = Math.floor(acc / 85)
+    }
+    out += chunk
+  }
+  // drop padding characters
+  return pad ? out.slice(0, out.length - pad) : out
+}
 
-const decoded = base85.decode(
-  'vqG:5Cw?IqayPd#az#9uAbn%daz>L5wPF#evpK6}vix96y?$k6z*rGH'
+function base85DecodeX(str: string): Buffer {
+  // pad to 5-char boundary
+  const pad = (5 - (str.length % 5)) % 5
+  const data = pad ? str + 'u'.repeat(pad) : str
+
+  const result: number[] = []
+  for (let i = 0; i < data.length; i += 5) {
+    // convert 5 base-85 chars to uint32
+    let acc = 0
+    for (let j = 0; j < 5; j++) {
+      const char = data[i + j]
+      const value = BASE85.indexOf(char)
+      if (value === -1) {
+        throw new Error(`Invalid base85 character: ${char}`)
+      }
+      acc = acc * 85 + value
+    }
+
+    // write 4 bytes in big-endian order
+    result.push((acc >> 24) & 0xff)
+    result.push((acc >> 16) & 0xff)
+    result.push((acc >> 8) & 0xff)
+    result.push(acc & 0xff)
+  }
+
+  // remove padding bytes
+  return Buffer.from(result.slice(0, result.length - pad))
+}
+
+//
+
+// --- your workflow:
+//
+//
+
+/*
+console.log('Original ------------------', d)
+
+const dd = JSON.parse('{"created_at": 1746003358}')
+
+const cborSerialized0 = cborSerialize(d)
+
+const cborSerializedHex = Buffer.from(cborSerialized0).toString('hex')
+console.log('🟡 cborSerializedHex ------', cborSerializedHex)
+
+const cborSerialized = CBOR.encode(d)
+console.log(
+  '🟢 cborSerialized ---------',
+  Buffer.from(cborSerialized).toString('hex')
 )
-console.log(decoded.toString('utf8')) // all work and no play makes jack a dull boy!!
+// → <Buffer a1 6a 63 72 65 61 74 65 64 5f 61 74 1a 68 11 e5 9e>
+//           a1 6a 63 72 65 61 74 65 64 5f 61 74 1a 68 11 e5 9e
+
+const compressed = pako.deflate(Buffer.from(cborSerialized))
+console.log('💀 pako compressed --------', compressed)
+
+const compressedHex = Buffer.from(compressed).toString('hex')
+console.log('💀 compressedHex ----------', compressedHex)
+
+const messageContent = base85EncodeX(compressed)
+console.log('💀 messageContent ---------', messageContent)
+
+const zlibCompressed = zlib.deflateSync(Buffer.from(cborSerialized))
+console.log('🩸😍 zlib compressed ------', zlibCompressed)
+
+const zlibcompressedHex = Buffer.from(zlibCompressed).toString('hex')
+console.log('🩸 zlib compressedHex -----', zlibcompressedHex)
+
+const zlibmessageContent = base85EncodeX(zlibCompressed)
+console.log('🩸 messageContent ---------', zlibmessageContent)
+
+const zlibmessageContentD = base85DecodeX(zlibmessageContent)
+console.log('🩸😍 messageContentDecoded-', zlibmessageContentD)
+
+// → <Buffer 78 9c 5b 98 95 5c 94 9a 58 92 9a 12 9f 58 22 95 21 f8 74 1e 00 40 9e 07 2e>
+
+// → 'c${09m0XmXSdy9&pI9Q5A^3D206?AxE&' 
+*/
+/*
+function compressBACK(data: any): string {
+  try {
+    console.log('🟣 data -------------------', data)
+
+    // Convert to JSON string
+    const jsonString = JSON.stringify(data)
+    console.log('🏀 jsonString -------------', jsonString)
+
+    // Encode with CBOR
+    const cborData = CBOR.encode(data)
+    console.log('🔵 cborData ---------------', Buffer.from(cborData))
+    console.log(
+      '🔵 cborDataHex ------------',
+      Buffer.from(cborData).toString('hex')
+    )
+
+    const cborSerialized0 = cborSerialize(data)
+    console.log('🎱 cborSerialized0 --------', cborSerialized0)
+
+    // Convert to Uint8Array for pako
+    const jsonUint8 = new TextEncoder().encode(jsonString)
+    console.log('🟤 jsonUint8 --------------', Array.from(jsonUint8))
+
+    // Compress with pako
+    //const compressedData = pako.deflate(cborSerialized0)
+    const compressedData = pako.deflate(jsonUint8)
+    console.log('🟢 compressedData ---------', Array.from(compressedData))
+
+    // Convert to Buffer for base85
+    const compressedBuffer = Buffer.from(compressedData)
+    return base85EncodeX(compressedBuffer)
+  } catch (error) {
+    console.error('Compression error:', error)
+    throw new Error('Failed to compress data')
+  }
+}
+
+function compress(data: any): string {
+  try {
+    console.log('🟣 data -------------------', data)
+    // Convert to JSON string
+    const jsonString = JSON.stringify(data)
+    console.log('🟣 jsonString ------------', jsonString)
+
+    // Convert to Uint8Array for pako
+    const jsonUint8 = new TextEncoder().encode(jsonString)
+    console.log('🟣 jsonUint8 ------------', Array.from(jsonUint8))
+
+    // Compress with pako
+    const compressedData = pako.deflate(jsonUint8)
+    console.log('🟣 compressedData --------', Array.from(compressedData))
+
+    // Convert to Buffer for base85
+    const compressedBuffer = Buffer.from(compressedData)
+    return base85EncodeX(compressedBuffer)
+  } catch (error) {
+    console.error('Compression error:', error)
+    throw new Error('Failed to compress data')
+  }
+}
+*/
+
+const d = { created_at: 1746003358 }
+
+// good compression, bad decompression
+function compressBACK(data: any): string {
+  try {
+    const cborData = CBOR.encode(data)
+    const compressedData = pako.deflate(cborData)
+    //const cborSerialized0 = cborSerialize(data)
+    //const compressedData = pako.deflate(cborSerialized0)
+    const compressedBuffer = Buffer.from(compressedData)
+    return base85EncodeX(compressedBuffer)
+  } catch (error) {
+    console.error('Compression error:', error)
+    throw new Error('Failed to compress data')
+  }
+}
+
+function compressWork(data: any): string {
+  try {
+    const jsonString = JSON.stringify(data)
+    const cborData = CBOR.encode(data)
+    const jsonUint8 = new TextEncoder().encode(jsonString)
+    const compressedData = pako.deflate(cborData)
+    const compressedBuffer = Buffer.from(compressedData)
+    return base85EncodeX(compressedBuffer)
+  } catch (error) {
+    console.error('Compression error:', error)
+    throw new Error('Failed to compress data')
+  }
+}
+
+// bad compression, good decompression
+function compress(data: any): string {
+  try {
+    const jsonString = JSON.stringify(data)
+    const jsonUint8 = new TextEncoder().encode(jsonString)
+    const compressedData = pako.deflate(jsonUint8)
+    const compressedBuffer = Buffer.from(compressedData)
+    return base85EncodeX(compressedBuffer)
+  } catch (error) {
+    console.error('Compression error:', error)
+    throw new Error('Failed to compress data')
+  }
+}
+
+function decompress(data: string): any {
+  try {
+    console.log('🟡 data -------------------', data)
+
+    // First decode base85 using our custom function
+    const decoded = base85DecodeX(data)
+    console.log('🟠 decoded ----------------', Array.from(decoded))
+
+    // Convert to Uint8Array for pako
+    const decodedUint8 = new Uint8Array(decoded)
+    console.log('🟣 decodedUint8 -----------', decodedUint8)
+    const decompressed = pako.inflate(decodedUint8, { to: 'string' })
+    console.log('🔴 decompressed -----------', decompressed)
+
+    // Parse JSON
+    return JSON.parse(decompressed)
+  } catch (error) {
+    console.log('Decompression error:', error)
+    //throw new Error('Failed to decompress content')
+  }
+}
+
+const compressedX = compressWork(d)
+console.log('⚪️ compressed -------------', compressedX)
+console.log('- - - - - - - - - - - - - -')
+console.log('⚪️ decompressed -----------', decompress(compressedX))
+
+console.log(
+  '⚪️ Example',
+  decompress(
+    'c${05m0XmXSdy9&pIGwS@fK^4tCMa+VL@q9PG)j^c4}pOQfhLBu~CJ69#G6Mrzpk3s3_OMz_KhiH90NKBC9I3thlJKveY2apt8ikz#uQ(z_Ku{IK!f#BDKge%`C65tkkF^&kO)f4<|7'
+  )
+)
+
+console.log('⚪️ Example', decompress('c${09m0XmXSdy9&pI9Q5A^3D206?AxE&'))

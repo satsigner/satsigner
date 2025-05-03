@@ -271,7 +271,7 @@ function SSNostrLabelSync() {
       })
 
       // Subscribe to kind 1059 messages
-      if (deviceNsec && commonNsec && !account) {
+      if (deviceNsec && commonNsec) {
         api
           .subscribeToKind1059New(commonNsec, deviceNsec, (message) => {
             if (message.decryptedContent) {
