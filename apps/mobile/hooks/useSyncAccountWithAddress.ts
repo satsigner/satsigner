@@ -14,7 +14,10 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
-  const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
+  const [setSyncStatus, setSyncProgress] = useAccountsStore(
+    useShallow((state) => [state.setSyncStatus, state.setSyncProgress])
+  )
+
   const [backend, network, url] = useBlockchainStore(
     useShallow((state) => {
       const { server } = state.configs[state.selectedNetwork]
@@ -23,6 +26,120 @@ function useSyncAccountWithAddress() {
   )
 
   const [loading, setLoading] = useState(false)
+
+  async function syncAccountWithAddressUsingEsplora(
+    account: Account,
+    address: string,
+    url: string
+  ) {
+    const transactions: Account['transactions'] = []
+    let utxos: Account['utxos'] = []
+    let confirmed = 0
+    let unconfirmed = 0
+
+    const esploraClient = new Esplora(url)
+
+    const esploraTxs = await esploraClient.getAddressTx(address) // 1
+    const esploraUtxos = await esploraClient.getAddressUtxos(address) // 2
+
+    const txDictionary: Record<string, number> = {}
+
+    for (let index = 0; index < esploraTxs.length; index++) {
+      const t = esploraTxs[index]
+      const vin: Transaction['vin'] = []
+      const vout: Transaction['vout'] = []
+      let sent = 0
+      let received = 0
+
+      t.vin.forEach((input) => {
+        vin.push({
+          previousOutput: {
+            txid: input.txid,
+            vout: input.vout
+          },
+          sequence: input.sequence,
+          scriptSig: parseHexToBytes(input.scriptsig),
+          witness: input.witness ? input.witness.map(parseHexToBytes) : []
+        })
+        if (input.prevout.scriptpubkey_address === address) {
+          sent += input.prevout.value
+        }
+      })
+
+      t.vout.forEach((out) => {
+        vout.push({
+          value: out.value,
+          address: out.scriptpubkey_address,
+          script: parseHexToBytes(out.scriptpubkey)
+        })
+        if (out.scriptpubkey_address === address) {
+          received += out.value
+        }
+      })
+
+      const raw = await esploraClient.getTxHex(t.txid) // t
+
+      const tx = {
+        address,
+        blockHeight: t.status.block_height,
+        fee: t.fee,
+        id: t.txid,
+        label: '',
+        locktime: t.locktime,
+        lockTimeEnabled: t.locktime > 0,
+        prices: {},
+        raw: parseHexToBytes(raw),
+        received,
+        sent,
+        size: t.size,
+        timestamp: new Date(t.status.block_time * 1000),
+        type: sent > 0 ? 'send' : 'receive',
+        version: t.version,
+        vin,
+        vout,
+        weight: t.weight
+      } as Transaction
+
+      txDictionary[tx.id] = index
+      transactions.push(tx)
+    }
+
+    utxos = esploraUtxos.map((u) => {
+      if (u.status.confirmed) confirmed += u.value
+      else unconfirmed += u.value
+
+      let script: number[] | undefined
+      if (txDictionary[u.txid] !== undefined) {
+        const index = txDictionary[u.txid]
+        const tx = esploraTxs[index]
+        script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
+      }
+
+      return {
+        txid: u.txid,
+        vout: u.vout,
+        value: u.value,
+        label: '',
+        addressTo: address,
+        keychain: 'external',
+        script,
+        timestamp: u.status.block_time
+          ? new Date(u.status.block_time * 1000)
+          : undefined
+      }
+    })
+
+    // return { transactions, utxos, confirmed, unconfirmed }
+  }
+
+  async function syncAccountWithAddressUsingElectrum(
+    account: Account,
+    address: string,
+    url: string,
+    network: Network
+  ) {
+    //
+  }
 
   async function syncAccountWithAddress(
     account: Account,
@@ -47,101 +164,10 @@ function useSyncAccountWithAddress() {
 
       let transactions: Account['transactions'] = []
       let utxos: Account['utxos'] = []
-
       let confirmed = 0
       let unconfirmed = 0
 
       if (backend === 'esplora') {
-        const esploraClient = new Esplora(url)
-        const esploraTxs = await esploraClient.getAddressTx(address)
-        const esploraUtxos = await esploraClient.getAddressUtxos(address)
-
-        const txDictionary: Record<string, number> = {}
-
-        for (let index = 0; index < esploraTxs.length; index++) {
-          const t = esploraTxs[index]
-          const vin: Transaction['vin'] = []
-          const vout: Transaction['vout'] = []
-          let sent = 0
-          let received = 0
-
-          t.vin.forEach((input) => {
-            vin.push({
-              previousOutput: {
-                txid: input.txid,
-                vout: input.vout
-              },
-              sequence: input.sequence,
-              scriptSig: parseHexToBytes(input.scriptsig),
-              witness: input.witness ? input.witness.map(parseHexToBytes) : []
-            })
-            if (input.prevout.scriptpubkey_address === address) {
-              sent += input.prevout.value
-            }
-          })
-
-          t.vout.forEach((out) => {
-            vout.push({
-              value: out.value,
-              address: out.scriptpubkey_address,
-              script: parseHexToBytes(out.scriptpubkey)
-            })
-            if (out.scriptpubkey_address === address) {
-              received += out.value
-            }
-          })
-
-          const raw = await esploraClient.getTxHex(t.txid)
-
-          const tx = {
-            address,
-            blockHeight: t.status.block_height,
-            fee: t.fee,
-            id: t.txid,
-            label: '',
-            locktime: t.locktime,
-            lockTimeEnabled: t.locktime > 0,
-            prices: {},
-            raw: parseHexToBytes(raw),
-            received,
-            sent,
-            size: t.size,
-            timestamp: new Date(t.status.block_time * 1000),
-            type: sent > 0 ? 'send' : 'receive',
-            version: t.version,
-            vin,
-            vout,
-            weight: t.weight
-          } as Transaction
-
-          txDictionary[tx.id] = index
-          transactions.push(tx)
-        }
-
-        utxos = esploraUtxos.map((u) => {
-          if (u.status.confirmed) confirmed += u.value
-          else unconfirmed += u.value
-
-          let script: number[] | undefined
-          if (txDictionary[u.txid] !== undefined) {
-            const index = txDictionary[u.txid]
-            const tx = esploraTxs[index]
-            script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
-          }
-
-          return {
-            txid: u.txid,
-            vout: u.vout,
-            value: u.value,
-            label: '',
-            addressTo: address,
-            keychain: 'external',
-            script,
-            timestamp: u.status.block_time
-              ? new Date(u.status.block_time * 1000)
-              : undefined
-          }
-        })
       } else if (backend === 'electrum') {
         const electrumClient = ElectrumClient.fromUrl(url, network)
 
@@ -181,7 +207,7 @@ function useSyncAccountWithAddress() {
           labelsBackup[transactionRef] || ''
       }
 
-      //Extract timestamps
+      // Extract timestamps
       const timestamps = updatedAccount.transactions
         .filter((transaction) => transaction.timestamp)
         .map((transaction) => formatTimestamp(transaction.timestamp!))
