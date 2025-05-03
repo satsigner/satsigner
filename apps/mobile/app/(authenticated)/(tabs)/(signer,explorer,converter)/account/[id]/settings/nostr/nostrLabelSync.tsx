@@ -4,7 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI, type NostrMessage } from '@/api/nostr'
+import { NostrAPI, type NostrMessage, compressMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSTextClipboard from '@/components/SSClipboardCopy'
@@ -134,13 +134,11 @@ function SSNostrLabelSync() {
   }
 
   async function handleSendMessage() {
-    if (!commonNsec || !commonNpub || !account || !nostrApi) {
+    if (!commonNsec || !commonNpub || !nostrApi || !account) {
       setRelayError(t('account.nostrlabels.errorMissingData'))
       return
     }
-
     try {
-      // Get all labels from the account in BIP-329 format
       const labels = formatAccountLabels(account)
       toast.info(`Sending ${labels.length} labels to relays`)
 
@@ -149,26 +147,44 @@ function SSNostrLabelSync() {
         return
       }
 
-      // Convert labels to JSONL format
-      const labelContent = labelsToJSONL(labels)
+      // Format each label entry and wrap in labelPackage
+      const labelPackage = labels.map((label) => ({
+        __class__: 'Label',
+        VERSION: '0.0.3',
+        type: label.type,
+        ref: label.ref,
+        label: label.label,
+        spendable: label.spendable,
+        timestamp: Math.floor(Date.now() / 1000)
+      }))
 
-      // Send labels as message content and wait for completion
-      const event = await nostrApi.createKind1059WrappedEvent(
+      const labelPackageJSONL = labelsToJSONL(labelPackage)
+      console.log('🔵🔵🔵🔵🟢 Label package JSONL:', labelPackageJSONL)
+
+      const messageContent = {
+        created_at: Math.floor(Date.now() / 1000),
+        label: 1,
+        description: 'Here come some labels',
+        data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
+      }
+
+      const compressedMessage = compressMessage(messageContent)
+
+      const eventKind1059 = await nostrApi.createKind1059WrappedEvent(
         commonNsec,
         commonNpub,
-        labelContent
+        compressedMessage
       )
-      await nostrApi.sendMessage(event)
-
+      await nostrApi.sendMessage(eventKind1059)
+      toast.success('Labels sent to relays')
       // Update last backup timestamp
       const timestamp = Math.floor(Date.now() / 1000)
       updateAccountNostr(accountId, {
         lastBackupTimestamp: timestamp
       })
-
-      toast.success('Labels sent successfully')
     } catch (_error) {
-      setRelayError(t('account.nostrlabels.errorSendingMessage'))
+      toast.error('Failed to send labels')
+      setRelayError('Failed to send labels')
     }
   }
 
@@ -261,6 +277,12 @@ function SSNostrLabelSync() {
     })
   }
 
+  function goToDevicesGroupChat() {
+    router.push({
+      pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
+    })
+  }
+
   function reloadApi() {
     if (selectedRelays.length > 0) {
       const api = new NostrAPI(selectedRelays)
@@ -277,8 +299,11 @@ function SSNostrLabelSync() {
             if (message.decryptedContent) {
               setMessages((prev) => [message, ...prev])
               toast.info('New message received')
+            } else {
+              toast.error('New message received')
             }
           })
+
           .catch(() => {
             setRelayError('Failed to subscribe to kind 1059 messages')
           })
@@ -448,6 +473,12 @@ function SSNostrLabelSync() {
 
             <SSButton
               variant="subtle"
+              label={t('account.nostrlabels.devicesGroupChat')}
+              onPress={goToDevicesGroupChat}
+            />
+
+            <SSButton
+              variant="subtle"
               label="Send Trust Request"
               onPress={async () => {
                 if (!commonNsec || !commonNpub || !nostrApi) {
@@ -486,19 +517,27 @@ function SSNostrLabelSync() {
                   const messageContent = JSON.stringify({
                     created_at: Math.floor(Date.now() / 1000),
                     label: 1,
-                    description: '⚪️'
+                    description: 'Compressed Message !!!'
                   })
+                  console.log('🔵🔵🔵🔵🔵 Message content:', messageContent)
+                  const compressedMessage = compressMessage(
+                    JSON.parse(messageContent)
+                  )
+                  console.log(
+                    '🔵🔵🔵🔵🔵 Compressed message:',
+                    compressedMessage
+                  )
                   const eventKind1059 =
                     await nostrApi.createKind1059WrappedEvent(
                       commonNsec,
                       commonNpub,
-                      messageContent
+                      compressedMessage
                     )
                   await nostrApi.sendMessage(eventKind1059)
                   toast.success('Sample message sent')
                 } catch (_error) {
-                  console.log('Failed to send trust request', _error)
-                  setRelayError('Failed to send trust request')
+                  console.log('Failed to send message', _error)
+                  setRelayError('Failed to send message')
                 }
               }}
             />
@@ -627,7 +666,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderColor: Colors.white,
     padding: 10,
-    paddingBottom: 30
+    paddingBottom: 30,
+    paddingHorizontal: 28
   },
   keyContainerLoading: {
     justifyContent: 'center',
