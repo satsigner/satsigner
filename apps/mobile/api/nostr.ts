@@ -158,7 +158,10 @@ export class NostrAPI {
           for (let attempt = 0; attempt < 3; attempt++) {
             try {
               const relay = this.ndk?.pool.relays.get(url)
-              if (!relay) return { url, status: 'not_found' }
+              if (!relay) {
+                console.log(`Relay not found in pool: ${url}`)
+                return { url, status: 'not_found' }
+              }
 
               // Try to fetch a simple event to test the connection
               const testEvent = await this.ndk?.fetchEvent(
@@ -168,8 +171,9 @@ export class NostrAPI {
               )
 
               // If we get here, the relay is working
+              console.log(`Relay ${url} is working`)
               return { url, status: 'connected', testEvent: testEvent !== null }
-            } catch (_error) {
+            } catch (error) {
               if (attempt === 2) {
                 return { url, status: 'error' }
               }
@@ -194,6 +198,7 @@ export class NostrAPI {
       return true
     } catch (error) {
       this.ndk = null // Reset ndk on error
+      console.error('Connection error:', error)
       throw new Error(
         'Failed to connect to relays: ' +
           (error instanceof Error ? error.message : 'Unknown error')
@@ -435,12 +440,14 @@ export class NostrAPI {
       kinds: [1059 as NDKKind],
       '#p': [commonPubkey, devicePubkey], // Events where we are the recipient
       limit: 10,
+      /**/
       ids: [
         // My message?
         '07bcca94cf0305deb52ea1c0de8a95c1e4ba3e568120eff2c6562103aba84d42',
         // BITCOIN SAFE ANNOUNCEMENT
         '2c3df5ce6ec6e3c5d60ed635c45fd83cb124a27d581a619a935dbbc2a02e4847'
       ]
+      /**/
     }
 
     const subscription = this.ndk?.subscribe(subscriptionQuery)
@@ -451,7 +458,7 @@ export class NostrAPI {
         console.log('Invalid event format')
         return
       }
-      console.log('🟡 ', rawEvent.content)
+      //console.log('🟡 ', rawEvent.content)
 
       try {
         const unwrappedEvent = await nip59.unwrapEvent(
@@ -465,19 +472,12 @@ export class NostrAPI {
         try {
           const jsonContent = JSON.parse(unwrappedEvent.content)
           console.log('🟢 JSON content:', jsonContent)
-
-          const compressedContent = compressMessageContent(jsonContent)
-          console.log('⚪️ Compressed content:', compressedContent)
-
-          const decompressedContent =
-            decompressMessageContent(compressedContent)
-          console.log('⚪️⚪️⚪️ Decompressed content:', decompressedContent)
         } catch (jsonError) {
-          console.log('🗜️ Not JSON, trying to decompress...')
+          console.log('⚠️ Not JSON, trying to decompress...')
           try {
-            const decompressedContent = decompressMessageContent(
-              unwrappedEvent.content
-            )
+            const compressedContent = unwrappedEvent.content
+            console.log('🗜️ Compressed content:', compressedContent)
+            const decompressedContent = decompress(unwrappedEvent.content)
             console.log('🟢 Decompressed content:', decompressedContent)
           } catch (decompressError) {
             console.log('🔴 Failed to decompress content:', decompressError)
@@ -598,6 +598,7 @@ export class NostrAPI {
     try {
       // Ensure we're connected
       if (!this.ndk) {
+        console.log('NDK not initialized, attempting to connect...')
         await this.connect()
       }
 
@@ -605,8 +606,24 @@ export class NostrAPI {
         throw new Error('Failed to initialize NDK')
       }
 
+      // Log connected relays and their status
+      const connectedRelays = Array.from(this.ndk.pool.relays.keys())
+      console.log('Connected relays before sending:', connectedRelays)
+
+      // Check relay status
+      for (const url of connectedRelays) {
+        const relay = this.ndk.pool.relays.get(url)
+        if (relay) {
+          console.log(`Relay ${url} status:`, {
+            connected: relay.connected,
+            status: relay.status
+          })
+        }
+      }
+
       // Ensure event is using the correct NDK instance
       if (event.ndk !== this.ndk) {
+        console.log('Updating event NDK instance')
         event.ndk = this.ndk
       }
 
@@ -618,19 +635,57 @@ export class NostrAPI {
           throw new Error('No signer available for event')
         }
         await event.sign(signer)
+        console.log('Event signed successfully')
       }
 
-      // Simple publish with retry
       let published = false
       for (let i = 0; i < 3; i++) {
         try {
           console.log(`Publishing attempt ${i + 1}/3`)
-          await event.publish()
-          published = true
-          break
+          console.log('Event details:', {
+            kind: event.kind,
+            pubkey: event.pubkey,
+            content: event.content?.substring(0, 100) + '...', // Log first 100 chars of content
+            created_at: event.created_at,
+            sig: event.sig?.substring(0, 20) + '...' // Log first 20 chars of signature
+          })
+
+          // Try to publish to each relay individually
+          const publishPromises = connectedRelays.map(async (url) => {
+            try {
+              const relay = this.ndk?.pool.relays.get(url)
+              if (!relay) {
+                console.log(`Relay ${url} not found in pool`)
+                return { url, success: false, error: 'Relay not found' }
+              }
+
+              console.log(`Attempting to publish to ${url}`)
+              await relay.publish(event)
+              return { url, success: true }
+            } catch (error) {
+              console.log(`Failed to publish to ${url}:`, error)
+              return { url, success: false, error }
+            }
+          })
+
+          const results = await Promise.all(publishPromises)
+          console.log('Publish results:', results)
+
+          const successfulPublishes = results.filter((r) => r.success)
+          if (successfulPublishes.length > 0) {
+            published = true
+            console.log(
+              'Event published successfully to:',
+              successfulPublishes.map((r) => r.url)
+            )
+            break
+          } else {
+            console.log('No relays accepted the event')
+          }
         } catch (err) {
           console.log(`Attempt ${i + 1} failed:`, err)
           if (i < 2) {
+            console.log(`Waiting 1 second before retry...`)
             await new Promise((resolve) => setTimeout(resolve, 1000))
           }
         }
@@ -644,6 +699,7 @@ export class NostrAPI {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
+      console.error('Detailed error:', error)
       throw new Error(`Failed to publish event: ${errorMessage}`)
     }
   }
@@ -1083,7 +1139,7 @@ function compress(data: any): string {
 const d = { created_at: 1746003358 }
 
 // good compression, bad decompression
-function compressBACK(data: any): string {
+export function compressBackUp(data: any): string {
   try {
     const cborData = CBOR.encode(data)
     const compressedData = pako.deflate(cborData)
@@ -1112,7 +1168,7 @@ function compressWork(data: any): string {
 }
 
 // bad compression, good decompression
-function compress(data: any): string {
+export function compress(data: any): string {
   try {
     const jsonString = JSON.stringify(data)
     const jsonUint8 = new TextEncoder().encode(jsonString)
@@ -1127,22 +1183,22 @@ function compress(data: any): string {
 
 function decompress(data: string): any {
   try {
-    console.log('🟡 data -------------------', data)
+    //console.log('🟡 data -------------------', data)
 
     // First decode base85 using our custom function
     const decoded = base85DecodeX(data)
-    console.log('🟠 decoded ----------------', Array.from(decoded))
+    //console.log('🟠 decoded ----------------', Array.from(decoded))
 
     // Convert to Uint8Array for pako
     const decodedUint8 = new Uint8Array(decoded)
-    console.log('🟣 decodedUint8 -----------', decodedUint8)
+    //console.log('🟣 decodedUint8 -----------', decodedUint8)
     const decompressed = pako.inflate(decodedUint8, { to: 'string' })
-    console.log('🔴 decompressed -----------', decompressed)
+    console.log('🟣 decompressed -----------', decompressed)
 
     // Parse JSON
     return JSON.parse(decompressed)
   } catch (error) {
-    console.log('Decompression error:', error)
+    console.log('🔴 Decompression error:', error)
     //throw new Error('Failed to decompress content')
   }
 }

@@ -275,13 +275,6 @@ function SSNostrLabelSync() {
         api
           .subscribeToKind1059New(commonNsec, deviceNsec, (message) => {
             if (message.decryptedContent) {
-              /*
-              console.log('🔵 New message received:', {
-                content: message.decryptedContent,
-                created_at: message.created_at,
-                isSender: message.isSender
-              })
-              */
               setMessages((prev) => [message, ...prev])
               toast.info('New message received')
             }
@@ -457,7 +450,6 @@ function SSNostrLabelSync() {
               variant="subtle"
               label="Send Trust Request"
               onPress={async () => {
-                console.log('Sending Trust Request')
                 if (!commonNsec || !commonNpub || !nostrApi) {
                   setRelayError(t('account.nostrlabels.errorMissingData'))
                   return
@@ -491,20 +483,22 @@ function SSNostrLabelSync() {
                   return
                 }
                 try {
-                  const event = await nostrApi.createKind1059WrappedEvent(
-                    commonNsec,
-                    commonNpub,
-                    JSON.stringify({
-                      created_at: Math.floor(Date.now() / 1000),
-                      label: 1,
-                      description: 'Hello'
-                    })
-                  )
-                  await nostrApi.sendMessage(event)
-
+                  const messageContent = JSON.stringify({
+                    created_at: Math.floor(Date.now() / 1000),
+                    label: 1,
+                    description: '⚪️'
+                  })
+                  const eventKind1059 =
+                    await nostrApi.createKind1059WrappedEvent(
+                      commonNsec,
+                      commonNpub,
+                      messageContent
+                    )
+                  await nostrApi.sendMessage(eventKind1059)
                   toast.success('Sample message sent')
                 } catch (_error) {
-                  setRelayError('Failed to send Sample message')
+                  console.log('Failed to send trust request', _error)
+                  setRelayError('Failed to send trust request')
                 }
               }}
             />
