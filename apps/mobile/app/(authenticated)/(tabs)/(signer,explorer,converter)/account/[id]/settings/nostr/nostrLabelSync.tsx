@@ -6,7 +6,6 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI, type NostrMessage, compressMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
-import SSCheckbox from '@/components/SSCheckbox'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -59,6 +58,11 @@ function SSNostrLabelSync() {
         if (keys) {
           setCommonNsec(keys.commonNsec as string)
           setCommonNpub(keys.commonNpub as string)
+          // Update account with common keys
+          updateAccountNostr(accountId, {
+            commonNsec: keys.commonNsec,
+            commonNpub: keys.commonNpub
+          })
         }
       })
       .catch((error) => {
@@ -77,9 +81,8 @@ function SSNostrLabelSync() {
           if (keys) {
             setDeviceNsec(keys.nsec)
             setDeviceNpub(keys.npub)
+            // Only update device keys
             updateAccountNostr(accountId, {
-              commonNpub: keys.npub,
-              commonNsec: keys.nsec,
               deviceNpub: keys.npub,
               deviceNsec: keys.nsec
             })
@@ -159,7 +162,7 @@ function SSNostrLabelSync() {
       }))
 
       const labelPackageJSONL = labelsToJSONL(labelPackage)
-      console.log('🔵🔵🔵🔵🟢 Label package JSONL:', labelPackageJSONL)
+      //console.log('🔵🔵🔵🔵🟢 Label package JSONL:', labelPackageJSONL)
 
       const messageContent = {
         created_at: Math.floor(Date.now() / 1000),
@@ -170,12 +173,12 @@ function SSNostrLabelSync() {
 
       const compressedMessage = compressMessage(messageContent)
 
-      const eventKind1059 = await nostrApi.createKind1059WrappedEvent(
+      const eventKind1059 = await nostrApi.createKind1059(
         commonNsec,
         commonNpub,
         compressedMessage
       )
-      await nostrApi.sendMessage(eventKind1059)
+      await nostrApi.publishEvent(eventKind1059)
       toast.success('Labels sent to relays')
       // Update last backup timestamp
       const timestamp = Math.floor(Date.now() / 1000)
@@ -295,12 +298,9 @@ function SSNostrLabelSync() {
       // Subscribe to kind 1059 messages
       if (deviceNsec && commonNsec) {
         api
-          .subscribeToKind1059New(commonNsec, deviceNsec, (message) => {
-            if (message.decryptedContent) {
+          .subscribeToKind1059(commonNsec, deviceNsec, (message) => {
+            if (message.content) {
               setMessages((prev) => [message, ...prev])
-              toast.info('New message received')
-            } else {
-              toast.error('New message received')
             }
           })
 
@@ -345,7 +345,13 @@ function SSNostrLabelSync() {
     }
   }
 
-  useEffect(reloadApi, [selectedRelays, commonNpub, commonNsec])
+  useEffect(reloadApi, [
+    selectedRelays,
+    commonNpub,
+    commonNsec,
+    deviceNpub,
+    deviceNsec
+  ])
   useEffect(loadNostrAccountData, [account])
   useEffect(handleFetchMessagesAutoSync, [autoSync, commonNpub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -367,6 +373,39 @@ function SSNostrLabelSync() {
           <SSText center uppercase color="muted">
             {t('account.nostrlabels.title')}
           </SSText>
+
+          {/* Auto-sync section */}
+          <SSVStack gap="sm">
+            <SSHStack gap="md" style={styles.autoSyncContainer}>
+              <SSButton
+                variant={autoSync ? 'secondary' : 'outline'}
+                label={autoSync ? 'Turn sync OFF' : 'Turn sync ON'}
+                onPress={handleToggleAutoSync}
+              />
+              {autoSync && (
+                <SSText size="sm" color="muted">
+                  Syncing everytime a label is added or edited
+                </SSText>
+              )}
+            </SSHStack>
+          </SSVStack>
+
+          {/* Top section with relay selection */}
+          <SSVStack gap="sm">
+            {selectedRelays.length === 0 && (
+              <SSText color="white" weight="bold" center>
+                {t('account.nostrlabels.noRelaysWarning')}
+              </SSText>
+            )}
+            <SSButton
+              variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
+              label={t('account.nostrlabels.manageRelays', {
+                count: selectedRelays.length
+              })}
+              onPress={goToSelectRelaysPage}
+            />
+          </SSVStack>
+
           {/* Keys display */}
           <SSVStack gap="sm">
             <SSText center>{t('account.nostrlabels.commonNostrKeys')}</SSText>
@@ -490,16 +529,14 @@ function SSNostrLabelSync() {
                     created_at: Math.floor(Date.now() / 1000),
                     public_key_bech32: deviceNpub
                   })
-                  const eventKind1059 =
-                    await nostrApi.createKind1059WrappedEvent(
-                      commonNsec,
-                      commonNpub,
-                      messageContent
-                    )
-                  await nostrApi.sendMessage(eventKind1059)
+                  const eventKind1059 = await nostrApi.createKind1059(
+                    commonNsec,
+                    commonNpub,
+                    messageContent
+                  )
+                  await nostrApi.publishEvent(eventKind1059)
                   toast.success('Trust request sent')
                 } catch (_error) {
-                  console.log('Failed to send trust request', _error)
                   setRelayError('Failed to send trust request')
                 }
               }}
@@ -519,24 +556,49 @@ function SSNostrLabelSync() {
                     label: 1,
                     description: 'Compressed Message !!!'
                   })
-                  console.log('🔵🔵🔵🔵🔵 Message content:', messageContent)
                   const compressedMessage = compressMessage(
                     JSON.parse(messageContent)
                   )
-                  console.log(
-                    '🔵🔵🔵🔵🔵 Compressed message:',
+
+                  const eventKind1059 = await nostrApi.createKind1059(
+                    commonNsec,
+                    commonNpub,
                     compressedMessage
                   )
-                  const eventKind1059 =
-                    await nostrApi.createKind1059WrappedEvent(
-                      commonNsec,
-                      commonNpub,
-                      compressedMessage
-                    )
-                  await nostrApi.sendMessage(eventKind1059)
+                  await nostrApi.publishEvent(eventKind1059)
                   toast.success('Sample message sent')
                 } catch (_error) {
-                  console.log('Failed to send message', _error)
+                  setRelayError('Failed to send message')
+                }
+              }}
+            />
+
+            <SSButton
+              variant="subtle"
+              label="Send Sample Message User"
+              onPress={async () => {
+                if (!commonNsec || !commonNpub || !nostrApi) {
+                  setRelayError(t('account.nostrlabels.errorMissingData'))
+                  return
+                }
+                try {
+                  const messageContent = JSON.stringify({
+                    created_at: Math.floor(Date.now() / 1000),
+                    label: 1,
+                    description: 'Compressed Message !!!'
+                  })
+                  const compressedMessage = compressMessage(
+                    JSON.parse(messageContent)
+                  )
+
+                  const eventKind1059 = await nostrApi.createKind1059(
+                    deviceNsec,
+                    commonNpub,
+                    compressedMessage
+                  )
+                  await nostrApi.publishEvent(eventKind1059)
+                  toast.success('Sample message sent')
+                } catch (_error) {
                   setRelayError('Failed to send message')
                 }
               }}
@@ -544,21 +606,6 @@ function SSNostrLabelSync() {
           </SSVStack>
 
           <SSVStack gap="sm">
-            {/* Top section with relay selection */}
-            <SSVStack gap="sm">
-              {selectedRelays.length === 0 && (
-                <SSText color="white" weight="bold" center>
-                  {t('account.nostrlabels.noRelaysWarning')}
-                </SSText>
-              )}
-              <SSButton
-                variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
-                label={t('account.nostrlabels.manageRelays', {
-                  count: selectedRelays.length
-                })}
-                onPress={goToSelectRelaysPage}
-              />
-            </SSVStack>
             {/* Message controls */}
             {commonNpub && (
               <>
@@ -574,31 +621,6 @@ function SSNostrLabelSync() {
                 />
               </>
             )}
-            {/* Auto-sync section */}
-            <SSVStack gap="sm">
-              <SSHStack gap="md" style={styles.autoSyncContainer}>
-                <SSCheckbox
-                  label={t('account.nostrlabels.autoSync').toUpperCase()}
-                  selected={autoSync}
-                  onPress={handleToggleAutoSync}
-                />
-                {autoSync && (
-                  <SSText size="sm" color="muted">
-                    Syncing everytime a label is added or edited
-                  </SSText>
-                )}
-              </SSHStack>
-              {autoSync && (
-                <SSButton
-                  label="Sync now"
-                  variant="secondary"
-                  onPress={handleSendMessage}
-                  disabled={
-                    isLoading || !commonNpub || selectedRelays.length === 0
-                  }
-                />
-              )}
-            </SSVStack>
             {/* Messages section */}
             {messages.length > 0 && (
               <SSVStack gap="md" style={styles.nostrMessageContainer}>

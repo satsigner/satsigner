@@ -45,6 +45,15 @@ export type Key = {
   derivationPath?: string
 }
 
+export type DM = {
+  id: string
+  author: string
+  created_at: number
+  description: string
+  event: string
+  label: number
+}
+
 export type Account = {
   id: string
   name: string
@@ -79,5 +88,10 @@ export type Account = {
     lastBackupTimestamp?: number
     deviceNpub?: string
     deviceNsec?: string
+    trustedMemberDevices: string[]
+    trustedMemberAliases: string[]
+    dms: DM[]
+    lastUpdated: Date
+    syncStart: Date
   }
 }

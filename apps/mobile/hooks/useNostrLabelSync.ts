@@ -1,10 +1,11 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { getPublicKey, nip19 } from 'nostr-tools'
 import { toast } from 'sonner-native'
+import { useCallback } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { NostrAPI } from '@/api/nostr'
+import { NostrAPI, decompressMessage } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
@@ -16,103 +17,166 @@ import {
   labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
+import { type DM } from '@/types/models/Account'
 
 function useNostrLabelSync() {
   const [importLabels, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [state.importLabels, state.updateAccountNostr])
   )
 
-  async function sendAccountLabelsToNostr(account?: Account) {
-    if (!account?.nostr?.autoSync) {
-      return
-    }
-    if (!account || !account.nostr) {
-      return
-    }
-    const { commonNsec, commonNpub, relays, lastBackupFingerprint } =
-      account.nostr
+  const sendAccountLabelsToNostr = useCallback(
+    async (account?: Account) => {
+      if (!account?.nostr?.autoSync) {
+        return
+      }
+      if (!account || !account.nostr) {
+        return
+      }
+      const { commonNsec, commonNpub, relays, lastBackupFingerprint } =
+        account.nostr
 
-    if (!commonNsec || commonNpub === '' || relays.length === 0) {
-      return
-    }
+      if (!commonNsec || commonNpub === '' || relays.length === 0) {
+        return
+      }
 
-    const labels = formatAccountLabels(account)
+      const labels = formatAccountLabels(account)
 
-    if (labels.length === 0) {
-      toast.error('No labels to send')
-      return
-    }
+      if (labels.length === 0) {
+        toast.error('No labels to send')
+        return
+      }
 
-    const message = labelsToJSONL(labels)
-    const hash = await sha256(message)
-    const fingerprint = hash.slice(0, 8)
+      const message = labelsToJSONL(labels)
+      const hash = await sha256(message)
+      const fingerprint = hash.slice(0, 8)
 
-    if (fingerprint === lastBackupFingerprint) {
-      return
-    }
+      if (fingerprint === lastBackupFingerprint) {
+        return
+      }
 
-    const nostrApi = new NostrAPI(relays)
-    await nostrApi.connect()
+      const nostrApi = new NostrAPI(relays)
+      await nostrApi.connect()
 
-    try {
-      toast.info('Sending message to relays...')
-      const event = await nostrApi.createKind1059WrappedEvent(
+      try {
+        toast.info('Sending message to relays...')
+        const event = await nostrApi.createKind1059(
+          commonNsec,
+          commonNpub,
+          message
+        )
+        await nostrApi.publishEvent(event)
+        toast.success('Message sent successfully')
+
+        const timestamp = new Date().getTime() / 1000
+        updateAccountNostr(account.id, {
+          lastBackupFingerprint: fingerprint,
+          lastBackupTimestamp: timestamp
+        })
+      } catch (_error) {
+        toast.error('Failed to send message')
+      } finally {
+        await nostrApi.disconnect()
+      }
+    },
+    [updateAccountNostr]
+  )
+
+  const syncAccountLabelsFromNostr = useCallback(
+    async (account?: Account) => {
+      if (!account || !account.nostr) return
+
+      const { autoSync, commonNsec, commonNpub, relays, lastBackupTimestamp } =
+        account.nostr
+
+      if (!autoSync || !commonNsec || !commonNpub || relays.length === 1) return
+      const nostrApi = new NostrAPI(relays)
+
+      const messageCount = 5
+      const since = lastBackupTimestamp
+      const messages = await nostrApi.fetchMessages(
         commonNsec,
         commonNpub,
-        message
+        since,
+        messageCount
       )
-      await nostrApi.sendMessage(event)
-      toast.success('Message sent successfully')
 
-      const timestamp = new Date().getTime() / 1000
-      updateAccountNostr(account.id, {
-        lastBackupFingerprint: fingerprint,
-        lastBackupTimestamp: timestamp
-      })
-    } catch (_error) {
-      toast.error('Failed to send message')
-    } finally {
       await nostrApi.disconnect()
-    }
-  }
 
-  // Sync last backup found
-  async function syncAccountLabelsFromNostr(account?: Account) {
-    if (!account || !account.nostr) return
-
-    const { autoSync, commonNsec, commonNpub, relays, lastBackupTimestamp } =
-      account.nostr
-
-    if (!autoSync || !commonNsec || !commonNpub || relays.length === 1) return
-    const nostrApi = new NostrAPI(relays)
-
-    const messageCount = 5
-    const since = lastBackupTimestamp
-    const messages = await nostrApi.fetchMessages(
-      commonNsec,
-      commonNpub,
-      since,
-      messageCount
-    )
-
-    await nostrApi.disconnect()
-
-    const labels: Label[] = []
-    for (const message of messages) {
-      try {
-        if (!message.decryptedContent) continue
-        labels.push(...JSONLtoLabels(message.decryptedContent))
-      } catch {
-        //
+      const labels: Label[] = []
+      for (const message of messages) {
+        try {
+          if (!message.decryptedContent) continue
+          labels.push(...JSONLtoLabels(message.decryptedContent))
+        } catch {
+          //
+        }
       }
+
+      if (labels.length === 0) return
+
+      importLabels(account.id, labels)
+    },
+    [importLabels]
+  )
+
+  const storeDM = useCallback(
+    async (account?: Account, unwrappedEvent?: any) => {
+      if (!account?.nostr) return
+
+      let content
+      try {
+        content = JSON.parse(unwrappedEvent.content)
+      } catch {
+        content = unwrappedEvent.content
+      }
+
+      let message = decompressMessage(content)
+
+      const newDM: DM = {
+        id: unwrappedEvent.id,
+        author: unwrappedEvent.pubkey,
+        created_at: Date.now() / 1000,
+        description: message.description,
+        event: JSON.stringify(unwrappedEvent),
+        label: 1
+      }
+
+      // Create a new array with the existing DMs plus the new one
+      const updatedDms = [...(account.nostr.dms || []), newDM]
+
+      // Update the store directly with the new array
+      updateAccountNostr(account.id, { dms: updatedDms })
+    },
+    [updateAccountNostr]
+  )
+
+  const loadStoredDMs = useCallback(async (account?: Account) => {
+    if (!account) return []
+    if (!account.nostr) return []
+
+    // Initialize dms array if it doesn't exist
+    if (!account.nostr.dms) {
+      account.nostr.dms = []
     }
 
-    if (labels.length === 0) return
+    //console.log(account.nostr.dms)
 
-    importLabels(account.id, labels)
-  }
+    console.log('Total DMs in store:', account.nostr.dms.length)
 
-  async function generateCommonNostrKeys(account?: Account) {
+    return account.nostr.dms
+  }, [])
+
+  const clearStoredDMs = useCallback(
+    async (account?: Account) => {
+      if (!account?.nostr) return
+
+      // Clear the DMs array in the store
+      updateAccountNostr(account.id, { dms: [] })
+    },
+    [updateAccountNostr]
+  )
+
+  const generateCommonNostrKeys = useCallback(async (account?: Account) => {
     if (!account) return
     const pin = await getItem(PIN_KEY)
     if (!pin) return
@@ -181,13 +245,46 @@ function useNostrLabelSync() {
     } catch (error) {
       throw error
     }
-  }
+  }, [])
+
+  const processEvent = useCallback(
+    async (account: Account, unwrappedEvent: any): Promise<string> => {
+      let eventContent: any
+      try {
+        // Not compressed
+        const jsonContent = JSON.parse(unwrappedEvent.content)
+        eventContent = jsonContent
+      } catch (_jsonError) {
+        // Compressed
+        try {
+          eventContent = decompressMessage(unwrappedEvent.content)
+        } catch (_decompressError) {
+          eventContent = unwrappedEvent.content
+        }
+      }
+
+      if (eventContent.data) {
+        // Handle data event
+      } else if (eventContent.description && !eventContent.data) {
+        // Store message event in account's nostr DMs
+        await storeDM(account, unwrappedEvent)
+      } else if (eventContent.public_key_bech32) {
+        // Handle protocol event
+      }
+
+      return eventContent
+    },
+    [storeDM]
+  )
 
   return {
     sendAccountLabelsToNostr,
     syncAccountLabelsFromNostr,
-
-    generateCommonNostrKeys
+    generateCommonNostrKeys,
+    storeDM,
+    loadStoredDMs,
+    clearStoredDMs,
+    processEvent
   }
 }
 

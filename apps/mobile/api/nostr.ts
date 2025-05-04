@@ -1,9 +1,3 @@
-/*
-declare module 'cbor-js' {
-  export function encode(data: any): Uint8Array
-  export function decode(data: Uint8Array): any
-}
-*/
 import type { NDKKind } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import {
@@ -17,14 +11,7 @@ import {
 import { Buffer } from 'buffer'
 import * as pako from 'pako'
 import * as CBOR from 'cbor-js'
-import * as base85 from 'base85'
-/*
-
-import * as ascii85 from 'ascii85'
-import basex from 'base-x'
-import * as zlib from 'react-zlib-js'
-import { json } from 'stream/consumers'
-*/
+import { useAccountsStore } from '@/store/accounts'
 
 export interface NostrKeys {
   nsec: string
@@ -33,11 +20,11 @@ export interface NostrKeys {
 }
 
 export interface NostrMessage {
-  content: string
+  content: any
   created_at: number
-  pubkey: string
   decryptedContent?: string
   isSender?: boolean
+  pubkey?: string
 }
 
 export class NostrAPI {
@@ -90,7 +77,6 @@ export class NostrAPI {
             try {
               const relay = this.ndk?.pool.relays.get(url)
               if (!relay) {
-                console.log(`Relay not found in pool: ${url}`)
                 return { url, status: 'not_found' }
               }
 
@@ -102,7 +88,7 @@ export class NostrAPI {
               )
 
               return { url, status: 'connected', testEvent: testEvent !== null }
-            } catch (error) {
+            } catch (_error) {
               if (attempt === 2) {
                 return { url, status: 'error' }
               }
@@ -169,6 +155,8 @@ export class NostrAPI {
 
   */
 
+  // TODO remove/replace with subscribeToKind1059
+
   async fetchMessages(
     nsec: string,
     recipientNpub: string,
@@ -219,13 +207,6 @@ export class NostrAPI {
       }
 
       const selfSubscription = this.ndk?.subscribe(selfMessagesQuery)
-
-      // Log the relay queries
-      console.log('Relay Queries:', {
-        received: subscriptionQuery,
-        sent: sentMessagesQuery,
-        self: selfMessagesQuery
-      })
 
       // Collect events from all subscriptions
       const events = new Set<NDKEvent>()
@@ -340,10 +321,10 @@ export class NostrAPI {
 
 */
 
-  async subscribeToKind1059New(
+  async subscribeToKind1059(
     commonNsec: string,
     deviceNsec: string,
-    callback: (message: NostrMessage) => void
+    _callback: (message: NostrMessage) => void
   ): Promise<void> {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
@@ -359,31 +340,22 @@ export class NostrAPI {
       throw new Error('Input is not a valid nsec')
     }
 
-    //const user = this.ndk.getUser({ npub: commonNpub })
     const commonPubkey = getPublicKey(commonSecretNostrKey as Uint8Array)
     const devicePubkey = getPublicKey(deviceSecretNostrKey as Uint8Array)
 
     // Create a subscription to fetch events
+
+    // add optional parameter to limnit query to "since last time updated"
     const subscriptionQuery = {
       kinds: [1059 as NDKKind],
-      '#p': [commonPubkey, devicePubkey], // Events where we are the recipient
-      limit: 10,
-      /**/
-      ids: [
-        // My message?
-        '07bcca94cf0305deb52ea1c0de8a95c1e4ba3e568120eff2c6562103aba84d42',
-        // BITCOIN SAFE ANNOUNCEMENT
-        '2c3df5ce6ec6e3c5d60ed635c45fd83cb124a27d581a619a935dbbc2a02e4847'
-      ]
-      /**/
+      '#p': [commonPubkey, devicePubkey],
+      limit: 45
     }
-
     const subscription = this.ndk?.subscribe(subscriptionQuery)
 
     subscription?.on('event', async (event) => {
       const rawEvent = await event.toNostrEvent()
       if (!rawEvent.kind || !rawEvent.sig) {
-        console.log('Invalid event format')
         return
       }
       try {
@@ -392,25 +364,14 @@ export class NostrAPI {
           commonSecretNostrKey as Uint8Array
         )
 
-        // Try to parse as JSON first
-        try {
-          const jsonContent = JSON.parse(unwrappedEvent.content)
-          console.log('🟢 JSON content:', jsonContent)
-          return jsonContent
-        } catch (jsonError) {
-          try {
-            const compressedContent = unwrappedEvent.content
-            const decompressedContent = decompressMessage(
-              unwrappedEvent.content
-            )
-            console.log('🟢 Decompressed content:', decompressedContent)
-          } catch (decompressError) {
-            console.log('🔴 Failed to decompress content:', decompressError)
-            return unwrappedEvent.content
-          }
-        }
-      } catch (unwrapError) {
-        console.log('❌ Unwrap error:', unwrapError)
+        let eventContent = unwrappedEvent
+
+        _callback({
+          content: eventContent,
+          created_at: unwrappedEvent.created_at
+        })
+      } catch (_unwrapError) {
+        // Handle unwrap error silently
       }
     })
 
@@ -444,56 +405,21 @@ export class NostrAPI {
 
 
 
-
-
-
-
   */
 
-  async createKind1059WrappedEvent(
+  async createKind1059(
     nsec: string,
     recipientNpub: string,
     content: string
   ): Promise<NDKEvent> {
     // Decode the nsec
-    const { type, data: secretNostrKey } = nip19.decode(nsec)
-
-    // Check if the decoded type is 'nsec'
-    if (type !== 'nsec') {
-      throw new Error('Input is not a valid nsec')
-    }
-
-    // Decode recipient's npub or use hex directly
-    let recipientPubkey: string
-    const isNpub =
-      recipientNpub.startsWith('npub') &&
-      recipientNpub.length === 63 &&
-      /^[a-z0-9]+$/.test(recipientNpub)
-    if (isNpub) {
-      try {
-        const { data } = nip19.decode(recipientNpub) as { data: string }
-        recipientPubkey = data
-        if (!/^[0-9a-f]{64}$/.test(recipientPubkey)) {
-          throw new Error(
-            'Decoded recipientPubkey is not a valid 64-character hex string'
-          )
-        }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
-        throw new Error(
-          'Invalid recipientNpub (checksum error): ' + errorMessage
-        )
-      }
-    } else {
-      recipientPubkey = recipientNpub // Use hex directly
-    }
-
+    const { data: secretNostrKey } = nip19.decode(nsec)
+    const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
     const encodedContent = unescape(encodeURIComponent(content))
 
     const wrap = nip17.wrapEvent(
-      secretNostrKey,
-      { publicKey: recipientPubkey },
+      secretNostrKey as Uint8Array,
+      { publicKey: recipientPubkey.data },
       encodedContent
     )
     const tempNdk = new NDK()
@@ -520,11 +446,10 @@ export class NostrAPI {
 
   */
 
-  async sendMessage(event: NDKEvent): Promise<void> {
+  async publishEvent(event: NDKEvent): Promise<void> {
     try {
       // Ensure we're connected
       if (!this.ndk) {
-        console.log('NDK not initialized, attempting to connect...')
         await this.connect()
       }
 
@@ -532,86 +457,49 @@ export class NostrAPI {
         throw new Error('Failed to initialize NDK')
       }
 
-      // Log connected relays and their status
+      // Get connected relays
       const connectedRelays = Array.from(this.ndk.pool.relays.keys())
-      console.log('Connected relays before sending:', connectedRelays)
-
-      // Check relay status
-      for (const url of connectedRelays) {
-        const relay = this.ndk.pool.relays.get(url)
-        if (relay) {
-          console.log(`Relay ${url} status:`, {
-            connected: relay.connected,
-            status: relay.status
-          })
-        }
-      }
 
       // Ensure event is using the correct NDK instance
       if (event.ndk !== this.ndk) {
-        console.log('Updating event NDK instance')
         event.ndk = this.ndk
       }
 
       // Ensure event is signed
       if (!event.sig) {
-        console.log('Event not signed, attempting to sign...')
         const signer = this.ndk.signer
         if (!signer) {
           throw new Error('No signer available for event')
         }
         await event.sign(signer)
-        console.log('Event signed successfully')
       }
 
       let published = false
       for (let i = 0; i < 3; i++) {
         try {
-          console.log(`Publishing attempt ${i + 1}/3`)
-          console.log('Event details:', {
-            kind: event.kind,
-            pubkey: event.pubkey,
-            content: event.content?.substring(0, 100) + '...', // Log first 100 chars of content
-            created_at: event.created_at,
-            sig: event.sig?.substring(0, 20) + '...' // Log first 20 chars of signature
-          })
-
           // Try to publish to each relay individually
           const publishPromises = connectedRelays.map(async (url) => {
             try {
               const relay = this.ndk?.pool.relays.get(url)
               if (!relay) {
-                console.log(`Relay ${url} not found in pool`)
                 return { url, success: false, error: 'Relay not found' }
               }
 
-              console.log(`Attempting to publish to ${url}`)
               await relay.publish(event)
               return { url, success: true }
             } catch (error) {
-              console.log(`Failed to publish to ${url}:`, error)
               return { url, success: false, error }
             }
           })
 
           const results = await Promise.all(publishPromises)
-          console.log('Publish results:', results)
-
           const successfulPublishes = results.filter((r) => r.success)
           if (successfulPublishes.length > 0) {
             published = true
-            console.log(
-              'Event published successfully to:',
-              successfulPublishes.map((r) => r.url)
-            )
             break
-          } else {
-            console.log('No relays accepted the event')
           }
-        } catch (err) {
-          console.log(`Attempt ${i + 1} failed:`, err)
+        } catch (_err) {
           if (i < 2) {
-            console.log(`Waiting 1 second before retry...`)
             await new Promise((resolve) => setTimeout(resolve, 1000))
           }
         }
@@ -620,12 +508,9 @@ export class NostrAPI {
       if (!published) {
         throw new Error('Failed to publish after 3 attempts')
       }
-
-      console.log('Event published successfully')
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
-      console.error('Detailed error:', error)
       throw new Error(`Failed to publish event: ${errorMessage}`)
     }
   }
@@ -635,133 +520,6 @@ export class NostrAPI {
 
 
 
-
-
-
-
-
-
-
-  
-
-
-
-
-
- 
-
-// Incase we don't want to call the CBOR library
-export function cborSerialize(content: any): Uint8Array {
-  // Helper function to encode a string
-  function encodeString(str: string): Uint8Array {
-    const encoder = new TextEncoder()
-    const bytes = encoder.encode(str)
-    const length = bytes.length
-
-    // Major type 3 (text string) with length
-    let header: number
-    if (length < 24) {
-      header = 0x60 + length // Major type 3 (0x60) + length
-    } else if (length < 256) {
-      header = 0x78 // Major type 3, length 1 byte
-    } else if (length < 65536) {
-      header = 0x79 // Major type 3, length 2 bytes
-    } else {
-      header = 0x7a // Major type 3, length 4 bytes
-    }
-
-    const result = new Uint8Array(length + 1)
-    result[0] = header
-    result.set(bytes, 1)
-    return result
-  }
-
-  // Helper function to encode a number
-  function encodeNumber(num: number): Uint8Array {
-    if (Number.isInteger(num)) {
-      if (num >= 0) {
-        // Positive integer
-        if (num < 24) {
-          return new Uint8Array([num])
-        } else if (num < 256) {
-          return new Uint8Array([0x18, num])
-        } else if (num < 65536) {
-          const result = new Uint8Array(3)
-          result[0] = 0x19
-          result[1] = (num >> 8) & 0xff
-          result[2] = num & 0xff
-          return result
-        } else {
-          const result = new Uint8Array(5)
-          result[0] = 0x1a
-          result[1] = (num >> 24) & 0xff
-          result[2] = (num >> 16) & 0xff
-          result[3] = (num >> 8) & 0xff
-          result[4] = num & 0xff
-          return result
-        }
-      } else {
-        // Negative integer
-        const absNum = -1 - num
-        if (absNum < 24) {
-          return new Uint8Array([0x20 + absNum])
-        } else if (absNum < 256) {
-          return new Uint8Array([0x38, absNum])
-        } else if (absNum < 65536) {
-          const result = new Uint8Array(3)
-          result[0] = 0x39
-          result[1] = (absNum >> 8) & 0xff
-          result[2] = absNum & 0xff
-          return result
-        } else {
-          const result = new Uint8Array(5)
-          result[0] = 0x3a
-          result[1] = (absNum >> 24) & 0xff
-          result[2] = (absNum >> 16) & 0xff
-          result[3] = (absNum >> 8) & 0xff
-          result[4] = absNum & 0xff
-          return result
-        }
-      }
-    } else {
-      throw new Error('Floating point numbers not supported')
-    }
-  }
-
-  // Handle object encoding
-  if (typeof content === 'object' && content !== null) {
-    const entries = Object.entries(content)
-    const mapHeader = new Uint8Array([0xa0 + entries.length]) // Major type 5 (map) + length
-
-    const encodedEntries = entries.map(([key, value]) => {
-      const encodedKey = encodeString(key)
-      const encodedValue = encodeNumber(value as number)
-      const result = new Uint8Array(encodedKey.length + encodedValue.length)
-      result.set(encodedKey)
-      result.set(encodedValue, encodedKey.length)
-      return result
-    })
-
-    const totalLength =
-      mapHeader.length +
-      encodedEntries.reduce((sum, entry) => sum + entry.length, 0)
-    const result = new Uint8Array(totalLength)
-    let offset = 0
-
-    result.set(mapHeader, offset)
-    offset += mapHeader.length
-
-    for (const entry of encodedEntries) {
-      result.set(entry, offset)
-      offset += entry.length
-    }
-
-    return result
-    //return formatBinaryOutput(result)
-  }
-
-  throw new Error('Unsupported content type for CBOR serialization')
-}
 
 
 
@@ -789,7 +547,8 @@ export function cborSerialize(content: any): Uint8Array {
 
 */
 
-// Python's base85 alphabet for b85encode:
+// TODO: move to utilities
+
 const BASE85 =
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
 
@@ -860,14 +619,12 @@ function base85Decode(str: string) {
 export function compressMessage(data: any) {
   try {
     const cborData = CBOR.encode(data)
-    //const cborData = cborSerialize(data)
     const jsonUint8 = new Uint8Array(cborData)
 
     const compressedData = pako.deflate(jsonUint8)
     const compressedBuffer = Buffer.from(compressedData)
-    // Use our own base85Encode as fallback
     return base85Encode(compressedBuffer)
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Failed to compress data')
   }
 }
@@ -887,36 +644,9 @@ export function decompressMessage(compressedString: string) {
     )
     return CBOR.decode(bufferSlice as unknown as Uint8Array)
   } catch (err) {
-    console.error('Decompression error:', err)
+    throw new Error(
+      'Failed to decompress message: ' +
+        (err instanceof Error ? err.message : 'Unknown error')
+    )
   }
 }
-
-/*
-
-const d = { created_at: 1746003358 }
-
-console.log('Compression')
-const compressed_string = compressMessage(d)
-console.log('encoded:', compressed_string)
-
-console.log('Try decompression')
-const decompressed_str = decompressMessage(compressed_string)
-console.log('Decompressed:', decompressed_str)
-
-const decompressed_str2 = decompressMessage(
-  'c$};7s#Z!aN=+<DO^Ht|QL-{LH!(9ZH@7e|)ltexOiIlG3h5}Nq!uR^WfqiV=I1F{DLLoo78Iox7pJBu_yVcK^i%~!MMb4r0HoX)L;'
-)
-console.log('🟢🟢🟢🟢🟢 Decompressed:', decompressed_str2)
-
-/* AAAA */
-/*
-const string1 = 'Hello, world!!!!'
-var z85 = base85.encode(Buffer.from(string1))
-console.log('✅', z85) // nm=QNz.92Pz/PV8aT50L
-console.log('✅', Buffer.from(string1))
-
-var string2 = 'Hello, world!!!!z'
-var encoded = base85.encode(Buffer.from(string2))
-console.log('✅', encoded)
-console.log('✅', Buffer.from(string2))
-*/
