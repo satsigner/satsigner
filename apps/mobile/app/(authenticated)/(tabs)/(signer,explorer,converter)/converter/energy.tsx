@@ -13,6 +13,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
+import { validateAddress } from '@/utils/validation'
 
 const tn = _tn('converter.energy')
 
@@ -26,68 +27,48 @@ const networks = {
   signet: bitcoin.networks.testnet // Signet uses testnet address format
 }
 
-const isValidBitcoinAddress = (address: string): boolean => {
-  try {
-    // Try to decode the address
-    const decoded = bitcoin.address.fromBech32(address)
-    if (decoded) {
-      // Valid bech32 address (native segwit)
-      return true
-    }
-  } catch {
-    try {
-      // Try to decode as base58 (legacy or P2SH)
-      const decoded = bitcoin.address.fromBase58Check(address)
-      if (decoded) {
-        // Check if it's a valid version (0 for legacy, 5 for P2SH)
-        return decoded.version === 0 || decoded.version === 5
-      }
-    } catch {
-      return false
-    }
-  }
-  return false
-}
-
 export default function Energy() {
-  const [blocksFound, setBlocksFound] = useState(0)
-  const [_hashRate, setHashRate] = useState('0')
-  const [energyRate, setEnergyRate] = useState('0')
-  const [totalSats, setTotalSats] = useState('0')
-  const [isMining, setIsMining] = useState(false)
-  const [miningIntensity, setMiningIntensity] = useState(500)
-  const isMiningRef = useRef(false)
-  const miningIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const [rpcUrl, setRpcUrl] = useState('')
-  const [rpcUser, setRpcUser] = useState('')
-  const [rpcPassword, setRpcPassword] = useState('')
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [connectionError, setConnectionError] = useState('')
-  const [isConnected, setIsConnected] = useState(false)
   const [blockchainInfo, setBlockchainInfo] = useState<any>(null)
-  const [isLoadingInfo, setIsLoadingInfo] = useState(false)
+  const [blockHeader, setBlockHeader] = useState('')
+  const [blocksFound, setBlocksFound] = useState(0)
   const [blockTemplate, setBlockTemplate] = useState<any>(null)
+  const [connectionError, setConnectionError] = useState('')
+  const [difficultyProgress, setDifficultyProgress] = useState(0)
+  const [energyRate, setEnergyRate] = useState('0')
+
+  const [isConnected, setIsConnected] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [isLoadingInfo, setIsLoadingInfo] = useState(false)
   const [isLoadingTemplate, setIsLoadingTemplate] = useState(false)
-  const [templateData, setTemplateData] = useState<string>('')
-  const [miningAddress, setMiningAddress] = useState('')
+  const [isLoadingTx, setIsLoadingTx] = useState(false)
+  const [isMining, setIsMining] = useState(false)
+  const [isStopping, setIsStopping] = useState(false)
   const [isValidAddress, setIsValidAddress] = useState(false)
-  const [opReturnContent, setOpReturnContent] = useState('')
+
+  const [miningAddress, setMiningAddress] = useState('')
+  const [miningIntensity, setMiningIntensity] = useState(500)
   const [miningStats, setMiningStats] = useState({
     hashesPerSecond: 0,
     lastHash: '',
     attempts: 0
   })
-  const lastHashRef = useRef('')
-  const [difficultyProgress, setDifficultyProgress] = useState(0)
+
   const [networkHashRate, setNetworkHashRate] = useState('0')
-  const [isStopping, setIsStopping] = useState(false)
-  const [txId, setTxId] = useState('')
-  const [isLoadingTx, setIsLoadingTx] = useState(false)
+  const [opReturnContent, setOpReturnContent] = useState('')
+  const [rpcPassword, setRpcPassword] = useState('')
+  const [rpcUrl, setRpcUrl] = useState('')
+  const [rpcUser, setRpcUser] = useState('')
+  const [templateData, setTemplateData] = useState('')
+  const [totalSats, setTotalSats] = useState('0')
   const [txError, setTxError] = useState('')
-  const lastTemplateUpdateRef = useRef<number>(0)
-  const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const [blockHeader, setBlockHeader] = useState('')
+  const [txId, setTxId] = useState('')
+
+  const lastHashRef = useRef('')
   const currentHeaderRef = useRef<Uint8Array | null>(null)
+  const isMiningRef = useRef(false)
+  const lastTemplateUpdateRef = useRef<number>(0)
+  const miningIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const formatTemplateData = useCallback((data: any) => {
     try {
@@ -140,19 +121,20 @@ export default function Energy() {
 
       // First try to get the network type from the node
       try {
-        const networkResponse = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-          },
-          body: JSON.stringify({
-            jsonrpc: '1.0',
-            id: '1',
-            method: 'getblockchaininfo',
-            params: []
-          })
+        const credentials = `${rpcUser}:${rpcPassword}`
+        const authorization = Buffer.from(credentials).toString('base64')
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${authorization}`
+        }
+        const body = JSON.stringify({
+          jsonrpc: '1.0',
+          id: '1',
+          method: 'getblockchaininfo',
+          params: []
         })
+        const method = 'POST'
+        const networkResponse = await fetch(rpcUrl, { method, headers, body })
 
         if (networkResponse.ok) {
           const networkData = await networkResponse.json()
@@ -804,7 +786,6 @@ export default function Energy() {
     }
 
     // Reset mining values immediately
-    setHashRate('0')
     setEnergyRate('0')
     setTotalSats('0')
     setMiningStats({
@@ -822,7 +803,7 @@ export default function Energy() {
 
   const handleMiningAddressChange = (address: string) => {
     setMiningAddress(address)
-    setIsValidAddress(isValidBitcoinAddress(address))
+    setIsValidAddress(validateAddress(address))
   }
 
   const fetchTransaction = useCallback(async () => {
