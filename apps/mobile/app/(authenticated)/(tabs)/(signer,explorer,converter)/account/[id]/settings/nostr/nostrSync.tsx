@@ -216,7 +216,7 @@ function SSNostrSync() {
       // Only connect if auto-sync is enabled
       if (autoSync) {
         api.connect().catch(() => {
-          toast.error('Failed to connect to relays')
+          toast.info('Checking connection')
         })
 
         // Subscribe to kind 1059 messages
@@ -280,7 +280,7 @@ function SSNostrSync() {
       setNostrApi(api)
       // Connect immediately
       api.connect().catch(() => {
-        toast.error('Failed to connect to relays')
+        toast.error('No subscription yet')
       })
     }
   }

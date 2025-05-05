@@ -14,6 +14,9 @@ type NostrState = {
   members: {
     [accountId: string]: Member[]
   }
+  processedMessageIds: {
+    [accountId: string]: string[]
+  }
 }
 
 type NostrAction = {
@@ -21,6 +24,9 @@ type NostrAction = {
   removeMember: (accountId: string, npub: string) => void
   getMembers: (accountId: string) => Member[]
   clearMembers: (accountId: string) => void
+  addProcessedMessageId: (accountId: string, messageId: string) => void
+  getProcessedMessageIds: (accountId: string) => string[]
+  clearProcessedMessageIds: (accountId: string) => void
 }
 
 async function generateColorFromNpub(npub: string): Promise<string> {
@@ -67,6 +73,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
   persist(
     (set, get) => ({
       members: {},
+      processedMessageIds: {},
       addMember: async (accountId, npub) => {
         const currentMembers = get().members[accountId] || []
         if (!currentMembers.some((m) => m.npub === npub)) {
@@ -100,6 +107,31 @@ const useNostrStore = create<NostrState & NostrAction>()(
         set((state) => ({
           members: {
             ...state.members,
+            [accountId]: []
+          }
+        }))
+      },
+      addProcessedMessageId: (accountId, messageId) => {
+        set((state) => {
+          const currentIds = state.processedMessageIds[accountId] || []
+          if (!currentIds.includes(messageId)) {
+            return {
+              processedMessageIds: {
+                ...state.processedMessageIds,
+                [accountId]: [...currentIds, messageId]
+              }
+            }
+          }
+          return state
+        })
+      },
+      getProcessedMessageIds: (accountId) => {
+        return get().processedMessageIds[accountId] || []
+      },
+      clearProcessedMessageIds: (accountId) => {
+        set((state) => ({
+          processedMessageIds: {
+            ...state.processedMessageIds,
             [accountId]: []
           }
         }))

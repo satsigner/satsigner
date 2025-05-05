@@ -131,6 +131,15 @@ function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const getMembers = useNostrStore((state) => state.getMembers)
   const clearMembers = useNostrStore((state) => state.clearMembers)
+  const addProcessedMessageId = useNostrStore(
+    (state) => state.addProcessedMessageId
+  )
+  const getProcessedMessageIds = useNostrStore(
+    (state) => state.getProcessedMessageIds
+  )
+  const clearProcessedMessageIds = useNostrStore(
+    (state) => state.clearProcessedMessageIds
+  )
   const members = useMemo(
     () => (accountId ? getMembers(accountId) : []),
     [accountId, getMembers]
@@ -141,7 +150,6 @@ function SSDevicesGroupChat() {
   const [messageInput, setMessageInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const processedMessageIds = useRef<Set<string>>(new Set())
   const hasLoadedInitialMessages = useRef(false)
   const flatListRef = useRef<FlatList>(null)
   const storedDmIds = useRef<Set<string>>(new Set())
@@ -184,7 +192,7 @@ function SSDevicesGroupChat() {
 
           // Update the refs in one go
           storedDmIds.current = messageSet
-          processedMessageIds.current = processedSet
+          processedSet.forEach((id) => addProcessedMessageId(accountId, id))
 
           setMessages(parsedMessages)
           hasLoadedInitialMessages.current = true
@@ -201,17 +209,17 @@ function SSDevicesGroupChat() {
       }
     }
     loadMessages()
-  }, [account, loadStoredDMs])
+  }, [account, loadStoredDMs, addProcessedMessageId, accountId])
 
   const handleClearMessages = async () => {
-    if (!account) return
+    if (!accountId) return
 
     try {
       setIsLoading(true)
       await clearStoredDMs(account)
       setMessages([])
       storedDmIds.current.clear()
-      processedMessageIds.current.clear()
+      clearProcessedMessageIds(accountId)
       toast.success('Messages cleared successfully')
     } catch {
       toast.error('Failed to clear messages')
@@ -239,7 +247,8 @@ function SSDevicesGroupChat() {
       !nostrApi ||
       !account?.nostr?.commonNsec ||
       !account?.nostr?.deviceNsec ||
-      !account?.nostr?.autoSync
+      !account?.nostr?.autoSync ||
+      !accountId
     )
       return
 
@@ -254,9 +263,10 @@ function SSDevicesGroupChat() {
             if (!isSubscribed) return
 
             const eventId = message.content.id
+            const processedIds = getProcessedMessageIds(accountId)
 
-            // Skip if we've already processed this message
-            if (processedMessageIds.current.has(eventId)) {
+            // Skip if we've already processed this event
+            if (processedIds.includes(eventId)) {
               return
             }
 
@@ -273,7 +283,7 @@ function SSDevicesGroupChat() {
                 'description' in eventContent &&
                 !('data' in eventContent)
               ) {
-                processedMessageIds.current.add(eventId)
+                addProcessedMessageId(accountId, eventId)
 
                 setMessages((prev) => {
                   const newMessage = {
@@ -317,7 +327,10 @@ function SSDevicesGroupChat() {
     account?.nostr?.deviceNsec,
     account,
     processEvent,
-    scrollToBottom
+    scrollToBottom,
+    accountId,
+    getProcessedMessageIds,
+    addProcessedMessageId
   ])
 
   // Connect to relays
