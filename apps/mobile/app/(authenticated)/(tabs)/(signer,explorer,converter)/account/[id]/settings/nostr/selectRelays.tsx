@@ -70,7 +70,7 @@ function SSNostrRelaysSelection() {
       <Stack.Screen
         options={{
           headerTitle: () => (
-            <SSText uppercase>{t('account.nostrlabels.selectRelays')}</SSText>
+            <SSText uppercase>{t('account.nostrSync.selectRelays')}</SSText>
           )
         }}
       />
@@ -78,7 +78,7 @@ function SSNostrRelaysSelection() {
         <SSVStack gap="lg">
           <SSVStack gap="sm">
             <SSText uppercase weight="bold" size="md">
-              {t('account.nostrlabels.relays.public')}
+              {t('account.nostrSync.relays.public')}
             </SSText>
             {NOSTR_RELAYS.map((relay) => (
               <SSNostrRelay
@@ -91,7 +91,7 @@ function SSNostrRelaysSelection() {
           </SSVStack>
           <SSVStack gap="sm">
             <SSText uppercase weight="bold" size="md">
-              {t('account.nostrlabels.relays.custom')}
+              {t('account.nostrSync.relays.custom')}
             </SSText>
             {selectedRelays
               .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
@@ -113,9 +113,7 @@ function SSNostrRelaysSelection() {
                 </SSText>
                 <View style={styles.relayInputContainer}>
                   <SSTextInput
-                    placeholder={t(
-                      'account.nostrlabels.relays.inputPlaceholder'
-                    )}
+                    placeholder={t('account.nostrSync.relays.inputPlaceholder')}
                     value={customRelayUrl}
                     align="left"
                     onChangeText={setCustomRelayUrl}
@@ -123,7 +121,7 @@ function SSNostrRelaysSelection() {
                 </View>
               </SSHStack>
               <SSButton
-                label={t('account.nostrlabels.relays.addCustomRelay')}
+                label={t('account.nostrSync.relays.addCustomRelay')}
                 variant="secondary"
                 onPress={handleAddCustomRelay}
                 disabled={!customRelayUrl.match(/^[a-z0-9]+\.[a-z0-9]+$/i)}
