@@ -1,13 +1,12 @@
-import { Redirect, router, useLocalSearchParams, Stack } from 'expo-router'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI, type NostrMessage, compressMessage } from '@/api/nostr'
+import { NostrAPI, compressMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
-import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import useNostrLabelSync from '@/hooks/useNostrLabelSync'
@@ -19,11 +18,8 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore, generateColorFromNpub } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import {
-  formatAccountLabels,
-  JSONLtoLabels,
-  labelsToJSONL
-} from '@/utils/bip329'
+import { formatAccountLabels, labelsToJSONL } from '@/utils/bip329'
+import { Account } from '@/types/models/Account'
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -38,15 +34,7 @@ function SSNostrLabelSync() {
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
-  const [messages, setMessages] = useState<NostrMessage[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [expandedMessages, setExpandedMessages] = useState<number[]>([])
-  const [relayError, setRelayError] = useState<string | null>(null)
   const [autoSync, setAutoSync] = useState(false)
-  const [hasMoreMessages, setHasMoreMessages] = useState(true)
-  const [importCount, setImportCount] = useState(0)
-  const [importCountTotal, setImportCountTotal] = useState(0)
-  const [successMsgVisible, setSuccessMsgVisible] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
   const { generateCommonNostrKeys } = useNostrLabelSync()
@@ -124,198 +112,83 @@ function SSNostrLabelSync() {
     }
   }, [deviceNpub, deviceColor])
 
-  function filterMessages(msg: NostrMessage) {
-    return msg.decryptedContent !== undefined && msg.decryptedContent !== ''
-  }
-
-  async function fetchMessages(loadMore: boolean = false) {
-    if (!commonNsec || !commonNpub || !nostrApi) {
-      setRelayError(t('account.nostrSync.errorMissingData'))
-      return
-    }
-
-    // Add relay check at the start
-    if (selectedRelays.length === 0) {
-      setRelayError(t('account.nostrSync.noRelaysWarning'))
-      return
-    }
-
-    setIsLoading(true)
-    try {
-      const fetchedMessages = (
-        await nostrApi.fetchMessages(commonNsec, commonNpub)
-      ).filter(filterMessages)
-
-      // If no messages returned, we've reached the end
-      if (fetchedMessages.length === 0) {
-        setHasMoreMessages(false)
-        setIsLoading(false)
-        return
-      }
-
-      // Update messages state based on whether we're loading more or not
-      if (loadMore) {
-        setMessages((prev) => [...prev, ...fetchedMessages])
-      } else {
-        setMessages(fetchedMessages)
-      }
-    } catch (error) {
-      throw new Error(`Error fetching messages: ${error}`)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function handleSendMessage() {
-    if (!commonNsec || !commonNpub || !nostrApi || !account) {
-      setRelayError(t('account.nostrSync.errorMissingData'))
-      return
-    }
-    try {
-      const labels = formatAccountLabels(account)
-
-      if (labels.length === 0) {
-        setRelayError(t('account.nostrSync.noLabelsToSync'))
-        return
-      }
-
-      // Format each label entry and wrap in labelPackage
-      const labelPackage = labels.map((label) => ({
-        __class__: 'Label',
-        VERSION: '0.0.3',
-        type: label.type,
-        ref: label.ref,
-        label: label.label,
-        spendable: label.spendable,
-        timestamp: Math.floor(Date.now() / 1000)
-      }))
-
-      const labelPackageJSONL = labelsToJSONL(labelPackage)
-      //console.log('🔵🔵🔵🔵🟢 Label package JSONL:', labelPackageJSONL)
-
-      const messageContent = {
-        created_at: Math.floor(Date.now() / 1000),
-        label: 1,
-        description: 'Here come some labels',
-        data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
-      }
-
-      const compressedMessage = compressMessage(messageContent)
-
-      const eventKind1059 = await nostrApi.createKind1059(
-        commonNsec,
-        commonNpub,
-        compressedMessage
-      )
-      await nostrApi.publishEvent(eventKind1059)
-      toast.success('Labels sent to relays')
-      // Update last backup timestamp
-      const timestamp = Math.floor(Date.now() / 1000)
-      updateAccountNostr(accountId, {
-        lastBackupTimestamp: timestamp
-      })
-    } catch (_error) {
-      toast.error('Failed to send labels')
-      setRelayError('Failed to send labels')
-    }
-  }
-
-  async function handleImportLabels(content: string) {
-    try {
-      const labels = JSONLtoLabels(content)
-      const importCount = useAccountsStore
-        .getState()
-        .importLabels(accountId!, labels)
-      setImportCount(importCount)
-      setImportCountTotal(labels.length)
-      setSuccessMsgVisible(true)
-    } catch {
-      setRelayError('Failed to import labels')
-    }
-  }
-
-  // Add function to toggle message expansion
-  function toggleMessageExpansion(index: number) {
-    setExpandedMessages((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    )
-  }
-
-  function MessageContent(content: string, index: number) {
-    const characterLimit = 200
-
-    if (content.length <= characterLimit || expandedMessages.includes(index)) {
-      return (
-        <SSVStack gap="xxs">
-          <SSText style={{ fontFamily: 'System' }}>{content}</SSText>
-          {content.length > characterLimit && (
-            <SSText
-              color="white"
-              onPress={() => toggleMessageExpansion(index)}
-              style={{ textDecorationLine: 'underline' }}
-            >
-              {t('account.nostrSync.backupPreviewShowLess')}
-            </SSText>
-          )}
-        </SSVStack>
-      )
-    }
-
-    return (
-      <SSVStack gap="xxs">
-        <SSText style={{ fontFamily: 'System' }}>
-          {content.slice(0, characterLimit)}...
-        </SSText>
-        <SSText
-          color="white"
-          onPress={() => toggleMessageExpansion(index)}
-          style={{ textDecorationLine: 'underline' }}
-        >
-          {t('account.nostrSync.backupPreviewShowMore')}
-        </SSText>
-      </SSVStack>
-    )
-  }
-
-  async function handleToggleAutoSync() {
+  async function handleToggleAutoSync(account: Account) {
     const newAutoSync = !autoSync
     setAutoSync(newAutoSync)
-    setRelayError(null)
+
     if (accountId) {
       updateAccountNostr(accountId, { autoSync: newAutoSync })
 
-      // Send trust request to all devices
-      if (!commonNsec || !commonNpub || !nostrApi) {
-        setRelayError(t('account.nostrSync.errorMissingData'))
-        return
-      }
-      try {
-        const messageContent = JSON.stringify({
+      // If auto-sync is enabled, send trust request to all devices
+      if (newAutoSync) {
+        // Send trust request to all devices
+        try {
+          const messageContent = JSON.stringify({
+            created_at: Math.floor(Date.now() / 1000),
+            public_key_bech32: deviceNpub
+          })
+          const compressedMessage = compressMessage(JSON.parse(messageContent))
+          const eventKind1059 = await nostrApi.createKind1059(
+            commonNsec,
+            commonNpub,
+            compressedMessage
+          )
+          await nostrApi.publishEvent(eventKind1059)
+        } catch (_error) {
+          toast.error('Failed to send trust request')
+        }
+
+        // Send all labels to all devices
+        if (!account) {
+          toast.error(t('account.nostrSync.errorMissingData'))
+
+          return
+        }
+        const labels = formatAccountLabels(account)
+        console.log('labels', labels)
+
+        if (labels.length === 0) {
+          toast.error(t('account.nostrSync.errorMissingData'))
+          return
+        }
+
+        // Format each label entry and wrap in labelPackage
+        const labelPackage = labels.map((label) => ({
+          __class__: 'Label',
+          VERSION: '0.0.3',
+          type: label.type,
+          ref: label.ref,
+          label: label.label,
+          spendable: label.spendable,
+          timestamp: Math.floor(Date.now() / 1000)
+        }))
+
+        const labelPackageJSONL = labelsToJSONL(labelPackage)
+
+        const messageContent = {
           created_at: Math.floor(Date.now() / 1000),
-          public_key_bech32: deviceNpub
-        })
-        const compressedMessage = compressMessage(JSON.parse(messageContent))
+          label: 1,
+          description: 'Here come some labels',
+          data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
+        }
+
+        const compressedMessage = compressMessage(messageContent)
+
         const eventKind1059 = await nostrApi.createKind1059(
           commonNsec,
           commonNpub,
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
-      } catch (_error) {
-        setRelayError('Failed to send trust request')
+        toast.success('Labels sent to relays')
       }
 
-      // Send labels immediately when auto-sync is enabled
-      if (newAutoSync && commonNpub && selectedRelays.length > 0) {
-        handleSendMessage()
-      } else if (newAutoSync && selectedRelays.length === 0) {
-        setRelayError(t('account.nostrSync.noRelaysWarning'))
-      }
+      // Update last backup timestamp
+      const timestamp = Math.floor(Date.now() / 1000)
+      updateAccountNostr(accountId, {
+        lastBackupTimestamp: timestamp
+      })
     }
-  }
-
-  function hideSuccessMsg() {
-    setSuccessMsgVisible(false)
   }
 
   function goToSelectRelaysPage() {
@@ -343,7 +216,7 @@ function SSNostrLabelSync() {
       // Only connect if auto-sync is enabled
       if (autoSync) {
         api.connect().catch(() => {
-          setRelayError('Failed to connect to relays')
+          toast.error('Failed to connect to relays')
         })
 
         // Subscribe to kind 1059 messages
@@ -378,7 +251,6 @@ function SSNostrLabelSync() {
                         parsedContent.public_key_bech32
                       )
                     }
-                    setMessages((prev) => [message, ...prev])
                   } catch (error) {
                     console.error('Error processing message:', error)
                   }
@@ -388,7 +260,7 @@ function SSNostrLabelSync() {
               Math.floor(Date.now() / 1000) // Only get messages from now onwards
             )
             .catch(() => {
-              setRelayError('Failed to subscribe to kind 1059 messages')
+              toast.error('Failed to subscribe to kind 1059 messages')
             })
         }
       }
@@ -408,24 +280,8 @@ function SSNostrLabelSync() {
       setNostrApi(api)
       // Connect immediately
       api.connect().catch(() => {
-        setRelayError('Failed to connect to relays')
+        toast.error('Failed to connect to relays')
       })
-    }
-  }
-
-  function handleFetchMessagesAutoSync() {
-    if (autoSync && commonNpub && selectedRelays.length > 0) {
-      fetchMessages()
-    }
-
-    if (autoSync && commonNpub && selectedRelays.length > 0) {
-      // Set up interval for auto sync
-      const syncInterval = setInterval(() => {
-        fetchMessages()
-      }, 60000) // Sync every minute
-
-      // Cleanup interval on unmount or when auto sync is disabled
-      return () => clearInterval(syncInterval)
     }
   }
 
@@ -467,7 +323,6 @@ function SSNostrLabelSync() {
     autoSync
   ])
   useEffect(loadNostrAccountData, [account])
-  useEffect(handleFetchMessagesAutoSync, [autoSync, commonNpub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {
@@ -506,7 +361,7 @@ function SSNostrLabelSync() {
             <SSButton
               variant={autoSync ? 'danger' : 'secondary'}
               label={autoSync ? 'Turn sync OFF' : 'Turn sync ON'}
-              onPress={handleToggleAutoSync}
+              onPress={() => handleToggleAutoSync(account)}
             />
             <SSHStack gap="md">
               <SSButton
@@ -675,72 +530,14 @@ function SSNostrLabelSync() {
               )}
             </SSVStack>
           </SSVStack>
-
-          <SSVStack gap="sm">
-            {/* Message controls */}
-            {commonNpub && <></>}
-            {/* Messages section */}
-            {messages.length > 0 && (
-              <SSVStack gap="md" style={styles.nostrMessageContainer}>
-                <SSHStack gap="md" justifyBetween>
-                  <SSText>{t('account.nostrSync.latestMessages')}</SSText>
-                  {isLoading && (
-                    <SSText color="muted">
-                      {t('account.nostrSync.loading')}
-                    </SSText>
-                  )}
-                </SSHStack>
-                {messages.map((msg, index) => (
-                  <SSVStack key={index} gap="sm" style={styles.nostrMessage}>
-                    <SSText size="sm" color="muted">
-                      {new Date(msg.created_at * 1000).toLocaleString()}
-                    </SSText>
-                    <SSText color={msg.isSender ? 'white' : 'muted'}>
-                      {msg.isSender ? 'Content Sent' : 'Content Received'}:
-                    </SSText>
-                    {MessageContent(msg.content.content || '', index)}
-                    {msg.content.content?.startsWith('{"label":') && (
-                      <SSButton
-                        label={t('account.nostrSync.importLabels')}
-                        variant="outline"
-                        onPress={() => {
-                          handleImportLabels(msg.content.content || '')
-                        }}
-                      />
-                    )}
-                  </SSVStack>
-                ))}
-                {hasMoreMessages && (
-                  <SSButton
-                    label={t('account.nostrSync.loadOlderMessages')}
-                    onPress={() => fetchMessages(true)}
-                    disabled={isLoading}
-                  />
-                )}
-              </SSVStack>
-            )}
-            {relayError && <SSText size="sm">{relayError}</SSText>}
-          </SSVStack>
+          {relayError && <SSText size="sm">{relayError}</SSText>}
         </SSVStack>
       </ScrollView>
-      <SSModal visible={successMsgVisible} onClose={hideSuccessMsg}>
-        <SSVStack gap="lg" style={styles.modalSuccessMessageContainer}>
-          <SSText uppercase size="md" center weight="bold">
-            {t('import.success', { importCount, total: importCountTotal })}
-          </SSText>
-          <SSButton label={t('common.close')} onPress={hideSuccessMsg} />
-        </SSVStack>
-      </SSModal>
     </SSMainLayout>
   )
 }
 
 const styles = StyleSheet.create({
-  modalSuccessMessageContainer: {
-    justifyContent: 'center',
-    height: '100%',
-    width: '100%'
-  },
   keysContainer: {
     backgroundColor: '#1a1a1a',
     borderRadius: 8,
@@ -775,26 +572,6 @@ const styles = StyleSheet.create({
   },
   autoSyncContainer: {
     marginBottom: 10
-  },
-  nostrMessageContainer: {
-    marginTop: 20
-  },
-  nostrMessage: {
-    backgroundColor: '#1a1a1a',
-    padding: 10,
-    borderRadius: 8
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: Colors.white,
-    borderRadius: 4,
-    marginRight: 8,
-    marginTop: 1
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.white
   }
 })
 
