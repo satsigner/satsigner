@@ -18,9 +18,8 @@ import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { gray, mainGreen, mainRed, white } from '@/styles/colors'
+import { BLOCK_WIDTH, type Node } from '@/types/ui/sankey'
 import { logAttenuation } from '@/utils/math'
-
-import { BLOCK_WIDTH, type Node } from './SSMultipleSankeyDiagram'
 
 interface ISSankeyNodes {
   nodes: any[]

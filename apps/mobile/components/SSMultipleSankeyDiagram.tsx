@@ -1,10 +1,6 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Circle, Group } from '@shopify/react-native-skia'
-import {
-  sankey,
-  type SankeyLinkMinimal,
-  type SankeyNodeMinimal
-} from 'd3-sankey'
+import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
   Platform,
@@ -18,32 +14,12 @@ import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
-import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { BLOCK_WIDTH, type Link, type Node } from '@/types/ui/sankey'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
-export interface Link extends SankeyLinkMinimal<object, object> {
-  source: string
-  target: string
-  value: number
-}
-
-export interface Node extends SankeyNodeMinimal<object, object> {
-  localId?: string
-  id: string
-  depth?: number
-  depthH: number
-  address?: string
-  type: string
-  ioData: TxNode['ioData']
-  value?: number
-  txId?: string
-  nextTx?: string
-}
-
 const LINK_MAX_WIDTH = 100
-export const BLOCK_WIDTH = 80
 const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
