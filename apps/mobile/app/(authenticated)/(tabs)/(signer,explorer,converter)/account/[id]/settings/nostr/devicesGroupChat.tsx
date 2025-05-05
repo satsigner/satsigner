@@ -190,11 +190,11 @@ function SSDevicesGroupChat() {
           hasLoadedInitialMessages.current = true
 
           // Scroll to bottom after initial messages are loaded
-          requestAnimationFrame(() => {
-            if (flatListRef.current) {
+          setTimeout(() => {
+            if (flatListRef.current && parsedMessages.length > 0) {
               flatListRef.current.scrollToEnd({ animated: false })
             }
-          })
+          }, 100)
         }
       } catch {
         setError('Failed to load messages')
@@ -504,6 +504,17 @@ function SSDevicesGroupChat() {
             maintainVisibleContentPosition={{
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 10
+            }}
+            inverted={false}
+            onLayout={() => {
+              if (flatListRef.current && messages.length > 0) {
+                flatListRef.current.scrollToEnd({ animated: false })
+              }
+            }}
+            onContentSizeChange={() => {
+              if (flatListRef.current && messages.length > 0) {
+                flatListRef.current.scrollToEnd({ animated: false })
+              }
             }}
           />
           {showScrollButton && (
