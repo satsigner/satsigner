@@ -4,19 +4,12 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
-import SSButton from './SSButton'
+import SSButton, { type SSButtonProps } from './SSButton'
 
 type SSModalProps = {
   visible: boolean
   fullOpacity?: boolean
-  variant?:
-    | 'secondary'
-    | 'ghost'
-    | 'subtle'
-    | 'gradient'
-    | 'default'
-    | 'outline'
-    | 'danger'
+  closeButtonVariant?: SSButtonProps['variant']
   label?: string
   onClose(): void
   children: React.ReactNode
@@ -25,7 +18,7 @@ type SSModalProps = {
 function SSModal({
   visible,
   fullOpacity = false,
-  variant = 'ghost',
+  closeButtonVariant = 'ghost',
   label = t('common.cancel'),
   onClose,
   children
@@ -35,9 +28,13 @@ function SSModal({
       <SSMainLayout
         style={fullOpacity ? styles.containerFullOpacity : styles.containerBase}
       >
-        <SSVStack itemsCenter justifyBetween style={{ paddingVertical: 16 }}>
+        <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
           {children}
-          <SSButton label={label} variant={variant} onPress={onClose} />
+          <SSButton
+            label={label}
+            variant={closeButtonVariant}
+            onPress={onClose}
+          />
         </SSVStack>
       </SSMainLayout>
     </Modal>
@@ -50,6 +47,9 @@ const styles = StyleSheet.create({
   },
   containerFullOpacity: {
     backgroundColor: 'rgba(0, 0, 0, 1)'
+  },
+  innerContainer: {
+    paddingVertical: 16
   }
 })
 
