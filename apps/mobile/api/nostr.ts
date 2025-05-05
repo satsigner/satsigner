@@ -324,7 +324,9 @@ export class NostrAPI {
   async subscribeToKind1059(
     commonNsec: string,
     deviceNsec: string,
-    _callback: (message: NostrMessage) => void
+    _callback: (message: NostrMessage) => void,
+    limit?: number,
+    since?: number
   ): Promise<void> {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
@@ -344,12 +346,11 @@ export class NostrAPI {
     const devicePubkey = getPublicKey(deviceSecretNostrKey as Uint8Array)
 
     // Create a subscription to fetch events
-
-    // add optional parameter to limnit query to "since last time updated"
     const subscriptionQuery = {
       kinds: [1059 as NDKKind],
       '#p': [commonPubkey, devicePubkey],
-      limit: 45
+      ...(limit && { limit }),
+      ...(since && { since })
     }
     const subscription = this.ndk?.subscribe(subscriptionQuery)
 
@@ -365,6 +366,11 @@ export class NostrAPI {
         )
 
         let eventContent = unwrappedEvent
+
+        // Only process events that are newer than our since timestamp
+        if (since && unwrappedEvent.created_at <= since) {
+          return
+        }
 
         _callback({
           content: eventContent,

@@ -1,8 +1,9 @@
-import { Redirect, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { Redirect, useLocalSearchParams, Stack } from 'expo-router'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   TextInput,
   View
@@ -12,24 +13,128 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { compressMessage, NostrAPI, type NostrMessage } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
+import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type DM } from '@/types/models/Account'
+import { nip19 } from 'nostr-tools'
+import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 
 interface MessageContent {
   description: string
   created_at: number
+  pubkey?: string
 }
+
+// Cache for storing calculated colors
+const colorCache = new Map<string, { text: string; color: string }>()
+
+export async function formatNpub(
+  pubkey: string,
+  members: Array<{ npub: string; color: string }>
+): Promise<{ text: string; color: string }> {
+  if (!pubkey) return { text: 'Unknown sender', color: '#666666' }
+
+  const cached = colorCache.get(pubkey)
+  if (cached) {
+    return cached
+  }
+
+  const npub = nip19.npubEncode(pubkey)
+  const member = members.find((m) => m.npub === npub)
+  const color = member?.color || '#404040'
+  const result = { text: `${npub.slice(0, 12)}...${npub.slice(-4)}`, color }
+  colorCache.set(pubkey, result)
+  return result
+}
+
+const MessageItem = memo(function MessageItem({
+  message,
+  members
+}: {
+  message: NostrMessage
+  members: Array<{ npub: string; color: string }>
+}) {
+  const [formattedNpub, setFormattedNpub] = useState<{
+    text: string
+    color: string
+  }>({ text: '', color: '#cccccc' })
+
+  useEffect(() => {
+    if (message.pubkey) {
+      formatNpub(message.pubkey, members).then(setFormattedNpub)
+    }
+  }, [message.pubkey, members])
+
+  const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const [account] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.id === accountId)
+    ])
+  )
+
+  const isDeviceMessage = (() => {
+    if (!message.pubkey || !account?.nostr?.deviceNpub) return false
+    try {
+      return nip19.npubEncode(message.pubkey) === account.nostr.deviceNpub
+    } catch {
+      return false
+    }
+  })()
+
+  return (
+    <SSVStack
+      gap="xxs"
+      style={[styles.message, isDeviceMessage && styles.deviceMessage]}
+    >
+      <SSHStack gap="xxs" justifyBetween>
+        <SSHStack gap="xxs">
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: formattedNpub.color,
+              marginTop: 1,
+              marginRight: 3
+            }}
+          />
+          <SSText size="sm" color="muted">
+            {formattedNpub.text}
+          </SSText>
+        </SSHStack>
+        <SSText size="sm" color="muted">
+          {new Date(message.created_at * 1000).toLocaleString()}
+        </SSText>
+      </SSHStack>
+      <SSText size="md">
+        {typeof message.content === 'object' && 'description' in message.content
+          ? message.content.description
+          : typeof message.content === 'string'
+            ? message.content
+            : 'Invalid message format'}
+      </SSText>
+    </SSVStack>
+  )
+})
 
 function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const getMembers = useNostrStore((state) => state.getMembers)
+  const clearMembers = useNostrStore((state) => state.clearMembers)
+  const members = useMemo(
+    () => (accountId ? getMembers(accountId) : []),
+    [accountId, getMembers]
+  )
   const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
@@ -40,6 +145,7 @@ function SSDevicesGroupChat() {
   const hasLoadedInitialMessages = useRef(false)
   const flatListRef = useRef<FlatList>(null)
   const storedDmIds = useRef<Set<string>>(new Set())
+  const [showScrollButton, setShowScrollButton] = useState(false)
 
   const { loadStoredDMs, processEvent, clearStoredDMs } = useNostrLabelSync()
 
@@ -57,20 +163,38 @@ function SSDevicesGroupChat() {
       try {
         const dms = await loadStoredDMs(account)
         if (dms && Array.isArray(dms)) {
-          const parsedMessages = dms
-            .map((dm: DM) => {
-              storedDmIds.current.add(dm.id)
-              processedMessageIds.current.add(dm.id)
-              return {
-                content: {
-                  description: dm.description
-                } as MessageContent,
-                created_at: dm.created_at
-              } as NostrMessage
-            })
-            .sort((a, b) => a.created_at - b.created_at)
+          // Batch the operations by doing them all at once
+          const messageSet = new Set<string>()
+          const processedSet = new Set<string>()
+
+          const parsedMessages = dms.map((dm: DM) => {
+            messageSet.add(dm.id)
+            processedSet.add(dm.id)
+            return {
+              content: {
+                description: dm.description
+              } as MessageContent,
+              created_at: dm.created_at,
+              pubkey: dm.author
+            } as NostrMessage
+          })
+
+          // Sort once after all messages are processed
+          parsedMessages.sort((a, b) => a.created_at - b.created_at)
+
+          // Update the refs in one go
+          storedDmIds.current = messageSet
+          processedMessageIds.current = processedSet
+
           setMessages(parsedMessages)
           hasLoadedInitialMessages.current = true
+
+          // Scroll to bottom after initial messages are loaded
+          requestAnimationFrame(() => {
+            if (flatListRef.current) {
+              flatListRef.current.scrollToEnd({ animated: false })
+            }
+          })
         }
       } catch {
         setError('Failed to load messages')
@@ -96,12 +220,31 @@ function SSDevicesGroupChat() {
     }
   }
 
+  const handleScroll = useCallback((event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
+    const distanceFromBottom =
+      contentSize.height - layoutMeasurement.height - contentOffset.y
+    setShowScrollButton(distanceFromBottom > 100)
+  }, [])
+
+  const scrollToBottom = useCallback(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true })
+    }
+  }, [])
+
   // Subscribe to new messages
   useEffect(() => {
-    if (!nostrApi || !account?.nostr?.commonNsec || !account?.nostr?.deviceNsec)
+    if (
+      !nostrApi ||
+      !account?.nostr?.commonNsec ||
+      !account?.nostr?.deviceNsec ||
+      !account?.nostr?.autoSync
+    )
       return
 
     let isSubscribed = true
+
     const subscribeToMessages = async () => {
       try {
         await nostrApi.subscribeToKind1059(
@@ -136,11 +279,14 @@ function SSDevicesGroupChat() {
                   const newMessage = {
                     content: {
                       description: (eventContent as { description: string })
-                        .description
+                        .description,
+                      pubkey: message.content.pubkey
                     },
                     created_at: message.content.created_at
                   }
                   const newMessages = [...prev, newMessage]
+                  // Scroll to bottom when new message arrives
+                  setTimeout(scrollToBottom, 100)
                   return newMessages.sort((a, b) => a.created_at - b.created_at)
                 })
               }
@@ -170,7 +316,8 @@ function SSDevicesGroupChat() {
     account?.nostr?.commonNsec,
     account?.nostr?.deviceNsec,
     account,
-    processEvent
+    processEvent,
+    scrollToBottom
   ])
 
   // Connect to relays
@@ -230,7 +377,7 @@ function SSDevicesGroupChat() {
       const compressedMessage = compressMessage(JSON.parse(messageContent))
 
       const event = await nostrApi.createKind1059(
-        account.nostr.commonNsec,
+        account.nostr.deviceNsec as string,
         account.nostr.commonNpub,
         compressedMessage
       )
@@ -246,61 +393,93 @@ function SSDevicesGroupChat() {
     }
   }
 
+  const handleClearNostrStore = async () => {
+    if (!accountId) return
+
+    try {
+      setIsLoading(true)
+      clearMembers(accountId)
+      toast.success('Nostr store cleared successfully')
+    } catch {
+      toast.error('Failed to clear Nostr store')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const renderMessage = useCallback(
-    ({ item: msg }: { item: NostrMessage }) => (
-      <SSVStack gap="sm" style={styles.message}>
-        <SSText size="sm" color="muted">
-          {new Date(msg.created_at * 1000).toLocaleString()}
-        </SSText>
-        <SSText size="sm" color="muted">
-          {
-            // add npubAuthor
-          }
-        </SSText>
-        <SSText>{msg.content.description}</SSText>
-      </SSVStack>
-    ),
-    []
+    ({ item: msg }: { item: NostrMessage }) => {
+      return <MessageItem message={msg} members={members} />
+    },
+    [members]
   )
 
   const keyExtractor = useCallback(
-    (item: NostrMessage, index: number) => `${item.created_at}-${index}`,
+    (item: NostrMessage) => `${item.created_at}-${item.pubkey}`,
     []
   )
 
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
-    <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
+    <SSMainLayout style={{ paddingTop: 0 }}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
+          headerRight: () => null
+        }}
+      />
       <SSVStack gap="sm" style={{ flex: 1 }}>
         <SSVStack gap="sm">
-          <SSText center uppercase color="muted">
-            {t('account.nostrlabels.devicesGroupChat')}
-          </SSText>
-          <SSButton
-            label="Clear All Messages"
-            onPress={handleClearMessages}
-            disabled={isLoading || messages.length === 0}
-            variant="secondary"
-          />
-        </SSVStack>
+          <SSVStack gap="xs">
+            <SSText center uppercase color="muted">
+              {t('account.nostrlabels.devicesGroupChat')}
+            </SSText>
 
-        {/* Connection status */}
-        <SSVStack gap="sm">
-          {isLoading ? (
-            <SSVStack style={styles.statusContainer}>
-              <ActivityIndicator />
-              <SSText color="muted">Connecting to relays...</SSText>
-            </SSVStack>
-          ) : error ? (
-            <SSText color="muted" center>
-              {error}
-            </SSText>
-          ) : (
-            <SSText color="muted" center>
-              {isConnected ? 'Connected to relays' : 'Disconnected'}
-            </SSText>
-          )}
+            {isLoading ? (
+              <SSVStack style={styles.statusContainer}>
+                {!account?.nostr?.relays?.length ? (
+                  <SSText color="muted">No relay selected</SSText>
+                ) : (
+                  <>
+                    <ActivityIndicator size={15} color={Colors.white} />
+                    <SSText color="muted">Connecting to relays</SSText>
+                  </>
+                )}
+              </SSVStack>
+            ) : error ? (
+              <SSText color="muted" center>
+                {error}
+              </SSText>
+            ) : (
+              <SSText color="muted" center>
+                {isConnected ? 'Connected to relays' : 'Disconnected'}
+                {account.nostr.autoSync ? '' : ' • Sync Off'}
+              </SSText>
+            )}
+          </SSVStack>
+          <SSHStack gap="md">
+            <SSButton
+              label="Clear Nostr Store"
+              onPress={handleClearNostrStore}
+              variant="outline"
+              style={{ flex: 0.5 }}
+            />
+            <SSButton
+              label="Clear All Messages"
+              onPress={handleClearMessages}
+              disabled={isLoading || messages.length === 0}
+              variant="outline"
+              style={{ flex: 0.5 }}
+            />
+          </SSHStack>
         </SSVStack>
 
         {/* Messages section */}
@@ -310,18 +489,31 @@ function SSDevicesGroupChat() {
             data={messages}
             renderItem={renderMessage}
             keyExtractor={keyExtractor}
-            onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-            onLayout={() => flatListRef.current?.scrollToEnd()}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             ListEmptyComponent={
               <SSText center color="muted">
                 No messages yet
               </SSText>
             }
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={5}
+            initialNumToRender={20}
+            maxToRenderPerBatch={20}
+            windowSize={10}
             removeClippedSubviews={true}
+            updateCellsBatchingPeriod={100}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10
+            }}
           />
+          {showScrollButton && (
+            <SSButton
+              label="↓"
+              onPress={scrollToBottom}
+              style={styles.scrollButton}
+              variant="outline"
+            />
+          )}
         </View>
 
         {/* Message input section */}
@@ -337,7 +529,7 @@ function SSDevicesGroupChat() {
           />
           <SSButton
             style={styles.sendButton}
-            label="Send Message"
+            label="Send"
             onPress={handleSendMessage}
             disabled={isLoading || !isConnected || !messageInput.trim()}
           />
@@ -356,8 +548,13 @@ const styles = StyleSheet.create({
   message: {
     backgroundColor: '#1a1a1a',
     padding: 10,
+    paddingBottom: 15,
+    paddingTop: 5,
     borderRadius: 8,
     marginBottom: 8
+  },
+  deviceMessage: {
+    backgroundColor: '#2f2f2f'
   },
   inputContainer: {
     paddingHorizontal: 0
@@ -379,6 +576,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10
+  },
+  scrollButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    opacity: 0.8
+  },
+  messageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.white
+  },
+  messageContent: {
+    flex: 1,
+    paddingLeft: 10
+  },
+  npub: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.white
+  },
+  messageText: {
+    fontSize: 14,
+    color: Colors.white
   }
 })
 

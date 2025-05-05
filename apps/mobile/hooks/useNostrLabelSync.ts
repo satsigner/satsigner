@@ -9,6 +9,7 @@ import { NostrAPI, decompressMessage } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { useNostrStore } from '@/store/nostr'
 import type { Account, Secret } from '@/types/models/Account'
 import {
   formatAccountLabels,
@@ -23,6 +24,7 @@ function useNostrLabelSync() {
   const [importLabels, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [state.importLabels, state.updateAccountNostr])
   )
+  const addMember = useNostrStore((state) => state.addMember)
 
   const sendAccountLabelsToNostr = useCallback(
     async (account?: Account) => {
@@ -130,7 +132,7 @@ function useNostrLabelSync() {
         content = unwrappedEvent.content
       }
 
-      let message = decompressMessage(content)
+      const message = decompressMessage(content)
 
       const newDM: DM = {
         id: unwrappedEvent.id,
@@ -264,17 +266,27 @@ function useNostrLabelSync() {
       }
 
       if (eventContent.data) {
-        // Handle data event
+        const data_type = eventContent.data.data_type
+        if (data_type === 'LabelsBip329') {
+          // Handle LabelsBip329
+          console.log('⚠️ LABELS ', eventContent.data.data.slice(0, 300))
+        } else if (data_type === 'Tx') {
+          // Handle Tx
+        } else if (data_type === 'PSBT') {
+          // Handle PSBT
+        }
       } else if (eventContent.description && !eventContent.data) {
         // Store message event in account's nostr DMs
         await storeDM(account, unwrappedEvent)
       } else if (eventContent.public_key_bech32) {
         // Handle protocol event
+        const newMember = eventContent.public_key_bech32
+        addMember(account.id, newMember)
       }
 
       return eventContent
     },
-    [storeDM]
+    [storeDM, addMember]
   )
 
   return {

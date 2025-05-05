@@ -1,15 +1,19 @@
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, Stack } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet } from 'react-native'
+import { StyleSheet, ActivityIndicator } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-//import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+import SSTextClipboard from '@/components/SSClipboardCopy'
+import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import SSHStack from '@/layouts/SSHStack'
+import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 function NostrKeys() {
@@ -22,8 +26,6 @@ function NostrKeys() {
     ])
   )
 
-  //const { generateNostrKeys } = useNostrLabelSync()
-
   const [deviceNsec, setNsec] = useState<string>(
     account?.nostr.deviceNsec || ''
   )
@@ -35,15 +37,6 @@ function NostrKeys() {
   async function loadDefaultNostrKeys() {
     if (loadingDefaultKeys || !account) return
 
-    /*
-    setLoadingDefaultKeys(true)
-    const keys = await generateNostrKeys(account)
-    if (keys) {
-      setNsec(keys.nsec as string)
-      setNpub(keys.npub as string)
-    }
-    
-    */
     setLoadingDefaultKeys(false)
   }
 
@@ -58,13 +51,76 @@ function NostrKeys() {
 
   return (
     <SSMainLayout style={styles.mainLayout}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account?.name}</SSText>
+              {account?.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
+          headerRight: () => null
+        }}
+      />
       <SSVStack style={styles.pageContainer}>
         <SSVStack gap="lg">
           <SSVStack gap="sm">
-            <SSText uppercase weight="bold" size="lg">
-              CUSTOM KEYS
-            </SSText>
-            <SSText>Enter your custom keys below.</SSText>
+            <SSText center>{t('account.nostrlabels.commonNostrKeys')}</SSText>
+            <SSVStack gap="xxs" style={styles.keysContainer}>
+              {account?.nostr.commonNsec && account?.nostr.commonNpub ? (
+                <>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrlabels.nsec')}
+                    </SSText>
+                    <SSTextClipboard text={account.nostr.commonNsec}>
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
+                      >
+                        {account.nostr.commonNsec.slice(0, 12) +
+                          '...' +
+                          account.nostr.commonNsec.slice(-4)}
+                      </SSText>
+                    </SSTextClipboard>
+                  </SSVStack>
+                  <SSVStack gap="xxs">
+                    <SSText color="muted" center>
+                      {t('account.nostrlabels.npub')}
+                    </SSText>
+                    <SSTextClipboard text={account.nostr.commonNpub}>
+                      <SSText
+                        center
+                        size="xl"
+                        type="mono"
+                        style={styles.keyText}
+                        selectable
+                      >
+                        {account.nostr.commonNpub.slice(0, 12) +
+                          '...' +
+                          account.nostr.commonNpub.slice(-4)}
+                      </SSText>
+                    </SSTextClipboard>
+                  </SSVStack>
+                </>
+              ) : (
+                <SSHStack style={styles.keyContainerLoading}>
+                  <ActivityIndicator />
+                  <SSText uppercase>
+                    {t('account.nostrlabels.loadingKeys')}
+                  </SSText>
+                </SSHStack>
+              )}
+            </SSVStack>
+          </SSVStack>
+
+          <SSVStack gap="sm">
+            <SSText center>Custom Device Keys</SSText>
             <SSVStack gap="none">
               <SSText color="muted">npub</SSText>
               <SSTextInput
@@ -90,11 +146,8 @@ function NostrKeys() {
               />
             </SSVStack>
           </SSVStack>
+
           <SSVStack gap="sm">
-            <SSText uppercase weight="bold" size="lg">
-              DETERMINISTIC KEYS
-            </SSText>
-            <SSText>Use keys derived from this account descriptor.</SSText>
             <SSButton
               label="USE DEFAULT ACCOUNT KEYS"
               variant="outline"
@@ -121,6 +174,21 @@ const styles = StyleSheet.create({
   input: {
     height: 'auto',
     padding: 10
+  },
+  keysContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderColor: Colors.white,
+    padding: 10,
+    paddingBottom: 30,
+    paddingHorizontal: 28
+  },
+  keyText: {
+    letterSpacing: 1
+  },
+  keyContainerLoading: {
+    justifyContent: 'center',
+    paddingVertical: 10
   }
 })
 

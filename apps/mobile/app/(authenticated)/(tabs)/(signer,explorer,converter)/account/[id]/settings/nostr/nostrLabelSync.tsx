@@ -1,6 +1,6 @@
-import { Redirect, router, useLocalSearchParams } from 'expo-router'
+import { Redirect, router, useLocalSearchParams, Stack } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,12 +9,14 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import useNostrLabelSync from '@/hooks/useNostrLabelSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useNostrStore, generateColorFromNpub } from '@/store/nostr'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
@@ -25,11 +27,16 @@ import {
 
 function SSNostrLabelSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const getMembers = useNostrStore((state) => state.getMembers)
+  const members = accountId ? getMembers(accountId) : []
+  const { processEvent } = useNostrLabelSync()
+  const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
 
   const [commonNsec, setCommonNsec] = useState('')
   const [commonNpub, setCommonNpub] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
+  const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
   const [messages, setMessages] = useState<NostrMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -51,23 +58,35 @@ function SSNostrLabelSync() {
     ])
   )
 
+  // Initialize selectedMembers from account.trustedMemberDevices
+  useEffect(() => {
+    if (account?.nostr?.trustedMemberDevices) {
+      setSelectedMembers(new Set(account.nostr.trustedMemberDevices))
+    }
+  }, [account?.nostr?.trustedMemberDevices])
+
   // Load common Nostr keys once when component mounts
   if (account && !commonNsec) {
-    generateCommonNostrKeys(account)
-      .then((keys) => {
-        if (keys) {
-          setCommonNsec(keys.commonNsec as string)
-          setCommonNpub(keys.commonNpub as string)
-          // Update account with common keys
-          updateAccountNostr(accountId, {
-            commonNsec: keys.commonNsec,
-            commonNpub: keys.commonNpub
-          })
-        }
-      })
-      .catch((error) => {
-        throw new Error(`Error loading common Nostr keys: ${error}`)
-      })
+    if (account.nostr.commonNsec && account.nostr.commonNpub) {
+      setCommonNsec(account.nostr.commonNsec)
+      setCommonNpub(account.nostr.commonNpub)
+    } else {
+      generateCommonNostrKeys(account)
+        .then((keys) => {
+          if (keys) {
+            setCommonNsec(keys.commonNsec as string)
+            setCommonNpub(keys.commonNpub as string)
+            // Update account with common keys
+            updateAccountNostr(accountId, {
+              commonNsec: keys.commonNsec,
+              commonNpub: keys.commonNpub
+            })
+          }
+        })
+        .catch((error) => {
+          throw new Error(`Error loading common Nostr keys: ${error}`)
+        })
+    }
   }
 
   // Load device Nostr keys once when component mounts
@@ -75,12 +94,16 @@ function SSNostrLabelSync() {
     if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
       setDeviceNsec(account.nostr.deviceNsec)
       setDeviceNpub(account.nostr.deviceNpub)
+      // Generate color for device
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
     } else {
       NostrAPI.generateNostrKeys()
         .then((keys) => {
           if (keys) {
             setDeviceNsec(keys.nsec)
             setDeviceNpub(keys.npub)
+            // Generate color for device
+            generateColorFromNpub(keys.npub).then(setDeviceColor)
             // Only update device keys
             updateAccountNostr(accountId, {
               deviceNpub: keys.npub,
@@ -93,6 +116,13 @@ function SSNostrLabelSync() {
         })
     }
   }
+
+  // Generate device color when deviceNpub is available
+  useEffect(() => {
+    if (deviceNpub && deviceColor === '#404040') {
+      generateColorFromNpub(deviceNpub).then(setDeviceColor)
+    }
+  }, [deviceNpub, deviceColor])
 
   function filterMessages(msg: NostrMessage) {
     return msg.decryptedContent !== undefined && msg.decryptedContent !== ''
@@ -248,12 +278,35 @@ function SSNostrLabelSync() {
     )
   }
 
-  function handleToggleAutoSync() {
+  async function handleToggleAutoSync() {
     const newAutoSync = !autoSync
     setAutoSync(newAutoSync)
     setRelayError(null)
     if (accountId) {
       updateAccountNostr(accountId, { autoSync: newAutoSync })
+      console.log('autoSync', newAutoSync)
+
+      // Send trust request to all devices
+      if (!commonNsec || !commonNpub || !nostrApi) {
+        setRelayError(t('account.nostrlabels.errorMissingData'))
+        return
+      }
+      try {
+        const messageContent = JSON.stringify({
+          created_at: Math.floor(Date.now() / 1000),
+          public_key_bech32: deviceNpub
+        })
+        const compressedMessage = compressMessage(JSON.parse(messageContent))
+        const eventKind1059 = await nostrApi.createKind1059(
+          commonNsec,
+          commonNpub,
+          compressedMessage
+        )
+        await nostrApi.publishEvent(eventKind1059)
+        toast.success('Trust request sent')
+      } catch (_error) {
+        setRelayError('Failed to send trust request')
+      }
 
       // Send labels immediately when auto-sync is enabled
       if (newAutoSync && commonNpub && selectedRelays.length > 0) {
@@ -290,23 +343,57 @@ function SSNostrLabelSync() {
     if (selectedRelays.length > 0) {
       const api = new NostrAPI(selectedRelays)
       setNostrApi(api)
-      // Connect immediately
-      api.connect().catch(() => {
-        setRelayError('Failed to connect to relays')
-      })
+      // Only connect if auto-sync is enabled
+      if (autoSync) {
+        api.connect().catch(() => {
+          setRelayError('Failed to connect to relays')
+        })
 
-      // Subscribe to kind 1059 messages
-      if (deviceNsec && commonNsec) {
-        api
-          .subscribeToKind1059(commonNsec, deviceNsec, (message) => {
-            if (message.content) {
-              setMessages((prev) => [message, ...prev])
-            }
-          })
+        // Subscribe to kind 1059 messages
+        if (deviceNsec && commonNsec) {
+          api
+            .subscribeToKind1059(
+              commonNsec,
+              deviceNsec,
+              async (message) => {
+                if (message.content && account) {
+                  try {
+                    const eventContent = await processEvent(
+                      account,
+                      message.content
+                    )
+                    let parsedContent
+                    try {
+                      parsedContent = JSON.parse(eventContent)
+                    } catch {
+                      parsedContent = eventContent
+                    }
 
-          .catch(() => {
-            setRelayError('Failed to subscribe to kind 1059 messages')
-          })
+                    if (parsedContent.public_key_bech32) {
+                      // This is a trust request
+                      console.log(
+                        'Received trust request:',
+                        parsedContent.public_key_bech32
+                      )
+                      const addMember = useNostrStore.getState().addMember
+                      await addMember(
+                        accountId,
+                        parsedContent.public_key_bech32
+                      )
+                    }
+                    setMessages((prev) => [message, ...prev])
+                  } catch (error) {
+                    console.error('Error processing message:', error)
+                  }
+                }
+              },
+              undefined,
+              Math.floor(Date.now() / 1000) // Only get messages from now onwards
+            )
+            .catch(() => {
+              setRelayError('Failed to subscribe to kind 1059 messages')
+            })
+        }
       }
     }
   }
@@ -318,8 +405,8 @@ function SSNostrLabelSync() {
     setSelectedRelays(account.nostr.relays)
     setAutoSync(account.nostr.autoSync)
 
-    // Initialize NostrAPI when component mounts if relays are available
-    if (account.nostr.relays.length > 0) {
+    // Initialize NostrAPI when component mounts if relays are available and auto-sync is enabled
+    if (account.nostr.relays.length > 0 && account.nostr.autoSync) {
       const api = new NostrAPI(account.nostr.relays)
       setNostrApi(api)
       // Connect immediately
@@ -345,12 +432,42 @@ function SSNostrLabelSync() {
     }
   }
 
+  const toggleMember = (npub: string) => {
+    setSelectedMembers((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(npub)) {
+        newSet.delete(npub)
+        // Remove from trustedMemberDevices in account store
+        if (account) {
+          updateAccountNostr(accountId, {
+            trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
+              (m) => m !== npub
+            )
+          })
+        }
+      } else {
+        newSet.add(npub)
+        // Add to trustedMemberDevices in account store
+        if (account) {
+          updateAccountNostr(accountId, {
+            trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
+          })
+        }
+      }
+      return newSet
+    })
+  }
+
   useEffect(reloadApi, [
     selectedRelays,
     commonNpub,
     commonNsec,
     deviceNpub,
-    deviceNsec
+    deviceNsec,
+    account,
+    accountId,
+    processEvent,
+    autoSync
   ])
   useEffect(loadNostrAccountData, [account])
   useEffect(handleFetchMessagesAutoSync, [autoSync, commonNpub, selectedRelays]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -367,260 +484,204 @@ function SSNostrLabelSync() {
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
-    <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
+    <SSMainLayout style={{ paddingTop: 10, paddingBottom: 20 }}>
       <ScrollView>
+        <Stack.Screen
+          options={{
+            headerTitle: () => (
+              <SSHStack gap="sm">
+                <SSText uppercase>{account.name}</SSText>
+                {account.policyType === 'watchonly' && (
+                  <SSIconEyeOn stroke="#fff" height={16} width={16} />
+                )}
+              </SSHStack>
+            ),
+            headerRight: () => null
+          }}
+        />
         <SSVStack gap="lg">
           <SSText center uppercase color="muted">
             {t('account.nostrlabels.title')}
           </SSText>
 
           {/* Auto-sync section */}
-          <SSVStack gap="sm">
-            <SSHStack gap="md" style={styles.autoSyncContainer}>
+          <SSVStack gap="md">
+            <SSButton
+              variant={autoSync ? 'danger' : 'secondary'}
+              label={autoSync ? 'Turn sync OFF' : 'Turn sync ON'}
+              onPress={handleToggleAutoSync}
+            />
+            <SSHStack gap="md">
               <SSButton
-                variant={autoSync ? 'secondary' : 'outline'}
-                label={autoSync ? 'Turn sync OFF' : 'Turn sync ON'}
-                onPress={handleToggleAutoSync}
+                style={{ flex: 0.9 }}
+                variant="outline"
+                label={t('account.nostrlabels.setKeys')}
+                onPress={goToNostrKeyPage}
               />
-              {autoSync && (
-                <SSText size="sm" color="muted">
-                  Syncing everytime a label is added or edited
-                </SSText>
-              )}
-            </SSHStack>
-          </SSVStack>
 
-          {/* Top section with relay selection */}
-          <SSVStack gap="sm">
+              <SSButton
+                style={{ flex: 0.9 }}
+                variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
+                label={t('account.nostrlabels.manageRelays', {
+                  count: selectedRelays.length
+                })}
+                onPress={goToSelectRelaysPage}
+              />
+            </SSHStack>
+
             {selectedRelays.length === 0 && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrlabels.noRelaysWarning')}
               </SSText>
             )}
-            <SSButton
-              variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
-              label={t('account.nostrlabels.manageRelays', {
-                count: selectedRelays.length
-              })}
-              onPress={goToSelectRelaysPage}
-            />
-          </SSVStack>
 
-          {/* Keys display */}
-          <SSVStack gap="sm">
-            <SSText center>{t('account.nostrlabels.commonNostrKeys')}</SSText>
-            <SSVStack gap="xxs" style={styles.keysContainer}>
-              {commonNsec !== '' && commonNpub !== '' ? (
-                <>
-                  <SSVStack gap="xxs">
-                    <SSText color="muted" center>
-                      {t('account.nostrlabels.nsec')}
-                    </SSText>
-                    <SSTextClipboard text={commonNsec}>
-                      <SSText
-                        center
-                        size="xl"
-                        type="mono"
-                        style={styles.keyText}
-                        selectable
-                      >
-                        {commonNsec}
+            {/* Personal Device Keys */}
+            <SSVStack gap="sm">
+              <SSText center>{t('account.nostrlabels.deviceKeys')}</SSText>
+              <SSVStack gap="xxs" style={styles.keysContainer}>
+                {deviceNsec !== '' && deviceNpub !== '' ? (
+                  <>
+                    <SSVStack gap="xxs">
+                      <SSText color="muted" center>
+                        {t('account.nostrlabels.nsec')}
                       </SSText>
-                    </SSTextClipboard>
-                  </SSVStack>
-                  <SSVStack gap="xxs">
-                    <SSText color="muted" center>
-                      {t('account.nostrlabels.npub')}
-                    </SSText>
-                    <SSTextClipboard text={commonNpub}>
-                      <SSText
-                        center
-                        size="xl"
-                        type="mono"
-                        style={styles.keyText}
-                        selectable
-                      >
-                        {commonNpub}
+                      <SSTextClipboard text={deviceNsec}>
+                        <SSText
+                          center
+                          size="xl"
+                          type="mono"
+                          style={styles.keyText}
+                          selectable
+                        >
+                          {deviceNsec.slice(0, 12) +
+                            '...' +
+                            deviceNsec.slice(-4)}
+                        </SSText>
+                      </SSTextClipboard>
+                    </SSVStack>
+                    <SSVStack gap="xxs">
+                      <SSText color="muted" center>
+                        {t('account.nostrlabels.npub')}
                       </SSText>
-                    </SSTextClipboard>
-                  </SSVStack>
-                </>
-              ) : (
-                <SSHStack style={styles.keyContainerLoading}>
-                  <ActivityIndicator />
-                  <SSText uppercase>
-                    {t('account.nostrlabels.loadingKeys')}
-                  </SSText>
-                </SSHStack>
-              )}
-            </SSVStack>
-          </SSVStack>
 
-          <SSVStack gap="sm">
-            <SSText center>{t('account.nostrlabels.deviceKeys')}</SSText>
-            <SSVStack gap="xxs" style={styles.keysContainer}>
-              {deviceNsec !== '' && deviceNpub !== '' ? (
-                <>
-                  <SSVStack gap="xxs">
-                    <SSText color="muted" center>
-                      {t('account.nostrlabels.nsec')}
+                      <SSHStack gap="xxs" style={{ flex: 0.7 }}>
+                        <View
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: deviceColor,
+                            marginTop: 1,
+                            marginLeft: 60,
+                            marginRight: -60
+                          }}
+                        />
+                        <SSTextClipboard text={deviceNpub}>
+                          <SSText
+                            center
+                            size="xl"
+                            type="mono"
+                            style={styles.keyText}
+                            selectable
+                          >
+                            {deviceNpub.slice(0, 12) +
+                              '...' +
+                              deviceNpub.slice(-4)}
+                          </SSText>
+                        </SSTextClipboard>
+                      </SSHStack>
+                    </SSVStack>
+                  </>
+                ) : (
+                  <SSHStack style={styles.keyContainerLoading}>
+                    <ActivityIndicator />
+                    <SSText uppercase>
+                      {t('account.nostrlabels.loadingKeys')}
                     </SSText>
-                    <SSTextClipboard text={deviceNsec}>
-                      <SSText
-                        center
-                        size="xl"
-                        type="mono"
-                        style={styles.keyText}
-                        selectable
-                      >
-                        {deviceNsec}
-                      </SSText>
-                    </SSTextClipboard>
-                  </SSVStack>
-                  <SSVStack gap="xxs">
-                    <SSText color="muted" center>
-                      {t('account.nostrlabels.npub')}
-                    </SSText>
-                    <SSTextClipboard text={deviceNpub}>
-                      <SSText
-                        center
-                        size="xl"
-                        type="mono"
-                        style={styles.keyText}
-                        selectable
-                      >
-                        {deviceNpub}
-                      </SSText>
-                    </SSTextClipboard>
-                  </SSVStack>
-                </>
-              ) : (
-                <SSHStack style={styles.keyContainerLoading}>
-                  <ActivityIndicator />
-                  <SSText uppercase>
-                    {t('account.nostrlabels.loadingKeys')}
-                  </SSText>
-                </SSHStack>
-              )}
+                  </SSHStack>
+                )}
+              </SSVStack>
             </SSVStack>
 
             <SSButton
-              variant="subtle"
-              label={t('account.nostrlabels.setKeys')}
-              onPress={goToNostrKeyPage}
-            />
-
-            <SSButton
-              variant="subtle"
+              style={{ marginTop: 30, marginBottom: 10 }}
+              variant="outline"
               label={t('account.nostrlabels.devicesGroupChat')}
               onPress={goToDevicesGroupChat}
             />
 
-            <SSButton
-              variant="subtle"
-              label="Send Trust Request"
-              onPress={async () => {
-                if (!commonNsec || !commonNpub || !nostrApi) {
-                  setRelayError(t('account.nostrlabels.errorMissingData'))
-                  return
-                }
-                try {
-                  const messageContent = JSON.stringify({
-                    created_at: Math.floor(Date.now() / 1000),
-                    public_key_bech32: deviceNpub
-                  })
-                  const eventKind1059 = await nostrApi.createKind1059(
-                    commonNsec,
-                    commonNpub,
-                    messageContent
-                  )
-                  await nostrApi.publishEvent(eventKind1059)
-                  toast.success('Trust request sent')
-                } catch (_error) {
-                  setRelayError('Failed to send trust request')
-                }
-              }}
-            />
-
-            <SSButton
-              variant="subtle"
-              label="Send Sample Message"
-              onPress={async () => {
-                if (!commonNsec || !commonNpub || !nostrApi) {
-                  setRelayError(t('account.nostrlabels.errorMissingData'))
-                  return
-                }
-                try {
-                  const messageContent = JSON.stringify({
-                    created_at: Math.floor(Date.now() / 1000),
-                    label: 1,
-                    description: 'Compressed Message !!!'
-                  })
-                  const compressedMessage = compressMessage(
-                    JSON.parse(messageContent)
-                  )
-
-                  const eventKind1059 = await nostrApi.createKind1059(
-                    commonNsec,
-                    commonNpub,
-                    compressedMessage
-                  )
-                  await nostrApi.publishEvent(eventKind1059)
-                  toast.success('Sample message sent')
-                } catch (_error) {
-                  setRelayError('Failed to send message')
-                }
-              }}
-            />
-
-            <SSButton
-              variant="subtle"
-              label="Send Sample Message User"
-              onPress={async () => {
-                if (!commonNsec || !commonNpub || !nostrApi) {
-                  setRelayError(t('account.nostrlabels.errorMissingData'))
-                  return
-                }
-                try {
-                  const messageContent = JSON.stringify({
-                    created_at: Math.floor(Date.now() / 1000),
-                    label: 1,
-                    description: 'Compressed Message !!!'
-                  })
-                  const compressedMessage = compressMessage(
-                    JSON.parse(messageContent)
-                  )
-
-                  const eventKind1059 = await nostrApi.createKind1059(
-                    deviceNsec,
-                    commonNpub,
-                    compressedMessage
-                  )
-                  await nostrApi.publishEvent(eventKind1059)
-                  toast.success('Sample message sent')
-                } catch (_error) {
-                  setRelayError('Failed to send message')
-                }
-              }}
-            />
+            {/* Members section */}
+            <SSVStack gap="sm">
+              <SSText center color="muted">
+                {t('account.nostrlabels.members')}
+              </SSText>
+              {members.length > 0 ? (
+                <SSVStack gap="md" style={styles.membersContainer}>
+                  {members
+                    .filter((member) => member.npub !== deviceNpub)
+                    .map((member, index) => (
+                      <SSVStack key={index} gap="md">
+                        {member?.npub && (
+                          <SSHStack gap="md">
+                            <SSHStack gap="xxs" style={{ flex: 0.7 }}>
+                              <View
+                                style={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: 4,
+                                  backgroundColor: member.color,
+                                  marginTop: 1,
+                                  marginLeft: 20,
+                                  marginRight: -20
+                                }}
+                              />
+                              <SSTextClipboard text={member.npub}>
+                                <SSText
+                                  center
+                                  size="xl"
+                                  type="mono"
+                                  style={styles.memberText}
+                                  selectable
+                                >
+                                  {member.npub.slice(0, 12) +
+                                    '...' +
+                                    member.npub.slice(-4)}
+                                </SSText>
+                              </SSTextClipboard>
+                            </SSHStack>
+                            <SSButton
+                              style={{
+                                height: 44,
+                                flex: 0.25
+                              }}
+                              variant={
+                                selectedMembers.has(member.npub)
+                                  ? 'danger'
+                                  : 'outline'
+                              }
+                              label={
+                                selectedMembers.has(member.npub)
+                                  ? 'Distrust'
+                                  : 'Trust'
+                              }
+                              onPress={() => toggleMember(member.npub)}
+                            />
+                          </SSHStack>
+                        )}
+                      </SSVStack>
+                    ))}
+                </SSVStack>
+              ) : (
+                <SSText center color="muted">
+                  {t('account.nostrlabels.noMembers')}
+                </SSText>
+              )}
+            </SSVStack>
           </SSVStack>
 
           <SSVStack gap="sm">
             {/* Message controls */}
-            {commonNpub && (
-              <>
-                <SSButton
-                  label={t('account.nostrlabels.checkForMessages')}
-                  onPress={() => fetchMessages(false)}
-                  disabled={isLoading || selectedRelays.length === 0}
-                />
-                <SSButton
-                  label={t('account.nostrlabels.sendLabels')}
-                  onPress={handleSendMessage}
-                  disabled={selectedRelays.length === 0}
-                />
-              </>
-            )}
+            {commonNpub && <></>}
             {/* Messages section */}
             {messages.length > 0 && (
               <SSVStack gap="md" style={styles.nostrMessageContainer}>
@@ -640,13 +701,13 @@ function SSNostrLabelSync() {
                     <SSText color={msg.isSender ? 'white' : 'muted'}>
                       {msg.isSender ? 'Content Sent' : 'Content Received'}:
                     </SSText>
-                    {MessageContent(msg.decryptedContent || '', index)}
-                    {msg.decryptedContent?.startsWith('{"label":') && (
+                    {MessageContent(msg.content.content || '', index)}
+                    {msg.content.content?.startsWith('{"label":') && (
                       <SSButton
                         label={t('account.nostrlabels.importLabels')}
                         variant="outline"
                         onPress={() => {
-                          handleImportLabels(msg.decryptedContent || '')
+                          handleImportLabels(msg.content.content || '')
                         }}
                       />
                     )}
@@ -691,6 +752,23 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 28
   },
+  membersContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderColor: Colors.white,
+    paddingVertical: 15,
+    paddingHorizontal: 0
+  },
+  colorCircle: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 4
+  },
+  memberText: {
+    letterSpacing: 1,
+    color: Colors.white
+  },
   keyContainerLoading: {
     justifyContent: 'center',
     paddingVertical: 10
@@ -708,6 +786,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     padding: 10,
     borderRadius: 8
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: Colors.white,
+    borderRadius: 4,
+    marginRight: 8,
+    marginTop: 1
+  },
+  checkboxSelected: {
+    backgroundColor: Colors.white
   }
 })
 
