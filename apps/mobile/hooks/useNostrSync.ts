@@ -19,6 +19,7 @@ import {
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 import { type DM } from '@/types/models/Account'
+import { t } from '@/locales'
 
 function useNostrSync() {
   const [importLabels, updateAccountNostr] = useAccountsStore(
