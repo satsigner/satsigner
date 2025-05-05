@@ -102,7 +102,12 @@ function useNostrSync() {
         )
 
         await nostrApi.publishEvent(eventKind1059)
-        toast.success('Labels sent to relays')
+
+        if (singleLabel) {
+          toast.success('Single label sent to relays')
+        } else {
+          toast.success('All labels sent to relays')
+        }
 
         // Update last backup timestamp
         const timestamp = Math.floor(Date.now() / 1000)
