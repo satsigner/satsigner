@@ -530,7 +530,6 @@ function SSNostrLabelSync() {
               )}
             </SSVStack>
           </SSVStack>
-          {relayError && <SSText size="sm">{relayError}</SSText>}
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
