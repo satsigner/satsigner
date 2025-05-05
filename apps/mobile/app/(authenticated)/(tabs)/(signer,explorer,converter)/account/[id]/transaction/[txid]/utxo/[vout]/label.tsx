@@ -12,7 +12,7 @@ import { type UtxoSearchParams } from '@/types/navigation/searchParams'
 function SSUtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
 
-  const { sendAccountLabelsToNostr } = useNostrSync()
+  const { sendLabelsToNostr } = useNostrSync()
 
   const [utxo, setUtxoLabel] = useAccountsStore((state) => [
     state.accounts
@@ -23,7 +23,16 @@ function SSUtxoLabel() {
 
   function updateLabel(label: string) {
     const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)
-    sendAccountLabelsToNostr(updatedAccount)
+
+    const singleLabelData = {
+      label: label,
+      ref: vout!,
+      type: 'output'
+    }
+
+    if (updatedAccount?.nostr?.autoSync) {
+      sendLabelsToNostr(updatedAccount, singleLabelData)
+    }
     router.back()
   }
 

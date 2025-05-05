@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { NostrAPI, decompressMessage } from '@/api/nostr'
+import { NostrAPI, decompressMessage, compressMessage } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
@@ -26,52 +26,87 @@ function useNostrSync() {
   )
   const addMember = useNostrStore((state) => state.addMember)
 
-  const sendAccountLabelsToNostr = useCallback(
-    async (account?: Account) => {
+  const sendLabelsToNostr = useCallback(
+    async (account?: Account, singleLabel?: any) => {
       if (!account?.nostr?.autoSync) {
         return
       }
       if (!account || !account.nostr) {
         return
       }
-      const { commonNsec, commonNpub, relays, lastBackupFingerprint } =
-        account.nostr
+      const {
+        commonNsec,
+        commonNpub,
+        relays,
+        lastBackupFingerprint,
+        deviceNpub
+      } = account.nostr
 
-      if (!commonNsec || commonNpub === '' || relays.length === 0) {
+      if (
+        !commonNsec ||
+        commonNpub === '' ||
+        relays.length === 0 ||
+        !deviceNpub
+      ) {
         return
       }
 
-      const labels = formatAccountLabels(account)
-
-      if (labels.length === 0) {
-        toast.error('No labels to send')
-        return
+      let labels: any[] = []
+      if (singleLabel) {
+        labels.push(singleLabel)
+      } else {
+        labels = formatAccountLabels(account)
+        const message = labelsToJSONL(labels)
+        const hash = await sha256(message)
+        const fingerprint = hash.slice(0, 8)
+        if (fingerprint === lastBackupFingerprint) {
+          return
+        }
       }
-
-      const message = labelsToJSONL(labels)
-      const hash = await sha256(message)
-      const fingerprint = hash.slice(0, 8)
-
-      if (fingerprint === lastBackupFingerprint) {
-        return
-      }
-
-      const nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
 
       try {
-        toast.info('Sending message to relays...')
-        const event = await nostrApi.createKind1059(
+        if (labels.length === 0) {
+          toast.error(t('account.nostrSync.errorMissingData'))
+          return
+        }
+
+        // Format each label entry and wrap in labelPackage
+        const labelPackage = labels.map((label) => ({
+          __class__: 'Label',
+          VERSION: '0.0.3',
+          type: label.type,
+          ref: label.ref,
+          label: label.label,
+          spendable: label.spendable,
+          timestamp: Math.floor(Date.now() / 1000)
+        }))
+
+        const labelPackageJSONL = labelsToJSONL(labelPackage)
+
+        const messageContent = {
+          created_at: Math.floor(Date.now() / 1000),
+          label: 1,
+          description: 'Here come some labels',
+          data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
+        }
+
+        const compressedMessage = compressMessage(messageContent)
+
+        const nostrApi = new NostrAPI(relays)
+        await nostrApi.connect()
+
+        const eventKind1059 = await nostrApi.createKind1059(
           commonNsec,
           commonNpub,
-          message
+          compressedMessage
         )
-        await nostrApi.publishEvent(event)
-        toast.success('Message sent successfully')
 
-        const timestamp = new Date().getTime() / 1000
+        await nostrApi.publishEvent(eventKind1059)
+        toast.success('Labels sent to relays')
+
+        // Update last backup timestamp
+        const timestamp = Math.floor(Date.now() / 1000)
         updateAccountNostr(account.id, {
-          lastBackupFingerprint: fingerprint,
           lastBackupTimestamp: timestamp
         })
       } catch (_error) {
@@ -83,6 +118,7 @@ function useNostrSync() {
     [updateAccountNostr]
   )
 
+  // OUTDATED FIX
   const syncAccountLabelsFromNostr = useCallback(
     async (account?: Account) => {
       if (!account || !account.nostr) return
@@ -290,7 +326,7 @@ function useNostrSync() {
   )
 
   return {
-    sendAccountLabelsToNostr,
+    sendLabelsToNostr,
     syncAccountLabelsFromNostr,
     generateCommonNostrKeys,
     storeDM,

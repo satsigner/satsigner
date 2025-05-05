@@ -16,7 +16,7 @@ import { SSTxDetailsHeader } from '.'
 function SSTransactionLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const { sendAccountLabelsToNostr } = useNostrSync()
+  const { sendLabelsToNostr } = useNostrSync()
 
   const [tx, setTxLabel] = useAccountsStore((state) => [
     state.accounts
@@ -27,7 +27,17 @@ function SSTransactionLabel() {
 
   function updateLabel(label: string) {
     const updatedAccount = setTxLabel(accountId!, txid!, label)
-    sendAccountLabelsToNostr(updatedAccount)
+
+    const singleLabelData = {
+      label: label,
+      ref: txid!,
+      spendable: true,
+      type: 'tx'
+    }
+
+    if (updatedAccount?.nostr?.autoSync) {
+      sendLabelsToNostr(updatedAccount, singleLabelData)
+    }
     router.back()
   }
 

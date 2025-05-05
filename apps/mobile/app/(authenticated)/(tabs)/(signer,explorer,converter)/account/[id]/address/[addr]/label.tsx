@@ -15,7 +15,7 @@ import { type AddrSearchParams } from '@/types/navigation/searchParams'
 function SSAddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
-  const { sendAccountLabelsToNostr } = useNostrSync()
+  const { sendLabelsToNostr } = useNostrSync()
 
   const [address, setAddrLabel] = useAccountsStore((state) => [
     state.accounts
@@ -26,7 +26,16 @@ function SSAddressLabel() {
 
   function updateLabel(label: string) {
     const updatedAccount = setAddrLabel(accountId!, addr!, label)
-    sendAccountLabelsToNostr(updatedAccount)
+
+    const singleLabelData = {
+      label: label,
+      ref: addr!,
+      type: 'addr'
+    }
+
+    if (updatedAccount?.nostr?.autoSync) {
+      sendLabelsToNostr(updatedAccount, singleLabelData)
+    }
     router.back()
   }
 

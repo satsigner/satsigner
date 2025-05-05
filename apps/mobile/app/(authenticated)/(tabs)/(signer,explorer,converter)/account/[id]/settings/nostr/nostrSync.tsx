@@ -37,7 +37,7 @@ function SSNostrSync() {
   const [autoSync, setAutoSync] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const { generateCommonNostrKeys } = useNostrSync()
+  const { generateCommonNostrKeys, sendLabelsToNostr } = useNostrSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -123,6 +123,10 @@ function SSNostrSync() {
       if (newAutoSync) {
         // Send trust request to all devices
         try {
+          if (!nostrApi) {
+            toast.error('Nostr API not initialized')
+            return
+          }
           const messageContent = JSON.stringify({
             created_at: Math.floor(Date.now() / 1000),
             public_key_bech32: deviceNpub
@@ -144,50 +148,8 @@ function SSNostrSync() {
 
           return
         }
-        const labels = formatAccountLabels(account)
-        console.log('labels', labels)
-
-        if (labels.length === 0) {
-          toast.error(t('account.nostrSync.errorMissingData'))
-          return
-        }
-
-        // Format each label entry and wrap in labelPackage
-        const labelPackage = labels.map((label) => ({
-          __class__: 'Label',
-          VERSION: '0.0.3',
-          type: label.type,
-          ref: label.ref,
-          label: label.label,
-          spendable: label.spendable,
-          timestamp: Math.floor(Date.now() / 1000)
-        }))
-
-        const labelPackageJSONL = labelsToJSONL(labelPackage)
-
-        const messageContent = {
-          created_at: Math.floor(Date.now() / 1000),
-          label: 1,
-          description: 'Here come some labels',
-          data: { data: labelPackageJSONL, data_type: 'LabelsBip329' }
-        }
-
-        const compressedMessage = compressMessage(messageContent)
-
-        const eventKind1059 = await nostrApi.createKind1059(
-          commonNsec,
-          commonNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-        toast.success('Labels sent to relays')
+        sendLabelsToNostr(account)
       }
-
-      // Update last backup timestamp
-      const timestamp = Math.floor(Date.now() / 1000)
-      updateAccountNostr(accountId, {
-        lastBackupTimestamp: timestamp
-      })
     }
   }
 
