@@ -440,7 +440,7 @@ function SSDevicesGroupChat() {
         <SSVStack gap="sm">
           <SSVStack gap="xs">
             <SSText center uppercase color="muted">
-              {t('account.nostrlabels.devicesGroupChat')}
+              {t('account.nostrSync.devicesGroupChat')}
             </SSText>
 
             {isLoading ? (
@@ -505,8 +505,6 @@ function SSDevicesGroupChat() {
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 10
             }}
-            inverted={true}
-            contentContainerStyle={{ flexDirection: 'column-reverse' }}
           />
           {showScrollButton && (
             <SSButton

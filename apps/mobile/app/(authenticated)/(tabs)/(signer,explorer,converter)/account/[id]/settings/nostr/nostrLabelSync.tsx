@@ -130,13 +130,13 @@ function SSNostrLabelSync() {
 
   async function fetchMessages(loadMore: boolean = false) {
     if (!commonNsec || !commonNpub || !nostrApi) {
-      setRelayError(t('account.nostrlabels.errorMissingData'))
+      setRelayError(t('account.nostrSync.errorMissingData'))
       return
     }
 
     // Add relay check at the start
     if (selectedRelays.length === 0) {
-      setRelayError(t('account.nostrlabels.noRelaysWarning'))
+      setRelayError(t('account.nostrSync.noRelaysWarning'))
       return
     }
 
@@ -168,7 +168,7 @@ function SSNostrLabelSync() {
 
   async function handleSendMessage() {
     if (!commonNsec || !commonNpub || !nostrApi || !account) {
-      setRelayError(t('account.nostrlabels.errorMissingData'))
+      setRelayError(t('account.nostrSync.errorMissingData'))
       return
     }
     try {
@@ -176,7 +176,7 @@ function SSNostrLabelSync() {
       toast.info(`Sending ${labels.length} labels to relays`)
 
       if (labels.length === 0) {
-        setRelayError(t('account.nostrlabels.noLabelsToSync'))
+        setRelayError(t('account.nostrSync.noLabelsToSync'))
         return
       }
 
@@ -255,7 +255,7 @@ function SSNostrLabelSync() {
               onPress={() => toggleMessageExpansion(index)}
               style={{ textDecorationLine: 'underline' }}
             >
-              {t('account.nostrLabels.backupPreviewShowLess')}
+              {t('account.nostrSync.backupPreviewShowLess')}
             </SSText>
           )}
         </SSVStack>
@@ -272,7 +272,7 @@ function SSNostrLabelSync() {
           onPress={() => toggleMessageExpansion(index)}
           style={{ textDecorationLine: 'underline' }}
         >
-          {t('account.nostrLabels.backupPreviewShowMore')}
+          {t('account.nostrSync.backupPreviewShowMore')}
         </SSText>
       </SSVStack>
     )
@@ -288,7 +288,7 @@ function SSNostrLabelSync() {
 
       // Send trust request to all devices
       if (!commonNsec || !commonNpub || !nostrApi) {
-        setRelayError(t('account.nostrlabels.errorMissingData'))
+        setRelayError(t('account.nostrSync.errorMissingData'))
         return
       }
       try {
@@ -312,7 +312,7 @@ function SSNostrLabelSync() {
       if (newAutoSync && commonNpub && selectedRelays.length > 0) {
         handleSendMessage()
       } else if (newAutoSync && selectedRelays.length === 0) {
-        setRelayError(t('account.nostrlabels.noRelaysWarning'))
+        setRelayError(t('account.nostrSync.noRelaysWarning'))
       }
     }
   }
@@ -501,7 +501,7 @@ function SSNostrLabelSync() {
         />
         <SSVStack gap="lg">
           <SSText center uppercase color="muted">
-            {t('account.nostrlabels.title')}
+            {t('account.nostrSync.title')}
           </SSText>
 
           {/* Auto-sync section */}
@@ -515,14 +515,14 @@ function SSNostrLabelSync() {
               <SSButton
                 style={{ flex: 0.9 }}
                 variant="outline"
-                label={t('account.nostrlabels.setKeys')}
+                label={t('account.nostrSync.setKeys')}
                 onPress={goToNostrKeyPage}
               />
 
               <SSButton
                 style={{ flex: 0.9 }}
                 variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
-                label={t('account.nostrlabels.manageRelays', {
+                label={t('account.nostrSync.manageRelays', {
                   count: selectedRelays.length
                 })}
                 onPress={goToSelectRelaysPage}
@@ -531,19 +531,19 @@ function SSNostrLabelSync() {
 
             {selectedRelays.length === 0 && (
               <SSText color="white" weight="bold" center>
-                {t('account.nostrlabels.noRelaysWarning')}
+                {t('account.nostrSync.noRelaysWarning')}
               </SSText>
             )}
 
             {/* Personal Device Keys */}
             <SSVStack gap="sm">
-              <SSText center>{t('account.nostrlabels.deviceKeys')}</SSText>
+              <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
                 {deviceNsec !== '' && deviceNpub !== '' ? (
                   <>
                     <SSVStack gap="xxs">
                       <SSText color="muted" center>
-                        {t('account.nostrlabels.nsec')}
+                        {t('account.nostrSync.nsec')}
                       </SSText>
                       <SSTextClipboard text={deviceNsec}>
                         <SSText
@@ -561,7 +561,7 @@ function SSNostrLabelSync() {
                     </SSVStack>
                     <SSVStack gap="xxs">
                       <SSText color="muted" center>
-                        {t('account.nostrlabels.npub')}
+                        {t('account.nostrSync.npub')}
                       </SSText>
 
                       <SSHStack gap="xxs" style={{ flex: 0.7 }}>
@@ -596,7 +596,7 @@ function SSNostrLabelSync() {
                   <SSHStack style={styles.keyContainerLoading}>
                     <ActivityIndicator />
                     <SSText uppercase>
-                      {t('account.nostrlabels.loadingKeys')}
+                      {t('account.nostrSync.loadingKeys')}
                     </SSText>
                   </SSHStack>
                 )}
@@ -606,14 +606,14 @@ function SSNostrLabelSync() {
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="outline"
-              label={t('account.nostrlabels.devicesGroupChat')}
+              label={t('account.nostrSync.devicesGroupChat')}
               onPress={goToDevicesGroupChat}
             />
 
             {/* Members section */}
             <SSVStack gap="sm">
               <SSText center color="muted">
-                {t('account.nostrlabels.members')}
+                {t('account.nostrSync.members')}
               </SSText>
               {members.length > 0 ? (
                 <SSVStack gap="md" style={styles.membersContainer}>
@@ -673,7 +673,7 @@ function SSNostrLabelSync() {
                 </SSVStack>
               ) : (
                 <SSText center color="muted">
-                  {t('account.nostrlabels.noMembers')}
+                  {t('account.nostrSync.noMembers')}
                 </SSText>
               )}
             </SSVStack>
@@ -686,10 +686,10 @@ function SSNostrLabelSync() {
             {messages.length > 0 && (
               <SSVStack gap="md" style={styles.nostrMessageContainer}>
                 <SSHStack gap="md" justifyBetween>
-                  <SSText>{t('account.nostrlabels.latestMessages')}</SSText>
+                  <SSText>{t('account.nostrSync.latestMessages')}</SSText>
                   {isLoading && (
                     <SSText color="muted">
-                      {t('account.nostrlabels.loading')}
+                      {t('account.nostrSync.loading')}
                     </SSText>
                   )}
                 </SSHStack>
@@ -704,7 +704,7 @@ function SSNostrLabelSync() {
                     {MessageContent(msg.content.content || '', index)}
                     {msg.content.content?.startsWith('{"label":') && (
                       <SSButton
-                        label={t('account.nostrlabels.importLabels')}
+                        label={t('account.nostrSync.importLabels')}
                         variant="outline"
                         onPress={() => {
                           handleImportLabels(msg.content.content || '')
@@ -715,7 +715,7 @@ function SSNostrLabelSync() {
                 ))}
                 {hasMoreMessages && (
                   <SSButton
-                    label={t('account.nostrlabels.loadOlderMessages')}
+                    label={t('account.nostrSync.loadOlderMessages')}
                     onPress={() => fetchMessages(true)}
                     disabled={isLoading}
                   />

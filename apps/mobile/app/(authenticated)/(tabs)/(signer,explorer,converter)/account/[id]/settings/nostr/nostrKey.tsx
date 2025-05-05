@@ -67,13 +67,13 @@ function NostrKeys() {
       <SSVStack style={styles.pageContainer}>
         <SSVStack gap="lg">
           <SSVStack gap="sm">
-            <SSText center>{t('account.nostrlabels.commonNostrKeys')}</SSText>
+            <SSText center>{t('account.nostrSync.commonNostrKeys')}</SSText>
             <SSVStack gap="xxs" style={styles.keysContainer}>
               {account?.nostr.commonNsec && account?.nostr.commonNpub ? (
                 <>
                   <SSVStack gap="xxs">
                     <SSText color="muted" center>
-                      {t('account.nostrlabels.nsec')}
+                      {t('account.nostrSync.nsec')}
                     </SSText>
                     <SSTextClipboard text={account.nostr.commonNsec}>
                       <SSText
@@ -91,7 +91,7 @@ function NostrKeys() {
                   </SSVStack>
                   <SSVStack gap="xxs">
                     <SSText color="muted" center>
-                      {t('account.nostrlabels.npub')}
+                      {t('account.nostrSync.npub')}
                     </SSText>
                     <SSTextClipboard text={account.nostr.commonNpub}>
                       <SSText
@@ -112,7 +112,7 @@ function NostrKeys() {
                 <SSHStack style={styles.keyContainerLoading}>
                   <ActivityIndicator />
                   <SSText uppercase>
-                    {t('account.nostrlabels.loadingKeys')}
+                    {t('account.nostrSync.loadingKeys')}
                   </SSText>
                 </SSHStack>
               )}

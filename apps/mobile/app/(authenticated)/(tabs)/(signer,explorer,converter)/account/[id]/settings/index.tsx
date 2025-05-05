@@ -210,7 +210,7 @@ function AccountSettings() {
           </SSHStack>
           <SSButton
             style={styles.button}
-            label={t('account.nostrlabels.sync')}
+            label={t('account.nostrSync.sync')}
             onPress={() =>
               router.navigate(
                 `/account/${currentAccountId}/settings/nostr/nostrLabelSync`
