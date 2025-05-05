@@ -297,7 +297,13 @@ function useSyncAccountWithAddress() {
       //
     }
 
-    //
+    return {
+      transactions: account.transactions,
+      utxos: account.utxos,
+      progress: account.syncProgress,
+      confirmed: balance.confirmed,
+      unconfirmed: balance.unconfirmed
+    }
   }
 
   async function syncAccountWithAddress(
