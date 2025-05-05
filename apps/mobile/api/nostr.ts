@@ -11,7 +11,6 @@ import {
 import { Buffer } from 'buffer'
 import * as pako from 'pako'
 import * as CBOR from 'cbor-js'
-import { useAccountsStore } from '@/store/accounts'
 
 export interface NostrKeys {
   nsec: string

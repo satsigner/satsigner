@@ -173,7 +173,6 @@ function SSNostrLabelSync() {
     }
     try {
       const labels = formatAccountLabels(account)
-      toast.info(`Sending ${labels.length} labels to relays`)
 
       if (labels.length === 0) {
         setRelayError(t('account.nostrSync.noLabelsToSync'))
@@ -284,7 +283,6 @@ function SSNostrLabelSync() {
     setRelayError(null)
     if (accountId) {
       updateAccountNostr(accountId, { autoSync: newAutoSync })
-      console.log('autoSync', newAutoSync)
 
       // Send trust request to all devices
       if (!commonNsec || !commonNpub || !nostrApi) {
@@ -303,7 +301,6 @@ function SSNostrLabelSync() {
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
-        toast.success('Trust request sent')
       } catch (_error) {
         setRelayError('Failed to send trust request')
       }
