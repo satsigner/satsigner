@@ -70,6 +70,24 @@ export default function Energy() {
   const miningIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  const fetchRpc = useCallback(
+    (requestBody: Record<string, any>) => {
+      const credentials = `${rpcUser}:${rpcPassword}`
+      const credentialsBase64 = Buffer.from(credentials).toString('base64')
+      const authorization = `Basic ${credentialsBase64}`
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: authorization
+      }
+      const method = 'POST'
+      const body = JSON.stringify(requestBody)
+
+      return fetch(rpcUrl, { method, headers, body })
+    },
+    [rpcUser, rpcPassword, rpcUrl]
+  )
+
   const formatTemplateData = useCallback((data: any) => {
     try {
       // Only show essential fields to reduce data size
@@ -119,25 +137,14 @@ export default function Energy() {
     try {
       const rules = ['segwit']
 
-      const credentials = `${rpcUser}:${rpcPassword}`
-      const credentialsBase64 = Buffer.from(credentials).toString('base64')
-      const authorization = `Basic ${credentialsBase64}`
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: authorization
-      }
-      const method = 'POST'
-
       // First try to get the network type from the node
       try {
-        const body = JSON.stringify({
+        const networkResponse = await fetchRpc({
           jsonrpc: '1.0',
           id: '1',
           method: 'getblockchaininfo',
           params: []
         })
-
-        const networkResponse = await fetch(rpcUrl, { method, headers, body })
 
         if (networkResponse.ok) {
           const networkData = await networkResponse.json()
@@ -153,18 +160,12 @@ export default function Energy() {
         // Ignore network type detection errors
       }
 
-      const body = JSON.stringify({
+      const response = await fetchRpc({
         jsonrpc: '1.0',
         id: '1',
         method: 'getblocktemplate',
-        params: [
-          {
-            rules
-          }
-        ]
+        params: [{ rules }]
       })
-
-      const response = await fetch(rpcUrl, { method, headers, body })
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -204,32 +205,18 @@ export default function Energy() {
     } finally {
       setIsLoadingTemplate(false)
     }
-  }, [
-    isConnected,
-    rpcUrl,
-    rpcUser,
-    rpcPassword,
-    formatTemplateData,
-    blockTemplate
-  ])
+  }, [isConnected, formatTemplateData, fetchRpc, blockTemplate])
 
   const fetchBlockchainInfo = useCallback(async () => {
     if (!isConnected) return
 
     setIsLoadingInfo(true)
     try {
-      const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-        },
-        body: JSON.stringify({
-          jsonrpc: '1.0',
-          id: '1',
-          method: 'getblockchaininfo',
-          params: []
-        })
+      const response = await fetchRpc({
+        jsonrpc: '1.0',
+        id: '1',
+        method: 'getblockchaininfo',
+        params: []
       })
 
       if (!response.ok) {
@@ -249,7 +236,7 @@ export default function Energy() {
     } finally {
       setIsLoadingInfo(false)
     }
-  }, [isConnected, rpcUrl, rpcUser, rpcPassword, fetchBlockTemplate])
+  }, [isConnected, fetchBlockTemplate, fetchRpc])
 
   const fetchNetworkHashRate = useCallback(async () => {
     try {
@@ -350,18 +337,11 @@ export default function Energy() {
     setConnectionError('')
 
     try {
-      const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-        },
-        body: JSON.stringify({
-          jsonrpc: '1.0',
-          id: '1',
-          method: 'getblockchaininfo',
-          params: []
-        })
+      const response = await fetchRpc({
+        jsonrpc: '1.0',
+        id: '1',
+        method: 'getblockchaininfo',
+        params: []
       })
 
       if (!response.ok) {
@@ -541,13 +521,7 @@ export default function Energy() {
   const submitBlock = useCallback(
     async (blockHeader: Uint8Array, coinbaseTx: any, transactions: any[]) => {
       try {
-        const credentials = `${rpcUser}:${rpcPassword}`
-        const authorization = Buffer.from(credentials).toString('base64')
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${authorization}`
-        }
-        const body = JSON.stringify({
+        const response = await fetchRpc({
           jsonrpc: '1.0',
           id: '1',
           method: 'submitblock',
@@ -560,8 +534,6 @@ export default function Energy() {
             ]).toString('hex')
           ]
         })
-        const method = 'POST'
-        const response = await fetch(rpcUrl, { method, headers, body })
 
         if (!response.ok) {
           throw new Error('Failed to submit block')
@@ -578,7 +550,7 @@ export default function Energy() {
         return false
       }
     },
-    [rpcUrl, rpcUser, rpcPassword]
+    [fetchRpc]
   )
 
   const startMining = useCallback(async () => {
@@ -589,18 +561,11 @@ export default function Energy() {
 
     try {
       // First check if the address matches the node's network
-      const networkResponse = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-        },
-        body: JSON.stringify({
-          jsonrpc: '1.0',
-          id: '1',
-          method: 'getblockchaininfo',
-          params: []
-        })
+      const networkResponse = await fetchRpc({
+        jsonrpc: '1.0',
+        id: '1',
+        method: 'getblockchaininfo',
+        params: []
       })
 
       if (!networkResponse.ok) {
@@ -761,10 +726,8 @@ export default function Energy() {
     createCoinbaseTransaction,
     createBlockHeader,
     createMerkleRoot,
+    fetchRpc,
     submitBlock,
-    rpcUrl,
-    rpcUser,
-    rpcPassword,
     miningIntensity
   ])
 
@@ -810,21 +773,12 @@ export default function Energy() {
     setTxError('')
 
     try {
-      const credentials = `${rpcUser}:${rpcPassword}`
-      const credentialsBase64 = Buffer.from(credentials).toString('base64')
-      const authorization = `Basic ${credentialsBase64}`
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: authorization
-      }
-      const body = JSON.stringify({
+      const response = await fetchRpc({
         jsonrpc: '1.0',
         id: '1',
         method: 'getrawtransaction',
-        const method = 'POST'
         params: [txId, true]
       })
-      const response = await fetch(rpcUrl, { method, headers, body })
 
       if (!response.ok) {
         throw new Error('Failed to fetch transaction')
@@ -857,15 +811,7 @@ export default function Energy() {
     } finally {
       setIsLoadingTx(false)
     }
-  }, [
-    txId,
-    isConnected,
-    rpcUrl,
-    rpcUser,
-    rpcPassword,
-    blockTemplate,
-    formatTemplateData
-  ])
+  }, [txId, isConnected, blockTemplate, formatTemplateData, fetchRpc])
 
   return (
     <>
