@@ -69,7 +69,6 @@ const useNostrStore = create<NostrState & NostrAction>()(
       members: {},
       addMember: async (accountId, npub) => {
         const currentMembers = get().members[accountId] || []
-        console.log('Adding member:', { accountId, npub, currentMembers })
         if (!currentMembers.some((m) => m.npub === npub)) {
           const color = await generateColorFromNpub(npub)
           set((state) => {

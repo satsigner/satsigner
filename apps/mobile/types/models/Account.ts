@@ -89,7 +89,6 @@ export type Account = {
     deviceNpub?: string
     deviceNsec?: string
     trustedMemberDevices: string[]
-    trustedMemberAliases: string[]
     dms: DM[]
     lastUpdated: Date
     syncStart: Date

@@ -505,6 +505,8 @@ function SSDevicesGroupChat() {
               minIndexForVisible: 0,
               autoscrollToTopThreshold: 10
             }}
+            inverted={true}
+            contentContainerStyle={{ flexDirection: 'column-reverse' }}
           />
           {showScrollButton && (
             <SSButton
