@@ -240,7 +240,10 @@ class BaseElectrumClient {
     return result
   }
 
-  // async getTransactions(txIds: string[]): Promise<IElectrumClient['transaction']> {
+  async getTransaction(txid: string, verbose = false): Promise<string> {
+    return this.client.blockchaingTransaction_get(txid, verbose)
+  }
+
   async getTransactions(txIds: string[]): Promise<string[]> {
     const verbose = false // verbose=true is not supported by some clients
     const rawTxs = []
