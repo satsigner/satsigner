@@ -60,7 +60,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
-import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -672,7 +672,7 @@ export default function AccountView() {
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { syncAccountLabelsFromNostr } = useNostrLabelSync()
+  const { syncAccountLabelsFromNostr } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)

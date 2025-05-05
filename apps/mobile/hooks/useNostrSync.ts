@@ -20,7 +20,7 @@ import {
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 import { type DM } from '@/types/models/Account'
 
-function useNostrLabelSync() {
+function useNostrSync() {
   const [importLabels, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [state.importLabels, state.updateAccountNostr])
   )
@@ -300,4 +300,4 @@ function useNostrLabelSync() {
   }
 }
 
-export default useNostrLabelSync
+export default useNostrSync

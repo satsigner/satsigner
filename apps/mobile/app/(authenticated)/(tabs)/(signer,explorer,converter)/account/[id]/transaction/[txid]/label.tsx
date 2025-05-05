@@ -3,7 +3,7 @@ import { ScrollView } from 'react-native'
 
 import SSLabelInput from '@/components/SSLabelInput'
 import SSText from '@/components/SSText'
-import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -16,7 +16,7 @@ import { SSTxDetailsHeader } from '.'
 function SSTransactionLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
-  const { sendAccountLabelsToNostr } = useNostrLabelSync()
+  const { sendAccountLabelsToNostr } = useNostrSync()
 
   const [tx, setTxLabel] = useAccountsStore((state) => [
     state.accounts

@@ -213,7 +213,7 @@ function AccountSettings() {
             label={t('account.nostrSync.sync')}
             onPress={() =>
               router.navigate(
-                `/account/${currentAccountId}/settings/nostr/nostrLabelSync`
+                `/account/${currentAccountId}/settings/nostr/nostrSync`
               )
             }
           />

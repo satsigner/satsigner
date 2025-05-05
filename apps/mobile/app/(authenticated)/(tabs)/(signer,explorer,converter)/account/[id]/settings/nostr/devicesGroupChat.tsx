@@ -16,7 +16,7 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
-import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -147,7 +147,7 @@ function SSDevicesGroupChat() {
   const storedDmIds = useRef<Set<string>>(new Set())
   const [showScrollButton, setShowScrollButton] = useState(false)
 
-  const { loadStoredDMs, processEvent, clearStoredDMs } = useNostrLabelSync()
+  const { loadStoredDMs, processEvent, clearStoredDMs } = useNostrSync()
 
   const [account] = useAccountsStore(
     useShallow((state) => [

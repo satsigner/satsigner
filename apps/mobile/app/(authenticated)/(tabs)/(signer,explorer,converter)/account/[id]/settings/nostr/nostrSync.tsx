@@ -9,7 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
-import useNostrLabelSync from '@/hooks/useNostrLabelSync'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -21,11 +21,11 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAccountLabels, labelsToJSONL } from '@/utils/bip329'
 import { Account } from '@/types/models/Account'
 
-function SSNostrLabelSync() {
+function SSNostrSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const getMembers = useNostrStore((state) => state.getMembers)
   const members = accountId ? getMembers(accountId) : []
-  const { processEvent } = useNostrLabelSync()
+  const { processEvent } = useNostrSync()
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
 
   const [commonNsec, setCommonNsec] = useState('')
@@ -37,7 +37,7 @@ function SSNostrLabelSync() {
   const [autoSync, setAutoSync] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const { generateCommonNostrKeys } = useNostrLabelSync()
+  const { generateCommonNostrKeys } = useNostrSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -574,4 +574,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSNostrLabelSync
+export default SSNostrSync
