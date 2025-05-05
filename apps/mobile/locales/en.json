@@ -90,6 +90,7 @@
     "nostrSync.members": "Found Members",
     "nostrSync.mnemonicPassphrase": "Mnemonic Passphrase (optional)",
     "nostrSync.noLabels": "No labels to send",
+    "nostrSync.noMembers": "No members found",
     "nostrSync.noRelaysWarning": "Please select at least one relay to sync labels",
     "nostrSync.npub": "npub",
     "nostrSync.nsec": "nsec",

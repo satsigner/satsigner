@@ -464,9 +464,7 @@ function SSNostrSync() {
 
             {/* Members section */}
             <SSVStack gap="sm">
-              <SSText center color="muted">
-                {t('account.nostrSync.members')}
-              </SSText>
+              <SSText center>{t('account.nostrSync.members')}</SSText>
               {members.length > 0 ? (
                 <SSVStack gap="md" style={styles.membersContainer}>
                   {members
