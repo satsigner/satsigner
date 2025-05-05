@@ -119,21 +119,24 @@ export default function Energy() {
     try {
       const rules = ['segwit']
 
+      const credentials = `${rpcUser}:${rpcPassword}`
+      const credentialsBase64 = Buffer.from(credentials).toString('base64')
+      const authorization = `Basic ${credentialsBase64}`
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: authorization
+      }
+      const method = 'POST'
+
       // First try to get the network type from the node
       try {
-        const credentials = `${rpcUser}:${rpcPassword}`
-        const authorization = Buffer.from(credentials).toString('base64')
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${authorization}`
-        }
         const body = JSON.stringify({
           jsonrpc: '1.0',
           id: '1',
           method: 'getblockchaininfo',
           params: []
         })
-        const method = 'POST'
+
         const networkResponse = await fetch(rpcUrl, { method, headers, body })
 
         if (networkResponse.ok) {
@@ -150,7 +153,7 @@ export default function Energy() {
         // Ignore network type detection errors
       }
 
-      const requestBody = {
+      const body = JSON.stringify({
         jsonrpc: '1.0',
         id: '1',
         method: 'getblocktemplate',
@@ -159,16 +162,9 @@ export default function Energy() {
             rules
           }
         ]
-      }
-
-      const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-        },
-        body: JSON.stringify(requestBody)
       })
+
+      const response = await fetch(rpcUrl, { method, headers, body })
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -545,26 +541,27 @@ export default function Energy() {
   const submitBlock = useCallback(
     async (blockHeader: Uint8Array, coinbaseTx: any, transactions: any[]) => {
       try {
-        const response = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-          },
-          body: JSON.stringify({
-            jsonrpc: '1.0',
-            id: '1',
-            method: 'submitblock',
-            params: [
-              Buffer.concat([
-                new Uint8Array(blockHeader),
-                new Uint8Array(
-                  Buffer.from(JSON.stringify([coinbaseTx, ...transactions]))
-                )
-              ]).toString('hex')
-            ]
-          })
+        const credentials = `${rpcUser}:${rpcPassword}`
+        const authorization = Buffer.from(credentials).toString('base64')
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${authorization}`
+        }
+        const body = JSON.stringify({
+          jsonrpc: '1.0',
+          id: '1',
+          method: 'submitblock',
+          params: [
+            Buffer.concat([
+              new Uint8Array(blockHeader),
+              new Uint8Array(
+                Buffer.from(JSON.stringify([coinbaseTx, ...transactions]))
+              )
+            ]).toString('hex')
+          ]
         })
+        const method = 'POST'
+        const response = await fetch(rpcUrl, { method, headers, body })
 
         if (!response.ok) {
           throw new Error('Failed to submit block')
@@ -813,19 +810,21 @@ export default function Energy() {
     setTxError('')
 
     try {
-      const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${Buffer.from(`${rpcUser}:${rpcPassword}`).toString('base64')}`
-        },
-        body: JSON.stringify({
-          jsonrpc: '1.0',
-          id: '1',
-          method: 'getrawtransaction',
-          params: [txId, true]
-        })
+      const credentials = `${rpcUser}:${rpcPassword}`
+      const credentialsBase64 = Buffer.from(credentials).toString('base64')
+      const authorization = `Basic ${credentialsBase64}`
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: authorization
+      }
+      const body = JSON.stringify({
+        jsonrpc: '1.0',
+        id: '1',
+        method: 'getrawtransaction',
+        const method = 'POST'
+        params: [txId, true]
       })
+      const response = await fetch(rpcUrl, { method, headers, body })
 
       if (!response.ok) {
         throw new Error('Failed to fetch transaction')
