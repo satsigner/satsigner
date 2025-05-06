@@ -241,7 +241,8 @@ class BaseElectrumClient {
   }
 
   async getTransaction(txid: string, verbose = false): Promise<string> {
-    return this.client.blockchaingTransaction_get(txid, verbose)
+    const txRaw = await this.client.blockchainTransaction_get(txid, verbose)
+    return txRaw
   }
 
   async getTransactions(txIds: string[]): Promise<string[]> {

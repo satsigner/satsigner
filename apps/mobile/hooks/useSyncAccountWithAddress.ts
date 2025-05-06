@@ -24,8 +24,12 @@ type AddressInfo = {
 
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
-  const [setSyncStatus, updateAccount] = useAccountsStore(
-    useShallow((state) => [state.setSyncStatus, state.updateAccount])
+  const [setSyncStatus, updateAccount, setSyncProgress] = useAccountsStore(
+    useShallow((state) => [
+      state.setSyncStatus,
+      state.updateAccount,
+      state.setSyncProgress
+    ])
   )
 
   const [backend, network, url] = useBlockchainStore(
@@ -55,7 +59,7 @@ function useSyncAccountWithAddress() {
       tasksDone: account.syncProgress?.tasksDone || 0
     }
     account.syncProgress.totalTasks += 2
-    updateAccount(account)
+    setSyncProgress(account.id, account.syncProgress)
 
     // make the request
     const esploraTxs = await esploraClient.getAddressTx(address)
@@ -71,7 +75,8 @@ function useSyncAccountWithAddress() {
         account.syncProgress.totalTasks += 1
       }
     }
-    updateAccount(account)
+    account.syncProgress.tasksDone += 2
+    setSyncProgress(account.id, account.syncProgress)
 
     const txDictionary: Record<string, number> = {}
 
@@ -81,6 +86,8 @@ function useSyncAccountWithAddress() {
       if (existingTx[t.txid] !== undefined) {
         const txIndex = existingTx[t.txid]
         transactions.push(account.transactions[txIndex])
+        account.syncProgress.tasksDone += 1
+        setSyncProgress(account.id, account.syncProgress)
         continue
       }
 
@@ -202,14 +209,14 @@ function useSyncAccountWithAddress() {
       totalTasks: account.syncProgress?.tasksDone || 0
     }
     account.syncProgress.totalTasks += 3
-    updateAccount(account)
+    setSyncProgress(account.id, account.syncProgress)
 
     const addressUtxos = await electrumClient.getAddressUtxos(address)
     const addressTxs = await electrumClient.getAddressTransactions(address)
     const balance = await electrumClient.getAddressBalance(address)
 
     account.syncProgress.tasksDone += 3
-    updateAccount(account)
+    setSyncProgress(account.id, account.syncProgress)
 
     const existingTx: Record<string, number> = {}
     const existingUtxo: Record<string, number> = {}
@@ -230,7 +237,7 @@ function useSyncAccountWithAddress() {
 
     account.syncProgress.totalTasks +=
       filteredTx.length * 2 + filteredUtxos.length
-    updateAccount(account)
+    setSyncProgress(account.id, account.syncProgress)
 
     // keep track of timestamps
     const timestampDict: Record<number, number> = {}
@@ -245,7 +252,7 @@ function useSyncAccountWithAddress() {
 
       // update progress
       account.syncProgress.tasksDone += 1
-      updateAccount(account)
+      setSyncProgress(account.id, account.syncProgress)
     }
 
     const addressKeychain = 'external'
@@ -255,7 +262,7 @@ function useSyncAccountWithAddress() {
       utxoTimestamps,
       addressKeychain
     )
-    account.utxos.push(...newUtxos)
+    account.utxos = [...account.utxos, ...newUtxos]
     updateAccount(account)
 
     const txIds = filteredTx.map((value) => value.tx_hash)
@@ -266,7 +273,7 @@ function useSyncAccountWithAddress() {
 
       // update progress
       account.syncProgress.tasksDone += 1
-      updateAccount(account)
+      setSyncProgress(account.id, account.syncProgress)
     }
 
     const txHeights = filteredTx.map((value) => value.height)
@@ -279,7 +286,7 @@ function useSyncAccountWithAddress() {
 
       // update progress
       account.syncProgress.tasksDone += 1
-      updateAccount(account)
+      setSyncProgress(account.id, account.syncProgress)
     }
 
     const newTransactions = electrumClient.parseAddressTransactions(
@@ -288,7 +295,7 @@ function useSyncAccountWithAddress() {
       txHeights,
       txTimestamps
     )
-    account.transactions.push(...newTransactions)
+    account.transactions = [...account.transactions, ...newTransactions]
     updateAccount(account)
 
     try {
@@ -331,7 +338,7 @@ function useSyncAccountWithAddress() {
         tasksDone: 0,
         totalTasks: 0
       }
-      updateAccount(updatedAccount)
+      setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
 
       let addrInfo: AddressInfo | undefined
 
@@ -389,28 +396,43 @@ function useSyncAccountWithAddress() {
       ]
 
       // Update progress status
-      const previousTasksDone = updatedAccount.syncProgress?.tasksDone || 0
-      const previousTotalTasks = updatedAccount.syncProgress?.totalTasks || 0
       updatedAccount.syncProgress = {
-        tasksDone: previousTasksDone,
-        totalTasks: previousTotalTasks + timestamps.length
+        tasksDone: addrInfo.progress?.tasksDone || 0,
+        totalTasks: (addrInfo.progress?.totalTasks || 0) + timestamps.length
       }
 
       // fetch prices
       const oracle = new MempoolOracle()
       const prices = await oracle.getPricesAt('USD', timestamps)
-      for (const index in updatedAccount.transactions) {
-        updatedAccount.transactions[index].prices = { USD: prices[index] }
+
+      // update prices
+      const priceTimestamps: Record<number, number> = {}
+      for (let i = 0; i < timestamps.length; i += 1) {
+        priceTimestamps[timestamps[i]] = prices[i]
+      }
+      for (let i = 0; i < updatedAccount.transactions.length; i += 1) {
+        const transaction = updatedAccount.transactions[i]
+        if (!transaction.timestamp) {
+          continue
+        }
+        const timestamp = Math.trunc(transaction.timestamp.getTime() / 1000)
+        if (priceTimestamps[timestamp] === undefined) {
+          continue
+        }
+        const price = priceTimestamps[timestamp]
+        updatedAccount.transactions[i].prices = { USD: price }
       }
 
       // Update account progress again
       updatedAccount.syncProgress.tasksDone += timestamps.length
-      updateAccount(updatedAccount)
+      setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
 
       // Update sync status
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()
 
+      updatedAccount.syncProgress.totalTasks = 0
+      updatedAccount.syncProgress.tasksDone = 0
       return updatedAccount
     } catch {
       setSyncStatus(account.id, 'error')

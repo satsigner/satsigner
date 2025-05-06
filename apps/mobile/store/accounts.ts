@@ -58,7 +58,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (_account) => _account.id === account.id
             )
-            if (index !== -1) state.accounts[index] = account
+            if (index !== -1) {
+              state.accounts[index] = { ...account }
+            }
           })
         )
       },
@@ -98,7 +100,11 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (account) => account.id === id
             )
-            if (index !== -1) state.accounts[index].syncProgress = syncProgress
+            if (index !== -1) {
+              state.accounts[index].syncProgress = {
+                ...syncProgress
+              }
+            }
           })
         )
       },
