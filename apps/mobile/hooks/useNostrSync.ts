@@ -10,22 +10,216 @@ import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, Secret } from '@/types/models/Account'
+import type { Account, Secret, DM } from '@/types/models/Account'
 import {
   formatAccountLabels,
-  JSONLtoLabels,
-  type Label,
-  labelsToJSONL
+  labelsToJSONL,
+  JSONLtoLabels
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
-import { type DM } from '@/types/models/Account'
 import { t } from '@/locales'
 
+function getTrustedDevices(accountId: string): string[] {
+  const account = useAccountsStore
+    .getState()
+    .accounts.find((account) => account.id === accountId)
+  return account?.nostr?.trustedMemberDevices || []
+}
+
 function useNostrSync() {
-  const [importLabels, updateAccountNostr] = useAccountsStore(
-    useShallow((state) => [state.importLabels, state.updateAccountNostr])
+  const [updateAccountNostr] = useAccountsStore(
+    useShallow((state) => [state.updateAccountNostr])
   )
   const addMember = useNostrStore((state) => state.addMember)
+
+  const storeDM = useCallback(
+    async (account?: Account, unwrappedEvent?: any) => {
+      if (!account?.nostr) return
+
+      let content
+      try {
+        content = JSON.parse(unwrappedEvent.content)
+      } catch {
+        content = unwrappedEvent.content
+      }
+
+      const message = decompressMessage(content)
+
+      const newDM: DM = {
+        id: unwrappedEvent.id,
+        author: unwrappedEvent.pubkey,
+        created_at: Date.now() / 1000,
+        description: message.description,
+        event: JSON.stringify(unwrappedEvent),
+        label: 1
+      }
+
+      // Create a new array with the existing DMs plus the new one
+      const updatedDms = [...(account.nostr.dms || []), newDM]
+
+      // Update the store directly with the new array
+      updateAccountNostr(account.id, { dms: updatedDms })
+    },
+    [updateAccountNostr]
+  )
+
+  /*
+  
+
+
+
+
+
+  PROCESS EVENTS
+  
+
+
+
+
+  */
+  const processEvent = useCallback(
+    async (account: Account, unwrappedEvent: any): Promise<string> => {
+      // Check if event has already been processed
+      const processedEvents = useNostrStore
+        .getState()
+        .getProcessedEvents(account.id)
+      if (processedEvents.includes(unwrappedEvent.id)) {
+        return ''
+      }
+
+      let eventContent: any
+      try {
+        // Not compressed
+        const jsonContent = JSON.parse(unwrappedEvent.content)
+        eventContent = jsonContent
+      } catch (_jsonError) {
+        // Compressed
+        try {
+          eventContent = decompressMessage(unwrappedEvent.content)
+        } catch (_decompressError) {
+          eventContent = unwrappedEvent.content
+        }
+      }
+
+      if (eventContent.data) {
+        const data_type = eventContent.data.data_type
+        if (data_type === 'LabelsBip329') {
+          // Handle LabelsBip329
+          console.log('⚠️ LABELS ', eventContent.data.data.slice(0, 300))
+          try {
+            if (
+              eventContent.data.data.length === 1 &&
+              eventContent.data.data[0].type === 'tx'
+            ) {
+              const label = eventContent.data.data[0].label
+              const txid = eventContent.data.data[0].ref
+              setTxLabel(account.id, txid, label)
+            } else {
+              const labels = JSONLtoLabels(eventContent.data.data)
+              const importCount = useAccountsStore
+                .getState()
+                .importLabels(account.id, labels)
+            }
+            if (importCount > 0) {
+              toast.success(`Imported ${importCount} labels`)
+            }
+          } catch (error) {
+            console.error('Failed to import labels:', error)
+            toast.error('Failed to import labels')
+          }
+        } else if (data_type === 'Tx') {
+          // Handle Tx
+        } else if (data_type === 'PSBT') {
+          // Handle PSBT
+          // POPUP Sing prompt
+        }
+      } else if (eventContent.description && !eventContent.data) {
+        // Store message on nostr store
+        await storeDM(account, unwrappedEvent)
+        console.log('🟢 DM stored')
+      } else if (eventContent.public_key_bech32) {
+        // Handle protocol event
+        console.log('🥸 PROTOCOL EVENT')
+        const newMember = eventContent.public_key_bech32
+        await addMember(account.id, newMember)
+      }
+
+      // Mark event as processed
+      useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
+
+      return eventContent
+    },
+    [storeDM, addMember]
+  )
+
+  const protocolSubscription = useCallback(
+    async (account?: Account) => {
+      if (!account || !account.nostr) return
+      console.log('🟣 PROTOCOL SUBSCRIPTION')
+      const { autoSync, commonNsec, commonNpub, relays } = account.nostr
+
+      if (!autoSync || !commonNsec || !commonNpub || relays.length === 0) return
+
+      let nostrApi: NostrAPI | null = null
+      try {
+        nostrApi = new NostrAPI(relays)
+        await nostrApi.connect()
+
+        // Subscribe to kind 1059 messages
+        await nostrApi.subscribeToKind1059(
+          commonNsec as string,
+          commonNpub as string,
+          async (message) => {
+            try {
+              await processEvent(account, message.content)
+            } catch (_error) {
+              // Handle error silently
+            }
+          }
+        )
+      } catch (_error) {
+        toast.error('Failed to subscribe to protocol events')
+      } finally {
+        if (nostrApi) {
+          await nostrApi.disconnect()
+        }
+      }
+    },
+    [processEvent]
+  )
+
+  const dataExchangeSubscription = useCallback(
+    async (account?: Account) => {
+      if (!account || !account.nostr) return
+      console.log('🩸 DATA EXCHANGE SUBSCRIPTION')
+      const { autoSync, deviceNsec, deviceNpub, relays } = account.nostr
+
+      if (!autoSync || !deviceNsec || !deviceNpub || relays.length === 0) return
+
+      let nostrApi: NostrAPI | null = null
+      try {
+        nostrApi = new NostrAPI(relays)
+        await nostrApi.subscribeToKind1059(
+          deviceNsec as string,
+          deviceNpub as string,
+          async (message) => {
+            try {
+              await processEvent(account, message.content)
+            } catch (_error) {
+              // Handle error silently
+            }
+          }
+        )
+      } catch (_error) {
+        toast.error('Failed to subscribe to data exchange')
+      } finally {
+        if (nostrApi) {
+          await nostrApi.disconnect()
+        }
+      }
+    },
+    [processEvent]
+  )
 
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: any) => {
@@ -35,13 +229,7 @@ function useNostrSync() {
       if (!account || !account.nostr) {
         return
       }
-      const {
-        commonNsec,
-        commonNpub,
-        relays,
-        lastBackupFingerprint,
-        deviceNpub
-      } = account.nostr
+      const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
       if (
         !commonNsec ||
@@ -60,7 +248,7 @@ function useNostrSync() {
         const message = labelsToJSONL(labels)
         const hash = await sha256(message)
         const fingerprint = hash.slice(0, 8)
-        if (fingerprint === lastBackupFingerprint) {
+        if (fingerprint === account.nostr.lastBackupFingerprint) {
           return
         }
       }
@@ -96,13 +284,21 @@ function useNostrSync() {
         const nostrApi = new NostrAPI(relays)
         await nostrApi.connect()
 
-        const eventKind1059 = await nostrApi.createKind1059(
-          commonNsec,
-          commonNpub,
-          compressedMessage
-        )
+        // Send labels to all trusted devices
+        const deviceNsec = account.nostr.deviceNsec
+        // Get all trusted devices for this account
+        const trustedDevices = getTrustedDevices(account.id)
 
-        await nostrApi.publishEvent(eventKind1059)
+        // Send to each trusted device
+        for (const trustedDeviceNpub of trustedDevices) {
+          if (!deviceNsec) continue
+          const eventKind1059 = await nostrApi.createKind1059(
+            deviceNsec,
+            trustedDeviceNpub,
+            compressedMessage
+          )
+          await nostrApi.publishEvent(eventKind1059)
+        }
 
         if (singleLabel) {
           toast.success('Single label sent to relays')
@@ -118,78 +314,86 @@ function useNostrSync() {
       } catch (_error) {
         toast.error('Failed to send message')
       } finally {
-        await nostrApi.disconnect()
+        if (nostrApi) {
+          await nostrApi.disconnect()
+        }
       }
     },
     [updateAccountNostr]
   )
 
-  // OUTDATED FIX
-  const syncAccountLabelsFromNostr = useCallback(
-    async (account?: Account) => {
-      if (!account || !account.nostr) return
+  /*
+  
+  SEND DM
+  
+  */
 
-      const { autoSync, commonNsec, commonNpub, relays, lastBackupTimestamp } =
-        account.nostr
+  const sendDM = useCallback(
+    async (account?: Account, message?: any) => {
+      if (!account?.nostr?.autoSync) {
+        return
+      }
+      if (!account || !account.nostr) {
+        return
+      }
+      const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
-      if (!autoSync || !commonNsec || !commonNpub || relays.length === 1) return
-      const nostrApi = new NostrAPI(relays)
+      if (
+        !commonNsec ||
+        commonNpub === '' ||
+        relays.length === 0 ||
+        !deviceNpub
+      ) {
+        return
+      }
 
-      const messageCount = 5
-      const since = lastBackupTimestamp
-      const messages = await nostrApi.fetchMessages(
-        commonNsec,
-        commonNpub,
-        since,
-        messageCount
-      )
+      let nostrApi: NostrAPI | null = null
+      try {
+        const messageContent = {
+          created_at: Math.floor(Date.now() / 1000),
+          label: 1,
+          description: message
+        }
 
-      await nostrApi.disconnect()
+        const compressedMessage = compressMessage(messageContent)
 
-      const labels: Label[] = []
-      for (const message of messages) {
-        try {
-          if (!message.decryptedContent) continue
-          labels.push(...JSONLtoLabels(message.decryptedContent))
-        } catch {
-          //
+        nostrApi = new NostrAPI(relays)
+        await nostrApi.connect()
+
+        const deviceNsec = account.nostr.deviceNsec
+        // Get all trusted devices for this account
+        const trustedDevices = getTrustedDevices(account.id)
+
+        // Send to each trusted device
+        for (const trustedDeviceNpub of trustedDevices) {
+          if (!deviceNsec) continue
+          const eventKind1059 = await nostrApi.createKind1059(
+            deviceNsec,
+            trustedDeviceNpub,
+            compressedMessage
+          )
+          await nostrApi.publishEvent(eventKind1059)
+        }
+
+        const eventKind1059 = await nostrApi.createKind1059(
+          deviceNsec,
+          deviceNpub,
+          compressedMessage
+        )
+        await nostrApi.publishEvent(eventKind1059)
+
+        // Update last backup timestamp
+        const timestamp = Math.floor(Date.now() / 1000)
+        updateAccountNostr(account.id, {
+          lastBackupTimestamp: timestamp
+        })
+      } catch (_error) {
+        toast.error('Failed to send message')
+      } finally {
+        if (nostrApi) {
+          await nostrApi.disconnect()
         }
       }
-
-      if (labels.length === 0) return
-
-      importLabels(account.id, labels)
-    },
-    [importLabels]
-  )
-
-  const storeDM = useCallback(
-    async (account?: Account, unwrappedEvent?: any) => {
-      if (!account?.nostr) return
-
-      let content
-      try {
-        content = JSON.parse(unwrappedEvent.content)
-      } catch {
-        content = unwrappedEvent.content
-      }
-
-      const message = decompressMessage(content)
-
-      const newDM: DM = {
-        id: unwrappedEvent.id,
-        author: unwrappedEvent.pubkey,
-        created_at: Date.now() / 1000,
-        description: message.description,
-        event: JSON.stringify(unwrappedEvent),
-        label: 1
-      }
-
-      // Create a new array with the existing DMs plus the new one
-      const updatedDms = [...(account.nostr.dms || []), newDM]
-
-      // Update the store directly with the new array
-      updateAccountNostr(account.id, { dms: updatedDms })
     },
     [updateAccountNostr]
   )
@@ -291,54 +495,17 @@ function useNostrSync() {
     }
   }, [])
 
-  const processEvent = useCallback(
-    async (account: Account, unwrappedEvent: any): Promise<string> => {
-      let eventContent: any
-      try {
-        // Not compressed
-        const jsonContent = JSON.parse(unwrappedEvent.content)
-        eventContent = jsonContent
-      } catch (_jsonError) {
-        // Compressed
-        try {
-          eventContent = decompressMessage(unwrappedEvent.content)
-        } catch (_decompressError) {
-          eventContent = unwrappedEvent.content
-        }
-      }
-
-      if (eventContent.data) {
-        const data_type = eventContent.data.data_type
-        if (data_type === 'LabelsBip329') {
-          // Handle LabelsBip329
-          console.log('⚠️ LABELS ', eventContent.data.data.slice(0, 300))
-        } else if (data_type === 'Tx') {
-          // Handle Tx
-        } else if (data_type === 'PSBT') {
-          // Handle PSBT
-        }
-      } else if (eventContent.description && !eventContent.data) {
-        // Store message event in account's nostr DMs
-        await storeDM(account, unwrappedEvent)
-      } else if (eventContent.public_key_bech32) {
-        // Handle protocol event
-        const newMember = eventContent.public_key_bech32
-        addMember(account.id, newMember)
-      }
-
-      return eventContent
-    },
-    [storeDM, addMember]
-  )
-
   return {
     sendLabelsToNostr,
-    syncAccountLabelsFromNostr,
+    dataExchangeSubscription,
     generateCommonNostrKeys,
     storeDM,
+    sendDM,
     loadStoredDMs,
     clearStoredDMs,
-    processEvent
+    processEvent,
+    protocolSubscription,
+    addProcessedMessageId: useNostrStore.getState().addProcessedEvent
   }
 }
 

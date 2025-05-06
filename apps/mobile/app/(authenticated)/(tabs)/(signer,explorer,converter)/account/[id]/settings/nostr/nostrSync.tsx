@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -23,10 +23,37 @@ import { Account } from '@/types/models/Account'
 
 function SSNostrSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
-  const getMembers = useNostrStore((state) => state.getMembers)
-  const members = accountId ? getMembers(accountId) : []
-  const { processEvent } = useNostrSync()
+  const clearNostrState = useNostrStore((state) => state.clearNostrState)
+  const clearProcessedMessageIds = useNostrStore(
+    (state) => state.clearProcessedMessageIds
+  )
+  const clearProcessedEvents = useNostrStore(
+    (state) => state.clearProcessedEvents
+  )
+  const members = useNostrStore(
+    useShallow((state) => {
+      const accountMembers = state.members[accountId || ''] || []
+      return accountMembers
+        .map((member) =>
+          typeof member === 'string'
+            ? { npub: member, color: '#404040' }
+            : member
+        )
+        .reduce(
+          (acc, member) => {
+            if (!acc.some((m) => m.npub === member.npub)) {
+              acc.push(member)
+            }
+            return acc
+          },
+          [] as { npub: string; color: string }[]
+        )
+    })
+  )
+  const { processEvent, clearStoredDMs } = useNostrSync()
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
+  const hasRefreshed = useRef(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const [commonNsec, setCommonNsec] = useState('')
   const [commonNpub, setCommonNpub] = useState('')
@@ -37,7 +64,12 @@ function SSNostrSync() {
   const [autoSync, setAutoSync] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const { generateCommonNostrKeys, sendLabelsToNostr } = useNostrSync()
+  const {
+    generateCommonNostrKeys,
+    sendLabelsToNostr,
+    dataExchangeSubscription,
+    protocolSubscription
+  } = useNostrSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -46,64 +78,142 @@ function SSNostrSync() {
     ])
   )
 
-  // Initialize selectedMembers from account.trustedMemberDevices
+  async function handleClearNostrStore() {
+    if (!accountId) return
+
+    try {
+      setIsLoading(true)
+      console.log(
+        '🧹 Before Clear - Nostr Store State:',
+        useNostrStore.getState().members
+      )
+
+      // Clear all members for the current account
+      clearNostrState(accountId)
+
+      // Clear processed message IDs
+      clearProcessedMessageIds(accountId)
+
+      // Clear processed events
+      clearProcessedEvents(accountId)
+
+      // Wait for the next tick to ensure state updates are processed
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      console.log(
+        '🧹 After Clear - Nostr Store State:',
+        useNostrStore.getState().members
+      )
+
+      // Force a re-render by updating a state
+      setSelectedMembers(new Set())
+
+      toast.success('Nostr store cleared successfully')
+    } catch (error) {
+      console.error('Error clearing Nostr store:', error)
+      toast.error('Failed to clear Nostr store')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleClearMessages = async () => {
+    if (!accountId || !account) return
+
+    try {
+      setIsLoading(true)
+      await clearStoredDMs(account)
+      clearProcessedMessageIds(accountId)
+      toast.success('Messages cleared successfully')
+    } catch {
+      toast.error('Failed to clear messages')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const refreshAccountLabels = useCallback(async () => {
+    if (!account || hasRefreshed.current) return
+    hasRefreshed.current = true
+    if (autoSync) {
+      //dataExchangeSubscription(account)
+      protocolSubscription(account)
+    }
+  }, [account, dataExchangeSubscription, autoSync, protocolSubscription])
+
+  // Update selectedMembers when members change
   useEffect(() => {
     if (account?.nostr?.trustedMemberDevices) {
       setSelectedMembers(new Set(account.nostr.trustedMemberDevices))
     }
-  }, [account?.nostr?.trustedMemberDevices])
+  }, [members, account?.nostr?.trustedMemberDevices])
+
+  // Refresh account labels on mount
+  useEffect(() => {
+    refreshAccountLabels()
+  }, [account, refreshAccountLabels])
 
   // Load common Nostr keys once when component mounts
-  if (account && !commonNsec) {
-    if (account.nostr.commonNsec && account.nostr.commonNpub) {
-      setCommonNsec(account.nostr.commonNsec)
-      setCommonNpub(account.nostr.commonNpub)
-    } else {
-      generateCommonNostrKeys(account)
-        .then((keys) => {
-          if (keys) {
-            setCommonNsec(keys.commonNsec as string)
-            setCommonNpub(keys.commonNpub as string)
-            // Update account with common keys
-            updateAccountNostr(accountId, {
-              commonNsec: keys.commonNsec,
-              commonNpub: keys.commonNpub
-            })
-          }
-        })
-        .catch((error) => {
-          throw new Error(`Error loading common Nostr keys: ${error}`)
-        })
+  useEffect(() => {
+    if (account && !commonNsec) {
+      if (account.nostr.commonNsec && account.nostr.commonNpub) {
+        setCommonNsec(account.nostr.commonNsec)
+        setCommonNpub(account.nostr.commonNpub)
+      } else {
+        generateCommonNostrKeys(account)
+          .then((keys) => {
+            if (keys) {
+              setCommonNsec(keys.commonNsec as string)
+              setCommonNpub(keys.commonNpub as string)
+              // Update account with common keys
+              updateAccountNostr(accountId, {
+                commonNsec: keys.commonNsec,
+                commonNpub: keys.commonNpub
+              })
+            }
+          })
+          .catch((error) => {
+            throw new Error(`Error loading common Nostr keys: ${error}`)
+          })
+      }
     }
-  }
+  }, [
+    account,
+    accountId,
+    generateCommonNostrKeys,
+    updateAccountNostr,
+    commonNsec
+  ])
 
   // Load device Nostr keys once when component mounts
-  if (account && !deviceNsec) {
-    if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-      setDeviceNsec(account.nostr.deviceNsec)
-      setDeviceNpub(account.nostr.deviceNpub)
-      // Generate color for device
-      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-    } else {
-      NostrAPI.generateNostrKeys()
-        .then((keys) => {
-          if (keys) {
-            setDeviceNsec(keys.nsec)
-            setDeviceNpub(keys.npub)
-            // Generate color for device
-            generateColorFromNpub(keys.npub).then(setDeviceColor)
-            // Only update device keys
-            updateAccountNostr(accountId, {
-              deviceNpub: keys.npub,
-              deviceNsec: keys.nsec
-            })
-          }
-        })
-        .catch((error) => {
-          throw new Error(`Error loading device Nostr keys: ${error}`)
-        })
+  useEffect(() => {
+    if (account && !deviceNsec) {
+      if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
+        setDeviceNsec(account.nostr.deviceNsec)
+        setDeviceNpub(account.nostr.deviceNpub)
+        // Generate color for device
+        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
+      } else {
+        NostrAPI.generateNostrKeys()
+          .then((keys) => {
+            if (keys) {
+              setDeviceNsec(keys.nsec)
+              setDeviceNpub(keys.npub)
+              // Generate color for device
+              generateColorFromNpub(keys.npub).then(setDeviceColor)
+              // Only update device keys
+              updateAccountNostr(accountId, {
+                deviceNpub: keys.npub,
+                deviceNsec: keys.nsec
+              })
+            }
+          })
+          .catch((error) => {
+            throw new Error(`Error loading device Nostr keys: ${error}`)
+          })
+      }
     }
-  }
+  }, [account, accountId, generateColorFromNpub, updateAccountNostr])
 
   // Generate device color when deviceNpub is available
   useEffect(() => {
@@ -111,6 +221,11 @@ function SSNostrSync() {
       generateColorFromNpub(deviceNpub).then(setDeviceColor)
     }
   }, [deviceNpub, deviceColor])
+
+  // Debug log when members change
+  useEffect(() => {
+    console.log('🔄 Members Updated:', members)
+  }, [members])
 
   async function handleToggleAutoSync(account: Account) {
     const newAutoSync = !autoSync
@@ -137,6 +252,8 @@ function SSNostrSync() {
             commonNpub,
             compressedMessage
           )
+
+          console.log('🙏 send trust request 🙏', messageContent)
           await nostrApi.publishEvent(eventKind1059)
         } catch (_error) {
           toast.error('Failed to send trust request')
@@ -148,7 +265,8 @@ function SSNostrSync() {
 
           return
         }
-        sendLabelsToNostr(account)
+        //dataExchangeSubscription(account)
+        protocolSubscription(account)
       }
     }
   }
@@ -180,51 +298,7 @@ function SSNostrSync() {
         api.connect().catch(() => {
           toast.info('Checking connection')
         })
-
-        // Subscribe to kind 1059 messages
-        if (deviceNsec && commonNsec) {
-          api
-            .subscribeToKind1059(
-              commonNsec,
-              deviceNsec,
-              async (message) => {
-                if (message.content && account) {
-                  try {
-                    const eventContent = await processEvent(
-                      account,
-                      message.content
-                    )
-                    let parsedContent
-                    try {
-                      parsedContent = JSON.parse(eventContent)
-                    } catch {
-                      parsedContent = eventContent
-                    }
-
-                    if (parsedContent.public_key_bech32) {
-                      // This is a trust request
-                      console.log(
-                        'Received trust request:',
-                        parsedContent.public_key_bech32
-                      )
-                      const addMember = useNostrStore.getState().addMember
-                      await addMember(
-                        accountId,
-                        parsedContent.public_key_bech32
-                      )
-                    }
-                  } catch (error) {
-                    console.error('Error processing message:', error)
-                  }
-                }
-              },
-              undefined,
-              Math.floor(Date.now() / 1000) // Only get messages from now onwards
-            )
-            .catch(() => {
-              toast.error('Failed to subscribe to kind 1059 messages')
-            })
-        }
+        protocolSubscription(account)
       }
     }
   }
@@ -242,7 +316,7 @@ function SSNostrSync() {
       setNostrApi(api)
       // Connect immediately
       api.connect().catch(() => {
-        toast.error('No subscription yet')
+        protocolSubscription(account)
       })
     }
   }
@@ -343,6 +417,23 @@ function SSNostrSync() {
               />
             </SSHStack>
 
+            <SSHStack gap="md">
+              <SSButton
+                label="Clear Nostr Store"
+                onPress={handleClearNostrStore}
+                variant="subtle"
+                style={{ flex: 0.5 }}
+                disabled={isLoading}
+              />
+              <SSButton
+                label="Clear All Messages"
+                onPress={handleClearMessages}
+                disabled={isLoading}
+                variant="subtle"
+                style={{ flex: 0.5 }}
+              />
+            </SSHStack>
+
             {selectedRelays.length === 0 && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
@@ -427,7 +518,7 @@ function SSNostrSync() {
             {/* Members section */}
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.members')}</SSText>
-              {members.length > 0 ? (
+              {members && members.length > 0 ? (
                 <SSVStack gap="md" style={styles.membersContainer}>
                   {members
                     .filter((member) => member.npub !== deviceNpub)
@@ -441,7 +532,7 @@ function SSNostrSync() {
                                   width: 8,
                                   height: 8,
                                   borderRadius: 4,
-                                  backgroundColor: member.color,
+                                  backgroundColor: member.color || '#404040',
                                   marginTop: 1,
                                   marginLeft: 20,
                                   marginRight: -20

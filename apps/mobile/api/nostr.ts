@@ -11,6 +11,7 @@ import {
 import { Buffer } from 'buffer'
 import * as pako from 'pako'
 import * as CBOR from 'cbor-js'
+import { useAccountsStore } from '@/store/accounts'
 
 export interface NostrKeys {
   nsec: string
@@ -154,153 +155,6 @@ export class NostrAPI {
 
   */
 
-  // TODO remove/replace with subscribeToKind1059
-
-  async fetchMessages(
-    nsec: string,
-    recipientNpub: string,
-    since?: number,
-    limit: number = 30
-  ): Promise<NostrMessage[]> {
-    await this.connect()
-    if (!this.ndk) throw new Error('Failed to connect to relays')
-
-    // Decode the nsec
-    const { type, data: secretNostrKey } = nip19.decode(nsec)
-
-    // Check if the decoded type is 'nsec'
-    if (type !== 'nsec') {
-      throw new Error('Input is not a valid nsec')
-    }
-
-    const user = this.ndk.getUser({ npub: recipientNpub })
-    const ourPubkey = getPublicKey(secretNostrKey)
-
-    try {
-      // Create a subscription to fetch events
-      const subscriptionQuery = {
-        kinds: [1059 as NDKKind],
-        '#p': [ourPubkey], // Events where we are the recipient
-        authors: [user.pubkey], // Events from the other user
-        limit
-      }
-
-      const subscription = this.ndk?.subscribe(subscriptionQuery)
-
-      // Also subscribe to our own sent messages
-      const sentMessagesQuery = {
-        kinds: [1059 as NDKKind],
-        authors: [ourPubkey], // Our sent messages
-        '#p': [user.pubkey], // Where the other user is the recipient
-        limit
-      }
-
-      const sentSubscription = this.ndk?.subscribe(sentMessagesQuery)
-
-      // Subscribe to self-messages (where we are both sender and recipient)
-      const selfMessagesQuery = {
-        kinds: [1059 as NDKKind],
-        authors: [ourPubkey], // We are the sender
-        '#p': [ourPubkey], // We are also the recipient
-        limit
-      }
-
-      const selfSubscription = this.ndk?.subscribe(selfMessagesQuery)
-
-      // Collect events from all subscriptions
-      const events = new Set<NDKEvent>()
-      subscription?.on('event', (event) => {
-        events.add(event)
-      })
-      sentSubscription?.on('event', (event) => {
-        events.add(event)
-      })
-      selfSubscription?.on('event', (event) => {
-        events.add(event)
-      })
-
-      // Wait for all subscriptions to complete
-      await Promise.all([
-        new Promise((resolve) => {
-          subscription?.on('eose', () => resolve(true))
-          setTimeout(resolve, 5000)
-        }),
-        new Promise((resolve) => {
-          sentSubscription?.on('eose', () => resolve(true))
-          setTimeout(resolve, 5000)
-        }),
-        new Promise((resolve) => {
-          selfSubscription?.on('eose', () => resolve(true))
-          setTimeout(resolve, 5000)
-        })
-      ])
-
-      // Process gift wrap messages
-      const decryptedMessages = await Promise.all(
-        Array.from(events).map(async (giftWrapEvent: NDKEvent) => {
-          try {
-            // Parse the gift wrap content which contains the kind:13 event
-            const kind13Event = JSON.parse(giftWrapEvent.content)
-
-            // Determine if we're the sender or recipient
-            const isSender = giftWrapEvent.pubkey === ourPubkey
-            const otherPubkey = isSender ? user.pubkey : ourPubkey
-
-            // Decrypt the kind:13 event content using NIP-44
-            const conversationKey = nip44.getConversationKey(
-              secretNostrKey,
-              otherPubkey
-            )
-
-            const decryptedContent = nip44.decrypt(
-              kind13Event.content,
-              conversationKey
-            )
-
-            // Decode the base64 content
-            const decodedContent = Buffer.from(
-              decryptedContent,
-              'base64'
-            ).toString('utf-8')
-            // Ensure proper encoding of decrypted content
-            const finalContent = decodeURIComponent(escape(decodedContent))
-
-            return {
-              content: kind13Event.content,
-              created_at:
-                kind13Event.created_at ?? Math.floor(Date.now() / 1000),
-              pubkey: kind13Event.pubkey,
-              decryptedContent: finalContent,
-              isSender
-            }
-          } catch (_error) {
-            return {
-              content: giftWrapEvent.content,
-              created_at:
-                giftWrapEvent.created_at ?? Math.floor(Date.now() / 1000),
-              pubkey: giftWrapEvent.pubkey,
-              decryptedContent: '[Failed to decrypt]',
-              isSender: giftWrapEvent.pubkey === ourPubkey
-            }
-          }
-        })
-      )
-
-      // Sort messages by timestamp, newest first
-      return decryptedMessages.sort(
-        (a: NostrMessage, b: NostrMessage) =>
-          (b.created_at ?? 0) - (a.created_at ?? 0)
-      )
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-
-      throw new Error(
-        `Failed to fetch messages: ${errorMessage}. Please check your relay connections and try again.`
-      )
-    }
-  }
-
   async disconnect() {
     this.ndk = null
   }
@@ -321,8 +175,8 @@ export class NostrAPI {
 */
 
   async subscribeToKind1059(
-    commonNsec: string,
-    deviceNsec: string,
+    recipientNsec: string,
+    recipientNpub: string,
     _callback: (message: NostrMessage) => void,
     limit?: number,
     since?: number
@@ -330,61 +184,42 @@ export class NostrAPI {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
-    // Decode the nsec
-    const { type: commonType, data: commonSecretNostrKey } =
-      nip19.decode(commonNsec)
-    const { type: deviceType, data: deviceSecretNostrKey } =
-      nip19.decode(deviceNsec)
+    // Decode the nsec and npub
+    const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
+    const { data: recipientPubKey } = nip19.decode(recipientNpub)
 
-    // Check if the decoded type is 'nsec'
-    if (commonType !== 'nsec' || deviceType !== 'nsec') {
-      throw new Error('Input is not a valid nsec')
-    }
-
-    const commonPubkey = getPublicKey(commonSecretNostrKey as Uint8Array)
-    const devicePubkey = getPublicKey(deviceSecretNostrKey as Uint8Array)
+    const recipientPubkey = getPublicKey(recipientSecretNostrKey as Uint8Array)
 
     // Create a subscription to fetch events
     const subscriptionQuery = {
       kinds: [1059 as NDKKind],
-      '#p': [commonPubkey, devicePubkey],
-      ...(limit && { limit }),
-      ...(since && { since })
+      '#p': [recipientPubkey, recipientPubKey.toString()],
+      limit: 5, //...(limit && { limit }),
+      since: since //...(since && { since })
     }
+
     const subscription = this.ndk?.subscribe(subscriptionQuery)
 
     subscription?.on('event', async (event) => {
-      const rawEvent = await event.toNostrEvent()
-      if (!rawEvent.kind || !rawEvent.sig) {
-        return
-      }
       try {
+        const rawEvent = await event.toNostrEvent()
         const unwrappedEvent = await nip59.unwrapEvent(
           rawEvent as unknown as Event,
-          commonSecretNostrKey as Uint8Array
+          recipientSecretNostrKey as Uint8Array
         )
 
-        let eventContent = unwrappedEvent
-
-        // Only process events that are newer than our since timestamp
-        if (since && unwrappedEvent.created_at <= since) {
-          return
-        }
-
         _callback({
-          content: eventContent,
+          content: unwrappedEvent,
           created_at: unwrappedEvent.created_at
         })
-      } catch (_unwrapError) {
-        // Handle unwrap error silently
+      } catch (error) {
+        console.log('[subscribeToKind1059] Error:', error)
       }
     })
 
-    // Return a promise that resolves when the subscription is set up
-    return new Promise((resolve) => {
-      subscription?.on('eose', () => resolve())
-      // Also resolve after a timeout to prevent hanging
-      setTimeout(resolve, 5000)
+    // Keep the subscription alive
+    subscription?.on('eose', () => {
+      console.log('[subscribeToKind1059] Subscription EOSE received')
     })
   }
 

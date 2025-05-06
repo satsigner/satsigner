@@ -672,7 +672,7 @@ export default function AccountView() {
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { syncAccountLabelsFromNostr } = useNostrSync()
+  const { dataExchangeSubscription, protocolSubscription } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -799,7 +799,8 @@ export default function AccountView() {
 
   async function refreshAccountLabels() {
     if (!account) return
-    syncAccountLabelsFromNostr(account)
+    dataExchangeSubscription(account)
+    protocolSubscription(account)
   }
 
   async function handleOnRefresh() {
