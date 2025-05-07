@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
@@ -191,6 +191,12 @@ export default function IOPreview() {
 
     return chartOutputs
   }, [outputs, transactionSize, feeRate, utxosSelectedValue])
+
+  useEffect(() => {
+    if (remainingSats < 0) {
+      toast.error(t('transaction.error.insufficientInputs'))
+    }
+  }, [remainingSats])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -546,8 +552,11 @@ export default function IOPreview() {
             </SSHStack>
             <SSSlider
               min={DUST_LIMIT}
-              max={remainingSats}
-              value={outputAmount}
+              max={Math.max(remainingSats, DUST_LIMIT)}
+              value={Math.min(
+                outputAmount,
+                Math.max(remainingSats, DUST_LIMIT)
+              )}
               step={100}
               onValueChange={(value) => setOutputAmount(value)}
             />
