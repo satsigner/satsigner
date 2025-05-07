@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useRouter, useFocusEffect } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -7,6 +7,7 @@ import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { NostrAPI } from '@/api/nostr'
 import {
   SSIconBlackIndicator,
   SSIconGreenIndicator,
@@ -136,6 +137,11 @@ export default function AccountList() {
   useEffect(() => {
     if (connectionMode === 'auto') fetchPrices()
   }, [connectionMode, fetchPrices])
+
+  useFocusEffect(() => {
+    const nostrApi = new NostrAPI([])
+    nostrApi.disconnect()
+  })
 
   function handleOnNavigateToAddAccount() {
     clearAccount()

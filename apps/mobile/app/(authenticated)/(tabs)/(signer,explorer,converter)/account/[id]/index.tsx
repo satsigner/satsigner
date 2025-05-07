@@ -799,8 +799,10 @@ export default function AccountView() {
 
   async function refreshAccountLabels() {
     if (!account) return
-    dataExchangeSubscription(account)
-    protocolSubscription(account)
+    if (account.nostr.autoSync) {
+      dataExchangeSubscription(account)
+      protocolSubscription(account)
+    }
   }
 
   async function handleOnRefresh() {

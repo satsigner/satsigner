@@ -17,9 +17,9 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore, generateColorFromNpub } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAccountLabels, labelsToJSONL } from '@/utils/bip329'
-import { Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 function SSNostrSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -64,12 +64,7 @@ function SSNostrSync() {
   const [autoSync, setAutoSync] = useState(false)
   const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const {
-    generateCommonNostrKeys,
-    sendLabelsToNostr,
-    dataExchangeSubscription,
-    protocolSubscription
-  } = useNostrSync()
+  const { generateCommonNostrKeys, protocolSubscription } = useNostrSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
     useShallow((state) => [
@@ -83,34 +78,13 @@ function SSNostrSync() {
 
     try {
       setIsLoading(true)
-      console.log(
-        '🧹 Before Clear - Nostr Store State:',
-        useNostrStore.getState().members
-      )
-
-      // Clear all members for the current account
       clearNostrState(accountId)
-
-      // Clear processed message IDs
       clearProcessedMessageIds(accountId)
-
-      // Clear processed events
       clearProcessedEvents(accountId)
-
-      // Wait for the next tick to ensure state updates are processed
       await new Promise((resolve) => setTimeout(resolve, 100))
-
-      console.log(
-        '🧹 After Clear - Nostr Store State:',
-        useNostrStore.getState().members
-      )
-
-      // Force a re-render by updating a state
       setSelectedMembers(new Set())
-
       toast.success('Nostr store cleared successfully')
-    } catch (error) {
-      console.error('Error clearing Nostr store:', error)
+    } catch (_error) {
       toast.error('Failed to clear Nostr store')
     } finally {
       setIsLoading(false)
@@ -136,10 +110,9 @@ function SSNostrSync() {
     if (!account || hasRefreshed.current) return
     hasRefreshed.current = true
     if (autoSync) {
-      //dataExchangeSubscription(account)
       protocolSubscription(account)
     }
-  }, [account, dataExchangeSubscription, autoSync, protocolSubscription])
+  }, [account, autoSync, protocolSubscription])
 
   // Update selectedMembers when members change
   useEffect(() => {
@@ -191,7 +164,6 @@ function SSNostrSync() {
       if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
         setDeviceNsec(account.nostr.deviceNsec)
         setDeviceNpub(account.nostr.deviceNpub)
-        // Generate color for device
         generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
       } else {
         NostrAPI.generateNostrKeys()
@@ -199,9 +171,7 @@ function SSNostrSync() {
             if (keys) {
               setDeviceNsec(keys.nsec)
               setDeviceNpub(keys.npub)
-              // Generate color for device
               generateColorFromNpub(keys.npub).then(setDeviceColor)
-              // Only update device keys
               updateAccountNostr(accountId, {
                 deviceNpub: keys.npub,
                 deviceNsec: keys.nsec
@@ -213,7 +183,7 @@ function SSNostrSync() {
           })
       }
     }
-  }, [account, accountId, generateColorFromNpub, updateAccountNostr])
+  }, [account, accountId, deviceNsec, updateAccountNostr])
 
   // Generate device color when deviceNpub is available
   useEffect(() => {
@@ -224,7 +194,7 @@ function SSNostrSync() {
 
   // Debug log when members change
   useEffect(() => {
-    console.log('🔄 Members Updated:', members)
+    // Members updated
   }, [members])
 
   async function handleToggleAutoSync(account: Account) {
@@ -234,9 +204,7 @@ function SSNostrSync() {
     if (accountId) {
       updateAccountNostr(accountId, { autoSync: newAutoSync })
 
-      // If auto-sync is enabled, send trust request to all devices
       if (newAutoSync) {
-        // Send trust request to all devices
         try {
           if (!nostrApi) {
             toast.error('Nostr API not initialized')
@@ -252,20 +220,15 @@ function SSNostrSync() {
             commonNpub,
             compressedMessage
           )
-
-          console.log('🙏 send trust request 🙏', messageContent)
           await nostrApi.publishEvent(eventKind1059)
         } catch (_error) {
           toast.error('Failed to send trust request')
         }
 
-        // Send all labels to all devices
         if (!account) {
           toast.error(t('account.nostrSync.errorMissingData'))
-
           return
         }
-        //dataExchangeSubscription(account)
         protocolSubscription(account)
       }
     }
@@ -356,18 +319,10 @@ function SSNostrSync() {
     account,
     accountId,
     processEvent,
-    autoSync
+    autoSync,
+    protocolSubscription
   ])
-  useEffect(loadNostrAccountData, [account])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (nostrApi) {
-        nostrApi.disconnect()
-      }
-    }
-  }, [nostrApi])
+  useEffect(loadNostrAccountData, [account, protocolSubscription])
 
   if (!accountId || !account) return <Redirect href="/" />
 

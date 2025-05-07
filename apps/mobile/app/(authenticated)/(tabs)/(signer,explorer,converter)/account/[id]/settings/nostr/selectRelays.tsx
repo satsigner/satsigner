@@ -77,9 +77,7 @@ function SSNostrRelaysSelection() {
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack gap="lg">
           <SSVStack gap="sm">
-            <SSText uppercase weight="bold" size="md">
-              {t('account.nostrSync.relays.public')}
-            </SSText>
+            <SSText uppercase>{t('account.nostrSync.relays.public')}</SSText>
             {NOSTR_RELAYS.map((relay) => (
               <SSNostrRelay
                 key={relay.url}
@@ -89,10 +87,8 @@ function SSNostrRelaysSelection() {
               />
             ))}
           </SSVStack>
-          <SSVStack gap="sm">
-            <SSText uppercase weight="bold" size="md">
-              {t('account.nostrSync.relays.custom')}
-            </SSText>
+          <SSVStack gap="md">
+            <SSText uppercase>{t('account.nostrSync.relays.custom')}</SSText>
             {selectedRelays
               .filter((url) => !NOSTR_RELAYS.some((relay) => relay.url === url))
               .map((url) => (
@@ -144,7 +140,7 @@ function SSNostrRelay({ relay, selected, onPress }: SSNostrRelayProps) {
     <SSHStack gap="sm">
       <SSCheckbox selected={selected} onPress={onPress} />
       <SSVStack gap="none">
-        <SSText weight="bold">{relay.name}</SSText>
+        <SSText>{relay.name}</SSText>
         <SSText size="xs" color="muted">
           {relay.url}
         </SSText>

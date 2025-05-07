@@ -179,10 +179,6 @@ function useNostrSync() {
         )
       } catch (_error) {
         toast.error('Failed to subscribe to protocol events')
-      } finally {
-        if (nostrApi) {
-          await nostrApi.disconnect()
-        }
       }
     },
     [processEvent]
@@ -212,10 +208,6 @@ function useNostrSync() {
         )
       } catch (_error) {
         toast.error('Failed to subscribe to data exchange')
-      } finally {
-        if (nostrApi) {
-          await nostrApi.disconnect()
-        }
       }
     },
     [processEvent]
@@ -313,10 +305,6 @@ function useNostrSync() {
         })
       } catch (_error) {
         toast.error('Failed to send message')
-      } finally {
-        if (nostrApi) {
-          await nostrApi.disconnect()
-        }
       }
     },
     [updateAccountNostr]
@@ -389,10 +377,6 @@ function useNostrSync() {
         })
       } catch (_error) {
         toast.error('Failed to send message')
-      } finally {
-        if (nostrApi) {
-          await nostrApi.disconnect()
-        }
       }
     },
     [updateAccountNostr]

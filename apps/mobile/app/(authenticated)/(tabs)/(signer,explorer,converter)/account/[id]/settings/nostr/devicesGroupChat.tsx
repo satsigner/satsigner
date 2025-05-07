@@ -301,11 +301,6 @@ function SSDevicesGroupChat() {
       .finally(() => {
         setIsLoading(false)
       })
-
-    return () => {
-      api.disconnect()
-      setIsConnected(false)
-    }
   }, [account?.nostr?.relays])
 
   const handleSendMessage = async () => {

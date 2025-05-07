@@ -10,7 +10,7 @@ export const NOSTR_RELAYS: NostrRelay[] = [
   { name: 'Data Haus', url: 'wss://nostr.data.haus' },
   { name: 'Dwadziesciajeden', url: 'wss://relay.dwadziesciajeden.pl' },
   { name: 'Einundzwanzig Space', url: 'wss://nostr.einundzwanzig.space' },
-  { name: 'Nos lol', url: 'wss://nos.lol' },
+  { name: 'Nos lol (POW 28 bits required)', url: 'wss://nos.lol' },
   { name: 'Nostr Mom', url: 'wss://nostr.mom' },
   { name: 'Nostr Wine', url: 'wss://nostr.wine' },
   { name: 'Nostromo', url: 'wss://relay.nostromo.social' },

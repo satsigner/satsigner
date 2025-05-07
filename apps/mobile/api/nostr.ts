@@ -1,4 +1,4 @@
-import type { NDKKind } from '@nostr-dev-kit/ndk'
+import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
 import {
   getPublicKey,
@@ -29,6 +29,7 @@ export interface NostrMessage {
 
 export class NostrAPI {
   private ndk: NDK | null = null
+  private activeSubscriptions: Set<NDKSubscription> = new Set()
 
   constructor(private relays: string[]) {
     // Add default reliable relays if none provided
@@ -156,6 +157,7 @@ export class NostrAPI {
   */
 
   async disconnect() {
+    await this.closeAllSubscriptions()
     this.ndk = null
   }
 
@@ -199,6 +201,9 @@ export class NostrAPI {
     }
 
     const subscription = this.ndk?.subscribe(subscriptionQuery)
+    if (subscription) {
+      this.activeSubscriptions.add(subscription)
+    }
 
     subscription?.on('event', async (event) => {
       try {
@@ -221,6 +226,13 @@ export class NostrAPI {
     subscription?.on('eose', () => {
       console.log('[subscribeToKind1059] Subscription EOSE received')
     })
+  }
+
+  async closeAllSubscriptions(): Promise<void> {
+    for (const subscription of this.activeSubscriptions) {
+      subscription.stop()
+    }
+    this.activeSubscriptions.clear()
   }
 
   /*
