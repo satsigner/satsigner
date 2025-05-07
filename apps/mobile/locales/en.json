@@ -10,6 +10,7 @@
     "delete.title": "Delete account",
     "derivationPath": "Derivation path",
     "duplicate.title": "Duplicate account",
+    "enter.pin": "Enter pin",
     "entropy.coin.desc.12": "To achieve 128 bits of entropy, you need to flip a fair coin about 128 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.15": "To achieve 160 bits of entropy, you need to flip a fair coin about 160 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.18": "To achieve 192 bits of entropy, you need to flip a fair coin about 192 times, as each flip provides 1 bit of randomness.",
@@ -832,8 +833,11 @@
     "inputPlaceholder": "Enter %{option}",
     "read.clipboard": "Paste from clibpoard",
     "read.computerVision": "Computer Vision text",
-    "read.nfc": "Tap NFC",
+    "read.nfc": "Scan NFC",
+    "read.nfcErrorNoData": "No data found on NFC tag",
     "read.qrcode": "Scan qrcode",
+    "read.scanning": "Scanning NFC",
+    "read.scanning": "Scanning NFC",
     "titleModal": "Watch-only wallet"
   }
 }

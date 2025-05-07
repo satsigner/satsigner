@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
-import { useState } from 'react'
-import { Keyboard, ScrollView, StyleSheet } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Animated, Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -13,6 +13,7 @@ import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { useNFCReader } from '@/hooks/useNFCReader'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -77,6 +78,7 @@ export default function WatchOnly() {
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
+  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
 
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
@@ -99,6 +101,53 @@ export default function WatchOnly() {
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
 
   const [loadingWallet, setLoadingWallet] = useState(false)
+
+  const pulseAnim = useRef(new Animated.Value(0)).current
+  const scaleAnim = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (isReading) {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: false
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: false
+          })
+        ])
+      )
+
+      const scaleAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 0.98,
+            duration: 500,
+            useNativeDriver: false
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: false
+          })
+        ])
+      )
+
+      pulseAnimation.start()
+      scaleAnimation.start()
+      return () => {
+        pulseAnimation.stop()
+        scaleAnimation.stop()
+      }
+    } else {
+      pulseAnim.setValue(0)
+      scaleAnim.setValue(1)
+    }
+  }, [isReading, pulseAnim, scaleAnim])
 
   function updateAddress(address: string) {
     const validAddress = validateAddress(address)
@@ -173,7 +222,10 @@ export default function WatchOnly() {
         updateAccount(updatedAccount)
       }
     } catch (error) {
-      toast.error((error as Error).message)
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      }
     } finally {
       clearAccount()
       setLoadingWallet(false)
@@ -212,6 +264,63 @@ export default function WatchOnly() {
 
     if (selectedOption === 'importAddress') {
       updateAddress(text)
+    }
+  }
+
+  async function handleNFCRead() {
+    if (isReading) {
+      await cancelNFCScan()
+      return
+    }
+
+    try {
+      const nfcData = await readNFCTag()
+
+      if (!nfcData) {
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
+      }
+
+      const text = nfcData
+        .trim()
+        .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
+        .replace(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/g, '') // Remove control characters except \n
+        .normalize('NFKC') // Normalize unicode characters
+        .replace(/^en/, '')
+
+      if (selectedOption === 'importDescriptor') {
+        let externalDescriptor = text
+        let internalDescriptor = ''
+        if (text.match(/<0[,;]1>/)) {
+          externalDescriptor = text
+            .replace(/<0[,;]1>/, '0')
+            .replace(/#[a-z0-9]+$/, '')
+          internalDescriptor = text
+            .replace(/<0[,;]1>/, '1')
+            .replace(/#[a-z0-9]+$/, '')
+        }
+        if (text.includes('\n')) {
+          const lines = text.split('\n')
+          externalDescriptor = lines[0]
+          internalDescriptor = lines[1]
+        }
+        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      }
+
+      if (selectedOption === 'importExtendedPub') {
+        updateXpub(text)
+      }
+
+      if (selectedOption === 'importAddress') {
+        updateAddress(text)
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      }
     }
   }
 
@@ -343,8 +452,26 @@ export default function WatchOnly() {
                   onPress={pasteFromClipboard}
                 />
                 <SSButton label={t('watchonly.read.qrcode')} disabled />
-                <SSButton label={t('watchonly.read.nfc')} disabled />
-                <SSButton label={t('watchonly.read.computerVision')} disabled />
+                <Animated.View
+                  style={{
+                    opacity: pulseAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 0.7]
+                    }),
+                    transform: [{ scale: scaleAnim }],
+                    overflow: 'hidden'
+                  }}
+                >
+                  <SSButton
+                    label={
+                      isReading
+                        ? t('watchonly.read.scanning')
+                        : t('watchonly.read.nfc')
+                    }
+                    onPress={handleNFCRead}
+                    disabled={!isAvailable}
+                  />
+                </Animated.View>
               </SSVStack>
             </SSVStack>
             <SSVStack gap="sm">
