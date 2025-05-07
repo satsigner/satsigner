@@ -2,7 +2,6 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
