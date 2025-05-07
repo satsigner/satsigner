@@ -71,7 +71,7 @@ function useSyncAccountWithAddress() {
       existingTx[tx.id] = index
     })
     for (const tx of esploraTxs) {
-      if (existingTx[tx.txid] !== undefined) {
+      if (existingTx[tx.txid] === undefined) {
         account.syncProgress.totalTasks += 1
       }
     }
@@ -147,6 +147,9 @@ function useSyncAccountWithAddress() {
 
       txDictionary[tx.id] = index
       transactions.push(tx)
+
+      account.syncProgress.tasksDone += 1
+      setSyncProgress(account.id, account.syncProgress)
     }
 
     // update utxos
