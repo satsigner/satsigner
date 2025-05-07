@@ -18,11 +18,47 @@ export function validateFingerprint(fingerprint: string) {
 }
 
 export function validateDescriptor(descriptor: string) {
-  // TODO: this validates simple descriptors, but not complex ones
-  const r = new RegExp(
-    /^(sh|wsh|pk|pkh|wpkh|combo|multi|sortedmulti|tr|addr|raw|rawtr)\((\[([a-fA-F0-9]{8})?(\/[0-9]+[h']?)+\])?[a-z0-9]+(\/[0-9*])*\)(#[a-z0-9]{8})?$/gim
-  )
-  return descriptor.match(r) !== null
+  // regex expressions building blocks
+  const kind = '(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)'
+  const nestedKind = '(sh|wsh)'
+  const multiKind = `(multi|sortedmulti)`
+  const fingerprint = '[a-fA-F0-9]{8}'
+  const keyDerivationPath = `\\/[0-9]+[h']?`
+  const fullFingerprint = `\\[(${fingerprint})?(${keyDerivationPath})+\\]`
+  const content = '[a-zA-Z0-9]+'
+  const addressDerivationPath = '(\\/[0-9*])*'
+  const checksum = '#[a-z0-9]{8}'
+  const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
+  const singleKey = `^${kind}\\(${key}\\)$`
+  const multiKey = `^${multiKind}\\([1-9][0-9]*,(${key},)+${key}\\)$`
+  const nestedDescriptor = `^${nestedKind}\\(.+\\)$`
+
+  // auxiliary regex to extract nested items
+  const checksumRegex = new RegExp(`${checksum}$`)
+  const nestedKindRegex = new RegExp(`^${nestedKind}\\(`)
+
+  // main regex to parse the descriptor
+  const singleKeyRegex = new RegExp(singleKey, 'gm')
+  const multiKeyRegex = new RegExp(multiKey, 'gm')
+  const nestedRegex = new RegExp(nestedDescriptor, 'gm')
+
+  // Remove checksum if any.
+  // Nested descriptor have only 1 checksum, that is why we remove it first.
+  // Because we remove it, we also do not need to check it again.
+  let currentItem = descriptor.replace(checksumRegex, '')
+
+  // Extract nested descriptor.
+  // Example: wsh(sh(pkh(...))) -> pkh(...)
+  while (nestedRegex.test(currentItem)) {
+    // first, check if the current item is a single key sh/wsh descriptor
+    if (singleKeyRegex.test(currentItem)) return true
+
+    // extract it
+    currentItem = currentItem.replace(nestedKindRegex, '').replace(/\)$/, '')
+  }
+
+  // It must be either single key or multi key
+  return singleKeyRegex.test(currentItem) || multiKeyRegex.test(currentItem)
 }
 
 export function validateAddress(address: string) {
@@ -36,7 +72,7 @@ export function validateAddress(address: string) {
       bitcoinjs.address.toOutputScript(address, network)
       return true
     } catch {
-      //
+      // Continue to next network if validation fails
     }
   }
   return false

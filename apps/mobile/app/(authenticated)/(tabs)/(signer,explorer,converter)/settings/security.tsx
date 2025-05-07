@@ -36,8 +36,6 @@ export default function Security() {
           headerTitle: () => (
             <SSText uppercase>{t('settings.security.title')}</SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />

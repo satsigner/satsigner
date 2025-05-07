@@ -124,8 +124,6 @@ export default function CustomNetwork() {
           headerTitle: () => (
             <SSText uppercase>{t('settings.network.custom.title')}</SSText>
           ),
-          headerBackVisible: true,
-          headerLeft: () => <></>,
           headerRight: undefined
         }}
       />
