@@ -331,6 +331,7 @@ function useSyncAccountWithAddress() {
     account: Account,
     addressDescriptor: string
   ) {
+    const updatedAccount: Account = { ...account }
     try {
       setLoading(true)
       setSyncStatus(account.id, 'syncing')
@@ -344,10 +345,10 @@ function useSyncAccountWithAddress() {
         labelsBackup[getUtxoOutpoint(utxo)] = utxo.label || ''
       }
 
-      const updatedAccount: Account = { ...account }
+      // the address extracted from the descriptor
       const address = parseAddressDescriptorToAddress(addressDescriptor)
 
-      // update account sync progress
+      // reset the account sync progress
       updatedAccount.syncProgress = {
         tasksDone: 0,
         totalTasks: 0
@@ -373,6 +374,7 @@ function useSyncAccountWithAddress() {
         throw new Error('unkown backend')
       }
 
+      // build summary
       const summary = {
         numberOfAddresses: 1,
         numberOfTransactions: addrInfo.transactions.length,
@@ -396,7 +398,7 @@ function useSyncAccountWithAddress() {
           labelsBackup[transactionRef] || ''
       }
 
-      // timestamps of transactions without price data
+      // collect timestamps of transactions without price data
       const timestamps = [
         ...new Set(
           updatedAccount.transactions
@@ -409,7 +411,7 @@ function useSyncAccountWithAddress() {
         )
       ]
 
-      // Update progress status
+      // update progress status because we are about to fetch price data
       updatedAccount.syncProgress = {
         tasksDone: addrInfo.progress?.tasksDone || 0,
         totalTasks: (addrInfo.progress?.totalTasks || 0) + timestamps.length
@@ -450,7 +452,7 @@ function useSyncAccountWithAddress() {
       return updatedAccount
     } catch {
       setSyncStatus(account.id, 'error')
-      return account
+      return updatedAccount
     } finally {
       setLoading(false)
     }
