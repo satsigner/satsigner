@@ -356,7 +356,10 @@ export default function AccountSettings() {
                 backgroundColor: Colors.error
               }}
               onPress={() => {
-                deleteThisAccount()
+                setDeleteModalVisible(false)
+                setTimeout(() => {
+                  deleteThisAccount()
+                }, 0)
               }}
             />
             <SSButton
