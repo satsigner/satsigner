@@ -417,23 +417,6 @@ function SSNostrSync() {
               />
             </SSHStack>
 
-            <SSHStack gap="md">
-              <SSButton
-                label="Clear Nostr Store"
-                onPress={handleClearNostrStore}
-                variant="subtle"
-                style={{ flex: 0.5 }}
-                disabled={isLoading}
-              />
-              <SSButton
-                label="Clear All Messages"
-                onPress={handleClearMessages}
-                disabled={isLoading}
-                variant="subtle"
-                style={{ flex: 0.5 }}
-              />
-            </SSHStack>
-
             {selectedRelays.length === 0 && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
@@ -510,7 +493,7 @@ function SSNostrSync() {
 
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
-              variant="outline"
+              variant="secondary"
               label={t('account.nostrSync.devicesGroupChat')}
               onPress={goToDevicesGroupChat}
             />
@@ -581,6 +564,24 @@ function SSNostrSync() {
               )}
             </SSVStack>
           </SSVStack>
+
+          {/* Clear buttons at the bottom */}
+          <SSHStack gap="md" style={{ marginTop: 30 }}>
+            <SSButton
+              label="Clear Nostr Store"
+              onPress={handleClearNostrStore}
+              variant="subtle"
+              style={{ flex: 0.5 }}
+              disabled={isLoading}
+            />
+            <SSButton
+              label="Clear All Messages"
+              onPress={handleClearMessages}
+              disabled={isLoading}
+              variant="subtle"
+              style={{ flex: 0.5 }}
+            />
+          </SSHStack>
         </SSVStack>
       </ScrollView>
     </SSMainLayout>

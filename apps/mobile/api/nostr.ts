@@ -37,11 +37,11 @@ export class NostrAPI {
         'wss://relay.damus.io',
         'wss://nostr.bitcoiner.social',
         'wss://relay.nostr.band',
-        'wss://nos.lol'
+        'wss://nostr.mom'
       ]
     }
   }
-
+  s
   async connect() {
     try {
       // Initialize NDK if not already initialized
@@ -253,15 +253,17 @@ export class NostrAPI {
     content: string
   ): Promise<NDKEvent> {
     // Decode the nsec
+    console.log('🩸 nsec', nsec)
     const { data: secretNostrKey } = nip19.decode(nsec)
     const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
     const encodedContent = unescape(encodeURIComponent(content))
-
+    console.log('🩸 encodedContent', encodedContent)
     const wrap = nip17.wrapEvent(
       secretNostrKey as Uint8Array,
       { publicKey: recipientPubkey.data },
       encodedContent
     )
+    console.log('🩸 wrap', wrap)
     const tempNdk = new NDK()
     const event = new NDKEvent(tempNdk, wrap)
     return event
@@ -292,7 +294,7 @@ export class NostrAPI {
       if (!this.ndk) {
         await this.connect()
       }
-
+      console.log('🩸 this.ndk', this.ndk)
       if (!this.ndk) {
         throw new Error('Failed to initialize NDK')
       }
@@ -304,7 +306,7 @@ export class NostrAPI {
       if (event.ndk !== this.ndk) {
         event.ndk = this.ndk
       }
-
+      console.log('🩸 event', event)
       // Ensure event is signed
       if (!event.sig) {
         const signer = this.ndk.signer
@@ -331,8 +333,8 @@ export class NostrAPI {
               return { url, success: false, error }
             }
           })
-
           const results = await Promise.all(publishPromises)
+          console.log('🩸 results', results)
           const successfulPublishes = results.filter((r) => r.success)
           if (successfulPublishes.length > 0) {
             published = true

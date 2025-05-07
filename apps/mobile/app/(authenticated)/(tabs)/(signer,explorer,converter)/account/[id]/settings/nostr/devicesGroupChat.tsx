@@ -474,7 +474,8 @@ const styles = StyleSheet.create({
   messagesContainer: {
     flex: 1,
     backgroundColor: '#1f1f1f',
-    paddingHorizontal: 10
+    paddingHorizontal: 8,
+    paddingBottom: 8
   },
   message: {
     backgroundColor: '#1a1a1a',
@@ -482,7 +483,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingTop: 5,
     borderRadius: 8,
-    marginBottom: 8
+    marginTop: 8
   },
   deviceMessage: {
     backgroundColor: '#2f2f2f'
