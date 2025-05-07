@@ -208,16 +208,21 @@ function useSyncAccountWithAddress() {
       tasksDone: account.syncProgress?.tasksDone || 0,
       totalTasks: account.syncProgress?.tasksDone || 0
     }
+
+    // update tasks because we need to perform 3 requests
     account.syncProgress.totalTasks += 3
     setSyncProgress(account.id, account.syncProgress)
 
+    // make the requests
     const addressUtxos = await electrumClient.getAddressUtxos(address)
     const addressTxs = await electrumClient.getAddressTransactions(address)
     const balance = await electrumClient.getAddressBalance(address)
 
+    // update progress
     account.syncProgress.tasksDone += 3
     setSyncProgress(account.id, account.syncProgress)
 
+    // transactions and utxos already known
     const existingTx: Record<string, number> = {}
     const existingUtxo: Record<string, number> = {}
 
@@ -228,21 +233,24 @@ function useSyncAccountWithAddress() {
       existingUtxo[getUtxoOutpoint(utxo)] = index
     })
 
-    const filteredTx = addressTxs.filter((t) => {
+    // transactions and utxos not known by the wallet
+    const pendingTx = addressTxs.filter((t) => {
       return existingTx[t.tx_hash] === undefined
     })
-    const filteredUtxos = addressUtxos.filter((u) => {
+    const pendingUtxos = addressUtxos.filter((u) => {
       return existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined
     })
 
-    account.syncProgress.totalTasks +=
-      filteredTx.length * 2 + filteredUtxos.length
+    // update progress
+    const estimatedRequests = pendingTx.length * 2 + pendingUtxos.length
+    account.syncProgress.totalTasks += estimatedRequests
     setSyncProgress(account.id, account.syncProgress)
 
-    // keep track of timestamps
+    // variable to keep track of timestamps
     const timestampDict: Record<number, number> = {}
 
-    const utxoHeights = filteredUtxos.map((value) => value.height)
+    // fetch timestamps for new utxos
+    const utxoHeights = pendingUtxos.map((value) => value.height)
     const utxoTimestamps: number[] = []
     for (const height of utxoHeights) {
       if (!timestampDict[height]) {
@@ -258,14 +266,18 @@ function useSyncAccountWithAddress() {
     const addressKeychain = 'external'
     const newUtxos: Utxo[] = electrumClient.parseAddressUtxos(
       address,
-      filteredUtxos,
+      pendingUtxos,
       utxoTimestamps,
       addressKeychain
     )
     account.utxos = [...account.utxos, ...newUtxos]
     updateAccount(account)
 
-    const txIds = filteredTx.map((value) => value.tx_hash)
+    // this is to prevent modifying the sync object just updated in store
+    account.syncProgress = { ...account.syncProgress }
+
+    // fetch raw transaction for new transactions
+    const txIds = pendingTx.map((value) => value.tx_hash)
     const rawTransactions = []
     for (const txid of txIds) {
       const rawTx = await electrumClient.getTransaction(txid)
@@ -276,7 +288,8 @@ function useSyncAccountWithAddress() {
       setSyncProgress(account.id, account.syncProgress)
     }
 
-    const txHeights = filteredTx.map((value) => value.height)
+    // fetch the timestamps for the new transactions
+    const txHeights = pendingTx.map((value) => value.height)
     const txTimestamps: number[] = []
     for (const height of txHeights) {
       if (!timestampDict[height]) {
@@ -289,6 +302,7 @@ function useSyncAccountWithAddress() {
       setSyncProgress(account.id, account.syncProgress)
     }
 
+    // parse the raw transaction and timestamps to transaction objects
     const newTransactions = electrumClient.parseAddressTransactions(
       address,
       rawTransactions,
