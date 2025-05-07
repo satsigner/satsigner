@@ -107,6 +107,13 @@ function TotalTransactions({
 }: TotalTransactionsProps) {
   const router = useRouter()
 
+  const [totalTasks, tasksDone] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((a) => a.id === account.id)?.syncProgress?.totalTasks,
+      state.accounts.find((a) => a.id === account.id)?.syncProgress?.tasksDone
+    ])
+  )
+
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
@@ -140,6 +147,9 @@ function TotalTransactions({
 
   return (
     <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
+      <SSText>
+        {tasksDone}/{totalTasks}
+      </SSText>
       <SSHStack
         justifyBetween
         style={{ paddingVertical: 16, paddingHorizontal: 16 }}
