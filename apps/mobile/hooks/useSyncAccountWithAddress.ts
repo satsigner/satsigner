@@ -124,13 +124,13 @@ function useSyncAccountWithAddress() {
 
       const raw = await esploraClient.getTxHex(t.txid)
 
-      const tx = {
+      const tx: Transaction = {
         address,
         blockHeight: t.status.block_height,
         fee: t.fee,
         id: t.txid,
         label: '',
-        locktime: t.locktime,
+        lockTime: t.locktime,
         lockTimeEnabled: t.locktime > 0,
         prices: {},
         raw: parseHexToBytes(raw),
@@ -143,7 +143,7 @@ function useSyncAccountWithAddress() {
         vin,
         vout,
         weight: t.weight
-      } as Transaction
+      }
 
       txDictionary[tx.id] = index
       transactions.push(tx)
@@ -166,7 +166,7 @@ function useSyncAccountWithAddress() {
           script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
         }
 
-        return {
+        const utxo: Utxo = {
           txid: u.txid,
           vout: u.vout,
           value: u.value,
@@ -177,7 +177,8 @@ function useSyncAccountWithAddress() {
           timestamp: u.status.block_time
             ? new Date(u.status.block_time * 1000)
             : undefined
-        } as Utxo
+        }
+        return utxo
       })
     )
 
