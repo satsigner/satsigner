@@ -1,3 +1,4 @@
+import * as bitcoinjs from 'bitcoinjs-lib' // Added for network definitions
 import { useCallback, useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -7,7 +8,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import { recalculateDepthH } from '@/utils/transaction'
-import { TxDecoded } from '@/utils/txDecoded' // Import TxDecoded
+import { TxDecoded } from '@/utils/txDecoded'
 
 // Define the extended Vin type
 type ExtendedVin = Transaction['vin'][number] & {
@@ -123,7 +124,15 @@ export function useInputTransactions(
     // Store transactions with their input addresses
     const transactionInputAddresses = new Map<string, Set<string>>()
 
+    let electrumClient: ElectrumClient | null = null // Declare client variable
+
     try {
+      // Initialize client once if backend is Electrum
+      if (server.backend === 'electrum') {
+        electrumClient = ElectrumClient.fromUrl(server.url, server.network)
+        await electrumClient.init()
+      }
+
       while (currentLevelDeep < levelDeep && queue.length > 0) {
         const currentLevelTxids = queue.filter(
           (item) => item.level === currentLevelDeep + 1
@@ -140,6 +149,7 @@ export function useInputTransactions(
               const esploraClient = new Esplora(server.url)
               tx = await esploraClient.getTxInfo(txid).catch(() => null)
               // Map EsploraTx to Transaction type structure
+
               if (tx) {
                 const mappedTx: Transaction = {
                   id: tx.txid,
@@ -210,31 +220,88 @@ export function useInputTransactions(
                 })
                 transactionInputAddresses.set(txid, inputAddresses)
               }
-            } else if (server.backend === 'electrum') {
+            } else if (server.backend === 'electrum' && electrumClient) {
+              // Check if electrumClient is initialized
               try {
-                const electrumClient = new ElectrumClient({
-                  host: server.url.split('://')[1].split(':')[0],
-                  port: Number(server.url.split(':')[2]),
-                  protocol: server.url.split('://')[0] as any, // Assuming protocol is part of the URL
-                  network: selectedNetwork as any // Assuming network is compatible
-                })
-                await electrumClient.init()
+                let blockHeight: number | undefined = undefined
+                let timestamp: Date | undefined = undefined
+                // Use the single, initialized electrumClient
                 const rawTx = await electrumClient.getTransactions([txid])
-                electrumClient.close()
-
                 if (rawTx && rawTx.length > 0) {
                   const parsedTx = TxDecoded.fromHex(rawTx[0])
 
+                  // Try to get block height by deriving an address from outputs and checking history
+                  // Derive an address from the transaction outputs if possible
+                  for (const output of parsedTx.outs) {
+                    try {
+                      const address = output.script
+                        ? bitcoinjs.address.fromOutputScript(
+                            output.script,
+                            selectedNetwork === 'bitcoin'
+                              ? bitcoinjs.networks.bitcoin
+                              : bitcoinjs.networks.testnet
+                          )
+                        : null
+                      if (address) {
+                        // Get transaction history for this address
+                        const history =
+                          await electrumClient.client.blockchainScripthash_getHistory(
+                            electrumClient.addressToScriptHash(address)
+                          )
+                        // Look for our transaction in the history
+                        const txEntry = history.find(
+                          (entry: { tx_hash: string; height: number }) =>
+                            entry.tx_hash === txid
+                        )
+                        if (txEntry && txEntry.height) {
+                          blockHeight = txEntry.height
+                          break // Found the height, no need to check other addresses
+                        }
+                      }
+                    } catch (_addrError) {}
+                  }
+                  if (blockHeight) {
+                    timestamp = new Date(
+                      await electrumClient.getBlockTimestamp(blockHeight)
+                    )
+                  }
+                  // Collect previous transaction IDs needed for input values
+                  const prevTxOutputs = parsedTx.ins.map((input) => ({
+                    txid: input.hash.slice().reverse().toString('hex'),
+                    vout: input.index
+                  }))
+                  const uniquePrevTxids = [
+                    ...new Set(prevTxOutputs.map((p) => p.txid))
+                  ]
+
+                  const rawPrevTxs =
+                    await electrumClient.getTransactions(uniquePrevTxids)
+
+                  // Parse previous transactions and store in a map
+                  const prevTxsMap = new Map<string, TxDecoded>()
+                  if (rawPrevTxs) {
+                    rawPrevTxs.forEach((rawPrevTx, index) => {
+                      const currentTxidForMap = uniquePrevTxids[index]
+                      if (rawPrevTx) {
+                        try {
+                          const parsedPrevTx = TxDecoded.fromHex(rawPrevTx)
+                          prevTxsMap.set(currentTxidForMap, parsedPrevTx)
+                        } catch (_parseError) {
+                          // Failed to parse, skip this one
+                        }
+                      }
+                    })
+                  }
                   // Map parsed Electrum transaction to Transaction type structure
                   const mappedTx: Transaction = {
-                    id: parsedTx.getId(),
-                    type: 'send', // Will be determined later
-                    sent: 0, // Will be determined later
-                    received: 0, // Will be determined later
-                    timestamp: undefined, // Electrum raw tx doesn't have timestamp directly
-                    blockHeight: undefined, // Electrum raw tx doesn't have block height directly
+                    id: txid,
+                    type: 'send', // Not needed
+                    sent: 0, // Not needed
+                    received: 0, // Not needed
+                    timestamp,
+                    blockHeight,
                     address: undefined, // Not directly available in raw tx
-                    label: undefined, // Not directly available in raw tx
+                    label: undefined, // TODO: add label
                     fee: undefined, // Not directly available in raw tx
                     size: parsedTx.byteLength(),
                     vsize: parsedTx.virtualSize(),
@@ -243,23 +310,45 @@ export function useInputTransactions(
                     lockTime: parsedTx.locktime,
                     lockTimeEnabled: parsedTx.locktime > 0,
                     raw: Array.from(Buffer.from(rawTx[0], 'hex')),
-                    vin: parsedTx.ins.map((input) => ({
-                      previousOutput: {
-                        txid: input.hash.reverse().toString('hex'), // Electrum hash is reversed
-                        vout: input.index
-                      },
-                      sequence: input.sequence,
-                      scriptSig: Array.from(input.script),
-                      witness: input.witness.map((w) => Array.from(w)),
-                      value: undefined, // Need to fetch previous transaction for value
-                      label: undefined,
-                      address: 'dummy-data' // Address needs to be fetched from prev tx
-                    })),
+                    vin: parsedTx.ins.map((input) => {
+                      const prevTxid = input.hash.toString('hex') // input.hash is now little-endian here
+                      const prevVout = input.index
+                      const prevTx = prevTxsMap.get(prevTxid)
+                      const value = prevTx?.outs[prevVout]?.value // Get value from prev tx output
+
+                      let address = 'unknown'
+                      if (prevTx) {
+                        const bjsNetwork =
+                          selectedNetwork === 'bitcoin'
+                            ? bitcoinjs.networks.bitcoin
+                            : bitcoinjs.networks.testnet
+                        // Ensure prevTx.outs[prevVout].script is a Buffer
+                        // TxDecoded stores script as Buffer, so direct use should be fine.
+                        address =
+                          prevTx.generateOutputScriptAddress(
+                            prevVout,
+                            bjsNetwork
+                          ) || 'unknown'
+                      }
+
+                      return {
+                        previousOutput: {
+                          txid: prevTxid,
+                          vout: prevVout
+                        },
+                        sequence: input.sequence,
+                        scriptSig: Array.from(input.script),
+                        witness: input.witness.map((w) => Array.from(w)),
+                        value, // Assign fetched value
+                        label: undefined, // TODO: add label
+                        address // Assign derived address
+                      }
+                    }),
                     vout: parsedTx.outs.map((output) => ({
                       value: output.value,
                       address: '', // Set to empty string to satisfy required string type
                       script: Array.from(output.script),
-                      label: undefined
+                      label: undefined // TODO: add label
                     })),
                     prices: {}
                   }
@@ -269,24 +358,12 @@ export function useInputTransactions(
                     depthH: 0
                   })
 
-                  // Collect output addresses (will need to derive from script for Electrum)
-                  // For now, skipping collection for Electrum here.
-                  // const outputAddresses = new Set<string>() // Removed unused variable
-                  // mappedTx.vout?.forEach((vout) => { // Removed unused parameter
-                  //   // Logic to derive address from vout.script for Electrum
-                  //   // Skipping for now
-                  // })
-
                   // Store input addresses (will need to fetch previous transactions for Electrum)
                   const inputAddresses = new Set<string>()
                   // Skipping for now
                   transactionInputAddresses.set(txid, inputAddresses)
                 }
-              } catch (_electrumError) {
-                // Prefix with underscore to ignore unused variable
-                // console.error(`Error fetching Electrum transaction ${txid}:`, electrumError); // Commented out console.error
-                // Continue to next transaction if Electrum fetch fails
-              }
+              } catch (_electrumError) {}
             }
 
             // Queue parent transactions only if we haven't reached max levelDeep
@@ -390,8 +467,13 @@ export function useInputTransactions(
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
       setLoading(false)
+    } finally {
+      // Ensure client is closed if it was initialized
+      if (electrumClient) {
+        electrumClient.close()
+      }
     }
-  }, [inputs, selectedNetwork, levelDeep, server.backend, server.url])
+  }, [inputs, server, levelDeep, selectedNetwork])
 
   useEffect(() => {
     fetchInputTransactions()

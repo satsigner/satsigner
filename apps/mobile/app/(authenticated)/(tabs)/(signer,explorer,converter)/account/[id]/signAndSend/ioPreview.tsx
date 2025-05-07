@@ -5,7 +5,12 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Animated,
+  type LayoutChangeEvent,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -19,14 +24,14 @@ import SSFeeRateChart, {
 } from '@/components/SSFeeRateChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSMultipleSankeyDiagram, {
-  type Link
-} from '@/components/SSMultipleSankeyDiagram'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
+// import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSNumberGhostInput from '@/components/SSNumberGhostInput'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSUnconfirmedTransactionChart from '@/components/SSUnconfirmedTransactionChart'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
@@ -40,9 +45,11 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
+import { type Output } from '@/types/models/Output'
 // import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Link } from '@/types/ui/sankey'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
@@ -50,6 +57,8 @@ import { estimateTransactionSize } from '@/utils/transaction'
 // import { selectEfficientUtxos } from '@/utils/utxo'
 
 const DEEP_LEVEL = 2 // how deep the tx history
+
+const SHOW_PREVIEW = false
 
 export default function IOPreview() {
   const router = useRouter()
@@ -83,23 +92,10 @@ export default function IOPreview() {
     ])
   )
 
-  // const { transactions, loading, error } = useInputTransactions(
-  //   inputs,
-  //   DEEP_LEVEL
-  // )
-
   const { transactions, loading, error } = useInputTransactions(
     inputs,
     DEEP_LEVEL
   )
-  // console.log(
-  //   JSON.stringify(
-  //     { Transactions: Array.from(transactions.entries()) },
-  //     null,
-  //     2
-  //   )
-  // )
-  // console.log('txCount', transactions.size)
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -110,6 +106,7 @@ export default function IOPreview() {
     useState<AutoSelectUtxosAlgorithms>('user')
 
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [topGradientHeight, setTopGradientHeight] = useState(0)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
 
@@ -154,7 +151,6 @@ export default function IOPreview() {
     outputs,
     feeRate
   })
-  // console.log(JSON.stringify({ nodes }, null, 2))
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
@@ -173,6 +169,30 @@ export default function IOPreview() {
   })
 
   const boxPosition = new Animated.Value(localFeeRate)
+
+  // Calculate outputs for chart including remaining balance
+  const outputsForChart = useMemo(() => {
+    const { vsize } = transactionSize
+    const minerFee = Math.round(feeRate * vsize)
+    const totalInputValue = utxosSelectedValue
+    const totalOutputValue = outputs.reduce(
+      (sum, output) => sum + output.amount,
+      0
+    )
+    const remainingBalance = totalInputValue - totalOutputValue - minerFee
+
+    const chartOutputs: (Omit<Output, 'to'> & { to?: string })[] = [...outputs]
+
+    if (remainingBalance > DUST_LIMIT) {
+      chartOutputs.push({
+        localId: 'unspent',
+        amount: remainingBalance,
+        label: ''
+      })
+    }
+
+    return chartOutputs
+  }, [outputs, transactionSize, feeRate, utxosSelectedValue])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -318,7 +338,11 @@ export default function IOPreview() {
     )
   }
 
-  // if (!nodes.length || !links.length) return <Redirect href="/" />
+  const handleTopLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout
+    setTopGradientHeight(height + Layout.mainContainer.paddingTop)
+  }
+  if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
     <View style={{ flex: 1 }}>
@@ -336,6 +360,7 @@ export default function IOPreview() {
           zIndex: 20,
           pointerEvents: 'none'
         }}
+        onLayout={handleTopLayout}
         locations={[0.185, 0.5554, 0.7713, 1]}
         colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
       >
@@ -388,18 +413,43 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <View style={{ position: 'absolute', top: 80 }}>
-        {transactions.size > 0 &&
-        inputs.size > 0 &&
-        nodes?.length > 0 &&
-        links?.length > 0 ? (
-          <SSMultipleSankeyDiagram
-            sankeyNodes={nodes}
-            sankeyLinks={links as Link[]}
-            onPressOutput={handleOnPressOutput}
-          />
-        ) : null}
-      </View>
+      {inputs.size > 0 &&
+      transactions.size > 0 &&
+      nodes.length > 0 &&
+      links.length > 0 ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: SHOW_PREVIEW ? topGradientHeight : 80
+          }}
+        >
+          {SHOW_PREVIEW ? (
+            <SSUnconfirmedTransactionChart
+              inputs={inputs}
+              outputs={outputsForChart}
+              feeRate={feeRate}
+            />
+          ) : (
+            <SSMultipleSankeyDiagram
+              sankeyNodes={nodes}
+              sankeyLinks={links as Link[]}
+              onPressOutput={handleOnPressOutput}
+            />
+          )}
+        </View>
+      ) : null}
+      {/* <SSButton
+        variant="outline"
+        label={t('transaction.build.add.input.title')}
+        style={{
+          flex: 1,
+          paddingHorizontal: 32,
+          justifyContent: 'flex-start',
+          bottom: 0
+        }}
+      >
+        LOAD HISTORY
+      </SSButton> */}
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{

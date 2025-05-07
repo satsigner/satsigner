@@ -98,7 +98,7 @@ export const useNodesAndLinks = ({
     transactions.size > 0
       ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
       : 0
-  const ingoingNodes = useMemo(() => {
+  const outputNodesCurrentTransaction = useMemo(() => {
     if (inputs.size > 0) {
       const blockDepth = maxExistingDepth + 2
 
@@ -254,7 +254,6 @@ export const useNodesAndLinks = ({
             // if (input.indexV === undefined) {
             //   input.indexV = currentIndex
             // }
-
             const node = {
               id: `vin-${depthH}-${currentIndex}`,
               type: 'text',
@@ -347,7 +346,7 @@ export const useNodesAndLinks = ({
           const feeNode: TxNode[] = []
           if (minerFee > 0) {
             const feeOutputDepth = tx.depthH + 1
-            // Use vout length as index, similar to ingoingNodes fee calculation
+            // Use vout length as index, similar to outputNodesCurrentTransaction fee calculation
             const feeVoutIndex = tx.vout.length
             const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
             feeNode.push({
@@ -387,9 +386,10 @@ export const useNodesAndLinks = ({
     transactions
   ])
 
-  const nodes = [...previousConfirmedNodes, ...ingoingNodes].sort(
-    (a, b) => a.depthH - b.depthH
-  )
+  const nodes = [
+    ...previousConfirmedNodes,
+    ...outputNodesCurrentTransaction
+  ].sort((a, b) => a.depthH - b.depthH)
 
   const links = useMemo(() => {
     function generateSankeyLinks(nodes: TxNode[]) {
@@ -451,7 +451,7 @@ export const useNodesAndLinks = ({
             .includes(node?.vout ?? 0)
         ) {
           // vout node that has input selected by users
-          const targetBlock = ingoingNodes[0].id
+          const targetBlock = outputNodesCurrentTransaction[0].id
           if (targetBlock) {
             links.push({
               source: node.id,
@@ -476,9 +476,9 @@ export const useNodesAndLinks = ({
         }
       })
 
-      ingoingNodes.slice(1).map((node) => {
+      outputNodesCurrentTransaction.slice(1).map((node) => {
         links.push({
-          source: ingoingNodes[0].id,
+          source: outputNodesCurrentTransaction[0].id,
           target: node.id,
           value: node.value ?? 0
         })
@@ -489,7 +489,11 @@ export const useNodesAndLinks = ({
     if (nodes?.length === 0) return []
 
     return generateSankeyLinks(previousConfirmedNodes)
-  }, [nodes?.length, previousConfirmedNodes, ingoingNodes, inputs])
-  // console.log(JSON.stringify({ nodes }, null, 2))
+  }, [
+    nodes?.length,
+    previousConfirmedNodes,
+    outputNodesCurrentTransaction,
+    inputs
+  ])
   return { nodes, links }
 }
