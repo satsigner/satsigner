@@ -18,54 +18,6 @@ export function estimateTransactionSize(
   return { size: totalSize, vsize }
 }
 
-type InputOutputMapping = {
-  value: number
-  address: string
-  txid: string
-  vout: number
-}
-
-export function mapTransactionInputsToOutputs<T extends ExtendedTransaction>(
-  transactions: Map<string, T>
-): Map<string, InputOutputMapping> {
-  const inputToOutputMap = new Map<string, InputOutputMapping>()
-
-  // First pass: create a map of all outputs for quick lookup
-  const outputsMap = new Map<string, { value: number; address: string }>()
-  for (const [txid, tx] of transactions.entries()) {
-    tx.vout.forEach((output, index) => {
-      const outputKey = `${txid}:${index}`
-      outputsMap.set(outputKey, {
-        value: output.value,
-        address: output.address
-      })
-    })
-  }
-
-  // Second pass: map inputs to their corresponding outputs
-  for (const [txid, tx] of transactions.entries()) {
-    tx.vin.forEach((input, inputIndex) => {
-      const prevTxId = input.previousOutput.txid
-      const prevVout = input.previousOutput.vout
-      const outputKey = `${prevTxId}:${prevVout}`
-      const output = outputsMap.get(outputKey)
-
-      if (output) {
-        // Create a unique key for this input
-        const inputKey = `${txid}:${inputIndex}`
-        inputToOutputMap.set(inputKey, {
-          value: output.value,
-          address: output.address,
-          txid: prevTxId,
-          vout: prevVout
-        })
-      }
-    })
-  }
-
-  return inputToOutputMap
-}
-
 /**
  * Recalculates the depthH value for each transaction based on its dependencies.
  *
