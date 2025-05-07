@@ -21,9 +21,7 @@ function ImportOuputs() {
   const [importedOutputs, setImportedOutputs] = useState(tn('emptyContent'))
   const [validInput, setValidInput] = useState(false)
 
-  const [addOutput] = useTransactionBuilderStore(
-    useShallow((state) => [state.addOutput])
-  )
+  const addOutput = useTransactionBuilderStore((state) => state.addOutput)
 
   async function readFromClibpoard() {
     const text = await Clipboard.getStringAsync()
