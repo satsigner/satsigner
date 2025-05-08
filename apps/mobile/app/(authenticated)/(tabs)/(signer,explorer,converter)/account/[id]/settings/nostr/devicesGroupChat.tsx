@@ -22,8 +22,8 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { type DM } from '@/types/models/Account'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { nip19 } from 'nostr-tools'
 
 interface MessageContent {
@@ -241,6 +241,7 @@ function SSDevicesGroupChat() {
     // Load messages from store whenever they change
     const loadMessages = async () => {
       const dms = await loadStoredDMs(account)
+
       if (dms && Array.isArray(dms)) {
         const parsedMessages = dms.map(
           (dm: DM) =>
@@ -255,18 +256,22 @@ function SSDevicesGroupChat() {
 
         // Sort messages by creation time
         parsedMessages.sort((a, b) => a.created_at - b.created_at)
-        setMessages(parsedMessages)
 
-        // Scroll to bottom after messages are loaded
-        setTimeout(() => {
-          if (flatListRef.current && parsedMessages.length > 0) {
-            flatListRef.current.scrollToEnd({ animated: false })
-          }
-        }, 100)
+        // Update messages if we have new ones or if the content has changed
+        const currentMessagesStr = JSON.stringify(messages)
+        const newMessagesStr = JSON.stringify(parsedMessages)
+        if (currentMessagesStr !== newMessagesStr) {
+          setMessages(parsedMessages)
+        }
       }
     }
 
-    loadMessages()
+    // Set up an interval to check for new messages
+    const intervalId = setInterval(loadMessages, 1000)
+
+    return () => {
+      clearInterval(intervalId)
+    }
   }, [
     nostrApi,
     account?.nostr?.commonNsec,
@@ -274,8 +279,19 @@ function SSDevicesGroupChat() {
     account,
     dataExchangeSubscription,
     loadStoredDMs,
-    accountId
+    accountId,
+    messages // Changed from messages.length to messages to detect content changes
   ])
+
+  // Effect to handle scrolling to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0 && flatListRef.current) {
+      // Use requestAnimationFrame to ensure the scroll happens after the layout
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: false })
+      })
+    }
+  }, [messages.length])
 
   // Connect to relays
   useEffect(() => {
@@ -423,12 +439,16 @@ function SSDevicesGroupChat() {
             inverted={false}
             onLayout={() => {
               if (flatListRef.current && messages.length > 0) {
-                flatListRef.current.scrollToEnd({ animated: false })
+                requestAnimationFrame(() => {
+                  flatListRef.current?.scrollToEnd({ animated: false })
+                })
               }
             }}
             onContentSizeChange={() => {
               if (flatListRef.current && messages.length > 0) {
-                flatListRef.current.scrollToEnd({ animated: false })
+                requestAnimationFrame(() => {
+                  flatListRef.current?.scrollToEnd({ animated: false })
+                })
               }
             }}
           />
@@ -515,36 +535,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1a1a1a',
     opacity: 0.8
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.white
-  },
-  messageContent: {
-    flex: 1,
-    paddingLeft: 10
-  },
-  npub: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: Colors.white
-  },
-  messageText: {
-    fontSize: 14,
-    color: Colors.white
   }
 })
 

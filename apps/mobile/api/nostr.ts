@@ -30,6 +30,12 @@ export interface NostrMessage {
 export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions: Set<NDKSubscription> = new Set()
+  private eventQueue: NostrMessage[] = []
+  private isProcessingQueue = false
+  private readonly BATCH_SIZE = 10
+  private readonly PROCESSING_INTERVAL = 200 // ms
+  private isLoading = false
+  private onLoadingChange?: (isLoading: boolean) => void
 
   constructor(private relays: string[]) {
     // Add default reliable relays if none provided
@@ -42,7 +48,16 @@ export class NostrAPI {
       ]
     }
   }
-  s
+
+  setLoadingCallback(callback: (isLoading: boolean) => void) {
+    this.onLoadingChange = callback
+  }
+
+  private setLoading(loading: boolean) {
+    this.isLoading = loading
+    this.onLoadingChange?.(loading)
+  }
+
   async connect() {
     try {
       // Initialize NDK if not already initialized
@@ -137,102 +152,107 @@ export class NostrAPI {
     }
   }
 
-  /*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  */
-
   async disconnect() {
     await this.closeAllSubscriptions()
     this.ndk = null
   }
 
-  /*
+  private async processEventQueue(callback: (message: NostrMessage) => void) {
+    if (this.isProcessingQueue || this.eventQueue.length === 0) return
 
-
-
-
-
-
-
-
-
-
-
-
-*/
+    this.isProcessingQueue = true
+    this.setLoading(true)
+    try {
+      while (this.eventQueue.length > 0) {
+        const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
+        await Promise.all(batch.map((message) => callback(message)))
+        // Add a small delay between batches to prevent UI freezing
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.PROCESSING_INTERVAL)
+        )
+      }
+    } finally {
+      this.isProcessingQueue = false
+      this.setLoading(false)
+    }
+  }
 
   async subscribeToKind1059(
     recipientNsec: string,
     recipientNpub: string,
     _callback: (message: NostrMessage) => void,
     limit?: number,
-    since?: number
+    since?: number,
+    onEOSE?: (nsec: string) => void
   ): Promise<void> {
     await this.connect()
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
-    // Decode the nsec and npub
-    const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
-    const { data: recipientPubKey } = nip19.decode(recipientNpub)
+    this.setLoading(true)
+    try {
+      // Decode the nsec and npub
+      const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
+      const { data: recipientPubKey } = nip19.decode(recipientNpub)
 
-    const recipientPubkey = getPublicKey(recipientSecretNostrKey as Uint8Array)
+      const recipientPubKeyFromNsec = getPublicKey(
+        recipientSecretNostrKey as Uint8Array
+      )
 
-    // Create a subscription to fetch events
-    const subscriptionQuery = {
-      kinds: [1059 as NDKKind],
-      '#p': [recipientPubkey, recipientPubKey.toString()],
-      limit: 5, //...(limit && { limit }),
-      since: since //...(since && { since })
-    }
-
-    const subscription = this.ndk?.subscribe(subscriptionQuery)
-    if (subscription) {
-      this.activeSubscriptions.add(subscription)
-    }
-
-    subscription?.on('event', async (event) => {
-      try {
-        const rawEvent = await event.toNostrEvent()
-        const unwrappedEvent = await nip59.unwrapEvent(
-          rawEvent as unknown as Event,
-          recipientSecretNostrKey as Uint8Array
-        )
-
-        _callback({
-          content: unwrappedEvent,
-          created_at: unwrappedEvent.created_at
-        })
-      } catch (error) {
-        console.log('[subscribeToKind1059] Error:', error)
+      // Create a subscription to fetch events
+      const subscriptionQuery = {
+        kinds: [1059 as NDKKind],
+        '#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
+        ...(limit && { limit }),
+        ...(since && { since })
       }
-    })
 
-    // Keep the subscription alive
-    subscription?.on('eose', () => {
-      console.log('[subscribeToKind1059] Subscription EOSE received')
-    })
+      const subscription = this.ndk?.subscribe(subscriptionQuery)
+      if (subscription) {
+        this.activeSubscriptions.add(subscription)
+      }
+
+      subscription?.on('event', async (event) => {
+        try {
+          const rawEvent = await event.toNostrEvent()
+          const unwrappedEvent = await nip59.unwrapEvent(
+            rawEvent as unknown as Event,
+            recipientSecretNostrKey as Uint8Array
+          )
+
+          const message = {
+            content: unwrappedEvent,
+            created_at: unwrappedEvent.created_at
+          }
+
+          // Add to queue instead of processing immediately
+          this.eventQueue.push(message)
+          // Start processing if not already processing
+          this.processEventQueue(_callback)
+        } catch (error) {
+          console.log('[subscribeToKind1059] Error:', error)
+        }
+      })
+
+      // Keep the subscription alive
+      subscription?.on('eose', () => {
+        console.log('[subscribeToKind1059] Subscription EOSE received')
+        onEOSE?.(recipientNsec)
+        this.setLoading(false)
+      })
+    } catch (error) {
+      this.setLoading(false)
+      throw error
+    }
   }
 
   async closeAllSubscriptions(): Promise<void> {
+    this.setLoading(false)
     for (const subscription of this.activeSubscriptions) {
       subscription.stop()
     }
     this.activeSubscriptions.clear()
+    this.eventQueue = []
+    this.isProcessingQueue = false
   }
 
   /*
@@ -265,17 +285,14 @@ export class NostrAPI {
     content: string
   ): Promise<NDKEvent> {
     // Decode the nsec
-    console.log('🩸 nsec', nsec)
     const { data: secretNostrKey } = nip19.decode(nsec)
     const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
     const encodedContent = unescape(encodeURIComponent(content))
-    console.log('🩸 encodedContent', encodedContent)
     const wrap = nip17.wrapEvent(
       secretNostrKey as Uint8Array,
       { publicKey: recipientPubkey.data },
       encodedContent
     )
-    console.log('🩸 wrap', wrap)
     const tempNdk = new NDK()
     const event = new NDKEvent(tempNdk, wrap)
     return event
@@ -306,7 +323,6 @@ export class NostrAPI {
       if (!this.ndk) {
         await this.connect()
       }
-      console.log('🩸 this.ndk', this.ndk)
       if (!this.ndk) {
         throw new Error('Failed to initialize NDK')
       }
@@ -318,7 +334,6 @@ export class NostrAPI {
       if (event.ndk !== this.ndk) {
         event.ndk = this.ndk
       }
-      console.log('🩸 event', event)
       // Ensure event is signed
       if (!event.sig) {
         const signer = this.ndk.signer
@@ -346,7 +361,6 @@ export class NostrAPI {
             }
           })
           const results = await Promise.all(publishPromises)
-          console.log('🩸 results', results)
           const successfulPublishes = results.filter((r) => r.success)
           if (successfulPublishes.length > 0) {
             published = true
@@ -369,37 +383,6 @@ export class NostrAPI {
     }
   }
 }
-
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
 
 // TODO: move to utilities
 

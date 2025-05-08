@@ -1,12 +1,13 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { getPublicKey, nip19 } from 'nostr-tools'
+import { useCallback, useRef } from 'react'
 import { toast } from 'sonner-native'
-import { useCallback } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
 import { NostrAPI, decompressMessage, compressMessage } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
+import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
@@ -17,7 +18,6 @@ import {
   JSONLtoLabels
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
-import { t } from '@/locales'
 
 function getTrustedDevices(accountId: string): string[] {
   const account = useAccountsStore
@@ -31,6 +31,24 @@ function useNostrSync() {
     useShallow((state) => [state.updateAccountNostr])
   )
   const addMember = useNostrStore((state) => state.addMember)
+  const activeSubscriptions = useRef<Set<NostrAPI>>(new Set())
+
+  const cleanupSubscriptions = useCallback(async () => {
+    console.log('Cleaning up subscriptions...')
+    const apisToCleanup = Array.from(activeSubscriptions.current)
+    activeSubscriptions.current.clear() // Clear immediately to prevent race conditions
+
+    for (const api of apisToCleanup) {
+      try {
+        console.log('Closing subscriptions for API instance')
+        await api.closeAllSubscriptions()
+        console.log('Successfully closed subscriptions for API instance')
+      } catch (error) {
+        console.error('Error closing subscriptions:', error)
+      }
+    }
+    console.log('All subscriptions cleaned up')
+  }, [])
 
   const storeDM = useCallback(
     async (account?: Account, unwrappedEvent?: any) => {
@@ -48,124 +66,127 @@ function useNostrSync() {
       const newDM: DM = {
         id: unwrappedEvent.id,
         author: unwrappedEvent.pubkey,
-        created_at: Date.now() / 1000,
+        created_at: message.created_at,
         description: message.description,
         event: JSON.stringify(unwrappedEvent),
         label: 1
       }
 
-      // Create a new array with the existing DMs plus the new one
-      const updatedDms = [...(account.nostr.dms || []), newDM]
+      console.log('💬 DM event -- ', message.description)
 
-      // Update the store directly with the new array
-      updateAccountNostr(account.id, { dms: updatedDms })
+      const currentDms = account.nostr.dms || []
+      const messageExists = currentDms.some(
+        (dm) =>
+          dm.id === newDM.id ||
+          (dm.created_at === newDM.created_at && dm.author === newDM.author)
+      )
+
+      if (!messageExists) {
+        const updatedDms = [...currentDms, newDM]
+        updateAccountNostr(account.id, { dms: updatedDms })
+      }
     },
     [updateAccountNostr]
   )
 
-  /*
-  
-
-
-
-
-
-  PROCESS EVENTS
-  
-
-
-
-
-  */
   const processEvent = useCallback(
     async (account: Account, unwrappedEvent: any): Promise<string> => {
-      // Check if event has already been processed
-      const processedEvents = useNostrStore
-        .getState()
-        .getProcessedEvents(account.id)
+      const processedEvents =
+        useNostrStore.getState().processedEvents[account.id] || []
+
+      // Skip if already processed
       if (processedEvents.includes(unwrappedEvent.id)) {
+        console.log('SKIP')
         return ''
       }
 
-      let eventContent: any
-      try {
-        // Not compressed
-        const jsonContent = JSON.parse(unwrappedEvent.content)
-        eventContent = jsonContent
-      } catch (_jsonError) {
-        // Compressed
-        try {
-          eventContent = decompressMessage(unwrappedEvent.content)
-        } catch (_decompressError) {
-          eventContent = unwrappedEvent.content
-        }
-      }
-
-      if (eventContent.data) {
-        const data_type = eventContent.data.data_type
-        if (data_type === 'LabelsBip329') {
-          // Handle LabelsBip329
-          console.log('⚠️ LABELS ', eventContent.data.data.slice(0, 300))
-          try {
-            if (
-              eventContent.data.data.length === 1 &&
-              eventContent.data.data[0].type === 'tx'
-            ) {
-              const label = eventContent.data.data[0].label
-              const txid = eventContent.data.data[0].ref
-              setTxLabel(account.id, txid, label)
-            } else {
-              const labels = JSONLtoLabels(eventContent.data.data)
-              const importCount = useAccountsStore
-                .getState()
-                .importLabels(account.id, labels)
-            }
-            if (importCount > 0) {
-              toast.success(`Imported ${importCount} labels`)
-            }
-          } catch (error) {
-            console.error('Failed to import labels:', error)
-            toast.error('Failed to import labels')
-          }
-        } else if (data_type === 'Tx') {
-          // Handle Tx
-        } else if (data_type === 'PSBT') {
-          // Handle PSBT
-          // POPUP Sing prompt
-        }
-      } else if (eventContent.description && !eventContent.data) {
-        // Store message on nostr store
-        await storeDM(account, unwrappedEvent)
-        console.log('🟢 DM stored')
-      } else if (eventContent.public_key_bech32) {
-        // Handle protocol event
-        console.log('🥸 PROTOCOL EVENT')
-        const newMember = eventContent.public_key_bech32
-        await addMember(account.id, newMember)
-      }
-
-      // Mark event as processed
+      // Add to processed events immediately to prevent duplicate processing
       useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
 
-      return eventContent
+      try {
+        let eventContent: any
+        try {
+          const jsonContent = JSON.parse(unwrappedEvent.content)
+          eventContent = jsonContent
+        } catch (_jsonError) {
+          try {
+            eventContent = decompressMessage(unwrappedEvent.content)
+          } catch (_decompressError) {
+            eventContent = unwrappedEvent.content
+          }
+        }
+
+        // Process data events
+        if (eventContent.data) {
+          const data_type = eventContent.data.data_type
+          if (data_type === 'LabelsBip329') {
+            try {
+              if (eventContent.data.data.length === 1) {
+                const label = eventContent.data.data[0].label
+                const ref = eventContent.data.data[0].ref
+                useAccountsStore.getState().setTxLabel(account.id, ref, label)
+              } else {
+                const labels = JSONLtoLabels(eventContent.data.data)
+                const store = useAccountsStore.getState()
+                const labelsAdded = store.importLabels(account.id, labels)
+                if (labelsAdded > 0) {
+                  toast.success(`Imported ${labelsAdded} labels`)
+                }
+              }
+            } catch (_error) {
+              toast.error('Failed to import labels')
+            }
+          } else if (data_type === 'Tx') {
+            // Handle Tx
+          } else if (data_type === 'PSBT') {
+            // Handle PSBT
+            // POPUP Sign prompt
+          }
+        }
+        // Process DM events
+        else if (eventContent.description && !eventContent.data) {
+          await storeDM(account, unwrappedEvent)
+        }
+        // Process member events
+        else if (eventContent.public_key_bech32) {
+          const newMember = eventContent.public_key_bech32
+          await addMember(account.id, newMember)
+        }
+
+        return eventContent
+      } catch (error) {
+        console.error('Error processing event:', error)
+        return ''
+      }
     },
-    [storeDM, addMember]
+    [storeDM, addMember, updateAccountNostr]
   )
 
   const protocolSubscription = useCallback(
-    async (account?: Account) => {
+    async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
       if (!account || !account.nostr) return
-      console.log('🟣 PROTOCOL SUBSCRIPTION')
       const { autoSync, commonNsec, commonNpub, relays } = account.nostr
+      const lastProtocolEOSE =
+        useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
 
-      if (!autoSync || !commonNsec || !commonNpub || relays.length === 0) return
+      if (!autoSync || !commonNsec || !commonNpub || relays.length === 0) {
+        // Clean up any existing subscriptions if conditions aren't met
+        await cleanupSubscriptions()
+        return
+      }
 
       let nostrApi: NostrAPI | null = null
       try {
-        nostrApi = new NostrAPI(relays)
-        await nostrApi.connect()
+        // Clean up any existing subscriptions before creating new ones
+        await cleanupSubscriptions()
 
-        // Subscribe to kind 1059 messages
+        nostrApi = new NostrAPI(relays)
+        if (onLoadingChange) {
+          nostrApi.setLoadingCallback(onLoadingChange)
+        }
+        await nostrApi.connect()
+        activeSubscriptions.current.add(nostrApi)
+
         await nostrApi.subscribeToKind1059(
           commonNsec as string,
           commonNpub as string,
@@ -175,26 +196,63 @@ function useNostrSync() {
             } catch (_error) {
               // Handle error silently
             }
-          }
+          },
+          undefined,
+          lastProtocolEOSE,
+          (nsec) => updateLasEOSETimestamp(account, nsec)
         )
+
+        console.log('🥸 Protocol Subscription')
+        if (lastProtocolEOSE > 0) {
+          console.log(
+            '🥸 Protocol since ',
+            new Date(lastProtocolEOSE * 1000).toLocaleString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          )
+        } else {
+          console.log('🥸 Protocol since beginning')
+        }
       } catch (_error) {
         toast.error('Failed to subscribe to protocol events')
+        if (nostrApi) {
+          await nostrApi.closeAllSubscriptions()
+          activeSubscriptions.current.delete(nostrApi)
+        }
       }
     },
-    [processEvent]
+    [processEvent, cleanupSubscriptions]
   )
 
   const dataExchangeSubscription = useCallback(
-    async (account?: Account) => {
+    async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
       if (!account || !account.nostr) return
-      console.log('🩸 DATA EXCHANGE SUBSCRIPTION')
       const { autoSync, deviceNsec, deviceNpub, relays } = account.nostr
+      const lastDataExchangeEOSE =
+        useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
-      if (!autoSync || !deviceNsec || !deviceNpub || relays.length === 0) return
+      if (!autoSync || !deviceNsec || !deviceNpub || relays.length === 0) {
+        // Clean up any existing subscriptions if conditions aren't met
+        await cleanupSubscriptions()
+        return
+      }
 
       let nostrApi: NostrAPI | null = null
       try {
+        // Clean up any existing subscriptions before creating new ones
+        await cleanupSubscriptions()
+
         nostrApi = new NostrAPI(relays)
+        if (onLoadingChange) {
+          nostrApi.setLoadingCallback(onLoadingChange)
+        }
+        await nostrApi.connect()
+        activeSubscriptions.current.add(nostrApi)
+
         await nostrApi.subscribeToKind1059(
           deviceNsec as string,
           deviceNpub as string,
@@ -204,23 +262,42 @@ function useNostrSync() {
             } catch (_error) {
               // Handle error silently
             }
-          }
+          },
+          undefined,
+          lastDataExchangeEOSE,
+          (nsec) => updateLasEOSETimestamp(account, nsec)
         )
+
+        console.log('📝 Data exchange Subscription')
+        if (lastDataExchangeEOSE > 0) {
+          console.log(
+            '📝 Data exchange since ',
+            new Date(lastDataExchangeEOSE * 1000).toLocaleString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          )
+        } else {
+          console.log('📝 Data exchange since beginning')
+        }
       } catch (_error) {
         toast.error('Failed to subscribe to data exchange')
+        if (nostrApi) {
+          await nostrApi.closeAllSubscriptions()
+          activeSubscriptions.current.delete(nostrApi)
+        }
       }
     },
-    [processEvent]
+    [processEvent, cleanupSubscriptions]
   )
 
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: any) => {
-      if (!account?.nostr?.autoSync) {
-        return
-      }
-      if (!account || !account.nostr) {
-        return
-      }
+      if (!account?.nostr?.autoSync) return
+      if (!account || !account.nostr) return
       const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
       if (
@@ -251,7 +328,6 @@ function useNostrSync() {
           return
         }
 
-        // Format each label entry and wrap in labelPackage
         const labelPackage = labels.map((label) => ({
           __class__: 'Label',
           VERSION: '0.0.3',
@@ -276,12 +352,9 @@ function useNostrSync() {
         const nostrApi = new NostrAPI(relays)
         await nostrApi.connect()
 
-        // Send labels to all trusted devices
         const deviceNsec = account.nostr.deviceNsec
-        // Get all trusted devices for this account
         const trustedDevices = getTrustedDevices(account.id)
 
-        // Send to each trusted device
         for (const trustedDeviceNpub of trustedDevices) {
           if (!deviceNsec) continue
           const eventKind1059 = await nostrApi.createKind1059(
@@ -291,18 +364,6 @@ function useNostrSync() {
           )
           await nostrApi.publishEvent(eventKind1059)
         }
-
-        if (singleLabel) {
-          toast.success('Single label sent to relays')
-        } else {
-          toast.success('All labels sent to relays')
-        }
-
-        // Update last backup timestamp
-        const timestamp = Math.floor(Date.now() / 1000)
-        updateAccountNostr(account.id, {
-          lastBackupTimestamp: timestamp
-        })
       } catch (_error) {
         toast.error('Failed to send message')
       }
@@ -310,20 +371,10 @@ function useNostrSync() {
     [updateAccountNostr]
   )
 
-  /*
-  
-  SEND DM
-  
-  */
-
   const sendDM = useCallback(
     async (account?: Account, message?: any) => {
-      if (!account?.nostr?.autoSync) {
-        return
-      }
-      if (!account || !account.nostr) {
-        return
-      }
+      if (!account?.nostr?.autoSync) return
+      if (!account || !account.nostr) return
       const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
       if (
@@ -349,10 +400,8 @@ function useNostrSync() {
         await nostrApi.connect()
 
         const deviceNsec = account.nostr.deviceNsec
-        // Get all trusted devices for this account
         const trustedDevices = getTrustedDevices(account.id)
 
-        // Send to each trusted device
         for (const trustedDeviceNpub of trustedDevices) {
           if (!deviceNsec) continue
           const eventKind1059 = await nostrApi.createKind1059(
@@ -364,17 +413,24 @@ function useNostrSync() {
         }
 
         const eventKind1059 = await nostrApi.createKind1059(
-          deviceNsec,
+          deviceNsec as string,
           deviceNpub,
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
 
-        // Update last backup timestamp
-        const timestamp = Math.floor(Date.now() / 1000)
-        updateAccountNostr(account.id, {
-          lastBackupTimestamp: timestamp
-        })
+        const newDM: DM = {
+          id: eventKind1059.id,
+          author: deviceNpub,
+          created_at: messageContent.created_at,
+          description: message,
+          event: JSON.stringify(eventKind1059),
+          label: 1
+        }
+
+        const currentDms = account.nostr.dms || []
+        const updatedDms = [...currentDms, newDM]
+        updateAccountNostr(account.id, { dms: updatedDms })
       } catch (_error) {
         toast.error('Failed to send message')
       }
@@ -386,14 +442,9 @@ function useNostrSync() {
     if (!account) return []
     if (!account.nostr) return []
 
-    // Initialize dms array if it doesn't exist
     if (!account.nostr.dms) {
       account.nostr.dms = []
     }
-
-    //console.log(account.nostr.dms)
-
-    console.log('Total DMs in store:', account.nostr.dms.length)
 
     return account.nostr.dms
   }, [])
@@ -401,8 +452,6 @@ function useNostrSync() {
   const clearStoredDMs = useCallback(
     async (account?: Account) => {
       if (!account?.nostr) return
-
-      // Clear the DMs array in the store
       updateAccountNostr(account.id, { dms: [] })
     },
     [updateAccountNostr]
@@ -442,28 +491,24 @@ function useNostrSync() {
       if (!walletData) {
         throw new Error('Failed to get wallet data')
       }
-      // Extract hardened derivation path from descriptor
+
       const descriptor = walletData.externalDescriptor
       const match = descriptor.match(/\[([^/]+)\/([^/]+)\/([^/]+)\/([^/]+)\]/)
       if (!match) {
         throw new Error('Invalid descriptor format')
       }
+
       const [, , purpose, coinType, accountIndex] = match
-      // Convert apostrophe to 'h' for hardened paths
       const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
 
-      // Extract all xpubs from descriptor and sort them
       const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
       const xpubs = (descriptor.match(xpubRegex) || []).sort()
 
-      // Concatenate hardened path with sorted xpubs
       const totalString = hardenedPath + xpubs.join('')
 
-      // Calculate double hash of totalString
       const firstHash = await sha256(totalString)
       const doubleHash = await sha256(firstHash)
 
-      // Generate Nostr keys using doubleHash as private key
       const privateKeyBytes = new Uint8Array(Buffer.from(doubleHash, 'hex'))
       const publicKey = getPublicKey(privateKeyBytes)
       const commonNsec = nip19.nsecEncode(privateKeyBytes)
@@ -479,6 +524,17 @@ function useNostrSync() {
     }
   }, [])
 
+  function updateLasEOSETimestamp(account: Account, nsec: string) {
+    const timestamp = Math.floor(Date.now() / 1000)
+    if (nsec === account.nostr.commonNsec) {
+      useNostrStore.getState().setLastProtocolEOSE(account.id, timestamp)
+      console.log('🥸 🔴 Protocol since ', timestamp)
+    } else if (nsec === account.nostr.deviceNsec) {
+      useNostrStore.getState().setLastDataExchangeEOSE(account.id, timestamp)
+      console.log('📝 🔴 Data exchange since ', timestamp)
+    }
+  }
+
   return {
     sendLabelsToNostr,
     dataExchangeSubscription,
@@ -489,6 +545,7 @@ function useNostrSync() {
     clearStoredDMs,
     processEvent,
     protocolSubscription,
+    cleanupSubscriptions,
     addProcessedMessageId: useNostrStore.getState().addProcessedEvent
   }
 }
