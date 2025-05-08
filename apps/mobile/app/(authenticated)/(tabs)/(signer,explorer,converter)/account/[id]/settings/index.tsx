@@ -358,7 +358,12 @@ export default function AccountSettings() {
             <SSButton
               label={t('common.yes')}
               style={styles.deleteButton}
-              onPress={() => deleteThisAccount()}
+              onPress={() => {
+                setDeleteModalVisible(false)
+                setTimeout(() => {
+                  deleteThisAccount()
+                }, 0)
+              }}
             />
             <SSButton
               label={t('common.no')}
