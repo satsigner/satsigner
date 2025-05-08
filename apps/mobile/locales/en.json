@@ -741,6 +741,7 @@
     "edit.label.utxo": "Edit UTXO label",
     "error.address.invalid": "Invalid address",
     "error.bip21.insufficientSats": "Insufficient sats for amount in address",
+    "error.insufficientInputs": "Amount exceed max with selected inputs. Add more inputs.",
     "fee": "Fee",
     "feeBytes": "Fee sat/b",
     "feeVBytes": "Fee sat/vb",
@@ -870,7 +871,6 @@
     "read.nfc": "Scan NFC",
     "read.nfcErrorNoData": "No data found on NFC tag",
     "read.qrcode": "Scan qrcode",
-    "read.scanning": "Scanning NFC",
     "read.scanning": "Scanning NFC",
     "titleModal": "Watch-only wallet"
   }

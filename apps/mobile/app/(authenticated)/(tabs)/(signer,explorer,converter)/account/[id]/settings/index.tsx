@@ -369,7 +369,10 @@ function AccountSettings() {
               label={t('common.yes')}
               style={[styles.deleteAccountButton, styles.button]}
               onPress={() => {
-                deleteThisAccount()
+                setDeleteModalVisible(false)
+                setTimeout(() => {
+                  deleteThisAccount()
+                }, 0)
               }}
             />
             <SSButton
