@@ -39,39 +39,42 @@ export type BlockTemplate = {
 }
 
 export type BlockchainInfo = {
-  chain: string; // Current network name (e.g., "main", "test", "regtest", "signet")
-  blocks: number; // Current number of blocks
-  headers: number; // Current number of block headers
-  bestblockhash: string; // Hash of the best (tip) block
-  difficulty: number; // Current difficulty
-  time: number; // Median time of the current tip block (UNIX epoch time)
-  mediantime: number; // Median time of the last 11 blocks (UNIX epoch time)
-  verificationprogress: number; // Estimate of verification progress [0..1]
-  initialblockdownload: boolean; // Whether the node is in initial block download (IBD)
-  chainwork: string; // Total work in the chain (hex-encoded)
-  size_on_disk: number; // Estimated size of the blockchain on disk (bytes)
-  pruned: boolean; // Whether the node is running in pruned mode
-  pruneheight?: number; // Lowest-height complete block stored if pruned (optional)
-  automatic_pruning?: boolean; // Whether automatic pruning is enabled (optional)
-  prune_target_size?: number; // Target size for pruning in bytes if automatic pruning is enabled (optional)
-  softforks: Record<string, {
-    type: string; // Type of softfork (e.g., "bip9")
-    bip9?: {
-      status: string; // Status of softfork (e.g., "defined", "started", "locked_in", "active", "failed")
-      bit?: number; // Bit used for signaling (0-28)
-      start_time: number; // Start time (UNIX epoch)
-      timeout: number; // Timeout time (UNIX epoch)
-      since: number; // Height where signaling began
-      statistics?: {
-        period: number; // Current signaling period
-        threshold: number; // Number of blocks needed for activation
-        elapsed: number; // Blocks elapsed in current period
-        count: number; // Blocks signaling for softfork
-        possible: boolean; // Whether activation is still possible
-      }; // Optional statistics for active BIP 9 softforks
-    }; // Optional for BIP 9 softforks
-    height?: number; // Height of activation for non-BIP 9 softforks (optional)
-    active: boolean; // Whether the softfork is active
-  }>; // Status of known softforks
-  warnings?: string; // Warning messages, if any (optional)
+  chain: string // Current network name (e.g., "main", "test", "regtest", "signet")
+  blocks: number // Current number of blocks
+  headers: number // Current number of block headers
+  bestblockhash: string // Hash of the best (tip) block
+  difficulty: number // Current difficulty
+  time: number // Median time of the current tip block (UNIX epoch time)
+  mediantime: number // Median time of the last 11 blocks (UNIX epoch time)
+  verificationprogress: number // Estimate of verification progress [0..1]
+  initialblockdownload: boolean // Whether the node is in initial block download (IBD)
+  chainwork: string // Total work in the chain (hex-encoded)
+  size_on_disk: number // Estimated size of the blockchain on disk (bytes)
+  pruned: boolean // Whether the node is running in pruned mode
+  pruneheight?: number // Lowest-height complete block stored if pruned (optional)
+  automatic_pruning?: boolean // Whether automatic pruning is enabled (optional)
+  prune_target_size?: number // Target size for pruning in bytes if automatic pruning is enabled (optional)
+  softforks: Record<
+    string,
+    {
+      type: string // Type of softfork (e.g., "bip9")
+      bip9?: {
+        status: string // Status of softfork (e.g., "defined", "started", "locked_in", "active", "failed")
+        bit?: number // Bit used for signaling (0-28)
+        start_time: number // Start time (UNIX epoch)
+        timeout: number // Timeout time (UNIX epoch)
+        since: number // Height where signaling began
+        statistics?: {
+          period: number // Current signaling period
+          threshold: number // Number of blocks needed for activation
+          elapsed: number // Blocks elapsed in current period
+          count: number // Blocks signaling for softfork
+          possible: boolean // Whether activation is still possible
+        } // Optional statistics for active BIP 9 softforks
+      } // Optional for BIP 9 softforks
+      height?: number // Height of activation for non-BIP 9 softforks (optional)
+      active: boolean // Whether the softfork is active
+    }
+  > // Status of known softforks
+  warnings?: string // Warning messages, if any (optional)
 }
