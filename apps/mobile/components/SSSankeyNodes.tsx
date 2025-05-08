@@ -228,7 +228,7 @@ function NodeText({
     isBlock
   ])
 
-  const isPastTx = localId === 'past-minerFee'
+  const isPastMinerFee = localId === 'past-minerFee'
 
   const mainParagraph = useMemo(() => {
     if (!customFontManager) return null
@@ -311,7 +311,7 @@ function NodeText({
           fontStyle: {
             weight: 800
           },
-          color: isPastTx ? Skia.Color(gray[300]) : Skia.Color(mainRed)
+          color: isPastMinerFee ? Skia.Color(gray[300]) : Skia.Color(mainRed)
         })
         // Add placeholder for the miner svg icon
         .addPlaceholder(
@@ -449,7 +449,7 @@ function NodeText({
     ioData?.text,
     ioData?.address,
     ioData.label,
-    isPastTx,
+    isPastMinerFee,
     isChange
   ])
 
@@ -524,7 +524,7 @@ function NodeText({
         pastTxMinerFeeIconSvg &&
         placeholderRectsMinerIcon.length > 0 && (
           <ImageSVG
-            svg={isPastTx ? pastTxMinerFeeIconSvg : minerFeeIconSvg}
+            svg={isPastMinerFee ? pastTxMinerFeeIconSvg : minerFeeIconSvg}
             x={paragraphX + placeholderRectsMinerIcon[0].rect.x}
             y={paragraphY + placeholderRectsMinerIcon[0].rect.y}
             width={placeholderRectsMinerIcon[0].rect.width}

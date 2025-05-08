@@ -271,7 +271,7 @@ export default function IOPreview() {
   function handleOnPressOutput(localId?: string) {
     setCurrentOutputLocalId(localId)
 
-    if (localId === 'minerFee') {
+    if (localId === 'current-minerFee') {
       changeFeeBottomSheetRef.current?.expand()
       return
     } else if (localId === 'remainingBalance') {

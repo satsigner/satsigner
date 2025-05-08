@@ -141,7 +141,7 @@ function SSUnconfirmedTransactionChart({
           text: t('transaction.build.minerFee')
         },
         value: minerFee,
-        localId: 'minerFee'
+        localId: 'current-minerFee'
       })
     }
 
