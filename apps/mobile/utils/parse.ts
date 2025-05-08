@@ -1,4 +1,6 @@
+import { t } from '@/locales'
 import type { Account } from '@/types/models/Account'
+import { type Output } from '@/types/models/Output'
 
 import { getUtxoOutpoint } from './utxo'
 
@@ -102,10 +104,32 @@ function parseLabelTags(label: string, tags: string[]) {
   return trimmedLabel + labelTagSeparator + tags.map((t) => '#' + t).join(' ')
 }
 
+function parseTXOutputs(input: string): Omit<Output, 'localId'>[] {
+  const entries = input
+    .split(',')
+    .map((str) => str.trim())
+    .filter(Boolean)
+
+  return entries.map((entry) => {
+    const [address, query] = entry.split('?')
+    const params = new URLSearchParams(query)
+
+    const amount = params.get('amount')
+    const label = params.get('label')
+
+    return {
+      to: address,
+      amount: amount ? Number(amount) : 0,
+      label: label ? label.replace(/(^["“]|["”]$)/g, '') : t('common.noLabel')
+    }
+  })
+}
+
 export {
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
   parseHexToBytes,
   parseLabel,
-  parseLabelTags
+  parseLabelTags,
+  parseTXOutputs
 }
