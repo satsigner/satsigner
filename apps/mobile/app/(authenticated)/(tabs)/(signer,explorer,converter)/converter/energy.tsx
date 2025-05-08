@@ -13,6 +13,11 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
+import {
+  type BlockchainInfo,
+  type BlockTemplate,
+  type BlockTemplateTransaction
+} from '@/types/models/Rpc'
 import { validateAddress } from '@/utils/validation'
 
 const tn = _tn('converter.energy')
@@ -28,10 +33,12 @@ const networks = {
 }
 
 export default function Energy() {
-  const [blockchainInfo, setBlockchainInfo] = useState<any>(null)
+  const [blockchainInfo, setBlockchainInfo] = useState<BlockchainInfo | null>(
+    null
+  )
   const [blockHeader, setBlockHeader] = useState('')
   const [blocksFound, setBlocksFound] = useState(0)
-  const [blockTemplate, setBlockTemplate] = useState<any>(null)
+  const [blockTemplate, setBlockTemplate] = useState<BlockTemplate | null>(null)
   const [connectionError, setConnectionError] = useState('')
   const [difficultyProgress, setDifficultyProgress] = useState(0)
   const [energyRate, setEnergyRate] = useState('0')
@@ -88,35 +95,20 @@ export default function Energy() {
     [rpcUser, rpcPassword, rpcUrl]
   )
 
-  const formatTemplateData = useCallback((data: any) => {
+  const formatTemplateData = useCallback((data: BlockTemplate) => {
     try {
       // Only show essential fields to reduce data size
       const essentialData = {
-        version: data.version,
-        previousblockhash: data.previousblockhash,
+        ...data,
         transactions: data.transactions?.length || 0,
-        coinbasevalue: data.coinbasevalue,
-        bits: data.bits,
-        height: data.height,
-        target: data.target,
-        mintime: data.mintime,
-        mutable: data.mutable,
-        noncerange: data.noncerange,
-        sigoplimit: data.sigoplimit,
-        sizelimit: data.sizelimit,
-        weightlimit: data.weightlimit,
-        curtime: data.curtime,
-        mediantime: data.mediantime,
-        longpollid: data.longpollid,
-        default_witness_commitment: data.default_witness_commitment,
-        rules: data.rules,
         transactionSample:
-          data.transactions?.slice(0, 20).map((tx: any) => ({
-            txid: tx.txid,
-            fee: tx.fee,
-            weight: tx.weight,
-            size: tx.size
-          })) || []
+          data.transactions
+            ?.slice(0, 20)
+            .map((tx: BlockTemplateTransaction) => ({
+              txid: tx.txid,
+              fee: tx.fee,
+              weight: tx.weight
+            })) || []
       }
       return JSON.stringify(essentialData, null, 2)
     } catch {
@@ -147,7 +139,10 @@ export default function Energy() {
         })
 
         if (networkResponse.ok) {
-          const networkData = await networkResponse.json()
+          const networkData = (await networkResponse.json()) as {
+            result?: BlockchainInfo
+          }
+
           if (networkData.result && networkData.result.chain) {
             if (networkData.result.chain === 'signet') {
               rules.push('signet')
@@ -172,7 +167,14 @@ export default function Energy() {
         throw new Error(`HTTP error ${response.status}: ${errorText}`)
       }
 
-      const data = await response.json()
+      const data = (await response.json()) as {
+        result?: BlockTemplate
+        error?: {
+          message: string
+          code: number
+        }
+      }
+
       if (data.error) {
         let errorMessage = data.error.message || 'RPC error'
         if (data.error.code === -32601) {
@@ -223,9 +225,16 @@ export default function Energy() {
         throw new Error('Failed to fetch blockchain info')
       }
 
-      const data = await response.json()
-      if (data.error) {
-        throw new Error(data.error.message || 'RPC error')
+      const data = (await response.json()) as {
+        result?: BlockchainInfo
+        error?: {
+          message: string
+          code: number
+        }
+      }
+
+      if (data.error || !data.result) {
+        throw new Error(data.error?.message || 'RPC error')
       }
 
       setBlockchainInfo(data.result)
@@ -385,7 +394,7 @@ export default function Energy() {
   }
 
   const createCoinbaseTransaction = useCallback(
-    (template: any) => {
+    (template: BlockTemplate): BlockTemplateTransaction | null => {
       if (!template || !miningAddress) {
         return null
       }
@@ -424,7 +433,12 @@ export default function Energy() {
           tx.addOutput(script, 0)
         }
 
-        return tx
+        return {
+          data: tx.toHex(),
+          hash: tx.getHash().toString('hex'),
+          txid: tx.getId(),
+          depends: []
+        }
       } catch (error) {
         throw error
       }
@@ -432,52 +446,58 @@ export default function Energy() {
     [miningAddress, opReturnContent]
   )
 
-  const createMerkleRoot = useCallback((transactions: any[]) => {
-    if (!transactions || transactions.length === 0) {
-      return ''
-    }
-
-    try {
-      let hashes = transactions.map((tx) => {
-        if (!tx) {
-          throw new Error('Invalid transaction')
-        }
-        if (tx.getHash) {
-          return tx.getHash()
-        } else if (tx.txid) {
-          return Buffer.from(tx.txid, 'hex').reverse()
-        } else {
-          throw new Error('Invalid transaction format')
-        }
-      })
-
-      while (hashes.length > 1) {
-        const newHashes = []
-        for (let i = 0; i < hashes.length; i += 2) {
-          const left = hashes[i]
-          const right = i + 1 < hashes.length ? hashes[i + 1] : left
-          const concat = Buffer.concat([left, right])
-          const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
-          newHashes.push(hash)
-        }
-        hashes = newHashes
+  const createMerkleRoot = useCallback(
+    (transactions: BlockTemplateTransaction[]) => {
+      if (!transactions || transactions.length === 0) {
+        return ''
       }
 
-      if (!hashes[0]) {
-        throw new Error('Failed to create merkle root: no hash generated')
-      }
+      try {
+        let hashes = transactions.map((tx) => {
+          if (!tx) {
+            throw new Error('Invalid transaction')
+          }
+          if (tx.txid) {
+            return Buffer.from(tx.txid, 'hex').reverse()
+          } else {
+            throw new Error('Invalid transaction format')
+          }
+        })
 
-      return hashes[0].reverse().toString('hex')
-    } catch (error) {
-      throw new Error(
-        'Failed to create merkle root: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
-    }
-  }, [])
+        while (hashes.length > 1) {
+          const newHashes = []
+          for (let i = 0; i < hashes.length; i += 2) {
+            const left = hashes[i]
+            const right = i + 1 < hashes.length ? hashes[i + 1] : left
+            const concat = Buffer.concat([left, right])
+            const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(concat))
+            newHashes.push(hash)
+          }
+          hashes = newHashes
+        }
+
+        if (!hashes[0]) {
+          throw new Error('Failed to create merkle root: no hash generated')
+        }
+
+        return hashes[0].reverse().toString('hex')
+      } catch (error) {
+        throw new Error(
+          'Failed to create merkle root: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        )
+      }
+    },
+    []
+  )
 
   const createBlockHeader = useCallback(
-    (template: any, merkleRoot: string, timestamp: number, nonce: number) => {
+    (
+      template: BlockTemplate,
+      merkleRoot: string,
+      timestamp: number,
+      nonce: number
+    ) => {
       const header = Buffer.alloc(80) as unknown as Uint8Array
 
       // Version (4 bytes)
@@ -519,7 +539,11 @@ export default function Energy() {
   }
 
   const submitBlock = useCallback(
-    async (blockHeader: Uint8Array, coinbaseTx: any, transactions: any[]) => {
+    async (
+      blockHeader: Uint8Array,
+      coinbaseTx: BlockTemplateTransaction,
+      transactions: BlockTemplateTransaction[]
+    ) => {
       try {
         const response = await fetchRpc({
           jsonrpc: '1.0',
@@ -613,7 +637,7 @@ export default function Energy() {
         throw new Error('Failed to create coinbase transaction')
       }
 
-      const allTransactions = [
+      const allTransactions: BlockTemplateTransaction[] = [
         coinbaseTx,
         ...(blockTemplate.transactions || [])
       ]
@@ -1013,9 +1037,11 @@ export default function Energy() {
               </SSVStack>
               <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                 <SSText size="xl">
-                  {Math.floor(
-                    (Date.now() / 1000 - blockTemplate?.curtime) / 60
-                  ) || '0'}
+                  {blockTemplate?.curtime
+                    ? Math.floor(
+                        (Date.now() / 1000 - blockTemplate.curtime) / 60
+                      )
+                    : '0'}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {tn('blockMinedMinutesAgo')}
@@ -1035,14 +1061,6 @@ export default function Energy() {
                 </SSText>
                 <SSText size="xs" color="muted">
                   {tn('hashRate')}
-                </SSText>
-              </SSVStack>
-              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
-                <SSText size="xl">
-                  {blockchainInfo?.total_supply?.toFixed(4) || '0'}
-                </SSText>
-                <SSText size="xs" color="muted">
-                  {tn('totalBitcoin')}
                 </SSText>
               </SSVStack>
             </SSHStack>
