@@ -226,8 +226,6 @@ function SSSpiralBlocks({
         width: overlaySize,
         height: overlaySize,
         borderRadius: 25,
-        borderColor: 'red',
-        // borderWidth: 1,
         backgroundColor: 'rgba(255, 255, 255, 0)'
       } as StyleProp<ViewStyle>
     })
@@ -384,10 +382,7 @@ const styles = StyleSheet.create({
   },
   canvas: {
     position: 'relative',
-    backgroundColor: '#000',
-
-    borderWidth: 1,
-    borderColor: 'red'
+    backgroundColor: '#000'
   },
   touchableOverlay: {
     position: 'relative',
