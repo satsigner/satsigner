@@ -1,5 +1,5 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -8,43 +8,30 @@ import {
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
+import { nip19 } from 'nostr-tools'
 
-import { NostrAPI, type NostrMessage } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
-import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSText from '@/components/SSText'
-import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
+import useNostrSync from '@/hooks/useNostrSync'
 import { Colors } from '@/styles'
-import { type DM } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { nip19 } from 'nostr-tools'
+import type { DM } from '@/types/models/Account'
 
-interface MessageContent {
-  description: string
-  created_at: number
-  pubkey?: string
-}
-
-// Cache for storing calculated colors
+// Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
 
-export async function formatNpub(
+async function formatNpub(
   pubkey: string,
   members: Array<{ npub: string; color: string }>
 ): Promise<{ text: string; color: string }> {
   if (!pubkey) return { text: 'Unknown sender', color: '#666666' }
-
-  // Clear cache if members array is empty to ensure fresh colors
-  if (members.length === 0) {
-    colorCache.clear()
-  }
 
   const cached = colorCache.get(pubkey)
   if (cached) {
@@ -54,270 +41,112 @@ export async function formatNpub(
   try {
     const npub = nip19.npubEncode(pubkey)
     const member = members.find((m) => m.npub === npub)
+
+    console.log('🔍 Looking for member:', {
+      pubkey,
+      npub,
+      foundMember: member,
+      allMembers: members
+    })
+
     const color = member?.color || '#404040'
-    const result = { text: `${npub.slice(0, 12)}...${npub.slice(-4)}`, color }
+    const result = {
+      text: `${npub.slice(0, 12)}...${npub.slice(-4)}`,
+      color
+    }
     colorCache.set(pubkey, result)
     return result
-  } catch {
-    return { text: 'Unknown sender', color: '#666666' }
+  } catch (error) {
+    return { text: pubkey.slice(0, 8), color: '#404040' }
   }
 }
 
-const MessageItem = memo(function MessageItem({
-  message,
-  members
-}: {
-  message: NostrMessage
-  members: Array<{ npub: string; color: string }>
-}) {
-  const [formattedNpub, setFormattedNpub] = useState<{
-    text: string
-    color: string
-  }>({ text: '', color: '#cccccc' })
-
-  useEffect(() => {
-    if (message.pubkey) {
-      formatNpub(message.pubkey, members)
-        .then(setFormattedNpub)
-        .catch(() => {
-          setFormattedNpub({ text: 'Unknown sender', color: '#666666' })
-        })
-    }
-  }, [message.pubkey, members])
-
-  const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
-  const [account] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.id === accountId)
-    ])
-  )
-
-  const isDeviceMessage = (() => {
-    if (!message.pubkey || !account?.nostr?.deviceNpub) return false
-    try {
-      return nip19.npubEncode(message.pubkey) === account.nostr.deviceNpub
-    } catch {
-      return false
-    }
-  })()
-
-  return (
-    <SSVStack
-      gap="xxs"
-      style={[styles.message, isDeviceMessage && styles.deviceMessage]}
-    >
-      <SSHStack gap="xxs" justifyBetween>
-        <SSHStack gap="xxs">
-          <View
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: formattedNpub.color,
-              marginTop: 1,
-              marginRight: 3
-            }}
-          />
-          <SSText size="sm" color="muted">
-            {formattedNpub.text}
-          </SSText>
-        </SSHStack>
-        <SSText size="sm" color="muted">
-          {new Date(message.created_at * 1000).toLocaleString()}
-        </SSText>
-      </SSHStack>
-      <SSText size="md">
-        {typeof message.content === 'object' && 'description' in message.content
-          ? message.content.description
-          : typeof message.content === 'string'
-            ? message.content
-            : 'Invalid message format'}
-      </SSText>
-    </SSVStack>
-  )
-})
-
 function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
-  const getMembers = useNostrStore((state) => state.getMembers)
-  const addMember = useNostrStore((state) => state.addMember)
-  const { sendDM, loadStoredDMs, dataExchangeSubscription } = useNostrSync()
-  const members = useMemo(
-    () => (accountId ? getMembers(accountId) : []),
-    [accountId, getMembers]
-  )
-  const [messages, setMessages] = useState<NostrMessage[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const [messageInput, setMessageInput] = useState('')
-  const [isConnected, setIsConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const hasLoadedInitialMessages = useRef(false)
   const flatListRef = useRef<FlatList>(null)
-  const [showScrollButton, setShowScrollButton] = useState(false)
+  const nostrApiRef = useRef<NostrAPI | null>(null)
+  const [formattedNpubs, setFormattedNpubs] = useState<
+    Map<string, { text: string; color: string }>
+  >(new Map())
 
-  const [account] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.id === accountId)
-    ])
-  )
-
-  // Add user's device to members list if not already present
-  useEffect(() => {
-    if (account?.nostr?.deviceNpub && accountId) {
-      addMember(accountId, account.nostr.deviceNpub)
-    }
-  }, [account?.nostr?.deviceNpub, accountId, addMember])
-
-  // Clear color cache when members change
-  useEffect(() => {
-    colorCache.clear()
-  }, [members])
-
-  // Load initial messages
-  useEffect(() => {
-    const loadMessages = async () => {
-      if (!account || hasLoadedInitialMessages.current) return
-
-      try {
-        const dms = await loadStoredDMs(account)
-        if (dms && Array.isArray(dms)) {
-          const parsedMessages = dms.map(
-            (dm: DM) =>
-              ({
-                content: {
-                  description: dm.description
-                } as MessageContent,
-                created_at: dm.created_at,
-                pubkey: dm.author
-              }) as NostrMessage
-          )
-
-          // Sort messages by creation time
-          parsedMessages.sort((a, b) => a.created_at - b.created_at)
-          setMessages(parsedMessages)
-          hasLoadedInitialMessages.current = true
-
-          // Scroll to bottom after initial messages are loaded
-          setTimeout(() => {
-            if (flatListRef.current && parsedMessages.length > 0) {
-              flatListRef.current.scrollToEnd({ animated: false })
-            }
-          }, 100)
-        }
-      } catch {
-        setError('Failed to load messages')
-      }
-    }
-    loadMessages()
-  }, [account, loadStoredDMs])
-
-  const handleScroll = useCallback((event: any) => {
-    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
-    const distanceFromBottom =
-      contentSize.height - layoutMeasurement.height - contentOffset.y
-    setShowScrollButton(distanceFromBottom > 100)
-  }, [])
-
-  const scrollToBottom = useCallback(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true })
-    }
-  }, [])
-
-  // Subscribe to new messages
-  useEffect(() => {
-    if (
-      !nostrApi ||
-      !account?.nostr?.commonNsec ||
-      !account?.nostr?.deviceNsec ||
-      !account?.nostr?.autoSync ||
-      !accountId
-    )
-      return
-
-    dataExchangeSubscription(account)
-
-    // Load messages from store whenever they change
-    const loadMessages = async () => {
-      const dms = await loadStoredDMs(account)
-
-      if (dms && Array.isArray(dms)) {
-        const parsedMessages = dms.map(
-          (dm: DM) =>
-            ({
-              content: {
-                description: dm.description
-              } as MessageContent,
-              created_at: dm.created_at,
-              pubkey: dm.author
-            }) as NostrMessage
-        )
-
-        // Sort messages by creation time
-        parsedMessages.sort((a, b) => a.created_at - b.created_at)
-
-        // Update messages if we have new ones or if the content has changed
-        const currentMessagesStr = JSON.stringify(messages)
-        const newMessagesStr = JSON.stringify(parsedMessages)
-        if (currentMessagesStr !== newMessagesStr) {
-          setMessages(parsedMessages)
-        }
-      }
-    }
-
-    // Set up an interval to check for new messages
-    const intervalId = setInterval(loadMessages, 1000)
-
-    return () => {
-      clearInterval(intervalId)
-    }
-  }, [
-    nostrApi,
-    account?.nostr?.commonNsec,
-    account?.nostr?.deviceNsec,
-    account,
-    dataExchangeSubscription,
-    loadStoredDMs,
-    accountId,
-    messages // Changed from messages.length to messages to detect content changes
+  const [account] = useAccountsStore((state) => [
+    state.accounts.find((_account) => _account.id === accountId)
   ])
 
-  // Effect to handle scrolling to bottom when messages change
+  const { members } = useNostrStore((state) => ({
+    members: state.members[accountId] || []
+  }))
+
+  const { sendDM, dataExchangeSubscription } = useNostrSync()
+
+  // Load messages from account's Nostr DMs store
+  const messages = account?.nostr?.dms || []
+
+  // Format npubs for all messages
   useEffect(() => {
-    if (messages.length > 0 && flatListRef.current) {
-      // Use requestAnimationFrame to ensure the scroll happens after the layout
-      requestAnimationFrame(() => {
-        flatListRef.current?.scrollToEnd({ animated: false })
+    const formatNpubs = async () => {
+      const membersList = members.map((member) => ({
+        npub: member.npub,
+        color: member.color || '#404040'
+      }))
+
+      const newFormattedNpubs = new Map()
+      for (const msg of messages) {
+        if (!newFormattedNpubs.has(msg.author)) {
+          const formatted = await formatNpub(msg.author, membersList)
+          newFormattedNpubs.set(msg.author, formatted)
+        }
+      }
+      setFormattedNpubs(newFormattedNpubs)
+    }
+
+    formatNpubs()
+  }, [messages, members])
+
+  // Log message changes
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('📝 Latest message:', {
+        id: messages[messages.length - 1].id,
+        author: messages[messages.length - 1].author,
+        content: messages[messages.length - 1].description,
+        timestamp: new Date(
+          messages[messages.length - 1].created_at * 1000
+        ).toISOString()
       })
     }
-  }, [messages.length])
+  }, [messages])
 
-  // Connect to relays
+  // Load messages and setup subscription on mount
   useEffect(() => {
     if (!account?.nostr?.relays?.length) {
-      setError('No relays configured')
       return
     }
 
     const api = new NostrAPI(account.nostr.relays)
-    setNostrApi(api)
-    setIsLoading(true)
+    nostrApiRef.current = api
 
-    api
-      .connect()
-      .then(() => {
-        setIsConnected(true)
-        setError(null)
-      })
-      .catch(() => {
-        setError('Failed to connect to relays')
-        toast.error('Failed to connect to relays')
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }, [account?.nostr?.relays])
+    // Start listening for new messages
+    dataExchangeSubscription(account, (loading) => {
+      console.log('📡 Subscription loading state:', loading)
+    })
+
+    // Scroll to bottom when messages load
+    if (messages.length > 0) {
+      flatListRef.current?.scrollToEnd({ animated: false })
+    }
+
+    return () => {
+      api.closeAllSubscriptions()
+    }
+  }, [
+    account?.nostr?.relays,
+    account,
+    dataExchangeSubscription,
+    messages.length
+  ])
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) {
@@ -331,8 +160,7 @@ function SSDevicesGroupChat() {
     }
 
     if (
-      !account?.nostr?.commonNsec ||
-      !account?.nostr?.commonNpub ||
+      !account?.nostr?.deviceNsec ||
       !account?.nostr?.deviceNpub ||
       !account?.nostr?.relays?.length
     ) {
@@ -345,8 +173,8 @@ function SSDevicesGroupChat() {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
       toast.success('Message sent successfully')
-    } catch (_error) {
-      setError('Failed to send message')
+    } catch (error) {
+      console.error('Failed to send message:', error)
       toast.error('Failed to send message')
     } finally {
       setIsLoading(false)
@@ -354,15 +182,77 @@ function SSDevicesGroupChat() {
   }
 
   const renderMessage = useCallback(
-    ({ item: msg }: { item: NostrMessage }) => {
-      return <MessageItem message={msg} members={members} />
-    },
-    [members]
-  )
+    ({ item: msg }: { item: DM }) => {
+      try {
+        // Ensure we have a valid hex string
+        const hexString = msg.author.startsWith('npub')
+          ? msg.author
+          : msg.author.padStart(64, '0').toLowerCase()
 
-  const keyExtractor = useCallback(
-    (item: NostrMessage) => `${item.created_at}-${item.pubkey}`,
-    []
+        // Only encode if it's not already an npub
+        const msgAuthorNpub = msg.author.startsWith('npub')
+          ? msg.author
+          : nip19.npubEncode(hexString)
+
+        const isDeviceMessage = msgAuthorNpub === account?.nostr?.deviceNpub
+        const formatted = formattedNpubs.get(msg.author) || {
+          text: msgAuthorNpub.slice(0, 12) + '...' + msgAuthorNpub.slice(-4),
+          color: '#404040'
+        }
+
+        return (
+          <SSVStack
+            gap="xxs"
+            style={[styles.message, isDeviceMessage && styles.deviceMessage]}
+          >
+            <SSHStack gap="xxs" justifyBetween>
+              <SSHStack gap="xxs">
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: formatted.color,
+                    marginTop: 1,
+                    marginRight: 3
+                  }}
+                />
+                <SSText size="sm" color="muted">
+                  {formatted.text}
+                  {isDeviceMessage && ' (You)'}
+                </SSText>
+              </SSHStack>
+              <SSText size="xs" color="muted">
+                {new Date(msg.created_at * 1000).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </SSText>
+            </SSHStack>
+            <SSText size="md">
+              {typeof msg.content === 'object' && 'description' in msg.content
+                ? msg.content.description
+                : typeof msg.content === 'string'
+                  ? msg.content
+                  : 'Invalid message format'}
+            </SSText>
+          </SSVStack>
+        )
+      } catch (error) {
+        console.error('Error rendering message:', error)
+        return (
+          <SSVStack gap="xxs" style={styles.message}>
+            <SSText size="sm" color="muted">
+              Error displaying message
+            </SSText>
+          </SSVStack>
+        )
+      }
+    },
+    [account?.nostr?.deviceNpub, formattedNpubs]
   )
 
   if (!accountId || !account) return <Redirect href="/" />
@@ -374,9 +264,6 @@ function SSDevicesGroupChat() {
           headerTitle: () => (
             <SSHStack gap="sm">
               <SSText uppercase>{account.name}</SSText>
-              {account.policyType === 'watchonly' && (
-                <SSIconEyeOn stroke="#fff" height={16} width={16} />
-              )}
             </SSHStack>
           ),
           headerRight: () => null
@@ -388,28 +275,9 @@ function SSDevicesGroupChat() {
             <SSText center uppercase color="muted">
               {t('account.nostrSync.devicesGroupChat')}
             </SSText>
-
-            {isLoading ? (
-              <SSVStack style={styles.statusContainer}>
-                {!account?.nostr?.relays?.length ? (
-                  <SSText color="muted">No relay selected</SSText>
-                ) : (
-                  <>
-                    <ActivityIndicator size={15} color={Colors.white} />
-                    <SSText color="muted">Connecting to relays</SSText>
-                  </>
-                )}
-              </SSVStack>
-            ) : error ? (
-              <SSText color="muted" center>
-                {error}
-              </SSText>
-            ) : (
-              <SSText color="muted" center>
-                {isConnected ? 'Connected to relays' : 'Disconnected'}
-                {account.nostr.autoSync ? '' : ' • Sync Off'}
-              </SSText>
-            )}
+            <SSText color="muted" center>
+              {account.nostr.autoSync ? 'Sync On' : 'Sync Off'}
+            </SSText>
           </SSVStack>
         </SSVStack>
 
@@ -419,47 +287,18 @@ function SSDevicesGroupChat() {
             ref={flatListRef}
             data={messages}
             renderItem={renderMessage}
-            keyExtractor={keyExtractor}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
+            keyExtractor={(item) => item.id}
+            onContentSizeChange={() => {
+              flatListRef.current?.scrollToEnd({ animated: false })
+            }}
             ListEmptyComponent={
               <SSText center color="muted">
                 No messages yet
               </SSText>
             }
-            initialNumToRender={20}
-            maxToRenderPerBatch={20}
-            windowSize={10}
-            removeClippedSubviews={true}
-            updateCellsBatchingPeriod={100}
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0,
-              autoscrollToTopThreshold: 10
-            }}
             inverted={false}
-            onLayout={() => {
-              if (flatListRef.current && messages.length > 0) {
-                requestAnimationFrame(() => {
-                  flatListRef.current?.scrollToEnd({ animated: false })
-                })
-              }
-            }}
-            onContentSizeChange={() => {
-              if (flatListRef.current && messages.length > 0) {
-                requestAnimationFrame(() => {
-                  flatListRef.current?.scrollToEnd({ animated: false })
-                })
-              }
-            }}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
           />
-          {showScrollButton && (
-            <SSButton
-              label="↓"
-              onPress={scrollToBottom}
-              style={styles.scrollButton}
-              variant="outline"
-            />
-          )}
         </View>
 
         {/* Message input section */}
@@ -477,7 +316,7 @@ function SSDevicesGroupChat() {
             style={styles.sendButton}
             label="Send"
             onPress={handleSendMessage}
-            disabled={isLoading || !isConnected || !messageInput.trim()}
+            disabled={isLoading || !messageInput.trim()}
           />
         </SSHStack>
       </SSVStack>
@@ -501,7 +340,7 @@ const styles = StyleSheet.create({
     marginTop: 8
   },
   deviceMessage: {
-    backgroundColor: '#2f2f2f'
+    backgroundColor: '#2a2a2a'
   },
   inputContainer: {
     paddingHorizontal: 0
@@ -523,18 +362,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10
-  },
-  scrollButton: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    opacity: 0.8
   }
 })
 

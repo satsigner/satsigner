@@ -15,10 +15,11 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore, generateColorFromNpub } from '@/store/nostr'
+import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import type { Account } from '@/types/models/Account'
+import { generateColorFromNpub } from '@/store/nostr'
 
 function SSNostrSync() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -69,7 +70,8 @@ function SSNostrSync() {
     generateCommonNostrKeys,
     protocolSubscription,
     dataExchangeSubscription,
-    cleanupSubscriptions
+    cleanupSubscriptions,
+    deviceAnnouncement
   } = useNostrSync()
 
   const [account, updateAccountNostr] = useAccountsStore(
@@ -102,9 +104,18 @@ function SSNostrSync() {
 
     try {
       setIsLoading(true)
+      // Clear messages from message store
       await clearStoredDMs(account)
+      // Clear messages from account store
+      updateAccountNostr(accountId, {
+        ...account.nostr,
+        dms: []
+      })
+      // Clear processed messages and events from Nostr store
       clearProcessedMessageIds(accountId)
       clearProcessedEvents(accountId)
+      setSelectedMembers(new Set())
+      await new Promise((resolve) => setTimeout(resolve, 100))
       toast.success('Messages cleared successfully')
     } catch {
       toast.error('Failed to clear messages')
@@ -227,6 +238,12 @@ function SSNostrSync() {
         // Turn on auto sync
         updateAccountNostr(accountId, { autoSync: true })
         await reloadApi()
+        console.log('🌎🌎🌎🌎 Sending device announcement')
+        // Force account update to include new autoSync value
+        const updatedAccount = useAccountsStore
+          .getState()
+          .accounts.find((a) => a.id === accountId)
+        deviceAnnouncement(updatedAccount, deviceNpub)
       }
     } catch (error) {
       console.error('Error toggling auto sync:', error)
@@ -591,6 +608,15 @@ function SSNostrSync() {
               } else {
                 console.log('No DMs in store')
               }
+            }}
+            variant="subtle"
+            style={{ marginTop: 10 }}
+          />
+          <SSButton
+            label="Log Members Store"
+            onPress={() => {
+              const members = useNostrStore.getState().getMembers(accountId)
+              console.log('Members Store:', members)
             }}
             variant="subtle"
             style={{ marginTop: 10 }}
