@@ -24,6 +24,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
@@ -54,6 +55,9 @@ export default function Confirm() {
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const skipSeedConfirmation = useSettingsStore(
+    (state) => state.skipSeedConfirmation
+  )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const candidateWords = useMemo(() => {
@@ -174,11 +178,13 @@ export default function Confirm() {
             variant="subtle"
             onPress={handleOnPressCancel}
           />
-          <SSButton
-            label={t('common.skip')}
-            variant="ghost"
-            onPress={handleOnPressSkip}
-          />
+          {skipSeedConfirmation && (
+            <SSButton
+              label={t('common.skip')}
+              variant="ghost"
+              onPress={handleOnPressSkip}
+            />
+          )}
         </SSVStack>
       </SSVStack>
       <SSGradientModal
