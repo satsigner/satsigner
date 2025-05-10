@@ -1,7 +1,11 @@
 import { Stack, useRouter } from 'expo-router'
 import { ScrollView } from 'react-native'
 
-import { SSIconServer, SSIconServerOptions } from '@/components/icons'
+import {
+  SSIconMempool,
+  SSIconServer,
+  SSIconServerOptions
+} from '@/components/icons'
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
@@ -28,6 +32,14 @@ export default function Features() {
                 icon={<SSIconServer width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/server')
+                }}
+              />
+              <SSSettingsCards
+                title={t('settings.network.mempool.title')}
+                description={t('settings.network.mempool.description')}
+                icon={<SSIconMempool width={24} height={24} />}
+                onPress={() => {
+                  router.navigate('/settings/network/mempool')
                 }}
               />
               <SSSettingsCards
