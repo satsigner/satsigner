@@ -73,6 +73,11 @@ export default function Confirm() {
     setSkipModalVisible(true)
   }
 
+  async function handleConfirmSkip() {
+    setSkipModalVisible(false)
+    await handleFinishWordsConfirmation()
+  }
+
   async function handleNavigateNextWord() {
     if (!selectedCheckbox) return
 
@@ -106,6 +111,7 @@ export default function Confirm() {
       })
 
       setLoadingAccount(false)
+      // WARNING: should not it be `Number(keyIndex)` ?
       router.dismiss(Number(index) + 3)
     }
     clearKeyState()
@@ -236,7 +242,7 @@ export default function Confirm() {
           <SSButton
             label={t('common.yes')}
             variant="danger"
-            onPress={handleFinishWordsConfirmation}
+            onPress={handleConfirmSkip}
           />
           <SSButton
             label={t('common.no')}
