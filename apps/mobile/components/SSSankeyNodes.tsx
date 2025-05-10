@@ -1,9 +1,11 @@
 import {
   Group,
   ImageSVG,
+  PaintStyle,
   Paragraph,
   PlaceholderAlignment,
   Rect,
+  RoundedRect,
   Skia,
   type SkTypefaceFontProvider,
   TextAlign,
@@ -24,6 +26,7 @@ import { logAttenuation } from '@/utils/math'
 interface ISSankeyNodes {
   nodes: any[]
   sankeyGenerator: any
+  selectedOutputNode?: string
 }
 
 const BASE_FONT_SIZE = 13
@@ -32,8 +35,14 @@ const XS_FONT_SIZE = 8
 const PADDING_LEFT = 8
 // const Y_OFFSET_BLOCK_NODE_TEXT = 12
 const ICON_SIZE = 8
+const RECT_PADDING = 5
+const NODE_MARGIN_LEFT = 1
 
-function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
+function SSSankeyNodes({
+  nodes,
+  sankeyGenerator,
+  selectedOutputNode
+}: ISSankeyNodes) {
   const customFontManager = useFonts({
     'SF Pro Text': [
       require('@/assets/fonts/SF-Pro-Text-Light.otf'),
@@ -124,6 +133,7 @@ function SSSankeyNodes({ nodes, sankeyGenerator }: ISSankeyNodes) {
           customFontManager={customFontManager}
           localId={node?.localId ?? ''}
           isTransactionChart={isTransactionChart}
+          selectedOutputNode={selectedOutputNode}
         />
       </Group>
     )
@@ -142,7 +152,8 @@ function NodeText({
   y,
   customFontManager,
   ioData,
-  isTransactionChart
+  isTransactionChart,
+  selectedOutputNode
 }: {
   localId: string
   isBlock: boolean
@@ -152,10 +163,28 @@ function NodeText({
   customFontManager: SkTypefaceFontProvider | null
   ioData: TxNode['ioData']
   isTransactionChart: boolean
+  selectedOutputNode?: string
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
   const isUnspent = ioData?.isUnspent
+
+  const shadowPaint = useMemo(() => {
+    const paint = Skia.Paint()
+    paint.setColor(Skia.Color('#1E1E1E'))
+    paint.setStyle(PaintStyle.Fill)
+    paint.setImageFilter(
+      Skia.ImageFilter.MakeDropShadow(
+        0, // dx
+        4, // dy
+        2, // sigmaX (blurRad / 2 for blur = 4)
+        2, // sigmaY (blurRad / 2 for blur = 4)
+        Skia.Color('rgba(0,0,0,0.25)'), // #000000 with 25% opacity, changed to string format
+        null // input filter (null means apply to source)
+      )
+    )
+    return paint
+  }, [])
 
   const labelIconSvg = useSVG(require('@/assets/red-label.svg'))
   const changeIconSvg = useSVG(require('@/assets/green-change.svg'))
@@ -460,6 +489,9 @@ function NodeText({
     : // ? y + blockNodeHeight - Y_OFFSET_BLOCK_NODE_TEXT
       y
 
+  // Apply additional margin if the node is unspent
+  const groupBaseX = isUnspent ? paragraphX + NODE_MARGIN_LEFT : paragraphX
+
   // Get placeholder rects if it's a mining fee node
   const placeholderRectsMinerIcon = useMemo(() => {
     if (isMiningFee && mainParagraph) {
@@ -477,6 +509,9 @@ function NodeText({
 
   if (!customFontManager || !mainParagraph) return null
 
+  const paragraphActualWidth = isBlock ? width * 0.6 : width - PADDING_LEFT
+  const paragraphActualHeight = mainParagraph.getHeight()
+
   return (
     <Group>
       {isBlock && !isTransactionChart ? (
@@ -489,19 +524,38 @@ function NodeText({
           width={87}
         />
       ) : null}
-      <Paragraph
-        paragraph={mainParagraph}
-        x={paragraphX}
-        y={paragraphY}
-        width={isBlock ? width * 0.6 : width - PADDING_LEFT}
-      />
+      {isUnspent && selectedOutputNode === localId ? (
+        <Group>
+          <RoundedRect
+            x={groupBaseX - RECT_PADDING}
+            y={paragraphY - RECT_PADDING}
+            width={paragraphActualWidth + 2 * RECT_PADDING}
+            height={paragraphActualHeight + 2 * RECT_PADDING}
+            r={3}
+            paint={shadowPaint}
+          />
+          <Paragraph
+            paragraph={mainParagraph}
+            x={groupBaseX}
+            y={paragraphY}
+            width={paragraphActualWidth}
+          />
+        </Group>
+      ) : (
+        <Paragraph
+          paragraph={mainParagraph}
+          x={groupBaseX}
+          y={paragraphY}
+          width={paragraphActualWidth}
+        />
+      )}
       {isUnspent &&
         labelIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
         ioData?.label && (
           <ImageSVG
             svg={labelIconSvg}
-            x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
+            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
             y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
             width={placeholderRectsUnspentIcon[0].rect.width}
             height={placeholderRectsUnspentIcon[0].rect.height}
@@ -513,7 +567,7 @@ function NodeText({
         !ioData?.label && (
           <ImageSVG
             svg={changeIconSvg}
-            x={paragraphX + placeholderRectsUnspentIcon[0].rect.x}
+            x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
             y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
             width={placeholderRectsUnspentIcon[0].rect.width}
             height={placeholderRectsUnspentIcon[0].rect.height}

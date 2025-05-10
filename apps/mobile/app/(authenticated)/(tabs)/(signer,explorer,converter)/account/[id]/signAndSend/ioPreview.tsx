@@ -3,19 +3,19 @@ import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ActivityIndicator,
   Animated,
   type LayoutChangeEvent,
+  TouchableOpacity,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { SSIconScan } from '@/components/icons'
+import { SSIconChevronLeft, SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -32,8 +32,6 @@ import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
-import { useInputTransactions } from '@/hooks/useInputTransactions'
-import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -47,16 +45,11 @@ import { type Output } from '@/types/models/Output'
 // import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Link } from '@/types/ui/sankey'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 // import { selectEfficientUtxos } from '@/utils/utxo'
-
-const DEEP_LEVEL = 2 // how deep the tx history
-
-const SHOW_PREVIEW = true
 
 export default function IOPreview() {
   const router = useRouter()
@@ -90,11 +83,6 @@ export default function IOPreview() {
     ])
   )
 
-  const { transactions, loading, error } = useInputTransactions(
-    inputs,
-    DEEP_LEVEL
-  )
-
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -103,6 +91,7 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithms>('user')
 
+  const [loadHistory, setLoadHistory] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
@@ -143,13 +132,6 @@ export default function IOPreview() {
     [inputs.size, outputs.length]
   )
 
-  const { nodes, links } = useNodesAndLinks({
-    transactions,
-    inputs,
-    outputs,
-    feeRate
-  })
-
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
@@ -169,7 +151,7 @@ export default function IOPreview() {
   const boxPosition = new Animated.Value(localFeeRate)
 
   // Calculate outputs for chart including remaining balance
-  const outputsForChart = useMemo(() => {
+  const singleTxOutputs = useMemo(() => {
     const { vsize } = transactionSize
     const minerFee = Math.round(feeRate * vsize)
     const totalInputValue = utxosSelectedValue
@@ -324,29 +306,14 @@ export default function IOPreview() {
     }
   }
 
-  if (loading && inputs.size > 0) {
-    return (
-      <SSVStack itemsCenter style={{ justifyContent: 'center', flex: 1 }}>
-        <ActivityIndicator color={Colors.white} />
-      </SSVStack>
-    )
-  }
-
-  if (error) {
-    return (
-      <SSVStack itemsCenter>
-        <SSText color="muted">
-          Error loading transaction details: {error.message}
-        </SSText>
-      </SSVStack>
-    )
-  }
-
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
     setTopGradientHeight(height + Layout.mainContainer.paddingTop)
   }
-  if (!nodes.length || !links.length) return <Redirect href="/" />
+  const handleLoadHistory = () => {
+    setLoadHistory(!loadHistory)
+  }
+  // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
     <View style={{ flex: 1 }}>
@@ -417,43 +384,33 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      {inputs.size > 0 &&
-      transactions.size > 0 &&
-      nodes.length > 0 &&
-      links.length > 0 ? (
+      {inputs.size > 0 ? (
         <View
           style={{
             position: 'absolute',
-            top: SHOW_PREVIEW ? topGradientHeight : 80
+            top: loadHistory ? topGradientHeight : 80
           }}
         >
-          {SHOW_PREVIEW ? (
-            <SSCurrentTransactionChart
+          {loadHistory ? (
+            <SSMultipleSankeyDiagram
+              onPressOutput={handleOnPressOutput}
+              currentOutputLocalId={currentOutputLocalId}
               inputs={inputs}
-              outputs={outputsForChart}
+              outputs={outputs}
               feeRate={feeRate}
             />
           ) : (
-            <SSMultipleSankeyDiagram
-              sankeyNodes={nodes}
-              sankeyLinks={links as Link[]}
+            <SSCurrentTransactionChart
+              inputs={inputs}
+              outputs={singleTxOutputs}
+              feeRate={feeRate}
               onPressOutput={handleOnPressOutput}
+              currentOutputLocalId={currentOutputLocalId}
             />
           )}
         </View>
       ) : null}
-      {/* <SSButton
-        variant="outline"
-        label={t('transaction.build.add.input.title')}
-        style={{
-          flex: 1,
-          paddingHorizontal: 32,
-          justifyContent: 'flex-start',
-          bottom: 0
-        }}
-      >
-        LOAD HISTORY
-      </SSButton> */}
+
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
@@ -474,6 +431,30 @@ export default function IOPreview() {
           }}
         >
           <SSVStack>
+            <TouchableOpacity
+              style={{
+                marginBottom: Layout.vStack.gap.sm
+              }}
+              onPress={handleLoadHistory}
+            >
+              <SSHStack gap="xs">
+                <SSHStack gap="xxs">
+                  <SSIconChevronLeft
+                    height={6}
+                    width={3}
+                    stroke={Colors.gray[300]}
+                  />
+                  <SSIconChevronLeft
+                    height={6}
+                    width={3}
+                    stroke={Colors.gray[300]}
+                  />
+                </SSHStack>
+                <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
+                  {t('transaction.loadHistory').toUpperCase()}
+                </SSText>
+              </SSHStack>
+            </TouchableOpacity>
             <SSHStack>
               <SSButton
                 variant="outline"

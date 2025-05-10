@@ -722,6 +722,7 @@
     "input.singular": "Input",
     "input.title": "Input",
     "label": "Label",
+    "loadHistory": "Load History",
     "noLabel": "No label",
     "noTags": "No tags",
     "output.count": "Number of outputs",

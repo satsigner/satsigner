@@ -3,6 +3,7 @@ import { Canvas, Circle, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
+  ActivityIndicator,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -13,26 +14,50 @@ import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
+import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
+import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
+import SSVStack from '@/layouts/SSVStack'
+import { Colors } from '@/styles'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
 import { BLOCK_WIDTH, type Link, type Node } from '@/types/ui/sankey'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
+import SSText from './SSText'
 
 const LINK_MAX_WIDTH = 100
 const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
-  sankeyNodes: Node[]
-  sankeyLinks: Link[]
   onPressOutput?: (localId?: string) => void
+  currentOutputLocalId?: string
+  inputs: Map<string, Utxo>
+  outputs: Output[]
+  feeRate: number
 }
 
 function SSMultipleSankeyDiagram({
-  sankeyNodes,
-  sankeyLinks,
-  onPressOutput
+  onPressOutput,
+  currentOutputLocalId,
+  inputs,
+  outputs,
+  feeRate
 }: SSMultipleSankeyDiagramProps) {
+  const DEEP_LEVEL = 2 // how deep the tx history
+  const { transactions, loading, error } = useInputTransactions(
+    inputs,
+    DEEP_LEVEL
+  )
+
+  const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
+    transactions,
+    inputs,
+    outputs,
+    feeRate
+  })
+
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(() => {
@@ -71,7 +96,7 @@ function SSMultipleSankeyDiagram({
 
   const { nodes, links } = sankeyGenerator({
     nodes: sankeyNodes,
-    links: sankeyLinks
+    links: sankeyLinks as Link[]
   })
 
   // Transform SankeyLinkMinimal to Link type
@@ -170,10 +195,29 @@ function SSMultipleSankeyDiagram({
     })
   }, [nodes])
 
+  if (loading && inputs.size > 0) {
+    return (
+      <SSVStack itemsCenter style={{ justifyContent: 'center', flex: 1 }}>
+        <ActivityIndicator color={Colors.white} />
+      </SSVStack>
+    )
+  }
+
+  if (error) {
+    return (
+      <SSVStack itemsCenter>
+        <SSText color="muted">
+          Error loading transaction details: {error.message}
+        </SSText>
+      </SSVStack>
+    )
+  }
+
   if (!nodes?.length || !transformedLinks?.length) {
     return null
   }
-  return (
+
+  return transactions.size > 0 && nodes.length > 0 && links.length > 0 ? (
     <View style={{ flex: 1 }}>
       <Canvas
         style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
@@ -187,7 +231,11 @@ function SSMultipleSankeyDiagram({
             LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
-          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          <SSSankeyNodes
+            nodes={nodes}
+            sankeyGenerator={sankeyGenerator}
+            selectedOutputNode={currentOutputLocalId}
+          />
           {nodes.map((node, index) => {
             const typedNode = node as Node
             const style = nodeStyles[index] // Get corresponding style for width/height
@@ -245,7 +293,7 @@ function SSMultipleSankeyDiagram({
         </View>
       </GestureDetector>
     </View>
-  )
+  ) : null
 }
 
 const styles = StyleSheet.create({

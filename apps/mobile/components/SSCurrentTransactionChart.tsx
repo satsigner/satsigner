@@ -1,5 +1,4 @@
-import { useHeaderHeight } from '@react-navigation/elements'
-import { Canvas, Group } from '@shopify/react-native-skia'
+import { Canvas, Circle, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
@@ -20,7 +19,6 @@ import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
 import { BLOCK_WIDTH } from '@/types/ui/sankey'
 import { formatAddress } from '@/utils/format'
-import { logAttenuation } from '@/utils/math'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 import SSSankeyLinks from './SSSankeyLinks'
@@ -47,13 +45,15 @@ type SSCurrentTransactionChartProps = {
   outputs: (Omit<Output, 'to'> & { to?: string })[]
   feeRate: number
   onPressOutput?: (localId?: string) => void
+  currentOutputLocalId?: string
 }
 
 function SSCurrentTransactionChart({
   inputs: inputMap,
   outputs: outputArray,
   feeRate: feeRateProp,
-  onPressOutput
+  onPressOutput,
+  currentOutputLocalId
 }: SSCurrentTransactionChartProps) {
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
     inputMap.size,
@@ -91,7 +91,11 @@ function SSCurrentTransactionChart({
     .nodePadding(160)
     .extent([
       [0, SANKEY_VERTICAL_MARGIN],
-      [width, GRAPH_HEIGHT * (inputMap.size * 0.2) - SANKEY_VERTICAL_MARGIN]
+      [
+        width,
+        GRAPH_HEIGHT * (Math.max(inputMap.size, outputArray.length) * 0.2) -
+          SANKEY_VERTICAL_MARGIN
+      ]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -246,7 +250,32 @@ function SSCurrentTransactionChart({
             LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
-          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          <SSSankeyNodes
+            nodes={nodes}
+            sankeyGenerator={sankeyGenerator}
+            selectedOutputNode={currentOutputLocalId}
+          />
+          {nodes.map((node, index) => {
+            const typedNode = node as Node
+            const style = nodeStyles[index] // Get corresponding style for width/height
+            const width = style.width + 20
+            if (typedNode.depthH === maxDepthH) {
+              const cy = style.y + 6.5 // 5px top padding + 1.5px circle center offset
+
+              const circle1Cx = style.x + width - 31 // style.x + style.width - 16 (right padding + icon width) + 1.48926 (circle cx in icon)
+              const circle2Cx = style.x + width - 35 // style.x + style.width - 16 + 5.48926
+              const circle3Cx = style.x + width - 39 // style.x + style.width - 16 + 9.48926
+
+              return (
+                <Group key={`ellipsis-${typedNode.id}`}>
+                  <Circle cx={circle1Cx} cy={cy} r={1} color="#D9D9D9" />
+                  <Circle cx={circle2Cx} cy={cy} r={1} color="#D9D9D9" />
+                  <Circle cx={circle3Cx} cy={cy} r={1} color="#D9D9D9" />
+                </Group>
+              )
+            }
+            return null
+          })}
         </Group>
       </Canvas>
       <GestureDetector gesture={gestures}>
