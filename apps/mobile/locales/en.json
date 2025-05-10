@@ -568,6 +568,7 @@
     "security.backgroundLockTime": "Background lock time threshold",
     "security.description": "Change app wide security settings to protect access in case of a compromised device",
     "security.maxPinTries": "Maximum pin tries",
+    "security.skipSeedConfirmation": "Allow skipping seed word confirmation",
     "security.title": "App Security",
     "title": "Config"
   },
