@@ -32,7 +32,6 @@ function useNostrSync() {
   )
   const addMember = useNostrStore((state) => state.addMember)
   const addSubscription = useNostrStore((state) => state.addSubscription)
-  const removeSubscription = useNostrStore((state) => state.removeSubscription)
   const clearSubscriptions = useNostrStore((state) => state.clearSubscriptions)
   const getActiveSubscriptions = useNostrStore(
     (state) => state.getActiveSubscriptions
