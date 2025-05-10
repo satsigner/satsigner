@@ -107,13 +107,6 @@ function TotalTransactions({
 }: TotalTransactionsProps) {
   const router = useRouter()
 
-  const [totalTasks, tasksDone] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((a) => a.id === account.id)?.syncProgress?.totalTasks,
-      state.accounts.find((a) => a.id === account.id)?.syncProgress?.tasksDone
-    ])
-  )
-
   const [btcPrice, fiatCurrency] = usePriceStore(
     useShallow((state) => [state.btcPrice, state.fiatCurrency])
   )
@@ -147,9 +140,6 @@ function TotalTransactions({
 
   return (
     <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
-      <SSText>
-        {tasksDone}/{totalTasks}
-      </SSText>
       <SSHStack
         justifyBetween
         style={{ paddingVertical: 16, paddingHorizontal: 16 }}
@@ -656,10 +646,14 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, updateAccount] = useAccountsStore(
+  const [account, updateAccount, totalTasks, tasksDone] = useAccountsStore(
     useShallow((state) => [
       state.accounts.find((account) => account.id === id),
-      state.updateAccount
+      state.updateAccount,
+      state.accounts.find((account) => account.id === id)?.syncProgress
+        ?.totalTasks,
+      state.accounts.find((account) => account.id === id)?.syncProgress
+        ?.tasksDone
     ])
   )
   const [wallet, watchOnlyWalletAddress] = useWalletsStore(
@@ -786,11 +780,13 @@ export default function AccountView() {
   }
 
   async function refreshAccount() {
-    if (!account || refreshing) return
+    if (!account) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
     if (isImportAddress && !watchOnlyWalletAddress) return
     else if (!isImportAddress && !wallet) return
+
+    console.log(account.name)
 
     try {
       const updatedAccount = !isImportAddress
@@ -1092,6 +1088,16 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
+      {(tasksDone !== undefined &&
+        totalTasks !== undefined &&
+        tasksDone > 0 &&
+        totalTasks > 0) ? (
+          <View>
+            <SSText center>
+            syncing... {tasksDone}/{totalTasks} tasks completed.
+            </SSText>
+          </View>
+      ) : null}
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}
