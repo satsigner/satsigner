@@ -42,6 +42,7 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/utils/samples'
+import useNostrSync from '@/hooks/useNostrSync'
 
 export default function AccountList() {
   const router = useRouter()
@@ -99,6 +100,7 @@ export default function AccountList() {
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { cleanupSubscriptions } = useNostrSync()
 
   type SampleWallet =
     | 'segwit'
@@ -139,8 +141,10 @@ export default function AccountList() {
   }, [connectionMode, fetchPrices])
 
   useFocusEffect(() => {
-    const nostrApi = new NostrAPI([])
-    nostrApi.disconnect()
+    const cleanup = async () => {
+      await cleanupSubscriptions()
+    }
+    cleanup()
   })
 
   function handleOnNavigateToAddAccount() {

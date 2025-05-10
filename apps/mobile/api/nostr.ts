@@ -31,6 +31,7 @@ export interface NostrMessage {
 export class NostrAPI {
   private ndk: NDK | null = null
   private activeSubscriptions: Set<NDKSubscription> = new Set()
+  private processedMessageIds: Set<string> = new Set()
   private eventQueue: NostrMessage[] = []
   private isProcessingQueue = false
   private readonly BATCH_SIZE = 10
@@ -47,6 +48,10 @@ export class NostrAPI {
         'wss://nostr.mom'
       ]
     }
+  }
+
+  getRelays(): string[] {
+    return this.relays
   }
 
   setLoadingCallback(callback: (isLoading: boolean) => void) {
@@ -144,29 +149,30 @@ export class NostrAPI {
     }
   }
 
-  async disconnect() {
-    await this.closeAllSubscriptions()
-    this.ndk = null
-  }
-
-  private async processEventQueue(callback: (message: NostrMessage) => void) {
+  private async processQueue() {
     if (this.isProcessingQueue || this.eventQueue.length === 0) return
 
     this.isProcessingQueue = true
-    this.setLoading(true)
-    try {
-      while (this.eventQueue.length > 0) {
-        const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
-        await Promise.all(batch.map((message) => callback(message)))
-        await new Promise((resolve) =>
-          setTimeout(resolve, this.PROCESSING_INTERVAL)
-        )
+    const batch = this.eventQueue.splice(0, this.BATCH_SIZE)
+
+    for (const message of batch) {
+      if (!this.processedMessageIds.has(message.id)) {
+        this.processedMessageIds.add(message.id)
+        try {
+          await this._callback?.(message)
+        } catch (error) {
+          console.error('Error processing message:', error)
+        }
       }
-    } finally {
-      this.isProcessingQueue = false
-      this.setLoading(false)
+    }
+
+    this.isProcessingQueue = false
+    if (this.eventQueue.length > 0) {
+      setTimeout(() => this.processQueue(), this.PROCESSING_INTERVAL)
     }
   }
+
+  private _callback?: (message: NostrMessage) => void
 
   async subscribeToKind1059(
     recipientNsec: string,
@@ -180,6 +186,8 @@ export class NostrAPI {
     if (!this.ndk) throw new Error('Failed to connect to relays')
 
     this.setLoading(true)
+    this._callback = _callback
+
     try {
       const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
       const { data: recipientPubKey } = nip19.decode(recipientNpub)
@@ -193,7 +201,8 @@ export class NostrAPI {
 
       const subscriptionQuery = {
         kinds: [1059 as NDKKind],
-        '#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
+        //'#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
+        '#p': [recipientPubKey.toString()],
         ...(limit && { limit }),
         since: bufferedSince
       }
@@ -206,20 +215,23 @@ export class NostrAPI {
       subscription?.on('event', async (event) => {
         try {
           const rawEvent = await event.toNostrEvent()
-
           const unwrappedEvent = await nip59.unwrapEvent(
             rawEvent as unknown as Event,
             recipientSecretNostrKey as Uint8Array
           )
 
-          const message = {
-            id: unwrappedEvent.id,
-            content: unwrappedEvent,
-            created_at: unwrappedEvent.created_at,
-            pubkey: event.pubkey
-          }
+          // Only queue if not already processed
+          if (!this.processedMessageIds.has(unwrappedEvent.id)) {
+            const message = {
+              id: unwrappedEvent.id,
+              content: unwrappedEvent,
+              created_at: unwrappedEvent.created_at,
+              pubkey: event.pubkey
+            }
 
-          _callback(message)
+            this.eventQueue.push(message)
+            this.processQueue()
+          }
         } catch (error) {
           console.error('Error processing event:', error)
         }
@@ -231,6 +243,8 @@ export class NostrAPI {
       })
 
       subscription?.on('close', () => {
+        console.log(subscription.ndk?.pool.relays.keys().next().value)
+
         this.activeSubscriptions.delete(subscription)
       })
     } catch (error) {
@@ -240,14 +254,19 @@ export class NostrAPI {
     }
   }
 
-  async closeAllSubscriptions(): Promise<void> {
-    this.setLoading(false)
+  async closeAllSubscriptions() {
     for (const subscription of this.activeSubscriptions) {
-      subscription.stop()
+      console.log(subscription.ndk?.pool.relays.keys().next().value)
+      try {
+        subscription.stop()
+      } catch (error) {
+        console.error('Error closing subscription:', error)
+      }
     }
     this.activeSubscriptions.clear()
+    //this.processedMessageIds.clear()
     this.eventQueue = []
-    this.isProcessingQueue = false
+    this._callback = undefined
   }
 
   async createKind1059(

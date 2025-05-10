@@ -42,13 +42,6 @@ async function formatNpub(
     const npub = nip19.npubEncode(pubkey)
     const member = members.find((m) => m.npub === npub)
 
-    console.log('🔍 Looking for member:', {
-      pubkey,
-      npub,
-      foundMember: member,
-      allMembers: members
-    })
-
     const color = member?.color || '#404040'
     const result = {
       text: `${npub.slice(0, 12)}...${npub.slice(-4)}`,
@@ -66,7 +59,6 @@ function SSDevicesGroupChat() {
   const [isLoading, setIsLoading] = useState(false)
   const [messageInput, setMessageInput] = useState('')
   const flatListRef = useRef<FlatList>(null)
-  const nostrApiRef = useRef<NostrAPI | null>(null)
   const [formattedNpubs, setFormattedNpubs] = useState<
     Map<string, { text: string; color: string }>
   >(new Map())
@@ -79,7 +71,7 @@ function SSDevicesGroupChat() {
     members: state.members[accountId] || []
   }))
 
-  const { sendDM, dataExchangeSubscription } = useNostrSync()
+  const { sendDM } = useNostrSync()
 
   // Load messages from account's Nostr DMs store
   const messages = account?.nostr?.dms || []
@@ -105,48 +97,17 @@ function SSDevicesGroupChat() {
     formatNpubs()
   }, [messages, members])
 
-  // Log message changes
-  useEffect(() => {
-    if (messages.length > 0) {
-      console.log('📝 Latest message:', {
-        id: messages[messages.length - 1].id,
-        author: messages[messages.length - 1].author,
-        content: messages[messages.length - 1].description,
-        timestamp: new Date(
-          messages[messages.length - 1].created_at * 1000
-        ).toISOString()
-      })
-    }
-  }, [messages])
-
-  // Load messages and setup subscription on mount
+  // Setup subscription on mount
   useEffect(() => {
     if (!account?.nostr?.relays?.length) {
       return
     }
 
-    const api = new NostrAPI(account.nostr.relays)
-    nostrApiRef.current = api
-
-    // Start listening for new messages
-    dataExchangeSubscription(account, (loading) => {
-      console.log('📡 Subscription loading state:', loading)
-    })
-
     // Scroll to bottom when messages load
     if (messages.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: false })
     }
-
-    return () => {
-      api.closeAllSubscriptions()
-    }
-  }, [
-    account?.nostr?.relays,
-    account,
-    dataExchangeSubscription,
-    messages.length
-  ])
+  }, [account?.nostr?.relays, account, messages.length])
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) {
@@ -172,7 +133,6 @@ function SSDevicesGroupChat() {
     try {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
-      toast.success('Message sent successfully')
     } catch (error) {
       console.error('Failed to send message:', error)
       toast.error('Failed to send message')
@@ -274,9 +234,7 @@ function SSDevicesGroupChat() {
           <SSVStack gap="xs">
             <SSText center uppercase color="muted">
               {t('account.nostrSync.devicesGroupChat')}
-            </SSText>
-            <SSText color="muted" center>
-              {account.nostr.autoSync ? 'Sync On' : 'Sync Off'}
+              {account.nostr.autoSync ? ' (Sync On)' : ' (Sync Off)'}
             </SSText>
           </SSVStack>
         </SSVStack>

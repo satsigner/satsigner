@@ -31,11 +31,16 @@ function useNostrSync() {
     useShallow((state) => [state.updateAccountNostr])
   )
   const addMember = useNostrStore((state) => state.addMember)
-  const activeSubscriptions = useRef<Set<NostrAPI>>(new Set())
+  const addSubscription = useNostrStore((state) => state.addSubscription)
+  const removeSubscription = useNostrStore((state) => state.removeSubscription)
+  const clearSubscriptions = useNostrStore((state) => state.clearSubscriptions)
+  const getActiveSubscriptions = useNostrStore(
+    (state) => state.getActiveSubscriptions
+  )
 
   const cleanupSubscriptions = useCallback(async () => {
-    const apisToCleanup = Array.from(activeSubscriptions.current)
-    activeSubscriptions.current.clear()
+    const apisToCleanup = Array.from(getActiveSubscriptions())
+    clearSubscriptions()
 
     for (const api of apisToCleanup) {
       try {
@@ -44,7 +49,7 @@ function useNostrSync() {
         console.error('Error closing subscriptions:', error)
       }
     }
-  }, [])
+  }, [clearSubscriptions, getActiveSubscriptions])
 
   const storeDM = useCallback(
     async (account?: Account, unwrappedEvent?: any, eventContent?: any) => {
@@ -66,8 +71,11 @@ function useNostrSync() {
         }
 
         const currentDms = account.nostr?.dms || []
+
+        // Check if message with same ID already exists
         const messageExists = currentDms.some((m) => m.id === newMessage.id)
 
+        // If message doesn't exist, add it and sort by timestamp
         if (!messageExists) {
           const updatedDms = [...currentDms, newMessage].sort(
             (a, b) => a.created_at - b.created_at
@@ -87,13 +95,15 @@ function useNostrSync() {
 
   const processEvent = useCallback(
     async (account: Account, unwrappedEvent: any): Promise<string> => {
+      // Check for processed events at the very beginning
       const processedEvents =
         useNostrStore.getState().processedEvents[account.id] || []
-
       if (processedEvents.includes(unwrappedEvent.id)) {
+        console.log('Skipping already processed event:', unwrappedEvent.id)
         return ''
       }
 
+      // Mark event as processed immediately to prevent duplicate processing
       useNostrStore.getState().addProcessedEvent(account.id, unwrappedEvent.id)
 
       try {
@@ -125,16 +135,13 @@ function useNostrSync() {
                 }
               }
             } catch (error) {
-              console.error('Failed to process labels:', error)
               toast.error('Failed to import labels')
             }
           }
         } else if (eventContent.description && !eventContent.data) {
           try {
             await storeDM(account, unwrappedEvent, eventContent)
-          } catch (error) {
-            console.error('Failed to process DM:', error)
-          }
+          } catch (error) {}
         } else if (eventContent.public_key_bech32) {
           const newMember = eventContent.public_key_bech32
           try {
@@ -146,7 +153,16 @@ function useNostrSync() {
 
         return eventContent
       } catch (error) {
-        console.error('Error processing event:', error)
+        // If processing fails, remove the event from processed events
+        const currentProcessedEvents =
+          useNostrStore.getState().processedEvents[account.id] || []
+        useNostrStore.getState().clearProcessedEvents(account.id)
+        const remainingEvents = currentProcessedEvents.filter(
+          (id) => id !== unwrappedEvent.id
+        )
+        remainingEvents.forEach((eventId) => {
+          useNostrStore.getState().addProcessedEvent(account.id, eventId)
+        })
         return ''
       }
     },
@@ -154,101 +170,179 @@ function useNostrSync() {
   )
 
   const protocolSubscription = useCallback(
-    async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
-      if (!account || !account.nostr) return
+    async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
       const { autoSync, commonNsec, commonNpub, relays } = account.nostr
       const lastProtocolEOSE =
         useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
 
       if (!autoSync || !commonNsec || !commonNpub || relays.length === 0) {
-        await cleanupSubscriptions()
-        return
+        return null
       }
 
       let nostrApi: NostrAPI | null = null
       try {
-        await cleanupSubscriptions()
-
         nostrApi = new NostrAPI(relays)
         if (onLoadingChange) {
           nostrApi.setLoadingCallback(onLoadingChange)
         }
         await nostrApi.connect()
-        activeSubscriptions.current.add(nostrApi)
-
+        console.log('🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵 protocolSubscription')
         await nostrApi.subscribeToKind1059(
           commonNsec as string,
           commonNpub as string,
           async (message) => {
             try {
+              console.log('🔵 event id    ', message.id)
+              console.log('🔵 event pubkey', message.pubkey)
+              console.log(
+                '🔵 event date  ',
+                new Date(message.created_at * 1000).toLocaleString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })
+              )
               await processEvent(account, message.content)
             } catch (_error) {
               // Handle error silently
             }
           },
-          undefined,
+          3,
           lastProtocolEOSE,
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
+        return nostrApi
       } catch (_error) {
         toast.error('Failed to subscribe to protocol events')
         if (nostrApi) {
           await nostrApi.closeAllSubscriptions()
-          activeSubscriptions.current.delete(nostrApi)
         }
+        return null
       }
     },
-    [processEvent, cleanupSubscriptions]
+    [processEvent]
   )
 
   const dataExchangeSubscription = useCallback(
-    async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
-      if (!account || !account.nostr) return
+    async (account: Account, onLoadingChange?: (loading: boolean) => void) => {
       const { autoSync, deviceNsec, deviceNpub, relays } = account.nostr
       const lastDataExchangeEOSE =
         useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
       if (!autoSync || !deviceNsec || !deviceNpub || relays.length === 0) {
-        await cleanupSubscriptions()
-        return
+        return null
       }
 
       let nostrApi: NostrAPI | null = null
       try {
-        await cleanupSubscriptions()
-
         nostrApi = new NostrAPI(relays)
         if (onLoadingChange) {
           nostrApi.setLoadingCallback(onLoadingChange)
         }
-
         await nostrApi.connect()
-        activeSubscriptions.current.add(nostrApi)
-
+        console.log('🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴 dataExchangeSubscription')
         await nostrApi.subscribeToKind1059(
           deviceNsec as string,
           deviceNpub as string,
           async (message) => {
             try {
+              console.log('🔴 event id    ', message.id)
+              console.log('🔴 event pubkey', message.pubkey)
+              console.log(
+                '🔴 event date  ',
+                new Date(message.created_at * 1000).toLocaleString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })
+              )
               await processEvent(account, message.content)
             } catch (error) {
               console.error('Error processing message:', error)
             }
           },
-          undefined,
+          3,
           lastDataExchangeEOSE,
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
+        return nostrApi
       } catch (error) {
         console.error('Failed to setup data exchange subscription:', error)
         toast.error('Failed to subscribe to data exchange')
         if (nostrApi) {
           await nostrApi.closeAllSubscriptions()
-          activeSubscriptions.current.delete(nostrApi)
         }
+        return null
       }
     },
-    [processEvent, cleanupSubscriptions]
+    [processEvent]
+  )
+
+  const nostrSyncSubscriptions = useCallback(
+    async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
+      if (!account || !account.nostr) {
+        console.log('No account or nostr data available')
+        return
+      }
+
+      if (getActiveSubscriptions().size > 0) {
+        console.log('ACTIVE SUBSCRIPTIONS - STOP HERE')
+        return
+      }
+
+      console.log('Starting nostr sync subscriptions:', {
+        accountId: account.id,
+        autoSync: account.nostr.autoSync,
+        activeSubscriptions: getActiveSubscriptions().size
+      })
+
+      // Cleanup existing subscriptions first
+      await cleanupSubscriptions()
+
+      try {
+        // Start protocol subscription
+        const protocolApi = await protocolSubscription(account, onLoadingChange)
+        if (protocolApi) {
+          addSubscription(protocolApi)
+          console.log('Protocol subscription started')
+        }
+
+        // Start data exchange subscription
+        const dataExchangeApi = await dataExchangeSubscription(
+          account,
+          onLoadingChange
+        )
+        if (dataExchangeApi) {
+          addSubscription(dataExchangeApi)
+          console.log('Data exchange subscription started')
+        }
+
+        console.log('All subscriptions started:', {
+          count: getActiveSubscriptions().size,
+          subscriptions: Array.from(getActiveSubscriptions()).map((api) => ({
+            isActive: true,
+            relays: api.getRelays()
+          }))
+        })
+      } catch (error) {
+        console.error('Error starting subscriptions:', error)
+        toast.error('Failed to start subscriptions')
+        await cleanupSubscriptions()
+      }
+    },
+    [
+      protocolSubscription,
+      dataExchangeSubscription,
+      cleanupSubscriptions,
+      addSubscription,
+      getActiveSubscriptions
+    ]
   )
 
   const sendLabelsToNostr = useCallback(
@@ -365,6 +459,7 @@ function useNostrSync() {
         )
         await nostrApi.publishEvent(eventKind1059)
 
+        /*
         const newMessage = {
           id: eventKind1059.id,
           author: deviceNpub,
@@ -379,6 +474,7 @@ function useNostrSync() {
           }
         }
 
+        /*
         const currentDms = account.nostr?.dms || []
         const updatedDms = [...currentDms, newMessage].sort(
           (a, b) => a.created_at - b.created_at
@@ -388,7 +484,7 @@ function useNostrSync() {
           ...account.nostr,
           dms: updatedDms
         })
-
+        */
         const trustedDevices = getTrustedDevices(account.id)
         for (const trustedDeviceNpub of trustedDevices) {
           if (!deviceNsec) continue
@@ -551,7 +647,9 @@ function useNostrSync() {
     protocolSubscription,
     cleanupSubscriptions,
     deviceAnnouncement,
-    addProcessedMessageId: useNostrStore.getState().addProcessedEvent
+    nostrSyncSubscriptions,
+    addProcessedMessageId: useNostrStore.getState().addProcessedEvent,
+    getActiveSubscriptions
   }
 }
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI, compressMessage } from '@/api/nostr'
+import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
@@ -15,14 +15,25 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore } from '@/store/nostr'
+import { useNostrStore, generateColorFromNpub } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import type { Account } from '@/types/models/Account'
-import { generateColorFromNpub } from '@/store/nostr'
 
+/**
+ * NostrSync component for managing Nostr synchronization settings and device management
+ */
 function SSNostrSync() {
+  // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
+  const [account, updateAccountNostr] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.id === accountId),
+      state.updateAccountNostr
+    ])
+  )
+
+  // Nostr store actions
   const clearNostrState = useNostrStore((state) => state.clearNostrState)
   const clearProcessedMessageIds = useNostrStore(
     (state) => state.clearProcessedMessageIds
@@ -30,6 +41,8 @@ function SSNostrSync() {
   const clearProcessedEvents = useNostrStore(
     (state) => state.clearProcessedEvents
   )
+
+  // Members management
   const members = useNostrStore(
     useShallow((state) => {
       const accountMembers = state.members[accountId || ''] || []
@@ -50,68 +63,45 @@ function SSNostrSync() {
         )
     })
   )
-  const { processEvent, clearStoredDMs } = useNostrSync()
+
+  // Nostr sync hooks
+  const {
+    processEvent,
+    clearStoredDMs,
+    generateCommonNostrKeys,
+    protocolSubscription,
+    dataExchangeSubscription,
+    deviceAnnouncement,
+    getActiveSubscriptions,
+    cleanupSubscriptions,
+    nostrSyncSubscriptions
+  } = useNostrSync()
+
+  // State management
   const [selectedMembers, setSelectedMembers] = useState<Set<string>>(new Set())
-  const hasRefreshed = useRef(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const syncTimeoutRef = useRef<NodeJS.Timeout>()
-
   const [commonNsec, setCommonNsec] = useState('')
   const [commonNpub, setCommonNpub] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
-  const [autoSync, setAutoSync] = useState(false)
-  const [nostrApi, setNostrApi] = useState<NostrAPI | null>(null)
 
-  const {
-    generateCommonNostrKeys,
-    protocolSubscription,
-    dataExchangeSubscription,
-    cleanupSubscriptions,
-    deviceAnnouncement
-  } = useNostrSync()
-
-  const [account, updateAccountNostr] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((_account) => _account.id === accountId),
-      state.updateAccountNostr
-    ])
-  )
-
-  async function handleClearNostrStore() {
-    if (!accountId) return
-
-    try {
-      setIsLoading(true)
-      clearNostrState(accountId)
-      clearProcessedMessageIds(accountId)
-      clearProcessedEvents(accountId)
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      setSelectedMembers(new Set())
-      toast.success('Nostr store cleared successfully')
-    } catch (_error) {
-      toast.error('Failed to clear Nostr store')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleClearMessages = async () => {
+  /**
+   * Clears all cached messages and processed events
+   */
+  const handleClearCaches = async () => {
     if (!accountId || !account) return
 
     try {
       setIsLoading(true)
-      // Clear messages from message store
       await clearStoredDMs(account)
-      // Clear messages from account store
       updateAccountNostr(accountId, {
         ...account.nostr,
         dms: []
       })
-      // Clear processed messages and events from Nostr store
+      clearNostrState(accountId)
       clearProcessedMessageIds(accountId)
       clearProcessedEvents(accountId)
       setSelectedMembers(new Set())
@@ -124,27 +114,129 @@ function SSNostrSync() {
     }
   }
 
-  const refreshAccountLabels = useCallback(async () => {
-    if (!account || hasRefreshed.current) return
-    hasRefreshed.current = true
-    if (autoSync) {
-      protocolSubscription(account, setIsSyncing)
-    }
-  }, [account, autoSync, protocolSubscription])
+  /**
+   * Loads Nostr account data
+   */
+  const loadNostrAccountData = useCallback(() => {
+    if (!account) return
+    setSelectedRelays(account.nostr.relays)
+  }, [account])
 
-  // Update selectedMembers when members change
+  /**
+   * Toggles auto-sync functionality and manages subscriptions
+   */
+  const handleToggleAutoSync = async () => {
+    try {
+      if (account?.nostr?.autoSync) {
+        // Turn sync OFF
+        setIsSyncing(true)
+        try {
+          // Cleanup all subscriptions first
+          await cleanupSubscriptions()
+          console.log('🔴 Cleaned up all subscriptions')
+
+          // Then update state
+          updateAccountNostr(accountId, { autoSync: false })
+          console.log('🔴 Auto-sync OFF - Active subscriptions:', {
+            autoSync: false,
+            count: getActiveSubscriptions().size,
+            subscriptions: Array.from(getActiveSubscriptions()).map((api) => ({
+              isActive: true,
+              relays: api.getRelays()
+            }))
+          })
+        } catch (error) {
+          console.error('Error cleaning up subscriptions:', error)
+          toast.error('Failed to cleanup subscriptions')
+        } finally {
+          setIsSyncing(false)
+        }
+      } else {
+        // Turn sync ON
+        updateAccountNostr(accountId, { autoSync: true })
+
+        // Wait a tick for state to update
+        await new Promise((resolve) => setTimeout(resolve, 0))
+
+        // Get fresh account state after update
+        const updatedAccount = useAccountsStore
+          .getState()
+          .accounts.find((_account) => _account.id === accountId)
+
+        if (updatedAccount && selectedRelays.length > 0) {
+          setIsSyncing(true)
+          try {
+            // Start both subscriptions using the new function
+            await nostrSyncSubscriptions(updatedAccount, (loading) => {
+              requestAnimationFrame(() => {
+                setIsSyncing(loading)
+              })
+            })
+          } catch (error) {
+            console.error('Error setting up subscriptions:', error)
+            toast.error('Failed to setup sync')
+          } finally {
+            setIsSyncing(false)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling auto sync:', error)
+      toast.error('Failed to toggle auto sync')
+      setIsSyncing(false)
+    }
+  }
+
+  /**
+   * Toggles member trust status
+   */
+  const toggleMember = (npub: string) => {
+    setSelectedMembers((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(npub)) {
+        newSet.delete(npub)
+        if (account) {
+          updateAccountNostr(accountId, {
+            trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
+              (m) => m !== npub
+            )
+          })
+        }
+      } else {
+        newSet.add(npub)
+        if (account) {
+          updateAccountNostr(accountId, {
+            trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
+          })
+        }
+      }
+      return newSet
+    })
+  }
+
+  // Navigation functions
+  const goToSelectRelaysPage = () =>
+    router.push({
+      pathname: `/account/${accountId}/settings/nostr/selectRelays`
+    })
+
+  const goToNostrKeyPage = () =>
+    router.push({
+      pathname: `/account/${accountId}/settings/nostr/nostrKey`
+    })
+
+  const goToDevicesGroupChat = () =>
+    router.push({
+      pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
+    })
+
+  // Effects
   useEffect(() => {
     if (account?.nostr?.trustedMemberDevices) {
       setSelectedMembers(new Set(account.nostr.trustedMemberDevices))
     }
   }, [members, account?.nostr?.trustedMemberDevices])
 
-  // Refresh account labels on mount
-  useEffect(() => {
-    refreshAccountLabels()
-  }, [account, refreshAccountLabels])
-
-  // Load common Nostr keys once when component mounts
   useEffect(() => {
     if (account && !commonNsec) {
       if (account.nostr.commonNsec && account.nostr.commonNpub) {
@@ -156,7 +248,6 @@ function SSNostrSync() {
             if (keys) {
               setCommonNsec(keys.commonNsec as string)
               setCommonNpub(keys.commonNpub as string)
-              // Update account with common keys
               updateAccountNostr(accountId, {
                 commonNsec: keys.commonNsec,
                 commonNpub: keys.commonNpub
@@ -176,7 +267,6 @@ function SSNostrSync() {
     commonNsec
   ])
 
-  // Load device Nostr keys once when component mounts
   useEffect(() => {
     if (account && !deviceNsec) {
       if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
@@ -203,173 +293,17 @@ function SSNostrSync() {
     }
   }, [account, accountId, deviceNsec, updateAccountNostr])
 
-  // Generate device color when deviceNpub is available
   useEffect(() => {
     if (deviceNpub && deviceColor === '#404040') {
       generateColorFromNpub(deviceNpub).then(setDeviceColor)
     }
   }, [deviceNpub, deviceColor])
 
-  // Debug log when members change
   useEffect(() => {
-    // Members updated
-  }, [members])
-
-  // Clean up timeouts on unmount
-  useEffect(() => {
-    return () => {
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
-      }
+    if (account) {
+      loadNostrAccountData()
     }
-  }, [])
-
-  const handleToggleAutoSync = async () => {
-    try {
-      if (autoSync) {
-        // Turn off auto sync
-        await cleanupSubscriptions()
-        if (nostrApi) {
-          await nostrApi.closeAllSubscriptions()
-          setNostrApi(null)
-        }
-        updateAccountNostr(accountId, { autoSync: false })
-      } else {
-        // Turn on auto sync
-        updateAccountNostr(accountId, { autoSync: true })
-        await reloadApi()
-        console.log('🌎🌎🌎🌎 Sending device announcement')
-        // Force account update to include new autoSync value
-        const updatedAccount = useAccountsStore
-          .getState()
-          .accounts.find((a) => a.id === accountId)
-        deviceAnnouncement(updatedAccount, deviceNpub)
-      }
-    } catch (error) {
-      console.error('Error toggling auto sync:', error)
-      toast.error('Failed to toggle auto sync')
-    }
-  }
-
-  // Clean up subscriptions when component unmounts or when autoSync changes
-  useEffect(() => {
-    if (!autoSync) {
-      cleanupSubscriptions().catch(console.error)
-    }
-    return () => {
-      cleanupSubscriptions().catch(console.error)
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
-      }
-    }
-  }, [cleanupSubscriptions, autoSync])
-
-  function goToSelectRelaysPage() {
-    router.push({
-      pathname: `/account/${accountId}/settings/nostr/selectRelays`
-    })
-  }
-
-  function goToNostrKeyPage() {
-    router.push({
-      pathname: `/account/${accountId}/settings/nostr/nostrKey`
-    })
-  }
-
-  function goToDevicesGroupChat() {
-    router.push({
-      pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
-    })
-  }
-
-  function reloadApi() {
-    if (selectedRelays.length > 0) {
-      // Clean up existing API before creating a new one
-      if (nostrApi) {
-        nostrApi.closeAllSubscriptions().catch(console.error)
-      }
-      const api = new NostrAPI(selectedRelays)
-      setNostrApi(api)
-      // Only connect if auto-sync is enabled
-      if (autoSync) {
-        api.connect().catch(() => {
-          toast.info('Checking connection')
-        })
-        protocolSubscription(account, (loading) => {
-          requestAnimationFrame(() => {
-            setIsSyncing(loading)
-          })
-        })
-        dataExchangeSubscription(account, (loading) => {
-          requestAnimationFrame(() => {
-            setIsSyncing(loading)
-          })
-        })
-      }
-    }
-  }
-
-  function loadNostrAccountData() {
-    if (!account) return
-
-    // Load saved relays when component mounts
-    setSelectedRelays(account.nostr.relays)
-    setAutoSync(account.nostr.autoSync)
-
-    // Initialize NostrAPI when component mounts if relays are available and auto-sync is enabled
-    if (account.nostr.relays.length > 0 && account.nostr.autoSync) {
-      const api = new NostrAPI(account.nostr.relays)
-      setNostrApi(api)
-      // Connect immediately
-      api.connect().catch(() => {
-        protocolSubscription(account, (loading) => {
-          requestAnimationFrame(() => {
-            setIsSyncing(loading)
-          })
-        })
-      })
-    }
-  }
-
-  const toggleMember = (npub: string) => {
-    setSelectedMembers((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(npub)) {
-        newSet.delete(npub)
-        // Remove from trustedMemberDevices in account store
-        if (account) {
-          updateAccountNostr(accountId, {
-            trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
-              (m) => m !== npub
-            )
-          })
-        }
-      } else {
-        newSet.add(npub)
-        // Add to trustedMemberDevices in account store
-        if (account) {
-          updateAccountNostr(accountId, {
-            trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
-          })
-        }
-      }
-      return newSet
-    })
-  }
-
-  useEffect(reloadApi, [
-    selectedRelays,
-    commonNpub,
-    commonNsec,
-    deviceNpub,
-    deviceNsec,
-    account,
-    accountId,
-    processEvent,
-    autoSync,
-    protocolSubscription
-  ])
-  useEffect(loadNostrAccountData, [account, protocolSubscription])
+  }, [account, loadNostrAccountData])
 
   if (!accountId || !account) return <Redirect href="/" />
 
@@ -397,21 +331,36 @@ function SSNostrSync() {
           {/* Auto-sync section */}
           <SSVStack gap="md">
             <SSButton
-              variant={autoSync ? 'danger' : 'secondary'}
-              label={autoSync ? 'Turn sync OFF' : 'Turn sync ON'}
+              variant={account?.nostr?.autoSync ? 'danger' : 'secondary'}
+              label={
+                account?.nostr?.autoSync ? 'Turn sync OFF' : 'Turn sync ON'
+              }
               onPress={handleToggleAutoSync}
             />
             {isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <ActivityIndicator size="small" color={Colors.white} />
-                <SSText color="muted">Syncing with Nostr network...</SSText>
+                <SSText color="muted">Syncing with Nostr relays...</SSText>
               </SSHStack>
             )}
             {!isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <SSText color="muted">
                   Last sync:{' '}
-                  {useNostrStore.getState().getLastProtocolEOSE(accountId)}
+                  {(() => {
+                    const lastEOSE = useNostrStore
+                      .getState()
+                      .getLastProtocolEOSE(accountId)
+                    if (!lastEOSE) return 'Never'
+                    return new Date(lastEOSE * 1000).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })
+                  })()}
                 </SSText>
               </SSHStack>
             )}
@@ -469,7 +418,6 @@ function SSNostrSync() {
                       <SSText color="muted" center>
                         {t('account.nostrSync.npub')}
                       </SSText>
-
                       <SSHStack gap="xxs" style={{ flex: 0.7 }}>
                         <View
                           style={{
@@ -583,44 +531,37 @@ function SSNostrSync() {
             </SSVStack>
           </SSVStack>
 
-          {/* Clear buttons at the bottom */}
-          <SSHStack gap="md" style={{ marginTop: 30 }}>
+          {/* Debug buttons */}
+          <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
-              label="Clear Nostr Store"
-              onPress={handleClearNostrStore}
-              variant="subtle"
-              style={{ flex: 0.5 }}
+              label="Clear Caches"
+              onPress={handleClearCaches}
               disabled={isLoading}
+              variant="subtle"
+              style={{ flex: 0.33 }}
             />
             <SSButton
-              label="Clear All Messages"
-              onPress={handleClearMessages}
-              disabled={isLoading}
+              label="Log DM Store"
+              onPress={() => {
+                if (account?.nostr?.dms) {
+                  console.log('Log DM:', account.nostr.dms)
+                } else {
+                  console.log('No DMs')
+                }
+              }}
               variant="subtle"
-              style={{ flex: 0.5 }}
+              style={{ flex: 0.33 }}
+            />
+            <SSButton
+              label="Log Members"
+              onPress={() => {
+                const members = useNostrStore.getState().getMembers(accountId)
+                console.log('Members Store:', members)
+              }}
+              variant="subtle"
+              style={{ flex: 0.33 }}
             />
           </SSHStack>
-          <SSButton
-            label="Log DM Store"
-            onPress={() => {
-              if (account?.nostr?.dms) {
-                console.log('DM Store:', account.nostr.dms)
-              } else {
-                console.log('No DMs in store')
-              }
-            }}
-            variant="subtle"
-            style={{ marginTop: 10 }}
-          />
-          <SSButton
-            label="Log Members Store"
-            onPress={() => {
-              const members = useNostrStore.getState().getMembers(accountId)
-              console.log('Members Store:', members)
-            }}
-            variant="subtle"
-            style={{ marginTop: 10 }}
-          />
         </SSVStack>
       </ScrollView>
     </SSMainLayout>
