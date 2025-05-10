@@ -18,6 +18,7 @@ import { MempoolOracle } from '@/api/blockchain'
 import { SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
@@ -30,7 +31,6 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import SSUnconfirmedTransactionChart from '@/components/SSUnconfirmedTransactionChart'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
@@ -56,7 +56,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
-const SHOW_PREVIEW = false
+const SHOW_PREVIEW = true
 
 export default function IOPreview() {
   const router = useRouter()
@@ -428,7 +428,7 @@ export default function IOPreview() {
           }}
         >
           {SHOW_PREVIEW ? (
-            <SSUnconfirmedTransactionChart
+            <SSCurrentTransactionChart
               inputs={inputs}
               outputs={outputsForChart}
               feeRate={feeRate}

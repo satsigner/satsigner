@@ -9,8 +9,10 @@
  *          - Positive values are transformed using log(value + 1) raised to the power of (1/intensity)
  *          - The intensity parameter (0.6) controls the compression rate
  */
-export const logAttenuation = (value: number): number => {
-  const intensity = 0.6
+export const logAttenuation = (
+  value: number,
+  intensity: number = 0.6
+): number => {
   if (value <= 0) {
     return 0
   }

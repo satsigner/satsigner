@@ -1,8 +1,18 @@
+import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
-import { useWindowDimensions, View } from 'react-native'
+import {
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native'
+import { GestureDetector } from 'react-native-gesture-handler'
+import Animated from 'react-native-reanimated'
 
+import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
@@ -10,6 +20,7 @@ import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
 import { BLOCK_WIDTH } from '@/types/ui/sankey'
 import { formatAddress } from '@/utils/format'
+import { logAttenuation } from '@/utils/math'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 import SSSankeyLinks from './SSSankeyLinks'
@@ -31,17 +42,19 @@ interface Node extends SankeyNodeMinimal<object, object> {
 const LINK_MAX_WIDTH = 60
 const NODE_WIDTH = 98
 
-type SSUnconfirmedTransactionChartProps = {
+type SSCurrentTransactionChartProps = {
   inputs: Map<string, Utxo>
   outputs: (Omit<Output, 'to'> & { to?: string })[]
   feeRate: number
+  onPressOutput?: (localId?: string) => void
 }
 
-function SSUnconfirmedTransactionChart({
+function SSCurrentTransactionChart({
   inputs: inputMap,
   outputs: outputArray,
-  feeRate: feeRateProp
-}: SSUnconfirmedTransactionChartProps) {
+  feeRate: feeRateProp,
+  onPressOutput
+}: SSCurrentTransactionChartProps) {
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
     inputMap.size,
     outputArray.length
@@ -54,29 +67,31 @@ function SSUnconfirmedTransactionChart({
 
   const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
 
-  const { width: w, height: h, onCanvasLayout } = useLayout()
-  const { width } = useWindowDimensions()
+  const { width: w, height: h, center, onCanvasLayout } = useLayout()
 
-  const maxInputOutputLength = Math.max(
-    inputArray.length,
-    outputArray.length + 1
-  )
+  const { animatedStyle, gestures, transform } = useGestures({
+    width: w,
+    height: h,
+    center,
+    isDoubleTapEnabled: true,
+    maxPanPointers: Platform.OS === 'ios' ? 2 : 1,
+    minPanPointers: 1,
+    maxScale: 20,
+    minScale: 0.2,
+    shouldResetOnInteractionEnd: false
+  })
 
-  const FIXED_BASE_HEIGHT = 400
-  const SCALING_THRESHOLD = 3
-  const GRAPH_HEIGHT =
-    maxInputOutputLength > SCALING_THRESHOLD
-      ? FIXED_BASE_HEIGHT *
-        (1 + (maxInputOutputLength - SCALING_THRESHOLD) * 0.5)
-      : FIXED_BASE_HEIGHT
+  const { width, height } = useWindowDimensions()
+  const GRAPH_HEIGHT = height * 0.5
   const GRAPH_WIDTH = width
+  const SANKEY_VERTICAL_MARGIN = 42
 
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
-    .nodePadding(GRAPH_HEIGHT / 2)
+    .nodePadding(160)
     .extent([
-      [0, 20],
-      [width, (GRAPH_HEIGHT * 0.75) / 2]
+      [0, SANKEY_VERTICAL_MARGIN],
+      [width, GRAPH_HEIGHT * (inputMap.size * 0.2) - SANKEY_VERTICAL_MARGIN]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -180,11 +195,34 @@ function SSUnconfirmedTransactionChart({
     links: sankeyLinks
   })
 
+  // calculating the sankey node styles to match in skia
+  const nodeStyles = useMemo(() => {
+    return nodes.map((node) => {
+      const isBlock = (node as Node).type === 'block'
+      const blockNodeHeight =
+        isBlock && (node as Node).ioData?.txSize
+          ? ((node as Node).ioData?.txSize ?? 0) * 0.1
+          : 0
+
+      return {
+        localId: (node as Node).localId,
+        x: isBlock
+          ? (node.x0 ?? 0) + (NODE_WIDTH - BLOCK_WIDTH) / 2
+          : node.x0 ?? 0,
+        y: node.y0 ?? 0,
+        width: isBlock ? BLOCK_WIDTH : NODE_WIDTH,
+        height: isBlock ? Math.max(blockNodeHeight, LINK_MAX_WIDTH) : 80
+      }
+    })
+  }, [nodes])
+
   const transformedLinks = links.map((link) => ({
     source: (link.source as Node).id,
     target: (link.target as Node).id,
     value: link.value
   }))
+
+  const maxDepthH = 2
 
   if (inputMap.size === 0 || outputArray.length === 0) {
     return null
@@ -195,12 +233,12 @@ function SSUnconfirmedTransactionChart({
   }
 
   return (
-    <View style={{ flex: 1, height: GRAPH_HEIGHT / 2 }}>
+    <View style={{ flex: 1, height: GRAPH_HEIGHT }}>
       <Canvas
-        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT / 2 }}
+        style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
         onLayout={onCanvasLayout}
       >
-        <Group origin={{ x: w / 2, y: h / 2 }}>
+        <Group origin={{ x: w / 2, y: h / 2 }} transform={transform}>
           <SSSankeyLinks
             links={transformedLinks}
             nodes={nodes as Node[]}
@@ -211,8 +249,61 @@ function SSUnconfirmedTransactionChart({
           <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
         </Group>
       </Canvas>
+      <GestureDetector gesture={gestures}>
+        <View style={styles.gestureContainer}>
+          <Animated.View
+            style={[
+              styles.sankeyOverlay,
+              { width: GRAPH_WIDTH, height: GRAPH_HEIGHT },
+              animatedStyle
+            ]}
+            onLayout={onCanvasLayout}
+          >
+            {nodeStyles.map((style, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.node,
+                  {
+                    position: 'absolute',
+                    left: style.x,
+                    top: style.y,
+                    width: style.width,
+                    height: style.height
+                  }
+                ]}
+                onPress={
+                  (nodes[index] as Node).depthH === maxDepthH && onPressOutput
+                    ? () => onPressOutput(style.localId)
+                    : undefined
+                }
+              />
+            ))}
+          </Animated.View>
+        </View>
+      </GestureDetector>
     </View>
   )
 }
 
-export default SSUnconfirmedTransactionChart
+const styles = StyleSheet.create({
+  gestureContainer: {
+    flex: 1,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
+  },
+  sankeyOverlay: {
+    position: 'relative'
+  },
+  node: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    width: '100%',
+    height: '100%'
+  }
+})
+
+export default SSCurrentTransactionChart
