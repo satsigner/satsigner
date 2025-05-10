@@ -52,6 +52,11 @@ export type DM = {
   description: string
   event: string
   label: number
+  content: {
+    description: string
+    created_at: number
+    pubkey?: string
+  }
 }
 
 export type Account = {
@@ -85,7 +90,6 @@ export type Account = {
     relays: string[]
     autoSync: boolean
     lastBackupFingerprint?: string
-    lastBackupTimestamp?: number
     deviceNpub?: string
     deviceNsec?: string
     trustedMemberDevices: string[]
@@ -93,4 +97,26 @@ export type Account = {
     lastUpdated: Date
     syncStart: Date
   }
+}
+
+export interface NostrAccount {
+  commonNpub: string
+  commonNsec: string
+  relays: string[]
+  autoSync: boolean
+  lastBackupFingerprint?: string
+  deviceNpub?: string
+  deviceNsec?: string
+  dms?: DM[]
+  members?: NostrMember[]
+  syncStart: Date
+  lastProtocolEOSE?: number
+  lastDataExchangeEOSE?: number
+  lastUpdated: Date
+  trustedMemberDevices: string[]
+}
+
+export interface NostrMember {
+  npub: string
+  color?: string
 }

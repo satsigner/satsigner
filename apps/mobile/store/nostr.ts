@@ -5,6 +5,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import ecc from '@bitcoinerlab/secp256k1'
 
 import mmkvStorage from '@/storage/mmkv'
+import { NostrAPI } from '@/api/nostr'
 
 // Initialize ECC library
 bitcoinjs.initEccLib(ecc)
@@ -24,6 +25,16 @@ type NostrState = {
   processedEvents: {
     [accountId: string]: string[]
   }
+  lastProtocolEOSE: {
+    [accountId: string]: number
+  }
+  lastDataExchangeEOSE: {
+    [accountId: string]: number
+  }
+  trustedDevices: {
+    [accountId: string]: string[]
+  }
+  activeSubscriptions: Set<NostrAPI>
 }
 
 type NostrAction = {
@@ -37,6 +48,30 @@ type NostrAction = {
   addProcessedEvent: (accountId: string, eventId: string) => void
   getProcessedEvents: (accountId: string) => string[]
   clearProcessedEvents: (accountId: string) => void
+  setLastProtocolEOSE: (accountId: string, timestamp: number) => void
+  setLastDataExchangeEOSE: (accountId: string, timestamp: number) => void
+  getLastProtocolEOSE: (accountId: string) => number | undefined
+  getLastDataExchangeEOSE: (accountId: string) => number | undefined
+  addTrustedDevice: (accountId: string, deviceNpub: string) => void
+  removeTrustedDevice: (accountId: string, deviceNpub: string) => void
+  getTrustedDevices: (accountId: string) => string[]
+  addSubscription: (subscription: NostrAPI) => void
+  clearSubscriptions: () => void
+  getActiveSubscriptions: () => Set<NostrAPI>
+}
+
+type Message = {
+  id: string
+  author: string
+  created_at: number
+  description: string
+  event: string
+  label: number
+  content: {
+    description: string
+    created_at: number
+    pubkey?: string
+  }
 }
 
 async function generateColorFromNpub(npub: string): Promise<string> {
@@ -80,6 +115,8 @@ async function generateColorFromNpub(npub: string): Promise<string> {
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`
   } catch (error) {
+    // Log error for debugging purposes
+    // eslint-disable-next-line no-console
     console.error('Error generating color from npub:', error)
     return '#404040' // Default color on error
   }
@@ -91,30 +128,27 @@ const useNostrStore = create<NostrState & NostrAction>()(
       members: {},
       processedMessageIds: {},
       processedEvents: {},
+      lastProtocolEOSE: {},
+      lastDataExchangeEOSE: {},
+      trustedDevices: {},
+      activeSubscriptions: new Set<NostrAPI>(),
       addMember: async (accountId, npub) => {
         try {
           const color = await generateColorFromNpub(npub)
           set((state) => {
-            // Get all existing members for this account
             const existingMembers = state.members[accountId] || []
-
-            // Convert all members to the same format (objects with npub and color)
             const normalizedMembers = existingMembers.map((member) =>
               typeof member === 'string'
                 ? { npub: member, color: '#404040' }
                 : member
             )
 
-            // Create a Set of existing npubs for quick lookup
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
-
-            // If the new npub doesn't exist, add it
             if (!existingNpubs.has(npub)) {
               normalizedMembers.push({ npub, color })
             }
 
             return {
-              ...state,
               members: {
                 ...state.members,
                 [accountId]: normalizedMembers
@@ -122,7 +156,6 @@ const useNostrStore = create<NostrState & NostrAction>()(
             }
           })
         } catch (_error) {
-          // If color generation fails, add member with default color
           set((state) => {
             const existingMembers = state.members[accountId] || []
             const normalizedMembers = existingMembers.map((member) =>
@@ -133,16 +166,22 @@ const useNostrStore = create<NostrState & NostrAction>()(
 
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
             if (!existingNpubs.has(npub)) {
+              console.log('Adding member with default color:', npub)
               normalizedMembers.push({ npub, color: '#404040' })
             }
 
-            return {
+            const newState = {
               ...state,
               members: {
                 ...state.members,
                 [accountId]: normalizedMembers
               }
             }
+            console.log(
+              'New members state (with default color):',
+              newState.members[accountId]
+            )
+            return newState
           })
         }
       },
@@ -161,26 +200,28 @@ const useNostrStore = create<NostrState & NostrAction>()(
         return get().members[accountId] || []
       },
       clearNostrState: (accountId) => {
-        set((state) => {
-          // Get all account IDs from the state
-          const allAccountIds = Object.keys(state.members)
-
-          // Create a new state object with only the current account's data cleared
-          const newState = {
-            ...state,
-            members: {
-              [accountId]: [] // Only keep the current account with empty array
-            },
-            processedMessageIds: {
-              [accountId]: [] // Only keep the current account with empty array
-            },
-            processedEvents: {
-              [accountId]: [] // Only keep the current account with empty array
-            }
+        set((state) => ({
+          members: {
+            [accountId]: []
+          },
+          processedMessageIds: {
+            [accountId]: []
+          },
+          processedEvents: {
+            [accountId]: []
+          },
+          lastProtocolEOSE: {
+            ...state.lastProtocolEOSE,
+            [accountId]: 0
+          },
+          lastDataExchangeEOSE: {
+            ...state.lastDataExchangeEOSE,
+            [accountId]: 0
+          },
+          trustedDevices: {
+            [accountId]: []
           }
-
-          return newState
-        })
+        }))
       },
       addProcessedMessageId: (accountId, messageId) => {
         set((state) => {
@@ -231,6 +272,68 @@ const useNostrStore = create<NostrState & NostrAction>()(
             [accountId]: []
           }
         }))
+      },
+      setLastProtocolEOSE: (accountId, timestamp) => {
+        set((state) => ({
+          lastProtocolEOSE: {
+            ...state.lastProtocolEOSE,
+            [accountId]: timestamp
+          }
+        }))
+      },
+      setLastDataExchangeEOSE: (accountId, timestamp) => {
+        set((state) => ({
+          lastDataExchangeEOSE: {
+            ...state.lastDataExchangeEOSE,
+            [accountId]: timestamp
+          }
+        }))
+      },
+      getLastProtocolEOSE: (accountId) => {
+        return get().lastProtocolEOSE[accountId]
+      },
+      getLastDataExchangeEOSE: (accountId) => {
+        return get().lastDataExchangeEOSE[accountId]
+      },
+      addTrustedDevice: (accountId, deviceNpub) => {
+        set((state) => {
+          const currentDevices = state.trustedDevices[accountId] || []
+          if (!currentDevices.includes(deviceNpub)) {
+            return {
+              trustedDevices: {
+                ...state.trustedDevices,
+                [accountId]: [...currentDevices, deviceNpub]
+              }
+            }
+          }
+          return state
+        })
+      },
+      removeTrustedDevice: (accountId, deviceNpub) => {
+        set((state) => ({
+          trustedDevices: {
+            ...state.trustedDevices,
+            [accountId]: (state.trustedDevices[accountId] || []).filter(
+              (d) => d !== deviceNpub
+            )
+          }
+        }))
+      },
+      getTrustedDevices: (accountId) => {
+        return get().trustedDevices[accountId] || []
+      },
+      addSubscription: (subscription: NostrAPI) => {
+        set((state) => {
+          const newSubscriptions = new Set(state.activeSubscriptions)
+          newSubscriptions.add(subscription)
+          return { activeSubscriptions: newSubscriptions }
+        })
+      },
+      clearSubscriptions: () => {
+        set({ activeSubscriptions: new Set() })
+      },
+      getActiveSubscriptions: () => {
+        return get().activeSubscriptions
       }
     }),
     {
@@ -241,3 +344,4 @@ const useNostrStore = create<NostrState & NostrAction>()(
 )
 
 export { useNostrStore, generateColorFromNpub }
+export type { Message }
