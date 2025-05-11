@@ -54,6 +54,10 @@ function useNostrSync() {
     async (account?: Account, unwrappedEvent?: any, eventContent?: any) => {
       if (!account || !unwrappedEvent) return
 
+      if (eventContent.created_at > Date.now() / 1000 + 60 * 5) {
+        return
+      }
+
       try {
         const newMessage = {
           id: unwrappedEvent.id,
@@ -67,6 +71,20 @@ function useNostrSync() {
             created_at: eventContent.created_at,
             pubkey: unwrappedEvent.pubkey
           }
+        }
+
+        // Trigger notifcation only if message is recent and is not sent to self
+        const lastDataExchangeEOSE =
+          useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
+        if (
+          eventContent.created_at > lastDataExchangeEOSE &&
+          account.nostr.deviceNpub !==
+            nip19.npubEncode(unwrappedEvent.pubkey) &&
+          eventContent.created_at < Date.now() / 1000 - 60 * 5
+        ) {
+          const npub = nip19.npubEncode(unwrappedEvent.pubkey)
+          const formatedAuthor = npub.slice(0, 12) + '...' + npub.slice(-4)
+          toast.info(formatedAuthor + ': ' + eventContent.description)
         }
 
         console.log('🟢 eventContent.description', eventContent.description)
@@ -460,6 +478,7 @@ function useNostrSync() {
       let nostrApi: NostrAPI | null = null
       try {
         const messageContent = {
+          // TODO Messages sometimes get out of order, check if created_at timesstamping matches other clients (bitcoin-safe)
           created_at: Math.floor(Date.now() / 1000),
           label: 1,
           description: message

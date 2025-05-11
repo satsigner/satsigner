@@ -339,7 +339,7 @@ function SSNostrSync() {
             {isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <ActivityIndicator size="small" color={Colors.white} />
-                <SSText color="muted">Syncing with Nostr relay</SSText>
+                <SSText color="muted">Syncing with Nostr relays</SSText>
               </SSHStack>
             )}
             {!isSyncing && (
