@@ -43,5 +43,10 @@
     "prettier-plugin-pkg": "^0.18.1",
     "prettier-plugin-sort-json": "^4.1.1",
     "turbo": "^2.0.1"
+  },
+  "dependencies": {
+    "ascii85": "^1.0.2",
+    "cbor-js": "^0.1.0",
+    "cbor2": "^1.12.0"
   }
 }

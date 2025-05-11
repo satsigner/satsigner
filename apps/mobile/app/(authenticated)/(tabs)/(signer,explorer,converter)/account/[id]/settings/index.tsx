@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -36,7 +36,7 @@ import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
 
-export default function AccountSettings() {
+function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, updateAccountName, deleteAccount] = useAccountsStore(
@@ -148,14 +148,14 @@ export default function AccountSettings() {
           headerRight: () => null
         }}
       />
-      <SSVStack gap="lg" style={{ padding: 20 }}>
+      <SSVStack gap="lg" style={styles.mainLayout}>
         <SSText center uppercase color="muted">
           {t('account.settings.title')}
         </SSText>
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText style={{ color: Colors.success }}>
+            <SSText style={styles.fingerprint}>
               {account.keys[0].fingerprint}
             </SSText>
           </SSHStack>
@@ -177,23 +177,21 @@ export default function AccountSettings() {
               />
             </SSHStack>
           )}
+          <SSButton
+            style={styles.button}
+            label={t('account.export.descriptors')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/export/descriptors`
+              )
+            }
+          />
+        </SSVStack>
+        <SSVStack>
           <SSHStack>
             <SSButton
-              style={{ flex: 1 }}
-              label={t('account.export.descriptors')}
-              variant="gradient"
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccountId}/settings/export/descriptors`
-                )
-              }
-            />
-          </SSHStack>
-          <SSHStack>
-            <SSButton
-              style={{ flex: 1 }}
+              style={styles.button}
               label={t('account.export.labels')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/export/labels`
@@ -201,9 +199,8 @@ export default function AccountSettings() {
               }
             />
             <SSButton
-              style={{ flex: 1 }}
+              style={styles.button}
               label={t('account.import.labels')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/import/labels`
@@ -211,6 +208,15 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.nostrSync.sync')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/nostr/nostrSync`
+              )
+            }
+          />
         </SSVStack>
         <SSFormLayout>
           <SSFormLayout.Item>
@@ -242,10 +248,7 @@ export default function AccountSettings() {
         </SSFormLayout>
         {account.policyType === 'multisig' && (
           <>
-            <SSVStack
-              style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
-              gap="md"
-            >
+            <SSVStack style={styles.multisigAccountCountSelector} gap="md">
               <SSMultisigCountSelector
                 maxCount={12}
                 requiredNumber={account.keysRequired!}
@@ -254,7 +257,7 @@ export default function AccountSettings() {
               />
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>
-            <SSVStack gap="none" style={{ marginHorizontal: -20 }}>
+            <SSVStack gap="none" style={styles.multisigAccountKeyControl}>
               {account.keys.map((key, index) => (
                 <SSMultisigKeyControl
                   key={index}
@@ -267,13 +270,11 @@ export default function AccountSettings() {
             </SSVStack>
           </>
         )}
-        <SSVStack style={{ marginTop: 60 }}>
+        <SSVStack style={styles.actionsContainer}>
           <SSButton label={t('account.duplicate.title')} />
           <SSButton
             label={t('account.delete.title')}
-            style={{
-              backgroundColor: Colors.error
-            }}
+            style={styles.deleteAccountButton}
             onPress={() => setDeleteModalVisible(true)}
           />
           <SSButton
@@ -359,24 +360,14 @@ export default function AccountSettings() {
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
       >
-        <SSVStack
-          style={{
-            padding: 0,
-            width: '100%',
-            height: '100%',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
+        <SSVStack style={styles.modalDeleteAccountContainer}>
           <SSText size="xl" weight="bold">
             {t('common.areYouSure')}
           </SSText>
-          <SSHStack style={{ flexWrap: 'wrap' }}>
+          <SSHStack>
             <SSButton
               label={t('common.yes')}
-              style={{
-                backgroundColor: Colors.error
-              }}
+              style={[styles.deleteAccountButton, styles.button]}
               onPress={() => {
                 setDeleteModalVisible(false)
                 setTimeout(() => {
@@ -386,6 +377,7 @@ export default function AccountSettings() {
             />
             <SSButton
               label={t('common.no')}
+              style={styles.button}
               onPress={() => {
                 setDeleteModalVisible(false)
               }}
@@ -402,7 +394,7 @@ export default function AccountSettings() {
             <SSText center size="xl" weight="bold" uppercase>
               {account.keys[0].mnemonicWordCount} {t('bitcoin.words')}
             </SSText>
-            <SSHStack style={{ justifyContent: 'center' }}>
+            <SSHStack style={styles.seedWordContainer}>
               <SSIconWarning
                 width={32}
                 height={32}
@@ -423,15 +415,7 @@ export default function AccountSettings() {
               {account.keys[0].mnemonicWordCount && (
                 <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
                   {localMnemonic.split(' ').map((word, index) => (
-                    <View
-                      key={index}
-                      style={{
-                        height: 44,
-                        width: '32%',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}
-                    >
+                    <View key={index} style={styles.seedWordItem}>
                       <SSText type="mono" size="lg">
                         {(index + 1).toString().padStart(2, '0')}. {word}
                       </SSText>
@@ -458,3 +442,46 @@ export default function AccountSettings() {
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  mainLayout: {
+    padding: 20
+  },
+  actionsContainer: {
+    marginTop: 30
+  },
+  button: {
+    flex: 1
+  },
+  multisigAccountCountSelector: {
+    backgroundColor: '#131313',
+    paddingHorizontal: 16
+  },
+  multisigAccountKeyControl: {
+    marginHorizontal: -20
+  },
+  modalDeleteAccountContainer: {
+    padding: 0,
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  deleteAccountButton: {
+    backgroundColor: Colors.error
+  },
+  fingerprint: {
+    color: Colors.success
+  },
+  seedWordContainer: {
+    justifyContent: 'center'
+  },
+  seedWordItem: {
+    height: 44,
+    width: '32%',
+    justifyContent: 'center',
+    alignItems: 'center'
+  }
+})
+
+export default AccountSettings

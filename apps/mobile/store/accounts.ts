@@ -17,6 +17,10 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
+  updateAccountNostr: (
+    id: Account['id'],
+    nostr: Partial<Account['nostr']>
+  ) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
   deleteAccount: (id: Account['id']) => void
@@ -24,15 +28,23 @@ type AccountsAction = {
   loadTx: (accountId: Account['id'], tx: Transaction) => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  setAddrLabel: (account: string, addr: string, label: string) => void
-  setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
+  setAddrLabel: (
+    accountId: Account['id'],
+    addr: string,
+    label: string
+  ) => Account | undefined
+  setTxLabel: (
+    accountId: Account['id'],
+    txid: string,
+    label: string
+  ) => Account | undefined
   setUtxoLabel: (
     accountId: Account['id'],
     txid: string,
     vout: number,
     label: string
-  ) => void
-  importLabels: (account: string, labels: Label[]) => number
+  ) => Account | undefined
+  importLabels: (accountId: Account['id'], labels: Label[]) => number
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -64,6 +76,20 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.id === id
             )
             if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      updateAccountNostr: (id, nostr) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1) return
+            state.accounts[index].nostr = {
+              ...state.accounts[index].nostr,
+              ...nostr
+            }
           })
         )
       },
@@ -128,9 +154,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       setTags: (tags: string[]) => {
         set({ tags })
       },
-      setAddrLabel: (accountName, addr, label) => {
+      setAddrLabel: (accountId, addr, label) => {
         const account = get().accounts.find(
-          (account) => account.name === accountName
+          (account) => account.id === accountId
         )
         if (!account) return
 
@@ -142,11 +168,18 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         set(
           produce((state) => {
             const index = state.accounts.findIndex(
-              (account: Account) => account.name === accountName
+              (account: Account) => account.id === accountId
             )
             state.accounts[index].addresses[addrIndex].label = label
           })
         )
+        const updatedAccount = { ...account }
+        updatedAccount.addresses = [...account.addresses]
+        updatedAccount.addresses[addrIndex] = {
+          ...account.addresses[addrIndex],
+          label
+        }
+        return updatedAccount
       },
       setTxLabel: (accountId, txid, label) => {
         const account = get().accounts.find(
@@ -165,6 +198,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts[index].transactions[txIndex].label = label
           })
         )
+
+        const updatedAccount = { ...account }
+        updatedAccount.transactions = [...account.transactions]
+        updatedAccount.transactions[txIndex] = {
+          ...account.transactions[txIndex],
+          label
+        }
+        return updatedAccount
       },
       setUtxoLabel: (accountId, txid, vout, label) => {
         const account = get().accounts.find(
@@ -185,6 +226,14 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             state.accounts[index].utxos[utxoIndex].label = label
           })
         )
+
+        const updatedAccount = { ...account }
+        updatedAccount.utxos = [...account.utxos]
+        updatedAccount.utxos[utxoIndex] = {
+          ...account.utxos[utxoIndex],
+          label
+        }
+        return updatedAccount
       },
       importLabels: (accountId: string, labels: Label[]) => {
         const account = get().accounts.find(

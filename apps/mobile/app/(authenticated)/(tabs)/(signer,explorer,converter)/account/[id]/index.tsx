@@ -60,6 +60,7 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -671,6 +672,7 @@ export default function AccountView() {
   )
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
+  const { nostrSyncSubscriptions } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -795,11 +797,19 @@ export default function AccountView() {
     }
   }
 
+  async function refreshAccountLabels() {
+    if (!account) return
+    if (account.nostr.autoSync) {
+      await nostrSyncSubscriptions(account)
+    }
+  }
+
   async function handleOnRefresh() {
     setRefreshing(true)
     await fetchPrices()
     await refreshBlockchainHeight()
     await refreshAccount()
+    await refreshAccountLabels()
     setRefreshing(false)
   }
 
