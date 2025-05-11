@@ -66,11 +66,8 @@ function SSNostrSync() {
 
   // Nostr sync hooks
   const {
-    processEvent,
     clearStoredDMs,
     generateCommonNostrKeys,
-    protocolSubscription,
-    dataExchangeSubscription,
     deviceAnnouncement,
     getActiveSubscriptions,
     cleanupSubscriptions,
@@ -172,6 +169,8 @@ function SSNostrSync() {
                 setIsSyncing(loading)
               })
             })
+
+            deviceAnnouncement(updatedAccount)
           } catch (error) {
             console.error('Error setting up subscriptions:', error)
             toast.error('Failed to setup sync')
@@ -340,7 +339,7 @@ function SSNostrSync() {
             {isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <ActivityIndicator size="small" color={Colors.white} />
-                <SSText color="muted">Syncing with Nostr relays...</SSText>
+                <SSText color="muted">Syncing with Nostr relay</SSText>
               </SSHStack>
             )}
             {!isSyncing && (

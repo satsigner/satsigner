@@ -69,7 +69,16 @@ function useNostrSync() {
           }
         }
 
-        const currentDms = account.nostr?.dms || []
+        console.log('🟢 eventContent.description', eventContent.description)
+
+        // Get the current state directly from the store to ensure we have the latest
+        const currentState = useAccountsStore.getState()
+        const currentAccount = currentState.accounts.find(
+          (a) => a.id === account.id
+        )
+        if (!currentAccount?.nostr) return
+
+        const currentDms = currentAccount.nostr.dms || []
 
         // Check if message with same ID already exists
         const messageExists = currentDms.some((m) => m.id === newMessage.id)
@@ -80,10 +89,18 @@ function useNostrSync() {
             (a, b) => a.created_at - b.created_at
           )
 
+          // Update only the dms field, preserving all other nostr fields
           updateAccountNostr(account.id, {
-            ...account.nostr,
             dms: updatedDms
           })
+
+          // Log the state after update
+          const afterState = useAccountsStore.getState()
+          const afterAccount = afterState.accounts.find(
+            (a) => a.id === account.id
+          )
+        } else {
+          console.log('🔵 Message already exists, skipping:', newMessage.id)
         }
       } catch (error) {
         console.error('Failed to store DM:', error)
@@ -139,7 +156,13 @@ function useNostrSync() {
           }
         } else if (eventContent.description && !eventContent.data) {
           try {
-            await storeDM(account, unwrappedEvent, eventContent)
+            //ignore if is sent to commonNpub
+            if (
+              account.nostr.commonNpub !==
+              nip19.npubEncode(unwrappedEvent.tags[0][1])
+            ) {
+              await storeDM(account, unwrappedEvent, eventContent)
+            }
           } catch (error) {}
         } else if (eventContent.public_key_bech32) {
           const newMember = eventContent.public_key_bech32
@@ -209,7 +232,7 @@ function useNostrSync() {
               // Handle error silently
             }
           },
-          3,
+          undefined,
           lastProtocolEOSE,
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
@@ -266,7 +289,7 @@ function useNostrSync() {
               console.error('Error processing message:', error)
             }
           },
-          3,
+          undefined,
           lastDataExchangeEOSE,
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
@@ -451,9 +474,18 @@ function useNostrSync() {
           throw new Error('Device NSEC not found')
         }
 
-        const eventKind1059 = await nostrApi.createKind1059(
+        // Send to our deviceNpub
+        let eventKind1059 = await nostrApi.createKind1059(
           deviceNsec,
           deviceNpub,
+          compressedMessage
+        )
+        await nostrApi.publishEvent(eventKind1059)
+
+        // Send to commonNpub to match protocol
+        eventKind1059 = await nostrApi.createKind1059(
+          deviceNsec,
+          commonNpub,
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
@@ -487,7 +519,7 @@ function useNostrSync() {
         const trustedDevices = getTrustedDevices(account.id)
         for (const trustedDeviceNpub of trustedDevices) {
           if (!deviceNsec) continue
-          const eventKind1059 = await nostrApi.createKind1059(
+          eventKind1059 = await nostrApi.createKind1059(
             deviceNsec,
             trustedDeviceNpub,
             compressedMessage
