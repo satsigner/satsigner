@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { Platform } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
@@ -42,8 +43,8 @@ export default function SetPin() {
   async function setPin(pin: string) {
     const salt = await getItem(SALT_KEY)
     if (!salt) {
-      // TODO: handle error
-      throw new Error('no salt to encrypt pin')
+      toast.error('Normal PIN must be set before setting Duress PIN')
+      return
     }
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
     await setItem(DURESS_PIN_KEY, encryptedPin)
