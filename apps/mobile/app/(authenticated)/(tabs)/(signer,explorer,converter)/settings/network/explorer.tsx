@@ -8,9 +8,11 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import type { Network, Server } from '@/types/settings/blockchain'
+
+const tn = _tn('settings.network.explorer')
 
 export default function NetworkSettings() {
   const router = useRouter()
@@ -34,9 +36,7 @@ export default function NetworkSettings() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('settings.network.mempool.title')}</SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
@@ -46,9 +46,7 @@ export default function NetworkSettings() {
           showsVerticalScrollIndicator={false}
         >
           <SSVStack>
-            <SSText size="lg">
-              {t('settings.network.mempool.fullDescription')}
-            </SSText>
+            <SSText size="lg">{tn('fullDescription')}</SSText>
             {networks.map((network) => (
               <SSVStack gap="xs" key={network}>
                 <SSText uppercase weight="bold">

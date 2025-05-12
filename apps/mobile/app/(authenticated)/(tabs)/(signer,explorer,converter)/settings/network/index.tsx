@@ -37,11 +37,11 @@ export default function Features() {
                 }}
               />
               <SSSettingsCards
-                title={tn('mempool.title')}
-                description={tn('mempool.description')}
+                title={tn('explorer.title')}
+                description={tn('explorer.description')}
                 icon={<SSIconMempool width={24} height={24} />}
                 onPress={() => {
-                  router.navigate('/settings/network/mempool')
+                  router.navigate('/settings/network/explorer')
                 }}
               />
               <SSSettingsCards
