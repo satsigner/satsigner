@@ -1,17 +1,20 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
+import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
-  SSIconHideWarning
+  SSIconHideWarning,
+  SSIconWarning
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSGradientModal from '@/components/SSGradientModal'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSWarningModal from '@/components/SSWarningModal'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
@@ -21,6 +24,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
@@ -51,6 +55,9 @@ export default function Confirm() {
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const skipSeedConfirmation = useSettingsStore(
+    (state) => state.skipSeedConfirmation
+  )
   const { accountBuilderFinish } = useAccountBuilderFinish()
 
   const candidateWords = useMemo(() => {
@@ -64,6 +71,16 @@ export default function Confirm() {
   const [incorrectWordModalVisible, setIncorrectWordModalVisible] =
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
+  const [skipModalVisible, setSkipModalVisible] = useState(false)
+
+  function handleOnPressSkip() {
+    setSkipModalVisible(true)
+  }
+
+  async function handleConfirmSkip() {
+    setSkipModalVisible(false)
+    await handleFinishWordsConfirmation()
+  }
 
   async function handleNavigateNextWord() {
     if (!selectedCheckbox) return
@@ -78,7 +95,6 @@ export default function Confirm() {
 
   async function handleFinishWordsConfirmation() {
     setLoadingAccount(true)
-    const currentKey = setKey(Number(keyIndex))
 
     if (policyType === 'singlesig') {
       const account = getAccountData()
@@ -88,6 +104,7 @@ export default function Confirm() {
       setLoadingAccount(false)
       setWarningModalVisible(true)
     } else if (policyType === 'multisig') {
+      const currentKey = setKey(Number(keyIndex))
       const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
         currentKey,
         network as Network
@@ -157,9 +174,16 @@ export default function Confirm() {
           />
           <SSButton
             label={t('common.cancel')}
-            variant="ghost"
+            variant="subtle"
             onPress={handleOnPressCancel}
           />
+          {skipSeedConfirmation && (
+            <SSButton
+              label={t('common.skip')}
+              variant="ghost"
+              onPress={handleOnPressSkip}
+            />
+          )}
         </SSVStack>
       </SSVStack>
       <SSGradientModal
@@ -207,6 +231,38 @@ export default function Confirm() {
           </SSText>
         </SSVStack>
       </SSWarningModal>
+      <SSModal
+        visible={skipModalVisible}
+        onClose={() => setSkipModalVisible(false)}
+      >
+        <SSVStack style={styles.skipModalContainer} itemsCenter>
+          <SSHStack>
+            <SSIconWarning height={22} width={22} />
+            <SSText uppercase size="xl" weight="bold">
+              Warning
+            </SSText>
+            <SSIconWarning height={22} width={22} />
+          </SSHStack>
+          <SSText>{t('account.confirmSeed.confirmSkip')}</SSText>
+          <SSButton
+            label={t('common.yes')}
+            variant="danger"
+            onPress={handleConfirmSkip}
+          />
+          <SSButton
+            label={t('common.no')}
+            onPress={() => setSkipModalVisible(false)}
+          />
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  skipModalContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center'
+  }
+})
