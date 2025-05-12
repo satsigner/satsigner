@@ -9,7 +9,6 @@ import {
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
-import { useAccountsStore } from '@/store/accounts'
 import { type PageRoute } from '@/types/navigation/page'
 import { doubleShaEncrypt } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
@@ -79,12 +78,6 @@ const useAuthStore = create<AuthState & AuthAction>()(
       validatePin: async (pin) => {
         const hashedPin = await doubleShaEncrypt(pin)
         const savedPin = await getItem(PIN_KEY)
-        const duressPin = await getItem(DURESS_PIN_KEY)
-        if (hashedPin === duressPin) {
-          const { deleteAccounts } = useAccountsStore.getState()
-          deleteAccounts()
-          return true
-        }
         return hashedPin === savedPin
       },
       incrementPinTries: () => {

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSPinEntry from '@/components/SSPinEntry'
-import { PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
@@ -45,10 +45,16 @@ export default function Unlock() {
   async function handleOnFillEnded(pin: string) {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
+    const storedEncryptedDuressPin = await getItem(DURESS_PIN_KEY)
     if (!salt || !storedEncryptedPin) return // TODO: handle error
 
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    const isPinValid = encryptedPin === storedEncryptedPin
+    const isPinValid = encryptedPin === storedEncryptedPin ||
+      encryptedPin === storedEncryptedDuressPin
+
+    if (encryptedPin === storedEncryptedDuressPin) {
+      deleteAccounts()
+    }
 
     if (isPinValid) {
       setLockTriggered(false)
