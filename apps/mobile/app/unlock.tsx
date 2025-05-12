@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSPinEntry from '@/components/SSPinEntry'
 import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import { getItem } from '@/storage/encrypted'
+import { getItem, deleteItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
@@ -54,6 +54,9 @@ export default function Unlock() {
 
     if (encryptedPin === storedEncryptedDuressPin) {
       deleteAccounts()
+
+      // delete evidence there existed a duress pin
+      deleteItem(DURESS_PIN_KEY)
     }
 
     if (isPinValid) {
