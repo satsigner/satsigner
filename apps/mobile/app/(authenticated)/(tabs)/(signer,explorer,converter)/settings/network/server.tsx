@@ -12,10 +12,12 @@ import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Network, type Server } from '@/types/settings/blockchain'
+
+const tn = _tn('settings.network.server')
 
 export default function NetworkSettings() {
   const router = useRouter()
@@ -67,9 +69,7 @@ export default function NetworkSettings() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('settings.network.server.title')}</SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
@@ -83,9 +83,7 @@ export default function NetworkSettings() {
               <SSVStack gap="md" key={network}>
                 <SSVStack gap="none">
                   <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
-                  <SSText color="muted">
-                    {t(`settings.network.server.type.${network}`)}
-                  </SSText>
+                  <SSText color="muted">{tn(`type.${network}`)}</SSText>
                 </SSVStack>
                 <SSVStack gap="md">
                   <SSVStack gap="md">
@@ -150,9 +148,7 @@ export default function NetworkSettings() {
                   </SSVStack>
                   <SSVStack style={{ marginTop: 20 }}>
                     <SSButton
-                      label={t(
-                        'settings.network.server.custom.add'
-                      ).toUpperCase()}
+                      label={tn('custom.add').toUpperCase()}
                       onPress={() => router.push(`./${network}`)}
                     />
                   </SSVStack>
