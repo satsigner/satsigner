@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 import SSPinEntry from '@/components/SSPinEntry'
 import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import { getItem, deleteItem } from '@/storage/encrypted'
+import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
@@ -49,14 +49,17 @@ export default function Unlock() {
     if (!salt || !storedEncryptedPin) return // TODO: handle error
 
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    const isPinValid = encryptedPin === storedEncryptedPin ||
+    const isPinValid =
+      encryptedPin === storedEncryptedPin ||
       encryptedPin === storedEncryptedDuressPin
 
     if (encryptedPin === storedEncryptedDuressPin) {
       deleteAccounts()
 
-      // delete evidence there existed a duress pin
+      // delete evidence there existed a duress pin,
+      // acting as if the duress pin was the true pin
       deleteItem(DURESS_PIN_KEY)
+      setItem(PIN_KEY, storedEncryptedDuressPin)
     }
 
     if (isPinValid) {
