@@ -202,7 +202,7 @@ export default function Confirm() {
         visible={warningModalVisible}
         onClose={handleCloseWordsWarning}
       >
-        <SSVStack itemsCenter>
+        <SSVStack itemsCenter style={{ marginBottom: 20 }}>
           <SSHStack>
             <SSIconCheckCircle height={30} width={30} />
             <SSText size="3xl">
@@ -239,7 +239,7 @@ export default function Confirm() {
           <SSHStack>
             <SSIconWarning height={22} width={22} />
             <SSText uppercase size="xl" weight="bold">
-              Warning
+              {t('common.warning')}
             </SSText>
             <SSIconWarning height={22} width={22} />
           </SSHStack>
