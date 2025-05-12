@@ -4,10 +4,12 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
+  DURESS_PIN_KEY,
   PIN_KEY
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
 import mmkvStorage from '@/storage/mmkv'
+import { useAccountsStore } from '@/store/accounts'
 import { type PageRoute } from '@/types/navigation/page'
 import { doubleShaEncrypt } from '@/utils/crypto'
 import { formatPageUrl } from '@/utils/format'
@@ -29,6 +31,7 @@ type AuthAction = {
   setRequiresAuth: (requiresAuth: boolean) => void
   setLockTriggered: (lockTriggered: boolean) => void
   setPin: (pin: string) => Promise<void>
+  setDuressPin: (pin: string) => Promise<void>
   setSkipPin: (skipPin: boolean) => void
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
@@ -66,12 +69,22 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const hashedPin = await doubleShaEncrypt(pin)
         await setItem(PIN_KEY, hashedPin)
       },
+      setDuressPin: async (pin) => {
+        const hashedDuressPin = await doubleShaEncrypt(pin)
+        await setItem(DURESS_PIN_KEY, hashedDuressPin)
+      },
       setSkipPin(skipPin) {
         set({ skipPin })
       },
       validatePin: async (pin) => {
         const hashedPin = await doubleShaEncrypt(pin)
         const savedPin = await getItem(PIN_KEY)
+        const duressPin = await getItem(DURESS_PIN_KEY)
+        if (hashedPin === duressPin) {
+          const { deleteAccounts } = useAccountsStore.getState()
+          deleteAccounts()
+          return true
+        }
         return hashedPin === savedPin
       },
       incrementPinTries: () => {
