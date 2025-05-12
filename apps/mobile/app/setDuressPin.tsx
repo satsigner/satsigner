@@ -41,6 +41,10 @@ export default function SetPin() {
 
   async function setPin(pin: string) {
     const salt = await getItem(SALT_KEY)
+    if (!salt) {
+      // TODO: handle error
+      throw new Error('no salt to encrypt pin')
+    }
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
     await setItem(DURESS_PIN_KEY, encryptedPin)
   }

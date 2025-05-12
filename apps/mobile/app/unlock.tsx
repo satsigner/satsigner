@@ -45,8 +45,14 @@ export default function Unlock() {
   async function handleOnFillEnded(pin: string) {
     const salt = await getItem(SALT_KEY)
     const storedEncryptedPin = await getItem(PIN_KEY)
-    const storedEncryptedDuressPin = await getItem(DURESS_PIN_KEY)
     if (!salt || !storedEncryptedPin) return // TODO: handle error
+
+    let storedEncryptedDuressPin: string | null = null
+    try {
+      storedEncryptedDuressPin = await getItem(DURESS_PIN_KEY)
+    } catch {
+      //
+    }
 
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
     const isPinValid =
