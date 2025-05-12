@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 
 import { getWalletData } from '@/api/bdk'
+import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import { PIN_KEY } from '@/config/auth'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
@@ -87,12 +89,19 @@ export default function ExportDescriptors() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerRight: undefined
         }}
       />
       <SSVStack style={{ padding: 20 }}>
-        <SSText center uppercase weight="bold" size="lg" color="muted">
+        <SSText center uppercase color="muted">
           {t('account.export.descriptors')}
         </SSText>
         <View
