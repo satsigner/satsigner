@@ -167,7 +167,7 @@ export default function AccountList() {
 
   async function loadSampleWallet(type: SampleWallet) {
     setLoadingWallet(type)
-    setName(`My Wallet (${type})`)
+    setName(`Sample Wallet (${type})`)
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)

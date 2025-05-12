@@ -3,6 +3,7 @@
     "add": "Add Account",
     "addOrGenerateKeys": "Add or Generate your keys",
     "added": "Parent account has been added",
+    "confirmSeed.confirmSkip": "Do you really want to skip it?",
     "confirmSeed.title": "Confirm Seed",
     "confirmSeed.tryAgain": "Selected word doesn't match the original seed",
     "confirmSeed.warning": "Review and try again",
@@ -95,7 +96,7 @@
     "seed.sharePub": "Share XPub",
     "seed.unableToDecrypt": "Unable to decrypt seed",
     "selectKeySource": "Select Key Source",
-    "settings.title": "Master Key Settings and Tools",
+    "settings.title": "Account Settings and Tools",
     "signAndSend": "Sign & Send",
     "signatureRequired": "Signatures Required",
     "sync.status.error": "Can't sync",
@@ -119,7 +120,7 @@
     "index": "Index",
     "label": "Label",
     "receive": "Receive",
-    "samples": "Add sample account",
+    "samples": "Sample accounts",
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
     "totalTransactions": "Total\nTransactions",
@@ -158,7 +159,7 @@
     "utxos": "Address UTXOs"
   },
   "app": {
-    "name": "Sat Signer",
+    "name": "SatSigner",
     "notImplemented": "Not yet implemented"
   },
   "auth": {
@@ -260,6 +261,7 @@
     "select": "Select",
     "selectAll": "Select All",
     "selected": "Selected",
+    "skip": "Skip",
     "tags": "Tags",
     "to": "To",
     "total": "Total",
@@ -566,6 +568,7 @@
     "security.backgroundLockTime": "Background lock time threshold",
     "security.description": "Change app wide security settings to protect access in case of a compromised device",
     "security.maxPinTries": "Maximum pin tries",
+    "security.skipSeedConfirmation": "Allow skipping seed word confirmation",
     "security.title": "App Security",
     "title": "Config"
   },

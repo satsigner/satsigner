@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
+import SSCheckbox from '@/components/SSCheckbox'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import {
@@ -15,17 +16,27 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAuthStore } from '@/store/auth'
+import { useSettingsStore } from '@/store/settings'
 
 export default function Security() {
   const router = useRouter()
   const [pinMaxTries, setPinMaxTries] = useAuthStore(
     useShallow((state) => [state.pinMaxTries, state.setPinMaxTries])
   )
+  const [skipSeedConfirmation, setSkipSeedConfirmation] = useSettingsStore(
+    useShallow((state) => [
+      state.skipSeedConfirmation,
+      state.setSkipSeedConfirmation
+    ])
+  )
 
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
+  const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
+    useState(skipSeedConfirmation)
 
   function handleOnSave() {
     setPinMaxTries(localPinMaxTries)
+    setSkipSeedConfirmation(localSkipSeedWordConfirmation)
     router.back()
   }
 
@@ -61,6 +72,17 @@ export default function Security() {
                   {SETTINGS_PIN_MAX_POSSIBLE_TRIES}
                 </SSText>
               </SSHStack>
+            </SSVStack>
+            <SSVStack>
+              <SSCheckbox
+                label={t('settings.security.skipSeedConfirmation')}
+                selected={localSkipSeedWordConfirmation}
+                onPress={() => {
+                  setLocalSkipSeedWordConfirmation(
+                    !localSkipSeedWordConfirmation
+                  )
+                }}
+              />
             </SSVStack>
           </SSVStack>
         </ScrollView>

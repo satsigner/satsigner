@@ -15,7 +15,7 @@ import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
 import SSText from './SSText'
 
-type SSButtonProps = {
+export type SSButtonProps = {
   label: string
   variant?:
     | 'default'

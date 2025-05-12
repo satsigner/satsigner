@@ -1,13 +1,9 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  SSIconEyeOn,
-  SSIconScriptsP2pkh,
-  SSIconWarning
-} from '@/components/icons'
+import { SSIconEyeOn, SSIconScriptsP2pkh } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSCollapsible from '@/components/SSCollapsible'
@@ -148,14 +144,14 @@ export default function AccountSettings() {
           headerRight: () => null
         }}
       />
-      <SSVStack gap="lg" style={{ padding: 20 }}>
+      <SSVStack gap="lg" style={styles.mainLayout}>
         <SSText center uppercase color="muted">
           {t('account.settings.title')}
         </SSText>
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText style={{ color: Colors.success }}>
+            <SSText style={styles.fingerprintText}>
               {account.keys[0].fingerprint}
             </SSText>
           </SSHStack>
@@ -171,7 +167,7 @@ export default function AccountSettings() {
             account.keys[0].creationType === 'importMnemonic') && (
             <SSHStack>
               <SSButton
-                style={{ flex: 1 }}
+                style={styles.button}
                 label={t('account.viewMnemonic')}
                 onPress={() => handleOnViewMnemonic()}
               />
@@ -179,7 +175,7 @@ export default function AccountSettings() {
           )}
           <SSHStack>
             <SSButton
-              style={{ flex: 1 }}
+              style={styles.button}
               label={t('account.export.descriptors')}
               variant="gradient"
               onPress={() =>
@@ -191,7 +187,7 @@ export default function AccountSettings() {
           </SSHStack>
           <SSHStack>
             <SSButton
-              style={{ flex: 1 }}
+              style={styles.button}
               label={t('account.export.labels')}
               variant="gradient"
               onPress={() =>
@@ -201,7 +197,7 @@ export default function AccountSettings() {
               }
             />
             <SSButton
-              style={{ flex: 1 }}
+              style={styles.button}
               label={t('account.import.labels')}
               variant="gradient"
               onPress={() =>
@@ -221,8 +217,8 @@ export default function AccountSettings() {
             <SSFormLayout.Label label={t('account.network.title')} />
             <SSButton
               label={network}
-              withSelect
               onPress={() => setNetworkModalVisible(true)}
+              withSelect
             />
           </SSFormLayout.Item>
           <SSFormLayout.Item>
@@ -234,18 +230,15 @@ export default function AccountSettings() {
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
                 label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
-                withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
+                withSelect
               />
             </SSFormLayout.Item>
           )}
         </SSFormLayout>
         {account.policyType === 'multisig' && (
           <>
-            <SSVStack
-              style={{ backgroundColor: '#131313', paddingHorizontal: 16 }}
-              gap="md"
-            >
+            <SSVStack gap="md" style={styles.multiSigContainer}>
               <SSMultisigCountSelector
                 maxCount={12}
                 requiredNumber={account.keysRequired!}
@@ -254,7 +247,7 @@ export default function AccountSettings() {
               />
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>
-            <SSVStack gap="none" style={{ marginHorizontal: -20 }}>
+            <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
               {account.keys.map((key, index) => (
                 <SSMultisigKeyControl
                   key={index}
@@ -267,13 +260,11 @@ export default function AccountSettings() {
             </SSVStack>
           </>
         )}
-        <SSVStack style={{ marginTop: 60 }}>
+        <SSVStack style={styles.actionsContainer}>
           <SSButton label={t('account.duplicate.title')} />
           <SSButton
             label={t('account.delete.title')}
-            style={{
-              backgroundColor: Colors.error
-            }}
+            style={styles.deleteButton}
             onPress={() => setDeleteModalVisible(true)}
           />
           <SSButton
@@ -359,24 +350,14 @@ export default function AccountSettings() {
         visible={deleteModalVisible}
         onClose={() => setDeleteModalVisible(false)}
       >
-        <SSVStack
-          style={{
-            padding: 0,
-            width: '100%',
-            height: '100%',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
+        <SSVStack style={styles.deleteModalOuterContainer}>
           <SSText size="xl" weight="bold">
             {t('common.areYouSure')}
           </SSText>
-          <SSHStack style={{ flexWrap: 'wrap' }}>
+          <SSHStack style={styles.deleteModalInnerContainer}>
             <SSButton
               label={t('common.yes')}
-              style={{
-                backgroundColor: Colors.error
-              }}
+              style={styles.deleteButton}
               onPress={() => {
                 setDeleteModalVisible(false)
                 setTimeout(() => {
@@ -386,60 +367,45 @@ export default function AccountSettings() {
             />
             <SSButton
               label={t('common.no')}
-              onPress={() => {
-                setDeleteModalVisible(false)
-              }}
+              onPress={() => setDeleteModalVisible(false)}
             />
           </SSHStack>
         </SSVStack>
       </SSModal>
       <SSModal
+        fullOpacity
         visible={mnemonicModalVisible}
         onClose={() => setMnemonicModalVisible(false)}
+        label={t('common.close')}
+        closeButtonVariant="subtle"
       >
         {localMnemonic && (
           <SSVStack gap="lg" itemsCenter>
-            <SSText center size="xl" weight="bold" uppercase>
-              {account.keys[0].mnemonicWordCount} {t('bitcoin.words')}
+            <SSText center uppercase>
+              {account.keys[0].mnemonicWordCount} {t('account.mnemonic.title')}
             </SSText>
             <SSHStack style={{ justifyContent: 'center' }}>
-              <SSIconWarning
-                width={32}
-                height={32}
-                fill="black"
-                stroke="yellow"
-              />
-              <SSText uppercase weight="bold" size="lg">
+              <SSText uppercase color="muted">
                 {t('account.seed.keepItSecret')}
               </SSText>
-              <SSIconWarning
-                width={32}
-                height={32}
-                fill="black"
-                stroke="yellow"
-              />
             </SSHStack>
-            <SSHStack>
-              {account.keys[0].mnemonicWordCount && (
-                <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
-                  {localMnemonic.split(' ').map((word, index) => (
-                    <View
-                      key={index}
-                      style={{
-                        height: 44,
-                        width: '32%',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}
+            {account.keys[0].mnemonicWordCount && (
+              <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
+                {localMnemonic.split(' ').map((word, index) => (
+                  <View key={index} style={styles.localMnemonicOuterContainer}>
+                    <SSHStack
+                      style={styles.localMnemonicInnerContainer}
+                      gap="sm"
                     >
-                      <SSText type="mono" size="lg">
-                        {(index + 1).toString().padStart(2, '0')}. {word}
+                      <SSText size="md" color="muted">
+                        {(index + 1).toString().padStart(2, '0')}.
                       </SSText>
-                    </View>
-                  ))}
-                </SSSeedLayout>
-              )}
-            </SSHStack>
+                      <SSText size="md">{word}</SSText>
+                    </SSHStack>
+                  </View>
+                ))}
+              </SSSeedLayout>
+            )}
             <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
               <SSButton label={t('common.copy')} />
             </SSClipboardCopy>
@@ -458,3 +424,49 @@ export default function AccountSettings() {
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  actionsContainer: {
+    marginTop: 60
+  },
+  button: {
+    flex: 1
+  },
+  deleteButton: {
+    backgroundColor: Colors.error
+  },
+  deleteModalInnerContainer: {
+    flexWrap: 'wrap'
+  },
+  deleteModalOuterContainer: {
+    padding: 0,
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  fingerprintText: {
+    color: Colors.success
+  },
+  localMnemonicInnerContainer: {
+    padding: 8,
+    borderRadius: 10,
+    borderColor: Colors.gray[800],
+    borderWidth: 1
+  },
+  localMnemonicOuterContainer: {
+    height: 46,
+    width: '32%',
+    justifyContent: 'center'
+  },
+  mainLayout: {
+    padding: 20
+  },
+  multiSigContainer: {
+    backgroundColor: '#131313',
+    paddingHorizontal: 16
+  },
+  multiSigKeyControlCOntainer: {
+    marginHorizontal: 20
+  }
+})

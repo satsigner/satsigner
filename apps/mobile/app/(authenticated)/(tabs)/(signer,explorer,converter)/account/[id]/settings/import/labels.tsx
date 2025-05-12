@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
@@ -93,12 +94,19 @@ export default function ImportLabels() {
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText size="xl">{t('settings.title')}</SSText>,
+          headerTitle: () => (
+            <SSHStack gap="sm">
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
+                <SSIconEyeOn stroke="#fff" height={16} width={16} />
+              )}
+            </SSHStack>
+          ),
           headerRight: undefined
         }}
       />
-      <SSVStack style={{ padding: 20 }}>
-        <SSText center uppercase weight="bold" size="lg" color="muted">
+      <SSVStack style={{ padding: 40 }}>
+        <SSText center uppercase color="muted">
           {t('account.import.labels')}
         </SSText>
         <SSHStack>
