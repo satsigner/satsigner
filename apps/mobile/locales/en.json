@@ -96,7 +96,7 @@
     "seed.sharePub": "Share XPub",
     "seed.unableToDecrypt": "Unable to decrypt seed",
     "selectKeySource": "Select Key Source",
-    "settings.title": "Master Key Settings and Tools",
+    "settings.title": "Account Settings and Tools",
     "signAndSend": "Sign & Send",
     "signatureRequired": "Signatures Required",
     "sync.status.error": "Can't sync",
@@ -120,7 +120,7 @@
     "index": "Index",
     "label": "Label",
     "receive": "Receive",
-    "samples": "Add sample account",
+    "samples": "Sample accounts",
     "satsInMempool": "Sats in\nMempool",
     "spendableOutputs": "Spendable\nOutputs",
     "totalTransactions": "Total\nTransactions",
@@ -159,7 +159,7 @@
     "utxos": "Address UTXOs"
   },
   "app": {
-    "name": "Sat Signer",
+    "name": "SatSigner",
     "notImplemented": "Not yet implemented"
   },
   "auth": {
