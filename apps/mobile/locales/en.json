@@ -3,6 +3,7 @@
     "add": "Add Account",
     "addOrGenerateKeys": "Add or Generate your keys",
     "added": "Parent account has been added",
+    "confirmSeed.confirmSkip": "Do you really want to skip it?",
     "confirmSeed.title": "Confirm Seed",
     "confirmSeed.tryAgain": "Selected word doesn't match the original seed",
     "confirmSeed.warning": "Review and try again",
@@ -260,6 +261,7 @@
     "select": "Select",
     "selectAll": "Select All",
     "selected": "Selected",
+    "skip": "Skip",
     "tags": "Tags",
     "to": "To",
     "total": "Total",
@@ -569,6 +571,7 @@
     "security.backgroundLockTime": "Background lock time threshold",
     "security.description": "Change app wide security settings to protect access in case of a compromised device",
     "security.maxPinTries": "Maximum pin tries",
+    "security.skipSeedConfirmation": "Allow skipping seed word confirmation",
     "security.title": "App Security",
     "title": "Config"
   },
