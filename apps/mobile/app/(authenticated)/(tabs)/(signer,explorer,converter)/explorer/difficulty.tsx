@@ -1,6 +1,6 @@
 import { SCREEN_HEIGHT } from '@gorhom/bottom-sheet'
 import { Stack } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dimensions, StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import { MempoolOracle } from '@/api/blockchain'
@@ -15,6 +15,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import {
   type BlockDifficulty,
@@ -43,6 +44,14 @@ type DifficultyEpochsData = [
 ]
 
 function ExplorerDifficulty() {
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool['bitcoin']
+  )
+  const mempoolOracle = useMemo(
+    () => new MempoolOracle(mempoolUrl),
+    [mempoolUrl]
+  )
+
   const { width } = useWindowDimensions()
 
   const [data, setData] = useState<BlockDifficulty[]>([])
@@ -64,7 +73,6 @@ function ExplorerDifficulty() {
   const [selectedBlock, setSelectedBlock] = useState({} as BlockDifficulty)
 
   async function fetchDifficultyAdjustment() {
-    const mempoolOracle = new MempoolOracle()
     const response =
       (await mempoolOracle.getDifficultyAdjustment()) as DifficultyAdjustment
 
@@ -130,7 +138,7 @@ function ExplorerDifficulty() {
 
   async function fetchLatestEpoch() {
     // INFO: this is how we would get the latest epoch:
-    // const oracle = new MempoolOracle()
+    // const oracle = new MempoolOracle(url)
     // const blockHeight = await oracle.getCurrentBlockHeight()
     // const latestEpoch = Math.floor(blockHeight / BLOCKS_PER_EPOCH)
     setEpoch(maxEpoch.toString())

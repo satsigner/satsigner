@@ -25,7 +25,7 @@ const satoshiToFiat = (btcFiatPrice: number, sats: number, decimals = 2) =>
 export class MempoolOracle implements BlockchainOracle {
   baseUrl: string
 
-  constructor(baseUrl = 'https://mempool.space/api') {
+  constructor(baseUrl: string) {
     this.baseUrl = baseUrl
   }
 
