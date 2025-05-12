@@ -51,7 +51,9 @@ export default function NetworkSettings() {
             </SSText>
             {networks.map((network) => (
               <SSVStack gap="xs" key={network}>
-                <SSText uppercase weight="bold">{network}</SSText>
+                <SSText uppercase weight="bold">
+                  {network}
+                </SSText>
                 <SSTextInput
                   value={localConfig[network]}
                   onChangeText={(text: string) =>

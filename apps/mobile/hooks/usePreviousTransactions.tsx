@@ -8,10 +8,6 @@ import { usePreviousTransactionsStore } from '@/store/previousTransactions'
 import type { Utxo } from '@/types/models/Utxo'
 import { recalculateDepthH } from '@/utils/transaction'
 
-const SIGNET_URL = 'https://mempool.space/signet/api'
-const TESTNET_URL = 'https://mempool.space/testnet/api'
-const BITCOIN_URL = 'https://mempool.space/api'
-
 type ExtendedEsploraTx = EsploraTx & {
   depthH: number
   vin?: (EsploraTx['vin'][0] & { indexV?: number })[]
@@ -26,7 +22,9 @@ export function usePreviousTransactions(
   const [previousTransactions, addTransactions] = usePreviousTransactionsStore(
     useShallow((state) => [state.transactions, state.addTransactions])
   )
-  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const [network, mempoolUrls] = useBlockchainStore(
+    useShallow((state) => [state.selectedNetwork, state.configsMempool])
+  )
 
   const [transactions, setTransactions] = useState<
     Map<string, ExtendedEsploraTx>
@@ -100,19 +98,8 @@ export function usePreviousTransactions(
     setLoading(true)
     setError(null)
 
-    const oracle = new MempoolOracle(
-      (() => {
-        switch (network) {
-          case 'signet':
-            return SIGNET_URL
-          case 'testnet':
-            return TESTNET_URL
-          default:
-            return BITCOIN_URL
-        }
-      })()
-    )
-
+    const url = mempoolUrls[network]
+    const oracle = new MempoolOracle(url)
     const newTransactions = new Map<string, ExtendedEsploraTx>()
 
     try {

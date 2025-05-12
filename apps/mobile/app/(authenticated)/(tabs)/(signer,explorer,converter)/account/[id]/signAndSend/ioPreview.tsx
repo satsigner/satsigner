@@ -34,19 +34,18 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-// import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-// import { selectEfficientUtxos } from '@/utils/utxo'
 
 const DEEP_LEVEL = 2 // how deep the tx history
 
@@ -80,6 +79,14 @@ export default function IOPreview() {
       state.removeOutput,
       state.setFeeRate
     ])
+  )
+
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool[account?.network || 'bitcoin']
+  )
+  const mempoolOracle = useMemo(
+    () => new MempoolOracle(mempoolUrl),
+    [mempoolUrl]
   )
 
   const { transactions, loading, error } = usePreviousTransactions(
@@ -146,7 +153,7 @@ export default function IOPreview() {
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
     queryKey: ['statistics', selectedPeriod],
     queryFn: () =>
-      new MempoolOracle().getMempoolStatistics(
+      mempoolOracle.getMempoolStatistics(
         selectedPeriod === '2hours'
           ? '2h'
           : selectedPeriod === 'day'
