@@ -164,12 +164,16 @@
   },
   "auth": {
     "confirmPin": "Confirm pin number",
+    "confirmDuressPin": "Confirm duress pin number",
     "pinsDontMatch": "No pin number match",
     "pinsMatch": "Pin number match",
     "reenterPinTitle": "Re-enter your\npin number",
+    "reenterDuressPinTitle": "Re-enter your duress\npin number",
     "setPin": "Set pin number",
+    "setDuressPin": "Set duress pin number",
     "setPinLater": "Set pin later",
     "setPinTitle": "Set pin number to\nenter the app",
+    "setDuressPinTitle": "Set duress pin number\nwhich erases all accounts",
     "triesLeft": "Tries left",
     "tryLeft": "Try left",
     "unlock": "Unlock Satsigner"
