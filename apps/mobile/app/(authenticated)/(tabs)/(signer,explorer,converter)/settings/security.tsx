@@ -14,9 +14,11 @@ import {
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
+
+const tn = _tn('settings.security')
 
 export default function Security() {
   const router = useRouter()
@@ -44,9 +46,7 @@ export default function Security() {
     <SSMainLayout>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('settings.security.title')}</SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
@@ -55,7 +55,7 @@ export default function Security() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSText uppercase>
-                {t('settings.security.maxPinTries')}: {localPinMaxTries}
+                {tn('maxPinTries')}: {localPinMaxTries}
               </SSText>
               <SSHStack justifyBetween gap="none">
                 <SSText center style={{ width: '5%' }}>
@@ -75,7 +75,7 @@ export default function Security() {
             </SSVStack>
             <SSVStack>
               <SSCheckbox
-                label={t('settings.security.skipSeedConfirmation')}
+                label={tn('skipSeedConfirmation')}
                 selected={localSkipSeedWordConfirmation}
                 onPress={() => {
                   setLocalSkipSeedWordConfirmation(
@@ -86,7 +86,7 @@ export default function Security() {
             </SSVStack>
             <SSVStack>
               <SSButton
-                label={t('settings.security.duressPin')}
+                label={tn('duressPin')}
                 onPress={() => {
                   router.navigate('/setDuressPin')
                 }}
