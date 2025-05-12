@@ -86,7 +86,7 @@ export default function Security() {
             </SSVStack>
             <SSVStack>
               <SSButton
-                label="SET DURESS PIN"
+                label={t('settings.security.duressPin')}
                 onPress={() => {
                   router.navigate('/setDuressPin')
                 }}
