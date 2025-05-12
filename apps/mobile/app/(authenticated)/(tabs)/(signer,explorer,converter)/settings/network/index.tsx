@@ -9,7 +9,9 @@ import {
 import SSSettingsCards from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { tn as _tn } from '@/locales'
+
+const tn = _tn('settings.network')
 
 export default function Features() {
   const router = useRouter()
@@ -18,7 +20,7 @@ export default function Features() {
     <>
       <Stack.Screen
         options={{
-          headerTitle: () => <SSText uppercase>Network</SSText>,
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
@@ -27,24 +29,24 @@ export default function Features() {
           <SSVStack gap="lg">
             <SSVStack>
               <SSSettingsCards
-                title={t('settings.network.server.title')}
-                description={t('settings.network.server.description')}
+                title={tn('server.title')}
+                description={tn('server.description')}
                 icon={<SSIconServer width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/server')
                 }}
               />
               <SSSettingsCards
-                title={t('settings.network.mempool.title')}
-                description={t('settings.network.mempool.description')}
+                title={tn('mempool.title')}
+                description={tn('mempool.description')}
                 icon={<SSIconMempool width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/mempool')
                 }}
               />
               <SSSettingsCards
-                title={t('settings.network.config.title')}
-                description={t('settings.network.config.description')}
+                title={tn('config.title')}
+                description={tn('config.description')}
                 icon={<SSIconServerOptions width={24} height={24} />}
                 onPress={() => {
                   router.navigate('/settings/network/params')
