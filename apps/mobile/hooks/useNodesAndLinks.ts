@@ -80,26 +80,12 @@ export const useNodesAndLinks = ({
   outputs,
   feeRate
 }: UseNodesAndLinksProps) => {
-  // Ensure all transaction outputs have the vout property set
-  // Array.from(transactions.values()).forEach((tx) => {
-  //   if (tx.vout) {
-  //     tx.vout.forEach((output, idx) => {
-  //       if (output.vout === undefined) {
-  //         output.vout = idx
-  //       }
-  //       if (output.indexV === undefined) {
-  //         output.indexV = idx
-  //       }
-  //     })
-  //   }
-  // })
-
   const maxExistingDepth =
     transactions.size > 0
       ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
       : 0
   const outputNodesCurrentTransaction = useMemo(() => {
-    if (inputs.size > 0) {
+    if (inputs.size > 0 && transactions.size > 0) {
       const blockDepth = maxExistingDepth + 2
 
       const { size, vsize } = estimateTransactionSize(
@@ -161,7 +147,7 @@ export const useNodesAndLinks = ({
 
       // Add mining fee node
       outputNodes.push({
-        id: `vout-${blockDepth + 1}-0}`,
+        id: `vout-${blockDepth + 1}-0`,
         type: 'text',
         depthH: blockDepth + 1,
         value: minerFee,
@@ -198,23 +184,33 @@ export const useNodesAndLinks = ({
     } else {
       return []
     }
-  }, [inputs, maxExistingDepth, outputs, feeRate])
+  }, [inputs, transactions.size, maxExistingDepth, outputs, feeRate])
 
-  const outputAddresses = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout?.map((output) => output.address) ?? []
-  )
-  const outputValues = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout?.map((output) => output.value) ?? []
-  )
+  const outputAddresses = useMemo(() => {
+    if (transactions.size === 0) return []
+    return Array.from(transactions.values()).flatMap(
+      (tx) => tx.vout?.map((output) => output.address) ?? []
+    )
+  }, [transactions])
 
-  const incomingAndOutgoingVinTxId = Array.from(transactions.values()).flatMap(
-    (tx) =>
-      tx.vin.map((input) => ({
-        txid: tx.id,
-        inputTxId: input.previousOutput.txid,
-        vout: input.previousOutput.vout,
-        prevValue: input.value
-      }))
+  const outputValues = useMemo(() => {
+    if (transactions.size === 0) return []
+    return Array.from(transactions.values()).flatMap(
+      (tx) => tx.vout?.map((output) => output.value) ?? []
+    )
+  }, [transactions])
+
+  const incomingAndOutgoingVinTxId = useMemo(
+    () =>
+      Array.from(transactions.values()).flatMap((tx) =>
+        tx.vin.map((input) => ({
+          txid: tx.id,
+          inputTxId: input.previousOutput.txid,
+          vout: input.previousOutput.vout,
+          prevValue: input.value
+        }))
+      ),
+    [transactions]
   )
 
   const previousConfirmedNodes: TxNode[] = useMemo(() => {
@@ -495,5 +491,6 @@ export const useNodesAndLinks = ({
     outputNodesCurrentTransaction,
     inputs
   ])
+  if (transactions.size === 0) return { nodes: [], links: [] }
   return { nodes, links }
 }

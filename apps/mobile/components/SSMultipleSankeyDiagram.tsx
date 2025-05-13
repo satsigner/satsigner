@@ -109,7 +109,7 @@ function SSMultipleSankeyDiagram({
   // Calculate the optimal initial x translation to show the last 3 depthH levels
   const initialXTranslation = useMemo(() => {
     // If we have fewer than 3 depthH levels or no nodes, show from the beginning
-    if (maxDepthH < 2 || !nodes.length) {
+    if (maxDepthH < 2 || !nodes?.length) {
       return 0
     }
 
@@ -217,7 +217,10 @@ function SSMultipleSankeyDiagram({
     return null
   }
 
-  return transactions.size > 0 && nodes.length > 0 && links.length > 0 ? (
+  return transactions.size > 0 &&
+    nodes?.length > 0 &&
+    links?.length > 0 &&
+    transformedLinks?.length > 0 ? (
     <View style={{ flex: 1 }}>
       <Canvas
         style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}

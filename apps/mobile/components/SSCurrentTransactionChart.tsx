@@ -82,19 +82,20 @@ function SSCurrentTransactionChart({
   })
 
   const { width, height } = useWindowDimensions()
-  const GRAPH_HEIGHT = height * 0.5
+  const GRAPH_HEIGHT = height * 0.7
   const GRAPH_WIDTH = width
-  const SANKEY_VERTICAL_MARGIN = 42
+  const SANKEY_TOP_MARGIN = 110
+  const SANKEY_BOTTOM_MARGIN = 60
 
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
     .nodePadding(160)
     .extent([
-      [0, SANKEY_VERTICAL_MARGIN],
+      [0, SANKEY_TOP_MARGIN],
       [
         width,
-        GRAPH_HEIGHT * (Math.max(inputMap.size, outputArray.length) * 0.2) -
-          SANKEY_VERTICAL_MARGIN
+        GRAPH_HEIGHT * (Math.max(inputMap.size, outputArray.length) * 0.3) -
+          SANKEY_BOTTOM_MARGIN
       ]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
