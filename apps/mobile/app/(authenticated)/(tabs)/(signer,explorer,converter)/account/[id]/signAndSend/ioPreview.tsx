@@ -180,6 +180,13 @@ export default function IOPreview() {
     }
   }, [remainingSats])
 
+  useEffect(() => {
+    if (feeRate === 0) {
+      setFeeRate(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
 
