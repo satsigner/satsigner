@@ -78,7 +78,7 @@ function SSMultipleSankeyDiagram({
     .nodePadding(140)
     .extent([
       [0, 160],
-      [2000 * (maxDepthH / 9), 1000 * (maxNodeCountInDepthH / 8)]
+      [2000 * (maxDepthH / 11), 1000 * (maxNodeCountInDepthH / 8)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
@@ -151,12 +151,12 @@ function SSMultipleSankeyDiagram({
     const translation = -(minX - w / 10)
 
     // Calculate the total diagram width (approximation)
-    const diagramWidth = 2000 * (maxDepthH / 9)
+    const diagramWidth = 2000 * (maxDepthH / 11)
 
     // Ensure the translation doesn't move the diagram too far off-screen
     // This prevents extreme translations that might make the diagram invisible
 
-    return Math.max(translation, -(diagramWidth - w / 2))
+    return Math.max(translation, -(diagramWidth - w / 2)) - 50
   }, [maxDepthH, nodes, w])
 
   const { animatedStyle, gestures, transform } = useGestures({
