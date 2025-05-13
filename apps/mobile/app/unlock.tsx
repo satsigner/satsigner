@@ -33,7 +33,9 @@ export default function Unlock() {
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
-  const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
+  const [deleteAccounts, deleteTags] = useAccountsStore(
+    useShallow((state) => [state.deleteAccounts, state.deleteTags])
+  )
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
@@ -61,6 +63,8 @@ export default function Unlock() {
 
     if (encryptedPin === storedEncryptedDuressPin) {
       deleteAccounts()
+      deleteWallets()
+      deleteTags()
 
       // delete evidence there existed a duress pin,
       // acting as if the duress pin was the true pin
