@@ -1,5 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
+import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconSuccess } from '@/components/icons'
@@ -10,6 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
@@ -24,6 +26,14 @@ export default function MessageConfirmation() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
+  const mempoolConfig = useBlockchainStore((state) => state.configsMempool)
+
+  const webExplorerUrl = useMemo(() => {
+    if (!account) return ''
+    const { network } = account
+    const mempoolServerUrl = mempoolConfig[network]
+    return mempoolServerUrl
+  }, [account, mempoolConfig])
 
   function handleBackToHome() {
     clearTransaction()
@@ -63,7 +73,7 @@ export default function MessageConfirmation() {
               label={t('sent.trackOnChain')}
               onPress={() =>
                 WebBrowser.openBrowserAsync(
-                  `https://mempool.space/signet/tx/${txBuilderResult.txDetails.txid}`
+                  `${webExplorerUrl}/tx/${txBuilderResult.txDetails.txid}`
                 )
               }
             />
