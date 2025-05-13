@@ -3,7 +3,6 @@ import { Canvas, Circle, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
-  ActivityIndicator,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -17,15 +16,12 @@ import { useGestures } from '@/hooks/useGestures'
 import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
 import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
-import SSVStack from '@/layouts/SSVStack'
-import { Colors } from '@/styles'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { BLOCK_WIDTH, type Link, type Node } from '@/types/ui/sankey'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
-import SSText from './SSText'
 
 const LINK_MAX_WIDTH = 100
 const NODE_WIDTH = 98
@@ -46,10 +42,7 @@ function SSMultipleSankeyDiagram({
   feeRate
 }: SSMultipleSankeyDiagramProps) {
   const DEEP_LEVEL = 2 // how deep the tx history
-  const { transactions, loading, error } = useInputTransactions(
-    inputs,
-    DEEP_LEVEL
-  )
+  const { transactions } = useInputTransactions(inputs, DEEP_LEVEL)
 
   const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
     transactions,
@@ -94,15 +87,27 @@ function SSMultipleSankeyDiagram({
     return depthH ?? 0
   })
 
-  const { nodes, links } = sankeyGenerator({
-    nodes: sankeyNodes,
-    links: sankeyLinks as Link[]
-  })
+  // Run sankey layout with fallback on error
+  const { nodes, links } = useMemo(() => {
+    try {
+      const layout = sankeyGenerator({
+        nodes: sankeyNodes,
+        links: sankeyLinks as Link[]
+      })
+      return {
+        nodes: layout.nodes as unknown as Node[],
+        links: layout.links as unknown as Link[]
+      }
+    } catch {
+      // If layout fails (e.g. invalid array), return empty nodes/links
+      return { nodes: [], links: [] }
+    }
+  }, [sankeyGenerator, sankeyNodes, sankeyLinks])
 
   // Transform SankeyLinkMinimal to Link type
   const transformedLinks = links.map((link) => ({
-    source: (link.source as Node).id,
-    target: (link.target as Node).id,
+    source: (link.source as unknown as Node).id,
+    target: (link.target as unknown as Node).id,
     value: link.value
   }))
 
@@ -194,24 +199,6 @@ function SSMultipleSankeyDiagram({
       }
     })
   }, [nodes])
-
-  if (loading && inputs.size > 0) {
-    return (
-      <SSVStack itemsCenter style={{ justifyContent: 'center', flex: 1 }}>
-        <ActivityIndicator color={Colors.white} />
-      </SSVStack>
-    )
-  }
-
-  if (error) {
-    return (
-      <SSVStack itemsCenter>
-        <SSText color="muted">
-          Error loading transaction details: {error.message}
-        </SSText>
-      </SSVStack>
-    )
-  }
 
   if (!nodes?.length || !transformedLinks?.length) {
     return null
