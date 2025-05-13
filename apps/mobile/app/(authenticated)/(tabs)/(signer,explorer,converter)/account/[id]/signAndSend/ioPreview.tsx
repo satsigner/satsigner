@@ -431,30 +431,32 @@ export default function IOPreview() {
           }}
         >
           <SSVStack>
-            <TouchableOpacity
-              style={{
-                marginBottom: Layout.vStack.gap.sm
-              }}
-              onPress={handleLoadHistory}
-            >
-              <SSHStack gap="xs">
-                <SSHStack gap="xxs">
-                  <SSIconChevronLeft
-                    height={6}
-                    width={3}
-                    stroke={Colors.gray[300]}
-                  />
-                  <SSIconChevronLeft
-                    height={6}
-                    width={3}
-                    stroke={Colors.gray[300]}
-                  />
+            {!loadHistory && (
+              <TouchableOpacity
+                style={{
+                  marginBottom: Layout.vStack.gap.sm
+                }}
+                onPress={handleLoadHistory}
+              >
+                <SSHStack gap="xs">
+                  <SSHStack gap="xxs">
+                    <SSIconChevronLeft
+                      height={6}
+                      width={3}
+                      stroke={Colors.gray[300]}
+                    />
+                    <SSIconChevronLeft
+                      height={6}
+                      width={3}
+                      stroke={Colors.gray[300]}
+                    />
+                  </SSHStack>
+                  <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
+                    {t('transaction.loadHistory').toUpperCase()}
+                  </SSText>
                 </SSHStack>
-                <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
-                  {t('transaction.loadHistory').toUpperCase()}
-                </SSText>
-              </SSHStack>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            )}
             <SSHStack>
               <SSButton
                 variant="outline"

@@ -151,7 +151,7 @@ function SSMultipleSankeyDiagram({
     const translation = -(minX - w / 10)
 
     // Calculate the total diagram width (approximation)
-    const diagramWidth = 2000 * (maxDepthH / 11)
+    const diagramWidth = 2000 * (maxDepthH / 9)
 
     // Ensure the translation doesn't move the diagram too far off-screen
     // This prevents extreme translations that might make the diagram invisible
