@@ -9,6 +9,7 @@ import { useCallback } from 'react'
 
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { gray } from '@/styles/colors'
+import { logAttenuation } from '@/utils/math'
 
 interface Node {
   id: string
@@ -50,93 +51,69 @@ interface SSSankeyLinksProps {
   BLOCK_WIDTH: number
 }
 
-export const LINK_BLOCK_MAX_WIDTH = 16
-
 function SSSankeyLinks({
   links,
   nodes,
   sankeyGenerator,
-  LINK_MAX_WIDTH,
   BLOCK_WIDTH
 }: SSSankeyLinksProps) {
   const getLinkWidth = useCallback(
-    (sourceNode: Node, targetNode: Node, type: string) => {
-      // Helper function to get total incoming value for a block node
-      const getTotalIncomingValueForBlock = (blockNode: Node) => {
-        return links
-          .filter((link) => {
-            const targetNode = nodes.find((n) => n.id === link.target)
-            return targetNode?.id === blockNode.id
-          })
-          .reduce((sum, link) => sum + (link.value ?? 0), 0)
-      }
-
-      // Helper function to get total outgoing value from a block node
-      const getTotalOutgoingValueFromBlock = (blockNode: Node) => {
-        return links
-          .filter((link) => {
-            const sourceNode = nodes.find((n) => n.id === link.source)
-            return sourceNode?.id === blockNode.id
-          })
-          .reduce((sum, link) => sum + (link.value ?? 0), 0)
-      }
+    (sourceNode: Node, targetNode: Node, type: string): number => {
       const node = type === 'source' ? sourceNode : targetNode
 
-      if (node.type === 'block' && type === 'source') {
-        // For incoming connections to block, get value from the source node
-        const targetNodeSats = targetNode.value ?? 0
+      // Calculate total width from the block node
+      let totalWidthFromBlock = 0
+      if (node.type === 'block') {
+        const relevantLinks = links.filter((link) => {
+          if (type === 'source') {
+            return link.source === node.id
+          } else {
+            return link.target === node.id
+          }
+        })
 
-        const totalOutgoing = getTotalOutgoingValueFromBlock(node)
+        for (const link of relevantLinks) {
+          const currentSourceNode = nodes.find(
+            (n) => n.id === link.source
+          ) as Node
+          const currentTargetNode = nodes.find(
+            (n) => n.id === link.target
+          ) as Node
 
-        return (targetNodeSats / totalOutgoing) * LINK_BLOCK_MAX_WIDTH
-        // return (targetNodeSats / totalOutgoing) * LINK_BLOCK_MAX_WIDTH
-      } else if (node.type === 'block' && type === 'target') {
-        const sourceNodeSats = sourceNode.value ?? 0
-
-        const totalIncoming = getTotalIncomingValueForBlock(node)
-
-        return (sourceNodeSats / totalIncoming) * LINK_BLOCK_MAX_WIDTH
+          const otherNode =
+            type === 'source' ? currentTargetNode : currentSourceNode
+          const value = otherNode.value ?? 0
+          const linkWidth = logAttenuation(value)
+          totalWidthFromBlock += linkWidth
+        }
       }
+      if (type === 'source') {
+        if (node.type === 'block') {
+          const txWidth = logAttenuation(node.value ?? 0)
+          const targetWidth = logAttenuation(targetNode.value ?? 0)
 
-      // Get current node's sats
-      const nodeSats = node?.value ?? 0
-
-      // Determine if this node connects to a block node
-      const connectedBlockNode = nodes.find((n) => {
-        if (n.type !== 'block') return false
-
-        // Check if this node is connected to the block node
-        return links.some(
-          (link) =>
-            (link.source === node.id && link.target === n.id) ||
-            (link.source === n.id && link.target === node.id)
-        )
-      })
-
-      // Calculate width based on whether this node is sending to or receiving from the block
-      const isSourceToBlock = links.some(
-        (link) =>
-          link.source === node.id && link.target === connectedBlockNode?.id
-      )
-
-      let calculatedWidth
-      if (isSourceToBlock) {
-        // Node is sending to block - use total incoming value of block
-        const totalIncoming = connectedBlockNode
-          ? getTotalIncomingValueForBlock(connectedBlockNode)
-          : LINK_MAX_WIDTH
-        calculatedWidth = (nodeSats / totalIncoming) * LINK_MAX_WIDTH
-      } else {
-        // Node is receiving from block - use total outgoing value from block
-        const totalOutgoing = connectedBlockNode
-          ? getTotalOutgoingValueFromBlock(connectedBlockNode)
-          : LINK_MAX_WIDTH
-        calculatedWidth = (nodeSats / totalOutgoing) * LINK_MAX_WIDTH
+          const w = (targetWidth / totalWidthFromBlock) * txWidth
+          return w
+        } else if (node.type === 'text') {
+          const width = logAttenuation(node.value ?? 0)
+          return width
+        }
+      } else if (type === 'target') {
+        if (node.type === 'block') {
+          const value = sourceNode.value ?? 0
+          const txWidth = logAttenuation(node.value ?? 0)
+          const width = logAttenuation(value)
+          const w = (width / totalWidthFromBlock) * txWidth
+          return w
+          // return width
+        } else if (node.type === 'text') {
+          const width = logAttenuation(node.value ?? 0)
+          return width
+        }
       }
-
-      return calculatedWidth
+      return 0 // Add default return value to ensure number is always returned
     },
-    [links, nodes, LINK_MAX_WIDTH]
+    [links, nodes] // Add dependencies
   )
 
   // Add new helper functions to track cumulative heights
@@ -193,7 +170,6 @@ function SSSankeyLinks({
     },
     [links, nodes, getLinkWidth]
   )
-
   if (links.length === 0) return null
 
   return (
@@ -203,7 +179,7 @@ function SSSankeyLinks({
         const targetNode = nodes.find((n) => n.id === link.target) as Node
         const isUnspent = targetNode.ioData?.isUnspent
         const isRemainingBalance = targetNode.localId === 'remainingBalance'
-        const isMinerFee = targetNode.localId === 'minerFee'
+        const isCurrentTxMinerFee = targetNode.localId === 'current-minerFee'
         const maxDepthH = Math.max(...nodes.map((n) => n.depthH))
         const isCurrentTx =
           targetNode.depthH === maxDepthH - 1 ||
@@ -214,12 +190,12 @@ function SSSankeyLinks({
 
         const y1 =
           sourceNode.type === 'block'
-            ? getStackedYPosition(sourceNode, true, link)
+            ? getStackedYPosition(sourceNode, true, link)!
             : sourceNode.y1 ?? 0
 
         const y2 =
           targetNode.type === 'block'
-            ? getStackedYPosition(targetNode, false, link)
+            ? getStackedYPosition(targetNode, false, link)!
             : targetNode.y0 ?? 0
 
         const points: LinkPoints = {
@@ -240,6 +216,10 @@ function SSSankeyLinks({
         }
         const path1 = generateCustomLink(points)
 
+        if (targetNode.value === 0 && targetNode.depthH === maxDepthH) {
+          return null
+        }
+
         return (
           <Group key={index}>
             <Path
@@ -247,9 +227,9 @@ function SSSankeyLinks({
               path={path1}
               style="fill"
               color={isCurrentTx || isUnspent ? 'white' : gray[700]}
-              opacity={isCurrentTx || isUnspent ? 1 : 0.8}
+              opacity={isCurrentTx || isUnspent ? 1 : 0.5}
             >
-              {(isCurrentTx || isMinerFee) &&
+              {(isCurrentTx || isCurrentTxMinerFee) &&
               !isRemainingBalance &&
               !isUnspent ? (
                 <>

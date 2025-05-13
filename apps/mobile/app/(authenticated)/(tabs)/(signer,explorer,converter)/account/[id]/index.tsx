@@ -663,8 +663,11 @@ export default function AccountView() {
       state.fetchPrices
     ])
   )
-  const getBlockchainHeight = useBlockchainStore(
-    (state) => state.getBlockchainHeight
+  const [getBlockchainHeight, mempoolUrl] = useBlockchainStore(
+    useShallow((state) => [
+      state.getBlockchainHeight,
+      state.configsMempool['bitcoin']
+    ])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -797,7 +800,7 @@ export default function AccountView() {
 
   async function handleOnRefresh() {
     setRefreshing(true)
-    await fetchPrices()
+    await fetchPrices(mempoolUrl)
     await refreshBlockchainHeight()
     await refreshAccount()
     setRefreshing(false)
