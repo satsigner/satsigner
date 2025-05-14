@@ -87,7 +87,7 @@ export default function NetworkSettings() {
                 marginBottom: 20
               }}
             >
-              {tn('networkComparisonLink')}
+              {t('settings.network.networkComparisonLink')}
             </SSText>
           </TouchableOpacity>
           <SSVStack gap="lg">
@@ -160,7 +160,6 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-
                   <SSButton
                     label={tn('custom.add').toUpperCase()}
                     onPress={() => router.push(`./${network}`)}
