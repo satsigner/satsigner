@@ -66,7 +66,7 @@ export default function NetworkSettings() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,

@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -41,10 +41,7 @@ export default function NetworkSettings() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <ScrollView
-          style={{ marginBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack>
             <SSText size="lg">{tn('fullDescription')}</SSText>
             {networks.map((network) => (
@@ -66,6 +63,21 @@ export default function NetworkSettings() {
                 />
               </SSVStack>
             ))}
+            <TouchableOpacity
+              onPress={() => {
+                router.navigate('/settings/network/comparison')
+              }}
+            >
+              <SSText
+                color="muted"
+                style={{
+                  textDecorationLine: 'underline',
+                  marginBottom: 20
+                }}
+              >
+                {t('settings.network.networkComparisonLink')}
+              </SSText>
+            </TouchableOpacity>
           </SSVStack>
         </ScrollView>
         <SSVStack>
