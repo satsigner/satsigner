@@ -11,6 +11,7 @@ import { SATS_PER_BITCOIN } from '@/constants/btc'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { Colors, Sizes } from '@/styles'
 import { transparent } from '@/styles/colors'
@@ -36,6 +37,9 @@ export default function Converter() {
 
   const [prices, fetchFullPriceAt] = usePriceStore(
     useShallow((state) => [state.prices, state.fetchFullPriceAt])
+  )
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool['bitcoin']
   )
 
   const handleValueChange = useCallback(
@@ -73,8 +77,8 @@ export default function Converter() {
   useFocusEffect(
     useCallback(() => {
       const timestamp = Math.floor(date.setHours(0, 0, 0, 0) / 1000)
-      fetchFullPriceAt(timestamp)
-    }, [fetchFullPriceAt, date])
+      fetchFullPriceAt(mempoolUrl, timestamp)
+    }, [fetchFullPriceAt, date, mempoolUrl])
   )
 
   useFocusEffect(

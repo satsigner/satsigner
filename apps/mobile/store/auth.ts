@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN_MAX_TRIES,
+  DURESS_PIN_KEY,
   PIN_KEY
 } from '@/config/auth'
 import { getItem, setItem } from '@/storage/encrypted'
@@ -21,6 +22,7 @@ type AuthState = {
   pinMaxTries: number
   pageHistory: string[]
   skipPin: boolean
+  duressPinEnabled: boolean
   justUnlocked: boolean
 }
 
@@ -29,7 +31,9 @@ type AuthAction = {
   setRequiresAuth: (requiresAuth: boolean) => void
   setLockTriggered: (lockTriggered: boolean) => void
   setPin: (pin: string) => Promise<void>
+  setDuressPin: (pin: string) => Promise<void>
   setSkipPin: (skipPin: boolean) => void
+  setDuressPinEnabled: (duressPinEnabled: boolean) => void
   validatePin: (pin: string) => Promise<boolean>
   incrementPinTries: () => number
   resetPinTries: () => void
@@ -52,6 +56,7 @@ const useAuthStore = create<AuthState & AuthAction>()(
       pinMaxTries: DEFAULT_PIN_MAX_TRIES,
       pageHistory: [],
       skipPin: false,
+      duressPinEnabled: false,
       justUnlocked: false,
       setFirstTime: (firstTime: boolean) => {
         set({ firstTime })
@@ -66,8 +71,15 @@ const useAuthStore = create<AuthState & AuthAction>()(
         const hashedPin = await doubleShaEncrypt(pin)
         await setItem(PIN_KEY, hashedPin)
       },
+      setDuressPin: async (pin) => {
+        const hashedDuressPin = await doubleShaEncrypt(pin)
+        await setItem(DURESS_PIN_KEY, hashedDuressPin)
+      },
       setSkipPin(skipPin) {
         set({ skipPin })
+      },
+      setDuressPinEnabled(duressPinEnabled) {
+        set({ duressPinEnabled })
       },
       validatePin: async (pin) => {
         const hashedPin = await doubleShaEncrypt(pin)

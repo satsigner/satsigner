@@ -1,4 +1,5 @@
 const PIN_KEY = 'satsigner_pin'
+const DURESS_PIN_KEY = 'satsigner_duress_pin'
 const SALT_KEY = 'satsigner_salt'
 
 const DEFAULT_PIN = '2121'
@@ -12,6 +13,7 @@ export {
   DEFAULT_LOCK_DELTA_TIME_SECONDS,
   DEFAULT_PIN,
   DEFAULT_PIN_MAX_TRIES,
+  DURESS_PIN_KEY,
   PIN_KEY,
   PIN_SIZE,
   SALT_KEY,

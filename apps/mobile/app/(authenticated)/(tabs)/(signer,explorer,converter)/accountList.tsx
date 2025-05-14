@@ -46,13 +46,15 @@ export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
 
-  const [network, setSelectedNetwork, connectionMode] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.setSelectedNetwork,
-      state.configs[state.selectedNetwork].config.connectionMode
-    ])
-  )
+  const [network, setSelectedNetwork, connectionMode, mempoolUrl] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.setSelectedNetwork,
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configsMempool['bitcoin']
+      ])
+    )
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -134,8 +136,8 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (connectionMode === 'auto') fetchPrices()
-  }, [connectionMode, fetchPrices])
+    if (connectionMode === 'auto') fetchPrices(mempoolUrl)
+  }, [connectionMode, fetchPrices, mempoolUrl])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
