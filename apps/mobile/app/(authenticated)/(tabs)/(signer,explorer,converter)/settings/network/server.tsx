@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCloseThin } from '@/components/icons'
@@ -78,6 +78,21 @@ export default function NetworkSettings() {
           style={{ marginBottom: 24 }}
           showsVerticalScrollIndicator={false}
         >
+          <TouchableOpacity
+            onPress={() => {
+              router.navigate('/settings/network/comparison')
+            }}
+          >
+            <SSText
+              color="muted"
+              style={{
+                textDecorationLine: 'underline',
+                marginBottom: 10
+              }}
+            >
+              {tn('networkComparisonLink')}
+            </SSText>
+          </TouchableOpacity>
           <SSVStack gap="xl">
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
