@@ -559,7 +559,7 @@
     "network.comparison.simnet.useCase": "Local testing useful for working with BTCD and LN. Blocks mined by developer every 10 minutes in average.",
     "network.comparison.testnet3.description": "An operational public decentralized testing network. This instance was the primary testnet over a decade. However, vulnerabilities have harmed its usefulness.",
     "network.comparison.testnet3.title": "TestNet3",
-    "network.comparison.testnet3.useCase": "Testing network mimicking mainnet. Blocks mined by miners every 10 minutes (the actual time is unstable and unreliable)",
+    "network.comparison.testnet3.useCase": "Testing network mimicking mainnet. Blocks mined by miners every 10 minutes (the actual time is unstable and unreliable),",
     "network.comparison.testnet4.description": "An operational public decentralized testing network, meant to be the successor of Testnet3.",
     "network.comparison.testnet4.title": "TestNet4",
     "network.comparison.testnet4.useCase": "Testing network mimicking mainnet. Blocks mined by miners every 10 minutes in average (stable).",

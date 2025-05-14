@@ -35,7 +35,7 @@ export default function NetworksComparison() {
             <SSVStack>
               {networks.map((network) => (
                 <SSVStack key={network} gap="none">
-                  <SSText size="lg" weight="bold">
+                  <SSText uppercase weight="bold">
                     {tn(`${network}.title`)}
                   </SSText>
                   <SSText color="muted">{tn(`${network}.description`)}</SSText>
