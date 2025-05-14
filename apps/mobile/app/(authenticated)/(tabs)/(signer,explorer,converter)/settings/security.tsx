@@ -135,18 +135,30 @@ export default function Security() {
         visible={duressPinModalVisible}
         onClose={() => setDuressPinModalVisible(false)}
       >
-        <SSVStack style={styles.duressPinModalContainer}>
+        <SSVStack
+          style={styles.duressPinModalContainer}
+          itemsCenter
+          justifyBetween
+        >
           <SSHStack>
-            <SSIconWarning height={16} width={16} />
-            <SSText uppercase weight="bold" size="lg">
+            <SSIconWarning height={30} width={30} />
+            <SSText uppercase weight="bold" size="4xl">
               {t('common.warning')}
             </SSText>
-            <SSIconWarning height={16} width={16} />
+            <SSIconWarning height={30} width={30} />
           </SSHStack>
-          <SSText>{tn('duressPinText1')}</SSText>
-          <SSText weight="bold">{tn('duressPinText2')}</SSText>
-          <SSText weight="bold">{tn('duressPinText3')}</SSText>
-          <SSText weight="bold">{tn('duressPinText3')}</SSText>
+          <SSVStack>
+            <SSText size="lg">{tn('duressPinText1')}</SSText>
+            <SSText size="lg" weight="bold">
+              {tn('duressPinText2')}
+            </SSText>
+            <SSText size="lg" weight="bold">
+              {tn('duressPinText3')}
+            </SSText>
+            <SSText size="lg" weight="bold">
+              {tn('duressPinText4')}
+            </SSText>
+          </SSVStack>
           <SSButton
             label={tn('duressPin')}
             onPress={goSetDuressPin}
@@ -162,7 +174,9 @@ export default function Security() {
 const styles = StyleSheet.create({
   duressPinModalContainer: {
     flex: 1,
-    height: '100%'
+    flexGrow: 1,
+    height: '100%',
+    width: '100%'
   },
   duressPinModalBtn: {
     width: '100%'
