@@ -46,26 +46,24 @@ export default function SetPin() {
     confirmationPinArray.findIndex((text) => text === '') === -1
   const pinsMatch = pinArray.join('') === confirmationPinArray.join('')
 
-  async function setPin(pin: string) {
+  async function setPin(pin: string): Promise<boolean> {
     const salt = await getItem(SALT_KEY)
     const encryptedPin = await getItem(PIN_KEY)
     if (!salt || !encryptedPin) {
       toast.error('Normal PIN must be set before setting Duress PIN')
-      return
+      return false
     }
     const encryptedDuressPin = await pbkdf2Encrypt(pin, salt)
     if (encryptedPin === encryptedDuressPin) {
       toast.error(t('auth.pinMatchDuressPin'))
       handleGoBack()
-      return
+      return false
     }
     await setItem(DURESS_PIN_KEY, encryptedDuressPin)
+    return true
   }
 
   async function handleSetPinLater() {
-    setFirstTime(false)
-    await setPin(DEFAULT_PIN)
-
     if (showWarning) router.push('./warning')
     else router.replace('/')
   }
@@ -84,9 +82,12 @@ export default function SetPin() {
 
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) return
+
     setLoading(true)
-    await setPin(pinArray.join(''))
+    const isPinSet = await setPin(pinArray.join(''))
     setLoading(false)
+
+    if (!isPinSet) return
 
     if (showWarning) router.push('./warning')
     else router.replace('/')
@@ -161,7 +162,7 @@ export default function SetPin() {
           )}
           {stage === 'set' && !pinFilled && (
             <SSButton
-              label={t('auth.setPinLater')}
+              label={t('auth.setDuressPinLater')}
               variant="ghost"
               onPress={() => handleSetPinLater()}
             />
