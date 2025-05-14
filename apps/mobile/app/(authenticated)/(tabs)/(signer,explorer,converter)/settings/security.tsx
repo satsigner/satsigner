@@ -1,10 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
+import SSModal from '@/components/SSModal'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import {
@@ -44,11 +46,17 @@ export default function Security() {
   const [localDuressPinEnabled, setLocalDuressPinEnabled] =
     useState(duressPinEnabled)
 
+  const [duressPinModalVisible, setDuressPinModalVisible] = useState(false)
+
   function handleOnSave() {
     setPinMaxTries(localPinMaxTries)
     setSkipSeedConfirmation(localSkipSeedWordConfirmation)
     setDuressPinEnabled(localDuressPinEnabled)
     router.back()
+  }
+
+  function goSetDuressPin() {
+    router.navigate('/setDuressPin')
   }
 
   return (
@@ -105,9 +113,7 @@ export default function Security() {
             <SSVStack>
               <SSButton
                 label={tn('duressPin')}
-                onPress={() => {
-                  router.navigate('/setDuressPin')
-                }}
+                onPress={() => setDuressPinModalVisible(true)}
               />
             </SSVStack>
           </SSVStack>
@@ -125,6 +131,40 @@ export default function Security() {
           />
         </SSVStack>
       </SSVStack>
+      <SSModal
+        visible={duressPinModalVisible}
+        onClose={() => setDuressPinModalVisible(false)}
+      >
+        <SSVStack style={styles.duressPinModalContainer}>
+          <SSHStack>
+            <SSIconWarning height={16} width={16} />
+            <SSText uppercase weight="bold" size="lg">
+              {t('common.warning')}
+            </SSText>
+            <SSIconWarning height={16} width={16} />
+          </SSHStack>
+          <SSText>{tn('duressPinText1')}</SSText>
+          <SSText weight="bold">{tn('duressPinText2')}</SSText>
+          <SSText weight="bold">{tn('duressPinText3')}</SSText>
+          <SSText weight="bold">{tn('duressPinText3')}</SSText>
+          <SSButton
+            label={tn('duressPin')}
+            onPress={goSetDuressPin}
+            variant="secondary"
+            style={styles.duressPinModalBtn}
+          />
+        </SSVStack>
+      </SSModal>
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  duressPinModalContainer: {
+    flex: 1,
+    height: '100%'
+  },
+  duressPinModalBtn: {
+    width: '100%'
+  }
+})
