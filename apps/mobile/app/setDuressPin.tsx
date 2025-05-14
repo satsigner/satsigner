@@ -8,7 +8,13 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import { DEFAULT_PIN, DURESS_PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import {
+  DEFAULT_PIN,
+  DURESS_PIN_KEY,
+  PIN_KEY,
+  PIN_SIZE,
+  SALT_KEY,
+} from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -42,12 +48,18 @@ export default function SetPin() {
 
   async function setPin(pin: string) {
     const salt = await getItem(SALT_KEY)
-    if (!salt) {
+    const encryptedPin = await getItem(PIN_KEY)
+    if (!salt || !encryptedPin) {
       toast.error('Normal PIN must be set before setting Duress PIN')
       return
     }
-    const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    await setItem(DURESS_PIN_KEY, encryptedPin)
+    const encryptedDuressPin = await pbkdf2Encrypt(pin, salt)
+    if (encryptedPin === encryptedDuressPin) {
+      toast.error(t('auth.pinMatchDuressPin'))
+      handleGoBack()
+      return
+    }
+    await setItem(DURESS_PIN_KEY, encryptedDuressPin)
   }
 
   async function handleSetPinLater() {

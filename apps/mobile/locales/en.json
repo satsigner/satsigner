@@ -171,6 +171,7 @@
     "reenterPinTitle": "Re-enter your\npin number",
     "setDuressPin": "Set duress pin number",
     "setDuressPinTitle": "Set duress pin number\nwhich erases all accounts",
+    "pinMatchDuressPin": "PIN and Duress PIN must be different!",
     "setPin": "Set pin number",
     "setPinLater": "Set pin later",
     "setPinTitle": "Set pin number to\nenter the app",
