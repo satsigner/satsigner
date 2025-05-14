@@ -21,7 +21,9 @@ export default function Unlock() {
     incrementPinTries,
     setFirstTime,
     setRequiresAuth,
-    setJustUnlocked
+    setJustUnlocked,
+    duressPinEnabled,
+    setDuressPinEnabled
   ] = useAuthStore(
     useShallow((state) => [
       state.setLockTriggered,
@@ -29,7 +31,9 @@ export default function Unlock() {
       state.incrementPinTries,
       state.setFirstTime,
       state.setRequiresAuth,
-      state.setJustUnlocked
+      state.setJustUnlocked,
+      state.duressPinEnabled,
+      state.setDuressPinEnabled
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
@@ -61,15 +65,16 @@ export default function Unlock() {
       encryptedPin === storedEncryptedPin ||
       encryptedPin === storedEncryptedDuressPin
 
-    if (encryptedPin === storedEncryptedDuressPin) {
+    if (encryptedPin === storedEncryptedDuressPin && duressPinEnabled) {
       deleteAccounts()
       deleteWallets()
       deleteTags()
 
       // delete evidence there existed a duress pin,
       // acting as if the duress pin was the true pin
-      deleteItem(DURESS_PIN_KEY)
-      setItem(PIN_KEY, storedEncryptedDuressPin)
+      setDuressPinEnabled(false)
+      await deleteItem(DURESS_PIN_KEY)
+      await setItem(PIN_KEY, storedEncryptedDuressPin)
     }
 
     if (isPinValid) {

@@ -22,9 +22,15 @@ const tn = _tn('settings.security')
 
 export default function Security() {
   const router = useRouter()
-  const [pinMaxTries, setPinMaxTries] = useAuthStore(
-    useShallow((state) => [state.pinMaxTries, state.setPinMaxTries])
-  )
+  const [pinMaxTries, setPinMaxTries, duressPinEnabled, setDuressPinEnabled] =
+    useAuthStore(
+      useShallow((state) => [
+        state.pinMaxTries,
+        state.setPinMaxTries,
+        state.duressPinEnabled,
+        state.setDuressPinEnabled
+      ])
+    )
   const [skipSeedConfirmation, setSkipSeedConfirmation] = useSettingsStore(
     useShallow((state) => [
       state.skipSeedConfirmation,
@@ -35,10 +41,13 @@ export default function Security() {
   const [localPinMaxTries, setLocalPinMaxTries] = useState(pinMaxTries)
   const [localSkipSeedWordConfirmation, setLocalSkipSeedWordConfirmation] =
     useState(skipSeedConfirmation)
+  const [localDuressPinEnabled, setLocalDuressPinEnabled] =
+    useState(duressPinEnabled)
 
   function handleOnSave() {
     setPinMaxTries(localPinMaxTries)
     setSkipSeedConfirmation(localSkipSeedWordConfirmation)
+    setDuressPinEnabled(localDuressPinEnabled)
     router.back()
   }
 
@@ -81,6 +90,15 @@ export default function Security() {
                   setLocalSkipSeedWordConfirmation(
                     !localSkipSeedWordConfirmation
                   )
+                }}
+              />
+            </SSVStack>
+            <SSVStack>
+              <SSCheckbox
+                label={tn('duressPinEnabled')}
+                selected={localDuressPinEnabled}
+                onPress={() => {
+                  setLocalDuressPinEnabled(!localDuressPinEnabled)
                 }}
               />
             </SSVStack>
