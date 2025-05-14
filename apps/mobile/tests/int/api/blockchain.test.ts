@@ -5,7 +5,9 @@ import {
   TxPriority
 } from '@/types/models/Blockchain'
 
-const mempoolspace: BlockchainOracle = new MempoolOracle()
+const mempoolspace: BlockchainOracle = new MempoolOracle(
+  'https://mempool.space/api'
+)
 
 describe('Blockchain » price', () => {
   it('get price at given currency', async () => {

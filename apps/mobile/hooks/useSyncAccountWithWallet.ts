@@ -16,11 +16,12 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 function useSyncAccountWithWallet() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
 
-  const { selectedNetwork, configs } = useBlockchainStore(
-    useShallow((state) => ({
-      selectedNetwork: state.selectedNetwork,
-      configs: state.configs
-    }))
+  const [selectedNetwork, configs, configsMempol] = useBlockchainStore(
+    useShallow((state) => [
+      state.selectedNetwork,
+      state.configs,
+      state.configsMempool
+    ])
   )
   const { server, config } = configs[selectedNetwork]
 
@@ -88,8 +89,10 @@ function useSyncAccountWithWallet() {
         .filter((transaction) => transaction.timestamp)
         .map((transaction) => formatTimestamp(transaction.timestamp!))
 
-      //Fetch Prices
-      const oracle = new MempoolOracle()
+      // Fetch Prices
+      const network = 'bitcoin' // always use mainnet when fetching prices
+      const mempoolUrl = configsMempol[network]
+      const oracle = new MempoolOracle(mempoolUrl)
       const prices = await oracle.getPricesAt('USD', timestamps)
 
       //Transaction prices update

@@ -7,6 +7,8 @@ import { formatDate, formatRelativeTime } from '@/utils/date'
 import { formatAddress, formatTxId } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
+import type { ExtendedTransaction } from './useInputTransactions'
+
 export interface TxNode {
   localId?: string
   id: string
@@ -41,32 +43,32 @@ type Link = {
   value: number | undefined
 }
 
-type Transaction = {
-  txid: string
-  size: number
-  weight: number
-  vin: {
-    txid: string
-    vout: number
-    prevout: {
-      scriptpubkey_address: string
-      value: number
-    }
-    indexV?: number
-    label?: string
-  }[]
-  vout?: {
-    scriptpubkey_address: string
-    value: number
-    indexV?: number
-    vout?: number
-  }[]
-  depthH: number
-  status: { block_height?: number; block_time?: number }
-}
+// type Transaction = {
+//   txid: string
+//   size: number
+//   weight: number
+//   vin: {
+//     txid: string
+//     vout: number
+//     prevout: {
+//       scriptpubkey_address: string
+//       value: number
+//     }
+//     indexV?: number
+//     label?: string
+//   }[]
+//   vout?: {
+//     scriptpubkey_address: string
+//     value: number
+//     indexV?: number
+//     vout?: number
+//   }[]
+//   depthH: number
+//   status: { block_height?: number; block_time?: number }
+// }
 
 type UseNodesAndLinksProps = {
-  transactions: Map<string, Transaction>
+  transactions: Map<string, ExtendedTransaction>
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
@@ -78,26 +80,12 @@ export const useNodesAndLinks = ({
   outputs,
   feeRate
 }: UseNodesAndLinksProps) => {
-  // Ensure all transaction outputs have the vout property set
-  Array.from(transactions.values()).forEach((tx) => {
-    if (tx.vout) {
-      tx.vout.forEach((output, idx) => {
-        if (output.vout === undefined) {
-          output.vout = idx
-        }
-        if (output.indexV === undefined) {
-          output.indexV = idx
-        }
-      })
-    }
-  })
-
   const maxExistingDepth =
     transactions.size > 0
       ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
       : 0
-  const ingoingNodes = useMemo(() => {
-    if (inputs.size > 0) {
+  const outputNodesCurrentTransaction = useMemo(() => {
+    if (inputs.size > 0 && transactions.size > 0) {
       const blockDepth = maxExistingDepth + 2
 
       const { size, vsize } = estimateTransactionSize(
@@ -159,7 +147,7 @@ export const useNodesAndLinks = ({
 
       // Add mining fee node
       outputNodes.push({
-        id: `vout-${blockDepth + 1}-0}`,
+        id: `vout-${blockDepth + 1}-0`,
         type: 'text',
         depthH: blockDepth + 1,
         value: minerFee,
@@ -171,7 +159,7 @@ export const useNodesAndLinks = ({
         },
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
-        localId: 'minerFee'
+        localId: 'current-minerFee'
       })
 
       return [
@@ -180,14 +168,14 @@ export const useNodesAndLinks = ({
           id: `block-${blockDepth}-0`,
           type: 'block',
           depthH: blockDepth,
-          value: 0,
+          value: totalOutputValue - minerFee,
           ioData: {
             blockHeight: '',
             blockRelativeTime: '',
             blockTime: '',
             txSize: size,
             vSize: vsize,
-            value: 0
+            value: totalOutputValue - minerFee
           },
           indexV: 0
         } as TxNode,
@@ -196,23 +184,33 @@ export const useNodesAndLinks = ({
     } else {
       return []
     }
-  }, [inputs, maxExistingDepth, outputs, feeRate])
+  }, [inputs, transactions.size, maxExistingDepth, outputs, feeRate])
 
-  const outputAddresses = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout?.map((output) => output.scriptpubkey_address) ?? []
-  )
-  const outputValues = Array.from(transactions.values()).flatMap(
-    (tx) => tx.vout?.map((output) => output.value) ?? []
-  )
+  const outputAddresses = useMemo(() => {
+    if (transactions.size === 0) return []
+    return Array.from(transactions.values()).flatMap(
+      (tx) => tx.vout?.map((output) => output.address) ?? []
+    )
+  }, [transactions])
 
-  const incomingAndOutgoingVinTxId = Array.from(transactions.values()).flatMap(
-    (tx) =>
-      tx.vin.map((input) => ({
-        txid: tx.txid,
-        inputTxId: input.txid,
-        vout: input.vout,
-        prevValue: input.prevout?.value
-      }))
+  const outputValues = useMemo(() => {
+    if (transactions.size === 0) return []
+    return Array.from(transactions.values()).flatMap(
+      (tx) => tx.vout?.map((output) => output.value) ?? []
+    )
+  }, [transactions])
+
+  const incomingAndOutgoingVinTxId = useMemo(
+    () =>
+      Array.from(transactions.values()).flatMap((tx) =>
+        tx.vin.map((input) => ({
+          txid: tx.id,
+          inputTxId: input.previousOutput.txid,
+          vout: input.previousOutput.vout,
+          prevValue: input.value
+        }))
+      ),
+    [transactions]
   )
 
   const previousConfirmedNodes: TxNode[] = useMemo(() => {
@@ -223,11 +221,22 @@ export const useNodesAndLinks = ({
         ([, tx]) => {
           if (!tx.vin || !tx.vout) return []
 
+          // Calculate total input and output values for *this* transaction
+          const totalInputValue = tx.vin.reduce(
+            (sum, input) => sum + (input.value ?? 0),
+            0
+          )
+          const totalOutputValue = tx.vout.reduce(
+            (sum, output) => sum + (output.value ?? 0),
+            0
+          )
+          const minerFee = totalInputValue - totalOutputValue
+
           const allInputNodes = tx.vin.reduce((nodes, input) => {
             // Only process inputs that pass the filter condition
             if (
-              outputAddresses.includes(input.prevout.scriptpubkey_address) &&
-              outputValues.includes(input.prevout.value)
+              outputAddresses.includes(input.address) &&
+              outputValues.includes(input.value ?? 0)
             ) {
               return nodes
             }
@@ -237,42 +246,41 @@ export const useNodesAndLinks = ({
             const currentIndex = depthIndices.get(depthH) || 0
             depthIndices.set(depthH, currentIndex + 1)
 
-            // Set the indexV property if not already set
-            if (input.indexV === undefined) {
-              input.indexV = currentIndex
-            }
-
+            // // Set the indexV property if not already set
+            // if (input.indexV === undefined) {
+            //   input.indexV = currentIndex
+            // }
             const node = {
               id: `vin-${depthH}-${currentIndex}`,
               type: 'text',
               depthH,
               ioData: {
-                value: input.prevout.value,
-                address: `${formatAddress(input.prevout.scriptpubkey_address, 4)}`,
+                value: input.value,
+                address: `${formatAddress(input.address, 4)}`,
                 label: `${input.label ?? ''}`,
-                txId: tx.txid,
+                txId: tx.id,
                 text: t('common.from')
               },
-              value: input.prevout.value,
-              txId: tx.txid,
-              prevout: input.prevout,
-              indexV: input.indexV,
-              vout: input.vout
+              value: input.value,
+              txId: tx.id,
+              prevout: input.previousOutput,
+              vout: input.previousOutput.vout
             }
 
             nodes.push(node)
             return nodes
           }, [] as any[])
 
-          const vsize = Math.ceil(tx.weight * 0.25)
+          const vsize = Math.ceil((tx?.weight ?? 0) * 0.25)
           const blockDepth = tx.depthH
           const blockIndex = blockDepthIndices.get(blockDepth) || 0
-          const blockHeight = `${tx.status.block_height}`
-          const blockRelativeTime = formatRelativeTime(tx.status.block_time)
-          const blockTime = formatDate(tx.status.block_time)
+          const blockHeight = `${tx.blockHeight}`
+          const blockRelativeTime = formatRelativeTime(
+            tx.timestamp?.getTime() ?? 0
+          )
+          const blockTime = formatDate(tx.timestamp?.getTime() ?? 0)
 
           blockDepthIndices.set(blockDepth, blockIndex + 1)
-
           const blockNode = [
             {
               id: `block-${blockDepth}-${blockIndex}`,
@@ -284,9 +292,9 @@ export const useNodesAndLinks = ({
                 blockRelativeTime,
                 txSize: tx.size,
                 vSize: vsize,
-                txId: formatTxId(tx?.txid, 6)
+                txId: formatTxId(tx?.id, 6)
               },
-              txId: tx.txid,
+              txId: tx.id,
               indexV: blockIndex
             }
           ]
@@ -294,51 +302,72 @@ export const useNodesAndLinks = ({
           const outputNodes = tx.vout.map((output, idx) => {
             const outputDepth = tx.depthH + 1
 
-            // Set the vout property to the array index if not already set
-            if (output.vout === undefined) {
-              output.vout = idx
-            }
-
             // Find transactions that use this output as an input
             const nextTx =
               incomingAndOutgoingVinTxId.find(
                 (vinTx) =>
-                  vinTx.inputTxId === tx.txid &&
-                  vinTx.vout === output.vout &&
+                  vinTx.inputTxId === tx.id &&
+                  vinTx.vout === idx &&
                   vinTx.prevValue === output.value
               )?.txid || ''
 
             const label =
               Array.from(inputs.values()).find(
                 (input) =>
-                  input.vout === output.vout &&
+                  input.vout === idx &&
                   input.value === output.value &&
-                  input.addressTo === output.scriptpubkey_address
+                  input.addressTo === output.address
               )?.label ?? ''
 
             const node = {
               localId: undefined,
-              id: `vout-${outputDepth}-${output.indexV}`,
+              id: `vout-${outputDepth}-${output.index}`,
               type: 'text',
               depthH: outputDepth,
               ioData: {
                 label,
-                address: formatAddress(output.scriptpubkey_address, 4),
+                address: formatAddress(output.address, 4),
                 value: output.value,
                 text: t('common.from')
               },
               value: output.value,
-              txId: tx.txid,
+              txId: tx.id,
               nextTx,
-              indexV: output.indexV,
-              vout: output.vout
+              vout: idx
             }
             return node
           })
 
-          return [...allInputNodes, ...blockNode, ...outputNodes].sort(
-            (a, b) => a.depthH - b.depthH
-          )
+          // Create miner fee node if applicable
+          const feeNode: TxNode[] = []
+          if (minerFee > 0) {
+            const feeOutputDepth = tx.depthH + 1
+            // Use vout length as index, similar to outputNodesCurrentTransaction fee calculation
+            const feeVoutIndex = tx.vout.length
+            const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
+            feeNode.push({
+              id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
+              type: 'text',
+              depthH: feeOutputDepth,
+              value: minerFee,
+              txId: tx.id,
+              vout: feeVoutIndex,
+              ioData: {
+                feeRate: minerFeeRate,
+                value: minerFee,
+                minerFee,
+                text: t('transaction.build.minerFee')
+              },
+              localId: 'past-minerFee'
+            })
+          }
+
+          return [
+            ...allInputNodes,
+            ...blockNode,
+            ...outputNodes,
+            ...feeNode
+          ].sort((a, b) => a.depthH - b.depthH)
         }
       )
 
@@ -353,9 +382,10 @@ export const useNodesAndLinks = ({
     transactions
   ])
 
-  const nodes = [...previousConfirmedNodes, ...ingoingNodes].sort(
-    (a, b) => a.depthH - b.depthH
-  )
+  const nodes = [
+    ...previousConfirmedNodes,
+    ...outputNodesCurrentTransaction
+  ].sort((a, b) => a.depthH - b.depthH)
 
   const links = useMemo(() => {
     function generateSankeyLinks(nodes: TxNode[]) {
@@ -390,6 +420,7 @@ export const useNodesAndLinks = ({
           const vouts = nextDepthNodes.filter(
             (n: TxNode) => n.type === 'text' && n.txId === node.txId
           )
+
           vouts.forEach((vout: TxNode) => {
             links.push({ source: node.id, target: vout.id, value: vout.value })
           })
@@ -416,7 +447,7 @@ export const useNodesAndLinks = ({
             .includes(node?.vout ?? 0)
         ) {
           // vout node that has input selected by users
-          const targetBlock = ingoingNodes[0].id
+          const targetBlock = outputNodesCurrentTransaction[0].id
           if (targetBlock) {
             links.push({
               source: node.id,
@@ -441,9 +472,9 @@ export const useNodesAndLinks = ({
         }
       })
 
-      ingoingNodes.slice(1).map((node) => {
+      outputNodesCurrentTransaction.slice(1).map((node) => {
         links.push({
-          source: ingoingNodes[0].id,
+          source: outputNodesCurrentTransaction[0].id,
           target: node.id,
           value: node.value ?? 0
         })
@@ -454,6 +485,12 @@ export const useNodesAndLinks = ({
     if (nodes?.length === 0) return []
 
     return generateSankeyLinks(previousConfirmedNodes)
-  }, [nodes?.length, previousConfirmedNodes, ingoingNodes, inputs])
+  }, [
+    nodes?.length,
+    previousConfirmedNodes,
+    outputNodesCurrentTransaction,
+    inputs
+  ])
+  if (transactions.size === 0) return { nodes: [], links: [] }
   return { nodes, links }
 }

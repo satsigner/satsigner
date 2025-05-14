@@ -72,6 +72,8 @@ export default function Confirm() {
     useState(false)
   const [warningModalVisible, setWarningModalVisible] = useState(false)
   const [skipModalVisible, setSkipModalVisible] = useState(false)
+  const [localMnemonicWordCount, setLocalMnemonicWordCount] =
+    useState(mnemonicWordCount)
 
   function handleOnPressSkip() {
     setSkipModalVisible(true)
@@ -117,6 +119,7 @@ export default function Confirm() {
       setLoadingAccount(false)
       router.dismiss(Number(index) + 3)
     }
+    setLocalMnemonicWordCount(mnemonicWordCount)
     clearKeyState()
   }
 
@@ -202,12 +205,12 @@ export default function Confirm() {
         visible={warningModalVisible}
         onClose={handleCloseWordsWarning}
       >
-        <SSVStack itemsCenter>
+        <SSVStack itemsCenter style={{ marginBottom: 20 }}>
           <SSHStack>
             <SSIconCheckCircle height={30} width={30} />
             <SSText size="3xl">
-              {mnemonicWordCount} {t('common.of').toLowerCase()}{' '}
-              {mnemonicWordCount}
+              {localMnemonicWordCount} {t('common.of').toLowerCase()}{' '}
+              {localMnemonicWordCount}
             </SSText>
           </SSHStack>
           <SSText uppercase center>
@@ -239,7 +242,7 @@ export default function Confirm() {
           <SSHStack>
             <SSIconWarning height={22} width={22} />
             <SSText uppercase size="xl" weight="bold">
-              Warning
+              {t('common.warning')}
             </SSText>
             <SSIconWarning height={22} width={22} />
           </SSHStack>

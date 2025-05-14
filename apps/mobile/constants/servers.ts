@@ -1,4 +1,4 @@
-import type { Server } from '@/types/settings/blockchain'
+import type { Network, Server } from '@/types/settings/blockchain'
 
 export const servers: Server[] = [
   {
@@ -94,3 +94,9 @@ export const servers: Server[] = [
     url: 'https://mutinynet.com/api'
   }
 ]
+
+export const MempoolServers: Record<Network, Server['url']> = {
+  bitcoin: 'https://mempool.space/api',
+  testnet: 'https://mempool.space/testnet4/api',
+  signet: 'https://mempool.space/signet/api'
+}
