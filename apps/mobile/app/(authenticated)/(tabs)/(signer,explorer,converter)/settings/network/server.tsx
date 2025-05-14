@@ -73,11 +73,8 @@ export default function NetworkSettings() {
           headerRight: undefined
         }}
       />
-      <SSVStack gap="lg" justifyBetween>
-        <ScrollView
-          style={{ marginBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
+      <SSVStack gap="md" justifyBetween>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <TouchableOpacity
             onPress={() => {
               router.navigate('/settings/network/comparison')
@@ -87,17 +84,19 @@ export default function NetworkSettings() {
               color="muted"
               style={{
                 textDecorationLine: 'underline',
-                marginBottom: 10
+                marginBottom: 20
               }}
             >
               {tn('networkComparisonLink')}
             </SSText>
           </TouchableOpacity>
-          <SSVStack gap="xl">
+          <SSVStack gap="lg">
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
                 <SSVStack gap="none">
-                  <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
+                  <SSText uppercase weight="bold" size="xl">
+                    {t(`bitcoin.network.${network}`)}
+                  </SSText>
                   <SSText color="muted">{tn(`type.${network}`)}</SSText>
                 </SSVStack>
                 <SSVStack gap="md">
@@ -161,12 +160,11 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSVStack style={{ marginTop: 20 }}>
-                    <SSButton
-                      label={tn('custom.add').toUpperCase()}
-                      onPress={() => router.push(`./${network}`)}
-                    />
-                  </SSVStack>
+
+                  <SSButton
+                    label={tn('custom.add').toUpperCase()}
+                    onPress={() => router.push(`./${network}`)}
+                  />
                 </SSVStack>
               </SSVStack>
             ))}
