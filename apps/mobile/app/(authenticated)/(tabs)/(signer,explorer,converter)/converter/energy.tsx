@@ -25,6 +25,11 @@ const tn = _tn('converter.energy')
 const BTC_UNIT = 'BTC'
 const BLOCK_SIZE_UNIT = 'MB'
 
+type Scalar = number | string | boolean
+type RpcRequestBody = {
+  [key: string]: Scalar | Scalar[] | RpcRequestBody | RpcRequestBody[]
+}
+
 // Configure networks
 const networks = {
   mainnet: bitcoin.networks.bitcoin,
@@ -78,7 +83,7 @@ export default function Energy() {
   const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const fetchRpc = useCallback(
-    (requestBody: Record<string, any>) => {
+    (requestBody: RpcRequestBody) => {
       const credentials = `${rpcUser}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
       const authorization = `Basic ${credentialsBase64}`
