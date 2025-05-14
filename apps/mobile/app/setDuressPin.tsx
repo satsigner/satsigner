@@ -8,13 +8,7 @@ import { SSIconCheckCircleThin, SSIconCircleXThin } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSPinInput from '@/components/SSPinInput'
 import SSText from '@/components/SSText'
-import {
-  DEFAULT_PIN,
-  DURESS_PIN_KEY,
-  PIN_KEY,
-  PIN_SIZE,
-  SALT_KEY,
-} from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
