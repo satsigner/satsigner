@@ -53,7 +53,9 @@ export default function NetworksComparison() {
             </SSVStack>
             <SSHStack gap="sm">
               <SSIconInfo height={16} width={16} />
-              <SSText size="xs"  style={{ flexShrink: 1 }}>{tn('testnetInfo')}</SSText>
+              <SSText size="xs" style={{ flexShrink: 1 }}>
+                {tn('testnetInfo')}
+              </SSText>
             </SSHStack>
             <SSButton
               label={t('common.close').toUpperCase()}
