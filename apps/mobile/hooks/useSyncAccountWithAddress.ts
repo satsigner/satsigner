@@ -30,10 +30,10 @@ function useSyncAccountWithAddress() {
     ])
   )
 
-  const [backend, network, url] = useBlockchainStore(
+  const [backend, network, url, configsMempol] = useBlockchainStore(
     useShallow((state) => {
       const { server } = state.configs[state.selectedNetwork]
-      return [server.backend, server.network, server.url]
+      return [server.backend, server.network, server.url, state.configsMempool]
     })
   )
 
@@ -422,8 +422,9 @@ function useSyncAccountWithAddress() {
         totalTasks: (addrInfo.progress?.totalTasks || 0) + timestamps.length
       }
 
-      // fetch prices
-      const oracle = new MempoolOracle()
+      //Fetch Prices
+      const mempoolUrl = configsMempol['bitcoin']
+      const oracle = new MempoolOracle(mempoolUrl)
       const prices = await oracle.getPricesAt('USD', timestamps)
 
       // update prices

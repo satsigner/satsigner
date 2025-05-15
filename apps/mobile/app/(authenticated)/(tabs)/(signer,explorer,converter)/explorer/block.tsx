@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 
 import { MempoolOracle } from '@/api/blockchain'
@@ -13,12 +13,19 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Block } from '@/types/models/Blockchain'
 
-const oracle = new MempoolOracle()
-
 function ExplorerBlock() {
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool['bitcoin']
+  )
+  const mempoolOracle = useMemo(
+    () => new MempoolOracle(mempoolUrl),
+    [mempoolUrl]
+  )
+
   const [inputHeight, setInputHeight] = useState('1')
   const [loading, setLoading] = useState(false)
   const [maxBlockHeight, setMaxBlockHeight] = useState(890_000)
@@ -40,7 +47,7 @@ function ExplorerBlock() {
   async function fetchBlock() {
     setLoading(true)
     try {
-      const block = await oracle.getBlockAtHeight(Number(inputHeight))
+      const block = await mempoolOracle.getBlockAtHeight(Number(inputHeight))
       setBlock(block)
       setInputHeight(block.height.toString())
     } catch {
@@ -51,8 +58,8 @@ function ExplorerBlock() {
   }
 
   async function fetchLatestBlock() {
-    const tipHash = await oracle.getCurrentBlockHash()
-    const block = await oracle.getBlock(tipHash)
+    const tipHash = await mempoolOracle.getCurrentBlockHash()
+    const block = await mempoolOracle.getBlock(tipHash)
     setBlock(block)
     setMaxBlockHeight(block.height)
     setInputHeight(block.height.toString())
