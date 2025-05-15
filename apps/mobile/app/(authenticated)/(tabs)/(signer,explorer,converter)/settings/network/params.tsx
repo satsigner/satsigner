@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSNumberInput from '@/components/SSNumberInput'
@@ -12,7 +13,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Config, type Network } from '@/types/settings/blockchain'
-import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 
 const tn = _tn('settings.network.config')
 
