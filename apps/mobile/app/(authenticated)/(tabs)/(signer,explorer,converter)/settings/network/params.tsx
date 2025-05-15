@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -12,6 +12,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Config, type Network } from '@/types/settings/blockchain'
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 
 const tn = _tn('settings.network.config')
 
@@ -60,24 +61,10 @@ export default function NetworkSettings() {
       />
       <SSVStack gap="lg" justifyBetween>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <TouchableOpacity
-            onPress={() => {
-              router.navigate('/settings/network/comparison')
-            }}
-          >
-            <SSText
-              color="muted"
-              style={{
-                textDecorationLine: 'underline',
-                marginBottom: 20
-              }}
-            >
-              {t('settings.network.networkComparisonLink')}
-            </SSText>
-          </TouchableOpacity>
-          <SSVStack gap="xl">
+          <SSBitcoinNetworkExplanationLink />
+          <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
-              <SSVStack gap="md" key={network}>
+              <SSVStack gap="sm" key={network}>
                 <SSVStack gap="none">
                   <SSText uppercase weight="bold" size="xl">
                     {t(`bitcoin.network.${network}`)}

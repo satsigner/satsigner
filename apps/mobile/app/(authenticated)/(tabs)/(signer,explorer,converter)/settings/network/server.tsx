@@ -1,9 +1,10 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCloseThin } from '@/components/icons'
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
@@ -75,22 +76,8 @@ export default function NetworkSettings() {
       />
       <SSVStack gap="md" justifyBetween>
         <ScrollView showsVerticalScrollIndicator={false}>
-          <TouchableOpacity
-            onPress={() => {
-              router.navigate('/settings/network/comparison')
-            }}
-          >
-            <SSText
-              color="muted"
-              style={{
-                textDecorationLine: 'underline',
-                marginBottom: 20
-              }}
-            >
-              {t('settings.network.networkComparisonLink')}
-            </SSText>
-          </TouchableOpacity>
-          <SSVStack gap="lg">
+          <SSBitcoinNetworkExplanationLink />
+          <SSVStack gap="lg" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
                 <SSVStack gap="none">
