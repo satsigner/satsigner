@@ -16,6 +16,7 @@ import {
   useState
 } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
@@ -1091,15 +1092,15 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
-      {(tasksDone !== undefined &&
-        totalTasks !== undefined &&
-        tasksDone > 0 &&
-        totalTasks > 0) ? (
-          <View>
+      {tasksDone !== undefined && totalTasks !== undefined && totalTasks > 0 ? (
+        <View style={{ marginTop: 10, marginBottom: -10 }}>
+          <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+            <ActivityIndicator size={16} color="#fff" />
             <SSText center>
-            syncing... {tasksDone}/{totalTasks} tasks completed.
+              {t('account.syncProgress', { tasksDone, totalTasks })}
             </SSText>
-          </View>
+          </SSHStack>
+        </View>
       ) : null}
       <TabView
         swipeEnabled={false}

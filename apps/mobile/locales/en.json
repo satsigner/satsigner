@@ -83,6 +83,7 @@
     "policy.watchOnly.description": "Watch a single address or xpub",
     "policy.watchOnly.title": "Watch Only",
     "receive": "Receive",
+    "syncProgress": "Syncing... %{tasksDone}/%{totalTasks} completed",
     "replace.key": "Replace key",
     "script": "Script Version",
     "seed.dropAndKeep": "Drop Seed And Keep Xpub",
