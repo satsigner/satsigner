@@ -1,3 +1,4 @@
+import * as bitcoinjs from 'bitcoinjs-lib'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -10,6 +11,7 @@ import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress, parseHexToBytes } from '@/utils/parse'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -245,7 +247,7 @@ function useSyncAccountWithAddress() {
     }
     updateAccount(account)
 
-    // this is to prevent modifying the sync object just updated in store
+    // prevent modifying object just updated in store
     account.syncProgress = { ...account.syncProgress }
 
     // transactions and utxos already known
@@ -272,71 +274,129 @@ function useSyncAccountWithAddress() {
     account.syncProgress.totalTasks += estimatedRequests
     setSyncProgress(account.id, account.syncProgress)
 
-    // variable to keep track of timestamps
-    const timestampDict: Record<number, number> = {}
+    // variable to track timestamp data for both transactions and utxos
+    const timestampByHeight: Record<number, number> = {}
 
-    // fetch timestamps for new utxos
-    const utxoHeights = pendingUtxos.map((value) => value.height)
-    const utxoTimestamps: number[] = []
-    for (const height of utxoHeights) {
-      if (!timestampDict[height]) {
-        timestampDict[height] = await electrumClient.getBlockTimestamp(height)
-      }
-      utxoTimestamps.push(timestampDict[height])
+    // we keep old transactions, which we assume were fully fetched,
+    // because we will load partial fetched transactions one by one
+    const oldTransactions = [...account.transactions]
 
-      // update progress
-      account.syncProgress.tasksDone += 1
-      setSyncProgress(account.id, account.syncProgress)
-    }
-
-    const addressKeychain = 'external'
-    const newUtxos: Utxo[] = electrumClient.parseAddressUtxos(
-      address,
-      pendingUtxos,
-      utxoTimestamps,
-      addressKeychain
-    )
-    account.utxos = [...account.utxos, ...newUtxos]
-    updateAccount(account)
-
-    // this is to prevent modifying the sync object just updated in store
-    account.syncProgress = { ...account.syncProgress }
-
-    // fetch raw transaction for new transactions
-    const txIds = pendingTx.map((value) => value.tx_hash)
     const rawTransactions = []
-    for (const txid of txIds) {
+    const txTimestamps: number[] = []
+    const txHeights = pendingTx.map((value) => value.height)
+
+    for (const tx of pendingTx) {
+      const txid = tx.tx_hash
+      const height = tx.height
+
+      // fetch raw transaction
       const rawTx = await electrumClient.getTransaction(txid)
       rawTransactions.push(rawTx)
 
       // update progress
       account.syncProgress.tasksDone += 1
       setSyncProgress(account.id, account.syncProgress)
-    }
 
-    // fetch the timestamps for the new transactions
-    const txHeights = pendingTx.map((value) => value.height)
-    const txTimestamps: number[] = []
-    for (const height of txHeights) {
-      if (!timestampDict[height]) {
-        timestampDict[height] = await electrumClient.getBlockTimestamp(height)
+      // fetch timestamp
+      if (!timestampByHeight[height]) {
+        timestampByHeight[height] =
+          await electrumClient.getBlockTimestamp(height)
       }
-      txTimestamps.push(timestampDict[height])
+      const timestamp = timestampByHeight[height]
+      txTimestamps.push(timestamp)
 
       // update progress
       account.syncProgress.tasksDone += 1
       setSyncProgress(account.id, account.syncProgress)
+
+      // Update partial transaction.
+      // It is still missing vin and vout which must update later.
+      const rawTxParsed = bitcoinjs.Transaction.fromHex(rawTx)
+      const transaction: Transaction = {
+        id: rawTxParsed.getId(),
+        type: 'receive',
+        sent: 0,
+        received: 0,
+        address,
+        blockHeight: height,
+        timestamp: new Date(timestamp * 1000),
+        lockTime: rawTxParsed.locktime,
+        lockTimeEnabled: rawTxParsed.locktime > 0,
+        version: rawTxParsed.version,
+        label: '',
+        raw: parseHexToBytes(rawTx),
+        vout: [],
+        vin: [],
+        vsize: rawTxParsed.virtualSize(),
+        weight: rawTxParsed.weight(),
+        size: rawTxParsed.byteLength(),
+        prices: {}
+      }
+      account.transactions = [...account.transactions, transaction]
+      updateAccount(account)
+
+      // prevent modifying object just updated in store
+      account.syncProgress = { ...account.syncProgress }
     }
 
-    // parse the raw transaction and timestamps to transaction objects
+    // Parse the raw transaction and timestamps to transaction objects.
+    // This will  correctly include vin and vout.
+    // TODO: include old transactions here too.
     const newTransactions = electrumClient.parseAddressTransactions(
       address,
       rawTransactions,
       txHeights,
       txTimestamps
     )
-    account.transactions = [...account.transactions, ...newTransactions]
+    account.transactions = [...oldTransactions, ...newTransactions]
     updateAccount(account)
+
+    // prevent modifying store object just updated
+    account.syncProgress = { ...account.syncProgress }
+
+    // hard-coded keychain but we can safely assume it is correct.
+    // Who would setup watch-only for a change address?
+    const addressKeychain = 'external'
+
+    // fetch timestamps for new utxos
+    for (const electrumUtxo of pendingUtxos) {
+      const height = electrumUtxo.height
+
+      if (!timestampByHeight[height]) {
+        timestampByHeight[height] =
+          await electrumClient.getBlockTimestamp(height)
+      }
+
+      const timestamp = timestampByHeight[height]
+
+      // update progress
+      account.syncProgress.tasksDone += 1
+      setSyncProgress(account.id, account.syncProgress)
+
+      // construct utxo
+      const utxo: Utxo = {
+        txid: electrumUtxo.tx_hash,
+        value: electrumUtxo.value,
+        vout: electrumUtxo.tx_pos,
+        addressTo: address,
+        keychain: addressKeychain,
+        timestamp: new Date(timestamp * 1000),
+        label: '',
+        script: [
+          ...bitcoinjs.address.toOutputScript(
+            address,
+            bitcoinjsNetwork(network)
+          )
+        ]
+      }
+
+      // update account utxos
+      account.utxos = [...account.utxos, utxo]
+      updateAccount(account)
+
+      // prevent modifying object just updated in store
+      account.syncProgress = { ...account.syncProgress }
+    }
 
     try {
       electrumClient.close()
