@@ -61,6 +61,10 @@ function useSyncAccountWithAddress() {
     const esploraTxs = await esploraClient.getAddressTx(address)
     const esploraUtxos = await esploraClient.getAddressUtxos(address)
 
+    // update sync progress
+    account.syncProgress.tasksDone += 2
+    setSyncProgress(account.id, account.syncProgress)
+
     // update summary
     account.summary = {
       ...account.summary,
@@ -69,6 +73,9 @@ function useSyncAccountWithAddress() {
       numberOfAddresses: 1
     }
     updateAccount(account)
+
+    // because we update the whole account at once, spread is necessary
+    account.syncProgress = { ...account.syncProgress }
 
     // compute how much more requests are needed
     const existingTx: Record<string, number> = {}
@@ -80,7 +87,6 @@ function useSyncAccountWithAddress() {
         account.syncProgress.totalTasks += 1
       }
     }
-    account.syncProgress.tasksDone += 2
     setSyncProgress(account.id, account.syncProgress)
 
     const txDictionary: Record<string, number> = {}
@@ -89,8 +95,6 @@ function useSyncAccountWithAddress() {
       const t = esploraTxs[index]
 
       if (existingTx[t.txid] !== undefined) {
-        account.syncProgress.tasksDone += 1
-        setSyncProgress(account.id, account.syncProgress)
         continue
       }
 
@@ -150,8 +154,10 @@ function useSyncAccountWithAddress() {
 
       txDictionary[tx.id] = index
       account.transactions = [...account.transactions, tx]
+      account.syncProgress = { ...account.syncProgress }
       updateAccount(account)
 
+      account.syncProgress = { ...account.syncProgress }
       account.syncProgress.tasksDone += 1
       setSyncProgress(account.id, account.syncProgress)
     }
