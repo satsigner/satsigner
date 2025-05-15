@@ -647,16 +647,18 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, updateAccount, totalTasks, tasksDone] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.id === id),
-      state.updateAccount,
-      state.accounts.find((account) => account.id === id)?.syncProgress
-        ?.totalTasks,
-      state.accounts.find((account) => account.id === id)?.syncProgress
-        ?.tasksDone
-    ])
-  )
+  const [account, updateAccount, totalTasks, tasksDone, syncStatus] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.id === id),
+        state.updateAccount,
+        state.accounts.find((account) => account.id === id)?.syncProgress
+          ?.totalTasks,
+        state.accounts.find((account) => account.id === id)?.syncProgress
+          ?.tasksDone,
+        state.accounts.find((account) => account.id === id)?.syncStatus
+      ])
+    )
   const [wallet, watchOnlyWalletAddress] = useWalletsStore(
     useShallow((state) => [state.wallets[id!], state.addresses[id!]])
   )
@@ -1092,7 +1094,10 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
-      {tasksDone !== undefined && totalTasks !== undefined && totalTasks > 0 ? (
+      {syncStatus === 'syncing' &&
+      tasksDone !== undefined &&
+      totalTasks !== undefined &&
+      totalTasks > 0 ? (
         <View style={{ marginTop: 10, marginBottom: -10 }}>
           <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
             <ActivityIndicator size={16} color="#fff" />
