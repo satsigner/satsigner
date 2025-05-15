@@ -342,7 +342,7 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 20,
+          zIndex: 0,
           pointerEvents: 'none'
         }}
         onLayout={handleTopLayout}
