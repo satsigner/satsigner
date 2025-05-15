@@ -83,7 +83,6 @@
     "policy.watchOnly.description": "Watch a single address or xpub",
     "policy.watchOnly.title": "Watch Only",
     "receive": "Receive",
-    "syncProgress": "Syncing... %{tasksDone}/%{totalTasks} completed",
     "replace.key": "Replace key",
     "script": "Script Version",
     "seed.dropAndKeep": "Drop Seed And Keep Xpub",
@@ -110,6 +109,7 @@
     "sync.status.timeout": "Can't sync\nTimeout",
     "sync.status.unsynced": "Unsynced",
     "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
+    "syncProgress": "Syncing... %{tasksDone}/%{totalTasks} completed",
     "utxos": "UTXOs",
     "viewMnemonic": "View mnemonic"
   },
