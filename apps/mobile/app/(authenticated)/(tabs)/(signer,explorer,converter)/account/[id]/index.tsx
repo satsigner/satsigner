@@ -792,8 +792,6 @@ export default function AccountView() {
     if (isImportAddress && !watchOnlyWalletAddress) return
     else if (!isImportAddress && !wallet) return
 
-    console.log(account.name)
-
     try {
       const updatedAccount = !isImportAddress
         ? await syncAccountWithWallet(account, wallet!)

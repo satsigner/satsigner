@@ -245,6 +245,9 @@ function useSyncAccountWithAddress() {
     }
     updateAccount(account)
 
+    // this is to prevent modifying the sync object just updated in store
+    account.syncProgress = { ...account.syncProgress }
+
     // transactions and utxos already known
     const existingTx: Record<string, number> = {}
     const existingUtxo: Record<string, number> = {}
@@ -352,11 +355,15 @@ function useSyncAccountWithAddress() {
     account: Account,
     addressDescriptor: string
   ) {
-    const updatedAccount: Account = { ...account }
-    try {
-      setLoading(true)
-      setSyncStatus(account.id, 'syncing')
+    setLoading(true)
+    setSyncStatus(account.id, 'syncing')
 
+    const updatedAccount: Account = {
+      ...account,
+      syncStatus: 'syncing'
+    }
+
+    try {
       // Labels backup
       const labelsBackup: Record<string, string> = {}
       for (const transaction of account.transactions) {

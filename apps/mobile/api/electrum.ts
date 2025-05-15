@@ -358,7 +358,7 @@ class ElectrumClient extends BaseElectrumClient {
 
     rawTransactions.forEach((rawTx, index) => {
       const parsedTx = TxDecoded.fromHex(rawTx)
-      const tx = {
+      const tx: Transaction = {
         id: parsedTx.getId(),
         type: 'receive',
         sent: 0,
@@ -377,7 +377,7 @@ class ElectrumClient extends BaseElectrumClient {
         weight: parsedTx.weight(),
         size: parsedTx.byteLength(),
         prices: {}
-      } as Transaction
+      }
 
       transactions.push(tx)
       parsedTransactions.push(parsedTx)
