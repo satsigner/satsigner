@@ -310,7 +310,7 @@ function useSyncAccountWithAddress() {
       setSyncProgress(account.id, account.syncProgress)
 
       // Update partial transaction.
-      // It is still missing vin and vout which must update later.
+      // It is missing sent, receive, vin and vout which must update later.
       const rawTxParsed = bitcoinjs.Transaction.fromHex(rawTx)
       const transaction: Transaction = {
         id: rawTxParsed.getId(),
