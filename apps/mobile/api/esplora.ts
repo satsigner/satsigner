@@ -160,7 +160,25 @@ export default class Esplora {
   }
 
   async getAddressTx(address: string) {
-    return (await this._call('/address/' + address + '/txs')) as EsploraTx[]
+    const endpoint = `/address/${address}/txs`
+    const transactions = (await this._call(endpoint)) as EsploraTx[]
+
+    // if there are more than 50 transactions, we need to make multiple requests
+    // due to the rate limit (at least for MemPool; we need to confirm it for
+    // other instances).
+    const perPage = 50
+    let transactionCountLastFetchedPage = transactions.length
+    while (transactionCountLastFetchedPage >= perPage) {
+      const lastTxId = transactions[transactions.length - 1].txid
+      const endpoint = `/address/${address}/txs?after_txid=${lastTxId}`
+      const transactionsCurrentPage = (await this._call(
+        endpoint
+      )) as EsploraTx[]
+      transactionCountLastFetchedPage = transactionsCurrentPage.length
+      transactions.push(...transactionsCurrentPage)
+    }
+
+    return transactions
   }
 
   async getAddressTxInMempool(address: string) {
