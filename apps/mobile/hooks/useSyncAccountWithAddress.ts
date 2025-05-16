@@ -277,13 +277,8 @@ function useSyncAccountWithAddress() {
     // variable to track timestamp data for both transactions and utxos
     const timestampByHeight: Record<number, number> = {}
 
-    // we keep old transactions, which we assume were fully fetched,
-    // because we will load partial fetched transactions one by one
-    const oldTransactions = [...account.transactions]
-
     const rawTransactions = []
     const txTimestamps: number[] = []
-    const txHeights = pendingTx.map((value) => value.height)
 
     for (const tx of pendingTx) {
       const txid = tx.tx_hash
@@ -340,15 +335,12 @@ function useSyncAccountWithAddress() {
     }
 
     // Parse the raw transaction and timestamps to transaction objects.
-    // This will  correctly include vin and vout.
-    // TODO: include old transactions here too.
-    const newTransactions = electrumClient.parseAddressTransactions(
+    // This will  correctly include vin, vout, sent and received.
+    const allTransactions = electrumClient.parseAddressPartialTransactions(
       address,
-      rawTransactions,
-      txHeights,
-      txTimestamps
+      account.transactions
     )
-    account.transactions = [...oldTransactions, ...newTransactions]
+    account.transactions = allTransactions
     updateAccount(account)
 
     // prevent modifying store object just updated

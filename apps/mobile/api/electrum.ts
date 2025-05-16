@@ -8,6 +8,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
+import { bytesToHex } from '@/utils/scripts'
 import { TxDecoded } from '@/utils/txDecoded'
 
 type IElectrumClient = {
@@ -424,6 +425,90 @@ class ElectrumClient extends BaseElectrumClient {
         const prevTxIndex = txDictionary[prevTxId]
         const parentTx = parsedTransactions[prevTxIndex]
         const addr = parentTx.generateOutputScriptAddress(vout, network)
+
+        // Compute sent value by checking if tx inputs match address
+        if (addr !== address) continue
+        const value = Number(parentTx.getOutputValue(vout).value)
+        transactions[i].sent += value
+      }
+
+      transactions[i].type =
+        transactions[i].received > transactions[i].sent ? 'receive' : 'send'
+    }
+
+    return transactions
+  }
+
+  parseAddressPartialTransactions(
+    address: string,
+    partialTransactions: Transaction[]
+  ) {
+    const transactions = [...partialTransactions]
+    const txidToParsedTxIndex: Record<string, number> = {}
+    const parsedTransactions: TxDecoded[] = []
+
+    for (const tx of transactions) {
+      const { id, raw } = tx
+      if (!raw) continue
+      const txHex = bytesToHex(raw)
+      txidToParsedTxIndex[id] = parsedTransactions.length
+      parsedTransactions.push(TxDecoded.fromHex(txHex))
+    }
+
+    // Compute sent and received vales
+    // Also, add the fields VINS && VOUTS to the transaction
+    for (let i = 0; i < transactions.length; i++) {
+      if (transactions[i].raw === undefined) {
+        continue
+      }
+
+      const txid = transactions[i].id
+      const index = txidToParsedTxIndex[txid]
+      const currentTx = parsedTransactions[index]
+      const outputCount = Number(currentTx.getOutputCount().value)
+      const inputCount = Number(currentTx.getInputCount().value)
+
+      transactions[i] = {
+        ...transactions[i],
+        vout: [],
+        vin: [],
+        received: 0,
+        sent: 0
+      }
+
+      for (let j = 0; j < outputCount; j++) {
+        const addr = currentTx.generateOutputScriptAddress(j, this.network)
+        const value = Number(currentTx.getOutputValue(j).value)
+        const script = [...currentTx.outs[j].script]
+
+        transactions[i].vout.push({ address: addr, value, script })
+
+        // Compute received value by checking if tx outputs match address
+        if (addr !== address) continue
+        transactions[i].received += value
+      }
+
+      for (let j = 0; j < inputCount; j++) {
+        const prevTxId = currentTx.getInputHash(j).value as string
+        const vout = Number(currentTx.getInputIndex(j).value)
+        const sequence = currentTx.ins[j].sequence
+        const witness = currentTx.ins[j].witness.map((w) => [...w])
+        const scriptSig = [...currentTx.ins[j].script]
+
+        transactions[i].vin?.push({
+          previousOutput: {
+            txid: prevTxId,
+            vout
+          },
+          sequence,
+          scriptSig,
+          witness
+        })
+
+        if (txidToParsedTxIndex[prevTxId] === undefined) continue
+        const prevTxIndex = txidToParsedTxIndex[prevTxId]
+        const parentTx = parsedTransactions[prevTxIndex]
+        const addr = parentTx.generateOutputScriptAddress(vout, this.network)
 
         // Compute sent value by checking if tx inputs match address
         if (addr !== address) continue
