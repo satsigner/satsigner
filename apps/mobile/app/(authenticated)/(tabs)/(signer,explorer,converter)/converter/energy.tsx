@@ -1632,10 +1632,8 @@ export default function Energy() {
               <Slider
                 style={styles.slider}
                 minimumValue={0}
-                //maximumValue={2000}
-                //step={miningIntensity > 200 ? 100 : 10}
-                maximumValue={10}
-                step={miningIntensity > 10 ? 1 : 1}
+                maximumValue={2000}
+                step={miningIntensity > 200 ? 100 : 10}
                 value={miningIntensity}
                 onValueChange={setMiningIntensity}
                 disabled={isMining}
@@ -1908,7 +1906,7 @@ export default function Energy() {
           </SSFormLayout>
 
           {isConnected && blockchainInfo && (
-            <SSVStack gap="sm">
+            <SSVStack gap="xs" style={styles.chainInfoContainer}>
               <SSText
                 size="sm"
                 color="muted"
@@ -1955,7 +1953,7 @@ export default function Energy() {
           )}
         </SSVStack>
         {isConnected && (
-          <SSVStack gap="md" style={styles.templateContainer}>
+          <SSVStack gap="xs" style={styles.templateContainer}>
             <SSText
               size="sm"
               color="muted"
@@ -2097,9 +2095,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center'
   },
+  chainInfoContainer: {
+    paddingTop: 40
+  },
   templateContainer: {
     padding: 20,
-    paddingTop: 0
+    paddingTop: 40
   },
   templateScroll: {
     backgroundColor: Colors.gray[900],

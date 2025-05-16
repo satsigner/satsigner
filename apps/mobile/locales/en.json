@@ -310,7 +310,7 @@
     "energy.node.headers": "Headers",
     "energy.node.progress": "Verification progress",
     "energy.node.refresh": "Refresh info",
-    "energy.node.title": "Node information",
+    "energy.node.title": "Blockchain Data",
     "energy.notMining": "Not mining",
     "energy.params.address": "Mining Address",
     "energy.params.addressInvalid": "Invalid Bitcoin address. Please enter a valid legacy, P2SH, or SegWit address. ",
