@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -41,10 +42,7 @@ export default function NetworkSettings() {
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <ScrollView
-          style={{ marginBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView showsVerticalScrollIndicator={false}>
           <SSVStack>
             <SSText size="lg">{tn('fullDescription')}</SSText>
             {networks.map((network) => (
@@ -66,6 +64,7 @@ export default function NetworkSettings() {
                 />
               </SSVStack>
             ))}
+            <SSBitcoinNetworkExplanationLink />
           </SSVStack>
         </ScrollView>
         <SSVStack>
