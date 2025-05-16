@@ -1435,7 +1435,7 @@ export default function Energy() {
             // Don't stop mining on error, just log and continue
             console.log('⛏️ Continuing mining after error...')
           }
-        }, 200)
+        }, 1000)
 
         miningIntervalRef.current = miningInterval
         console.log('⛏️ Mining interval set up:', {
@@ -1686,22 +1686,26 @@ export default function Energy() {
             <SSVStack gap="sm">
               <SSText color="muted">{tn('blockHeaderCandidate')}</SSText>
               <ScrollView style={styles.headerScroll}>
-                <SSText size="xs" type="mono">
+                <SSText size="sm" type="mono">
                   {blockHeader || '-'}
                 </SSText>
               </ScrollView>
             </SSVStack>
             <SSVStack gap="sm">
               <SSText color="muted">{tn('latestHash')}</SSText>
-              <SSText size="xl" type="mono">
-                {miningStats.lastHash || '-'}
-              </SSText>
+              <ScrollView style={styles.hashScroll}>
+                <SSText size="sm" type="mono">
+                  {miningStats.lastHash || '-'}
+                </SSText>
+              </ScrollView>
             </SSVStack>
             <SSVStack gap="sm">
               <SSText color="muted">{tn('bestHash')}</SSText>
-              <SSText size="xl" type="mono">
-                {blockchainInfo?.bestblockhash || '-'}
-              </SSText>
+              <ScrollView style={styles.hashScroll}>
+                <SSText size="sm" type="mono">
+                  {blockchainInfo?.bestblockhash || '-'}
+                </SSText>
+              </ScrollView>
             </SSVStack>
             <SSVStack gap="xs">
               <SSText color="muted">{tn('adjustmentProgress')}</SSText>
@@ -2133,6 +2137,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
     padding: 16,
-    maxHeight: 100
+    maxHeight: 95,
+    height: 95
+  },
+  hashScroll: {
+    backgroundColor: Colors.gray[900],
+    borderRadius: 8,
+    padding: 16,
+    maxHeight: 70,
+    height: 70
   }
 })

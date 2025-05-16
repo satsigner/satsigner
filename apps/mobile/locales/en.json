@@ -301,6 +301,8 @@
     "energy.mining": "Mining",
     "energy.miningIntensity": "Mining Intensity",
     "energy.miningIntensityRate": "%{intensity} hash/interval",
+    "energy.miningInterval": "Mining Interval",
+    "energy.miningIntervalRate": "%{interval}ms",
     "energy.networkHashRate": "%{rate} EH/S",
     "energy.node.blocks": "Blocks",
     "energy.node.chain": "Chain",
