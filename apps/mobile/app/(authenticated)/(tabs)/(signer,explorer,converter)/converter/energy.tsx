@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider'
 import * as bitcoin from 'bitcoinjs-lib'
 import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View, Platform } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -34,7 +34,53 @@ type RpcRequestBody = {
 const networks = {
   mainnet: bitcoin.networks.bitcoin,
   testnet: bitcoin.networks.testnet,
-  signet: bitcoin.networks.testnet // Signet uses testnet address format
+  signet: bitcoin.networks.testnet, // Signet uses testnet address format
+  regtest: {
+    ...bitcoin.networks.testnet,
+    bech32: 'bcrt',
+    pubKeyHash: 0x6f, // Same as testnet
+    scriptHash: 0xc4, // Same as testnet
+    wif: 0xef, // Same as testnet
+    bip32: {
+      public: 0x043587cf,
+      private: 0x04358394
+    }
+  } as bitcoin.Network
+}
+
+// Add this helper function at the top level
+const getAdjustedRpcUrl = (url: string) => {
+  if (Platform.OS === 'android') {
+    try {
+      const parsedUrl = new URL(url)
+      if (
+        parsedUrl.hostname.startsWith('172.') ||
+        parsedUrl.hostname === 'localhost' ||
+        parsedUrl.hostname === '127.0.0.1'
+      ) {
+        const newUrl = new URL(url)
+        newUrl.hostname = '10.0.2.2'
+        return newUrl.toString()
+      }
+    } catch (e) {
+      // Silent fail - return original URL
+    }
+  }
+  return url
+}
+
+// Add this helper function at the top level
+const getNetworkFromAddress = (address: string) => {
+  if (address.startsWith('bcrt1') || address.startsWith('bcrt')) {
+    return networks.regtest
+  } else if (address.startsWith('bc1') || address.startsWith('bc')) {
+    return networks.mainnet
+  } else if (address.startsWith('tb1') || address.startsWith('tb')) {
+    return networks.testnet
+  } else if (address.startsWith('sb1') || address.startsWith('sb')) {
+    return networks.signet
+  }
+  return networks.mainnet
 }
 
 export default function Energy() {
@@ -84,6 +130,7 @@ export default function Energy() {
 
   const fetchRpc = useCallback(
     (requestBody: RpcRequestBody) => {
+      const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
       const credentials = `${rpcUser}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
       const authorization = `Basic ${credentialsBase64}`
@@ -92,10 +139,54 @@ export default function Energy() {
         'Content-Type': 'application/json',
         Authorization: authorization
       }
+
       const method = 'POST'
       const body = JSON.stringify(requestBody)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-      return fetch(rpcUrl, { method, headers, body })
+      return fetch(adjustedUrl, {
+        method,
+        headers,
+        body,
+        signal: controller.signal
+      })
+        .then((response) => {
+          clearTimeout(timeoutId)
+          return response
+        })
+        .catch((error) => {
+          clearTimeout(timeoutId)
+          if (error.name === 'AbortError') {
+            const platformSpecificAdvice =
+              Platform.OS === 'android'
+                ? '\n\nFor Android Emulator:\n' +
+                  '1. Make sure your Bitcoin node is running on the host machine\n' +
+                  '2. Use 10.0.2.2 instead of localhost or Docker IP\n' +
+                  '3. Check if the port is exposed in your Docker configuration\n' +
+                  '4. Verify Bitcoin node is configured to accept external connections'
+                : ''
+
+            throw new Error(
+              `Request timed out after 10 seconds.${platformSpecificAdvice}`
+            )
+          } else if (error.message === 'Network request failed') {
+            const platformSpecificAdvice =
+              Platform.OS === 'android'
+                ? '\n\nFor Android Emulator:\n' +
+                  '1. Use 10.0.2.2 instead of localhost or Docker IP\n' +
+                  '2. Make sure port is exposed in Docker: "ports: [\'18443:18443\']"\n' +
+                  '3. Check Bitcoin node is configured to accept external connections'
+                : ''
+
+            throw new Error(`Network request failed. Please check if:
+1. The Bitcoin node is running
+2. The RPC port is correct (${new URL(adjustedUrl).port})
+3. The node is accessible from your device
+4. There are no firewall rules blocking the connection${platformSpecificAdvice}`)
+          }
+          throw error
+        })
     },
     [rpcUser, rpcPassword, rpcUrl]
   )
@@ -124,7 +215,6 @@ export default function Energy() {
   const fetchBlockTemplate = useCallback(async () => {
     if (!isConnected) return
 
-    // Prevent too frequent updates (minimum 30 seconds between updates)
     const now = Date.now()
     if (now - lastTemplateUpdateRef.current < 30000) {
       return
@@ -134,7 +224,6 @@ export default function Energy() {
     try {
       const rules = ['segwit']
 
-      // First try to get the network type from the node
       try {
         const networkResponse = await fetchRpc({
           jsonrpc: '1.0',
@@ -199,7 +288,6 @@ export default function Energy() {
         throw new Error('No block template data received from node')
       }
 
-      // Update template only if it's different
       if (JSON.stringify(data.result) !== JSON.stringify(blockTemplate)) {
         setBlockTemplate(data.result)
         setTemplateData(formatTemplateData(data.result))
@@ -359,16 +447,21 @@ export default function Energy() {
       })
 
       if (!response.ok) {
+        const errorText = await response.text()
+
         if (response.status === 401) {
           throw new Error('Invalid credentials')
         } else if (response.status === 403) {
           throw new Error('Access denied')
         } else {
-          throw new Error('Failed to connect to Bitcoin node')
+          throw new Error(
+            `Failed to connect to Bitcoin node: ${response.status} ${errorText}`
+          )
         }
       }
 
       const data = await response.json()
+
       if (data.error) {
         if (data.error.code === -28) {
           throw new Error('Bitcoin node is still starting up')
@@ -379,7 +472,6 @@ export default function Energy() {
         }
       }
 
-      // If we get here, connection was successful
       setConnectionError('')
       setIsConnected(true)
       setBlockchainInfo(data.result)
@@ -405,6 +497,23 @@ export default function Energy() {
       }
 
       try {
+        // Use the helper function to determine the correct network
+        const network = getNetworkFromAddress(miningAddress)
+
+        console.log('🔍 Creating coinbase transaction:', {
+          address: miningAddress,
+          network: network.bech32 || 'unknown',
+          isRegtest: network === networks.regtest,
+          networkType:
+            network === networks.regtest
+              ? 'regtest'
+              : network === networks.mainnet
+                ? 'mainnet'
+                : network === networks.testnet
+                  ? 'testnet'
+                  : 'signet'
+        })
+
         const tx = new bitcoin.Transaction()
         tx.version = 1
         tx.locktime = 0
@@ -415,20 +524,30 @@ export default function Energy() {
           Buffer.from(`Satsigner ${Date.now()}`)
         )
 
-        // Determine the correct network based on the address prefix
-        let network = networks.mainnet
-        if (miningAddress.startsWith('tb')) {
-          network = networks.testnet
-        } else if (miningAddress.startsWith('sb')) {
-          network = networks.testnet // Signet uses testnet address format
+        try {
+          const outputScript = bitcoin.address.toOutputScript(
+            miningAddress,
+            network
+          )
+          tx.addOutput(outputScript, template.coinbasevalue)
+        } catch (error) {
+          console.error('❌ Error creating output script:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            address: miningAddress,
+            network: network.bech32 || 'unknown',
+            isRegtest: network === networks.regtest,
+            networkType:
+              network === networks.regtest
+                ? 'regtest'
+                : network === networks.mainnet
+                  ? 'mainnet'
+                  : network === networks.testnet
+                    ? 'testnet'
+                    : 'signet'
+          })
+          throw error
         }
 
-        const outputScript = bitcoin.address.toOutputScript(
-          miningAddress,
-          network
-        )
-
-        tx.addOutput(outputScript, template.coinbasevalue)
         if (opReturnContent) {
           const data = Buffer.from(opReturnContent)
           const script = bitcoin.script.compile([
@@ -445,6 +564,11 @@ export default function Energy() {
           depends: []
         }
       } catch (error) {
+        console.error('❌ Coinbase transaction creation error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          address: miningAddress,
+          network: getNetworkFromAddress(miningAddress).bech32 || 'unknown'
+        })
         throw error
       }
     },
@@ -503,44 +627,107 @@ export default function Energy() {
       timestamp: number,
       nonce: number
     ) => {
-      const header = Buffer.alloc(80) as unknown as Uint8Array
-
-      // Version (4 bytes)
-      const versionView = new DataView(header.buffer)
-      versionView.setUint32(0, template.version, true)
-
-      // Previous block hash (32 bytes)
-      const prevHash = Buffer.from(
-        template.previousblockhash,
-        'hex'
-      ).reverse() as unknown as Uint8Array
-      header.set(prevHash, 4)
-
-      // Merkle root (32 bytes)
-      const merkle = Buffer.from(
+      console.log('🔨 Creating block header:', {
+        version: template.version,
+        prevBlock: template.previousblockhash,
         merkleRoot,
-        'hex'
-      ).reverse() as unknown as Uint8Array
-      header.set(merkle, 36)
+        timestamp,
+        bits: template.bits,
+        nonce,
+        isRegtest: template.bits === '207fffff'
+      })
 
-      // Timestamp (4 bytes)
-      versionView.setUint32(68, timestamp, true)
+      // Create header buffer (80 bytes)
+      const header = Buffer.alloc(80)
 
-      // Bits (4 bytes)
-      const bits = Buffer.from(template.bits, 'hex') as unknown as Uint8Array
-      header.set(bits, 72)
+      // Version (4 bytes) - little endian
+      header.writeUInt32LE(template.version, 0)
 
-      // Nonce (4 bytes)
-      versionView.setUint32(76, nonce, true)
+      // Previous block hash (32 bytes) - little endian
+      const prevHash = Buffer.from(template.previousblockhash, 'hex').reverse()
+      prevHash.copy(header, 4)
+
+      // Merkle root (32 bytes) - little endian
+      const merkle = Buffer.from(merkleRoot, 'hex').reverse()
+      merkle.copy(header, 36)
+
+      // Timestamp (4 bytes) - little endian
+      header.writeUInt32LE(timestamp, 68)
+
+      // Bits (4 bytes) - little endian
+      const bits = Buffer.from(template.bits, 'hex')
+      bits.copy(header, 72)
+
+      // Nonce (4 bytes) - little endian
+      header.writeUInt32LE(nonce, 76)
+
+      // Log the final header bytes for verification
+      console.log('🔨 Block header bytes:', {
+        version: header.slice(0, 4).toString('hex'),
+        prevBlock: header.slice(4, 36).toString('hex'),
+        merkleRoot: header.slice(36, 68).toString('hex'),
+        timestamp: header.slice(68, 72).toString('hex'),
+        bits: header.slice(72, 76).toString('hex'),
+        nonce: header.slice(76, 80).toString('hex'),
+        fullHeader: header.toString('hex'),
+        // Add comparison with known good block
+        knownGoodBlock: {
+          version: '20000000',
+          prevBlock:
+            '2fedeb3fd62c61264ccffa3e67d696e968d58abbf9806cd008c47f439142f6df',
+          merkleRoot:
+            'a9949afa40a039df43e3c42493452efa16e02d79d8913c120140e26bffa5fc56',
+          timestamp: '1747336196',
+          bits: '207fffff',
+          nonce: '00000000'
+        }
+      })
+
       return header
     },
     []
   )
 
-  const checkDifficulty = (hash: string, target: string) => {
-    const hashNum = BigInt('0x' + hash)
-    const targetNum = BigInt('0x' + target)
-    return hashNum <= targetNum
+  const checkDifficulty = (hash: string, bits: string) => {
+    const bitsNum = parseInt(bits, 16)
+    const nSize = bitsNum >> 24
+    const nWord = bitsNum & 0x007fffff
+
+    // Calculate target from bits
+    let targetNum: bigint
+    if (nSize <= 3) {
+      targetNum = BigInt(nWord >> (8 * (3 - nSize)))
+    } else {
+      targetNum = BigInt(nWord) << BigInt(8 * (nSize - 3))
+    }
+
+    // The hash from sha256 is in big-endian, so we need to reverse it for comparison
+    const hashBytes = Buffer.from(hash, 'hex')
+    const hashReversed = Buffer.from(hashBytes).reverse()
+    const hashNum = BigInt('0x' + hashReversed.toString('hex'))
+
+    // In Bitcoin, a valid block hash must be LESS than the target
+    const isValid = hashNum < targetNum
+
+    console.log('🔍 Difficulty check details:', {
+      bits,
+      nSize,
+      nWord: nWord.toString(16),
+      targetHex: targetNum.toString(16),
+      originalHash: hash,
+      hashReversed: hashReversed.toString('hex'),
+      hashNum: hashNum.toString(16),
+      targetNum: targetNum.toString(16),
+      isValid,
+      comparison: `${hashNum.toString(16)} < ${targetNum.toString(16)}`,
+      decimalComparison: `${hashNum} < ${targetNum}`
+    })
+
+    if (targetNum === BigInt(0)) {
+      throw new Error('Invalid target calculation - target is zero')
+    }
+
+    return isValid
   }
 
   const submitBlock = useCallback(
@@ -550,37 +737,133 @@ export default function Energy() {
       transactions: BlockTemplateTransaction[]
     ) => {
       try {
+        // Always refresh template before submission and wait for it to be fresh
+        console.log('🔄 Refreshing template before block submission...')
+        let attempts = 0
+        const maxAttempts = 3
+        while (attempts < maxAttempts) {
+          await fetchBlockTemplate()
+          const now = Date.now()
+          if (now - lastTemplateUpdateRef.current <= 5000) {
+            break
+          }
+          console.log(
+            `🔄 Template still stale (${Math.floor((now - lastTemplateUpdateRef.current) / 1000)}s), retrying...`
+          )
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+          attempts++
+        }
+
+        if (attempts >= maxAttempts) {
+          throw new Error(
+            'Failed to get fresh template after multiple attempts'
+          )
+        }
+
+        // Calculate block hash in big-endian (as returned by sha256)
+        const hash = bitcoin.crypto.sha256(
+          bitcoin.crypto.sha256(blockHeader as unknown as Buffer)
+        )
+        // Convert to little-endian for submission (node expects little-endian)
+        const hashReversed = Buffer.from(hash).reverse()
+        const blockHash = hashReversed.toString('hex')
+
+        console.log('📦 Preparing block submission:', {
+          headerLength: blockHeader.length,
+          coinbaseTxId: coinbaseTx.txid,
+          numTransactions: transactions.length,
+          blockHash, // Use little-endian for submission
+          headerHex: blockHeader.toString('hex'),
+          hashBigEndian: hash.toString('hex'),
+          hashLittleEndian: blockHash,
+          templateAge:
+            Math.floor((Date.now() - lastTemplateUpdateRef.current) / 1000) +
+            ' seconds'
+        })
+
+        const rawTransactions = [coinbaseTx, ...transactions].map((tx) => {
+          if (!tx.data) {
+            throw new Error('Transaction data missing')
+          }
+          return tx.data
+        })
+
+        const txCount = Buffer.alloc(1)
+        txCount.writeUInt8(rawTransactions.length, 0)
+
+        // Create block data with header in little-endian
+        const blockData = Buffer.concat([
+          blockHeader,
+          txCount,
+          ...rawTransactions.map((tx) => Buffer.from(tx, 'hex'))
+        ])
+
+        console.log('📤 Submitting block to node:', {
+          blockHash, // This is now in little-endian
+          blockSize: blockData.length,
+          firstBytes: blockData.toString('hex').substring(0, 64) + '...',
+          headerHex: blockHeader.toString('hex'),
+          templateAge:
+            Math.floor((Date.now() - lastTemplateUpdateRef.current) / 1000) +
+            ' seconds'
+        })
+
         const response = await fetchRpc({
           jsonrpc: '1.0',
           id: '1',
           method: 'submitblock',
-          params: [
-            Buffer.concat([
-              new Uint8Array(blockHeader),
-              new Uint8Array(
-                Buffer.from(JSON.stringify([coinbaseTx, ...transactions]))
-              )
-            ]).toString('hex')
-          ]
+          params: [blockData.toString('hex')]
         })
 
-        if (!response.ok) {
-          throw new Error('Failed to submit block')
-        }
+        console.log('📥 Node response status:', {
+          status: response.status,
+          statusText: response.statusText
+        })
 
         const data = await response.json()
+        console.log('📥 Node response data:', data)
+
         if (data.error) {
-          throw new Error(data.error.message || 'RPC error')
+          throw new Error(`Block submission rejected: ${data.error}`)
         }
+
+        if (data.result !== null) {
+          throw new Error(`Block submission rejected: ${data.result}`)
+        }
+
+        console.log('✅ Block accepted by node:', {
+          blockHash,
+          blockSize: blockData.length,
+          templateAge:
+            Math.floor((Date.now() - lastTemplateUpdateRef.current) / 1000) +
+            ' seconds'
+        })
 
         setBlocksFound((prev) => prev + 1)
         return true
-      } catch {
+      } catch (error) {
+        console.error('❌ Block submission error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        })
         return false
       }
     },
-    [fetchRpc]
+    [fetchRpc, fetchBlockTemplate]
   )
+
+  const handleMiningAddressChange = (address: string) => {
+    const isValid =
+      address.startsWith('bcrt1') ||
+      address.startsWith('bcrt') ||
+      address.startsWith('bc1') ||
+      address.startsWith('bc') ||
+      address.startsWith('tb1') ||
+      address.startsWith('tb')
+
+    setMiningAddress(address)
+    setIsValidAddress(isValid)
+  }
 
   const startMining = useCallback(async () => {
     if (!blockTemplate || !miningAddress) {
@@ -588,8 +871,12 @@ export default function Energy() {
       return
     }
 
+    if (!isValidAddress) {
+      toast.error('Invalid mining address')
+      return
+    }
+
     try {
-      // First check if the address matches the node's network
       const networkResponse = await fetchRpc({
         jsonrpc: '1.0',
         id: '1',
@@ -613,22 +900,32 @@ export default function Energy() {
         throw new Error('Could not determine node network type')
       }
 
-      // Check address prefix against node network
-      const addressPrefix = miningAddress.substring(0, 2)
-
-      // For mainnet, we need to handle both 'bc' and 'bc1' prefixes
-      if (nodeNetwork === 'main') {
-        if (addressPrefix !== 'bc' && !miningAddress.startsWith('bc1')) {
+      if (nodeNetwork === 'regtest') {
+        const isValidRegtest =
+          miningAddress.startsWith('bcrt1') || miningAddress.startsWith('bcrt')
+        if (!isValidRegtest) {
           toast.error(
-            `Address ${miningAddress} has the wrong prefix for mainnet network. Use an address starting with 'bc' or 'bc1'`
+            `Address ${miningAddress} has the wrong prefix for regtest network. Use an address starting with bcrt1 or bcrt`
+          )
+          return
+        }
+      } else if (nodeNetwork === 'main') {
+        if (
+          !miningAddress.startsWith('bc1') &&
+          !miningAddress.startsWith('bc')
+        ) {
+          toast.error(
+            `Address ${miningAddress} has the wrong prefix for mainnet network. Use an address starting with bc1 or bc`
           )
           return
         }
       } else if (nodeNetwork === 'test' || nodeNetwork === 'signet') {
-        // Both testnet and signet use the same address format
-        if (addressPrefix !== 'tb' && !miningAddress.startsWith('tb1')) {
+        if (
+          !miningAddress.startsWith('tb1') &&
+          !miningAddress.startsWith('tb')
+        ) {
           toast.error(
-            `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with 'tb' or 'tb1'`
+            `Address ${miningAddress} has the wrong prefix for ${nodeNetwork} network. Use an address starting with tb1 or tb`
           )
           return
         }
@@ -637,110 +934,163 @@ export default function Energy() {
       setIsMining(true)
       isMiningRef.current = true
 
-      const coinbaseTx = createCoinbaseTransaction(blockTemplate)
-      if (!coinbaseTx) {
-        throw new Error('Failed to create coinbase transaction')
-      }
+      try {
+        let nonce = 0
+        const startTime = Date.now()
+        let hashes = 0
+        let lastLogTime = startTime
+        let lastTemplateCheck = startTime
 
-      const allTransactions: BlockTemplateTransaction[] = [
-        coinbaseTx,
-        ...(blockTemplate.transactions || [])
-      ]
-      const merkleRoot = createMerkleRoot(allTransactions)
-      if (!merkleRoot) {
-        throw new Error('Failed to create merkle root')
-      }
-
-      let nonce = 0
-      const startTime = Date.now()
-      let hashes = 0
-
-      const miningInterval = setInterval(async () => {
-        if (!isMiningRef.current) {
-          clearInterval(miningInterval)
-          return
-        }
-
-        try {
-          for (let i = 0; i < miningIntensity; i++) {
-            if (!isMiningRef.current) {
-              clearInterval(miningInterval)
-              return
-            }
-
-            const timestamp = Math.floor(Date.now() / 1000)
-            const header = createBlockHeader(
-              blockTemplate,
-              merkleRoot,
-              timestamp,
-              nonce++
-            )
-            currentHeaderRef.current = header
-
-            const hash = bitcoin.crypto.sha256(
-              bitcoin.crypto.sha256(header as unknown as Buffer)
-            )
-            const hashHex = (hash as Buffer).reverse().toString('hex')
-
-            hashes++
-
-            if (hashes % 1000 === 0) {
-              lastHashRef.current = hashHex
-            }
-
-            if (checkDifficulty(hashHex, blockTemplate.target)) {
-              const success = await submitBlock(
-                header as unknown as Uint8Array,
-                coinbaseTx,
-                allTransactions
-              )
-              if (success) {
-                setTotalSats((prev) =>
-                  (Number(prev) + blockTemplate.coinbasevalue).toString()
-                )
-                toast.success('Block found and submitted successfully!')
-              }
-              clearInterval(miningInterval)
-              isMiningRef.current = false
-              setIsMining(false)
-              return
-            }
+        const miningInterval = setInterval(async () => {
+          if (!isMiningRef.current) {
+            clearInterval(miningInterval)
+            return
           }
 
-          if (hashes % 2000 === 0) {
+          try {
+            // Check template freshness every 2 seconds (reduced from 5)
             const now = Date.now()
-            const elapsed = (now - startTime) / 1000
-            const hashesPerSecond = Math.floor(hashes / elapsed)
-            const powerConsumption = isNaN(hashesPerSecond)
-              ? '0'
-              : (hashesPerSecond * 0.0001).toFixed(2)
-
-            requestAnimationFrame(() => {
-              setEnergyRate(powerConsumption)
-              setMiningStats((prev) => ({
-                ...prev,
-                hashesPerSecond,
-                attempts: hashes,
-                lastHash: lastHashRef.current
-              }))
-              if (currentHeaderRef.current) {
-                setBlockHeader(
-                  Buffer.from(currentHeaderRef.current).toString('hex')
-                )
+            if (now - lastTemplateCheck > 2000) {
+              lastTemplateCheck = now
+              if (now - lastTemplateUpdateRef.current > 5000) {
+                // Reduced to 5 seconds
+                console.log('🔄 Template is stale, refreshing...')
+                await fetchBlockTemplate()
               }
-            })
+            }
+
+            for (let i = 0; i < miningIntensity; i++) {
+              if (!isMiningRef.current) {
+                clearInterval(miningInterval)
+                return
+              }
+
+              // Create new coinbase transaction for each attempt
+              const coinbaseTx = createCoinbaseTransaction(blockTemplate)
+              if (!coinbaseTx) {
+                throw new Error('Failed to create coinbase transaction')
+              }
+
+              // Recalculate merkle root with new coinbase
+              const allTransactions: BlockTemplateTransaction[] = [
+                coinbaseTx,
+                ...(blockTemplate.transactions || [])
+              ]
+              const merkleRoot = createMerkleRoot(allTransactions)
+              if (!merkleRoot) {
+                throw new Error('Failed to create merkle root')
+              }
+
+              const timestamp = Math.floor(Date.now() / 1000)
+              const header = createBlockHeader(
+                blockTemplate,
+                merkleRoot,
+                timestamp,
+                nonce++
+              )
+              currentHeaderRef.current = header
+
+              // Double SHA256 of header (result is in big-endian)
+              const hash = bitcoin.crypto.sha256(
+                bitcoin.crypto.sha256(header as unknown as Buffer)
+              )
+              const hashHex = hash.toString('hex')
+
+              hashes++
+
+              if (hashes % 1000 === 0) {
+                // For logging, show both big-endian and little-endian versions
+                const hashReversed = Buffer.from(hashHex, 'hex')
+                  .reverse()
+                  .toString('hex')
+                console.log('⛏️ Mining attempt:', {
+                  nonce,
+                  timestamp,
+                  hashBigEndian: hashHex,
+                  hashLittleEndian: hashReversed,
+                  headerHex: header.toString('hex'),
+                  bits: blockTemplate.bits,
+                  isRegtest: blockTemplate.bits === '207fffff',
+                  merkleRoot,
+                  templateAge:
+                    Math.floor((now - lastTemplateUpdateRef.current) / 1000) +
+                    ' seconds'
+                })
+                lastHashRef.current = hashHex
+              }
+
+              if (checkDifficulty(hashHex, blockTemplate.bits)) {
+                console.log('🎯 Found valid block:', {
+                  nonce,
+                  timestamp,
+                  hashBigEndian: hashHex,
+                  hashLittleEndian: Buffer.from(hashHex, 'hex')
+                    .reverse()
+                    .toString('hex'),
+                  headerHex: header.toString('hex'),
+                  bits: blockTemplate.bits,
+                  isRegtest: blockTemplate.bits === '207fffff',
+                  merkleRoot,
+                  templateAge:
+                    Math.floor((now - lastTemplateUpdateRef.current) / 1000) +
+                    ' seconds'
+                })
+
+                const success = await submitBlock(
+                  header as unknown as Uint8Array,
+                  coinbaseTx,
+                  allTransactions
+                )
+                if (success) {
+                  setTotalSats((prev) =>
+                    (Number(prev) + blockTemplate.coinbasevalue).toString()
+                  )
+                  toast.success('Block found and submitted successfully!')
+                }
+                clearInterval(miningInterval)
+                isMiningRef.current = false
+                setIsMining(false)
+                return
+              }
+            }
+
+            if (hashes % 2000 === 0) {
+              const now = Date.now()
+              const elapsed = (now - startTime) / 1000
+              const hashesPerSecond = Math.floor(hashes / elapsed)
+              const powerConsumption = isNaN(hashesPerSecond)
+                ? '0'
+                : (hashesPerSecond * 0.0001).toFixed(2)
+
+              requestAnimationFrame(() => {
+                setEnergyRate(powerConsumption)
+                setMiningStats((prev) => ({
+                  ...prev,
+                  hashesPerSecond,
+                  attempts: hashes,
+                  lastHash: lastHashRef.current
+                }))
+                if (currentHeaderRef.current) {
+                  setBlockHeader(
+                    Buffer.from(currentHeaderRef.current).toString('hex')
+                  )
+                }
+              })
+            }
+          } catch (error) {
+            clearInterval(miningInterval)
+            isMiningRef.current = false
+            setIsMining(false)
+            toast.error(
+              'Error during mining: ' +
+                (error instanceof Error ? error.message : 'Unknown error')
+            )
           }
-        } catch (error) {
-          clearInterval(miningInterval)
-          isMiningRef.current = false
-          setIsMining(false)
-          toast.error(
-            'Error during mining: ' +
-              (error instanceof Error ? error.message : 'Unknown error')
-          )
-        }
-      }, 200)
-      miningIntervalRef.current = miningInterval
+        }, 200)
+        miningIntervalRef.current = miningInterval
+      } catch (error) {
+        throw error
+      }
     } catch (error) {
       isMiningRef.current = false
       setIsMining(false)
@@ -757,7 +1107,8 @@ export default function Energy() {
     createMerkleRoot,
     fetchRpc,
     submitBlock,
-    miningIntensity
+    miningIntensity,
+    blockchainInfo?.chain
   ])
 
   const stopMining = useCallback(() => {
@@ -789,11 +1140,6 @@ export default function Energy() {
       setIsStopping(false)
     })
   }, [])
-
-  const handleMiningAddressChange = (address: string) => {
-    setMiningAddress(address)
-    setIsValidAddress(validateAddress(address))
-  }
 
   const fetchTransaction = useCallback(async () => {
     if (!txId || !isConnected) return
