@@ -866,30 +866,116 @@ export default function Energy() {
       transactions: BlockTemplateTransaction[]
     ) => {
       try {
+        // Always get fresh chain data and template before submission
+        console.log(
+          '🔄 Getting fresh chain data and template before submission...'
+        )
+
+        // First get fresh blockchain info
+        const networkResponse = await fetchRpc({
+          jsonrpc: '1.0',
+          id: '1',
+          method: 'getblockchaininfo',
+          params: []
+        })
+
+        if (!networkResponse.ok) {
+          throw new Error('Failed to get fresh blockchain info')
+        }
+
+        const networkData = await networkResponse.json()
+        if (networkData.error) {
+          throw new Error(
+            networkData.error.message || 'Failed to get fresh blockchain info'
+          )
+        }
+
+        // Update blockchain info
+        setBlockchainInfo(networkData.result)
+
+        // Then get fresh template
+        const templateResponse = await fetchRpc({
+          jsonrpc: '1.0',
+          id: '1',
+          method: 'getblocktemplate',
+          params: [{ rules: ['segwit'] }]
+        })
+
+        if (!templateResponse.ok) {
+          throw new Error('Failed to get fresh template')
+        }
+
+        const templateData = await templateResponse.json()
+        if (templateData.error) {
+          throw new Error(
+            templateData.error.message || 'Failed to get fresh template'
+          )
+        }
+
+        // Update template
+        const freshTemplate = templateData.result
+        setBlockTemplate(freshTemplate)
+        setTemplateData(formatTemplateData(freshTemplate))
+        lastTemplateUpdateRef.current = Date.now()
+
+        // Validate template is still valid
+        if (freshTemplate.bits !== '207fffff') {
+          throw new Error(
+            'Invalid template for submission - not a regtest template'
+          )
+        }
+
+        // Log template freshness
+        const templateAge = Math.floor(
+          (Date.now() - lastTemplateUpdateRef.current) / 1000
+        )
+        console.log('📋 Template freshness at submission:', {
+          templateAge: templateAge + ' seconds',
+          height: freshTemplate.height,
+          previousblockhash: freshTemplate.previousblockhash,
+          curtime: freshTemplate.curtime,
+          transactions: freshTemplate.transactions?.length || 0
+        })
+
+        // If template is too old, reject the block
+        if (templateAge > 5) {
+          console.log('❌ Template too old at submission, rejecting block')
+          return false
+        }
+
+        // Recreate coinbase with fresh template
+        const freshCoinbaseTx = createCoinbaseTransaction(freshTemplate)
+        if (!freshCoinbaseTx) {
+          throw new Error('Failed to create fresh coinbase transaction')
+        }
+
+        // Recalculate merkle root with fresh template
+        const freshMempoolTxs =
+          freshTemplate.transactions?.filter(
+            (tx: BlockTemplateTransaction) => tx.txid !== freshCoinbaseTx.txid
+          ) || []
+        const freshAllTransactions = [freshCoinbaseTx, ...freshMempoolTxs]
+        const freshMerkleRoot = createMerkleRoot(freshAllTransactions)
+
+        // Create fresh header with updated merkle root
+        const freshHeader = createBlockHeader(
+          freshTemplate,
+          freshMerkleRoot,
+          freshTemplate.curtime,
+          blockHeader.readUInt32LE(76) // Keep the same nonce
+        )
+
         // Calculate block hash in big-endian (as returned by sha256)
-        const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(blockHeader))
+        const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(freshHeader))
         // Convert to little-endian for submission (node expects little-endian)
         const hashReversed = Buffer.from(hash).reverse()
         const blockHash = hashReversed.toString('hex')
 
         // Get all transaction data in hex format, ensuring coinbase is first and only included once
         const rawTransactions = [
-          coinbaseTx.data, // Coinbase must be first
-          ...transactions
-            .filter((tx) => tx.txid !== coinbaseTx.txid) // Exclude coinbase if it's in the transactions list
-            .map((tx) => tx.data)
-            .filter(Boolean) // Filter out any undefined/null data
+          freshCoinbaseTx.data, // Coinbase must be first
+          ...freshMempoolTxs.map((tx) => tx.data).filter(Boolean) // Filter out any undefined/null data
         ]
-
-        // Verify transaction count
-        console.log('🔍 Block transaction verification:', {
-          coinbaseTxid: coinbaseTx.txid,
-          totalTransactions: rawTransactions.length,
-          uniqueTxids: new Set(transactions.map((tx) => tx.txid)).size + 1, // +1 for coinbase
-          coinbaseIncluded: rawTransactions[0] === coinbaseTx.data,
-          coinbaseDuplicated:
-            rawTransactions.filter((tx) => tx === coinbaseTx.data).length > 1
-        })
 
         // Create varint for transaction count
         const txCount = Buffer.alloc(1)
@@ -897,7 +983,7 @@ export default function Energy() {
 
         // Create block data with header and all transactions
         const blockData = Buffer.concat([
-          blockHeader,
+          freshHeader,
           txCount,
           ...rawTransactions.map((tx) => Buffer.from(tx, 'hex'))
         ])
@@ -907,30 +993,28 @@ export default function Energy() {
           blockHash,
           blockSize: blockData.length,
           header: {
-            version: blockHeader.readUInt32LE(0),
-            prevBlock: blockHeader.slice(4, 36).toString('hex'),
-            merkleRoot: blockHeader.slice(36, 68).toString('hex'),
-            timestamp: blockHeader.readUInt32LE(68),
-            bits: blockHeader.slice(72, 76).toString('hex'),
-            nonce: blockHeader.readUInt32LE(76),
-            raw: blockHeader.toString('hex')
+            version: freshHeader.readUInt32LE(0),
+            prevBlock: freshHeader.slice(4, 36).toString('hex'),
+            merkleRoot: freshHeader.slice(36, 68).toString('hex'),
+            timestamp: freshHeader.readUInt32LE(68),
+            bits: freshHeader.slice(72, 76).toString('hex'),
+            nonce: freshHeader.readUInt32LE(76),
+            raw: freshHeader.toString('hex')
           },
           transactions: {
             count: rawTransactions.length,
             coinbase: {
-              txid: coinbaseTx.txid,
-              hash: coinbaseTx.hash,
-              data: coinbaseTx.data,
-              size: Buffer.from(coinbaseTx.data, 'hex').length,
+              txid: freshCoinbaseTx.txid,
+              hash: freshCoinbaseTx.hash,
+              data: freshCoinbaseTx.data,
+              size: Buffer.from(freshCoinbaseTx.data, 'hex').length,
               position: 0 // Coinbase should always be first
             },
-            mempool: transactions
-              .filter((tx) => tx.txid !== coinbaseTx.txid)
-              .map((tx) => ({
-                txid: tx.txid,
-                hash: tx.hash,
-                size: tx.data ? Buffer.from(tx.data, 'hex').length : 0
-              }))
+            mempool: freshMempoolTxs.map((tx) => ({
+              txid: tx.txid,
+              hash: tx.hash,
+              size: tx.data ? Buffer.from(tx.data, 'hex').length : 0
+            }))
           }
         })
 
@@ -938,10 +1022,8 @@ export default function Energy() {
           blockHash,
           blockSize: blockData.length,
           firstBytes: blockData.slice(0, 32).toString('hex') + '...',
-          headerHex: blockHeader.toString('hex'),
-          templateAge:
-            Math.floor((Date.now() - lastTemplateUpdateRef.current) / 1000) +
-            ' seconds'
+          headerHex: freshHeader.toString('hex'),
+          templateAge: templateAge + ' seconds'
         })
 
         const response = await fetchRpc({
@@ -963,16 +1045,22 @@ export default function Energy() {
           throw new Error(`Block submission rejected: ${data.error}`)
         }
 
-        if (data.result !== null) {
+        // Handle different result cases
+        if (data.result === 'high-hash') {
+          console.log('⚠️ Block hash too high, continuing mining...')
+          return false // Return false but don't throw error to continue mining
+        }
+
+        // Handle both null and "inconclusive" as success cases
+        if (data.result !== null && data.result !== 'inconclusive') {
           throw new Error(`Block submission rejected: ${data.result}`)
         }
 
         console.log('✅ Block accepted by node:', {
           blockHash,
           blockSize: blockData.length,
-          templateAge:
-            Math.floor((Date.now() - lastTemplateUpdateRef.current) / 1000) +
-            ' seconds'
+          templateAge: templateAge + ' seconds',
+          result: data.result // Log the actual result for debugging
         })
 
         setBlocksFound((prev) => prev + 1)
@@ -982,10 +1070,16 @@ export default function Energy() {
           error: error instanceof Error ? error.message : 'Unknown error',
           stack: error instanceof Error ? error.stack : undefined
         })
-        return false
+        return false // Return false but don't throw error to continue mining
       }
     },
-    [fetchRpc, fetchBlockTemplate]
+    [
+      fetchRpc,
+      createCoinbaseTransaction,
+      createBlockHeader,
+      createMerkleRoot,
+      formatTemplateData
+    ]
   )
 
   const handleMiningAddressChange = (address: string) => {
@@ -1069,19 +1163,35 @@ export default function Energy() {
         }
       }
 
+      console.log('⛏️ Starting mining process...', {
+        isMiningRef: isMiningRef.current,
+        isMining: isMining,
+        miningAddress,
+        templateHeight: blockTemplate.height
+      })
+
       setIsMining(true)
       isMiningRef.current = true
 
       try {
         let nonce = 0
-        let extraNonce = 0 // Add extra nonce counter
+        let extraNonce = 0
         const startTime = Date.now()
         let hashes = 0
         let lastLogTime = startTime
         let lastTemplateCheck = startTime
 
         const miningInterval = setInterval(async () => {
+          console.log('⛏️ Mining interval tick:', {
+            isMiningRef: isMiningRef.current,
+            isMining: isMining,
+            hashes,
+            nonce,
+            extraNonce
+          })
+
           if (!isMiningRef.current) {
+            console.log('⛏️ Mining stopped - isMiningRef is false')
             clearInterval(miningInterval)
             return
           }
@@ -1118,6 +1228,9 @@ export default function Energy() {
 
             for (let i = 0; i < miningIntensity; i++) {
               if (!isMiningRef.current) {
+                console.log(
+                  '⛏️ Mining stopped inside loop - isMiningRef is false'
+                )
                 clearInterval(miningInterval)
                 return
               }
@@ -1208,160 +1321,39 @@ export default function Energy() {
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
-                // Get a fresh template and chain info right before submission
-                console.log(
-                  '🔄 Getting fresh template and chain info before block submission...'
+                console.log('🎯 Found valid block hash:', {
+                  hashHex,
+                  nonce,
+                  extraNonce,
+                  isMiningRef: isMiningRef.current,
+                  isMining: isMining
+                })
+
+                // Submit block with fresh data
+                const success = await submitBlock(
+                  header,
+                  coinbaseTx,
+                  allTransactions
                 )
-                try {
-                  // First get fresh blockchain info
-                  const networkResponse = await fetchRpc({
-                    jsonrpc: '1.0',
-                    id: '1',
-                    method: 'getblockchaininfo',
-                    params: []
-                  })
 
-                  if (!networkResponse.ok) {
-                    throw new Error('Failed to get fresh blockchain info')
-                  }
+                console.log('📦 Block submission result:', {
+                  success,
+                  isMiningRef: isMiningRef.current,
+                  isMining: isMining
+                })
 
-                  const networkData = await networkResponse.json()
-                  if (networkData.error) {
-                    throw new Error(
-                      networkData.error.message ||
-                        'Failed to get fresh blockchain info'
-                    )
-                  }
-
-                  // Update blockchain info
-                  setBlockchainInfo(networkData.result)
-
-                  // Then get fresh template
-                  const templateResponse = await fetchRpc({
-                    jsonrpc: '1.0',
-                    id: '1',
-                    method: 'getblocktemplate',
-                    params: [{ rules: ['segwit'] }]
-                  })
-
-                  if (!templateResponse.ok) {
-                    throw new Error('Failed to get fresh template')
-                  }
-
-                  const templateData = await templateResponse.json()
-                  if (templateData.error) {
-                    throw new Error(
-                      templateData.error.message ||
-                        'Failed to get fresh template'
-                    )
-                  }
-
-                  // Update template
-                  const freshTemplate = templateData.result
-                  setBlockTemplate(freshTemplate)
-                  setTemplateData(formatTemplateData(freshTemplate))
-                  lastTemplateUpdateRef.current = Date.now()
-
-                  // Validate template is still valid
-                  if (freshTemplate.bits !== '207fffff') {
-                    throw new Error(
-                      'Invalid template for submission - not a regtest template'
-                    )
-                  }
-
-                  // Log template freshness
-                  const templateAge = Math.floor(
-                    (Date.now() - lastTemplateUpdateRef.current) / 1000
+                if (success) {
+                  console.log(
+                    '✅ Block successfully submitted, continuing mining...'
                   )
-                  console.log('📋 Template freshness at submission:', {
-                    templateAge: templateAge + ' seconds',
-                    height: freshTemplate.height,
-                    previousblockhash: freshTemplate.previousblockhash,
-                    curtime: freshTemplate.curtime,
-                    transactions: freshTemplate.transactions?.length || 0
-                  })
-
-                  // If template is too old, reject the block
-                  if (templateAge > 5) {
-                    console.log(
-                      '❌ Template too old at submission, rejecting block'
-                    )
-                    continue
-                  }
-
-                  // Recreate coinbase with fresh template
-                  const freshCoinbaseTx = createCoinbaseTransaction(
-                    freshTemplate,
-                    extraNonce
+                  // Don't stop mining, just continue
+                  break
+                } else {
+                  console.log(
+                    '⚠️ Block submission not successful, continuing mining...'
                   )
-                  if (!freshCoinbaseTx) {
-                    throw new Error(
-                      'Failed to create fresh coinbase transaction'
-                    )
-                  }
-
-                  // Recalculate merkle root with fresh template
-                  const freshMempoolTxs =
-                    freshTemplate.transactions?.filter(
-                      (tx) => tx.txid !== freshCoinbaseTx.txid
-                    ) || []
-                  const freshAllTransactions = [
-                    freshCoinbaseTx,
-                    ...freshMempoolTxs
-                  ]
-                  const freshMerkleRoot = createMerkleRoot(freshAllTransactions)
-
-                  // Create fresh header with updated merkle root
-                  const freshHeader = createBlockHeader(
-                    freshTemplate,
-                    freshMerkleRoot,
-                    freshTemplate.curtime,
-                    nonce
-                  )
-
-                  // Submit the block with fresh data
-                  const success = await submitBlock(
-                    freshHeader,
-                    freshCoinbaseTx,
-                    freshAllTransactions
-                  )
-
-                  if (success) {
-                    setTotalSats((prev) =>
-                      (Number(prev) + freshTemplate.coinbasevalue).toString()
-                    )
-                    toast.success('Block found and submitted successfully!')
-
-                    // Update blockchain info one more time after successful submission
-                    const finalNetworkResponse = await fetchRpc({
-                      jsonrpc: '1.0',
-                      id: '1',
-                      method: 'getblockchaininfo',
-                      params: []
-                    })
-
-                    if (finalNetworkResponse.ok) {
-                      const finalNetworkData = await finalNetworkResponse.json()
-                      if (finalNetworkData.result) {
-                        setBlockchainInfo(finalNetworkData.result)
-                      }
-                    }
-                  }
-                  clearInterval(miningInterval)
-                  isMiningRef.current = false
-                  setIsMining(false)
-                  return
-                } catch (error) {
-                  console.error('❌ Error during block submission:', {
-                    error:
-                      error instanceof Error ? error.message : 'Unknown error',
-                    stack: error instanceof Error ? error.stack : undefined
-                  })
-                  toast.error(
-                    'Error submitting block: ' +
-                      (error instanceof Error ? error.message : 'Unknown error')
-                  )
-                  continue
+                  // Continue mining
+                  break
                 }
               }
             }
@@ -1390,20 +1382,36 @@ export default function Energy() {
               })
             }
           } catch (error) {
-            clearInterval(miningInterval)
-            isMiningRef.current = false
-            setIsMining(false)
-            toast.error(
-              'Error during mining: ' +
-                (error instanceof Error ? error.message : 'Unknown error')
-            )
+            console.error('❌ Mining interval error:', {
+              error: error instanceof Error ? error.message : 'Unknown error',
+              isMiningRef: isMiningRef.current,
+              isMining: isMining
+            })
+            // Don't stop mining on error, just log and continue
+            console.log('⛏️ Continuing mining after error...')
           }
         }, 200)
+
         miningIntervalRef.current = miningInterval
+        console.log('⛏️ Mining interval set up:', {
+          intervalId: miningInterval,
+          isMiningRef: isMiningRef.current,
+          isMining: isMining
+        })
       } catch (error) {
+        console.error('❌ Mining setup error:', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          isMiningRef: isMiningRef.current,
+          isMining: isMining
+        })
         throw error
       }
     } catch (error) {
+      console.error('❌ Mining start error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isMiningRef: isMiningRef.current,
+        isMining: isMining
+      })
       isMiningRef.current = false
       setIsMining(false)
       toast.error(
@@ -1424,6 +1432,12 @@ export default function Energy() {
   ])
 
   const stopMining = useCallback(() => {
+    console.log('🛑 Stopping mining process...', {
+      isMiningRef: isMiningRef.current,
+      isMining: isMining,
+      hasInterval: !!miningIntervalRef.current
+    })
+
     // Set loading state immediately
     setIsStopping(true)
     setIsMining(false)
@@ -1433,6 +1447,9 @@ export default function Energy() {
 
     // Clear interval immediately
     if (miningIntervalRef.current) {
+      console.log('🛑 Clearing mining interval:', {
+        intervalId: miningIntervalRef.current
+      })
       clearInterval(miningIntervalRef.current)
       miningIntervalRef.current = null
     }
@@ -1448,10 +1465,11 @@ export default function Energy() {
 
     // Show toast and clear loading state in next frame
     requestAnimationFrame(() => {
+      console.log('🛑 Mining stopped completely')
       toast.info('Mining stopped')
       setIsStopping(false)
     })
-  }, [])
+  }, [isMining])
 
   const fetchTransaction = useCallback(async () => {
     if (!txId || !isConnected) return
@@ -1563,8 +1581,10 @@ export default function Energy() {
               <Slider
                 style={styles.slider}
                 minimumValue={0}
-                maximumValue={2000}
-                step={miningIntensity > 200 ? 100 : 10}
+                //maximumValue={2000}
+                //step={miningIntensity > 200 ? 100 : 10}
+                maximumValue={10}
+                step={miningIntensity > 10 ? 1 : 1}
                 value={miningIntensity}
                 onValueChange={setMiningIntensity}
                 disabled={isMining}
