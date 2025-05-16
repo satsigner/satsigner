@@ -376,10 +376,28 @@ export default function Energy() {
   }, [isConnected, fetchBlockTemplate, fetchRpc])
 
   const fetchNetworkHashRate = useCallback(async () => {
+    if (!blockchainInfo) {
+      setNetworkHashRate('0')
+      return
+    }
+
+    // For regtest, set "no data" message
+    if (blockchainInfo.chain === 'regtest') {
+      setNetworkHashRate('no data')
+      return
+    }
+
     try {
-      const response = await fetch(
-        'https://mempool.space/api/v1/mining/hashrate/1m'
-      )
+      let endpoint = 'https://mempool.space/api/v1/mining/hashrate/1m'
+
+      // Set endpoint based on network type
+      if (blockchainInfo.chain === 'signet') {
+        endpoint = 'https://mempool.space/signet/api/v1/mining/hashrate/1m'
+      } else if (blockchainInfo.chain === 'test') {
+        endpoint = 'https://mempool.space/testnet4/api/v1/mining/hashrate/1m'
+      }
+
+      const response = await fetch(endpoint)
       if (!response.ok) {
         throw new Error('Failed to fetch network hash rate')
       }
@@ -393,7 +411,7 @@ export default function Energy() {
     } catch {
       setNetworkHashRate('0')
     }
-  }, [])
+  }, [blockchainInfo])
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout
@@ -421,7 +439,17 @@ export default function Energy() {
       // Calculate progress of current difficulty adjustment period
       const blocksInPeriod = 2016 // Bitcoin's difficulty adjustment period
       const currentBlock = blockchainInfo.blocks
-      const progress = (currentBlock % blocksInPeriod) / blocksInPeriod
+      const blocksInCurrentPeriod = currentBlock % blocksInPeriod
+      const progress = blocksInCurrentPeriod / blocksInPeriod
+
+      console.log('📊 Difficulty adjustment progress:', {
+        currentBlock,
+        blocksInCurrentPeriod,
+        blocksInPeriod,
+        progress: progress * 100 + '%',
+        nextAdjustmentIn: blocksInPeriod - blocksInCurrentPeriod
+      })
+
       setDifficultyProgress(progress)
     }
   }, [blockchainInfo])
@@ -1180,16 +1208,34 @@ export default function Energy() {
         let hashes = 0
         let lastLogTime = startTime
         let lastTemplateCheck = startTime
+        let lastStatsUpdate = startTime
+
+        const updateMiningStats = () => {
+          const now = Date.now()
+          const elapsed = (now - startTime) / 1000
+          const hashesPerSecond = Math.floor(hashes / elapsed)
+          const powerConsumption = isNaN(hashesPerSecond)
+            ? '0'
+            : (hashesPerSecond * 0.0001).toFixed(2)
+
+          // Update all UI elements in a single requestAnimationFrame
+          requestAnimationFrame(() => {
+            setEnergyRate(powerConsumption)
+            setMiningStats((prev) => ({
+              ...prev,
+              hashesPerSecond,
+              attempts: hashes,
+              lastHash: lastHashRef.current
+            }))
+            if (currentHeaderRef.current) {
+              setBlockHeader(
+                Buffer.from(currentHeaderRef.current).toString('hex')
+              )
+            }
+          })
+        }
 
         const miningInterval = setInterval(async () => {
-          console.log('⛏️ Mining interval tick:', {
-            isMiningRef: isMiningRef.current,
-            isMining: isMining,
-            hashes,
-            nonce,
-            extraNonce
-          })
-
           if (!isMiningRef.current) {
             console.log('⛏️ Mining stopped - isMiningRef is false')
             clearInterval(miningInterval)
@@ -1197,6 +1243,13 @@ export default function Energy() {
           }
 
           try {
+            // Update stats every 500ms regardless of mining progress
+            const now = Date.now()
+            if (now - lastStatsUpdate >= 500) {
+              updateMiningStats()
+              lastStatsUpdate = now
+            }
+
             // Always fetch a fresh template before starting a new mining batch
             console.log('🔄 Fetching fresh template before mining batch...')
             await fetchBlockTemplate()
@@ -1301,6 +1354,12 @@ export default function Energy() {
 
               hashes++
 
+              // Update current header for UI
+              currentHeaderRef.current = header
+
+              // Update last hash for UI
+              lastHashRef.current = hashHex
+
               if (hashes % 1000 === 0) {
                 console.log('⛏️ Mining attempt:', {
                   nonce,
@@ -1317,7 +1376,6 @@ export default function Energy() {
                       (Date.now() - lastTemplateUpdateRef.current) / 1000
                     ) + ' seconds'
                 })
-                lastHashRef.current = hashHex
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
@@ -1346,40 +1404,27 @@ export default function Energy() {
                   console.log(
                     '✅ Block successfully submitted, continuing mining...'
                   )
-                  // Don't stop mining, just continue
-                  break
+                  // Update total sats earned
+                  setTotalSats((prev) =>
+                    (Number(prev) + blockTemplate.coinbasevalue).toString()
+                  )
+                  // Show success toast
+                  toast.success('Block found and submitted successfully!')
+                  // Force immediate stats update
+                  updateMiningStats()
                 } else {
                   console.log(
                     '⚠️ Block submission not successful, continuing mining...'
                   )
-                  // Continue mining
-                  break
                 }
+                // Continue mining in both cases
+                break
               }
             }
 
-            if (hashes % 2000 === 0) {
-              const now = Date.now()
-              const elapsed = (now - startTime) / 1000
-              const hashesPerSecond = Math.floor(hashes / elapsed)
-              const powerConsumption = isNaN(hashesPerSecond)
-                ? '0'
-                : (hashesPerSecond * 0.0001).toFixed(2)
-
-              requestAnimationFrame(() => {
-                setEnergyRate(powerConsumption)
-                setMiningStats((prev) => ({
-                  ...prev,
-                  hashesPerSecond,
-                  attempts: hashes,
-                  lastHash: lastHashRef.current
-                }))
-                if (currentHeaderRef.current) {
-                  setBlockHeader(
-                    Buffer.from(currentHeaderRef.current).toString('hex')
-                  )
-                }
-              })
+            // Update stats more frequently during active mining
+            if (hashes % 100 === 0) {
+              updateMiningStats()
             }
           } catch (error) {
             console.error('❌ Mining interval error:', {
@@ -1398,6 +1443,9 @@ export default function Energy() {
           isMiningRef: isMiningRef.current,
           isMining: isMining
         })
+
+        // Initial stats update
+        updateMiningStats()
       } catch (error) {
         console.error('❌ Mining setup error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -1455,16 +1503,18 @@ export default function Energy() {
     }
 
     // Reset mining values immediately
-    setEnergyRate('0')
-    setTotalSats('0')
-    setMiningStats({
-      hashesPerSecond: 0,
-      lastHash: '',
-      attempts: 0
-    })
-
-    // Show toast and clear loading state in next frame
     requestAnimationFrame(() => {
+      setEnergyRate('0')
+      setTotalSats('0')
+      setMiningStats({
+        hashesPerSecond: 0,
+        lastHash: '',
+        attempts: 0
+      })
+      setBlockHeader('')
+      currentHeaderRef.current = null
+      lastHashRef.current = ''
+
       console.log('🛑 Mining stopped completely')
       toast.info('Mining stopped')
       setIsStopping(false)
@@ -1530,7 +1580,7 @@ export default function Energy() {
         showsVerticalScrollIndicator={false}
       >
         <SSVStack
-          gap="sm"
+          gap="lg"
           style={[styles.mainContent, { alignItems: 'center' }]}
         >
           <SSVStack gap="sm" style={{ alignItems: 'center' }}>
@@ -1541,15 +1591,8 @@ export default function Energy() {
               {tn(isMining ? 'mining' : 'notMining')}
             </SSText>
           </SSVStack>
+
           <SSHStack gap="xl">
-            <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
-              <SSText size="3xl" style={styles.bigNumber}>
-                {totalSats}
-              </SSText>
-              <SSText size="sm" color="muted">
-                {t('bitcoin.sats')}
-              </SSText>
-            </SSVStack>
             <SSVStack style={{ alignItems: 'center', width: '20%' }} gap="xxs">
               <SSText size="3xl" style={styles.bigNumber}>
                 {miningStats.hashesPerSecond.toLocaleString()}
@@ -1567,7 +1610,15 @@ export default function Energy() {
               </SSText>
             </SSVStack>
           </SSHStack>
-          <View style={styles.graphPlaceholder} />
+
+          <SSVStack style={{ alignItems: 'center' }} gap="xxs">
+            <SSText size="3xl" style={styles.bigNumber}>
+              {Number(totalSats).toLocaleString()}
+            </SSText>
+            <SSText size="sm" color="muted">
+              {tn('satsEarned')}
+            </SSText>
+          </SSVStack>
           <SSVStack gap="md" style={styles.buttonContainer}>
             <SSVStack gap="sm" style={{ width: '100%' }}>
               <SSHStack justifyBetween>
@@ -1662,12 +1713,25 @@ export default function Energy() {
                   ]}
                 />
               </View>
-              <SSText size="xs" color="muted">
-                {tn('adjustmentProgressPercentage', {
-                  percentage: Math.floor(difficultyProgress * 100),
-                  blocks: 2016
-                })}
-              </SSText>
+              <SSHStack justifyBetween>
+                <SSText size="xs" color="muted">
+                  {blockchainInfo ? (
+                    <>Block {blockchainInfo.blocks % 2016} of 2016</>
+                  ) : (
+                    '-'
+                  )}
+                </SSText>
+                <SSText size="xs" color="muted">
+                  {blockchainInfo ? (
+                    <>
+                      {2016 - (blockchainInfo.blocks % 2016)} until next
+                      adjustment
+                    </>
+                  ) : (
+                    '-'
+                  )}
+                </SSText>
+              </SSHStack>
             </SSVStack>
           </SSVStack>
           <SSVStack gap="lg" style={styles.statsGrid}>
@@ -1738,9 +1802,11 @@ export default function Energy() {
                   {tn('template.template')}
                 </SSText>
               </SSVStack>
-              <SSVStack style={{ alignItems: 'center' }} gap="xxs">
+              <SSVStack style={{ alignItems: 'flex-end' }} gap="xxs">
                 <SSText size="xl">
-                  {tn('networkHashRate', { rate: networkHashRate })}
+                  {networkHashRate === 'no data'
+                    ? 'n/a'
+                    : tn('networkHashRate', { rate: networkHashRate })}
                 </SSText>
                 <SSText size="xs" color="muted">
                   {tn('hashRate')}
@@ -1990,12 +2056,7 @@ const styles = StyleSheet.create({
     fontWeight: '100',
     marginBottom: -10
   },
-  graphPlaceholder: {
-    width: '100%',
-    height: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[900]
-  },
+
   buttonContainer: {
     width: '100%',
     paddingVertical: 20
