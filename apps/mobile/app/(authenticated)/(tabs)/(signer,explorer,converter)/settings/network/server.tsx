@@ -4,6 +4,7 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCloseThin } from '@/components/icons'
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
@@ -12,10 +13,12 @@ import { servers } from '@/constants/servers'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Network, type Server } from '@/types/settings/blockchain'
+
+const tn = _tn('settings.network.server')
 
 export default function NetworkSettings() {
   const router = useRouter()
@@ -64,28 +67,24 @@ export default function NetworkSettings() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('settings.network.server.title')}</SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
-      <SSVStack gap="lg" justifyBetween>
-        <ScrollView
-          style={{ marginBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <SSVStack gap="xl">
+      <SSVStack gap="md" justifyBetween>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <SSBitcoinNetworkExplanationLink />
+          <SSVStack gap="lg" style={{ marginTop: 20 }}>
             {networks.map((network) => (
               <SSVStack gap="md" key={network}>
                 <SSVStack gap="none">
-                  <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
-                  <SSText color="muted">
-                    {t(`settings.network.server.type.${network}`)}
+                  <SSText uppercase weight="bold" size="xl">
+                    {t(`bitcoin.network.${network}`)}
                   </SSText>
+                  <SSText color="muted">{tn(`type.${network}`)}</SSText>
                 </SSVStack>
                 <SSVStack gap="md">
                   <SSVStack gap="md">
@@ -148,14 +147,10 @@ export default function NetworkSettings() {
                         </SSHStack>
                       ))}
                   </SSVStack>
-                  <SSVStack style={{ marginTop: 20 }}>
-                    <SSButton
-                      label={t(
-                        'settings.network.server.custom.add'
-                      ).toUpperCase()}
-                      onPress={() => router.push(`./${network}`)}
-                    />
-                  </SSVStack>
+                  <SSButton
+                    label={tn('custom.add').toUpperCase()}
+                    onPress={() => router.push(`./${network}`)}
+                  />
                 </SSVStack>
               </SSVStack>
             ))}
