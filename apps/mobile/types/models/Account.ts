@@ -11,6 +11,12 @@ export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
 
 export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
+// TODO: merge SyncProgress in SyncStatus ?
+export type SyncProgress = {
+  totalTasks: number
+  tasksDone: number
+}
+
 export type CreationType =
   | 'generateMnemonic'
   | 'importMnemonic'
@@ -69,4 +75,5 @@ export type Account = {
   createdAt: Date
   lastSyncedAt?: Date
   syncStatus: SyncStatus
+  syncProgress?: SyncProgress
 }

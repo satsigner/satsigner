@@ -16,6 +16,7 @@ import {
   useState
 } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
@@ -646,12 +647,18 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.id === id),
-      state.updateAccount
-    ])
-  )
+  const [account, updateAccount, totalTasks, tasksDone, syncStatus] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.accounts.find((account) => account.id === id),
+        state.updateAccount,
+        state.accounts.find((account) => account.id === id)?.syncProgress
+          ?.totalTasks,
+        state.accounts.find((account) => account.id === id)?.syncProgress
+          ?.tasksDone,
+        state.accounts.find((account) => account.id === id)?.syncStatus
+      ])
+    )
   const [wallet, watchOnlyWalletAddress] = useWalletsStore(
     useShallow((state) => [state.wallets[id!], state.addresses[id!]])
   )
@@ -1085,6 +1092,19 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
+      {syncStatus === 'syncing' &&
+      tasksDone !== undefined &&
+      totalTasks !== undefined &&
+      totalTasks > 0 ? (
+        <View style={{ marginTop: 10, marginBottom: -10 }}>
+          <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+            <ActivityIndicator size={16} color="#fff" />
+            <SSText center>
+              {t('account.syncProgress', { tasksDone, totalTasks })}
+            </SSText>
+          </SSHStack>
+        </View>
+      ) : null}
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}

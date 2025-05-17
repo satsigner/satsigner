@@ -109,6 +109,7 @@
     "sync.status.timeout": "Can't sync\nTimeout",
     "sync.status.unsynced": "Unsynced",
     "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
+    "syncProgress": "Syncing... %{tasksDone}/%{totalTasks} completed",
     "utxos": "UTXOs",
     "viewMnemonic": "View mnemonic"
   },
