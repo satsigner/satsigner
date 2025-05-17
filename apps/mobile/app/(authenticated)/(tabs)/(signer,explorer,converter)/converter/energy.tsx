@@ -166,8 +166,8 @@ export default function Energy() {
   const [isStopping, setIsStopping] = useState(false)
   const [isValidAddress, setIsValidAddress] = useState(false)
 
-  const [miningIntensity, setMiningIntensity] = useState(500)
-  const [miningIntervalTime, setMiningIntervalTime] = useState(500)
+  const [miningIntensity, setMiningIntensity] = useState(10)
+  const [miningIntervalTime, setMiningIntervalTime] = useState(1000)
   const [miningStats, setMiningStats] = useState({
     hashesPerSecond: 0,
     lastHash: '',
