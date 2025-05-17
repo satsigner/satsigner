@@ -140,6 +140,7 @@ export default function Energy() {
 
   const [miningAddress, setMiningAddress] = useState('')
   const [miningIntensity, setMiningIntensity] = useState(500)
+  const [miningIntervalTime, setMiningIntervalTime] = useState(500)
   const [miningStats, setMiningStats] = useState({
     hashesPerSecond: 0,
     lastHash: '',
@@ -1435,7 +1436,7 @@ export default function Energy() {
             // Don't stop mining on error, just log and continue
             console.log('⛏️ Continuing mining after error...')
           }
-        }, 1000)
+        }, miningIntervalTime)
 
         miningIntervalRef.current = miningInterval
         console.log('⛏️ Mining interval set up:', {
@@ -1656,6 +1657,28 @@ export default function Energy() {
                         ? Colors.success
                         : Colors.white
                 }
+              />
+            </SSVStack>
+            <SSVStack gap="sm" style={{ width: '100%' }}>
+              <SSHStack justifyBetween>
+                <SSText size="sm" color="muted">
+                  {tn('miningInterval')}
+                </SSText>
+                <SSText size="sm" color="muted">
+                  {miningIntervalTime}ms
+                </SSText>
+              </SSHStack>
+              <Slider
+                style={styles.slider}
+                minimumValue={1}
+                maximumValue={10000}
+                step={1}
+                value={miningIntervalTime}
+                onValueChange={setMiningIntervalTime}
+                disabled={isMining}
+                minimumTrackTintColor={Colors.white}
+                maximumTrackTintColor={Colors.gray[500]}
+                thumbTintColor={Colors.white}
               />
             </SSVStack>
             <SSButton
