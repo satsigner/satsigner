@@ -592,6 +592,66 @@ export default function Energy() {
     }
   }
 
+  const checkDifficulty = (hash: string, bits: string) => {
+    // For regtest, we use a fixed target of 0x7fffff0000000000000000000000000000000000000000000000000000000000
+    if (bits === '207fffff') {
+      const regtestTarget = Buffer.from(
+        '7fffff0000000000000000000000000000000000000000000000000000000000',
+        'hex'
+      )
+      const hashBytes = Buffer.from(hash, 'hex')
+      const hashLE = Buffer.from(hashBytes).reverse()
+
+      // For regtest, we just need to check if the hash is less than the target
+      const isValid = hashLE.compare(regtestTarget) <= 0
+
+      console.log('🔍 Regtest difficulty check:', {
+        bits,
+        target: regtestTarget.toString('hex'),
+        hash: hash,
+        hashLE: hashLE.toString('hex'),
+        comparison: isValid,
+        hashNum: BigInt('0x' + hashLE.toString('hex')),
+        targetNum: BigInt('0x' + regtestTarget.toString('hex'))
+      })
+
+      return isValid
+    }
+
+    // For other networks, calculate target from bits
+    const bitsNum = parseInt(bits, 16)
+    const exponent = bitsNum >>> 24
+    const mantissa = bitsNum & 0xffffff
+    let target = Buffer.alloc(32, 0)
+    let mantissaBuf = Buffer.alloc(4)
+    mantissaBuf.writeUInt32BE(mantissa, 0)
+    if (exponent <= 3) {
+      mantissaBuf = mantissaBuf.slice(4 - exponent)
+      mantissaBuf.copy(target, 32 - mantissaBuf.length)
+    } else {
+      mantissaBuf.copy(target, 32 - exponent)
+    }
+
+    // Convert hash to little-endian for comparison
+    const hashBytes = Buffer.from(hash, 'hex')
+    const hashLE = Buffer.from(hashBytes).reverse()
+
+    // Compare hash with target
+    const isValid = hashLE.compare(target) <= 0
+
+    console.log('🔍 Network difficulty check:', {
+      bits,
+      target: target.toString('hex'),
+      hash: hash,
+      hashLE: hashLE.toString('hex'),
+      comparison: isValid,
+      hashNum: BigInt('0x' + hashLE.toString('hex')),
+      targetNum: BigInt('0x' + target.toString('hex'))
+    })
+
+    return isValid
+  }
+
   const validateBlockTemplate = (template: BlockTemplate) => {
     console.log('🔍 Validating block template:', {
       version: template.version,
@@ -600,7 +660,6 @@ export default function Energy() {
       height: template.height,
       curtime: template.curtime,
       mintime: template.mintime,
-      maxtime: template.maxtime,
       transactions: template.transactions?.length || 0,
       coinbasevalue: template.coinbasevalue,
       isRegtest: template.bits === '207fffff',
@@ -616,9 +675,7 @@ export default function Energy() {
       hasValidTime:
         typeof template.curtime === 'number' &&
         typeof template.mintime === 'number' &&
-        typeof template.maxtime === 'number' &&
-        template.curtime >= template.mintime &&
-        template.curtime <= template.maxtime,
+        template.curtime >= template.mintime,
       hasValidCoinbase:
         typeof template.coinbasevalue === 'number' && template.coinbasevalue > 0
     })
@@ -635,19 +692,17 @@ export default function Energy() {
 
     // Validate time constraints
     const now = Math.floor(Date.now() / 1000)
-    if (
-      template.curtime < template.mintime ||
-      template.curtime > template.maxtime
-    ) {
+    if (template.curtime < template.mintime) {
       throw new Error(
-        `Invalid block time: ${template.curtime} (must be between ${template.mintime} and ${template.maxtime})`
+        `Invalid block time: ${template.curtime} (must be after ${template.mintime})`
       )
     }
 
-    // Validate regtest-specific fields
+    // Log network type
     if (template.bits === '207fffff') {
-      // Regtest difficulty
       console.log('✅ Valid regtest template detected')
+    } else {
+      console.log('✅ Valid network template detected')
     }
 
     return true
@@ -899,33 +954,6 @@ export default function Energy() {
     []
   )
 
-  const checkDifficulty = (hash: string, bits: string) => {
-    // For regtest, we use a fixed target of 0x7fffff0000000000000000000000000000000000000000000000000000000000
-    const regtestTarget = Buffer.from(
-      '7fffff0000000000000000000000000000000000000000000000000000000000',
-      'hex'
-    )
-    const hashBytes = Buffer.from(hash, 'hex')
-    const hashLE = Buffer.from(hashBytes).reverse()
-
-    // For regtest, we just need to check if the hash is less than the target
-    const isValid = hashLE.compare(regtestTarget) <= 0
-
-    console.log('🔍 Difficulty check details:', {
-      bits,
-      target: regtestTarget.toString('hex'),
-      hash: hash,
-      hashLE: hashLE.toString('hex'),
-      comparison: isValid,
-      // Add more detailed comparison info
-      hashNum: BigInt('0x' + hashLE.toString('hex')),
-      targetNum: BigInt('0x' + regtestTarget.toString('hex')),
-      isRegtest: bits === '207fffff'
-    })
-
-    return isValid
-  }
-
   const submitBlock = useCallback(
     async (
       blockHeader: Buffer,
@@ -985,13 +1013,6 @@ export default function Energy() {
         setTemplateData(formatTemplateData(freshTemplate))
         lastTemplateUpdateRef.current = Date.now()
 
-        // Validate template is still valid
-        if (freshTemplate.bits !== '207fffff') {
-          throw new Error(
-            'Invalid template for submission - not a regtest template'
-          )
-        }
-
         // Log template freshness
         const templateAge = Math.floor(
           (Date.now() - lastTemplateUpdateRef.current) / 1000
@@ -1001,7 +1022,9 @@ export default function Energy() {
           height: freshTemplate.height,
           previousblockhash: freshTemplate.previousblockhash,
           curtime: freshTemplate.curtime,
-          transactions: freshTemplate.transactions?.length || 0
+          transactions: freshTemplate.transactions?.length || 0,
+          network: networkData.result.chain,
+          bits: freshTemplate.bits
         })
 
         // If template is too old, reject the block
@@ -1059,6 +1082,7 @@ export default function Energy() {
         console.log('📦 Full block details before submission:', {
           blockHash,
           blockSize: blockData.length,
+          network: networkData.result.chain,
           header: {
             version: freshHeader.readUInt32LE(0),
             prevBlock: freshHeader.slice(4, 36).toString('hex'),
@@ -1088,6 +1112,7 @@ export default function Energy() {
         console.log('📤 Submitting block to node:', {
           blockHash,
           blockSize: blockData.length,
+          network: networkData.result.chain,
           firstBytes: blockData.slice(0, 32).toString('hex') + '...',
           headerHex: freshHeader.toString('hex'),
           templateAge: templateAge + ' seconds'
@@ -1126,6 +1151,7 @@ export default function Energy() {
         console.log('✅ Block accepted by node:', {
           blockHash,
           blockSize: blockData.length,
+          network: networkData.result.chain,
           templateAge: templateAge + ' seconds',
           result: data.result // Log the actual result for debugging
         })
@@ -1234,7 +1260,9 @@ export default function Energy() {
         isMiningRef: isMiningRef.current,
         isMining: isMining,
         miningAddress,
-        templateHeight: blockTemplate.height
+        templateHeight: blockTemplate.height,
+        network: nodeNetwork,
+        bits: blockTemplate.bits
       })
 
       setIsMining(true)
@@ -1297,11 +1325,6 @@ export default function Energy() {
               throw new Error('Failed to get block template')
             }
 
-            // Validate template is for regtest
-            if (blockTemplate.bits !== '207fffff') {
-              throw new Error('Invalid template - not a regtest template')
-            }
-
             // Log template details
             console.log('📋 Starting mining batch with template:', {
               height: blockTemplate.height,
@@ -1311,7 +1334,7 @@ export default function Energy() {
               curtime: blockTemplate.curtime,
               transactions: blockTemplate.transactions?.length || 0,
               coinbasevalue: blockTemplate.coinbasevalue,
-              isRegtest: blockTemplate.bits === '207fffff',
+              network: nodeNetwork,
               templateAge:
                 Math.floor(
                   (Date.now() - lastTemplateUpdateRef.current) / 1000
@@ -1352,7 +1375,8 @@ export default function Energy() {
                 txid: coinbaseTx.txid,
                 extraNonce,
                 nonce,
-                timestamp: Math.floor(Date.now() / 1000)
+                timestamp: Math.floor(Date.now() / 1000),
+                network: nodeNetwork
               })
 
               // Recalculate merkle root with new coinbase
@@ -1372,6 +1396,7 @@ export default function Energy() {
                 merkleRoot,
                 extraNonce,
                 nonce,
+                network: nodeNetwork,
                 // Verify merkle root matches coinbase txid (little-endian)
                 matchesCoinbase:
                   merkleRoot === coinbaseTx.txid.split('').reverse().join('')
@@ -1408,7 +1433,7 @@ export default function Energy() {
                   hashLittleEndian: hashHex,
                   headerHex: header.toString('hex'),
                   bits: blockTemplate.bits,
-                  isRegtest: blockTemplate.bits === '207fffff',
+                  network: nodeNetwork,
                   merkleRoot,
                   templateAge:
                     Math.floor(
@@ -1423,7 +1448,8 @@ export default function Energy() {
                   nonce,
                   extraNonce,
                   isMiningRef: isMiningRef.current,
-                  isMining: isMining
+                  isMining: isMining,
+                  network: nodeNetwork
                 })
 
                 // Submit block with fresh data
@@ -1436,7 +1462,8 @@ export default function Energy() {
                 console.log('📦 Block submission result:', {
                   success,
                   isMiningRef: isMiningRef.current,
-                  isMining: isMining
+                  isMining: isMining,
+                  network: nodeNetwork
                 })
 
                 if (success) {
@@ -1469,7 +1496,8 @@ export default function Energy() {
             console.error('❌ Mining interval error:', {
               error: error instanceof Error ? error.message : 'Unknown error',
               isMiningRef: isMiningRef.current,
-              isMining: isMining
+              isMining: isMining,
+              network: nodeNetwork
             })
             // Don't stop mining on error, just log and continue
             console.log('⛏️ Continuing mining after error...')
@@ -1480,7 +1508,8 @@ export default function Energy() {
         console.log('⛏️ Mining interval set up:', {
           intervalId: miningInterval,
           isMiningRef: isMiningRef.current,
-          isMining: isMining
+          isMining: isMining,
+          network: nodeNetwork
         })
 
         // Initial stats update
@@ -1489,7 +1518,8 @@ export default function Energy() {
         console.error('❌ Mining setup error:', {
           error: error instanceof Error ? error.message : 'Unknown error',
           isMiningRef: isMiningRef.current,
-          isMining: isMining
+          isMining: isMining,
+          network: nodeNetwork
         })
         throw error
       }
