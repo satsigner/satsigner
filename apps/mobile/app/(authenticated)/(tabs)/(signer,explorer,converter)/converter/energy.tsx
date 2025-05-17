@@ -4,6 +4,7 @@ import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View, Platform } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -19,6 +20,7 @@ import {
   type BlockTemplateTransaction
 } from '@/types/models/Rpc'
 import { validateAddress } from '@/utils/validation'
+import { useEnergyStore } from '@/store/energy'
 
 const tn = _tn('converter.energy')
 
@@ -119,6 +121,32 @@ const encodeScriptNum = (num: number): Buffer => {
 }
 
 export default function Energy() {
+  const [
+    rpcUrl,
+    rpcUsername,
+    rpcPassword,
+    miningAddress,
+    opReturnContent,
+    setRpcUrl,
+    setRpcUsername,
+    setRpcPassword,
+    setMiningAddress,
+    setOpReturnContent
+  ] = useEnergyStore(
+    useShallow((state) => [
+      state.rpcUrl,
+      state.rpcUsername,
+      state.rpcPassword,
+      state.miningAddress,
+      state.opReturnContent,
+      state.setRpcUrl,
+      state.setRpcUsername,
+      state.setRpcPassword,
+      state.setMiningAddress,
+      state.setOpReturnContent
+    ])
+  )
+
   const [blockchainInfo, setBlockchainInfo] = useState<BlockchainInfo | null>(
     null
   )
@@ -138,7 +166,6 @@ export default function Energy() {
   const [isStopping, setIsStopping] = useState(false)
   const [isValidAddress, setIsValidAddress] = useState(false)
 
-  const [miningAddress, setMiningAddress] = useState('')
   const [miningIntensity, setMiningIntensity] = useState(500)
   const [miningIntervalTime, setMiningIntervalTime] = useState(500)
   const [miningStats, setMiningStats] = useState({
@@ -148,10 +175,6 @@ export default function Energy() {
   })
 
   const [networkHashRate, setNetworkHashRate] = useState('0')
-  const [opReturnContent, setOpReturnContent] = useState('')
-  const [rpcPassword, setRpcPassword] = useState('')
-  const [rpcUrl, setRpcUrl] = useState('')
-  const [rpcUser, setRpcUser] = useState('')
   const [templateData, setTemplateData] = useState('')
   const [totalSats, setTotalSats] = useState('0')
   const [txError, setTxError] = useState('')
@@ -167,7 +190,7 @@ export default function Energy() {
   const fetchRpc = useCallback(
     (requestBody: RpcRequestBody) => {
       const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
-      const credentials = `${rpcUser}:${rpcPassword}`
+      const credentials = `${rpcUsername}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
       const authorization = `Basic ${credentialsBase64}`
 
@@ -224,7 +247,7 @@ export default function Energy() {
           throw error
         })
     },
-    [rpcUser, rpcPassword, rpcUrl]
+    [rpcUsername, rpcPassword, rpcUrl]
   )
 
   const formatTemplateData = useCallback((data: BlockTemplate) => {
@@ -493,8 +516,23 @@ export default function Energy() {
     }
   }, [])
 
+  // Add useEffect for initial address validation
+  useEffect(() => {
+    if (miningAddress) {
+      const isValid =
+        miningAddress.startsWith('bcrt1') ||
+        miningAddress.startsWith('bcrt') ||
+        miningAddress.startsWith('bc1') ||
+        miningAddress.startsWith('bc') ||
+        miningAddress.startsWith('tb1') ||
+        miningAddress.startsWith('tb')
+
+      setIsValidAddress(isValid)
+    }
+  }, []) // Only run on mount
+
   const connectToNode = async () => {
-    if (!rpcUrl || !rpcUser || !rpcPassword) {
+    if (!rpcUrl || !rpcUsername || !rpcPassword) {
       setConnectionError('Please fill in all RPC credentials')
       return
     }
@@ -1864,8 +1902,8 @@ export default function Energy() {
               <SSFormLayout.Label label={tn('params.rpcUser')} />
               <SSTextInput
                 placeholder={tn('params.rpcUserPlaceholder')}
-                value={rpcUser}
-                onChangeText={setRpcUser}
+                value={rpcUsername}
+                onChangeText={setRpcUsername}
                 variant="outline"
                 align="center"
               />
