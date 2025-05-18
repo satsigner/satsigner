@@ -186,6 +186,24 @@ export default function Energy() {
   const lastTemplateUpdateRef = useRef<number>(0)
   const miningIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const templateUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const previousNetworkRef = useRef<string | null>(null)
+
+  // Add useEffect to watch for network changes
+  useEffect(() => {
+    if (
+      blockchainInfo?.chain &&
+      blockchainInfo.chain !== previousNetworkRef.current
+    ) {
+      console.log('🔄 Network changed, resetting counters:', {
+        from: previousNetworkRef.current,
+        to: blockchainInfo.chain
+      })
+      // Network has changed, reset counters
+      setBlocksFound(0)
+      setTotalSats('0')
+      previousNetworkRef.current = blockchainInfo.chain
+    }
+  }, [blockchainInfo?.chain])
 
   const fetchRpc = useCallback(
     (requestBody: RpcRequestBody) => {
@@ -239,10 +257,10 @@ export default function Energy() {
                 : ''
 
             throw new Error(`Network request failed. Please check if:
-1. The Bitcoin node is running
-2. The RPC port is correct (${new URL(adjustedUrl).port})
-3. The node is accessible from your device
-4. There are no firewall rules blocking the connection${platformSpecificAdvice}`)
+                        1. The Bitcoin node is running
+                        2. The RPC port is correct (${new URL(adjustedUrl).port})
+                        3. The node is accessible from your device
+                        4. There are no firewall rules blocking the connection${platformSpecificAdvice}`)
           }
           throw error
         })
@@ -619,8 +637,23 @@ export default function Energy() {
     }
 
     // For other networks, calculate target from bits
+
+    // TODO: Can we bring the target from the template or from getblockchaininfo?
+    // could be more efficient to get the target from the template or from getblockchaininfo?
+
     const bitsNum = parseInt(bits, 16)
     const exponent = bitsNum >>> 24
+
+    // The mantissa is always 3 bytes (24 bits) in Bitcoin's compact target representation.
+
+    // The nBits field is basically scientific notation in base-256 (256 is 2^8).
+    // As an example, we take the one found on the Bitcoin.org Developer Reference: 0x181bc330 (Big-Endian order).
+    // This is split into two parts, the 0x18 exponent (24 in decimal), and the 0x1bc330 mantissa.
+    // The mantissa is 3 bytes long, so subtract 3 from the exponent and then raise 256 to that power,
+    // and multiply by the mantissa just as in scientific notation:
+    //      0x1bc330 × 256 ^ (0x18 - 3)
+    // Giving the target, the mantissa followed by 21 0x00 bytes, or 42 zeroes in hexadecimal.
+
     const mantissa = bitsNum & 0xffffff
     let target = Buffer.alloc(32, 0)
     let mantissaBuf = Buffer.alloc(4)
@@ -639,6 +672,7 @@ export default function Energy() {
     // Compare hash with target
     const isValid = hashLE.compare(target) <= 0
 
+    /*
     console.log('🔍 Network difficulty check:', {
       bits,
       target: target.toString('hex'),
@@ -648,6 +682,7 @@ export default function Energy() {
       hashNum: BigInt('0x' + hashLE.toString('hex')),
       targetNum: BigInt('0x' + target.toString('hex'))
     })
+    */
 
     return isValid
   }
@@ -711,7 +746,8 @@ export default function Energy() {
   const createCoinbaseTransaction = useCallback(
     (
       template: BlockTemplate,
-      extraNonce: number = 0
+      extraNonce: number = 0,
+      useExtraNonce: boolean = false
     ): BlockTemplateTransaction | null => {
       if (!template || !miningAddress) {
         return null
@@ -719,44 +755,48 @@ export default function Energy() {
 
       try {
         // Validate template first
-        validateBlockTemplate(template)
+        //validateBlockTemplate(template)
+
+        // Validate coinbase value is within safe bounds
+        if (
+          template.coinbasevalue <= 0 ||
+          template.coinbasevalue > Number.MAX_SAFE_INTEGER
+        ) {
+          console.error('❌ Invalid coinbase value:', {
+            value: template.coinbasevalue,
+            maxSafe: Number.MAX_SAFE_INTEGER
+          })
+          throw new Error('Invalid coinbase value: out of bounds')
+        }
 
         const network = getNetworkFromAddress(miningAddress)
-
-        console.log('🔍 Creating coinbase transaction:', {
-          address: miningAddress,
-          network: network.bech32 || 'unknown',
-          isRegtest: network === networks.regtest,
-          extraNonce,
-          height: template.height,
-          coinbaseValue: template.coinbasevalue
-        })
 
         const tx = new bitcoin.Transaction()
         tx.version = 1
         tx.locktime = 0
 
-        // Create coinbase input with proper height encoding and extra nonce
-        // Use BIP34 compliant height encoding like in miner.ts
+        // Create coinbase input with proper height encoding
+        // Use BIP34 compliant height encoding
         const heightScript = encodeScriptNum(template.height)
-        const extraNonceBytes = Buffer.alloc(8)
-        extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
 
-        // Create coinbase script following the format in miner.ts
-        const coinbaseScript = bitcoin.script.compile([
-          heightScript,
-          Buffer.from(`Satsigner ${Date.now()}`)
-        ])
-
-        // Verify coinbase script
-        console.log('🔍 Coinbase script:', {
-          height: template.height,
-          heightHex: heightScript.toString('hex'),
-          extraNonce,
-          extraNonceHex: extraNonceBytes.toString('hex'),
-          scriptHex: coinbaseScript.toString('hex'),
-          scriptLength: coinbaseScript.length
-        })
+        // Create coinbase script with optional extra nonce
+        let coinbaseScript: Buffer
+        if (useExtraNonce) {
+          // Only add extra nonce when explicitly requested
+          const extraNonceBytes = Buffer.alloc(8)
+          extraNonceBytes.writeBigUInt64LE(BigInt(extraNonce), 0)
+          coinbaseScript = bitcoin.script.compile([
+            heightScript,
+            extraNonceBytes,
+            Buffer.from(`Satsigner ${Date.now()}`)
+          ])
+        } else {
+          // Basic coinbase script with just height and miner identifier
+          coinbaseScript = bitcoin.script.compile([
+            heightScript,
+            Buffer.from(`Satsigner ${Date.now()}`)
+          ])
+        }
 
         tx.addInput(
           Buffer.alloc(32), // Previous txid (32 bytes of zeros for coinbase)
@@ -770,24 +810,36 @@ export default function Energy() {
             miningAddress,
             network
           )
-          tx.addOutput(outputScript, template.coinbasevalue)
+          // Ensure coinbase value is within safe bounds before adding output
+          const safeValue = Math.min(
+            template.coinbasevalue,
+            Number.MAX_SAFE_INTEGER
+          )
+          tx.addOutput(outputScript, safeValue)
 
           // Verify output
+          /*
           console.log('🔍 Coinbase output:', {
             address: miningAddress,
-            value: template.coinbasevalue,
+            value: safeValue,
+            originalValue: template.coinbasevalue,
             scriptHex: outputScript.toString('hex'),
             // Verify output requirements
-            hasValidValue: template.coinbasevalue > 0,
+            hasValidValue:
+              safeValue > 0 && safeValue <= Number.MAX_SAFE_INTEGER,
             hasValidScript: outputScript.length > 0
           })
+          */
         } catch (error) {
+          /*
           console.error('❌ Error creating output script:', {
             error: error instanceof Error ? error.message : 'Unknown error',
             address: miningAddress,
             network: network.bech32 || 'unknown',
-            isRegtest: network === networks.regtest
+            isRegtest: network === networks.regtest,
+            coinbaseValue: template.coinbasevalue
           })
+          */
           throw error
         }
 
@@ -805,6 +857,7 @@ export default function Energy() {
           throw new Error('Generated transaction is not a valid coinbase')
         }
 
+        /*
         // Verify final transaction
         console.log('🔍 Final coinbase transaction:', {
           txid: tx.getId(),
@@ -819,6 +872,7 @@ export default function Energy() {
             tx.outs.length > 0 && tx.outs[0].value === template.coinbasevalue,
           hasValidTxid: tx.getId().length === 64
         })
+        */
 
         return {
           data: tx.toHex(),
@@ -827,11 +881,6 @@ export default function Energy() {
           depends: []
         }
       } catch (error) {
-        console.error('❌ Coinbase transaction creation error:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          address: miningAddress,
-          network: getNetworkFromAddress(miningAddress).bech32 || 'unknown'
-        })
         throw error
       }
     },
@@ -895,7 +944,7 @@ export default function Energy() {
       nonce: number
     ) => {
       // Validate template first
-      validateBlockTemplate(template)
+      //validateBlockTemplate(template)
 
       // For regtest, we should use the template's curtime
       const blockTime = template.curtime
@@ -933,7 +982,7 @@ export default function Energy() {
 
       // Nonce (4 bytes) - little endian
       header.writeUInt32LE(nonce & 0xffffffff, 76)
-
+      /*
       // Verify header bytes
       console.log('🔨 Block header bytes:', {
         version: header.slice(0, 4).toString('hex'),
@@ -948,6 +997,7 @@ export default function Energy() {
         blockTime,
         templateCurtime: template.curtime
       })
+      */
 
       return header
     },
@@ -1017,6 +1067,7 @@ export default function Energy() {
         const templateAge = Math.floor(
           (Date.now() - lastTemplateUpdateRef.current) / 1000
         )
+        /*
         console.log('📋 Template freshness at submission:', {
           templateAge: templateAge + ' seconds',
           height: freshTemplate.height,
@@ -1026,6 +1077,7 @@ export default function Energy() {
           network: networkData.result.chain,
           bits: freshTemplate.bits
         })
+        */
 
         // If template is too old, reject the block
         if (templateAge > 5) {
@@ -1200,7 +1252,7 @@ export default function Energy() {
     }
 
     try {
-      // Validate network and address first
+      // Validate network and address first - only once at start
       const networkResponse = await fetchRpc({
         jsonrpc: '1.0',
         id: '1',
@@ -1224,7 +1276,7 @@ export default function Energy() {
         throw new Error('Could not determine node network type')
       }
 
-      // Validate address for network
+      // Validate address for network - only once at start
       if (nodeNetwork === 'regtest') {
         const isValidRegtest =
           miningAddress.startsWith('bcrt1') || miningAddress.startsWith('bcrt')
@@ -1256,6 +1308,9 @@ export default function Energy() {
         }
       }
 
+      // Validate template once at start
+      validateBlockTemplate(blockTemplate)
+
       console.log('⛏️ Starting mining process...', {
         isMiningRef: isMiningRef.current,
         isMining: isMining,
@@ -1271,11 +1326,33 @@ export default function Energy() {
       try {
         let nonce = 0
         let extraNonce = 0
+        let useExtraNonce = false
         const startTime = Date.now()
         let hashes = 0
         let lastLogTime = startTime
         let lastTemplateCheck = startTime
         let lastStatsUpdate = startTime
+        let lastTimestampUpdate = Math.floor(startTime / 1000) // Track last timestamp update
+
+        // Cache for coinbase transaction and merkle root
+        let cachedCoinbaseTx: BlockTemplateTransaction | null = null
+        let cachedMerkleRoot: string | null = null
+        let cachedMempoolTxs: BlockTemplateTransaction[] | null = null
+
+        // Create initial coinbase transaction without extra nonce
+        if (blockTemplate) {
+          cachedCoinbaseTx = createCoinbaseTransaction(blockTemplate, 0, false)
+          if (cachedCoinbaseTx) {
+            cachedMempoolTxs =
+              blockTemplate.transactions?.filter(
+                (tx) => tx.txid !== cachedCoinbaseTx?.txid
+              ) || []
+            cachedMerkleRoot = createMerkleRoot([
+              cachedCoinbaseTx,
+              ...cachedMempoolTxs
+            ])
+          }
+        }
 
         const updateMiningStats = () => {
           const now = Date.now()
@@ -1285,7 +1362,6 @@ export default function Energy() {
             ? '0'
             : (hashesPerSecond * 0.0001).toFixed(2)
 
-          // Update all UI elements in a single requestAnimationFrame
           requestAnimationFrame(() => {
             setEnergyRate(powerConsumption)
             setMiningStats((prev) => ({
@@ -1302,6 +1378,10 @@ export default function Energy() {
           })
         }
 
+        // SEARCH
+        toast.info(
+          `Running BitcoinMiner with ${blockTemplate?.transactions?.length || 0} transactions in block`
+        )
         const miningInterval = setInterval(async () => {
           if (!isMiningRef.current) {
             console.log('⛏️ Mining stopped - isMiningRef is false')
@@ -1317,30 +1397,19 @@ export default function Energy() {
               lastStatsUpdate = now
             }
 
-            // Always fetch a fresh template before starting a new mining batch
-            console.log('🔄 Fetching fresh template before mining batch...')
-            await fetchBlockTemplate()
+            // Always fetch a fresh template before starting a new mining batch on regtest
+            if (blockchainInfo?.chain === 'regtest') {
+              await fetchBlockTemplate()
+              if (!blockTemplate) {
+                throw new Error('Failed to get block template')
+              }
+            }
 
             if (!blockTemplate) {
               throw new Error('Failed to get block template')
             }
 
-            // Log template details
-            console.log('📋 Starting mining batch with template:', {
-              height: blockTemplate.height,
-              previousblockhash: blockTemplate.previousblockhash,
-              bits: blockTemplate.bits,
-              version: blockTemplate.version,
-              curtime: blockTemplate.curtime,
-              transactions: blockTemplate.transactions?.length || 0,
-              coinbasevalue: blockTemplate.coinbasevalue,
-              network: nodeNetwork,
-              templateAge:
-                Math.floor(
-                  (Date.now() - lastTemplateUpdateRef.current) / 1000
-                ) + ' seconds'
-            })
-
+            // Number of hashes to mine for each mining batch
             for (let i = 0; i < miningIntensity; i++) {
               if (!isMiningRef.current) {
                 console.log(
@@ -1353,59 +1422,70 @@ export default function Energy() {
               // Check if we need to increment extra nonce
               if (nonce >= 0xffffffff) {
                 nonce = 0
-                extraNonce++
-                console.log('🔄 Extra nonce increment:', {
-                  extraNonce,
-                  nonce,
-                  timestamp: Math.floor(Date.now() / 1000)
-                })
+                if (!useExtraNonce) {
+                  // Only recreate coinbase and merkle root when we need to start using extra nonce
+                  useExtraNonce = true
+                  console.log(
+                    '🔄 Switching to extra nonce mode after exhausting 32-bit nonce space'
+                  )
+
+                  // Recreate coinbase with extra nonce
+                  if (blockTemplate) {
+                    cachedCoinbaseTx = createCoinbaseTransaction(
+                      blockTemplate,
+                      extraNonce,
+                      true
+                    )
+                    if (cachedCoinbaseTx) {
+                      cachedMempoolTxs =
+                        blockTemplate.transactions?.filter(
+                          (tx) => tx.txid !== cachedCoinbaseTx?.txid
+                        ) || []
+                      cachedMerkleRoot = createMerkleRoot([
+                        cachedCoinbaseTx,
+                        ...cachedMempoolTxs
+                      ])
+                    }
+                  }
+                } else {
+                  // Just update extra nonce in existing coinbase
+                  extraNonce++
+                  if (blockTemplate && cachedCoinbaseTx) {
+                    cachedCoinbaseTx = createCoinbaseTransaction(
+                      blockTemplate,
+                      extraNonce,
+                      true
+                    )
+                    if (cachedCoinbaseTx && cachedMempoolTxs) {
+                      cachedMerkleRoot = createMerkleRoot([
+                        cachedCoinbaseTx,
+                        ...cachedMempoolTxs
+                      ])
+                    }
+                  }
+                }
               }
 
-              // Create coinbase transaction with current extra nonce
-              const coinbaseTx = createCoinbaseTransaction(
-                blockTemplate,
-                extraNonce
+              // Use cached values if available
+              if (!cachedCoinbaseTx || !cachedMerkleRoot || !cachedMempoolTxs) {
+                console.error('❌ Missing cached mining data')
+                continue
+              }
+
+              // Update timestamp periodically (every second)
+              const currentTime = Math.floor(Date.now() / 1000)
+              if (currentTime > lastTimestampUpdate) {
+                lastTimestampUpdate = currentTime
+              }
+
+              // Always create a new header with current timestamp and nonce
+              const timestamp = Math.max(
+                lastTimestampUpdate,
+                blockTemplate.mintime
               )
-              if (!coinbaseTx) {
-                throw new Error('Failed to create coinbase transaction')
-              }
-
-              // Log coinbase details for verification
-              console.log('🔍 Coinbase transaction:', {
-                txid: coinbaseTx.txid,
-                extraNonce,
-                nonce,
-                timestamp: Math.floor(Date.now() / 1000),
-                network: nodeNetwork
-              })
-
-              // Recalculate merkle root with new coinbase
-              const mempoolTxs =
-                blockTemplate.transactions?.filter(
-                  (tx) => tx.txid !== coinbaseTx.txid
-                ) || []
-              const allTransactions: BlockTemplateTransaction[] = [
-                coinbaseTx,
-                ...mempoolTxs
-              ]
-
-              // Verify transaction list and merkle root
-              const merkleRoot = createMerkleRoot(allTransactions)
-              console.log('🔍 Merkle root calculation:', {
-                coinbaseTxid: coinbaseTx.txid,
-                merkleRoot,
-                extraNonce,
-                nonce,
-                network: nodeNetwork,
-                // Verify merkle root matches coinbase txid (little-endian)
-                matchesCoinbase:
-                  merkleRoot === coinbaseTx.txid.split('').reverse().join('')
-              })
-
-              const timestamp = Math.floor(Date.now() / 1000)
               const header = createBlockHeader(
                 blockTemplate,
-                merkleRoot,
+                cachedMerkleRoot,
                 timestamp,
                 nonce++
               )
@@ -1415,31 +1495,16 @@ export default function Energy() {
               // Convert to little-endian for comparison
               const hashReversed = Buffer.from(hash).reverse()
               const hashHex = hashReversed.toString('hex')
-
+              console.log('hashHex:---- ', hashHex)
               hashes++
 
-              // Update current header for UI
-              currentHeaderRef.current = header
+              if (hashes % 100 === 0) {
+                // Update current header for UI
+                currentHeaderRef.current = header
+                // Update last hash for UI
+                lastHashRef.current = hashHex
 
-              // Update last hash for UI
-              lastHashRef.current = hashHex
-
-              if (hashes % 1000 === 0) {
-                console.log('⛏️ Mining attempt:', {
-                  nonce,
-                  extraNonce,
-                  timestamp,
-                  hashBigEndian: hash.toString('hex'),
-                  hashLittleEndian: hashHex,
-                  headerHex: header.toString('hex'),
-                  bits: blockTemplate.bits,
-                  network: nodeNetwork,
-                  merkleRoot,
-                  templateAge:
-                    Math.floor(
-                      (Date.now() - lastTemplateUpdateRef.current) / 1000
-                    ) + ' seconds'
-                })
+                await new Promise((resolve) => setTimeout(resolve, 1000))
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
@@ -1447,29 +1512,18 @@ export default function Energy() {
                   hashHex,
                   nonce,
                   extraNonce,
-                  isMiningRef: isMiningRef.current,
-                  isMining: isMining,
+                  useExtraNonce,
+                  timestamp,
                   network: nodeNetwork
                 })
 
                 // Submit block with fresh data
-                const success = await submitBlock(
-                  header,
-                  coinbaseTx,
-                  allTransactions
-                )
-
-                console.log('📦 Block submission result:', {
-                  success,
-                  isMiningRef: isMiningRef.current,
-                  isMining: isMining,
-                  network: nodeNetwork
-                })
+                const success = await submitBlock(header, cachedCoinbaseTx, [
+                  cachedCoinbaseTx,
+                  ...cachedMempoolTxs
+                ])
 
                 if (success) {
-                  console.log(
-                    '✅ Block successfully submitted, continuing mining...'
-                  )
                   // Update total sats earned
                   setTotalSats((prev) =>
                     (Number(prev) + blockTemplate.coinbasevalue).toString()
@@ -1478,10 +1532,6 @@ export default function Energy() {
                   toast.success('Block found and submitted successfully!')
                   // Force immediate stats update
                   updateMiningStats()
-                } else {
-                  console.log(
-                    '⚠️ Block submission not successful, continuing mining...'
-                  )
                 }
                 // Continue mining in both cases
                 break
@@ -1574,7 +1624,6 @@ export default function Energy() {
     // Reset mining values immediately
     requestAnimationFrame(() => {
       setEnergyRate('0')
-      setTotalSats('0')
       setMiningStats({
         hashesPerSecond: 0,
         lastHash: '',
