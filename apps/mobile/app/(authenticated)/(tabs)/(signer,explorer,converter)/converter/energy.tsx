@@ -949,6 +949,7 @@ export default function Energy() {
       // For regtest, we should use the template's curtime
       const blockTime = template.curtime
 
+      /*
       console.log('🔨 Creating block header:', {
         version: template.version,
         prevBlock: template.previousblockhash,
@@ -958,6 +959,7 @@ export default function Energy() {
         nonce,
         isRegtest: template.bits === '207fffff'
       })
+        */
 
       // Create header buffer (80 bytes)
       const header = Buffer.alloc(80)
@@ -984,21 +986,20 @@ export default function Energy() {
       header.writeUInt32LE(nonce & 0xffffffff, 76)
       /*
       // Verify header bytes
-      console.log('🔨 Block header bytes:', {
+      console.log('🔨 Searching', {
         version: header.slice(0, 4).toString('hex'),
         prevBlock: header.slice(4, 36).toString('hex'),
         merkleRoot: header.slice(36, 68).toString('hex'),
         timestamp: header.slice(68, 72).toString('hex'),
         bits: header.slice(72, 76).toString('hex'),
         nonce: header.slice(76, 80).toString('hex'),
-        fullHeader: header.toString('hex'),
-        // Add more validation info
+        header: header.toString('hex')       
         isRegtest: template.bits === '207fffff',
         blockTime,
         templateCurtime: template.curtime
+        
       })
       */
-
       return header
     },
     []
@@ -1332,7 +1333,6 @@ export default function Energy() {
         let lastLogTime = startTime
         let lastTemplateCheck = startTime
         let lastStatsUpdate = startTime
-        let lastTimestampUpdate = Math.floor(startTime / 1000) // Track last timestamp update
 
         // Cache for coinbase transaction and merkle root
         let cachedCoinbaseTx: BlockTemplateTransaction | null = null
@@ -1472,17 +1472,7 @@ export default function Energy() {
                 continue
               }
 
-              // Update timestamp periodically (every second)
-              const currentTime = Math.floor(Date.now() / 1000)
-              if (currentTime > lastTimestampUpdate) {
-                lastTimestampUpdate = currentTime
-              }
-
-              // Always create a new header with current timestamp and nonce
-              const timestamp = Math.max(
-                lastTimestampUpdate,
-                blockTemplate.mintime
-              )
+              const timestamp = Math.floor(Date.now() / 1000)
               const header = createBlockHeader(
                 blockTemplate,
                 cachedMerkleRoot,
@@ -1495,10 +1485,10 @@ export default function Energy() {
               // Convert to little-endian for comparison
               const hashReversed = Buffer.from(hash).reverse()
               const hashHex = hashReversed.toString('hex')
-              console.log('hashHex:---- ', hashHex)
+
               hashes++
 
-              if (hashes % 100 === 0) {
+              if (hashes % miningIntensity === 0 || miningIntensity === 10) {
                 // Update current header for UI
                 currentHeaderRef.current = header
                 // Update last hash for UI
@@ -1513,7 +1503,6 @@ export default function Energy() {
                   nonce,
                   extraNonce,
                   useExtraNonce,
-                  timestamp,
                   network: nodeNetwork
                 })
 
@@ -1539,7 +1528,7 @@ export default function Energy() {
             }
 
             // Update stats more frequently during active mining
-            if (hashes % 100 === 0) {
+            if (hashes % miningIntensity === 0 || miningIntensity === 10) {
               updateMiningStats()
             }
           } catch (error) {
