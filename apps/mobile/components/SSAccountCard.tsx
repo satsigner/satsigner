@@ -125,7 +125,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
-          {account.policyType === 'watchonly' ? null : (
+          {account.keys[0].creationType === 'importAddress' ? null : (
             <SSText
               size="xs"
               style={{ color: Colors.gray[500], lineHeight: 10 }}
