@@ -188,6 +188,18 @@ export default function AccountSettings() {
           <SSHStack>
             <SSButton
               style={styles.button}
+              label={t('account.export.pubkeys')}
+              variant="gradient"
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/export/pubkeys`
+                )
+              }
+            />
+          </SSHStack>
+          <SSHStack>
+            <SSButton
+              style={styles.button}
               label={t('account.export.labels')}
               variant="gradient"
               onPress={() =>
