@@ -194,10 +194,6 @@ export default function Energy() {
       blockchainInfo?.chain &&
       blockchainInfo.chain !== previousNetworkRef.current
     ) {
-      console.log('🔄 Network changed, resetting counters:', {
-        from: previousNetworkRef.current,
-        to: blockchainInfo.chain
-      })
       // Network has changed, reset counters
       setBlocksFound(0)
       setTotalSats('0')
@@ -484,14 +480,6 @@ export default function Energy() {
       const blocksInCurrentPeriod = currentBlock % blocksInPeriod
       const progress = blocksInCurrentPeriod / blocksInPeriod
 
-      console.log('📊 Difficulty adjustment progress:', {
-        currentBlock,
-        blocksInCurrentPeriod,
-        blocksInPeriod,
-        progress: progress * 100 + '%',
-        nextAdjustmentIn: blocksInPeriod - blocksInCurrentPeriod
-      })
-
       setDifficultyProgress(progress)
     }
   }, [blockchainInfo])
@@ -623,37 +611,12 @@ export default function Energy() {
       // For regtest, we just need to check if the hash is less than the target
       const isValid = hashLE.compare(regtestTarget) <= 0
 
-      console.log('🔍 Regtest difficulty check:', {
-        bits,
-        target: regtestTarget.toString('hex'),
-        hash: hash,
-        hashLE: hashLE.toString('hex'),
-        comparison: isValid,
-        hashNum: BigInt('0x' + hashLE.toString('hex')),
-        targetNum: BigInt('0x' + regtestTarget.toString('hex'))
-      })
-
       return isValid
     }
 
     // For other networks, calculate target from bits
-
-    // TODO: Can we bring the target from the template or from getblockchaininfo?
-    // could be more efficient to get the target from the template or from getblockchaininfo?
-
     const bitsNum = parseInt(bits, 16)
     const exponent = bitsNum >>> 24
-
-    // The mantissa is always 3 bytes (24 bits) in Bitcoin's compact target representation.
-
-    // The nBits field is basically scientific notation in base-256 (256 is 2^8).
-    // As an example, we take the one found on the Bitcoin.org Developer Reference: 0x181bc330 (Big-Endian order).
-    // This is split into two parts, the 0x18 exponent (24 in decimal), and the 0x1bc330 mantissa.
-    // The mantissa is 3 bytes long, so subtract 3 from the exponent and then raise 256 to that power,
-    // and multiply by the mantissa just as in scientific notation:
-    //      0x1bc330 × 256 ^ (0x18 - 3)
-    // Giving the target, the mantissa followed by 21 0x00 bytes, or 42 zeroes in hexadecimal.
-
     const mantissa = bitsNum & 0xffffff
     let target = Buffer.alloc(32, 0)
     let mantissaBuf = Buffer.alloc(4)
@@ -672,49 +635,10 @@ export default function Energy() {
     // Compare hash with target
     const isValid = hashLE.compare(target) <= 0
 
-    /*
-    console.log('🔍 Network difficulty check:', {
-      bits,
-      target: target.toString('hex'),
-      hash: hash,
-      hashLE: hashLE.toString('hex'),
-      comparison: isValid,
-      hashNum: BigInt('0x' + hashLE.toString('hex')),
-      targetNum: BigInt('0x' + target.toString('hex'))
-    })
-    */
-
     return isValid
   }
 
   const validateBlockTemplate = (template: BlockTemplate) => {
-    console.log('🔍 Validating block template:', {
-      version: template.version,
-      previousblockhash: template.previousblockhash,
-      bits: template.bits,
-      height: template.height,
-      curtime: template.curtime,
-      mintime: template.mintime,
-      transactions: template.transactions?.length || 0,
-      coinbasevalue: template.coinbasevalue,
-      isRegtest: template.bits === '207fffff',
-      // Verify template fields are present and valid
-      hasValidVersion: typeof template.version === 'number',
-      hasValidPrevBlock:
-        typeof template.previousblockhash === 'string' &&
-        template.previousblockhash.length === 64,
-      hasValidBits:
-        typeof template.bits === 'string' && template.bits.length === 8,
-      hasValidHeight:
-        typeof template.height === 'number' && template.height > 0,
-      hasValidTime:
-        typeof template.curtime === 'number' &&
-        typeof template.mintime === 'number' &&
-        template.curtime >= template.mintime,
-      hasValidCoinbase:
-        typeof template.coinbasevalue === 'number' && template.coinbasevalue > 0
-    })
-
     // Validate required fields
     if (
       !template.version ||
@@ -731,13 +655,6 @@ export default function Energy() {
       throw new Error(
         `Invalid block time: ${template.curtime} (must be after ${template.mintime})`
       )
-    }
-
-    // Log network type
-    if (template.bits === '207fffff') {
-      console.log('✅ Valid regtest template detected')
-    } else {
-      console.log('✅ Valid network template detected')
     }
 
     return true
@@ -1013,9 +930,6 @@ export default function Energy() {
     ) => {
       try {
         // Always get fresh chain data and template before submission
-        console.log(
-          '🔄 Getting fresh chain data and template before submission...'
-        )
 
         // First get fresh blockchain info
         const networkResponse = await fetchRpc({
@@ -1068,21 +982,9 @@ export default function Energy() {
         const templateAge = Math.floor(
           (Date.now() - lastTemplateUpdateRef.current) / 1000
         )
-        /*
-        console.log('📋 Template freshness at submission:', {
-          templateAge: templateAge + ' seconds',
-          height: freshTemplate.height,
-          previousblockhash: freshTemplate.previousblockhash,
-          curtime: freshTemplate.curtime,
-          transactions: freshTemplate.transactions?.length || 0,
-          network: networkData.result.chain,
-          bits: freshTemplate.bits
-        })
-        */
 
         // If template is too old, reject the block
         if (templateAge > 5) {
-          console.log('❌ Template too old at submission, rejecting block')
           return false
         }
 
@@ -1131,46 +1033,6 @@ export default function Energy() {
           ...rawTransactions.map((tx) => Buffer.from(tx, 'hex'))
         ])
 
-        // Log full block details before submission
-        console.log('📦 Full block details before submission:', {
-          blockHash,
-          blockSize: blockData.length,
-          network: networkData.result.chain,
-          header: {
-            version: freshHeader.readUInt32LE(0),
-            prevBlock: freshHeader.slice(4, 36).toString('hex'),
-            merkleRoot: freshHeader.slice(36, 68).toString('hex'),
-            timestamp: freshHeader.readUInt32LE(68),
-            bits: freshHeader.slice(72, 76).toString('hex'),
-            nonce: freshHeader.readUInt32LE(76),
-            raw: freshHeader.toString('hex')
-          },
-          transactions: {
-            count: rawTransactions.length,
-            coinbase: {
-              txid: freshCoinbaseTx.txid,
-              hash: freshCoinbaseTx.hash,
-              data: freshCoinbaseTx.data,
-              size: Buffer.from(freshCoinbaseTx.data, 'hex').length,
-              position: 0 // Coinbase should always be first
-            },
-            mempool: freshMempoolTxs.map((tx) => ({
-              txid: tx.txid,
-              hash: tx.hash,
-              size: tx.data ? Buffer.from(tx.data, 'hex').length : 0
-            }))
-          }
-        })
-
-        console.log('📤 Submitting block to node:', {
-          blockHash,
-          blockSize: blockData.length,
-          network: networkData.result.chain,
-          firstBytes: blockData.slice(0, 32).toString('hex') + '...',
-          headerHex: freshHeader.toString('hex'),
-          templateAge: templateAge + ' seconds'
-        })
-
         const response = await fetchRpc({
           jsonrpc: '1.0',
           id: '1',
@@ -1178,13 +1040,7 @@ export default function Energy() {
           params: [blockData.toString('hex')]
         })
 
-        console.log('📥 Node response status:', {
-          status: response.status,
-          statusText: response.statusText
-        })
-
         const data = await response.json()
-        console.log('📥 Node response data:', data)
 
         if (data.error) {
           throw new Error(`Block submission rejected: ${data.error}`)
@@ -1192,7 +1048,6 @@ export default function Energy() {
 
         // Handle different result cases
         if (data.result === 'high-hash') {
-          console.log('⚠️ Block hash too high, continuing mining...')
           return false // Return false but don't throw error to continue mining
         }
 
@@ -1201,21 +1056,9 @@ export default function Energy() {
           throw new Error(`Block submission rejected: ${data.result}`)
         }
 
-        console.log('✅ Block accepted by node:', {
-          blockHash,
-          blockSize: blockData.length,
-          network: networkData.result.chain,
-          templateAge: templateAge + ' seconds',
-          result: data.result // Log the actual result for debugging
-        })
-
         setBlocksFound((prev) => prev + 1)
         return true
       } catch (error) {
-        console.error('❌ Block submission error:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined
-        })
         return false // Return false but don't throw error to continue mining
       }
     },
@@ -1312,15 +1155,6 @@ export default function Energy() {
       // Validate template once at start
       validateBlockTemplate(blockTemplate)
 
-      console.log('⛏️ Starting mining process...', {
-        isMiningRef: isMiningRef.current,
-        isMining: isMining,
-        miningAddress,
-        templateHeight: blockTemplate.height,
-        network: nodeNetwork,
-        bits: blockTemplate.bits
-      })
-
       setIsMining(true)
       isMiningRef.current = true
 
@@ -1384,7 +1218,6 @@ export default function Energy() {
         )
         const miningInterval = setInterval(async () => {
           if (!isMiningRef.current) {
-            console.log('⛏️ Mining stopped - isMiningRef is false')
             clearInterval(miningInterval)
             return
           }
@@ -1412,9 +1245,6 @@ export default function Energy() {
             // Number of hashes to mine for each mining batch
             for (let i = 0; i < miningIntensity; i++) {
               if (!isMiningRef.current) {
-                console.log(
-                  '⛏️ Mining stopped inside loop - isMiningRef is false'
-                )
                 clearInterval(miningInterval)
                 return
               }
@@ -1425,9 +1255,6 @@ export default function Energy() {
                 if (!useExtraNonce) {
                   // Only recreate coinbase and merkle root when we need to start using extra nonce
                   useExtraNonce = true
-                  console.log(
-                    '🔄 Switching to extra nonce mode after exhausting 32-bit nonce space'
-                  )
 
                   // Recreate coinbase with extra nonce
                   if (blockTemplate) {
@@ -1468,7 +1295,6 @@ export default function Energy() {
 
               // Use cached values if available
               if (!cachedCoinbaseTx || !cachedMerkleRoot || !cachedMempoolTxs) {
-                console.error('❌ Missing cached mining data')
                 continue
               }
 
@@ -1498,14 +1324,6 @@ export default function Energy() {
               }
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
-                console.log('🎯 Found valid block hash:', {
-                  hashHex,
-                  nonce,
-                  extraNonce,
-                  useExtraNonce,
-                  network: nodeNetwork
-                })
-
                 // Submit block with fresh data
                 const success = await submitBlock(header, cachedCoinbaseTx, [
                   cachedCoinbaseTx,
@@ -1532,42 +1350,23 @@ export default function Energy() {
               updateMiningStats()
             }
           } catch (error) {
-            console.error('❌ Mining interval error:', {
-              error: error instanceof Error ? error.message : 'Unknown error',
-              isMiningRef: isMiningRef.current,
-              isMining: isMining,
-              network: nodeNetwork
-            })
-            // Don't stop mining on error, just log and continue
-            console.log('⛏️ Continuing mining after error...')
+            // Don't stop mining on error, just continue
           }
         }, miningIntervalTime)
 
         miningIntervalRef.current = miningInterval
-        console.log('⛏️ Mining interval set up:', {
-          intervalId: miningInterval,
-          isMiningRef: isMiningRef.current,
-          isMining: isMining,
-          network: nodeNetwork
-        })
 
         // Initial stats update
         updateMiningStats()
       } catch (error) {
-        console.error('❌ Mining setup error:', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          isMiningRef: isMiningRef.current,
-          isMining: isMining,
-          network: nodeNetwork
-        })
-        throw error
+        isMiningRef.current = false
+        setIsMining(false)
+        toast.error(
+          'Error starting mining: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        )
       }
     } catch (error) {
-      console.error('❌ Mining start error:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isMiningRef: isMiningRef.current,
-        isMining: isMining
-      })
       isMiningRef.current = false
       setIsMining(false)
       toast.error(
@@ -1588,12 +1387,6 @@ export default function Energy() {
   ])
 
   const stopMining = useCallback(() => {
-    console.log('🛑 Stopping mining process...', {
-      isMiningRef: isMiningRef.current,
-      isMining: isMining,
-      hasInterval: !!miningIntervalRef.current
-    })
-
     // Set loading state immediately
     setIsStopping(true)
     setIsMining(false)
@@ -1603,9 +1396,6 @@ export default function Energy() {
 
     // Clear interval immediately
     if (miningIntervalRef.current) {
-      console.log('🛑 Clearing mining interval:', {
-        intervalId: miningIntervalRef.current
-      })
       clearInterval(miningIntervalRef.current)
       miningIntervalRef.current = null
     }
@@ -1622,7 +1412,6 @@ export default function Energy() {
       currentHeaderRef.current = null
       lastHashRef.current = ''
 
-      console.log('🛑 Mining stopped completely')
       toast.info('Mining stopped')
       setIsStopping(false)
     })
