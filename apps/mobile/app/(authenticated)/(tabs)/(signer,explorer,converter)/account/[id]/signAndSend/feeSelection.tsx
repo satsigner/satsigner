@@ -1,7 +1,7 @@
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
 
 import { MempoolOracle } from '@/api/blockchain'
@@ -15,6 +15,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -31,6 +32,14 @@ export default function FeeSelection() {
   )
   const setFeeRate = useTransactionBuilderStore((state) => state.setFeeRate)
 
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool[account?.network || 'bitcoin']
+  )
+  const mempoolOracle = useMemo(
+    () => new MempoolOracle(mempoolUrl),
+    [mempoolUrl]
+  )
+
   const [feeSelected, setFeeSelected] = useState(1)
   const [insufficientSatsModalVisible, setInsufficientSatsModalVisible] =
     useState(false)
@@ -40,7 +49,7 @@ export default function FeeSelection() {
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
     queryKey: ['statistics', selectedPeriod],
-    queryFn: () => new MempoolOracle().getMempoolStatistics(selectedPeriod),
+    queryFn: () => mempoolOracle.getMempoolStatistics(selectedPeriod),
     enabled: isFocused,
     staleTime: time.minutes(5)
   })

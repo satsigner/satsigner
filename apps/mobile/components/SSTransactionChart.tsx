@@ -151,7 +151,7 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
           text: t('transaction.build.minerFee')
         },
         value: minerFee,
-        localId: 'minerFee'
+        localId: 'past-minerFee'
       })
     }
 

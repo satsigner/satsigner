@@ -1,10 +1,6 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { Canvas, Circle, Group } from '@shopify/react-native-skia'
-import {
-  sankey,
-  type SankeyLinkMinimal,
-  type SankeyNodeMinimal
-} from 'd3-sankey'
+import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import {
   Platform,
@@ -17,46 +13,44 @@ import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
 import { useGestures } from '@/hooks/useGestures'
+import { useInputTransactions } from '@/hooks/useInputTransactions'
 import { useLayout } from '@/hooks/useLayout'
-import type { TxNode } from '@/hooks/useNodesAndLinks'
+import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
+import { type Output } from '@/types/models/Output'
+import { type Utxo } from '@/types/models/Utxo'
+import { BLOCK_WIDTH, type Link, type Node } from '@/types/ui/sankey'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
 
-export interface Link extends SankeyLinkMinimal<object, object> {
-  source: string
-  target: string
-  value: number
-}
-
-export interface Node extends SankeyNodeMinimal<object, object> {
-  localId?: string
-  id: string
-  depth?: number
-  depthH: number
-  address?: string
-  type: string
-  ioData: TxNode['ioData']
-  value?: number
-  txId?: string
-  nextTx?: string
-}
-
 const LINK_MAX_WIDTH = 100
-const BLOCK_WIDTH = 50
 const NODE_WIDTH = 98
 
 type SSMultipleSankeyDiagramProps = {
-  sankeyNodes: Node[]
-  sankeyLinks: Link[]
   onPressOutput?: (localId?: string) => void
+  currentOutputLocalId?: string
+  inputs: Map<string, Utxo>
+  outputs: Output[]
+  feeRate: number
 }
 
 function SSMultipleSankeyDiagram({
-  sankeyNodes,
-  sankeyLinks,
-  onPressOutput
+  onPressOutput,
+  currentOutputLocalId,
+  inputs,
+  outputs,
+  feeRate
 }: SSMultipleSankeyDiagramProps) {
+  const DEEP_LEVEL = 2 // how deep the tx history
+  const { transactions } = useInputTransactions(inputs, DEEP_LEVEL)
+
+  const { nodes: sankeyNodes, links: sankeyLinks } = useNodesAndLinks({
+    transactions,
+    inputs,
+    outputs,
+    feeRate
+  })
+
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   // Calculate the maximum depthH value across all nodes
   const maxDepthH = useMemo(() => {
@@ -93,22 +87,34 @@ function SSMultipleSankeyDiagram({
     return depthH ?? 0
   })
 
-  const { nodes, links } = sankeyGenerator({
-    nodes: sankeyNodes,
-    links: sankeyLinks
-  })
+  // Run sankey layout with fallback on error
+  const { nodes, links } = useMemo(() => {
+    try {
+      const layout = sankeyGenerator({
+        nodes: sankeyNodes,
+        links: sankeyLinks as Link[]
+      })
+      return {
+        nodes: layout.nodes as unknown as Node[],
+        links: layout.links as unknown as Link[]
+      }
+    } catch {
+      // If layout fails (e.g. invalid array), return empty nodes/links
+      return { nodes: [], links: [] }
+    }
+  }, [sankeyGenerator, sankeyNodes, sankeyLinks])
 
   // Transform SankeyLinkMinimal to Link type
   const transformedLinks = links.map((link) => ({
-    source: (link.source as Node).id,
-    target: (link.target as Node).id,
+    source: (link.source as unknown as Node).id,
+    target: (link.target as unknown as Node).id,
     value: link.value
   }))
 
   // Calculate the optimal initial x translation to show the last 3 depthH levels
   const initialXTranslation = useMemo(() => {
     // If we have fewer than 3 depthH levels or no nodes, show from the beginning
-    if (maxDepthH < 2 || !nodes.length) {
+    if (maxDepthH < 2 || !nodes?.length) {
       return 0
     }
 
@@ -150,7 +156,7 @@ function SSMultipleSankeyDiagram({
     // Ensure the translation doesn't move the diagram too far off-screen
     // This prevents extreme translations that might make the diagram invisible
 
-    return Math.max(translation, -(diagramWidth - w / 2))
+    return Math.max(translation, -(diagramWidth - w / 2)) - 50
   }, [maxDepthH, nodes, w])
 
   const { animatedStyle, gestures, transform } = useGestures({
@@ -197,7 +203,11 @@ function SSMultipleSankeyDiagram({
   if (!nodes?.length || !transformedLinks?.length) {
     return null
   }
-  return (
+
+  return transactions.size > 0 &&
+    nodes?.length > 0 &&
+    links?.length > 0 &&
+    transformedLinks?.length > 0 ? (
     <View style={{ flex: 1 }}>
       <Canvas
         style={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
@@ -211,7 +221,11 @@ function SSMultipleSankeyDiagram({
             LINK_MAX_WIDTH={LINK_MAX_WIDTH}
             BLOCK_WIDTH={BLOCK_WIDTH}
           />
-          <SSSankeyNodes nodes={nodes} sankeyGenerator={sankeyGenerator} />
+          <SSSankeyNodes
+            nodes={nodes}
+            sankeyGenerator={sankeyGenerator}
+            selectedOutputNode={currentOutputLocalId}
+          />
           {nodes.map((node, index) => {
             const typedNode = node as Node
             const style = nodeStyles[index] // Get corresponding style for width/height
@@ -269,7 +283,7 @@ function SSMultipleSankeyDiagram({
         </View>
       </GestureDetector>
     </View>
-  )
+  ) : null
 }
 
 const styles = StyleSheet.create({

@@ -31,7 +31,8 @@ export default function GenerateMnemonic() {
     fingerprint,
     policyType,
     setPassphrase,
-    setFingerprint
+    setFingerprint,
+    setKey
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -40,7 +41,8 @@ export default function GenerateMnemonic() {
       state.fingerprint,
       state.policyType,
       state.setPassphrase,
-      state.setFingerprint
+      state.setFingerprint,
+      state.setKey
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -67,6 +69,11 @@ export default function GenerateMnemonic() {
   function handleOnPressCancel() {
     if (policyType === 'multisig') router.back()
     else if (policyType === 'singlesig') router.dismissAll()
+  }
+
+  function handleOnPressConfirm() {
+    setKey(Number(index))
+    router.navigate(`/account/add/confirm/${index}/word/0`)
   }
 
   if (mnemonic.length !== mnemonicWordCount) return <Redirect href="/" />
@@ -115,9 +122,7 @@ export default function GenerateMnemonic() {
               label={t('account.confirmSeed.title')}
               variant="secondary"
               disabled={!checksumValid}
-              onPress={() =>
-                router.navigate(`/account/add/confirm/${index}/word/0`)
-              }
+              onPress={handleOnPressConfirm}
             />
             <SSButton
               label={t('common.cancel')}

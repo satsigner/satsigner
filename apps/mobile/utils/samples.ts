@@ -9,7 +9,7 @@ export const sampleSignetXpub =
 
 export const sampleSignetXpubFingerprint = '60c6c741'
 
-export const sampleSalvadrorAddress = '32ixEdVJWo3kmvJGMTZq5jAQVZZeuwnqzo'
+export const sampleSalvadorAddress = '32ixEdVJWo3kmvJGMTZq5jAQVZZeuwnqzo'
 
 export const sampleSegwitAddress = 'bc1qfpqg6fkhdfcsdhl684q26nkccpfzsrvvjs4n82'
 

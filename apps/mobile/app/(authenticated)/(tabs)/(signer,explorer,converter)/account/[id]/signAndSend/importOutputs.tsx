@@ -9,7 +9,9 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
+import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
+import { parseTXOutputs } from '@/utils/parse'
 
 const tn = _tn('transaction.build.options.importOutputs')
 
@@ -18,6 +20,8 @@ function ImportOuputs() {
   const [importedOutputs, setImportedOutputs] = useState(tn('emptyContent'))
   const [validInput, setValidInput] = useState(false)
 
+  const addOutput = useTransactionBuilderStore((state) => state.addOutput)
+
   async function readFromClibpoard() {
     const text = await Clipboard.getStringAsync()
     if (text) setImportedOutputs(text)
@@ -25,6 +29,11 @@ function ImportOuputs() {
   }
 
   function importOutputs() {
+    const parsedOutputs = parseTXOutputs(importedOutputs)
+
+    parsedOutputs.map((output) => {
+      addOutput(output)
+    })
     router.back()
   }
 

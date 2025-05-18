@@ -3,15 +3,18 @@ import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import SSBitcoinNetworkExplanationLink from '@/components/SSBitcoinNetworkExplanationLink'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
+import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Config, type Network } from '@/types/settings/blockchain'
+
+const tn = _tn('settings.network.config')
 
 export default function NetworkSettings() {
   const router = useRouter()
@@ -49,38 +52,34 @@ export default function NetworkSettings() {
   }
 
   return (
-    <SSMainLayout>
+    <SSMainLayout style={{ paddingTop: 0 }}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <SSText uppercase>{t('settings.network.config.title')}</SSText>
-          ),
+          headerTitle: () => <SSText uppercase>{tn('title')}</SSText>,
           headerRight: undefined
         }}
       />
       <SSVStack gap="lg" justifyBetween>
-        <ScrollView
-          style={{ marginBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
-          <SSVStack gap="xl">
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <SSBitcoinNetworkExplanationLink />
+          <SSVStack gap="xl" style={{ marginTop: 20 }}>
             {networks.map((network) => (
-              <SSVStack gap="md" key={network}>
+              <SSVStack gap="sm" key={network}>
                 <SSVStack gap="none">
-                  <SSText uppercase>{t(`bitcoin.network.${network}`)}</SSText>
+                  <SSText uppercase weight="bold" size="xl">
+                    {t(`bitcoin.network.${network}`)}
+                  </SSText>
                   <SSText color="muted">
                     {t(`settings.network.server.type.${network}`)}
                   </SSText>
                 </SSVStack>
                 <SSVStack gap="sm">
                   <SSVStack gap="xs">
-                    <SSText uppercase>
-                      {t('settings.network.config.connectionMode.label')}
-                    </SSText>
+                    <SSText>{tn('connectionMode.label')}</SSText>
                     <SSCheckbox
                       label={(tempConfigs[network].connectionMode === 'auto'
-                        ? t('settings.network.config.connectionMode.auto')
-                        : t('settings.network.config.connectionMode.manual')
+                        ? tn('connectionMode.auto')
+                        : tn('connectionMode.manual')
                       ).toUpperCase()}
                       selected={tempConfigs[network].connectionMode === 'auto'}
                       onPress={() =>
@@ -95,9 +94,7 @@ export default function NetworkSettings() {
                     />
                   </SSVStack>
                   <SSVStack gap="xs">
-                    <SSText uppercase>
-                      {t('settings.network.config.connectionTestInterval')}
-                    </SSText>
+                    <SSText>{tn('connectionTestInterval')}</SSText>
                     <SSVStack gap="none">
                       <SSNumberInput
                         value={tempConfigs[
@@ -114,16 +111,12 @@ export default function NetworkSettings() {
                         }
                       />
                       <SSText color="muted" size="xs">
-                        {t(
-                          'settings.network.config.connectionTestIntervalNotice'
-                        )}
+                        {tn('connectionTestIntervalNotice')}
                       </SSText>
                     </SSVStack>
                   </SSVStack>
                   <SSVStack gap="xs">
-                    <SSText uppercase>
-                      {t('settings.network.config.retries')}
-                    </SSText>
+                    <SSText>{tn('retries')}</SSText>
                     <SSNumberInput
                       value={tempConfigs[network].retries.toString()}
                       min={1}
@@ -134,9 +127,7 @@ export default function NetworkSettings() {
                     />
                   </SSVStack>
                   <SSVStack gap="xs">
-                    <SSText uppercase>
-                      {t('settings.network.config.timeout')}
-                    </SSText>
+                    <SSText>{tn('timeout')}</SSText>
                     <SSNumberInput
                       value={tempConfigs[network].timeout.toString()}
                       min={1}
@@ -147,9 +138,7 @@ export default function NetworkSettings() {
                     />
                   </SSVStack>
                   <SSVStack gap="xs">
-                    <SSText uppercase>
-                      {t('settings.network.config.stopGap')}
-                    </SSText>
+                    <SSText>{tn('stopGap')}</SSText>
                     <SSNumberInput
                       value={tempConfigs[network].stopGap.toString()}
                       min={1}

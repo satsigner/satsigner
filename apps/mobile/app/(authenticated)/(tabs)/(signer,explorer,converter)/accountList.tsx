@@ -33,7 +33,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
-  sampleSalvadrorAddress,
+  sampleSalvadorAddress,
   sampleSegwitAddress,
   sampleSignetAddress,
   sampleSignetWalletSeed,
@@ -46,13 +46,15 @@ export default function AccountList() {
   const router = useRouter()
   const { width } = useWindowDimensions()
 
-  const [network, setSelectedNetwork, connectionMode] = useBlockchainStore(
-    useShallow((state) => [
-      state.selectedNetwork,
-      state.setSelectedNetwork,
-      state.configs[state.selectedNetwork].config.connectionMode
-    ])
-  )
+  const [network, setSelectedNetwork, connectionMode, mempoolUrl] =
+    useBlockchainStore(
+      useShallow((state) => [
+        state.selectedNetwork,
+        state.setSelectedNetwork,
+        state.configs[state.selectedNetwork].config.connectionMode,
+        state.configsMempool['bitcoin']
+      ])
+    )
   const [accounts, updateAccount] = useAccountsStore(
     useShallow((state) => [state.accounts, state.updateAccount])
   )
@@ -104,7 +106,7 @@ export default function AccountList() {
     | 'legacy'
     | 'watchonlyXpub'
     | 'watchonlyAddress'
-    | 'watchonlySalvadror'
+    | 'watchonlySalvador'
     | 'watchonlySegwit'
     | 'watchonlyTestnet4'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
@@ -134,8 +136,8 @@ export default function AccountList() {
   }, [network]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (connectionMode === 'auto') fetchPrices()
-  }, [connectionMode, fetchPrices])
+    if (connectionMode === 'auto') fetchPrices(mempoolUrl)
+  }, [connectionMode, fetchPrices, mempoolUrl])
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
@@ -167,7 +169,7 @@ export default function AccountList() {
 
   async function loadSampleWallet(type: SampleWallet) {
     setLoadingWallet(type)
-    setName(`My Wallet (${type})`)
+    setName(`Sample Wallet (${type})`)
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
@@ -201,11 +203,11 @@ export default function AccountList() {
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
         break
-      case 'watchonlySalvadror':
-        sampleAddress = sampleSalvadrorAddress
+      case 'watchonlySalvador':
+        sampleAddress = sampleSalvadorAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
-        setExternalDescriptor(`addr(${sampleSalvadrorAddress})`)
+        setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
         break
       case 'watchonlySegwit':
         sampleAddress = sampleSegwitAddress
@@ -309,10 +311,10 @@ export default function AccountList() {
               {t('accounts.samples')}
             </SSText>
             <SSButton
-              label={t('account.load.sample.bitcoin.address.salvadror')}
+              label={t('account.load.sample.bitcoin.address.salvador')}
               variant="subtle"
-              onPress={() => loadSampleWallet('watchonlySalvadror')}
-              loading={loadingWallet === 'watchonlySalvadror'}
+              onPress={() => loadSampleWallet('watchonlySalvador')}
+              loading={loadingWallet === 'watchonlySalvador'}
             />
             <SSButton
               label={t('account.load.sample.bitcoin.address.segwit')}

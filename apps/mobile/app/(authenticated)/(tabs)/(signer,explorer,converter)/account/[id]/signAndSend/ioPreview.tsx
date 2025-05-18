@@ -3,52 +3,52 @@ import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, View } from 'react-native'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Animated,
+  type LayoutChangeEvent,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { SSIconScan } from '@/components/icons'
+import { SSIconChevronLeft, SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSMultipleSankeyDiagram, {
-  type Link
-} from '@/components/SSMultipleSankeyDiagram'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSNumberGhostInput from '@/components/SSNumberGhostInput'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
-import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
-import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-// import { type Output } from '@/types/models/Output'
+import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-// import { selectEfficientUtxos } from '@/utils/utxo'
-
-const DEEP_LEVEL = 2 // how deep the tx history
 
 export default function IOPreview() {
   const router = useRouter()
@@ -82,9 +82,12 @@ export default function IOPreview() {
     ])
   )
 
-  const { transactions, loading, error } = usePreviousTransactions(
-    inputs,
-    DEEP_LEVEL
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool[account?.network || 'bitcoin']
+  )
+  const mempoolOracle = useMemo(
+    () => new MempoolOracle(mempoolUrl),
+    [mempoolUrl]
   )
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
@@ -95,7 +98,9 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithms>('user')
 
+  const [loadHistory, setLoadHistory] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [topGradientHeight, setTopGradientHeight] = useState(0)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
 
@@ -134,19 +139,12 @@ export default function IOPreview() {
     [inputs.size, outputs.length]
   )
 
-  const { nodes, links } = useNodesAndLinks({
-    transactions,
-    inputs,
-    outputs,
-    feeRate
-  })
-
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
     queryKey: ['statistics', selectedPeriod],
     queryFn: () =>
-      new MempoolOracle().getMempoolStatistics(
+      mempoolOracle.getMempoolStatistics(
         selectedPeriod === '2hours'
           ? '2h'
           : selectedPeriod === 'day'
@@ -158,6 +156,43 @@ export default function IOPreview() {
   })
 
   const boxPosition = new Animated.Value(localFeeRate)
+
+  // Calculate outputs for chart including remaining balance
+  const singleTxOutputs = useMemo(() => {
+    const { vsize } = transactionSize
+    const minerFee = Math.round(feeRate * vsize)
+    const totalInputValue = utxosSelectedValue
+    const totalOutputValue = outputs.reduce(
+      (sum, output) => sum + output.amount,
+      0
+    )
+    const remainingBalance = totalInputValue - totalOutputValue - minerFee
+
+    const chartOutputs: (Omit<Output, 'to'> & { to?: string })[] = [...outputs]
+
+    if (remainingBalance > DUST_LIMIT) {
+      chartOutputs.push({
+        localId: 'unspent',
+        amount: remainingBalance,
+        label: ''
+      })
+    }
+
+    return chartOutputs
+  }, [outputs, transactionSize, feeRate, utxosSelectedValue])
+
+  useEffect(() => {
+    if (remainingSats < 0) {
+      toast.error(t('transaction.error.insufficientInputs'))
+    }
+  }, [remainingSats])
+
+  useEffect(() => {
+    if (feeRate === 0) {
+      setFeeRate(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -232,7 +267,7 @@ export default function IOPreview() {
   function handleOnPressOutput(localId?: string) {
     setCurrentOutputLocalId(localId)
 
-    if (localId === 'minerFee') {
+    if (localId === 'current-minerFee') {
       changeFeeBottomSheetRef.current?.expand()
       return
     } else if (localId === 'remainingBalance') {
@@ -285,25 +320,14 @@ export default function IOPreview() {
     }
   }
 
-  if (loading && inputs.size > 0) {
-    return (
-      <SSVStack itemsCenter style={{ justifyContent: 'center', flex: 1 }}>
-        <ActivityIndicator color={Colors.white} />
-      </SSVStack>
-    )
+  const handleTopLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout
+    setTopGradientHeight(height + Layout.mainContainer.paddingTop)
   }
-
-  if (error) {
-    return (
-      <SSVStack itemsCenter>
-        <SSText color="muted">
-          Error loading transaction details: {error.message}
-        </SSText>
-      </SSVStack>
-    )
+  const handleLoadHistory = () => {
+    setLoadHistory(!loadHistory)
   }
-
-  if (!nodes.length || !links.length) return <Redirect href="/" />
+  // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
     <View style={{ flex: 1 }}>
@@ -318,9 +342,10 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 20,
+          zIndex: 0,
           pointerEvents: 'none'
         }}
+        onLayout={handleTopLayout}
         locations={[0.185, 0.5554, 0.7713, 1]}
         colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
       >
@@ -373,18 +398,33 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <View style={{ position: 'absolute', top: 80 }}>
-        {transactions.size > 0 &&
-        inputs.size > 0 &&
-        nodes?.length > 0 &&
-        links?.length > 0 ? (
-          <SSMultipleSankeyDiagram
-            sankeyNodes={nodes}
-            sankeyLinks={links as Link[]}
-            onPressOutput={handleOnPressOutput}
-          />
-        ) : null}
-      </View>
+      {inputs.size > 0 ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: loadHistory ? topGradientHeight : 80
+          }}
+        >
+          {loadHistory ? (
+            <SSMultipleSankeyDiagram
+              onPressOutput={handleOnPressOutput}
+              currentOutputLocalId={currentOutputLocalId}
+              inputs={inputs}
+              outputs={outputs}
+              feeRate={feeRate}
+            />
+          ) : (
+            <SSCurrentTransactionChart
+              inputs={inputs}
+              outputs={singleTxOutputs}
+              feeRate={feeRate}
+              onPressOutput={handleOnPressOutput}
+              currentOutputLocalId={currentOutputLocalId}
+            />
+          )}
+        </View>
+      ) : null}
+
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
@@ -405,6 +445,32 @@ export default function IOPreview() {
           }}
         >
           <SSVStack>
+            {!loadHistory && (
+              <TouchableOpacity
+                style={{
+                  marginBottom: Layout.vStack.gap.sm
+                }}
+                onPress={handleLoadHistory}
+              >
+                <SSHStack gap="xs">
+                  <SSHStack gap="xxs">
+                    <SSIconChevronLeft
+                      height={6}
+                      width={3}
+                      stroke={Colors.gray[300]}
+                    />
+                    <SSIconChevronLeft
+                      height={6}
+                      width={3}
+                      stroke={Colors.gray[300]}
+                    />
+                  </SSHStack>
+                  <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
+                    {t('transaction.loadHistory').toUpperCase()}
+                  </SSText>
+                </SSHStack>
+              </TouchableOpacity>
+            )}
             <SSHStack>
               <SSButton
                 variant="outline"
@@ -483,8 +549,11 @@ export default function IOPreview() {
             </SSHStack>
             <SSSlider
               min={DUST_LIMIT}
-              max={remainingSats}
-              value={outputAmount}
+              max={Math.max(remainingSats, DUST_LIMIT)}
+              value={Math.min(
+                outputAmount,
+                Math.max(remainingSats, DUST_LIMIT)
+              )}
               step={100}
               onValueChange={(value) => setOutputAmount(value)}
             />
