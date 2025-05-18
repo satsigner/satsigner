@@ -235,9 +235,16 @@ const useAccountBuilderStore = create<
     return account
   },
   clearKeyState: () => {
+    const { policyType, creationType, keys } = get()
+    // Preserve the extendedPublicKey from the first key if it exists
+    const extendedPublicKey =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.extendedPublicKey
+        : undefined
+
     set({
       keyName: '',
-      creationType: 'importMnemonic',
+      creationType,
       entropy: 'none',
       mnemonicWordCount: 24,
       mnemonic: '',
@@ -245,7 +252,8 @@ const useAccountBuilderStore = create<
       fingerprint: undefined,
       scriptVersion: 'P2WPKH',
       externalDescriptor: undefined,
-      extendedPublicKey: undefined
+      extendedPublicKey, // Preserve the extendedPublicKey
+      policyType
     })
   },
   clearAccount: () => {

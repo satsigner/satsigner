@@ -9,6 +9,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
+import NfcManager, { Ndef } from 'react-native-nfc-manager'
+import type { NfcTag } from 'react-native-nfc-manager'
 
 // Internal imports
 import { buildTransaction } from '@/api/bdk'
@@ -37,8 +39,18 @@ import { createBBQRChunks } from '@/utils/bbqr'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { useNFCReader } from '@/hooks/useNFCReader'
+import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 
 const tn = _tn('transaction.build.preview')
+
+interface NFCTagWithNDEF {
+  ndefMessage?: Array<{
+    tnf: number
+    type: Uint8Array
+    payload: Uint8Array
+  }>
+}
 
 function PreviewMessage() {
   const router = useRouter()
@@ -68,6 +80,16 @@ function PreviewMessage() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [signedPsbt, setSignedPsbt] = useState('')
   const [permission, requestPermission] = useCameraPermissions()
+
+  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const {
+    isEmitting,
+    emitNFCTag,
+    cancelNFCScan: cancelNFCEmitterScan
+  } = useNFCEmitter()
+  const [nfcModalVisible, setNfcModalVisible] = useState(false)
+  const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
+  const [nfcError, setNfcError] = useState<string | null>(null)
 
   const transactionHex = useMemo(() => {
     if (!account) return ''
@@ -244,6 +266,100 @@ function PreviewMessage() {
     toast.success('QR code scanned successfully')
   }
 
+  async function handleNFCExport() {
+    if (isEmitting) {
+      console.log('[Preview Message] Cancelling NFC export')
+      await cancelNFCEmitterScan()
+      setNfcModalVisible(false)
+      setNfcError(null)
+      return
+    }
+
+    if (!serializedPsbt) {
+      console.log('[Preview Message] No PSBT data available for NFC export')
+      toast.error(t('error.psbt.notAvailable'))
+      return
+    }
+
+    console.log('[Preview Message] Starting NFC export process')
+    console.log('[Preview Message] PSBT data length:', serializedPsbt.length)
+    console.log(
+      '[Preview Message] PSBT preview:',
+      serializedPsbt.slice(0, 100) + '...'
+    )
+
+    setNfcModalVisible(true)
+    setNfcError(null)
+    try {
+      console.log('[Preview Message] Calling emitNFCTag...')
+      await emitNFCTag(serializedPsbt)
+      console.log('[Preview Message] NFC export completed successfully')
+      toast.success(t('transaction.preview.nfcExported'))
+    } catch (error) {
+      console.log('[Preview Message] NFC export failed:', error)
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        setNfcError(errorMessage)
+        toast.error(errorMessage)
+      }
+    } finally {
+      if (!nfcError) {
+        setNfcModalVisible(false)
+      }
+    }
+  }
+
+  async function handleNFCScan() {
+    if (isReading) {
+      console.log('[Preview Message] Cancelling NFC scan')
+      await cancelNFCScan()
+      setNfcScanModalVisible(false)
+      return
+    }
+
+    console.log('[Preview Message] Starting NFC scan for signed PSBT')
+    setNfcScanModalVisible(true)
+    try {
+      const result = await readNFCTag()
+      console.log('[Preview Message] NFC read result:', result)
+
+      if (!result) {
+        console.log('[Preview Message] No data found on NFC tag')
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
+      }
+
+      if (result.txData) {
+        // Convert the raw transaction data to hex string
+        const txHex = Array.from(result.txData)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
+        console.log(
+          '[Preview Message] Converted transaction data to hex:',
+          txHex
+        )
+        setSignedPsbt(txHex)
+        toast.success(t('watchonly.read.success'))
+      } else if (result.txId) {
+        // Fallback to using the transaction ID if no raw data
+        console.log('[Preview Message] Using transaction ID:', result.txId)
+        setSignedPsbt(result.txId)
+        toast.success(t('watchonly.read.success'))
+      } else {
+        console.log('[Preview Message] No usable transaction data found')
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+      }
+    } catch (error) {
+      console.log('[Preview Message] NFC scan failed:', error)
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      }
+    } finally {
+      setNfcScanModalVisible(false)
+    }
+  }
+
   if (!id || !account) return <Redirect href="/" />
 
   return (
@@ -322,7 +438,7 @@ function PreviewMessage() {
                       <SSButton
                         variant="outline"
                         disabled={!messageId}
-                        label={t('common.QR')}
+                        label="Show QR"
                         style={{ width: '48%' }}
                         onPress={() => {
                           setNoKeyModalVisible(true)
@@ -331,16 +447,20 @@ function PreviewMessage() {
                     </SSHStack>
                     <SSHStack gap="xxs" justifyBetween>
                       <SSButton
-                        label="NFC"
-                        style={{ width: '48%' }}
-                        variant="outline"
-                        disabled
-                      />
-                      <SSButton
                         label="USB"
                         style={{ width: '48%' }}
                         variant="outline"
                         disabled
+                      />
+
+                      <SSButton
+                        label={
+                          isEmitting ? t('watchonly.read.scanning') : 'Emit NFC'
+                        }
+                        style={{ width: '48%' }}
+                        variant="outline"
+                        disabled={!isAvailable || !serializedPsbt}
+                        onPress={handleNFCExport}
                       />
                     </SSHStack>
                     <SSText
@@ -384,10 +504,15 @@ function PreviewMessage() {
                         disabled
                       />
                       <SSButton
-                        label="NFC"
+                        label={
+                          isReading
+                            ? t('watchonly.read.scanning')
+                            : t('watchonly.read.nfc')
+                        }
                         style={{ width: '48%' }}
                         variant="outline"
-                        disabled
+                        disabled={!isAvailable}
+                        onPress={handleNFCScan}
                       />
                     </SSHStack>
                     <SSButton
@@ -509,6 +634,93 @@ function PreviewMessage() {
               onPress={requestPermission}
             />
           )}
+        </SSModal>
+        <SSModal
+          visible={nfcModalVisible}
+          fullOpacity
+          onClose={() => {
+            setNfcModalVisible(false)
+            setNfcError(null)
+            if (isEmitting) cancelNFCEmitterScan()
+          }}
+        >
+          <SSVStack itemsCenter gap="lg">
+            <SSText color="muted" uppercase>
+              {nfcError
+                ? t('common.error')
+                : t('transaction.preview.exportingNFC')}
+            </SSText>
+            {nfcError ? (
+              <SSVStack itemsCenter gap="md">
+                <SSText color="error" center>
+                  {nfcError}
+                </SSText>
+                <SSText color="muted" center size="sm">
+                  {t('transaction.preview.nfcExportTip')}
+                </SSText>
+              </SSVStack>
+            ) : (
+              <View
+                style={{
+                  width: 200,
+                  height: 200,
+                  backgroundColor: Colors.gray[800],
+                  borderRadius: 100,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
+              >
+                <SSText size="lg" color="muted">
+                  {isEmitting ? '...' : 'NFC'}
+                </SSText>
+              </View>
+            )}
+            <SSButton
+              label={nfcError ? t('common.close') : t('common.cancel')}
+              variant="ghost"
+              onPress={() => {
+                setNfcModalVisible(false)
+                setNfcError(null)
+                if (isEmitting) cancelNFCEmitterScan()
+              }}
+            />
+          </SSVStack>
+        </SSModal>
+        <SSModal
+          visible={nfcScanModalVisible}
+          fullOpacity
+          onClose={() => {
+            setNfcScanModalVisible(false)
+            if (isReading) cancelNFCScan()
+          }}
+        >
+          <SSVStack itemsCenter gap="lg">
+            <SSText color="muted" uppercase>
+              {t('watchonly.read.scanning')}
+            </SSText>
+            <View
+              style={{
+                width: 200,
+                height: 200,
+                backgroundColor: Colors.gray[800],
+                borderRadius: 100,
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <SSText size="lg" color="muted">
+                {isReading ? '...' : 'NFC'}
+              </SSText>
+            </View>
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => {
+                setNfcScanModalVisible(false)
+                if (isReading) cancelNFCScan()
+              }}
+            />
+          </SSVStack>
         </SSModal>
       </SSMainLayout>
     </>
