@@ -647,22 +647,23 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, updateAccount, totalTasks, tasksDone, syncStatus] =
+  const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
     useAccountsStore(
       useShallow((state) => [
-        state.accounts.find((account) => account.id === id),
         state.updateAccount,
-        state.accounts.find((account) => account.id === id)?.syncProgress
-          ?.totalTasks,
-        state.accounts.find((account) => account.id === id)?.syncProgress
-          ?.tasksDone,
-        state.accounts.find((account) => account.id === id)?.syncStatus
+        state.accounts.find((a) => a.id === id),
+        state.accounts.find((a) => a.id === id)?.syncStatus,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
       ])
     )
+
   const [wallet, watchOnlyWalletAddress] = useWalletsStore(
     useShallow((state) => [state.wallets[id!], state.addresses[id!]])
   )
+
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
