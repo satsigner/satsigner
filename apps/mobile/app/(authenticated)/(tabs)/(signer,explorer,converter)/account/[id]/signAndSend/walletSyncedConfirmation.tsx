@@ -1,14 +1,17 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
 // import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { formatDate, formatTime, formatTimestamp } from '@/utils/format'
 
 export default function WalletSyncedConfirmation() {
   const router = useRouter()
@@ -16,10 +19,15 @@ export default function WalletSyncedConfirmation() {
 
   const [isSyncing, setIsSyncing] = useState(false)
 
-  const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.id === id!)
+  const [account, updateAccount] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account) => _account.id === id!),
+      state.updateAccount
+    ])
   )
   const wallet = useWalletsStore((state) => state.wallets[id])
+
+  const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   const goToNextStep = async () => {
     // TODO: add internal change address as an output
@@ -30,11 +38,15 @@ export default function WalletSyncedConfirmation() {
 
   const syncWallet = async () => {
     setIsSyncing(true)
-    // TODO: sync wallet
-    if (wallet) {
-      //
+
+    if (wallet && account) {
+      const updatedAccount = await syncAccountWithWallet(account, wallet)
+      updateAccount(updatedAccount)
     }
+
     setIsSyncing(false)
+
+    goToNextStep()
   }
 
   return (
@@ -69,7 +81,19 @@ export default function WalletSyncedConfirmation() {
                 same address.
               </SSText>
             </SSVStack>
-            <SSVStack>
+            <SSVStack gap="none">
+              <SSText>
+                Wallet last synced at{' '}
+                {account?.lastSyncedAt ? (
+                  <SSText>
+                    {formatDate(account?.lastSyncedAt)}{' '}
+                    {formatTime(account?.lastSyncedAt)}
+                  </SSText>
+                ) : (
+                  <SSText>Never</SSText>
+                )}
+                .
+              </SSText>
               <SSText>Update your wallet to avoid these issues.</SSText>
             </SSVStack>
           </SSVStack>
