@@ -1093,19 +1093,20 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
-      {syncStatus === 'syncing' &&
-      tasksDone !== undefined &&
-      totalTasks !== undefined &&
-      totalTasks > 0 ? (
-        <View style={{ marginTop: 10, marginBottom: -10 }}>
-          <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
-            <ActivityIndicator size={16} color="#fff" />
-            <SSText center>
-              {t('account.syncProgress', { tasksDone, totalTasks })}
-            </SSText>
-          </SSHStack>
-        </View>
-      ) : null}
+      {account.keys[0].creationType === 'importAddress' &&
+        syncStatus === 'syncing' &&
+        tasksDone !== undefined &&
+        totalTasks !== undefined &&
+        totalTasks > 0 && (
+          <View style={{ marginTop: 10, marginBottom: -10 }}>
+            <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+              <ActivityIndicator size={16} color="#fff" />
+              <SSText center>
+                {t('account.syncProgress', { tasksDone, totalTasks })}
+              </SSText>
+            </SSHStack>
+          </View>
+        )}
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}
