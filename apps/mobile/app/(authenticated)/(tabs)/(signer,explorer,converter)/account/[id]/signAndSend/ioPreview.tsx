@@ -69,7 +69,8 @@ export default function IOPreview() {
     addOutput,
     updateOutput,
     removeOutput,
-    setFeeRate
+    setFeeRate,
+    setFee
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -79,7 +80,8 @@ export default function IOPreview() {
       state.addOutput,
       state.updateOutput,
       state.removeOutput,
-      state.setFeeRate
+      state.setFeeRate,
+      state.setFee
     ])
   )
 
@@ -173,7 +175,7 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
   const transactionSize = useMemo(
-    () => estimateTransactionSize(inputs.size, outputs.length + 2),
+    () => estimateTransactionSize(inputs.size, outputs.length + 1),
     [inputs.size, outputs.length]
   )
 
@@ -234,6 +236,10 @@ export default function IOPreview() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    setFee(localFeeRate * transactionSize.vsize)
+  }, [localFeeRate, transactionSize, setFee])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -364,11 +370,10 @@ export default function IOPreview() {
   function handleGoToPreview() {
     // first, we add the change as an output
     setShouldRemoveChange(false)
-    console.log(changeAddress, remainingBalance)
     addOutput({
       to: changeAddress,
       amount: remainingBalance,
-      label: ''
+      label: 'Change'
     })
 
     // Account not synced. Go to warning page to sync it.

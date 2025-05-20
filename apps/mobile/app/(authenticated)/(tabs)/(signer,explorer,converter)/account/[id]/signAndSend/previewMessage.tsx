@@ -33,11 +33,12 @@ function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [inputs, outputs, feeRate, rbf, setTxBuilderResult] =
+  const [inputs, outputs, fee, feeRate, rbf, setTxBuilderResult] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.outputs,
+        state.fee,
         state.feeRate,
         state.rbf,
         state.setTxBuilderResult
@@ -131,7 +132,7 @@ function PreviewMessage() {
           {
             inputs: Array.from(inputs.values()),
             outputs: Array.from(outputs.values()),
-            feeRate,
+            fee,
             options: {
               rbf
             }

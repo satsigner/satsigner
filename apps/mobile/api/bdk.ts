@@ -693,7 +693,7 @@ async function buildTransaction(
   data: {
     inputs: Utxo[]
     outputs: Output[]
-    feeRate: number
+    fee: number
     options: {
       rbf: boolean
     }
@@ -712,7 +712,7 @@ async function buildTransaction(
     await transactionBuilder.addRecipient(recipient, output.amount)
   }
 
-  await transactionBuilder.feeRate(data.feeRate)
+  await transactionBuilder.feeAbsolute(data.fee)
 
   if (data.options.rbf) await transactionBuilder.enableRbf()
 
