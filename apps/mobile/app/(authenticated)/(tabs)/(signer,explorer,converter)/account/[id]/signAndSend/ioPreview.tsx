@@ -96,7 +96,6 @@ export default function IOPreview() {
 
   useEffect(() => {
     if (!account || !wallet) return
-
     ;(async () => {
       const outputAddresses: Record<string, boolean> = {}
       account.transactions.forEach((tx) => {
@@ -182,8 +181,7 @@ export default function IOPreview() {
 
   const boxPosition = new Animated.Value(localFeeRate)
 
-  // Calculate outputs for chart including remaining balance
-  const singleTxOutputs = useMemo(() => {
+  const remainingBalance = useMemo(() => {
     const { vsize } = transactionSize
     const minerFee = Math.round(feeRate * vsize)
     const totalInputValue = utxosSelectedValue
@@ -191,8 +189,11 @@ export default function IOPreview() {
       (sum, output) => sum + output.amount,
       0
     )
-    const remainingBalance = totalInputValue - totalOutputValue - minerFee
+    return totalInputValue - totalOutputValue - minerFee
+  }, [feeRate, outputs, transactionSize, utxosSelectedValue])
 
+  // Calculate outputs for chart including remaining balance
+  const singleTxOutputs = useMemo(() => {
     const chartOutputs: Output[] = [...outputs]
 
     if (remainingBalance > DUST_LIMIT) {
@@ -205,7 +206,7 @@ export default function IOPreview() {
     }
 
     return chartOutputs
-  }, [outputs, transactionSize, feeRate, utxosSelectedValue, changeAddress])
+  }, [outputs, remainingBalance, changeAddress])
 
   useEffect(() => {
     if (remainingSats < 0) {
@@ -371,7 +372,7 @@ export default function IOPreview() {
       (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
     )
 
-    // Account too long ago.
+    // Account updated too long ago.
     if (daysSinceLastSync > 1) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
     }
