@@ -28,12 +28,14 @@ function SSWarningModal({ visible, onClose, children }: SSWarningModalProps) {
     <Modal visible={visible} transparent={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.black }}>
         <SSMainLayout black>
-          <ScrollView>{children}</ScrollView>
-          <SSButton
-            label={t('common.acknowledge')}
-            variant="secondary"
-            onPress={() => onClose()}
-          />
+          <ScrollView>
+            {children}
+            <SSButton
+              label={t('common.acknowledge')}
+              variant="secondary"
+              onPress={onClose}
+            />
+          </ScrollView>
         </SSMainLayout>
       </SafeAreaView>
     </Modal>

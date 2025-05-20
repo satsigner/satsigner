@@ -6,6 +6,7 @@ import { useCallback, useRef } from 'react'
 import { Gesture } from 'react-native-gesture-handler'
 import {
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -66,6 +67,27 @@ export const useGestures = ({
     y: useSharedValue(initialTranslation.y)
   }
   const isZoomedIn = useSharedValue(false)
+
+  // Use useAnimatedReaction to update translation when initialTranslation prop changes
+  useAnimatedReaction(
+    () => {
+      // Preparer function: runs on JS thread when dependencies change.
+      // Returns the data to be watched.
+      return { x: initialTranslation.x, y: initialTranslation.y }
+    },
+    (currentData) => {
+      'worklet'
+      // Reactor function: runs on UI thread if currentData is different from previousData.
+      if (currentData) {
+        // Update translate and savedTranslate shared values
+        translate.x.value = currentData.x
+        translate.y.value = currentData.y
+        savedTranslate.x.value = currentData.x
+        savedTranslate.y.value = currentData.y
+      }
+    },
+    [initialTranslation.x, initialTranslation.y] // Dependencies for the preparer
+  )
 
   const { getInteractionId, updateInteractionId } = useInteractionId()
   const { onAnimationEnd } = useAnimationEnd()

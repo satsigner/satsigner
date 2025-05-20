@@ -24,6 +24,7 @@ type AccountsAction = {
   loadTx: (accountId: Account['id'], tx: Transaction) => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
+  deleteTags: () => void
   setAddrLabel: (account: string, addr: string, label: string) => void
   setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
   setUtxoLabel: (
@@ -127,6 +128,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       },
       setTags: (tags: string[]) => {
         set({ tags })
+      },
+      deleteTags: () => {
+        set({ tags: [] })
       },
       setAddrLabel: (accountName, addr, label) => {
         const account = get().accounts.find(

@@ -1,6 +1,7 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet'
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import { type ForwardedRef, forwardRef } from 'react'
+import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Layout } from '@/styles'
@@ -23,16 +24,11 @@ function SSBottomSheet(
       index={-1}
       snapPoints={snapPoints}
       enablePanDownToClose
-      backgroundStyle={{ backgroundColor: Colors.gray[950] }}
-      handleStyle={{ display: 'none' }}
+      backgroundStyle={styles.background}
+      handleStyle={styles.handle}
+      style={styles.bottomSheet}
     >
-      <BottomSheetScrollView
-        style={{
-          flex: 1,
-          paddingTop: 16,
-          paddingHorizontal: Layout.mainContainer.paddingHorizontal
-        }}
-      >
+      <BottomSheetScrollView style={styles.scrollView}>
         <SSVStack>
           <SSText weight="bold" uppercase center>
             {title}
@@ -43,5 +39,24 @@ function SSBottomSheet(
     </BottomSheet>
   )
 }
+
+const styles = StyleSheet.create({
+  background: {
+    backgroundColor: Colors.gray[950]
+  },
+  bottomSheet: {
+    borderTopWidth: 1,
+    borderRadius: 6,
+    borderColor: Colors.white
+  },
+  handle: {
+    display: 'none'
+  },
+  scrollView: {
+    flex: 1,
+    paddingTop: 16,
+    paddingHorizontal: Layout.mainContainer.paddingHorizontal
+  }
+})
 
 export default forwardRef(SSBottomSheet)

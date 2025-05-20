@@ -33,11 +33,11 @@ function SSText({
 
     const styleMap = {
       mono: {
-        ultralight: styles.textMonoUltralight,
-        light: styles.textMonoLight,
-        medium: styles.textMonoMedium,
-        regular: styles.textMonoRegular,
-        bold: styles.textMonoBold
+        ultralight: styles.textSFMonoRegular,
+        light: styles.textSFMonoRegular,
+        medium: styles.textSFMonoRegular,
+        regular: styles.textSFMonoRegular,
+        bold: styles.textSFMonoRegular
       },
       'sans-serif': {
         ultralight: styles.textSansSerifUltralight,
@@ -103,20 +103,8 @@ const styles = StyleSheet.create({
   textSansSerifBold: {
     fontFamily: Typography.sfProTextBold
   },
-  textMonoUltralight: {
-    fontFamily: Typography.terminessNerdFontMonoRegular
-  },
-  textMonoLight: {
-    fontFamily: Typography.terminessNerdFontMonoRegular
-  },
-  textMonoRegular: {
-    fontFamily: Typography.terminessNerdFontMonoRegular
-  },
-  textMonoMedium: {
-    fontFamily: Typography.terminessNerdFontMonoRegular
-  },
-  textMonoBold: {
-    fontFamily: Typography.terminessNerdFontMonoBold
+  textSFMonoRegular: {
+    fontFamily: Typography.sfProMono
   }
 })
 

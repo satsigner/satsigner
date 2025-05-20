@@ -15,10 +15,11 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 // Hook required because bdk does not support address descriptor
 function useSyncAccountWithAddress() {
   const setSyncStatus = useAccountsStore((state) => state.setSyncStatus)
-  const [backend, network, url] = useBlockchainStore(
+
+  const [backend, network, url, configsMempol] = useBlockchainStore(
     useShallow((state) => {
       const { server } = state.configs[state.selectedNetwork]
-      return [server.backend, server.network, server.url]
+      return [server.backend, server.network, server.url, state.configsMempool]
     })
   )
 
@@ -187,7 +188,8 @@ function useSyncAccountWithAddress() {
         .map((transaction) => formatTimestamp(transaction.timestamp!))
 
       //Fetch Prices
-      const oracle = new MempoolOracle()
+      const mempoolUrl = configsMempol['bitcoin']
+      const oracle = new MempoolOracle(mempoolUrl)
       const prices = await oracle.getPricesAt('USD', timestamps)
 
       //Transaction prices update
