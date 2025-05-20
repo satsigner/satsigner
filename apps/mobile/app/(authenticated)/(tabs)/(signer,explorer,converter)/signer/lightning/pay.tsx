@@ -4,12 +4,14 @@ import {
   View,
   TextInput,
   Alert,
-  TouchableOpacity
+  TouchableOpacity,
+  ScrollView
 } from 'react-native'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Ionicons } from '@expo/vector-icons'
 import * as Clipboard from 'expo-clipboard'
+import { useShallow } from 'zustand/react/shallow'
 
 import { useLND } from '@/hooks/useLND'
 import SSButton from '@/components/SSButton'
@@ -19,15 +21,196 @@ import SSVStack from '@/layouts/SSVStack'
 import SSHStack from '@/layouts/SSHStack'
 import SSModal from '@/components/SSModal'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
+import { formatNumber } from '@/utils/format'
+import {
+  isLNURL,
+  handleLNURLPay,
+  fetchLNURLPayDetails,
+  decodeLNURL
+} from '@/utils/lnurl'
+
+// Define the type for makeRequest
+type MakeRequest = <T>(
+  path: string,
+  options?: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    body?: unknown
+    headers?: Record<string, string>
+  }
+) => Promise<T>
+
+interface DecodedInvoice {
+  payment_request: string
+  value: string
+  description: string
+  timestamp: string
+  expiry: string
+  payment_hash: string
+  payment_addr: string
+  num_satoshis: string
+  num_msat: string
+  features: Record<string, { name: string }>
+  route_hints: any[]
+  payment_secret: string
+  min_final_cltv_expiry: string
+}
 
 export default function PayPage() {
   const router = useRouter()
-  const { payInvoice } = useLND()
+  const { payInvoice, makeRequest, isConnected, verifyConnection } = useLND()
+  const typedMakeRequest = makeRequest as MakeRequest
   const [permission, requestPermission] = useCameraPermissions()
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
 
   const [paymentRequest, setPaymentRequest] = useState('')
+  const [amount, setAmount] = useState('')
+  const [comment, setComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [isLNURLMode, setIsLNURLMode] = useState(false)
+  const [decodedInvoice, setDecodedInvoice] = useState<DecodedInvoice | null>(
+    null
+  )
+
+  // Fetch LNURL details and set minimum amount
+  const handleLNURLDetected = useCallback(async (lnurl: string) => {
+    try {
+      setIsFetchingDetails(true)
+      console.log('🔍 Fetching LNURL details for amount population')
+      const url = isLNURL(lnurl) ? decodeLNURL(lnurl) : lnurl
+      const details = await fetchLNURLPayDetails(url)
+
+      // Convert millisats to sats and set as amount
+      const minSats = Math.ceil(details.minSendable / 1000)
+      console.log('💰 Setting minimum amount:', minSats, 'sats')
+      setAmount(minSats.toString())
+    } catch (error) {
+      console.error('❌ Failed to fetch LNURL details for amount:', error)
+      // Don't show error to user, just don't set the amount
+    } finally {
+      setIsFetchingDetails(false)
+    }
+  }, [])
+
+  // Decode a bolt11 invoice
+  const decodeInvoice = useCallback(
+    async (invoice: string) => {
+      try {
+        console.log('🔍 Starting invoice decode:', {
+          prefix: invoice.substring(0, 10) + '...',
+          length: invoice.length,
+          timestamp: new Date().toISOString()
+        })
+        const response = await typedMakeRequest<DecodedInvoice>(
+          '/v1/payreq/' + invoice
+        )
+        console.log('✅ Invoice decoded successfully:', {
+          amount: response.num_satoshis,
+          description: response.description,
+          timestamp: response.timestamp,
+          expiry: response.expiry,
+          payment_hash: response.payment_hash
+        })
+
+        // Update state with decoded invoice
+        setDecodedInvoice(response)
+        console.log('📝 Updated decodedInvoice state:', {
+          hasDecodedInvoice: !!response,
+          amount: response.num_satoshis,
+          timestamp: new Date().toISOString()
+        })
+
+        return response
+      } catch (error) {
+        console.error('❌ Failed to decode invoice:', {
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString()
+        })
+        setDecodedInvoice(null)
+        throw error
+      }
+    },
+    [typedMakeRequest]
+  )
+
+  // Update LNURL mode and fetch details when payment request changes
+  const handlePaymentRequestChange = useCallback(
+    async (text: string) => {
+      console.log('📝 Payment request changed:', {
+        length: text.length,
+        isLNURL: isLNURL(text),
+        isBolt11: text.toLowerCase().startsWith('lnbc'),
+        isConnected,
+        timestamp: new Date().toISOString()
+      })
+
+      // Clear previous state
+      setPaymentRequest(text)
+      const isLNURLInput = isLNURL(text)
+      setIsLNURLMode(isLNURLInput)
+      setDecodedInvoice(null) // Clear previous decode
+
+      // Verify LND connection before proceeding
+      if (!isConnected) {
+        console.log('🔌 LND not connected, attempting to verify connection...')
+        const isStillConnected = await verifyConnection()
+        if (!isStillConnected) {
+          console.error('❌ LND not connected, cannot decode invoice')
+          Alert.alert(
+            'Connection Error',
+            'Not connected to LND node. Please check your connection and try again.'
+          )
+          return
+        }
+      }
+
+      if (isLNURLInput) {
+        console.log('🔍 Detected LNURL payment request')
+        // If it's a LNURL and we don't have an amount set, fetch details
+        if (!amount) {
+          await handleLNURLDetected(text)
+        }
+      } else if (text.toLowerCase().startsWith('lnbc')) {
+        console.log('🔍 Detected bolt11 invoice, decoding automatically...')
+        try {
+          const decoded = await decodeInvoice(text)
+          console.log('✅ Successfully decoded bolt11 invoice:', {
+            amount: decoded.num_satoshis,
+            description: decoded.description,
+            timestamp: decoded.timestamp,
+            expiry: decoded.expiry
+          })
+          // Set amount from decoded invoice
+          if (decoded.num_satoshis) {
+            console.log(
+              '💰 Setting amount from decoded invoice:',
+              decoded.num_satoshis
+            )
+            setAmount(decoded.num_satoshis)
+          }
+        } catch (error) {
+          console.error('❌ Failed to decode bolt11 invoice:', {
+            error: error instanceof Error ? error.message : String(error),
+            timestamp: new Date().toISOString()
+          })
+          setDecodedInvoice(null)
+        }
+      } else {
+        console.log('⚠️ Input is neither LNURL nor bolt11 invoice')
+        setDecodedInvoice(null)
+      }
+    },
+    [amount, handleLNURLDetected, decodeInvoice, isConnected, verifyConnection]
+  )
+
+  // Handle amount change and update fiat value
+  const handleAmountChange = useCallback((text: string) => {
+    setAmount(text)
+  }, [])
 
   const handleSendPayment = async () => {
     if (!paymentRequest) {
@@ -35,9 +218,106 @@ export default function PayPage() {
       return
     }
 
+    // For bolt11 invoices, ensure we have decoded it
+    if (!isLNURLMode) {
+      if (!decodedInvoice) {
+        console.error('❌ No decoded invoice available')
+        Alert.alert('Error', 'Please wait for the invoice to be decoded')
+        return
+      }
+      // Proceed with payment since we already have the decoded invoice
+      await processPayment()
+    } else {
+      // For LNURL, proceed directly to payment
+      await processPayment()
+    }
+  }
+
+  const processPayment = async () => {
+    if (!paymentRequest) {
+      console.error('❌ No payment request available')
+      return
+    }
+
+    // For bolt11, ensure we have decoded it
+    if (!isLNURLMode && !decodedInvoice) {
+      console.error('❌ No decoded invoice available for bolt11 payment')
+      Alert.alert('Error', 'Please try sending the payment again')
+      return
+    }
+
+    console.log('🚀 Starting payment process:', {
+      isLNURLMode,
+      hasAmount: !!amount,
+      hasComment: !!comment,
+      hasDecodedInvoice: !!decodedInvoice,
+      timestamp: new Date().toISOString()
+    })
+
     setIsProcessing(true)
+    const startTime = Date.now()
     try {
-      await payInvoice(paymentRequest)
+      let invoice: string
+
+      if (isLNURLMode) {
+        console.log('📝 Processing LNURL payment')
+        // Validate amount for LNURL
+        if (!amount) {
+          console.error('❌ No amount provided for LNURL payment')
+          Alert.alert('Error', 'Please enter an amount')
+          setIsProcessing(false)
+          return
+        }
+
+        const amountSats = parseInt(amount, 10)
+        if (isNaN(amountSats) || amountSats <= 0) {
+          console.error('❌ Invalid amount:', amount)
+          Alert.alert('Error', 'Please enter a valid amount')
+          setIsProcessing(false)
+          return
+        }
+
+        console.log('💫 Requesting invoice from LNURL:', {
+          amount: amountSats,
+          hasComment: !!comment,
+          timestamp: new Date().toISOString()
+        })
+
+        // Get invoice from LNURL
+        const lnurlStartTime = Date.now()
+        invoice = await handleLNURLPay(
+          paymentRequest,
+          amountSats,
+          comment || undefined
+        )
+        console.log('✅ Received invoice from LNURL:', {
+          duration: Date.now() - lnurlStartTime,
+          timestamp: new Date().toISOString()
+        })
+      } else {
+        console.log('📝 Processing decoded bolt11 invoice:', {
+          amount: decodedInvoice?.num_satoshis,
+          description: decodedInvoice?.description,
+          timestamp: new Date().toISOString()
+        })
+        invoice = paymentRequest
+      }
+
+      console.log('💫 Sending payment to LND:', {
+        invoiceLength: invoice.length,
+        timestamp: new Date().toISOString()
+      })
+      const paymentStartTime = Date.now()
+
+      // Pay the invoice
+      await payInvoice(invoice)
+
+      console.log('✅ Payment sent successfully:', {
+        totalDuration: Date.now() - startTime,
+        paymentDuration: Date.now() - paymentStartTime,
+        timestamp: new Date().toISOString()
+      })
+
       Alert.alert('Success', 'Payment sent successfully', [
         {
           text: 'OK',
@@ -45,6 +325,11 @@ export default function PayPage() {
         }
       ])
     } catch (error) {
+      console.error('❌ Payment failed:', {
+        error,
+        duration: Date.now() - startTime,
+        timestamp: new Date().toISOString()
+      })
       Alert.alert(
         'Error',
         error instanceof Error ? error.message : 'Failed to send payment'
@@ -56,28 +341,51 @@ export default function PayPage() {
 
   const handleQRCodeScanned = ({ data }: { data: string }) => {
     setCameraModalVisible(false)
-    // Check if the scanned data is a valid Lightning payment request
-    if (data.toLowerCase().startsWith('lnbc')) {
-      setPaymentRequest(data)
+    // Check if the scanned data is a valid Lightning payment request or LNURL
+    if (data.toLowerCase().startsWith('lnbc') || isLNURL(data)) {
+      handlePaymentRequestChange(data)
     } else {
       Alert.alert(
         'Invalid QR Code',
-        'The scanned QR code is not a valid Lightning payment request'
+        'The scanned QR code is not a valid Lightning payment request or LNURL'
       )
     }
   }
 
   const handlePasteFromClipboard = async () => {
-    const text = await Clipboard.getStringAsync()
-    if (text) {
-      if (text.toLowerCase().startsWith('lnbc')) {
-        setPaymentRequest(text)
+    try {
+      console.log('📋 Attempting to paste from clipboard')
+      const text = await Clipboard.getStringAsync()
+      if (!text) {
+        console.log('❌ No text in clipboard')
+        Alert.alert('Error', 'No text found in clipboard')
+        return
+      }
+
+      // Clean the text (remove any whitespace)
+      const cleanText = text.trim()
+      console.log('📋 Clipboard content:', {
+        length: cleanText.length,
+        isLNURL: isLNURL(cleanText),
+        isBolt11: cleanText.toLowerCase().startsWith('lnbc')
+      })
+
+      if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
+        // Use handlePaymentRequestChange to process the invoice
+        // This ensures consistent handling of both paste and manual input
+        console.log('🔍 Processing pasted payment request')
+        await handlePaymentRequestChange(cleanText)
+        console.log('✅ Successfully processed pasted payment request')
       } else {
+        console.error('❌ Invalid clipboard content')
         Alert.alert(
           'Invalid Payment Request',
-          'The clipboard content is not a valid Lightning payment request'
+          'The clipboard content is not a valid Lightning payment request or LNURL'
         )
       }
+    } catch (error) {
+      console.error('❌ Clipboard error:', error)
+      Alert.alert('Error', 'Failed to read clipboard content')
     }
   }
 
@@ -93,63 +401,176 @@ export default function PayPage() {
         }}
       />
       <SSMainLayout>
-        <SSVStack>
-          <View>
-            <SSVStack gap="xs">
-              <SSHStack style={styles.inputHeader}>
-                <SSText color="muted">Payment Request</SSText>
-                <SSHStack gap="sm">
-                  <TouchableOpacity
-                    onPress={handlePasteFromClipboard}
-                    style={styles.scanButton}
-                  >
-                    <Ionicons
-                      name="clipboard-outline"
-                      size={24}
-                      color="white"
-                    />
-                    <SSText size="sm">Paste</SSText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setCameraModalVisible(true)}
-                    style={styles.scanButton}
-                  >
-                    <Ionicons name="scan-outline" size={24} color="white" />
-                    <SSText size="sm">Scan</SSText>
-                  </TouchableOpacity>
+        <ScrollView>
+          <SSVStack>
+            <View>
+              <SSVStack gap="xs">
+                <SSHStack style={styles.inputHeader}>
+                  <SSText color="muted">
+                    {isLNURLMode ? 'LNURL' : 'Payment Request'}
+                  </SSText>
+                  {isFetchingDetails && (
+                    <SSHStack gap="xs" style={styles.fetchingDetails}>
+                      <SSText color="muted" size="sm">
+                        Fetching details...
+                      </SSText>
+                    </SSHStack>
+                  )}
                 </SSHStack>
-              </SSHStack>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={paymentRequest}
-                onChangeText={setPaymentRequest}
-                placeholder="Enter Lightning payment request"
-                placeholderTextColor="#666"
-                multiline
-                numberOfLines={4}
-              />
-            </SSVStack>
 
-            <SSVStack style={styles.actions}>
-              <SSButton
-                label="Send Payment"
-                onPress={handleSendPayment}
-                variant="secondary"
-                loading={isProcessing}
-                disabled={!paymentRequest.trim()}
-                style={styles.button}
-              />
-              <SSButton
-                label="Cancel"
-                onPress={() => router.back()}
-                variant="ghost"
-                style={styles.button}
-              />
-            </SSVStack>
-          </View>
-        </SSVStack>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={paymentRequest}
+                  onChangeText={handlePaymentRequestChange}
+                  placeholder={
+                    isLNURLMode
+                      ? 'Enter LNURL'
+                      : 'Enter Lightning payment request'
+                  }
+                  placeholderTextColor="#666"
+                  multiline
+                  numberOfLines={4}
+                  editable={!isFetchingDetails}
+                />
+
+                {decodedInvoice && !isLNURLMode && (
+                  <SSVStack gap="xs" style={styles.invoiceDetails}>
+                    <SSText
+                      uppercase
+                      weight="bold"
+                      style={styles.detailsHeader}
+                    >
+                      Payment Details
+                    </SSText>
+                    <SSHStack gap="xs" style={styles.detailRow}>
+                      <SSText color="muted">Amount:</SSText>
+                      <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                        <SSText>{decodedInvoice.num_satoshis} sats</SSText>
+                        <SSText color="muted" size="sm">
+                          ≈{' '}
+                          {formatNumber(
+                            satsToFiat(Number(decodedInvoice.num_satoshis)),
+                            2
+                          )}{' '}
+                          {fiatCurrency}
+                        </SSText>
+                      </SSHStack>
+                    </SSHStack>
+                    {decodedInvoice.description && (
+                      <SSHStack gap="xs" style={styles.detailRow}>
+                        <SSText color="muted">Description:</SSText>
+                        <SSText>{decodedInvoice.description}</SSText>
+                      </SSHStack>
+                    )}
+                    <SSHStack gap="xs" style={styles.detailRow}>
+                      <SSText color="muted">Created:</SSText>
+                      <SSText>
+                        {new Date(
+                          Number(decodedInvoice.timestamp) * 1000
+                        ).toLocaleString()}
+                      </SSText>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.detailRow}>
+                      <SSText color="muted">Expires:</SSText>
+                      <SSText>
+                        {new Date(
+                          Number(decodedInvoice.timestamp) * 1000 +
+                            Number(decodedInvoice.expiry) * 1000
+                        ).toLocaleString()}
+                      </SSText>
+                    </SSHStack>
+                    <SSHStack gap="xs" style={styles.detailRow}>
+                      <SSText color="muted">Payment Hash:</SSText>
+                      <SSText size="sm" style={styles.hashText}>
+                        {decodedInvoice.payment_hash}
+                      </SSText>
+                    </SSHStack>
+                  </SSVStack>
+                )}
+
+                {isLNURLMode && (
+                  <>
+                    <SSVStack gap="xs">
+                      <SSText color="muted">Amount (sats)</SSText>
+                      <TextInput
+                        style={styles.input}
+                        value={amount}
+                        onChangeText={handleAmountChange}
+                        placeholder="Enter amount in sats"
+                        placeholderTextColor="#666"
+                        keyboardType="numeric"
+                        editable={!isFetchingDetails}
+                      />
+                      {amount && !isNaN(Number(amount)) && (
+                        <SSHStack gap="xs" style={styles.fiatAmount}>
+                          <SSText color="muted" size="sm">
+                            ≈ {formatNumber(satsToFiat(Number(amount)), 2)}{' '}
+                            {fiatCurrency}
+                          </SSText>
+                        </SSHStack>
+                      )}
+                    </SSVStack>
+
+                    <SSVStack gap="xs">
+                      <SSText color="muted">Comment (optional)</SSText>
+                      <TextInput
+                        style={styles.input}
+                        value={comment}
+                        onChangeText={setComment}
+                        placeholder="Enter comment"
+                        placeholderTextColor="#666"
+                        editable={!isFetchingDetails}
+                      />
+                    </SSVStack>
+                  </>
+                )}
+              </SSVStack>
+
+              <SSVStack style={styles.actions}>
+                <SSHStack gap="sm" style={styles.actionButtons}>
+                  <SSButton
+                    label="Paste"
+                    onPress={handlePasteFromClipboard}
+                    variant="outline"
+                    style={[styles.actionButton, styles.buttonWithIcon]}
+                    disabled={isFetchingDetails}
+                  />
+                  <SSButton
+                    label="Scan QR"
+                    onPress={() => setCameraModalVisible(true)}
+                    variant="outline"
+                    style={[styles.actionButton, styles.buttonWithIcon]}
+                    disabled={isFetchingDetails}
+                  />
+                </SSHStack>
+
+                <SSButton
+                  label="Send Payment"
+                  onPress={handleSendPayment}
+                  variant="secondary"
+                  loading={isProcessing || isFetchingDetails}
+                  disabled={
+                    !paymentRequest.trim() ||
+                    (isLNURLMode && !amount) ||
+                    (!isLNURLMode && !decodedInvoice) ||
+                    isFetchingDetails
+                  }
+                  style={styles.button}
+                />
+                <SSButton
+                  label="Cancel"
+                  onPress={() => router.back()}
+                  variant="ghost"
+                  style={styles.button}
+                  disabled={isFetchingDetails}
+                />
+              </SSVStack>
+            </View>
+          </SSVStack>
+        </ScrollView>
       </SSMainLayout>
 
+      {/* Camera Modal */}
       <SSModal
         visible={cameraModalVisible}
         fullOpacity
@@ -179,15 +600,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  scanButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#242424',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 3
-  },
   input: {
     backgroundColor: '#242424',
     borderRadius: 3,
@@ -203,11 +615,53 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 16
   },
+  actionButtons: {
+    width: '100%'
+  },
+  actionButton: {
+    flex: 1
+  },
   button: {
     width: '100%'
   },
   camera: {
     width: 340,
     height: 340
+  },
+  buttonWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8
+  },
+  buttonIcon: {
+    marginRight: 4
+  },
+  fetchingDetails: {
+    alignItems: 'center'
+  },
+  fiatAmount: {
+    marginTop: 4,
+    marginLeft: 4
+  },
+  invoiceDetails: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 12,
+    marginBottom: 12
+  },
+  detailRow: {
+    alignItems: 'flex-start',
+    paddingVertical: 4
+  },
+  detailsHeader: {
+    marginBottom: 12,
+    fontSize: 16
+  },
+  hashText: {
+    fontFamily: 'monospace',
+    opacity: 0.8,
+    fontSize: 12
   }
 })

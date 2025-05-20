@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import { useLND } from '@/hooks/useLND'
 import { useLightningStore } from '@/stores/lightning'
+import { useEffect } from 'react'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -13,12 +14,29 @@ export default function LightningPage() {
   const { config } = useLightningStore()
   const { nodeInfo, isConnected } = useLND()
 
+  // Add effect to log state changes
+  useEffect(() => {
+    console.log('📊 Lightning page state:', {
+      timestamp: new Date().toISOString(),
+      hasConfig: !!config,
+      isConnected,
+      nodeInfo: nodeInfo
+        ? {
+            alias: nodeInfo.alias,
+            pubkey: nodeInfo.identity_pubkey,
+            numChannels: nodeInfo.num_active_channels,
+            synced: nodeInfo.synced_to_chain
+          }
+        : null
+    })
+  }, [config, isConnected, nodeInfo])
+
   const handleRCPPress = () => {
     // TODO: Implement RCP functionality
   }
 
   const handleLNDRestPress = () => {
-    router.push('../LNDRest/index')
+    router.navigate('/signer/lightning/LNDRest')
   }
 
   const handleLDKPress = () => {
@@ -27,7 +45,11 @@ export default function LightningPage() {
 
   const handleConfigPress = () => {
     if (config) {
-      router.push({
+      console.log('👆 Config card pressed:', {
+        alias: nodeInfo?.alias || 'Unknown Node',
+        pubkey: nodeInfo?.identity_pubkey || 'Not connected'
+      })
+      router.navigate({
         pathname: '/signer/lightning/node',
         params: {
           alias: nodeInfo?.alias || 'Unknown Node',
@@ -38,13 +60,25 @@ export default function LightningPage() {
   }
 
   const renderConfigCard = () => {
-    if (!config) return null
+    if (!config) {
+      console.log('❌ No config available, not rendering card')
+      return null
+    }
 
     const alias = nodeInfo?.alias || 'Unknown Node'
     const pubkey = nodeInfo?.identity_pubkey || 'Not connected'
     const channels = nodeInfo?.num_active_channels || 0
     const peers = nodeInfo?.num_peers || 0
     const synced = nodeInfo?.synced_to_chain ? 'Synced' : 'Not synced'
+
+    console.log('🎴 Rendering config card:', {
+      alias,
+      pubkey,
+      channels,
+      peers,
+      synced,
+      isConnected
+    })
 
     return (
       <TouchableOpacity

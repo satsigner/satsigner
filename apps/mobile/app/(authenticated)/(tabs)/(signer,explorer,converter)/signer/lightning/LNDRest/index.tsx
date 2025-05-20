@@ -14,7 +14,7 @@ import type { LNDConfig } from '@/stores/lightning'
 
 export default function LNDRestPage() {
   const router = useRouter()
-  const { setConfig, setConnected } = useLightningStore()
+  const { setConfig, setConnected, setNodeInfo } = useLightningStore()
   const [permission, requestPermission] = useCameraPermissions()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [connectionString, setConnectionString] = useState('')
@@ -82,41 +82,77 @@ export default function LNDRestPage() {
   const handleConnect = async () => {
     if (!connectionString.trim()) return
 
+    console.log('🔌 Starting LND connection process:', {
+      timestamp: new Date().toISOString(),
+      connectionString: connectionString.trim()
+    })
+
     setIsConnecting(true)
     try {
       // Extract config URL from connection string
       const configUrl = connectionString.replace('config=', '').trim()
+      console.log('📥 Fetching config from URL:', configUrl)
 
       // Fetch and parse LND config
       const config = await fetchLNDConfig(configUrl)
+      console.log('✅ Config fetched successfully:', {
+        url: config.url,
+        hasMacaroon: !!config.macaroon,
+        hasCert: !!config.cert
+      })
 
-      // Test connection to LND node
-      const isConnected = await testLNDConnection(config)
+      // Test connection and fetch node info
+      console.log('🔍 Testing connection and fetching node info...')
+      const response = await fetch(`${config.url}/v1/getinfo`, {
+        headers: {
+          'Grpc-Metadata-macaroon': config.macaroon
+        }
+      })
 
-      if (isConnected) {
-        // Store the config and update connection status
+      if (response.ok) {
+        const nodeInfo = await response.json()
+        console.log('✅ Node info fetched successfully:', {
+          alias: nodeInfo.alias,
+          pubkey: nodeInfo.identity_pubkey,
+          numChannels: nodeInfo.num_active_channels,
+          synced: nodeInfo.synced_to_chain
+        })
+
+        // Store the config and update connection status with node info
+        console.log('💾 Updating store with config and node info...')
         setConfig(config)
+        setNodeInfo(nodeInfo)
         setConnected(true)
+        console.log('✅ Store updated successfully')
 
         Alert.alert('Success', 'Successfully connected to LND node', [
           {
             text: 'OK',
             onPress: () => {
-              // Navigate back or to a new screen
+              console.log('👋 Navigating back after successful connection')
               router.back()
             }
           }
         ])
       } else {
+        console.error('❌ Failed to connect to LND node:', {
+          status: response.status,
+          statusText: response.statusText
+        })
         Alert.alert('Error', 'Failed to connect to LND node')
       }
     } catch (error) {
+      console.error('❌ Connection error:', {
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      })
       Alert.alert(
         'Error',
         error instanceof Error ? error.message : 'Failed to connect to LND node'
       )
     } finally {
       setIsConnecting(false)
+      console.log('🏁 Connection process finished')
     }
   }
 
@@ -142,7 +178,7 @@ export default function LNDRestPage() {
         options={{
           headerTitle: () => (
             <SSText uppercase style={{ letterSpacing: 1 }}>
-              {t('lightning.lndrest.title')}
+              Lightning
             </SSText>
           )
         }}

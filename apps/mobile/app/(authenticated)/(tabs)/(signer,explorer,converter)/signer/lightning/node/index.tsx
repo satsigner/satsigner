@@ -20,7 +20,12 @@ import SSVStack from '@/layouts/SSVStack'
 import { useLightningStore } from '@/stores/lightning'
 import { Colors } from '@/styles'
 import SSIconButton from '@/components/SSIconButton'
-import { SSIconRefresh, SSIconCollapse, SSIconExpand } from '@/components/icons'
+import {
+  SSIconRefresh,
+  SSIconCollapse,
+  SSIconExpand,
+  SSIconLNSettings
+} from '@/components/icons'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import { usePriceStore } from '@/store/price'
 import { useShallow } from 'zustand/react/shallow'
@@ -159,28 +164,8 @@ interface CombinedTransaction {
   originalAmount?: number
 }
 
-// Format version to only keep first three numbers matching ##.##.## pattern
-const formatVersion = (version: string) => {
-  // Remove any non-numeric characters except dots
-  const cleanVersion = version.replace(/[^0-9.]/g, '')
-  // Split by dots and filter out empty strings
-  const parts = cleanVersion.split('.').filter(Boolean)
-
-  // If we have at least 3 numbers
-  if (parts.length >= 3) {
-    // Check if it matches our pattern (1-2 digits per part)
-    const isValidPattern = parts
-      .slice(0, 3)
-      .every((part) => /^[0-9]{1,2}$/.test(part))
-
-    if (isValidPattern) {
-      // Always take only first 3 numbers
-      return parts.slice(0, 3).join('.')
-    }
-  }
-
-  return '0.0.0'
-}
+// Add type for makeRequest
+type MakeRequest = <T>(path: string) => Promise<T>
 
 export default function NodeDetailPage() {
   const router = useRouter()
@@ -191,10 +176,9 @@ export default function NodeDetailPage() {
     getInfo,
     getBalance,
     getChannels,
-    nodeInfo,
+    channels,
     lastError,
     isConnecting,
-    channels,
     isConnected,
     makeRequest
   } = useLND()
@@ -216,7 +200,7 @@ export default function NodeDetailPage() {
     outputRange: [190, 0]
   })
 
-  const tabs = [{ key: 'transactions' }, { key: 'channels' }, { key: 'node' }]
+  const tabs = [{ key: 'transactions' }, { key: 'channels' }]
 
   const satsToFiat = usePriceStore((state) => state.satsToFiat)
 
@@ -224,6 +208,11 @@ export default function NodeDetailPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMoreTransactions, setHasMoreTransactions] = useState(true)
   const [lastTimestamp, setLastTimestamp] = useState<string | null>(null)
+
+  const formatNumberWithLocale = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return '0'
+    return value.toLocaleString()
+  }
 
   // Fetch prices on mount and when currency changes
   useEffect(() => {
@@ -236,7 +225,9 @@ export default function NodeDetailPage() {
     try {
       const [blockchainBalance, channelBalance] = await Promise.all([
         getBalance() as Promise<LNDBalanceResponse>,
-        makeRequest<LNDChannelBalanceResponse>('/v1/balance/channels')
+        (makeRequest as MakeRequest)<LNDChannelBalanceResponse>(
+          '/v1/balance/channels'
+        )
       ])
 
       // Parse all balances
@@ -266,10 +257,9 @@ export default function NodeDetailPage() {
     }
     try {
       console.log('🔴 Fetching invoices from LND...')
-      // Get all invoices, including pending ones
-      const response = await makeRequest<{ invoices: LNDInvoice[] }>(
-        '/v1/invoices?num_max_invoices=100'
-      )
+      const response = await (makeRequest as MakeRequest)<{
+        invoices: LNDInvoice[]
+      }>('/v1/invoices?num_max_invoices=100')
       console.log('🔴🔴🔴🔴🔴 Raw response:', response)
 
       if (!response?.invoices) {
@@ -287,8 +277,7 @@ export default function NodeDetailPage() {
         return []
       }
 
-      // Map all invoices to transactions, including canceled ones
-      const mappedInvoices = response.invoices.map((invoice) => {
+      const mappedInvoices = response.invoices.map((invoice: LNDInvoice) => {
         // For settled invoices, use amt_paid_sat if available, otherwise fallback to value
         const amount = Number(
           invoice.state === 'SETTLED'
@@ -322,9 +311,9 @@ export default function NodeDetailPage() {
         }
       })
 
-      // Sort invoices by timestamp (newest first)
       const sortedInvoices = mappedInvoices.sort(
-        (a, b) => b.timestamp - a.timestamp
+        (a: CombinedTransaction, b: CombinedTransaction) =>
+          b.timestamp - a.timestamp
       )
 
       return sortedInvoices
@@ -341,12 +330,12 @@ export default function NodeDetailPage() {
   const fetchLightningPayments = useCallback(async () => {
     if (!isConnected) return []
     try {
-      const response = await makeRequest<{ payments: LNDPayment[] }>(
-        '/v1/payments'
-      )
+      const response = await (makeRequest as MakeRequest)<{
+        payments: LNDPayment[]
+      }>('/v1/payments')
       if (!response.payments || !Array.isArray(response.payments)) return []
 
-      return response.payments.map((payment) => ({
+      return response.payments.map((payment: LNDPayment) => ({
         id: payment.payment_hash,
         type: 'lightning_send' as const,
         amount: -Number(payment.value_sat), // Negative because it's a payment
@@ -367,7 +356,9 @@ export default function NodeDetailPage() {
         setIsLoadingMore(true)
         const [onchainResponse, lightningPayments, lightningInvoices] =
           await Promise.all([
-            makeRequest<{ transactions: LNDTransaction[] }>('/v1/transactions'),
+            (makeRequest as MakeRequest)<{ transactions: LNDTransaction[] }>(
+              '/v1/transactions'
+            ),
             fetchLightningPayments(),
             fetchLightningInvoices()
           ])
@@ -382,15 +373,17 @@ export default function NodeDetailPage() {
         }
 
         // Convert onchain transactions to our combined format
-        const onchainTxs = onchainResponse.transactions.map((tx) => ({
-          id: tx.tx_hash,
-          type: 'onchain' as const,
-          amount: Number(tx.amount),
-          timestamp: Number(tx.time_stamp),
-          status: tx.num_confirmations > 0 ? 'confirmed' : 'pending',
-          hash: tx.tx_hash,
-          num_confirmations: tx.num_confirmations
-        }))
+        const onchainTxs = onchainResponse.transactions.map(
+          (tx: LNDTransaction) => ({
+            id: tx.tx_hash,
+            type: 'onchain' as const,
+            amount: Number(tx.amount),
+            timestamp: Number(tx.time_stamp),
+            status: tx.num_confirmations > 0 ? 'confirmed' : 'pending',
+            hash: tx.tx_hash,
+            num_confirmations: tx.num_confirmations
+          })
+        )
 
         // Combine all transactions and sort by timestamp
         const allTxs = [
@@ -555,17 +548,6 @@ export default function NodeDetailPage() {
     const onchainFiat = satsToFiat(onchainBalance, btcPrice)
     const channelFiat = satsToFiat(channelBalance, btcPrice)
 
-    console.log('Fiat conversion:', {
-      totalBalance,
-      totalFiat,
-      onchainBalance,
-      onchainFiat,
-      channelBalance,
-      channelFiat,
-      fiatCurrency,
-      btcPrice
-    })
-
     return (
       <SSVStack itemsCenter gap="none" style={{ paddingBottom: 8 }}>
         <SSHStack gap="md" style={{ marginTop: 5 }}>
@@ -617,85 +599,6 @@ export default function NodeDetailPage() {
       </SSVStack>
     )
   }, [balance, fiatCurrency, satsToFiat, btcPrice])
-
-  const renderNodeInfo = useCallback(() => {
-    if (!nodeInfo) return null
-
-    return (
-      <SSVStack style={styles.section}>
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <SSText color="muted">Version</SSText>
-            <SSText>{nodeInfo.version}</SSText>
-          </View>
-
-          <View style={styles.infoItem}>
-            <SSText color="muted">Channels</SSText>
-            <SSText>{nodeInfo.num_active_channels}</SSText>
-          </View>
-
-          <View style={styles.infoItem}>
-            <SSText color="muted">Peers</SSText>
-            <SSText>{nodeInfo.num_peers}</SSText>
-          </View>
-
-          <View style={styles.infoItem}>
-            <SSText color="muted">Chain Sync</SSText>
-            <SSText color={nodeInfo.synced_to_chain ? 'white' : 'muted'}>
-              {nodeInfo.synced_to_chain ? 'Synced' : 'Not synced'}
-            </SSText>
-          </View>
-
-          <View style={styles.infoItem}>
-            <SSText color="muted">Block Height</SSText>
-            <SSText>{nodeInfo.block_height}</SSText>
-          </View>
-
-          <View style={styles.infoItem}>
-            <SSText color="muted">Block Hash</SSText>
-            <SSText
-              numberOfLines={1}
-              ellipsizeMode="middle"
-              style={styles.hash}
-            >
-              {nodeInfo.block_hash}
-            </SSText>
-          </View>
-        </View>
-      </SSVStack>
-    )
-  }, [nodeInfo])
-
-  const renderConnectionInfo = useCallback(() => {
-    if (!config) return null
-
-    return (
-      <SSVStack style={styles.section}>
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <SSText color="muted">URL</SSText>
-            <SSText>{config.url}</SSText>
-          </View>
-
-          <View style={styles.infoItem}>
-            <SSText color="muted">Pubkey</SSText>
-            <SSText
-              numberOfLines={1}
-              ellipsizeMode="middle"
-              style={styles.pubkey}
-            >
-              {params.pubkey}
-            </SSText>
-          </View>
-        </View>
-      </SSVStack>
-    )
-  }, [config, params.pubkey])
-
-  const formatNumberWithLocale = (value: number | undefined | null): string => {
-    if (value === undefined || value === null) return '0'
-    return value.toLocaleString()
-  }
 
   const renderChannels = useCallback(() => {
     if (!channels?.length) return null
@@ -950,13 +853,10 @@ export default function NodeDetailPage() {
   const renderTab = useCallback(() => {
     if (expand) return null
 
-    const tabWidth = '33.33%'
+    const tabWidth = '50%'
     const activeChannels =
       channels?.filter((channel) => channel.active).length || 0
     const totalChannels = channels?.length || 0
-    const version = nodeInfo?.version
-      ? formatVersion(nodeInfo.version)
-      : '0.0.0'
 
     return (
       <SSHStack
@@ -1013,34 +913,9 @@ export default function NodeDetailPage() {
             )}
           </SSVStack>
         </SSActionButton>
-        <SSActionButton
-          style={{ width: tabWidth }}
-          onPress={() => handleTabChange(2)}
-        >
-          <SSVStack gap="none">
-            <SSText center size="lg">
-              {version}
-            </SSText>
-            <SSText center color="muted" style={{ lineHeight: 12 }}>
-              Node Info
-            </SSText>
-            {tabIndex === 2 && (
-              <View
-                style={{
-                  position: 'absolute',
-                  width: '100%',
-                  height: 2,
-                  bottom: -12,
-                  alignSelf: 'center',
-                  backgroundColor: Colors.white
-                }}
-              />
-            )}
-          </SSVStack>
-        </SSActionButton>
       </SSHStack>
     )
-  }, [expand, channels, nodeInfo, tabIndex, handleTabChange])
+  }, [expand, channels, tabIndex, handleTabChange])
 
   const renderScene = useCallback(
     ({ route }: SceneRendererProps & { route: { key: string } }) => {
@@ -1100,50 +975,6 @@ export default function NodeDetailPage() {
                 </ScrollView>
               </SSMainLayout>
             )
-          case 'node':
-            return (
-              <SSMainLayout style={styles.section}>
-                <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-                  <SSHStack>
-                    <SSIconButton onPress={handleRefresh}>
-                      <SSIconRefresh height={18} width={22} />
-                    </SSIconButton>
-                    <SSIconButton onPress={() => handleOnExpand(!expand)}>
-                      {expand ? (
-                        <SSIconCollapse height={15} width={15} />
-                      ) : (
-                        <SSIconExpand height={15} width={16} />
-                      )}
-                    </SSIconButton>
-                  </SSHStack>
-                  <SSText color="muted">Node Information</SSText>
-                </SSHStack>
-                <ScrollView
-                  style={styles.scrollView}
-                  contentContainerStyle={styles.scrollContent}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {renderNodeInfo()}
-                  {renderConnectionInfo()}
-                  <SSVStack>
-                    <SSButton
-                      label="Refresh"
-                      onPress={handleRefresh}
-                      variant="gradient"
-                      gradientType="special"
-                      loading={isConnecting}
-                      style={styles.button}
-                    />
-                    <SSButton
-                      label="Disconnect"
-                      onPress={handleDisconnect}
-                      variant="outline"
-                      style={styles.button}
-                    />
-                  </SSVStack>
-                </ScrollView>
-              </SSMainLayout>
-            )
           default:
             return null
         }
@@ -1151,17 +982,7 @@ export default function NodeDetailPage() {
 
       return renderContent()
     },
-    [
-      expand,
-      handleRefresh,
-      handleOnExpand,
-      handleDisconnect,
-      isConnecting,
-      renderChannels,
-      renderNodeInfo,
-      renderConnectionInfo,
-      renderTransactions
-    ]
+    [expand, handleRefresh, handleOnExpand, renderChannels, renderTransactions]
   )
 
   return (
@@ -1172,6 +993,18 @@ export default function NodeDetailPage() {
             <SSText uppercase style={{ letterSpacing: 1 }}>
               {params.alias}
             </SSText>
+          ),
+          headerRight: () => (
+            <SSIconButton
+              onPress={() =>
+                router.push({
+                  pathname: '/signer/lightning/node/settings',
+                  params: { alias: params.alias }
+                })
+              }
+            >
+              <SSIconLNSettings height={20} width={20} />
+            </SSIconButton>
           )
         }}
       />
