@@ -74,7 +74,7 @@ function PreviewMessage() {
   const transaction = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(
       inputs.size,
-      outputs.length + 1
+      outputs.length
     )
 
     const vin = [...inputs.values()].map((input: Utxo) => ({
@@ -138,6 +138,9 @@ function PreviewMessage() {
           },
           network as Network
         )
+
+        // transactionMessage.txDetails.transaction.output()
+        // transactionMessage.txDetails.transaction.input()
 
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)

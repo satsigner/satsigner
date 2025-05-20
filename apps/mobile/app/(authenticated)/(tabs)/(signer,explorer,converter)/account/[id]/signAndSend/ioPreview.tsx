@@ -93,6 +93,7 @@ export default function IOPreview() {
 
   const wallet = useWalletsStore((state) => state.wallets[id])
   const [changeAddress, setChangeAddress] = useState('')
+  const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
   useEffect(() => {
     if (!account || !wallet) return
@@ -113,6 +114,19 @@ export default function IOPreview() {
       }
     })()
   }, [account, wallet])
+
+  // this removes the change address if the user goes back to the IO preview.
+  // we add the change address as an output before moving to the next step.
+  useEffect(() => {
+    if (!changeAddress || !shouldRemoveChange)
+      return
+    for (const output of outputs) {
+      if (output.to === changeAddress) {
+        removeOutput(output.localId)
+        return
+      }
+    }
+  }, [outputs, changeAddress, shouldRemoveChange, removeOutput])
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -159,7 +173,7 @@ export default function IOPreview() {
     [utxosSelectedValue, outputs]
   )
   const transactionSize = useMemo(
-    () => estimateTransactionSize(inputs.size, outputs.length + 1),
+    () => estimateTransactionSize(inputs.size, outputs.length + 2),
     [inputs.size, outputs.length]
   )
 
@@ -348,7 +362,16 @@ export default function IOPreview() {
   }
 
   function handleGoToPreview() {
-    // Account not synced. Go to the page to sync it.
+    // first, we add the change as an output
+    setShouldRemoveChange(false)
+    console.log(changeAddress, remainingBalance)
+    addOutput({
+      to: changeAddress,
+      amount: remainingBalance,
+      label: ''
+    })
+
+    // Account not synced. Go to warning page to sync it.
     if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
     }
