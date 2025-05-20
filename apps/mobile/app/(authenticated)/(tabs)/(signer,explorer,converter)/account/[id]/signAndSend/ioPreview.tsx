@@ -40,6 +40,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
@@ -89,6 +90,30 @@ export default function IOPreview() {
     () => new MempoolOracle(mempoolUrl),
     [mempoolUrl]
   )
+
+  const wallet = useWalletsStore((state) => state.wallets[id])
+  const [changeAddress, setChangeAddress] = useState('')
+
+  useEffect(() => {
+    if (!account || !wallet) return
+
+    ;(async () => {
+      const outputAddresses: Record<string, boolean> = {}
+      account.transactions.forEach((tx) => {
+        tx.vout.forEach((output) => {
+          outputAddresses[output.address] = true
+        })
+      })
+
+      for (let i = 0; true; i += 1) {
+        const addressObj = await wallet.getInternalAddress(i)
+        const address = await addressObj.address.asString()
+        if (outputAddresses[address] === true) continue
+        setChangeAddress(address)
+        return
+      }
+    })()
+  }, [account, wallet])
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -168,18 +193,19 @@ export default function IOPreview() {
     )
     const remainingBalance = totalInputValue - totalOutputValue - minerFee
 
-    const chartOutputs: (Omit<Output, 'to'> & { to?: string })[] = [...outputs]
+    const chartOutputs: Output[] = [...outputs]
 
     if (remainingBalance > DUST_LIMIT) {
       chartOutputs.push({
-        localId: 'unspent',
+        localId: 'remainingBalance', // WARN: do not chnage it!
         amount: remainingBalance,
-        label: ''
+        label: '',
+        to: changeAddress
       })
     }
 
     return chartOutputs
-  }, [outputs, transactionSize, feeRate, utxosSelectedValue])
+  }, [outputs, transactionSize, feeRate, utxosSelectedValue, changeAddress])
 
   useEffect(() => {
     if (remainingSats < 0) {
@@ -444,7 +470,7 @@ export default function IOPreview() {
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
               inputs={inputs}
-              outputs={outputs}
+              outputs={singleTxOutputs}
               feeRate={feeRate}
             />
           ) : (
