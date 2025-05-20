@@ -73,10 +73,7 @@ function PreviewMessage() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = estimateTransactionSize(
-      inputs.size,
-      outputs.length
-    )
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
     const vin = [...inputs.values()].map((input: Utxo) => ({
       previousOutput: {

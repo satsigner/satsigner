@@ -120,8 +120,7 @@ export default function IOPreview() {
   // this removes the change address if the user goes back to the IO preview.
   // we add the change address as an output before moving to the next step.
   useEffect(() => {
-    if (!changeAddress || !shouldRemoveChange)
-      return
+    if (!changeAddress || !shouldRemoveChange) return
     for (const output of outputs) {
       if (output.to === changeAddress) {
         removeOutput(output.localId)

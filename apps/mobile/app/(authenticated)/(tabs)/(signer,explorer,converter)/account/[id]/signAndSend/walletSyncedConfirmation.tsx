@@ -8,10 +8,9 @@ import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
-// import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { formatDate, formatTime, formatTimestamp } from '@/utils/format'
+import { formatDate, formatTime } from '@/utils/format'
 
 export default function WalletSyncedConfirmation() {
   const router = useRouter()
