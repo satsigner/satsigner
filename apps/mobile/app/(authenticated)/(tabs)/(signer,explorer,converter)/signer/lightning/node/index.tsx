@@ -252,28 +252,22 @@ export default function NodeDetailPage() {
 
   const fetchLightningInvoices = useCallback(async () => {
     if (!isConnected) {
-      console.log('🔴 Not connected to LND, skipping invoice fetch')
       return []
     }
     try {
-      console.log('🔴 Fetching invoices from LND...')
       const response = await (makeRequest as MakeRequest)<{
         invoices: LNDInvoice[]
       }>('/v1/invoices?num_max_invoices=100')
-      console.log('🔴🔴🔴🔴🔴 Raw response:', response)
 
       if (!response?.invoices) {
-        console.log('🔴 No invoices array in response:', response)
         return []
       }
 
       if (!Array.isArray(response.invoices)) {
-        console.log('🔴 Invoices is not an array:', typeof response.invoices)
         return []
       }
 
       if (response.invoices.length === 0) {
-        console.log('🔴 Empty invoices array')
         return []
       }
 
@@ -318,7 +312,7 @@ export default function NodeDetailPage() {
 
       return sortedInvoices
     } catch (error) {
-      console.log('🔴 Error fetching invoices:', {
+      console.error('Error fetching invoices:', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
@@ -391,38 +385,7 @@ export default function NodeDetailPage() {
           ...lightningPayments,
           ...lightningInvoices
         ].sort((a, b) => b.timestamp - a.timestamp)
-        /*
-        console.log('🔴 Combined transactions:', {
-          total: allTxs.length,
-          breakdown: {
-            onchain: allTxs.filter((tx) => tx.type === 'onchain').length,
-            lightning_send: allTxs.filter((tx) => tx.type === 'lightning_send')
-              .length,
-            lightning_receive: {
-              total: allTxs.filter((tx) => tx.type === 'lightning_receive')
-                .length,
-              settled: allTxs.filter(
-                (tx) =>
-                  tx.type === 'lightning_receive' && tx.status === 'settled'
-              ).length,
-              canceled: allTxs.filter(
-                (tx) =>
-                  tx.type === 'lightning_receive' && tx.status === 'canceled'
-              ).length,
-              pending: allTxs.filter(
-                (tx) =>
-                  tx.type === 'lightning_receive' && tx.status === 'pending'
-              ).length
-            }
-          },
-          firstFew: allTxs.slice(0, 3).map((tx) => ({
-            type: tx.type,
-            status: tx.status,
-            amount: tx.amount,
-            timestamp: new Date(tx.timestamp * 1000).toISOString()
-          }))
-        })
-        */
+
         // If loading more, append to existing transactions
         if (loadMore && transactions.length > 0) {
           // Filter out transactions we already have
@@ -444,7 +407,7 @@ export default function NodeDetailPage() {
           allTxs.length > (loadMore ? transactions.length + 10 : 20)
         )
       } catch (error) {
-        console.log('🔴 Error in fetchTransactions:', error)
+        console.error('Error in fetchTransactions:', error)
       } finally {
         setIsLoadingMore(false)
       }
@@ -923,7 +886,7 @@ export default function NodeDetailPage() {
         switch (route.key) {
           case 'transactions':
             return (
-              <SSMainLayout style={styles.section}>
+              <SSMainLayout style={[styles.section, styles.tabContent]}>
                 <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
                   <SSHStack>
                     <SSIconButton onPress={handleRefresh}>
@@ -950,7 +913,7 @@ export default function NodeDetailPage() {
             )
           case 'channels':
             return (
-              <SSMainLayout style={styles.section}>
+              <SSMainLayout style={[styles.section, styles.tabContent]}>
                 <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
                   <SSHStack>
                     <SSIconButton onPress={handleRefresh}>
@@ -1066,6 +1029,10 @@ const styles = StyleSheet.create({
   mainLayout: {
     flex: 1,
     paddingTop: 10
+  },
+  tabContent: {
+    flex: 1,
+    paddingHorizontal: 0
   },
   scrollView: {
     flex: 1

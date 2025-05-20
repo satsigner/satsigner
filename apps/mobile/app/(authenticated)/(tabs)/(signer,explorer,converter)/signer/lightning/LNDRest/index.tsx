@@ -1,13 +1,14 @@
 import { Stack, useRouter } from 'expo-router'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { useState } from 'react'
-import { StyleSheet, TextInput, Clipboard, Alert } from 'react-native'
+import { StyleSheet, TextInput, Clipboard, Alert, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useLightningStore } from '@/stores/lightning'
 import type { LNDConfig } from '@/stores/lightning'
@@ -82,27 +83,15 @@ export default function LNDRestPage() {
   const handleConnect = async () => {
     if (!connectionString.trim()) return
 
-    console.log('🔌 Starting LND connection process:', {
-      timestamp: new Date().toISOString(),
-      connectionString: connectionString.trim()
-    })
-
     setIsConnecting(true)
     try {
       // Extract config URL from connection string
       const configUrl = connectionString.replace('config=', '').trim()
-      console.log('📥 Fetching config from URL:', configUrl)
 
       // Fetch and parse LND config
       const config = await fetchLNDConfig(configUrl)
-      console.log('✅ Config fetched successfully:', {
-        url: config.url,
-        hasMacaroon: !!config.macaroon,
-        hasCert: !!config.cert
-      })
 
       // Test connection and fetch node info
-      console.log('🔍 Testing connection and fetching node info...')
       const response = await fetch(`${config.url}/v1/getinfo`, {
         headers: {
           'Grpc-Metadata-macaroon': config.macaroon
@@ -111,38 +100,29 @@ export default function LNDRestPage() {
 
       if (response.ok) {
         const nodeInfo = await response.json()
-        console.log('✅ Node info fetched successfully:', {
-          alias: nodeInfo.alias,
-          pubkey: nodeInfo.identity_pubkey,
-          numChannels: nodeInfo.num_active_channels,
-          synced: nodeInfo.synced_to_chain
-        })
 
         // Store the config and update connection status with node info
-        console.log('💾 Updating store with config and node info...')
         setConfig(config)
         setNodeInfo(nodeInfo)
         setConnected(true)
-        console.log('✅ Store updated successfully')
 
         Alert.alert('Success', 'Successfully connected to LND node', [
           {
             text: 'OK',
             onPress: () => {
-              console.log('👋 Navigating back after successful connection')
               router.back()
             }
           }
         ])
       } else {
-        console.error('❌ Failed to connect to LND node:', {
+        console.error('Failed to connect to LND node:', {
           status: response.status,
           statusText: response.statusText
         })
         Alert.alert('Error', 'Failed to connect to LND node')
       }
     } catch (error) {
-      console.error('❌ Connection error:', {
+      console.error('Connection error:', {
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
       })
@@ -152,13 +132,21 @@ export default function LNDRestPage() {
       )
     } finally {
       setIsConnecting(false)
-      console.log('🏁 Connection process finished')
     }
   }
 
-  const handleQRCodeScanned = () => {
-    // TODO: Handle the scanned LND connection string
-    setCameraModalVisible(false)
+  const handleQRCodeScanned = (event: { data: string }) => {
+    const scannedData = event.data
+    if (validateConnectionString(scannedData)) {
+      setConnectionString(scannedData)
+      setIsButtonEnabled(true)
+      setCameraModalVisible(false)
+    } else {
+      Alert.alert(
+        'Invalid QR Code',
+        'The scanned QR code is not a valid LND connection string'
+      )
+    }
   }
 
   const handlePasteFromClipboard = async () => {
@@ -199,22 +187,22 @@ export default function LNDRestPage() {
               placeholder="Enter LND connection string..."
               placeholderTextColor="#666"
             />
-            <SSButton
-              label="Paste from Clipboard"
-              onPress={handlePasteFromClipboard}
-              variant="outline"
-              uppercase
-            />
-          </SSVStack>
-
-          <SSVStack style={styles.buttonContainer}>
-            <SSButton
-              label="Scan QR Code"
-              onPress={() => setCameraModalVisible(true)}
-              variant="gradient"
-              gradientType="special"
-              uppercase
-            />
+            <SSHStack style={styles.buttonRow}>
+              <SSButton
+                label="Paste"
+                onPress={handlePasteFromClipboard}
+                variant="outline"
+                uppercase
+                style={styles.buttonRowItem}
+              />
+              <SSButton
+                label="Scan QR"
+                onPress={() => setCameraModalVisible(true)}
+                variant="outline"
+                uppercase
+                style={styles.buttonRowItem}
+              />
+            </SSHStack>
           </SSVStack>
 
           <SSButton
@@ -236,7 +224,7 @@ export default function LNDRestPage() {
           {t('camera.scanQRCode')}
         </SSText>
         <CameraView
-          onBarcodeScanned={() => handleQRCodeScanned()}
+          onBarcodeScanned={handleQRCodeScanned}
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
           style={styles.camera}
         />
@@ -295,5 +283,12 @@ const styles = StyleSheet.create({
   },
   pasteButton: {
     width: '100%'
+  },
+  buttonRow: {
+    width: '100%',
+    gap: 12
+  },
+  buttonRowItem: {
+    flex: 1
   }
 })

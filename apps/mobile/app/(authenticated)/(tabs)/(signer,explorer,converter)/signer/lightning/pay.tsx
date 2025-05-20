@@ -434,57 +434,83 @@ export default function PayPage() {
                 />
 
                 {decodedInvoice && !isLNURLMode && (
-                  <SSVStack gap="xs" style={styles.invoiceDetails}>
-                    <SSText
-                      uppercase
-                      weight="bold"
-                      style={styles.detailsHeader}
-                    >
+                  <SSVStack gap="sm" style={styles.invoiceDetails}>
+                    <SSText uppercase weight="bold" style={styles.detailsTitle}>
                       Payment Details
                     </SSText>
-                    <SSHStack gap="xs" style={styles.detailRow}>
-                      <SSText color="muted">Amount:</SSText>
-                      <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-                        <SSText>{decodedInvoice.num_satoshis} sats</SSText>
-                        <SSText color="muted" size="sm">
-                          ≈{' '}
-                          {formatNumber(
-                            satsToFiat(Number(decodedInvoice.num_satoshis)),
-                            2
-                          )}{' '}
-                          {fiatCurrency}
-                        </SSText>
-                      </SSHStack>
-                    </SSHStack>
-                    {decodedInvoice.description && (
-                      <SSHStack gap="xs" style={styles.detailRow}>
-                        <SSText color="muted">Description:</SSText>
-                        <SSText>{decodedInvoice.description}</SSText>
-                      </SSHStack>
-                    )}
-                    <SSHStack gap="xs" style={styles.detailRow}>
-                      <SSText color="muted">Created:</SSText>
-                      <SSText>
-                        {new Date(
-                          Number(decodedInvoice.timestamp) * 1000
-                        ).toLocaleString()}
-                      </SSText>
-                    </SSHStack>
-                    <SSHStack gap="xs" style={styles.detailRow}>
-                      <SSText color="muted">Expires:</SSText>
-                      <SSText>
-                        {new Date(
-                          Number(decodedInvoice.timestamp) * 1000 +
-                            Number(decodedInvoice.expiry) * 1000
-                        ).toLocaleString()}
-                      </SSText>
-                    </SSHStack>
-                    <SSHStack gap="xs" style={styles.detailRow}>
-                      <SSText color="muted">Payment Hash:</SSText>
-                      <SSText size="sm" style={styles.hashText}>
-                        {decodedInvoice.payment_hash}
-                      </SSText>
-                    </SSHStack>
+
+                    <View style={styles.detailsContent}>
+                      <View style={styles.detailSection}>
+                        <SSHStack gap="xs" style={styles.detailRow}>
+                          <SSText color="muted" style={styles.detailLabel}>
+                            Amount
+                          </SSText>
+                          <SSHStack gap="xs" style={styles.amountContainer}>
+                            <SSText weight="medium">
+                              {decodedInvoice.num_satoshis} sats
+                            </SSText>
+                            <SSText color="muted" size="sm">
+                              ≈{' '}
+                              {formatNumber(
+                                satsToFiat(Number(decodedInvoice.num_satoshis)),
+                                2
+                              )}{' '}
+                              {fiatCurrency}
+                            </SSText>
+                          </SSHStack>
+                        </SSHStack>
+
+                        {decodedInvoice.description && (
+                          <SSHStack gap="xs" style={styles.detailRow}>
+                            <SSText color="muted" style={styles.detailLabel}>
+                              Description
+                            </SSText>
+                            <SSText style={styles.detailValue}>
+                              {decodedInvoice.description}
+                            </SSText>
+                          </SSHStack>
+                        )}
+
+                        <SSHStack gap="xs" style={styles.detailRow}>
+                          <SSText color="muted" style={styles.detailLabel}>
+                            Created
+                          </SSText>
+                          <SSText style={styles.detailValue}>
+                            {new Date(
+                              Number(decodedInvoice.timestamp) * 1000
+                            ).toLocaleString()}
+                          </SSText>
+                        </SSHStack>
+
+                        <SSHStack gap="xs" style={styles.detailRow}>
+                          <SSText color="muted" style={styles.detailLabel}>
+                            Expires
+                          </SSText>
+                          <SSText style={styles.detailValue}>
+                            {new Date(
+                              Number(decodedInvoice.timestamp) * 1000 +
+                                Number(decodedInvoice.expiry) * 1000
+                            ).toLocaleString()}
+                          </SSText>
+                        </SSHStack>
+                      </View>
+
+                      <View style={styles.detailSection}>
+                        <SSHStack gap="xs" style={styles.detailRow}>
+                          <SSText color="muted" style={styles.detailLabel}>
+                            Payment Hash
+                          </SSText>
+                          <SSText
+                            size="sm"
+                            style={styles.hashText}
+                            numberOfLines={1}
+                            ellipsizeMode="middle"
+                          >
+                            {decodedInvoice.payment_hash}
+                          </SSText>
+                        </SSHStack>
+                      </View>
+                    </View>
                   </SSVStack>
                 )}
 
@@ -645,23 +671,43 @@ const styles = StyleSheet.create({
     marginLeft: 4
   },
   invoiceDetails: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 12,
-    marginBottom: 12
+    marginTop: 16,
+    marginBottom: 16
+  },
+  detailsTitle: {
+    fontSize: 16,
+    letterSpacing: 0.5,
+    marginBottom: 8
+  },
+  detailsContent: {
+    gap: 16
+  },
+  detailSection: {
+    gap: 12
   },
   detailRow: {
     alignItems: 'flex-start',
-    paddingVertical: 4
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
   },
-  detailsHeader: {
-    marginBottom: 12,
-    fontSize: 16
+  detailLabel: {
+    minWidth: 100,
+    fontSize: 14
+  },
+  detailValue: {
+    flex: 1,
+    textAlign: 'right'
+  },
+  amountContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'baseline'
   },
   hashText: {
     fontFamily: 'monospace',
     opacity: 0.8,
-    fontSize: 12
+    fontSize: 12,
+    flex: 1,
+    textAlign: 'right'
   }
 })
