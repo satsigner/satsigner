@@ -60,7 +60,7 @@ function useSyncAccountWithAddress() {
     setSyncProgress(account.id, account.syncProgress)
 
     // make the request
-    const esploraTxs = await esploraClient.getAddressTx(address)
+    const esploraTxs = await esploraClient.getAddressTxs(address)
     const esploraUtxos = await esploraClient.getAddressUtxos(address)
 
     // update sync progress

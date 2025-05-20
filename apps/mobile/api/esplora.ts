@@ -159,7 +159,7 @@ export default class Esplora {
     return await this._call('/blocks/' + startHeight)
   }
 
-  async getAddressTx(address: string) {
+  async getAddressTxs(address: string) {
     const endpoint = `/address/${address}/txs`
     const transactions = (await this._call(endpoint)) as EsploraTx[]
 
@@ -181,7 +181,7 @@ export default class Esplora {
     return transactions
   }
 
-  async getAddressTxInMempool(address: string) {
+  async getAddressTxsInMempool(address: string) {
     return (await this._call(
       '/address/' + address + '/txs/mempool'
     )) as EsploraTx[]
