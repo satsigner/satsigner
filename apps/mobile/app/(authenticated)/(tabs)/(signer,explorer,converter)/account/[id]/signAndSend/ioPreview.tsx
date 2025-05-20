@@ -320,6 +320,40 @@ export default function IOPreview() {
     }
   }
 
+  function handleGoToPreview() {
+    // Account not synced. Go to the page to sync it.
+    if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+    }
+
+    const lastSync = new Date(account.lastSyncedAt as Date)
+    const now = new Date()
+
+    // Discard the time and time-zone information.
+    const currentUtc = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    )
+    const lastSyncedUtc = Date.UTC(
+      lastSync.getFullYear(),
+      lastSync.getMonth(),
+      lastSync.getDate()
+    )
+    const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+    const daysSinceLastSync = Math.floor(
+      (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
+    )
+
+    // Account too long ago.
+    if (daysSinceLastSync > 1) {
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+    }
+
+    // Ok, go to the preview page.
+    router.navigate(`/account/${id}/signAndSend/previewMessage`)
+  }
+
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
     setTopGradientHeight(height + Layout.mainContainer.paddingTop)
@@ -506,9 +540,7 @@ export default function IOPreview() {
             variant="secondary"
             label={t('sign.transaction')}
             disabled={outputs.length === 0}
-            onPress={() =>
-              router.navigate(`/account/${id}/signAndSend/previewMessage`)
-            }
+            onPress={handleGoToPreview}
           />
         </SSVStack>
       </LinearGradient>

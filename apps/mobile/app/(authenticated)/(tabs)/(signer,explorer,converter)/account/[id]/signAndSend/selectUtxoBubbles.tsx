@@ -212,7 +212,7 @@ function SelectUtxoBubbles() {
             ]}
             textStyle={[!hasSelectedUtxos && { color: Colors.gray[400] }]}
             onPress={() =>
-              router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+              router.navigate(`/account/${id}/signAndSend/ioPreview`)
             }
           />
         </SSVStack>
