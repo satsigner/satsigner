@@ -229,7 +229,11 @@ const useAccountBuilderStore = create<
       addresses: [],
       createdAt: new Date(),
       lastSyncedAt: new Date(),
-      syncStatus: 'unsynced'
+      syncStatus: 'unsynced',
+      syncProgress: {
+        tasksDone: 0,
+        totalTasks: 0
+      }
     }
 
     return account
