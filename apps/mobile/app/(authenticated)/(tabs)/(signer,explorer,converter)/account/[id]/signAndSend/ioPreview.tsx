@@ -32,6 +32,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSAmountInput from '@/components/SSAmountInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -272,10 +273,32 @@ export default function IOPreview() {
     setCameraModalVisible(false)
   }
 
+  function resetLocalOutput() {
+    console.log('resetLocalOutput - before setOutputAmount:', outputAmount)
+    setCurrentOutputLocalId(undefined)
+    setCurrentOutputNumber(outputs.length + 1)
+    setOutputTo('')
+    setOutputAmount(DUST_LIMIT)
+    console.log('resetLocalOutput - after setOutputAmount:', DUST_LIMIT)
+    setOutputLabel('')
+  }
+
   function handleOnPressAddOutput() {
+    console.log(
+      'handleOnPressAddOutput - before resetLocalOutput:',
+      outputAmount
+    )
     resetLocalOutput()
+    console.log(
+      'handleOnPressAddOutput - after resetLocalOutput:',
+      outputAmount
+    )
+    setOutputAmount(DUST_LIMIT)
+    console.log('handleOnPressAddOutput - after setOutputAmount:', DUST_LIMIT)
     addOutputBottomSheetRef.current?.expand()
   }
+
+  const [outputsCount, setOutputsCount] = useState(0)
 
   function handleAddOutput() {
     const outputIndex = outputs.findIndex(
@@ -287,6 +310,7 @@ export default function IOPreview() {
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
 
+    setOutputsCount((prev) => prev + 1)
     addOutputBottomSheetRef.current?.close()
     resetLocalOutput()
   }
@@ -296,14 +320,6 @@ export default function IOPreview() {
     removeOutput(currentOutputLocalId)
     addOutputBottomSheetRef.current?.close()
     resetLocalOutput()
-  }
-
-  function resetLocalOutput() {
-    setCurrentOutputLocalId(undefined)
-    setCurrentOutputNumber(outputs.length + 1)
-    setOutputTo('')
-    setOutputAmount(DUST_LIMIT)
-    setOutputLabel('')
   }
 
   function handleSetFeeRate() {
@@ -606,42 +622,13 @@ export default function IOPreview() {
         })}
       >
         <SSVStack>
-          <SSNumberGhostInput
-            min={DUST_LIMIT}
-            max={remainingSats}
-            suffix={t('bitcoin.sats')}
-            value={String(outputAmount)}
-            onChangeText={(text) => setOutputAmount(Number(text))}
-          />
           <SSVStack gap="none">
-            <SSHStack justifyBetween>
-              <SSHStack
-                gap="xs"
-                style={{ alignItems: 'baseline', justifyContent: 'center' }}
-              >
-                <SSText weight="medium">{DUST_LIMIT}</SSText>
-                <SSText color="muted" size="sm">
-                  {t('bitcoin.sats')}
-                </SSText>
-              </SSHStack>
-              <SSHStack
-                gap="xs"
-                style={{ alignItems: 'baseline', justifyContent: 'center' }}
-              >
-                <SSText weight="medium">{formatNumber(remainingSats)}</SSText>
-                <SSText color="muted" size="sm">
-                  {t('bitcoin.sats')}
-                </SSText>
-              </SSHStack>
-            </SSHStack>
-            <SSSlider
+            <SSAmountInput
+              key={`amount-input-${outputsCount}`}
               min={DUST_LIMIT}
               max={Math.max(remainingSats, DUST_LIMIT)}
-              value={Math.min(
-                outputAmount,
-                Math.max(remainingSats, DUST_LIMIT)
-              )}
-              step={100}
+              value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
+              remainingSats={remainingSats}
               onValueChange={(value) => setOutputAmount(value)}
             />
           </SSVStack>
