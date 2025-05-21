@@ -78,12 +78,10 @@ function SSAmountInput({
         value={Math.round(localValue)}
         onValueChange={(value) => {
           const newValue = Math.round(value[0])
-          console.log('SSAmountInput - slider changing:', newValue)
           setLocalValue(newValue)
         }}
         onSlidingComplete={(value) => {
           const finalValue = Math.round(value[0])
-          console.log('SSAmountInput - slider complete:', finalValue)
           onValueChange(finalValue)
         }}
         trackStyle={styles.track}
