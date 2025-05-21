@@ -202,7 +202,6 @@ function PreviewMessage() {
 
   const getPsbtString = useCallback(async () => {
     if (!txBuilderResult?.psbt) {
-      toast.error(t('error.psbt.notAvailable'))
       return null
     }
 
@@ -473,7 +472,7 @@ function PreviewMessage() {
                       {t('transaction.preview.importSigned')}
                     </SSText>
                     <SSTextInput
-                      placeholder={t('sign.signedPsbt')}
+                      placeholder={t('transaction.preview.signedPsbt')}
                       editable={false}
                       style={{
                         fontFamily: Typography.sfProMono,

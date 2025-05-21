@@ -897,6 +897,7 @@
     "preview.scanAllChunks": "Scan all chunks %{current} of %{total}",
     "preview.showBBQR": "Show BBQR",
     "preview.showRaw": "Show Raw",
+    "preview.signedPsbt": "Signed PSBT",
     "preview.singleChunk": "Single Chunk",
     "size": "Raw size",
     "txid": "Txid",

@@ -2,6 +2,7 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -10,7 +11,6 @@ import {
   type LayoutChangeEvent,
   TouchableOpacity,
   View,
-  Clipboard,
   Alert,
   ScrollView
 } from 'react-native'
@@ -284,15 +284,7 @@ export default function IOPreview() {
   }
 
   function handleOnPressAddOutput() {
-    console.log(
-      'handleOnPressAddOutput - before resetLocalOutput:',
-      outputAmount
-    )
     resetLocalOutput()
-    console.log(
-      'handleOnPressAddOutput - after resetLocalOutput:',
-      outputAmount
-    )
     setOutputAmount(DUST_LIMIT)
     setAddOutputModalVisible(true)
   }
@@ -662,7 +654,7 @@ export default function IOPreview() {
                       style={{ flex: 1 }}
                       onPress={async () => {
                         try {
-                          const text = await Clipboard.getString()
+                          const text = await Clipboard.getStringAsync()
                           if (text && text.trim()) {
                             setOutputTo(text.trim())
                           } else {
