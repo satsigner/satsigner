@@ -63,7 +63,8 @@ function PreviewMessage() {
     feeRate,
     rbf,
     setTxBuilderResult,
-    txBuilderResult
+    txBuilderResult,
+    setSignedTx
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -72,7 +73,8 @@ function PreviewMessage() {
       state.feeRate,
       state.rbf,
       state.setTxBuilderResult,
-      state.txBuilderResult
+      state.txBuilderResult,
+      state.setSignedTx
     ])
   )
   const account = useAccountsStore((state) =>
@@ -276,7 +278,6 @@ function PreviewMessage() {
 
   async function handleNFCExport() {
     if (isEmitting) {
-      console.log('[Preview Message] Cancelling NFC export')
       await cancelNFCEmitterScan()
       setNfcModalVisible(false)
       setNfcError(null)
@@ -284,27 +285,16 @@ function PreviewMessage() {
     }
 
     if (!serializedPsbt) {
-      console.log('[Preview Message] No PSBT data available for NFC export')
       toast.error(t('error.psbt.notAvailable'))
       return
     }
 
-    console.log('[Preview Message] Starting NFC export process')
-    console.log('[Preview Message] PSBT data length:', serializedPsbt.length)
-    console.log(
-      '[Preview Message] PSBT preview:',
-      serializedPsbt.slice(0, 100) + '...'
-    )
-
     setNfcModalVisible(true)
     setNfcError(null)
     try {
-      console.log('[Preview Message] Calling emitNFCTag...')
       await emitNFCTag(serializedPsbt)
-      console.log('[Preview Message] NFC export completed successfully')
       toast.success(t('transaction.preview.nfcExported'))
     } catch (error) {
-      console.log('[Preview Message] NFC export failed:', error)
       const errorMessage = (error as Error).message
       if (errorMessage) {
         setNfcError(errorMessage)
@@ -319,46 +309,33 @@ function PreviewMessage() {
 
   async function handleNFCScan() {
     if (isReading) {
-      console.log('[Preview Message] Cancelling NFC scan')
       await cancelNFCScan()
       setNfcScanModalVisible(false)
       return
     }
 
-    console.log('[Preview Message] Starting NFC scan for signed PSBT')
     setNfcScanModalVisible(true)
     try {
       const result = await readNFCTag()
-      console.log('[Preview Message] NFC read result:', result)
 
       if (!result) {
-        console.log('[Preview Message] No data found on NFC tag')
         toast.error(t('watchonly.read.nfcErrorNoData'))
         return
       }
 
       if (result.txData) {
-        // Convert the raw transaction data to hex string
         const txHex = Array.from(result.txData)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
-        console.log(
-          '[Preview Message] Converted transaction data to hex:',
-          txHex
-        )
         setSignedPsbt(txHex)
         toast.success(t('watchonly.read.success'))
       } else if (result.txId) {
-        // Fallback to using the transaction ID if no raw data
-        console.log('[Preview Message] Using transaction ID:', result.txId)
         setSignedPsbt(result.txId)
         toast.success(t('watchonly.read.success'))
       } else {
-        console.log('[Preview Message] No usable transaction data found')
         toast.error(t('watchonly.read.nfcErrorNoData'))
       }
     } catch (error) {
-      console.log('[Preview Message] NFC scan failed:', error)
       const errorMessage = (error as Error).message
       if (errorMessage) {
         toast.error(errorMessage)
@@ -367,6 +344,23 @@ function PreviewMessage() {
       setNfcScanModalVisible(false)
     }
   }
+
+  useEffect(() => {
+    if (signedPsbt) {
+      console.log('Decoded signed transaction:', signedPsbt)
+      setSignedTx(signedPsbt)
+    }
+  }, [signedPsbt, setSignedTx])
+
+  useEffect(() => {
+    if (txBuilderResult) {
+      console.log('Transaction Builder:', {
+        txid: txBuilderResult.txDetails.txid,
+        psbt: txBuilderResult.psbt,
+        txDetails: txBuilderResult.txDetails
+      })
+    }
+  }, [txBuilderResult])
 
   if (!id || !account) return <Redirect href="/" />
 
@@ -484,12 +478,16 @@ function PreviewMessage() {
                       placeholder={t('sign.signedPsbt')}
                       editable={false}
                       style={{
-                        marginVertical: 8,
-                        fontFamily: Typography.terminessNerdFontMonoRegular
+                        fontFamily: Typography.sfProMono,
+                        fontSize: 12,
+                        height: 200,
+                        textAlignVertical: 'top',
+                        paddingTop: 12,
+                        paddingBottom: 12
                       }}
                       value={signedPsbt}
                       multiline
-                      numberOfLines={8}
+                      numberOfLines={18}
                     />
                     <SSHStack gap="xxs" justifyBetween>
                       <SSButton

@@ -49,38 +49,24 @@ export function useNFCReader() {
       await NfcManager.requestTechnology(NfcTech.Ndef)
       const tag = await NfcManager.getTag()
 
-      console.log('[NFC Reader] Raw tag data:', JSON.stringify(tag, null, 2))
-
       if (!tag?.ndefMessage?.length) {
-        console.log('[NFC Reader] No NDEF message found on tag')
+        toast.error('No NDEF message found on tag')
         return null
       }
-
-      console.log('[NFC Reader] Total NDEF records:', tag.ndefMessage.length)
 
       const result: NFCReadResult = {}
 
       // Process each record
       const records = tag.ndefMessage.map((record, index) => {
-        console.log(`[NFC Reader] Record ${index + 1} details:`, {
-          tnf: record.tnf,
-          type: record.type,
-          payload: record.payload,
-          id: record.id
-        })
-
         // Convert type to string if it's an array of numbers
         const type =
           typeof record.type === 'string'
             ? record.type
             : String.fromCharCode.apply(null, record.type as number[])
 
-        console.log(`[NFC Reader] Record ${index + 1} type:`, type)
-
         // Handle different record types
         if (record.tnf === Ndef.TNF_WELL_KNOWN && type === Ndef.RTD_TEXT) {
           const text = Ndef.text.decodePayload(new Uint8Array(record.payload))
-          console.log(`[NFC Reader] Record ${index + 1} full text:`, text)
 
           // Extract transaction ID from text record
           const match = text.match(/Signed Transaction: ([a-f0-9]+)/i)
@@ -102,9 +88,6 @@ export function useNFCReader() {
           raw: record
         }
       })
-
-      console.log('[NFC Reader] All records:', JSON.stringify(records, null, 2))
-      console.log('[NFC Reader] Extracted result:', result)
 
       if (result.txData || result.txId) {
         return result

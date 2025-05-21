@@ -20,6 +20,11 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { Transaction } from 'bdk-rn'
+import * as bitcoinjs from 'bitcoinjs-lib'
+import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { parseHexToBytes } from '@/utils/parse'
+import ElectrumClient from '@/api/electrum'
 
 const tn = _tn('transaction.build.sign')
 
@@ -27,8 +32,13 @@ export default function SignMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [txBuilderResult, psbt, setPsbt] = useTransactionBuilderStore(
-    useShallow((state) => [state.txBuilderResult, state.psbt, state.setPsbt])
+  const [txBuilderResult, psbt, setPsbt, signedTx] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.txBuilderResult,
+      state.psbt,
+      state.setPsbt,
+      state.signedTx
+    ])
   )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
@@ -47,7 +57,7 @@ export default function SignMessage() {
   const [rawTx, setRawTx] = useState('')
 
   async function handleBroadcastTransaction() {
-    if (!psbt) return
+    if (!psbt && !signedTx) return
     setBroadcasting(true)
 
     const opts = {
@@ -66,7 +76,19 @@ export default function SignMessage() {
     )
 
     try {
-      const broadcasted = await broadcastTransaction(psbt, blockchain)
+      let broadcasted = false
+      if (signedTx) {
+        // Broadcast raw hex directly to Electrum
+        const electrumClient = await ElectrumClient.initClientFromUrl(
+          currentConfig.server.url,
+          selectedNetwork
+        )
+        await electrumClient.broadcastTransactionHex(signedTx)
+        electrumClient.close()
+        broadcasted = true
+      } else if (psbt) {
+        broadcasted = await broadcastTransaction(psbt, blockchain)
+      }
 
       if (broadcasted) {
         setBroadcasted(true)
@@ -81,6 +103,12 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
+      if (signedTx) {
+        setSigned(true)
+        setRawTx(signedTx)
+        return
+      }
+
       if (!wallet || !txBuilderResult) return
 
       const partiallySignedTransaction = await signTransaction(
@@ -155,7 +183,7 @@ export default function SignMessage() {
           <SSButton
             variant="secondary"
             label={t('send.broadcast')}
-            disabled={!signed || !psbt}
+            disabled={!signed || (!psbt && !signedTx)}
             loading={broadcasting}
             onPress={() => handleBroadcastTransaction()}
           />
