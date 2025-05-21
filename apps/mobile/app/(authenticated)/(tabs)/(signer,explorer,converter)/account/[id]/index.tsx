@@ -16,6 +16,7 @@ import {
   useState
 } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
@@ -647,16 +648,23 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.id === id),
-      state.updateAccount
-    ])
-  )
+  const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.updateAccount,
+        state.accounts.find((a) => a.id === id),
+        state.accounts.find((a) => a.id === id)?.syncStatus,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
+      ])
+    )
+
   const [wallet, watchOnlyWalletAddress] = useWalletsStore(
     useShallow((state) => [state.wallets[id!], state.addresses[id!]])
   )
+
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -664,8 +672,11 @@ export default function AccountView() {
       state.fetchPrices
     ])
   )
-  const getBlockchainHeight = useBlockchainStore(
-    (state) => state.getBlockchainHeight
+  const [getBlockchainHeight, mempoolUrl] = useBlockchainStore(
+    useShallow((state) => [
+      state.getBlockchainHeight,
+      state.configsMempool['bitcoin']
+    ])
   )
   const clearTransaction = useTransactionBuilderStore(
     (state) => state.clearTransaction
@@ -806,7 +817,7 @@ export default function AccountView() {
 
   async function handleOnRefresh() {
     setRefreshing(true)
-    await fetchPrices()
+    await fetchPrices(mempoolUrl)
     await refreshBlockchainHeight()
     await refreshAccount()
     await refreshAccountLabels()
@@ -1092,6 +1103,20 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
+      {account.keys[0].creationType === 'importAddress' &&
+        syncStatus === 'syncing' &&
+        tasksDone !== undefined &&
+        totalTasks !== undefined &&
+        totalTasks > 0 && (
+          <View style={{ marginTop: 10, marginBottom: -10 }}>
+            <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+              <ActivityIndicator size={16} color="#fff" />
+              <SSText center>
+                {t('account.syncProgress', { tasksDone, totalTasks })}
+              </SSText>
+            </SSHStack>
+          </View>
+        )}
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}

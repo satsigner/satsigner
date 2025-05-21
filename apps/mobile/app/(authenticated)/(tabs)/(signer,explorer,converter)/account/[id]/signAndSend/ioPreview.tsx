@@ -3,52 +3,53 @@ import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Animated, View } from 'react-native'
+import {
+  Animated,
+  type LayoutChangeEvent,
+  TouchableOpacity,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { SSIconScan } from '@/components/icons'
+import { SSIconChevronLeft, SSIconScan } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
+import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
-import SSMultipleSankeyDiagram, {
-  type Link
-} from '@/components/SSMultipleSankeyDiagram'
+import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSNumberGhostInput from '@/components/SSNumberGhostInput'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
-import { useNodesAndLinks } from '@/hooks/useNodesAndLinks'
-import { usePreviousTransactions } from '@/hooks/usePreviousTransactions'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
+import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
-// import { type Output } from '@/types/models/Output'
+import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { bip21decode, isBip21, isBitcoinAddress } from '@/utils/bitcoin'
 import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
-// import { selectEfficientUtxos } from '@/utils/utxo'
-
-const DEEP_LEVEL = 2 // how deep the tx history
 
 export default function IOPreview() {
   const router = useRouter()
@@ -68,7 +69,8 @@ export default function IOPreview() {
     addOutput,
     updateOutput,
     removeOutput,
-    setFeeRate
+    setFeeRate,
+    setFee
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -78,14 +80,54 @@ export default function IOPreview() {
       state.addOutput,
       state.updateOutput,
       state.removeOutput,
-      state.setFeeRate
+      state.setFeeRate,
+      state.setFee
     ])
   )
 
-  const { transactions, loading, error } = usePreviousTransactions(
-    inputs,
-    DEEP_LEVEL
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool[account?.network || 'bitcoin']
   )
+  const mempoolOracle = useMemo(
+    () => new MempoolOracle(mempoolUrl),
+    [mempoolUrl]
+  )
+
+  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const [changeAddress, setChangeAddress] = useState('')
+  const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
+
+  useEffect(() => {
+    if (!account || !wallet) return
+    ;(async () => {
+      const outputAddresses: Record<string, boolean> = {}
+      account.transactions.forEach((tx) => {
+        tx.vout.forEach((output) => {
+          outputAddresses[output.address] = true
+        })
+      })
+
+      for (let i = 0; true; i += 1) {
+        const addressObj = await wallet.getInternalAddress(i)
+        const address = await addressObj.address.asString()
+        if (outputAddresses[address] === true) continue
+        setChangeAddress(address)
+        return
+      }
+    })()
+  }, [account, wallet])
+
+  // this removes the change address if the user goes back to the IO preview.
+  // we add the change address as an output before moving to the next step.
+  useEffect(() => {
+    if (!changeAddress || !shouldRemoveChange) return
+    for (const output of outputs) {
+      if (output.to === changeAddress) {
+        removeOutput(output.localId)
+        return
+      }
+    }
+  }, [outputs, changeAddress, shouldRemoveChange, removeOutput])
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -95,7 +137,9 @@ export default function IOPreview() {
   const [selectedAutoSelectUtxos, setSelectedAutoSelectUtxos] =
     useState<AutoSelectUtxosAlgorithms>('user')
 
+  const [loadHistory, setLoadHistory] = useState(false)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [topGradientHeight, setTopGradientHeight] = useState(0)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
 
@@ -134,19 +178,12 @@ export default function IOPreview() {
     [inputs.size, outputs.length]
   )
 
-  const { nodes, links } = useNodesAndLinks({
-    transactions,
-    inputs,
-    outputs,
-    feeRate
-  })
-
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
 
   const { data: mempoolStatistics } = useQuery<MempoolStatistics[]>({
     queryKey: ['statistics', selectedPeriod],
     queryFn: () =>
-      new MempoolOracle().getMempoolStatistics(
+      mempoolOracle.getMempoolStatistics(
         selectedPeriod === '2hours'
           ? '2h'
           : selectedPeriod === 'day'
@@ -159,11 +196,49 @@ export default function IOPreview() {
 
   const boxPosition = new Animated.Value(localFeeRate)
 
+  const remainingBalance = useMemo(() => {
+    const { vsize } = transactionSize
+    const minerFee = Math.round(feeRate * vsize)
+    const totalInputValue = utxosSelectedValue
+    const totalOutputValue = outputs.reduce(
+      (sum, output) => sum + output.amount,
+      0
+    )
+    return totalInputValue - totalOutputValue - minerFee
+  }, [feeRate, outputs, transactionSize, utxosSelectedValue])
+
+  // Calculate outputs for chart including remaining balance
+  const singleTxOutputs = useMemo(() => {
+    const chartOutputs: Output[] = [...outputs]
+
+    if (remainingBalance > DUST_LIMIT) {
+      chartOutputs.push({
+        localId: 'remainingBalance', // WARN: do not chnage it!
+        amount: remainingBalance,
+        label: '',
+        to: changeAddress
+      })
+    }
+
+    return chartOutputs
+  }, [outputs, remainingBalance, changeAddress])
+
   useEffect(() => {
     if (remainingSats < 0) {
       toast.error(t('transaction.error.insufficientInputs'))
     }
   }, [remainingSats])
+
+  useEffect(() => {
+    if (feeRate === 0) {
+      setFeeRate(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    setFee(localFeeRate * transactionSize.vsize)
+  }, [localFeeRate, transactionSize, setFee])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -238,7 +313,7 @@ export default function IOPreview() {
   function handleOnPressOutput(localId?: string) {
     setCurrentOutputLocalId(localId)
 
-    if (localId === 'minerFee') {
+    if (localId === 'current-minerFee') {
       changeFeeBottomSheetRef.current?.expand()
       return
     } else if (localId === 'remainingBalance') {
@@ -291,25 +366,56 @@ export default function IOPreview() {
     }
   }
 
-  if (loading && inputs.size > 0) {
-    return (
-      <SSVStack itemsCenter style={{ justifyContent: 'center', flex: 1 }}>
-        <ActivityIndicator color={Colors.white} />
-      </SSVStack>
+  function handleGoToPreview() {
+    // first, we add the change as an output
+    setShouldRemoveChange(false)
+    addOutput({
+      to: changeAddress,
+      amount: remainingBalance,
+      label: 'Change'
+    })
+
+    // Account not synced. Go to warning page to sync it.
+    if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+    }
+
+    const lastSync = new Date(account.lastSyncedAt as Date)
+    const now = new Date()
+
+    // Discard the time and time-zone information.
+    const currentUtc = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
     )
+    const lastSyncedUtc = Date.UTC(
+      lastSync.getFullYear(),
+      lastSync.getMonth(),
+      lastSync.getDate()
+    )
+    const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+    const daysSinceLastSync = Math.floor(
+      (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
+    )
+
+    // Account updated too long ago.
+    if (daysSinceLastSync > 1) {
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+    }
+
+    // Ok, go to the preview page.
+    router.navigate(`/account/${id}/signAndSend/previewMessage`)
   }
 
-  if (error) {
-    return (
-      <SSVStack itemsCenter>
-        <SSText color="muted">
-          Error loading transaction details: {error.message}
-        </SSText>
-      </SSVStack>
-    )
+  const handleTopLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout
+    setTopGradientHeight(height + Layout.mainContainer.paddingTop)
   }
-
-  if (!nodes.length || !links.length) return <Redirect href="/" />
+  const handleLoadHistory = () => {
+    setLoadHistory(!loadHistory)
+  }
+  // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
     <View style={{ flex: 1 }}>
@@ -324,9 +430,10 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 20,
+          zIndex: 0,
           pointerEvents: 'none'
         }}
+        onLayout={handleTopLayout}
         locations={[0.185, 0.5554, 0.7713, 1]}
         colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
       >
@@ -379,18 +486,33 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      <View style={{ position: 'absolute', top: 80 }}>
-        {transactions.size > 0 &&
-        inputs.size > 0 &&
-        nodes?.length > 0 &&
-        links?.length > 0 ? (
-          <SSMultipleSankeyDiagram
-            sankeyNodes={nodes}
-            sankeyLinks={links as Link[]}
-            onPressOutput={handleOnPressOutput}
-          />
-        ) : null}
-      </View>
+      {inputs.size > 0 ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: loadHistory ? topGradientHeight : 80
+          }}
+        >
+          {loadHistory ? (
+            <SSMultipleSankeyDiagram
+              onPressOutput={handleOnPressOutput}
+              currentOutputLocalId={currentOutputLocalId}
+              inputs={inputs}
+              outputs={singleTxOutputs}
+              feeRate={feeRate}
+            />
+          ) : (
+            <SSCurrentTransactionChart
+              inputs={inputs}
+              outputs={singleTxOutputs}
+              feeRate={feeRate}
+              onPressOutput={handleOnPressOutput}
+              currentOutputLocalId={currentOutputLocalId}
+            />
+          )}
+        </View>
+      ) : null}
+
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
@@ -411,6 +533,32 @@ export default function IOPreview() {
           }}
         >
           <SSVStack>
+            {!loadHistory && (
+              <TouchableOpacity
+                style={{
+                  marginBottom: Layout.vStack.gap.sm
+                }}
+                onPress={handleLoadHistory}
+              >
+                <SSHStack gap="xs">
+                  <SSHStack gap="xxs">
+                    <SSIconChevronLeft
+                      height={6}
+                      width={3}
+                      stroke={Colors.gray[300]}
+                    />
+                    <SSIconChevronLeft
+                      height={6}
+                      width={3}
+                      stroke={Colors.gray[300]}
+                    />
+                  </SSHStack>
+                  <SSText style={{ color: Colors.gray[300], fontSize: 12 }}>
+                    {t('transaction.loadHistory').toUpperCase()}
+                  </SSText>
+                </SSHStack>
+              </TouchableOpacity>
+            )}
             <SSHStack>
               <SSButton
                 variant="outline"
@@ -446,9 +594,7 @@ export default function IOPreview() {
             variant="secondary"
             label={t('sign.transaction')}
             disabled={outputs.length === 0}
-            onPress={() =>
-              router.navigate(`/account/${id}/signAndSend/previewMessage`)
-            }
+            onPress={handleGoToPreview}
           />
         </SSVStack>
       </LinearGradient>

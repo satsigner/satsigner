@@ -235,6 +235,10 @@ const useAccountBuilderStore = create<
       createdAt: new Date(),
       lastSyncedAt: new Date(),
       syncStatus: 'unsynced',
+      syncProgress: {
+        tasksDone: 0,
+        totalTasks: 0
+      },
       nostr: {
         commonNpub: '',
         commonNsec: '',

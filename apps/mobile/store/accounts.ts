@@ -3,7 +3,11 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import mmkvStorage from '@/storage/mmkv'
-import { type Account, type SyncStatus } from '@/types/models/Account'
+import {
+  type Account,
+  type SyncProgress,
+  type SyncStatus
+} from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
 import { getUtxoOutpoint } from '@/utils/utxo'
@@ -23,21 +27,15 @@ type AccountsAction = {
   ) => void
   setLastSyncedAt: (id: Account['id'], date: Date) => void
   setSyncStatus: (id: Account['id'], syncStatus: SyncStatus) => void
+  setSyncProgress: (id: Account['id'], syncProgress: SyncProgress) => void
   deleteAccount: (id: Account['id']) => void
   deleteAccounts: () => void
   loadTx: (accountId: Account['id'], tx: Transaction) => void
   getTags: () => string[]
   setTags: (tags: string[]) => void
-  setAddrLabel: (
-    accountId: Account['id'],
-    addr: string,
-    label: string
-  ) => Account | undefined
-  setTxLabel: (
-    accountId: Account['id'],
-    txid: string,
-    label: string
-  ) => Account | undefined
+  deleteTags: () => void
+  setAddrLabel: (account: string, addr: string, label: string) => void
+  setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
   setUtxoLabel: (
     accountId: Account['id'],
     txid: string,
@@ -65,7 +63,9 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
             const index = state.accounts.findIndex(
               (_account) => _account.id === account.id
             )
-            if (index !== -1) state.accounts[index] = account
+            if (index !== -1) {
+              state.accounts[index] = { ...account }
+            }
           })
         )
       },
@@ -113,6 +113,20 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
       },
+      setSyncProgress: (id, syncProgress) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index !== -1) {
+              state.accounts[index].syncProgress = {
+                ...syncProgress
+              }
+            }
+          })
+        )
+      },
       deleteAccount: (id) => {
         set(
           produce((state: AccountsState) => {
@@ -154,7 +168,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       setTags: (tags: string[]) => {
         set({ tags })
       },
-      setAddrLabel: (accountId, addr, label) => {
+      deleteTags: () => {
+        set({ tags: [] })
+      },
+      setAddrLabel: (accountName, addr, label) => {
         const account = get().accounts.find(
           (account) => account.id === accountId
         )

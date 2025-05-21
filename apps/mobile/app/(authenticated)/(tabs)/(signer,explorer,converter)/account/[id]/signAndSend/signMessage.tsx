@@ -1,7 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator } from 'react-native'
-import { ScrollView } from 'react-native-gesture-handler'
+import { ActivityIndicator, ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 

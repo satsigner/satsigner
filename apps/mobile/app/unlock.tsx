@@ -3,9 +3,9 @@ import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSPinEntry from '@/components/SSPinEntry'
-import { PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
+import { DURESS_PIN_KEY, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
-import { getItem } from '@/storage/encrypted'
+import { deleteItem, getItem, setItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
@@ -21,7 +21,9 @@ export default function Unlock() {
     incrementPinTries,
     setFirstTime,
     setRequiresAuth,
-    setJustUnlocked
+    setJustUnlocked,
+    duressPinEnabled,
+    setDuressPinEnabled
   ] = useAuthStore(
     useShallow((state) => [
       state.setLockTriggered,
@@ -29,11 +31,15 @@ export default function Unlock() {
       state.incrementPinTries,
       state.setFirstTime,
       state.setRequiresAuth,
-      state.setJustUnlocked
+      state.setJustUnlocked,
+      state.duressPinEnabled,
+      state.setDuressPinEnabled
     ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
-  const deleteAccounts = useAccountsStore((state) => state.deleteAccounts)
+  const [deleteAccounts, deleteTags] = useAccountsStore(
+    useShallow((state) => [state.deleteAccounts, state.deleteTags])
+  )
   const deleteWallets = useWalletsStore((state) => state.deleteWallets)
 
   const [pin, setPin] = useState<string[]>(Array(PIN_SIZE).fill(''))
@@ -47,8 +53,29 @@ export default function Unlock() {
     const storedEncryptedPin = await getItem(PIN_KEY)
     if (!salt || !storedEncryptedPin) return // TODO: handle error
 
+    let storedEncryptedDuressPin: string | null = null
+    try {
+      storedEncryptedDuressPin = await getItem(DURESS_PIN_KEY)
+    } catch {
+      //
+    }
+
     const encryptedPin = await pbkdf2Encrypt(pin, salt)
-    const isPinValid = encryptedPin === storedEncryptedPin
+    const isPinValid =
+      encryptedPin === storedEncryptedPin ||
+      encryptedPin === storedEncryptedDuressPin
+
+    if (encryptedPin === storedEncryptedDuressPin && duressPinEnabled) {
+      deleteAccounts()
+      deleteWallets()
+      deleteTags()
+
+      // delete evidence there existed a duress pin,
+      // acting as if the duress pin was the true pin
+      setDuressPinEnabled(false)
+      await deleteItem(DURESS_PIN_KEY)
+      await setItem(PIN_KEY, storedEncryptedDuressPin)
+    }
 
     if (isPinValid) {
       setLockTriggered(false)

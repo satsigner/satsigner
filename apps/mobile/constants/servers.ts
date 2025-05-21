@@ -1,4 +1,4 @@
-import type { Server } from '@/types/settings/blockchain'
+import type { Network, Server } from '@/types/settings/blockchain'
 
 export const servers: Server[] = [
   {
@@ -76,13 +76,13 @@ export const servers: Server[] = [
   },
   // TESTNET
   {
-    name: 'Mempool',
+    name: 'Mempool Testnet4',
     backend: 'esplora',
     network: 'testnet',
     url: 'https://mempool.space/testnet4/api'
   },
   {
-    name: 'Blockstream',
+    name: 'Blockstream Testnet4',
     backend: 'esplora',
     network: 'testnet',
     url: 'https://blockstream.info/testnet/api'
@@ -90,7 +90,13 @@ export const servers: Server[] = [
   {
     name: 'Mutinynet',
     backend: 'esplora',
-    network: 'testnet',
+    network: 'signet',
     url: 'https://mutinynet.com/api'
   }
 ]
+
+export const MempoolServers: Record<Network, Server['url']> = {
+  bitcoin: 'https://mempool.space/api',
+  testnet: 'https://mempool.space/testnet4/api',
+  signet: 'https://mempool.space/signet/api'
+}

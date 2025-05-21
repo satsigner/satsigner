@@ -184,7 +184,12 @@ export default function TxDetails() {
         </SSHStack>
         <SSSeparator color="gradient" />
         <SSVStack gap="sm">
-          <SSText uppercase weight="bold" size="md">
+          <SSText
+            uppercase
+            weight="bold"
+            size="md"
+            style={{ marginBottom: -30 }}
+          >
             {t('transaction.decoded.title')}
           </SSText>
           {raw !== '' ? (

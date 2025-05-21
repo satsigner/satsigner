@@ -13,6 +13,7 @@ import {
   MEMPOOL_SIGNET_URL,
   MEMPOOL_TESTNET_URL
 } from '@/config/servers'
+import { MempoolServers } from '@/constants/servers'
 import mmkvStorage from '@/storage/mmkv'
 import {
   type Backend,
@@ -29,6 +30,7 @@ type NetworkConfig = {
 type BlockchainState = {
   selectedNetwork: Network
   configs: Record<Network, NetworkConfig>
+  configsMempool: Record<Network, Server['url']>
   customServers: Server[]
 }
 
@@ -36,6 +38,7 @@ type BlockchainAction = {
   setSelectedNetwork: (network: Network) => void
   updateServer: (network: Network, server: Partial<Server>) => void
   updateConfig: (network: Network, config: Partial<Config>) => void
+  updateConfigMempool: (network: Network, url: Server['url']) => void
   addCustomServer: (server: Server) => void
   removeCustomServer: (server: Server) => void
   getBlockchain: (network?: Network) => Promise<Blockchain>
@@ -87,6 +90,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
           'Mempool'
         )
       },
+      configsMempool: MempoolServers,
       customServers: [],
       setSelectedNetwork: (selectedNetwork) => set({ selectedNetwork }),
       updateServer: (network, server) => {
@@ -100,6 +104,13 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         set(
           produce((state: BlockchainState) => {
             state.configs[network].config = config as Config
+          })
+        )
+      },
+      updateConfigMempool: (network, config) => {
+        set(
+          produce((state: BlockchainState) => {
+            state.configsMempool[network] = config
           })
         )
       },
