@@ -29,16 +29,11 @@ function SSAmountInput({
 
   useEffect(() => {
     if (value === min) {
-      console.log('SSAmountInput - resetting to min value:', min)
       setLocalValue(min)
     } else {
-      console.log('SSAmountInput - updating to value:', value)
       setLocalValue(value)
     }
   }, [value, min])
-
-  console.log('SSAmountInput - props value:', value)
-  console.log('SSAmountInput - localValue:', localValue)
 
   return (
     <SSVStack gap="sm">

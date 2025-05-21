@@ -30,7 +30,7 @@ function SSBottomSheet(
     >
       <BottomSheetScrollView style={styles.scrollView}>
         <SSVStack>
-          <SSText weight="bold" uppercase center>
+          <SSText uppercase center>
             {title}
           </SSText>
           {children}

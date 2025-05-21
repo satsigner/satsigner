@@ -11,7 +11,8 @@ import {
   TouchableOpacity,
   View,
   Clipboard,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -144,8 +145,9 @@ export default function IOPreview() {
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
+  const [outputsCount, setOutputsCount] = useState(0)
+  const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
 
-  const addOutputBottomSheetRef = useRef<BottomSheet>(null)
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
 
@@ -274,12 +276,10 @@ export default function IOPreview() {
   }
 
   function resetLocalOutput() {
-    console.log('resetLocalOutput - before setOutputAmount:', outputAmount)
     setCurrentOutputLocalId(undefined)
     setCurrentOutputNumber(outputs.length + 1)
     setOutputTo('')
     setOutputAmount(DUST_LIMIT)
-    console.log('resetLocalOutput - after setOutputAmount:', DUST_LIMIT)
     setOutputLabel('')
   }
 
@@ -294,11 +294,8 @@ export default function IOPreview() {
       outputAmount
     )
     setOutputAmount(DUST_LIMIT)
-    console.log('handleOnPressAddOutput - after setOutputAmount:', DUST_LIMIT)
-    addOutputBottomSheetRef.current?.expand()
+    setAddOutputModalVisible(true)
   }
-
-  const [outputsCount, setOutputsCount] = useState(0)
 
   function handleAddOutput() {
     const outputIndex = outputs.findIndex(
@@ -310,15 +307,15 @@ export default function IOPreview() {
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
 
-    setOutputsCount((prev) => prev + 1)
-    addOutputBottomSheetRef.current?.close()
+    setOutputsCount((prev: number) => prev + 1)
+    setAddOutputModalVisible(false)
     resetLocalOutput()
   }
 
   function handleRemoveOutput() {
     if (!currentOutputLocalId) return
     removeOutput(currentOutputLocalId)
-    addOutputBottomSheetRef.current?.close()
+    setAddOutputModalVisible(false)
     resetLocalOutput()
   }
 
@@ -334,7 +331,7 @@ export default function IOPreview() {
       changeFeeBottomSheetRef.current?.expand()
       return
     } else if (localId === 'remainingBalance') {
-      addOutputBottomSheetRef.current?.expand()
+      setAddOutputModalVisible(true)
       return
     }
 
@@ -348,7 +345,7 @@ export default function IOPreview() {
     setOutputLabel(outputs[outputIndex].label)
     setCurrentOutputNumber(outputIndex + 1)
 
-    addOutputBottomSheetRef.current?.expand()
+    setAddOutputModalVisible(true)
   }
 
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
@@ -615,87 +612,101 @@ export default function IOPreview() {
           />
         </SSVStack>
       </LinearGradient>
-      <SSBottomSheet
-        ref={addOutputBottomSheetRef}
-        title={t('transaction.build.add.output.number', {
-          number: currentOutputNumber
-        })}
+      <SSModal
+        visible={addOutputModalVisible}
+        onClose={() => setAddOutputModalVisible(false)}
+        fullOpacity
       >
-        <SSVStack>
-          <SSVStack gap="none">
-            <SSAmountInput
-              key={`amount-input-${outputsCount}`}
-              min={DUST_LIMIT}
-              max={Math.max(remainingSats, DUST_LIMIT)}
-              value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
-              remainingSats={remainingSats}
-              onValueChange={(value) => setOutputAmount(value)}
-            />
-          </SSVStack>
-          <SSTextInput
-            value={outputTo}
-            placeholder={t('transaction.address')}
-            align="left"
-            style={{
-              fontFamily: Typography.sfProMono,
-              fontSize: 12,
-              letterSpacing: 0.5
-            }}
-            onChangeText={(text) => setOutputTo(text)}
-          />
-          <SSHStack gap="md">
-            <SSButton
-              variant="outline"
-              label={t('common.paste')}
-              style={{ flex: 1 }}
-              onPress={async () => {
-                try {
-                  const text = await Clipboard.getString()
-                  if (text && text.trim()) {
-                    setOutputTo(text.trim())
-                  } else {
-                    toast.error(t('common.invalid'))
-                  }
-                } catch (error) {
-                  toast.error(t('common.invalid'))
-                }
-              }}
-            />
-            <SSButton
-              variant="outline"
-              label={t('camera.scanQRCode')}
-              style={{ flex: 1 }}
-              onPress={() => setCameraModalVisible(true)}
-            />
-          </SSHStack>
-          <SSTextInput
-            placeholder={t('transaction.build.add.label.title')}
-            align="left"
-            value={outputLabel}
-            onChangeText={(text) => setOutputLabel(text)}
-          />
-          <SSHStack>
-            <SSButton
-              label={t('transaction.build.remove.output.title')}
-              variant="danger"
-              style={{ flex: 1 }}
-              onPress={handleRemoveOutput}
-            />
-            <SSButton
-              label={t('transaction.build.save.output.title')}
-              variant="secondary"
-              style={{ flex: 1 }}
-              disabled={!outputTo || !outputAmount || !outputLabel}
-              onPress={handleAddOutput}
-            />
-          </SSHStack>
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => addOutputBottomSheetRef.current?.close()}
-          />
-        </SSVStack>
-      </SSBottomSheet>
+        <View style={{ width: '100%', maxWidth: 1000, alignSelf: 'center' }}>
+          <ScrollView style={{ width: '100%' }}>
+            <SSVStack gap="lg" style={{ paddingHorizontal: 16 }}>
+              <SSVStack itemsCenter>
+                <SSText uppercase>
+                  {t('transaction.build.add.output.number', {
+                    number: currentOutputNumber
+                  })}
+                </SSText>
+              </SSVStack>
+              <SSVStack gap="md">
+                <SSVStack gap="none">
+                  <SSAmountInput
+                    key={`amount-input-${outputsCount}`}
+                    min={DUST_LIMIT}
+                    max={Math.max(remainingSats, DUST_LIMIT)}
+                    value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
+                    remainingSats={remainingSats}
+                    onValueChange={(value) => setOutputAmount(value)}
+                  />
+                </SSVStack>
+                <SSVStack>
+                  <SSTextInput
+                    value={outputTo}
+                    placeholder={t('transaction.address')}
+                    align="left"
+                    multiline
+                    numberOfLines={4}
+                    style={{
+                      fontFamily: Typography.sfProMono,
+                      fontSize: 22,
+                      letterSpacing: 0.5,
+                      height: 100,
+                      textAlignVertical: 'top',
+                      paddingTop: 12
+                    }}
+                    onChangeText={(text) => setOutputTo(text)}
+                  />
+                  <SSHStack gap="md">
+                    <SSButton
+                      variant="outline"
+                      label={t('common.paste')}
+                      style={{ flex: 1 }}
+                      onPress={async () => {
+                        try {
+                          const text = await Clipboard.getString()
+                          if (text && text.trim()) {
+                            setOutputTo(text.trim())
+                          } else {
+                            toast.error(t('common.invalid'))
+                          }
+                        } catch (error) {
+                          toast.error(t('common.invalid'))
+                        }
+                      }}
+                    />
+                    <SSButton
+                      variant="outline"
+                      label={t('camera.scanQRCode')}
+                      style={{ flex: 1 }}
+                      onPress={() => setCameraModalVisible(true)}
+                    />
+                  </SSHStack>
+                </SSVStack>
+                <SSTextInput
+                  placeholder={t('transaction.build.add.label.title')}
+                  align="left"
+                  value={outputLabel}
+                  onChangeText={(text) => setOutputLabel(text)}
+                />
+                <SSHStack>
+                  <SSButton
+                    label={t('transaction.build.remove.output.title')}
+                    variant="danger"
+                    style={{ flex: 1 }}
+                    onPress={handleRemoveOutput}
+                  />
+                  <SSButton
+                    label={t('transaction.build.save.output.title')}
+                    variant="secondary"
+                    style={{ flex: 1 }}
+                    disabled={!outputTo || !outputAmount || !outputLabel}
+                    onPress={handleAddOutput}
+                  />
+                </SSHStack>
+              </SSVStack>
+            </SSVStack>
+          </ScrollView>
+        </View>
+      </SSModal>
       <SSBottomSheet
         ref={optionsBottomSheetRef}
         title={t('transaction.build.options.title')}
