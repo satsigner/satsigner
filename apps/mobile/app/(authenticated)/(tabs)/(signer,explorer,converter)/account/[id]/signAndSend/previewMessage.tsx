@@ -9,8 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-import NfcManager, { Ndef } from 'react-native-nfc-manager'
-import type { NfcTag } from 'react-native-nfc-manager'
 
 // Internal imports
 import { buildTransaction } from '@/api/bdk'
@@ -658,7 +656,7 @@ function PreviewMessage() {
             </SSText>
             {nfcError ? (
               <SSVStack itemsCenter gap="md">
-                <SSText color="error" center>
+                <SSText color="white" center>
                   {nfcError}
                 </SSText>
                 <SSText color="muted" center size="sm">

@@ -50,7 +50,7 @@ export function useNFCReader() {
       const tag = await NfcManager.getTag()
 
       if (!tag?.ndefMessage?.length) {
-        toast.error('No NDEF message found on tag')
+        console.error('No NDEF message found on tag')
         return null
       }
 

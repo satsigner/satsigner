@@ -20,10 +20,6 @@ import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
-import { Transaction } from 'bdk-rn'
-import * as bitcoinjs from 'bitcoinjs-lib'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { parseHexToBytes } from '@/utils/parse'
 import ElectrumClient from '@/api/electrum'
 
 const tn = _tn('transaction.build.sign')
