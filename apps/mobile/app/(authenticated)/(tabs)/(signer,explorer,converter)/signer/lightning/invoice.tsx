@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Alert, Dimensions, StyleSheet, TextInput, View } from 'react-native'
+import {
+  Alert,
+  Dimensions,
+  StyleSheet,
+  TextInput,
+  View,
+  ScrollView
+} from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import * as Clipboard from 'expo-clipboard'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
@@ -23,9 +30,10 @@ import {
   getLNURLType,
   type LNURLType
 } from '@/utils/lnurl'
+import { useBlockchainStore } from '@/store/blockchain'
 
 const screenWidth = Dimensions.get('window').width
-const qrCodeSize = Math.min(screenWidth * 0.85, 300) // 85% of screen width, max 300px
+const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
 
 type Invoice = {
   payment_request: string
@@ -37,8 +45,16 @@ type InvoiceStatus = 'open' | 'settled' | 'canceled'
 export default function InvoicePage() {
   const router = useRouter()
   const { createInvoice, makeRequest } = useLND()
-  const { satsToFiat, fiatCurrency } = usePriceStore()
+  const { satsToFiat, fiatCurrency, fetchPrices } = usePriceStore()
   const [permission, requestPermission] = useCameraPermissions()
+  const mempoolUrl = useBlockchainStore(
+    (state) => state.configsMempool['bitcoin']
+  )
+
+  // Fetch prices on mount and when currency changes
+  useEffect(() => {
+    fetchPrices(mempoolUrl)
+  }, [fetchPrices, fiatCurrency, mempoolUrl])
 
   const [invoiceAmount, setInvoiceAmount] = useState('')
   const [invoiceDescription, setInvoiceDescription] = useState('')
@@ -75,7 +91,7 @@ export default function InvoicePage() {
         Alert.alert('Success', 'Payment received!')
       }
     } catch (error) {
-      console.error('Error checking invoice status:', error)
+      // Error handling without console.error
     }
   }, [rHash, qrModalVisible, makeRequest, invoiceStatus])
 
@@ -128,7 +144,6 @@ export default function InvoicePage() {
     // If we can't determine the type from the URL, try to fetch details
     if (!lnurlType) {
       try {
-        console.log('🔍 LNURL type unknown, fetching details to determine type')
         const url = decodeLNURL(lnurl)
         const details = await fetchLNURLWithdrawDetails(url)
 
@@ -147,11 +162,8 @@ export default function InvoicePage() {
           setInvoiceDescription(details.defaultDescription)
         }
 
-        console.log('✅ LNURL withdraw details fetched:', details)
         return true
       } catch (error) {
-        // If fetching withdraw details fails, it might be a pay LNURL
-        console.log('⚠️ Failed to fetch withdraw details, might be a pay LNURL')
         Alert.alert(
           'Invalid LNURL Type',
           'This LNURL appears to be a pay request. Please use the Send Payment page instead.'
@@ -163,7 +175,6 @@ export default function InvoicePage() {
     // We know it's a withdraw LNURL
     if (lnurlType === 'withdraw') {
       try {
-        console.log('🔍 Detected LNURL-withdraw, fetching details')
         const url = decodeLNURL(lnurl)
         const details = await fetchLNURLWithdrawDetails(url)
         setLnurlDetails(details)
@@ -180,10 +191,8 @@ export default function InvoicePage() {
           setInvoiceDescription(details.defaultDescription)
         }
 
-        console.log('✅ LNURL withdraw details fetched:', details)
         return true
       } catch (error) {
-        console.error('❌ Failed to fetch LNURL details:', error)
         Alert.alert(
           'Error',
           error instanceof Error ? error.message : 'Failed to process LNURL'
@@ -201,22 +210,14 @@ export default function InvoicePage() {
 
   const handlePasteFromClipboard = async () => {
     try {
-      console.log('📋 Attempting to paste from clipboard')
       const text = await Clipboard.getStringAsync()
       if (!text) {
-        console.log('❌ No text in clipboard')
         Alert.alert('Error', 'No text found in clipboard')
         return
       }
 
       // Clean the text (remove any whitespace)
       const cleanText = text.trim()
-      console.log('📋 Clipboard content:', {
-        length: cleanText.length,
-        isLNURL: isLNURL(cleanText),
-        lnurlType: getLNURLType(cleanText).type,
-        isBolt11: cleanText.toLowerCase().startsWith('lnbc')
-      })
 
       if (cleanText.toLowerCase().startsWith('lnbc')) {
         setPaymentRequest(cleanText)
@@ -224,14 +225,12 @@ export default function InvoicePage() {
       } else if (isLNURL(cleanText)) {
         await handleLNURLInput(cleanText)
       } else {
-        console.error('❌ Invalid clipboard content')
         Alert.alert(
           'Invalid Input',
           'The clipboard content is not a valid Lightning invoice or LNURL'
         )
       }
     } catch (error) {
-      console.error('❌ Clipboard error:', error)
       Alert.alert('Error', 'Failed to read clipboard content')
     }
   }
@@ -270,7 +269,6 @@ export default function InvoicePage() {
       let invoice: Invoice
 
       if (isLNURLMode && lnurlDetails) {
-        console.log('📝 Processing LNURL withdraw request')
         // Validate amount against LNURL limits
         const amountMillisats = amount * 1000
         if (
@@ -283,7 +281,6 @@ export default function InvoicePage() {
         }
 
         // First create a bolt11 invoice
-        console.log('💫 Creating bolt11 invoice for LNURL withdraw')
         const bolt11Invoice = (await createInvoice(
           amount,
           invoiceDescription
@@ -293,7 +290,6 @@ export default function InvoicePage() {
         }
 
         // Then request withdraw with the bolt11 invoice
-        console.log('💫 Requesting LNURL withdraw with bolt11 invoice')
         const response = await requestLNURLWithdrawInvoice(
           lnurlDetails.callback,
           amountMillisats,
@@ -311,7 +307,6 @@ export default function InvoicePage() {
         // Use the bolt11 invoice we created
         invoice = bolt11Invoice
       } else {
-        console.log('📝 Creating bolt11 invoice')
         const bolt11Invoice = (await createInvoice(
           amount,
           invoiceDescription
@@ -354,70 +349,72 @@ export default function InvoicePage() {
       <SSMainLayout>
         <SSVStack>
           <View>
-            <SSVStack gap="xs">
-              <SSText color="muted">Amount (sats)</SSText>
-              <TextInput
-                style={styles.input}
-                value={invoiceAmount}
-                onChangeText={handleAmountChange}
-                placeholder="Enter amount in satoshis"
-                placeholderTextColor="#666"
-                keyboardType="numeric"
-              />
-              <SSText color="muted" size="sm">
-                ≈ {formatNumber(fiatAmount, 2)} {fiatCurrency}
-              </SSText>
-              {isLNURLMode && lnurlDetails && (
+            <SSVStack gap="md">
+              <SSVStack gap="xs">
+                <SSText uppercase>Amount (sats)</SSText>
+                <TextInput
+                  style={styles.input}
+                  value={invoiceAmount}
+                  onChangeText={handleAmountChange}
+                  placeholder="Enter amount in satoshis"
+                  placeholderTextColor="#666"
+                  keyboardType="numeric"
+                />
                 <SSText color="muted" size="sm">
-                  Available: {Math.floor(lnurlDetails.maxWithdrawable / 1000)}{' '}
-                  sats
+                  ≈ {formatNumber(fiatAmount, 2)} {fiatCurrency}
                 </SSText>
-              )}
-            </SSVStack>
+                {isLNURLMode && lnurlDetails && (
+                  <SSText color="muted" size="sm">
+                    Available: {Math.floor(lnurlDetails.maxWithdrawable / 1000)}{' '}
+                    sats
+                  </SSText>
+                )}
+              </SSVStack>
 
-            <SSVStack style={styles.inputContainer}>
-              <SSText color="muted">Description</SSText>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={invoiceDescription}
-                onChangeText={setInvoiceDescription}
-                placeholder="Enter invoice description"
-                placeholderTextColor="#666"
-                multiline
-                numberOfLines={3}
-              />
-            </SSVStack>
+              <SSVStack style={styles.inputContainer}>
+                <SSText uppercase>Description</SSText>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={invoiceDescription}
+                  onChangeText={setInvoiceDescription}
+                  placeholder="Enter invoice description"
+                  placeholderTextColor="#666"
+                  multiline
+                  numberOfLines={3}
+                />
+              </SSVStack>
 
-            <SSVStack style={styles.actions}>
-              <SSHStack gap="sm" style={styles.actionButtons}>
+              <SSVStack style={styles.actions}>
+                <SSHStack gap="sm" style={styles.actionButtons}>
+                  <SSButton
+                    label="Paste"
+                    onPress={handlePasteFromClipboard}
+                    variant="outline"
+                    style={styles.actionButton}
+                  />
+                  <SSButton
+                    label="Scan QR"
+                    onPress={() => setCameraModalVisible(true)}
+                    variant="outline"
+                    style={styles.actionButton}
+                  />
+                </SSHStack>
+
                 <SSButton
-                  label="Scan QR"
-                  onPress={() => setCameraModalVisible(true)}
-                  variant="outline"
-                  style={styles.actionButton}
+                  label={isLNURLMode ? 'Withdraw' : 'Create Invoice'}
+                  onPress={handleCreateInvoice}
+                  variant="secondary"
+                  loading={isProcessing}
+                  disabled={!isFormValid()}
+                  style={styles.button}
                 />
                 <SSButton
-                  label="Paste"
-                  onPress={handlePasteFromClipboard}
-                  variant="outline"
-                  style={styles.actionButton}
+                  label="Cancel"
+                  onPress={() => router.back()}
+                  variant="ghost"
+                  style={styles.button}
                 />
-              </SSHStack>
-
-              <SSButton
-                label={isLNURLMode ? 'Withdraw' : 'Create Invoice'}
-                onPress={handleCreateInvoice}
-                variant="secondary"
-                loading={isProcessing}
-                disabled={!isFormValid()}
-                style={styles.button}
-              />
-              <SSButton
-                label="Cancel"
-                onPress={() => router.back()}
-                variant="ghost"
-                style={styles.button}
-              />
+              </SSVStack>
             </SSVStack>
           </View>
         </SSVStack>
@@ -426,71 +423,87 @@ export default function InvoicePage() {
       <SSModal
         visible={qrModalVisible}
         fullOpacity
-        onClose={() => {
-          setQrModalVisible(false)
-          router.back()
-        }}
+        onClose={() => setQrModalVisible(false)}
       >
-        <SSVStack itemsCenter gap="md" style={styles.modalContent}>
-          <SSText color="muted" uppercase>
-            Payment Request
-          </SSText>
+        <ScrollView style={styles.modalScrollView}>
+          <SSVStack itemsCenter gap="md" style={styles.modalContent}>
+            <SSVStack gap="sm" style={styles.invoiceDetails}>
+              <SSText uppercase>Payment Details</SSText>
 
-          <SSHStack style={styles.invoiceDetails}>
-            <SSVStack style={styles.detailRow}>
-              <SSText color="muted">Amount</SSText>
-              <SSText>{currentAmount} sats</SSText>
-            </SSVStack>
-            <SSVStack style={styles.detailRow}>
-              <SSText color="muted">Description</SSText>
-              <SSText>{currentDescription}</SSText>
-            </SSVStack>
-            <SSVStack style={styles.detailRow}>
-              <SSText color="muted">Status</SSText>
-              <SSText color={invoiceStatus === 'settled' ? 'white' : 'muted'}>
-                {invoiceStatus === 'settled'
-                  ? 'Paid'
-                  : invoiceStatus === 'canceled'
-                    ? 'Canceled'
-                    : 'Waiting for payment...'}
-              </SSText>
-            </SSVStack>
-          </SSHStack>
+              <View style={styles.detailsContent}>
+                <View style={styles.detailSection}>
+                  <SSHStack gap="xs" style={styles.detailRow}>
+                    <SSText color="muted" style={styles.detailLabel}>
+                      Amount
+                    </SSText>
+                    <SSHStack gap="xs" style={styles.amountContainer}>
+                      <SSText weight="medium">{currentAmount} sats</SSText>
+                      <SSText color="muted" size="sm">
+                        ≈{' '}
+                        {formatNumber(
+                          satsToFiat(parseInt(currentAmount, 10)),
+                          2
+                        )}{' '}
+                        {fiatCurrency}
+                      </SSText>
+                    </SSHStack>
+                  </SSHStack>
 
-          <View style={styles.qrContainer}>
-            {paymentRequest && (
-              <SSQRCode value={paymentRequest} size={qrCodeSize} />
-            )}
-          </View>
+                  <SSHStack gap="xs" style={styles.detailRow}>
+                    <SSText color="muted" style={styles.detailLabel}>
+                      Description
+                    </SSText>
+                    <SSText style={styles.detailValue}>
+                      {currentDescription}
+                    </SSText>
+                  </SSHStack>
 
-          <SSVStack style={styles.paymentRequestContainer}>
-            <SSText color="muted" uppercase>
-              Payment Request
-            </SSText>
-            <View style={styles.paymentRequestText}>
-              <SSText type="mono" size="sm">
-                {paymentRequest}
-              </SSText>
+                  <SSHStack gap="xs" style={styles.detailRow}>
+                    <SSText color="muted" style={styles.detailLabel}>
+                      Status
+                    </SSText>
+                    <SSText
+                      style={styles.detailValue}
+                      color={invoiceStatus === 'settled' ? 'white' : 'muted'}
+                    >
+                      {invoiceStatus === 'settled'
+                        ? 'Paid'
+                        : invoiceStatus === 'canceled'
+                          ? 'Canceled'
+                          : 'Waiting for payment...'}
+                    </SSText>
+                  </SSHStack>
+                </View>
+              </View>
+            </SSVStack>
+
+            <View style={styles.qrContainer}>
+              {paymentRequest && (
+                <SSQRCode value={paymentRequest} size={qrCodeSize} />
+              )}
             </View>
-          </SSVStack>
 
-          <SSVStack style={styles.modalActions}>
-            <SSButton
-              label="Copy to Clipboard"
-              onPress={handleCopyToClipboard}
-              variant="gradient"
-              gradientType="special"
-            />
-            <SSButton
-              label="Close"
-              onPress={() => {
-                setQrModalVisible(false)
-                router.back()
-              }}
-              variant="outline"
-            />
+            <SSVStack style={styles.paymentRequestContainer}>
+              <SSText color="muted" uppercase>
+                Payment Request
+              </SSText>
+              <View style={styles.paymentRequestText}>
+                <SSText type="mono" size="sm">
+                  {paymentRequest}
+                </SSText>
+              </View>
+            </SSVStack>
+
+            <SSVStack style={styles.modalActions}>
+              <SSButton
+                label="Copy to Clipboard"
+                onPress={handleCopyToClipboard}
+                variant="gradient"
+                gradientType="special"
+              />
+            </SSVStack>
           </SSVStack>
-        </SSVStack>
+        </ScrollView>
       </SSModal>
 
       <SSModal
@@ -550,23 +563,45 @@ const styles = StyleSheet.create({
   button: {
     width: '100%'
   },
+  modalScrollView: {
+    width: '100%',
+    maxHeight: '90%'
+  },
   modalContent: {
     width: '100%',
-    padding: 20
+    padding: 10
   },
   invoiceDetails: {
     width: '100%',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
+    gap: 12
+  },
+  detailsContent: {
+    gap: 16
+  },
+  detailSection: {
     gap: 12
   },
   detailRow: {
-    gap: 4
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap'
+  },
+  detailLabel: {
+    minWidth: 100,
+    fontSize: 14
+  },
+  detailValue: {
+    flex: 1,
+    textAlign: 'right'
+  },
+  amountContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'baseline'
   },
   qrContainer: {
-    width: qrCodeSize,
-    height: qrCodeSize,
+    width: '100%',
+    aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1a1a1a',

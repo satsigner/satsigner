@@ -12,6 +12,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { Ionicons } from '@expo/vector-icons'
 import * as Clipboard from 'expo-clipboard'
 import { useShallow } from 'zustand/react/shallow'
+import { useFonts } from 'expo-font'
 
 import { useLND } from '@/hooks/useLND'
 import SSButton from '@/components/SSButton'
@@ -23,6 +24,7 @@ import SSModal from '@/components/SSModal'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { formatNumber } from '@/utils/format'
+import { Typography } from '@/styles'
 import {
   isLNURL,
   handleLNURLPay,
@@ -64,6 +66,10 @@ export default function PayPage() {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
+
+  const [fontsLoaded] = useFonts({
+    'SF-NS-Mono': require('@/assets/fonts/SF-NS-Mono.ttf')
+  })
 
   const [paymentRequest, setPaymentRequest] = useState('')
   const [amount, setAmount] = useState('')
@@ -341,10 +347,24 @@ export default function PayPage() {
 
   const handleQRCodeScanned = ({ data }: { data: string }) => {
     setCameraModalVisible(false)
-    // Check if the scanned data is a valid Lightning payment request or LNURL
-    if (data.toLowerCase().startsWith('lnbc') || isLNURL(data)) {
-      handlePaymentRequestChange(data)
+    // Clean the text (remove any whitespace and lightning: prefix)
+    const cleanText = data.trim().replace(/^lightning:/i, '')
+
+    // Use the same validation logic as handlePaymentRequestChange
+    if (cleanText.toLowerCase().startsWith('lnbc') || isLNURL(cleanText)) {
+      console.log('🔍 Processing scanned payment request:', {
+        length: cleanText.length,
+        isLNURL: isLNURL(cleanText),
+        isBolt11: cleanText.toLowerCase().startsWith('lnbc'),
+        timestamp: new Date().toISOString()
+      })
+      handlePaymentRequestChange(cleanText)
     } else {
+      console.error('❌ Invalid QR code content:', {
+        content: cleanText.substring(0, 20) + '...',
+        length: cleanText.length,
+        timestamp: new Date().toISOString()
+      })
       Alert.alert(
         'Invalid QR Code',
         'The scanned QR code is not a valid Lightning payment request or LNURL'
@@ -389,6 +409,10 @@ export default function PayPage() {
     }
   }
 
+  if (!fontsLoaded) {
+    return null
+  }
+
   return (
     <>
       <Stack.Screen
@@ -406,7 +430,7 @@ export default function PayPage() {
             <View>
               <SSVStack gap="xs">
                 <SSHStack style={styles.inputHeader}>
-                  <SSText color="muted">
+                  <SSText uppercase>
                     {isLNURLMode ? 'LNURL' : 'Payment Request'}
                   </SSText>
                   {isFetchingDetails && (
@@ -419,7 +443,7 @@ export default function PayPage() {
                 </SSHStack>
 
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, styles.monospaceInput]}
                   value={paymentRequest}
                   onChangeText={handlePaymentRequestChange}
                   placeholder={
@@ -429,15 +453,13 @@ export default function PayPage() {
                   }
                   placeholderTextColor="#666"
                   multiline
-                  numberOfLines={4}
+                  numberOfLines={6}
                   editable={!isFetchingDetails}
                 />
 
                 {decodedInvoice && !isLNURLMode && (
                   <SSVStack gap="sm" style={styles.invoiceDetails}>
-                    <SSText uppercase weight="bold" style={styles.detailsTitle}>
-                      Payment Details
-                    </SSText>
+                    <SSText uppercase>Payment Details</SSText>
 
                     <View style={styles.detailsContent}>
                       <View style={styles.detailSection}>
@@ -478,7 +500,15 @@ export default function PayPage() {
                           <SSText style={styles.detailValue}>
                             {new Date(
                               Number(decodedInvoice.timestamp) * 1000
-                            ).toLocaleString()}
+                            ).toLocaleString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              hour12: true
+                            })}
                           </SSText>
                         </SSHStack>
 
@@ -490,24 +520,37 @@ export default function PayPage() {
                             {new Date(
                               Number(decodedInvoice.timestamp) * 1000 +
                                 Number(decodedInvoice.expiry) * 1000
-                            ).toLocaleString()}
+                            ).toLocaleString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                              hour12: true
+                            })}
                           </SSText>
                         </SSHStack>
                       </View>
 
                       <View style={styles.detailSection}>
-                        <SSHStack gap="xs" style={styles.detailRow}>
+                        <SSHStack
+                          gap="xs"
+                          style={[styles.detailRow, styles.hashRow]}
+                        >
                           <SSText color="muted" style={styles.detailLabel}>
                             Payment Hash
                           </SSText>
-                          <SSText
-                            size="sm"
-                            style={styles.hashText}
-                            numberOfLines={1}
-                            ellipsizeMode="middle"
-                          >
-                            {decodedInvoice.payment_hash}
-                          </SSText>
+                          <View style={styles.hashContainer}>
+                            <SSText
+                              size="sm"
+                              style={[styles.hashText, styles.monospaceInput]}
+                              numberOfLines={1}
+                              ellipsizeMode="middle"
+                            >
+                              {decodedInvoice.payment_hash}
+                            </SSText>
+                          </View>
                         </SSHStack>
                       </View>
                     </View>
@@ -634,8 +677,13 @@ const styles = StyleSheet.create({
     fontSize: 16
   },
   textArea: {
-    height: 100,
+    height: 180,
     textAlignVertical: 'top'
+  },
+  monospaceInput: {
+    fontFamily: Typography.sfProMono,
+    fontSize: 14,
+    letterSpacing: 0.5
   },
   actions: {
     gap: 12,
@@ -703,11 +751,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'baseline'
   },
+  hashRow: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between'
+  },
+  hashContainer: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 8
+  },
   hashText: {
-    fontFamily: 'monospace',
     opacity: 0.8,
     fontSize: 12,
-    flex: 1,
-    textAlign: 'right'
+    textAlign: 'right',
+    fontFamily: Typography.sfProMono
   }
 })
