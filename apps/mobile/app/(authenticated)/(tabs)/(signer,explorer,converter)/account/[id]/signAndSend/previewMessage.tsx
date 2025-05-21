@@ -56,17 +56,25 @@ function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [inputs, outputs, feeRate, rbf, setTxBuilderResult, txBuilderResult] =
-    useTransactionBuilderStore(
-      useShallow((state) => [
-        state.inputs,
-        state.outputs,
-        state.feeRate,
-        state.rbf,
-        state.setTxBuilderResult,
-        state.txBuilderResult
-      ])
-    )
+  const [
+    inputs,
+    outputs,
+    fee,
+    feeRate,
+    rbf,
+    setTxBuilderResult,
+    txBuilderResult
+  ] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.inputs,
+      state.outputs,
+      state.fee,
+      state.feeRate,
+      state.rbf,
+      state.setTxBuilderResult,
+      state.txBuilderResult
+    ])
+  )
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
@@ -111,10 +119,7 @@ function PreviewMessage() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = estimateTransactionSize(
-      inputs.size,
-      outputs.length + 1
-    )
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
     const vin = [...inputs.values()].map((input: Utxo) => ({
       previousOutput: {
@@ -170,13 +175,16 @@ function PreviewMessage() {
           {
             inputs: Array.from(inputs.values()),
             outputs: Array.from(outputs.values()),
-            feeRate,
+            fee,
             options: {
               rbf
             }
           },
           network as Network
         )
+
+        // transactionMessage.txDetails.transaction.output()
+        // transactionMessage.txDetails.transaction.input()
 
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)
