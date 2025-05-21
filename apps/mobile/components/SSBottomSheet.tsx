@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   bottomSheet: {
     borderTopWidth: 1,
     borderRadius: 6,
-    borderColor: Colors.white
+    borderColor: Colors.gray[500]
   },
   handle: {
     display: 'none'

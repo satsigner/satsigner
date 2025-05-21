@@ -9,13 +9,15 @@ import {
   Animated,
   type LayoutChangeEvent,
   TouchableOpacity,
-  View
+  View,
+  Clipboard,
+  Alert
 } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { SSIconChevronLeft, SSIconScan } from '@/components/icons'
+import { SSIconChevronLeft } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -23,7 +25,6 @@ import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
-import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSNumberGhostInput from '@/components/SSNumberGhostInput'
@@ -41,7 +42,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
-import { Colors, Layout } from '@/styles'
+import { Colors, Layout, Typography } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
@@ -648,13 +649,38 @@ export default function IOPreview() {
             value={outputTo}
             placeholder={t('transaction.address')}
             align="left"
-            actionRight={
-              <SSIconButton onPress={() => setCameraModalVisible(true)}>
-                <SSIconScan />
-              </SSIconButton>
-            }
+            style={{
+              fontFamily: Typography.sfProMono,
+              fontSize: 12,
+              letterSpacing: 0.5
+            }}
             onChangeText={(text) => setOutputTo(text)}
           />
+          <SSHStack gap="md">
+            <SSButton
+              variant="outline"
+              label={t('common.paste')}
+              style={{ flex: 1 }}
+              onPress={async () => {
+                try {
+                  const text = await Clipboard.getString()
+                  if (text && text.trim()) {
+                    setOutputTo(text.trim())
+                  } else {
+                    toast.error(t('common.invalid'))
+                  }
+                } catch (error) {
+                  toast.error(t('common.invalid'))
+                }
+              }}
+            />
+            <SSButton
+              variant="outline"
+              label={t('camera.scanQRCode')}
+              style={{ flex: 1 }}
+              onPress={() => setCameraModalVisible(true)}
+            />
+          </SSHStack>
           <SSTextInput
             placeholder={t('transaction.build.add.label.title')}
             align="left"

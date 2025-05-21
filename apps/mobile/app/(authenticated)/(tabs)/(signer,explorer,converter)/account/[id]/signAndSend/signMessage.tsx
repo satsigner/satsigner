@@ -133,28 +133,29 @@ export default function SignMessage() {
         }}
       />
       <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
-        <SSVStack itemsCenter justifyBetween>
-          <SSVStack itemsCenter>
-            <SSText size="lg" weight="bold">
-              {tn(signed ? 'signed' : 'signing')}
-            </SSText>
-            <SSText color="muted" size="sm" weight="bold" uppercase>
-              {tn('messageId')}
-            </SSText>
-            <SSText size="lg">
-              {formatAddress(txBuilderResult.txDetails.txid)}
-            </SSText>
-            {signed && !broadcasted && (
-              <SSIconSuccess width={159} height={159} variant="outline" />
-            )}
-            {!signed && !broadcasted && (
-              <ActivityIndicator size={160} color="#fff" />
-            )}
-            {broadcasted && (
-              <SSIconSuccess width={159} height={159} variant="filled" />
-            )}
-          </SSVStack>
-          <ScrollView>
+        <ScrollView>
+          <SSVStack itemsCenter justifyBetween style={{ minHeight: '100%' }}>
+            <SSVStack itemsCenter>
+              <SSText size="lg" weight="bold">
+                {tn(signed ? 'signed' : 'signing')}
+              </SSText>
+              <SSText color="muted" size="sm" weight="bold" uppercase>
+                {tn('messageId')}
+              </SSText>
+              <SSText size="lg">
+                {formatAddress(txBuilderResult.txDetails.txid)}
+              </SSText>
+              {signed && !broadcasted && (
+                <SSIconSuccess width={159} height={159} variant="outline" />
+              )}
+              {!signed && !broadcasted && (
+                <ActivityIndicator size={160} color="#fff" />
+              )}
+              {broadcasted && (
+                <SSIconSuccess width={159} height={159} variant="filled" />
+              )}
+            </SSVStack>
+
             <SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
@@ -175,15 +176,16 @@ export default function SignMessage() {
                 {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
               </SSVStack>
             </SSVStack>
-          </ScrollView>
-          <SSButton
-            variant="secondary"
-            label={t('send.broadcast')}
-            disabled={!signed || (!psbt && !signedTx)}
-            loading={broadcasting}
-            onPress={() => handleBroadcastTransaction()}
-          />
-        </SSVStack>
+
+            <SSButton
+              variant="secondary"
+              label={t('send.broadcast')}
+              disabled={!signed || (!psbt && !signedTx)}
+              loading={broadcasting}
+              onPress={() => handleBroadcastTransaction()}
+            />
+          </SSVStack>
+        </ScrollView>
       </SSMainLayout>
     </>
   )
