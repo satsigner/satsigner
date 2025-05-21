@@ -217,11 +217,6 @@ export default function NodeDetailPage() {
   )
 
   // Memoized callbacks
-  const log = useCallback((message: string, data?: any) => {
-    const timestamp = new Date().toISOString()
-    console.log(`[${timestamp}] ${message}`, data ? data : '')
-  }, [])
-
   const animateTransition = useCallback(
     (expandState: boolean) => {
       Animated.timing(animationValue, {
@@ -773,11 +768,9 @@ export default function NodeDetailPage() {
   useEffect(() => {
     const loadData = async () => {
       if (!isConnected) {
-        log('Not connected, skipping data load')
         return
       }
 
-      log('Starting initial data load')
       setIsLoading(true)
 
       try {
@@ -826,8 +819,8 @@ export default function NodeDetailPage() {
                 if (match && match[1]) {
                   try {
                     description = decodeURIComponent(match[1])
-                  } catch (error) {
-                    console.error('Error decoding payment description:', error)
+                  } catch {
+                    // Silently fail if decoding fails
                   }
                 }
               }
@@ -882,21 +875,7 @@ export default function NodeDetailPage() {
         ).sort((a, b) => b.timestamp - a.timestamp)
 
         setTransactions(uniqueTxs)
-        log('Initial data load completed', {
-          balance: {
-            total: totalBalance,
-            onchain: onchainBalance,
-            channel: channelBalanceValue
-          },
-          transactions: {
-            total: uniqueTxs.length,
-            onchain: onchainTxs.length,
-            payments: paymentTxs.length,
-            invoices: invoiceTxs.length
-          }
-        })
-      } catch (error) {
-        log('Error loading data', error)
+      } catch {
         setBalance(null)
         setTransactions([])
       } finally {
@@ -905,7 +884,7 @@ export default function NodeDetailPage() {
     }
 
     loadData()
-  }, [isConnected, getBalance, makeRequest, includeOpenInvoices, log])
+  }, [isConnected, getBalance, makeRequest, includeOpenInvoices])
 
   // Effect to refresh data when includeOpenInvoices changes
   useEffect(() => {
