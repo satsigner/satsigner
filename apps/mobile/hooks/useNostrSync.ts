@@ -15,7 +15,9 @@ import type { Account, Secret, DM } from '@/types/models/Account'
 import {
   formatAccountLabels,
   labelsToJSONL,
-  JSONLtoLabels
+  JSONLtoLabels,
+  type Label,
+  type LabelType
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 
@@ -87,8 +89,6 @@ function useNostrSync() {
           toast.info(formatedAuthor + ': ' + eventContent.description)
         }
 
-        console.log('🟢 eventContent.description', eventContent.description)
-
         // Get the current state directly from the store to ensure we have the latest
         const currentState = useAccountsStore.getState()
         const currentAccount = currentState.accounts.find(
@@ -117,8 +117,6 @@ function useNostrSync() {
           const afterAccount = afterState.accounts.find(
             (a) => a.id === account.id
           )
-        } else {
-          console.log('🔵 Message already exists, skipping:', newMessage.id)
         }
       } catch (error) {
         console.error('Failed to store DM:', error)
@@ -171,6 +169,39 @@ function useNostrSync() {
             } catch (error) {
               toast.error('Failed to import labels')
             }
+          } else if (data_type === 'Tx') {
+            // Handle Tx
+            toast.info(
+              'New Tx Recieve from: ' +
+                nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
+                '...' +
+                nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
+                ' - ' +
+                eventContent.data.data.slice(0, 12) +
+                '...'
+            )
+          } else if (data_type === 'PSBT') {
+            // Handle PSBT
+            toast.info(
+              'New PSBT Recieve from: ' +
+                nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
+                '...' +
+                nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
+                ' - ' +
+                eventContent.data.data.slice(0, 12) +
+                '...'
+            )
+          } else if (data_type === 'SignMessageRequest') {
+            // POPUP Sign message request
+            toast.info(
+              'New Sign message request Recieve from: ' +
+                nip19.npubEncode(unwrappedEvent.pubkey).slice(0, 12) +
+                '...' +
+                nip19.npubEncode(unwrappedEvent.pubkey).slice(-4) +
+                ' - ' +
+                eventContent.data.data.slice(0, 12) +
+                '...'
+            )
           }
         } else if (eventContent.description && !eventContent.data) {
           try {
@@ -226,25 +257,11 @@ function useNostrSync() {
           nostrApi.setLoadingCallback(onLoadingChange)
         }
         await nostrApi.connect()
-        console.log('🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵🔵 protocolSubscription')
         await nostrApi.subscribeToKind1059(
           commonNsec as string,
           commonNpub as string,
           async (message) => {
             try {
-              console.log('🔵 event id    ', message.id)
-              console.log('🔵 event pubkey', message.pubkey)
-              console.log(
-                '🔵 event date  ',
-                new Date(message.created_at * 1000).toLocaleString('en-US', {
-                  month: '2-digit',
-                  day: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit'
-                })
-              )
               await processEvent(account, message.content)
             } catch (_error) {
               // Handle error silently
@@ -283,25 +300,11 @@ function useNostrSync() {
           nostrApi.setLoadingCallback(onLoadingChange)
         }
         await nostrApi.connect()
-        console.log('🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴 dataExchangeSubscription')
         await nostrApi.subscribeToKind1059(
           deviceNsec as string,
           deviceNpub as string,
           async (message) => {
             try {
-              console.log('🔴 event id    ', message.id)
-              console.log('🔴 event pubkey', message.pubkey)
-              console.log(
-                '🔴 event date  ',
-                new Date(message.created_at * 1000).toLocaleString('en-US', {
-                  month: '2-digit',
-                  day: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit'
-                })
-              )
               await processEvent(account, message.content)
             } catch (error) {
               console.error('Error processing message:', error)
@@ -386,9 +389,15 @@ function useNostrSync() {
   )
 
   const sendLabelsToNostr = useCallback(
-    async (account?: Account, singleLabel?: any) => {
-      if (!account?.nostr?.autoSync) return
-      if (!account || !account.nostr) return
+    async (account?: Account, singleLabel?: Label) => {
+      if (!account?.nostr?.autoSync) {
+        console.error('Auto sync disabled, skipping label sync')
+        return
+      }
+      if (!account || !account.nostr) {
+        console.error('No account or nostr data available')
+        return
+      }
       const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
 
       if (
@@ -397,20 +406,32 @@ function useNostrSync() {
         relays.length === 0 ||
         !deviceNpub
       ) {
+        console.error('Missing required nostr data:', {
+          hasCommonNsec: !!commonNsec,
+          hasCommonNpub: !!commonNpub,
+          relaysCount: relays.length,
+          hasDeviceNpub: !!deviceNpub
+        })
         return
       }
 
-      let labels: any[] = []
+      let labels: Label[] = []
       if (singleLabel) {
+        // For single label, we need to get all current labels and add the new one
+        labels = formatAccountLabels(account)
         labels.push(singleLabel)
       } else {
         labels = formatAccountLabels(account)
-        const message = labelsToJSONL(labels)
-        const hash = await sha256(message)
-        const fingerprint = hash.slice(0, 8)
-        if (fingerprint === account.nostr.lastBackupFingerprint) {
-          return
-        }
+      }
+
+      // Always check fingerprint for both single and bulk cases
+      const message = labelsToJSONL(labels)
+      const hash = await sha256(message)
+      const fingerprint = hash.slice(0, 8)
+
+      // Only skip if it's not a single label and fingerprint matches
+      if (!singleLabel && fingerprint === account.nostr.lastBackupFingerprint) {
+        return
       }
 
       try {
@@ -655,19 +676,15 @@ function useNostrSync() {
     const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
 
     if (!commonNsec || !commonNpub || relays.length === 0 || !deviceNpub) {
-      console.log('❤️❤️✅❤️✅❤️❤️ ----- Device announcement not sent')
       return
     }
 
     let nostrApi: NostrAPI | null = null
-    console.log('❤️❤️❤️❤️❤️ -----Device announcement sent')
     try {
       const messageContent = {
         created_at: Math.floor(Date.now() / 1000),
         public_key_bech32: deviceNpub
       }
-
-      console.log('❤️❤️❤️❤️❤️ ------------- Device announcement sent')
 
       const compressedMessage = compressMessage(messageContent)
       nostrApi = new NostrAPI(relays)

@@ -15,6 +15,94 @@ import { useAccountsStore } from '@/store/accounts'
 import crypto from 'react-native-aes-crypto'
 import 'react-native-get-random-values'
 
+const POOL_SIZE = 1024 // 1KB of random values
+
+// Create a pool of random values - initialize with empty array to avoid null
+let randomPool = new Uint8Array(POOL_SIZE)
+let randomPoolIndex = 0
+
+// Synchronously initialize the random pool with Math.random
+function initializeRandomPool() {
+  for (let i = 0; i < POOL_SIZE; i++) {
+    randomPool[i] = Math.floor(Math.random() * 256)
+  }
+  randomPoolIndex = 0
+}
+
+// Initialize synchronously first
+initializeRandomPool()
+
+// Then asynchronously refill with better random values
+async function refillRandomPool() {
+  try {
+    const randomHex = await crypto.randomKey(POOL_SIZE)
+    const newPool = new Uint8Array(Buffer.from(randomHex, 'hex'))
+    // Only update if we haven't used too many values
+    if (randomPoolIndex < POOL_SIZE / 2) {
+      randomPool = newPool
+      randomPoolIndex = 0
+    }
+  } catch (error) {
+    console.error('Error refilling random pool:', error)
+  }
+}
+
+// Start refilling in the background
+refillRandomPool()
+
+// Extend the Crypto interface to include getRandomBase64String
+declare global {
+  interface Crypto {
+    getRandomBase64String(length: number): Promise<string>
+  }
+}
+
+// Add global crypto polyfill with getRandomBase64String
+if (typeof global.crypto === 'undefined') {
+  global.crypto = {
+    getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
+      if (!array) return array
+      const uint8Array = new Uint8Array(
+        array.buffer,
+        array.byteOffset,
+        array.byteLength
+      )
+      for (let i = 0; i < uint8Array.length; i++) {
+        uint8Array[i] = Math.floor(Math.random() * 256)
+      }
+      return array
+    },
+    getRandomBase64String: async (length: number): Promise<string> => {
+      try {
+        const randomHex = await crypto.randomKey(length)
+        return Buffer.from(randomHex, 'hex').toString('base64')
+      } catch (error) {
+        throw new Error(
+          'Failed to generate secure random values: ' +
+            (error instanceof Error ? error.message : 'Unknown error')
+        )
+      }
+    }
+  } as Crypto
+}
+
+// Ensure getRandomBase64String is available even if crypto is already defined
+if (!global.crypto.getRandomBase64String) {
+  global.crypto.getRandomBase64String = async (
+    length: number
+  ): Promise<string> => {
+    try {
+      const randomHex = await crypto.randomKey(length)
+      return Buffer.from(randomHex, 'hex').toString('base64')
+    } catch (error) {
+      throw new Error(
+        'Failed to generate secure random values: ' +
+          (error instanceof Error ? error.message : 'Unknown error')
+      )
+    }
+  }
+}
+
 export interface NostrKeys {
   nsec: string
   npub: string
@@ -263,8 +351,6 @@ export class NostrAPI {
       })
 
       subscription?.on('close', () => {
-        console.log(subscription.ndk?.pool.relays.keys().next().value)
-
         this.activeSubscriptions.delete(subscription)
       })
     } catch (error) {
@@ -276,7 +362,6 @@ export class NostrAPI {
 
   async closeAllSubscriptions() {
     for (const subscription of this.activeSubscriptions) {
-      console.log(subscription.ndk?.pool.relays.keys().next().value)
       try {
         subscription.stop()
       } catch (error) {
@@ -289,6 +374,13 @@ export class NostrAPI {
     this._callback = undefined
   }
 
+  private async getRandomValues(array: Uint8Array): Promise<Uint8Array> {
+    const randomHex = await crypto.randomKey(array.length)
+    const randomBytes = Buffer.from(randomHex, 'hex')
+    array.set(randomBytes)
+    return array
+  }
+
   async createKind1059(
     nsec: string,
     recipientNpub: string,
@@ -297,14 +389,52 @@ export class NostrAPI {
     const { data: secretNostrKey } = nip19.decode(nsec)
     const recipientPubkey = nip19.decode(recipientNpub) as { data: string }
     const encodedContent = unescape(encodeURIComponent(content))
-    const wrap = nip17.wrapEvent(
-      secretNostrKey as Uint8Array,
-      { publicKey: recipientPubkey.data },
-      encodedContent
-    )
-    const tempNdk = new NDK()
-    const event = new NDKEvent(tempNdk, wrap)
-    return event
+
+    // Create a simple synchronous random value generator
+    const getRandomBytes = (length: number): Uint8Array => {
+      const bytes = new Uint8Array(length)
+      for (let i = 0; i < length; i++) {
+        bytes[i] = Math.floor(Math.random() * 256)
+      }
+      return bytes
+    }
+
+    // Create a synchronous crypto object
+    const syncCrypto = {
+      getRandomValues: <T extends ArrayBufferView | null>(array: T): T => {
+        if (!array) return array
+        const bytes = getRandomBytes(array.byteLength)
+        const uint8Array = new Uint8Array(
+          array.buffer,
+          array.byteOffset,
+          array.byteLength
+        )
+        uint8Array.set(bytes)
+        return array
+      },
+      getRandomBase64String: (length: number): string => {
+        const bytes = getRandomBytes(length)
+        return Buffer.from(bytes).toString('base64')
+      }
+    }
+
+    // Store original crypto and replace with our sync version
+    const originalCrypto = global.crypto
+    Object.assign(global.crypto, syncCrypto)
+
+    try {
+      const wrap = nip17.wrapEvent(
+        secretNostrKey as Uint8Array,
+        { publicKey: recipientPubkey.data },
+        encodedContent
+      )
+      const tempNdk = new NDK()
+      const event = new NDKEvent(tempNdk, wrap)
+      return event
+    } finally {
+      // Restore original crypto
+      Object.assign(global.crypto, originalCrypto)
+    }
   }
 
   async publishEvent(event: NDKEvent): Promise<void> {

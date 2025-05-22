@@ -169,23 +169,13 @@ function SSNostrSync() {
         try {
           // Cleanup all subscriptions first
           await cleanupSubscriptions()
-          console.log('🔴 Cleaned up all subscriptions')
 
           // Then update state
           updateAccountNostr(accountId, {
             ...account.nostr,
             autoSync: false
           })
-          console.log('🔴 Auto-sync OFF - Active subscriptions:', {
-            autoSync: false,
-            count: getActiveSubscriptions().size,
-            subscriptions: Array.from(getActiveSubscriptions()).map((api) => ({
-              isActive: true,
-              relays: api.getRelays()
-            }))
-          })
         } catch (error) {
-          console.error('Error cleaning up subscriptions:', error)
           toast.error('Failed to cleanup subscriptions')
         } finally {
           setIsSyncing(false)
@@ -219,7 +209,6 @@ function SSNostrSync() {
               })
             })
           } catch (error) {
-            console.error('Error setting up subscriptions:', error)
             toast.error('Failed to setup sync')
           } finally {
             setIsSyncing(false)
@@ -227,7 +216,6 @@ function SSNostrSync() {
         }
       }
     } catch (error) {
-      console.error('Error toggling auto sync:', error)
       toast.error('Failed to toggle auto sync')
       setIsSyncing(false)
     }
@@ -373,7 +361,6 @@ function SSNostrSync() {
             }
           })
           .catch((error) => {
-            console.error('Error generating device keys:', error)
             toast.error('Failed to generate device keys')
           })
       } else {
@@ -526,8 +513,8 @@ function SSNostrSync() {
                             borderRadius: 10,
                             backgroundColor: deviceColor,
                             marginTop: 3,
-                            marginLeft: 32,
-                            marginRight: -32
+                            marginLeft: 45,
+                            marginRight: -45
                           }}
                         />
                         <SSTextClipboard text={deviceNpub}>
@@ -583,8 +570,8 @@ function SSNostrSync() {
                                   borderRadius: 4,
                                   backgroundColor: member.color || '#404040',
                                   marginTop: 1,
-                                  marginLeft: 15,
-                                  marginRight: -15
+                                  marginLeft: 25,
+                                  marginRight: -25
                                 }}
                               />
                               <SSTextClipboard text={member.npub}>
