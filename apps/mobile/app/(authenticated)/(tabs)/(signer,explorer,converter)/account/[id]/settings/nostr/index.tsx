@@ -120,7 +120,7 @@ function SSNostrSync() {
    * Loads Nostr account data
    */
   const loadNostrAccountData = useCallback(() => {
-    if (!account) return
+    if (!account || !accountId) return
 
     // Initialize nostr object if it doesn't exist
     if (!account.nostr) {
