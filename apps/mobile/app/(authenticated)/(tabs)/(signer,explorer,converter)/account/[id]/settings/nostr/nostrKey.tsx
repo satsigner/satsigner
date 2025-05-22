@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -52,7 +52,7 @@ function NostrKeys() {
           lastUpdated: new Date()
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to generate device keys')
     } finally {
       setLoadingDefaultKeys(false)

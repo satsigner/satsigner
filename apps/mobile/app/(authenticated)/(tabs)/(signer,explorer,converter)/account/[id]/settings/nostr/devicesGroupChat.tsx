@@ -85,8 +85,11 @@ function SSDevicesGroupChat() {
 
   const { sendDM } = useNostrSync()
 
-  // Load messages from account's Nostr DMs store
-  const messages = account?.nostr?.dms || []
+  // Load messages from account's Nostr DMs store and memoize them
+  const messages = useMemo(
+    () => account?.nostr?.dms || [],
+    [account?.nostr?.dms]
+  )
 
   // Memoize messages to prevent unnecessary re-renders
   const memoizedMessages = useMemo(() => messages, [messages])
@@ -161,9 +164,9 @@ function SSDevicesGroupChat() {
     try {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
-    } catch (error) {
+    } catch (_error) {
       // Handle error silently or propagate it up
-      throw error
+      throw _error
     } finally {
       setIsLoading(false)
     }
@@ -229,8 +232,7 @@ function SSDevicesGroupChat() {
             </SSText>
           </SSVStack>
         )
-      } catch (error) {
-        console.error('Error rendering message:', error)
+      } catch (_error) {
         return (
           <SSVStack gap="xxs" style={styles.message}>
             <SSText size="sm" color="muted">

@@ -79,7 +79,7 @@ function SSNostrSync() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [commonNsec, setCommonNsec] = useState('')
-  const [commonNpub, setCommonNpub] = useState('')
+  const [_commonNpub, setCommonNpub] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
@@ -218,7 +218,7 @@ function SSNostrSync() {
           try {
             deviceAnnouncement(updatedAccount)
             // Start both subscriptions using the new function
-            await nostrSyncSubscriptions(updatedAccount, (loading) => {
+            await nostrSyncSubscriptions(updatedAccount, (loading: boolean) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
               })
@@ -301,19 +301,13 @@ function SSNostrSync() {
     router.navigate(`/account/${accountId}/settings/nostr/relays`)
   }, [accountId])
 
-  const handleNavigateToNostrLabels = useCallback(() => {
-    if (!accountId) {
-      toast.error('Account ID is required')
-      return
-    }
+  const _handleNavigateToNostrLabels = useCallback(() => {
+    if (!accountId) return
     router.navigate(`/account/${accountId}/settings/nostr/labels`)
   }, [accountId])
 
-  const handleNavigateToNostrBackup = useCallback(() => {
-    if (!accountId) {
-      toast.error('Account ID is required')
-      return
-    }
+  const _handleNavigateToNostrBackup = useCallback(() => {
+    if (!accountId) return
     router.navigate(`/account/${accountId}/settings/nostr/backup`)
   }, [accountId])
 

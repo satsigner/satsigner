@@ -1,21 +1,12 @@
 import 'react-native-get-random-values'
 
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
-import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import * as CBOR from 'cbor-js'
-import {
-  type Event,
-  getPublicKey,
-  nip17,
-  nip19,
-  nip44,
-  nip59
-} from 'nostr-tools'
+import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
-
-import { useAccountsStore } from '@/store/accounts'
 
 const POOL_SIZE = 1024 // 1KB of random values
 
@@ -228,7 +219,7 @@ export class NostrAPI {
   static async generateNostrKeys(): Promise<NostrKeys> {
     try {
       // Initialize NDK with default relays
-      const ndk = new NDK({
+      const _ndk = new NDK({
         explicitRelayUrls: [
           'wss://relay.damus.io',
           'wss://nostr.bitcoiner.social',
@@ -252,7 +243,7 @@ export class NostrAPI {
         npub,
         secretNostrKey: randomBytesArray
       }
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Failed to generate Nostr keys')
     }
   }
@@ -420,8 +411,8 @@ export class NostrAPI {
         { publicKey: recipientPubkey.data },
         encodedContent
       )
-      const tempNdk = new NDK()
-      const event = new NDKEvent(tempNdk, wrap)
+      const _ndk = new NDK()
+      const event = new NDKEvent(_ndk, wrap)
       return event
     } finally {
       // Restore original crypto
@@ -483,7 +474,7 @@ export class NostrAPI {
       if (!published) {
         throw new Error('Failed to publish after 3 attempts')
       }
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Failed to publish event')
     }
   }

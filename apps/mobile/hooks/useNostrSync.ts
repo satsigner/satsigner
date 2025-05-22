@@ -348,7 +348,7 @@ function useNostrSync() {
         if (dataExchangeApi) {
           addSubscription(dataExchangeApi)
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to start subscriptions')
         await cleanupSubscriptions()
       }
