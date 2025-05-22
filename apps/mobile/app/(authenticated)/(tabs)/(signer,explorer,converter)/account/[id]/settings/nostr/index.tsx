@@ -44,7 +44,8 @@ function SSNostrSync() {
   // Members management
   const members = useNostrStore(
     useShallow((state) => {
-      const accountMembers = state.members[accountId || ''] || []
+      if (!accountId) return []
+      const accountMembers = state.members[accountId] || []
       return accountMembers
         .map((member) =>
           typeof member === 'string'

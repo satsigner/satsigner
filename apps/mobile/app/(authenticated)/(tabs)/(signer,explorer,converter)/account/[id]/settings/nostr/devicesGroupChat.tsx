@@ -63,7 +63,7 @@ function SSDevicesGroupChat() {
   ])
 
   const { members } = useNostrStore((state) => ({
-    members: (state.members && state.members[accountId]) || []
+    members: state.members?.[accountId] || []
   }))
 
   const { sendDM } = useNostrSync()
