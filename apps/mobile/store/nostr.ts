@@ -15,6 +15,8 @@ type Member = {
   color: string
 }
 
+export type { Member }
+
 type NostrState = {
   members: {
     [accountId: string]: Member[]
@@ -36,6 +38,8 @@ type NostrState = {
   }
   activeSubscriptions: Set<NostrAPI>
 }
+
+export type { NostrState }
 
 type NostrAction = {
   addMember: (accountId: string, npub: string) => void

@@ -266,26 +266,45 @@ function SSNostrSync() {
   }
 
   // Navigation functions
-  const goToSelectRelaysPage = () => {
-    if (!accountId) return
-    router.push({
-      pathname: `/account/${accountId}/settings/nostr/selectRelays`
-    })
-  }
+  const handleNavigateToDevicesGroupChat = useCallback(() => {
+    if (!accountId) {
+      toast.error('Account ID is required')
+      return
+    }
+    router.navigate(`/account/${accountId}/settings/nostr/devicesGroupChat`)
+  }, [accountId])
 
-  const goToNostrKeyPage = () => {
-    if (!accountId) return
-    router.push({
-      pathname: `/account/${accountId}/settings/nostr/nostrKey`
-    })
-  }
+  const handleNavigateToNostrKeys = useCallback(() => {
+    if (!accountId) {
+      toast.error('Account ID is required')
+      return
+    }
+    router.navigate(`/account/${accountId}/settings/nostr/nostrKey`)
+  }, [accountId])
 
-  const goToDevicesGroupChat = () => {
-    if (!accountId) return
-    router.push({
-      pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
-    })
-  }
+  const handleNavigateToNostrRelays = useCallback(() => {
+    if (!accountId) {
+      toast.error('Account ID is required')
+      return
+    }
+    router.navigate(`/account/${accountId}/settings/nostr/relays`)
+  }, [accountId])
+
+  const handleNavigateToNostrLabels = useCallback(() => {
+    if (!accountId) {
+      toast.error('Account ID is required')
+      return
+    }
+    router.navigate(`/account/${accountId}/settings/nostr/labels`)
+  }, [accountId])
+
+  const handleNavigateToNostrBackup = useCallback(() => {
+    if (!accountId) {
+      toast.error('Account ID is required')
+      return
+    }
+    router.navigate(`/account/${accountId}/settings/nostr/backup`)
+  }, [accountId])
 
   // Effects
   useEffect(() => {
@@ -470,7 +489,7 @@ function SSNostrSync() {
                 style={{ flex: 0.9 }}
                 variant="outline"
                 label={t('account.nostrSync.setKeys')}
-                onPress={goToNostrKeyPage}
+                onPress={handleNavigateToNostrKeys}
                 disabled={isSyncing}
               />
 
@@ -480,7 +499,7 @@ function SSNostrSync() {
                 label={t('account.nostrSync.manageRelays', {
                   count: selectedRelays.length
                 })}
-                onPress={goToSelectRelaysPage}
+                onPress={handleNavigateToNostrRelays}
                 disabled={isSyncing}
               />
             </SSHStack>
@@ -562,7 +581,7 @@ function SSNostrSync() {
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="secondary"
               label={t('account.nostrSync.devicesGroupChat')}
-              onPress={goToDevicesGroupChat}
+              onPress={handleNavigateToDevicesGroupChat}
             />
 
             {/* Members section */}

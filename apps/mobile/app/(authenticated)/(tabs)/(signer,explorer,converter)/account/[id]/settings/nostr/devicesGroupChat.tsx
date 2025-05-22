@@ -20,7 +20,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore, type NostrState } from '@/store/nostr'
+import { useNostrStore, type NostrState, type Member } from '@/store/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -54,12 +54,6 @@ async function formatNpub(
   } catch (error) {
     return { text: pubkey.slice(0, 8), color: '#404040' }
   }
-}
-
-// Add type for member
-type Member = {
-  npub: string
-  color: string
 }
 
 function SSDevicesGroupChat() {
