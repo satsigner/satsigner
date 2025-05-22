@@ -148,6 +148,8 @@ function SSNostrSync() {
    */
   const handleToggleAutoSync = useCallback(async () => {
     try {
+      if (!accountId) return
+
       // Initialize nostr object if it doesn't exist
       if (!account?.nostr) {
         await updateAccountNostr(accountId, {
@@ -158,7 +160,9 @@ function SSNostrSync() {
           commonNsec: '',
           commonNpub: '',
           deviceNsec: '',
-          deviceNpub: ''
+          deviceNpub: '',
+          syncStart: new Date(),
+          lastUpdated: new Date()
         })
         return
       }
@@ -173,7 +177,8 @@ function SSNostrSync() {
           // Then update state
           updateAccountNostr(accountId, {
             ...account.nostr,
-            autoSync: false
+            autoSync: false,
+            lastUpdated: new Date()
           })
         } catch (error) {
           toast.error('Failed to cleanup subscriptions')
@@ -184,7 +189,8 @@ function SSNostrSync() {
         // Turn sync ON
         updateAccountNostr(accountId, {
           ...account.nostr,
-          autoSync: true
+          autoSync: true,
+          lastUpdated: new Date()
         })
 
         // Wait a tick for state to update
@@ -194,9 +200,7 @@ function SSNostrSync() {
         const updatedAccount = getUpdatedAccount()
 
         if (
-          updatedAccount &&
-          updatedAccount.nostr &&
-          updatedAccount.nostr.relays &&
+          updatedAccount?.nostr?.relays &&
           updatedAccount.nostr.relays.length > 0
         ) {
           setIsSyncing(true)
@@ -234,44 +238,50 @@ function SSNostrSync() {
    * Toggles member trust status
    */
   const toggleMember = (npub: string) => {
+    if (!accountId || !account?.nostr) return
+
     setSelectedMembers((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(npub)) {
         newSet.delete(npub)
-        if (account) {
-          updateAccountNostr(accountId, {
-            trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
-              (m) => m !== npub
-            )
-          })
-        }
+        updateAccountNostr(accountId, {
+          trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
+            (m) => m !== npub
+          ),
+          lastUpdated: new Date()
+        })
       } else {
         newSet.add(npub)
-        if (account) {
-          updateAccountNostr(accountId, {
-            trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub]
-          })
-        }
+        updateAccountNostr(accountId, {
+          trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
+          lastUpdated: new Date()
+        })
       }
       return newSet
     })
   }
 
   // Navigation functions
-  const goToSelectRelaysPage = () =>
+  const goToSelectRelaysPage = () => {
+    if (!accountId) return
     router.push({
       pathname: `/account/${accountId}/settings/nostr/selectRelays`
     })
+  }
 
-  const goToNostrKeyPage = () =>
+  const goToNostrKeyPage = () => {
+    if (!accountId) return
     router.push({
       pathname: `/account/${accountId}/settings/nostr/nostrKey`
     })
+  }
 
-  const goToDevicesGroupChat = () =>
+  const goToDevicesGroupChat = () => {
+    if (!accountId) return
     router.push({
       pathname: `/account/${accountId}/settings/nostr/devicesGroupChat`
     })
+  }
 
   // Effects
   useEffect(() => {

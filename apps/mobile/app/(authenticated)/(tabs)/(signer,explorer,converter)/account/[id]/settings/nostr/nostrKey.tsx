@@ -1,7 +1,8 @@
-import { router, useLocalSearchParams, Stack } from 'expo-router'
+import { router, useLocalSearchParams, Stack, Redirect } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, ActivityIndicator } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
+import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -15,6 +16,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { NostrAPI } from '@/api/nostr'
 
 function NostrKeys() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -27,27 +29,48 @@ function NostrKeys() {
   )
 
   const [deviceNsec, setNsec] = useState<string>(
-    account?.nostr.deviceNsec || ''
+    account?.nostr?.deviceNsec ?? ''
   )
   const [deviceNpub, setNpub] = useState<string>(
-    account?.nostr.deviceNpub || ''
+    account?.nostr?.deviceNpub ?? ''
   )
   const [loadingDefaultKeys, setLoadingDefaultKeys] = useState(false)
 
   async function loadDefaultNostrKeys() {
-    if (loadingDefaultKeys || !account) return
+    if (loadingDefaultKeys || !account || !accountId) return
 
-    setLoadingDefaultKeys(false)
+    setLoadingDefaultKeys(true)
+    try {
+      const keys = await NostrAPI.generateNostrKeys()
+      if (keys) {
+        setNsec(keys.nsec)
+        setNpub(keys.npub)
+        updateAccountNostr(accountId, {
+          ...account.nostr,
+          deviceNsec: keys.nsec,
+          deviceNpub: keys.npub,
+          lastUpdated: new Date()
+        })
+      }
+    } catch (error) {
+      toast.error('Failed to generate device keys')
+    } finally {
+      setLoadingDefaultKeys(false)
+    }
   }
 
   function saveChanges() {
-    if (!accountId) return
+    if (!accountId || !account?.nostr) return
     updateAccountNostr(accountId, {
+      ...account.nostr,
       deviceNsec,
-      deviceNpub
+      deviceNpub,
+      lastUpdated: new Date()
     })
     router.back()
   }
+
+  if (!accountId || !account) return <Redirect href="/" />
 
   return (
     <SSMainLayout style={styles.mainLayout}>
@@ -55,8 +78,8 @@ function NostrKeys() {
         options={{
           headerTitle: () => (
             <SSHStack gap="sm">
-              <SSText uppercase>{account?.name}</SSText>
-              {account?.policyType === 'watchonly' && (
+              <SSText uppercase>{account.name}</SSText>
+              {account.policyType === 'watchonly' && (
                 <SSIconEyeOn stroke="#fff" height={16} width={16} />
               )}
             </SSHStack>
@@ -69,7 +92,7 @@ function NostrKeys() {
           <SSVStack gap="sm">
             <SSText center>{t('account.nostrSync.commonNostrKeys')}</SSText>
             <SSVStack gap="xxs" style={styles.keysContainer}>
-              {account?.nostr.commonNsec && account?.nostr.commonNpub ? (
+              {account.nostr?.commonNsec && account.nostr?.commonNpub ? (
                 <>
                   <SSVStack gap="xxs">
                     <SSText color="muted" center>
@@ -109,54 +132,49 @@ function NostrKeys() {
                   </SSVStack>
                 </>
               ) : (
-                <SSHStack style={styles.keyContainerLoading}>
-                  <ActivityIndicator />
-                  <SSText uppercase>
-                    {t('account.nostrSync.loadingKeys')}
-                  </SSText>
-                </SSHStack>
+                <SSButton
+                  label={t('account.nostrSync.generateCommonKeys')}
+                  onPress={loadDefaultNostrKeys}
+                  disabled={loadingDefaultKeys}
+                />
               )}
             </SSVStack>
           </SSVStack>
 
           <SSVStack gap="sm">
-            <SSText center>Custom Device Keys</SSText>
-            <SSVStack gap="none">
-              <SSText color="muted">npub</SSText>
-              <SSTextInput
-                value={deviceNpub}
-                onChangeText={setNpub}
-                multiline
-                numberOfLines={3}
-                blurOnSubmit
-                size="small"
-                style={styles.input}
-              />
-            </SSVStack>
-            <SSVStack gap="none">
-              <SSText color="muted">nsec</SSText>
-              <SSTextInput
-                value={deviceNsec}
-                onChangeText={setNsec}
-                multiline
-                numberOfLines={3}
-                blurOnSubmit
-                size="small"
-                style={styles.input}
-              />
+            <SSText center>{t('account.nostrSync.deviceNostrKeys')}</SSText>
+            <SSVStack gap="xxs" style={styles.keysContainer}>
+              <SSVStack gap="xxs">
+                <SSText color="muted" center>
+                  {t('account.nostrSync.nsec')}
+                </SSText>
+                <SSTextInput
+                  value={deviceNsec}
+                  onChangeText={setNsec}
+                  placeholder={t('account.nostrSync.nsec')}
+                  style={styles.input}
+                />
+              </SSVStack>
+              <SSVStack gap="xxs">
+                <SSText color="muted" center>
+                  {t('account.nostrSync.npub')}
+                </SSText>
+                <SSTextInput
+                  value={deviceNpub}
+                  onChangeText={setNpub}
+                  placeholder={t('account.nostrSync.npub')}
+                  style={styles.input}
+                />
+              </SSVStack>
             </SSVStack>
           </SSVStack>
 
-          <SSVStack gap="sm">
-            <SSButton
-              label="USE DEFAULT ACCOUNT KEYS"
-              variant="outline"
-              loading={loadingDefaultKeys}
-              onPress={loadDefaultNostrKeys}
-            />
-          </SSVStack>
+          <SSButton
+            label={t('account.nostrSync.save')}
+            onPress={saveChanges}
+            disabled={!deviceNsec || !deviceNpub}
+          />
         </SSVStack>
-        <SSButton label="SAVE" variant="secondary" onPress={saveChanges} />
       </SSVStack>
     </SSMainLayout>
   )
