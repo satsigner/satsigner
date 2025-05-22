@@ -264,7 +264,7 @@ function DerivedAddresses({
   setSortDirection,
   perPage = 10
 }: DerivedAddressesProps) {
-  const wallet = useGetAccountWallet(account.id)
+  const wallet = useGetAccountWallet(account.id!)
   const network = useBlockchainStore(
     (state) => state.selectedNetwork
   ) as Network
@@ -659,8 +659,8 @@ export default function AccountView() {
       ])
     )
 
-  const wallet = useGetAccountWallet(id)
-  const watchOnlyWalletAddress = useGetAccountAddress(id)
+  const wallet = useGetAccountWallet(id!)
+  const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 

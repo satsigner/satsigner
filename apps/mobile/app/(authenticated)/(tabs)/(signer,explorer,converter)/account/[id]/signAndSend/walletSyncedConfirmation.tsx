@@ -24,7 +24,7 @@ export default function WalletSyncedConfirmation() {
       state.updateAccount
     ])
   )
-  const wallet = useGetAccountWallet(id)
+  const wallet = useGetAccountWallet(id!)
 
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 

@@ -26,7 +26,7 @@ export default function Receive() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
-  const wallet = useGetAccountWallet(id)
+  const wallet = useGetAccountWallet(id!)
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()

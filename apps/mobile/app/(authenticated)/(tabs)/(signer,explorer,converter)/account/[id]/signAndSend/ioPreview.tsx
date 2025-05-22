@@ -93,7 +93,7 @@ export default function IOPreview() {
     [mempoolUrl]
   )
 
-  const wallet = useGetAccountWallet(id)
+  const wallet = useGetAccountWallet(id!)
   const [changeAddress, setChangeAddress] = useState('')
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
