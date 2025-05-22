@@ -1,19 +1,21 @@
+import 'react-native-get-random-values'
+
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
+import { Buffer } from 'buffer'
+import * as CBOR from 'cbor-js'
 import {
+  type Event,
   getPublicKey,
+  nip17,
   nip19,
   nip44,
-  nip17,
-  nip59,
-  type Event
+  nip59
 } from 'nostr-tools'
-import { Buffer } from 'buffer'
 import * as pako from 'pako'
-import * as CBOR from 'cbor-js'
-import { useAccountsStore } from '@/store/accounts'
 import crypto from 'react-native-aes-crypto'
-import 'react-native-get-random-values'
+
+import { useAccountsStore } from '@/store/accounts'
 
 const POOL_SIZE = 1024 // 1KB of random values
 

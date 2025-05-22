@@ -1,5 +1,6 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { nip19 } from 'nostr-tools'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -8,28 +9,27 @@ import {
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
-import { nip19 } from 'nostr-tools'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import useNostrSync from '@/hooks/useNostrSync'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import type { DM } from '@/types/models/Account'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
 
 async function formatNpub(
   pubkey: string,
-  members: Array<{ npub: string; color: string }>
+  members: { npub: string; color: string }[]
 ): Promise<{ text: string; color: string }> {
   if (!pubkey) return { text: 'Unknown sender', color: '#666666' }
 
