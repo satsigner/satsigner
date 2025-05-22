@@ -61,6 +61,8 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useGetAccountAddress from '@/hooks/useGetAccountAddress'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -73,7 +75,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
@@ -263,7 +264,7 @@ function DerivedAddresses({
   setSortDirection,
   perPage = 10
 }: DerivedAddressesProps) {
-  const wallet = useWalletsStore((state) => state.wallets[account.id])
+  const wallet = useGetAccountWallet(account.id!)
   const network = useBlockchainStore(
     (state) => state.selectedNetwork
   ) as Network
@@ -658,9 +659,8 @@ export default function AccountView() {
       ])
     )
 
-  const [wallet, watchOnlyWalletAddress] = useWalletsStore(
-    useShallow((state) => [state.wallets[id!], state.addresses[id!]])
-  )
+  const wallet = useGetAccountWallet(id!)
+  const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
