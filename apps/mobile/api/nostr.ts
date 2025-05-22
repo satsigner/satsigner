@@ -72,7 +72,7 @@ if (typeof global.crypto === 'undefined') {
       } catch (_error) {
         throw new Error(
           'Failed to generate secure random values: ' +
-            (error instanceof Error ? error.message : 'Unknown error')
+            (_error instanceof Error ? _error.message : 'Unknown error')
         )
       }
     }
@@ -211,7 +211,7 @@ export class NostrAPI {
       this.ndk = null
       throw new Error(
         'Failed to connect to relays: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
+          (_error instanceof Error ? _error.message : 'Unknown error')
       )
     }
   }
@@ -236,7 +236,7 @@ export class NostrAPI {
     } catch (_error) {
       throw new Error(
         'Failed to generate Nostr keys: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
+          (_error instanceof Error ? _error.message : 'Unknown error')
       )
     }
   }
