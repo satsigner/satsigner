@@ -46,7 +46,7 @@ function useNostrSync() {
     for (const api of apisToCleanup) {
       try {
         await api.closeAllSubscriptions()
-      } catch (error) {
+      } catch (_error) {
         // Error closing subscriptions
       }
     }
@@ -118,7 +118,7 @@ function useNostrSync() {
             (a) => a.id === account.id
           )
         }
-      } catch (error) {
+      } catch (_error) {
         // Failed to store DM
       }
     },
@@ -165,7 +165,7 @@ function useNostrSync() {
                   toast.success(`Imported ${labelsAdded} labels`)
                 }
               }
-            } catch (error) {
+            } catch (_error) {
               toast.error('Failed to import labels')
             }
           } else if (data_type === 'Tx') {
@@ -216,7 +216,7 @@ function useNostrSync() {
           const newMember = eventContent.public_key_bech32
           try {
             await addMember(account.id, newMember)
-          } catch (error) {
+          } catch (_error) {
             // Failed to add member
           }
         }
@@ -262,7 +262,7 @@ function useNostrSync() {
           async (message) => {
             try {
               await processEvent(account, message.content)
-            } catch (error) {
+            } catch (_error) {
               // Error processing message
             }
           },
@@ -271,7 +271,7 @@ function useNostrSync() {
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
         return nostrApi
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to subscribe to protocol events')
         if (nostrApi) {
           await nostrApi.closeAllSubscriptions()
@@ -305,7 +305,7 @@ function useNostrSync() {
           async (message) => {
             try {
               await processEvent(account, message.content)
-            } catch (error) {
+            } catch (_error) {
               // Error processing message
             }
           },
@@ -314,7 +314,7 @@ function useNostrSync() {
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
         return nostrApi
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to setup data exchange subscription:')
         if (nostrApi) {
           await nostrApi.closeAllSubscriptions()
@@ -353,7 +353,7 @@ function useNostrSync() {
         if (dataExchangeApi) {
           addSubscription(dataExchangeApi)
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to start subscriptions')
         await cleanupSubscriptions()
       }
@@ -445,7 +445,7 @@ function useNostrSync() {
           )
           await nostrApi.publishEvent(eventKind1059)
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to send message')
       }
     },
@@ -541,7 +541,7 @@ function useNostrSync() {
           )
           await nostrApi.publishEvent(eventKind1059)
         }
-      } catch (error) {
+      } catch (_error) {
         toast.error('Failed to send message')
       }
     },

@@ -114,7 +114,7 @@ async function generateColorFromNpub(npub: string): Promise<string> {
     }
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`
-  } catch (error) {
+  } catch (_error) {
     return '#404040' // Default color on error
   }
 }
@@ -152,7 +152,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
               }
             }
           })
-        } catch (error) {
+        } catch (_error) {
           set((state) => {
             const existingMembers = state.members[accountId] || []
             const normalizedMembers = existingMembers.map((member) =>

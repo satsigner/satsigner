@@ -180,7 +180,7 @@ function SSNostrSync() {
             autoSync: false,
             lastUpdated: new Date()
           })
-        } catch (error) {
+        } catch {
           toast.error('Failed to cleanup subscriptions')
         } finally {
           setIsSyncing(false)
@@ -212,14 +212,14 @@ function SSNostrSync() {
                 setIsSyncing(loading)
               })
             })
-          } catch (error) {
+          } catch {
             toast.error('Failed to setup sync')
           } finally {
             setIsSyncing(false)
           }
         }
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to toggle auto sync')
       setIsSyncing(false)
     }

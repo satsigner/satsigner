@@ -6,8 +6,6 @@ import { TouchableOpacity } from 'react-native-gesture-handler'
 import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-
-import { NostrAPI } from '@/api/nostr'
 import {
   SSIconBlackIndicator,
   SSIconGreenIndicator,
