@@ -1,5 +1,5 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -76,38 +76,54 @@ function SSDevicesGroupChat() {
   // Load messages from account's Nostr DMs store
   const messages = account?.nostr?.dms || []
 
+  // Memoize messages to prevent unnecessary re-renders
+  const memoizedMessages = useMemo(() => messages, [JSON.stringify(messages)])
+
+  // Memoize the members list to prevent unnecessary recalculations
+  const membersList = useMemo(
+    () =>
+      members.map((member) => ({
+        npub: member.npub,
+        color: member.color || '#404040'
+      })),
+    [members]
+  )
+
+  // Keep track of which authors we've already formatted
+  const formattedAuthorsRef = useRef(new Set<string>())
+
   // Format npubs for all messages
   useEffect(() => {
     const formatNpubs = async () => {
-      const membersList = members.map((member) => ({
-        npub: member.npub,
-        color: member.color || '#404040'
-      }))
-
       const newFormattedNpubs = new Map()
-      for (const msg of messages) {
-        if (!newFormattedNpubs.has(msg.author)) {
+      let hasNewAuthors = false
+
+      for (const msg of memoizedMessages) {
+        if (!formattedAuthorsRef.current.has(msg.author)) {
           const formatted = await formatNpub(msg.author, membersList)
           newFormattedNpubs.set(msg.author, formatted)
+          formattedAuthorsRef.current.add(msg.author)
+          hasNewAuthors = true
         }
       }
-      setFormattedNpubs(newFormattedNpubs)
+
+      // Only update state if we have new authors to format
+      if (hasNewAuthors) {
+        setFormattedNpubs((prev) => new Map([...prev, ...newFormattedNpubs]))
+      }
     }
 
     formatNpubs()
-  }, [messages, members])
+  }, [memoizedMessages, membersList])
 
-  // Setup subscription on mount
+  // Separate effect for scrolling
   useEffect(() => {
-    if (!account?.nostr?.relays?.length) {
-      return
+    if (messages.length > 0 && account?.nostr?.relays?.length) {
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: false })
+      })
     }
-
-    // Scroll to bottom when messages load
-    if (messages.length > 0) {
-      flatListRef.current?.scrollToEnd({ animated: false })
-    }
-  }, [account?.nostr?.relays, account, messages.length])
+  }, [messages.length, account?.nostr?.relays?.length])
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) {
@@ -246,9 +262,6 @@ function SSDevicesGroupChat() {
             data={messages}
             renderItem={renderMessage}
             keyExtractor={(item) => item.id}
-            onContentSizeChange={() => {
-              flatListRef.current?.scrollToEnd({ animated: false })
-            }}
             ListEmptyComponent={
               <SSText center color="muted">
                 No messages yet
