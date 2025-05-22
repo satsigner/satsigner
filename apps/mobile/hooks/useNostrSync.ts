@@ -240,35 +240,82 @@ function useNostrSync() {
       const lastProtocolEOSE =
         useNostrStore.getState().getLastProtocolEOSE(account.id) || 0
 
+      console.log('[Nostr Debug] Starting protocol subscription:', {
+        autoSync,
+        hasCommonNsec: !!commonNsec,
+        hasCommonNpub: !!commonNpub,
+        relayCount: relays.length,
+        lastProtocolEOSE
+      })
+
       if (!autoSync || !commonNsec || !commonNpub || relays.length === 0) {
+        console.log(
+          '[Nostr Debug] Protocol subscription prerequisites not met:',
+          {
+            autoSync,
+            hasCommonNsec: !!commonNsec,
+            hasCommonNpub: !!commonNpub,
+            relayCount: relays.length
+          }
+        )
         return null
       }
 
       let nostrApi: NostrAPI | null = null
       try {
+        console.log(
+          '[Nostr Debug] Creating NostrAPI instance with relays:',
+          relays
+        )
         nostrApi = new NostrAPI(relays)
         if (onLoadingChange) {
           nostrApi.setLoadingCallback(onLoadingChange)
         }
+
+        console.log('[Nostr Debug] Connecting to relays...')
         await nostrApi.connect()
+        console.log('[Nostr Debug] Successfully connected to relays')
+
+        console.log('[Nostr Debug] Subscribing to kind1059 events...')
         await nostrApi.subscribeToKind1059(
           commonNsec as string,
           commonNpub as string,
           async (message) => {
             try {
+              console.log('[Nostr Debug] Received protocol message:', {
+                id: message.content.id,
+                pubkey: message.content.pubkey,
+                kind: message.content.kind,
+                created_at: message.content.created_at
+              })
+
               await processEvent(account, message.content)
-            } catch (_error) {
-              // Error processing message
+            } catch (error) {
+              console.error(
+                '[Nostr Debug] Error processing protocol message:',
+                error
+              )
             }
           },
           undefined,
           lastProtocolEOSE,
-          (nsec) => updateLasEOSETimestamp(account, nsec)
+          (nsec) => {
+            console.log(
+              '[Nostr Debug] Protocol EOSE received, updating timestamp'
+            )
+            updateLasEOSETimestamp(account, nsec)
+          }
         )
+        console.log('[Nostr Debug] Successfully subscribed to protocol events')
         return nostrApi
-      } catch (_error) {
+      } catch (error) {
+        console.error(
+          '[Nostr Debug] Failed to setup protocol subscription:',
+          error
+        )
         toast.error('Failed to subscribe to protocol events')
         if (nostrApi) {
+          console.log('[Nostr Debug] Cleaning up failed protocol subscription')
           await nostrApi.closeAllSubscriptions()
         }
         return null
@@ -283,35 +330,90 @@ function useNostrSync() {
       const lastDataExchangeEOSE =
         useNostrStore.getState().getLastDataExchangeEOSE(account.id) || 0
 
+      console.log('[Nostr Debug] Starting data exchange subscription:', {
+        autoSync,
+        hasDeviceNsec: !!deviceNsec,
+        hasDeviceNpub: !!deviceNpub,
+        relayCount: relays.length,
+        lastDataExchangeEOSE
+      })
+
       if (!autoSync || !deviceNsec || !deviceNpub || relays.length === 0) {
+        console.log(
+          '[Nostr Debug] Data exchange subscription prerequisites not met:',
+          {
+            autoSync,
+            hasDeviceNsec: !!deviceNsec,
+            hasDeviceNpub: !!deviceNpub,
+            relayCount: relays.length
+          }
+        )
         return null
       }
 
       let nostrApi: NostrAPI | null = null
       try {
+        console.log(
+          '[Nostr Debug] Creating NostrAPI instance for data exchange with relays:',
+          relays
+        )
         nostrApi = new NostrAPI(relays)
         if (onLoadingChange) {
           nostrApi.setLoadingCallback(onLoadingChange)
         }
+
+        console.log('[Nostr Debug] Connecting to relays for data exchange...')
         await nostrApi.connect()
+        console.log(
+          '[Nostr Debug] Successfully connected to relays for data exchange'
+        )
+
+        console.log(
+          '[Nostr Debug] Subscribing to kind1059 events for data exchange...'
+        )
         await nostrApi.subscribeToKind1059(
           deviceNsec as string,
           deviceNpub as string,
           async (message) => {
             try {
+              console.log('[Nostr Debug] Received data exchange message:', {
+                id: message.content.id,
+                pubkey: message.content.pubkey,
+                kind: message.content.kind,
+                created_at: message.content.created_at
+              })
+
               await processEvent(account, message.content)
-            } catch (_error) {
-              // Error processing message
+            } catch (error) {
+              console.error(
+                '[Nostr Debug] Error processing data exchange message:',
+                error
+              )
             }
           },
           undefined,
           lastDataExchangeEOSE,
-          (nsec) => updateLasEOSETimestamp(account, nsec)
+          (nsec) => {
+            console.log(
+              '[Nostr Debug] Data exchange EOSE received, updating timestamp'
+            )
+            updateLasEOSETimestamp(account, nsec)
+          }
+        )
+        console.log(
+          '[Nostr Debug] Successfully subscribed to data exchange events'
         )
         return nostrApi
-      } catch (_error) {
+      } catch (error) {
+        console.error(
+          '[Nostr Debug] Failed to setup data exchange subscription:',
+          error
+        )
         toast.error('Failed to subscribe to data exchange')
         if (nostrApi) {
+          console.log(
+            '[Nostr Debug] Cleaning up failed data exchange subscription'
+          )
           await nostrApi.closeAllSubscriptions()
         }
         return null
@@ -323,32 +425,59 @@ function useNostrSync() {
   const nostrSyncSubscriptions = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
       if (!account || !account.nostr) {
+        console.log(
+          '[Nostr Debug] Cannot start sync - missing account or nostr config'
+        )
         return
       }
 
+      console.log('[Nostr Debug] Starting nostr sync subscriptions:', {
+        hasActiveSubscriptions: getActiveSubscriptions().size > 0,
+        accountId: account.id,
+        autoSync: account.nostr.autoSync
+      })
+
       if (getActiveSubscriptions().size > 0) {
+        console.log(
+          '[Nostr Debug] Active subscriptions already exist, skipping'
+        )
         return
       }
 
       // Cleanup existing subscriptions first
+      console.log('[Nostr Debug] Cleaning up any existing subscriptions')
       await cleanupSubscriptions()
 
       try {
         // Start protocol subscription
+        console.log('[Nostr Debug] Starting protocol subscription')
         const protocolApi = await protocolSubscription(account, onLoadingChange)
         if (protocolApi) {
+          console.log(
+            '[Nostr Debug] Adding protocol subscription to active subscriptions'
+          )
           addSubscription(protocolApi)
         }
 
         // Start data exchange subscription
+        console.log('[Nostr Debug] Starting data exchange subscription')
         const dataExchangeApi = await dataExchangeSubscription(
           account,
           onLoadingChange
         )
         if (dataExchangeApi) {
+          console.log(
+            '[Nostr Debug] Adding data exchange subscription to active subscriptions'
+          )
           addSubscription(dataExchangeApi)
         }
-      } catch (_error) {
+
+        console.log('[Nostr Debug] Sync subscriptions setup complete:', {
+          hasProtocolSubscription: !!protocolApi,
+          hasDataExchangeSubscription: !!dataExchangeApi
+        })
+      } catch (error) {
+        console.error('[Nostr Debug] Failed to start subscriptions:', error)
         toast.error('Failed to start subscriptions')
         await cleanupSubscriptions()
       }

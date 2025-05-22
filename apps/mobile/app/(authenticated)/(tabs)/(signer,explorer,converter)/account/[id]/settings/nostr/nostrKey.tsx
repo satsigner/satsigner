@@ -143,7 +143,7 @@ function NostrKeys() {
 
           <SSVStack gap="sm">
             <SSText center>{t('account.nostrSync.deviceNostrKeys')}</SSText>
-            <SSVStack gap="xxs" style={styles.keysContainer}>
+            <SSVStack gap="xxs">
               <SSVStack gap="xxs">
                 <SSText color="muted" center>
                   {t('account.nostrSync.nsec')}
