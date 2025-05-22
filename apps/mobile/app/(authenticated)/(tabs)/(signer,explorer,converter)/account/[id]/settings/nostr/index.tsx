@@ -521,9 +521,9 @@ function SSNostrSync() {
                       <SSHStack gap="xxs" style={{ flex: 0.7 }}>
                         <View
                           style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 4,
+                            width: 10,
+                            height: 10,
+                            borderRadius: 10,
                             backgroundColor: deviceColor,
                             marginTop: 3,
                             marginLeft: 32,
