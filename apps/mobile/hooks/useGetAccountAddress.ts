@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
 import { type Account, type Secret } from '@/types/models/Account'
+import { aesDecrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 
 const useGetAccountAddress = (id: Account['id']) => {
@@ -16,11 +19,20 @@ const useGetAccountAddress = (id: Account['id']) => {
   )
 
   async function addAddress() {
-    if (!account || !account.keys[0]) return
+    if (!account || account.keys.length === 0) return
 
-    const secret = account.keys[0].secret as Secret
+    const key = account.keys[0]
+    let secret = key.secret
+
+    if (typeof secret === 'string') {
+      const pin = await getItem(PIN_KEY)
+      if (!pin) return
+      const iv = key.iv
+      const accountSecretString = await aesDecrypt(secret, pin, iv)
+      secret = JSON.parse(accountSecretString) as Secret
+    }
+
     const descriptor = secret.externalDescriptor
-
     if (!descriptor) return
 
     const address = parseAddressDescriptorToAddress(descriptor)
