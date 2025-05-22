@@ -1,15 +1,9 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  View
-} from 'react-native'
+import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
