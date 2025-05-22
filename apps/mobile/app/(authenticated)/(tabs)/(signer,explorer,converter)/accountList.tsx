@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useRouter, useFocusEffect } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -7,6 +7,7 @@ import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { NostrAPI } from '@/api/nostr'
 import {
   SSIconBlackIndicator,
   SSIconGreenIndicator,
@@ -41,6 +42,7 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/utils/samples'
+import useNostrSync from '@/hooks/useNostrSync'
 
 export default function AccountList() {
   const router = useRouter()
@@ -100,6 +102,7 @@ export default function AccountList() {
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { cleanupSubscriptions } = useNostrSync()
 
   type SampleWallet =
     | 'segwit'
@@ -138,6 +141,13 @@ export default function AccountList() {
   useEffect(() => {
     if (connectionMode === 'auto') fetchPrices(mempoolUrl)
   }, [connectionMode, fetchPrices, mempoolUrl])
+
+  useFocusEffect(() => {
+    const cleanup = async () => {
+      await cleanupSubscriptions()
+    }
+    cleanup()
+  })
 
   function handleOnNavigateToAddAccount() {
     clearAccount()
