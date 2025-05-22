@@ -523,8 +523,8 @@ function SSNostrSync() {
                             borderRadius: 10,
                             backgroundColor: deviceColor,
                             marginTop: 3,
-                            marginLeft: 45,
-                            marginRight: -45
+                            marginLeft: 30,
+                            marginRight: -30
                           }}
                         />
                         <SSTextClipboard text={deviceNpub}>
@@ -580,8 +580,8 @@ function SSNostrSync() {
                                   borderRadius: 4,
                                   backgroundColor: member.color || '#404040',
                                   marginTop: 1,
-                                  marginLeft: 25,
-                                  marginRight: -25
+                                  marginLeft: 20,
+                                  marginRight: -20
                                 }}
                               />
                               <SSTextClipboard text={member.npub}>
