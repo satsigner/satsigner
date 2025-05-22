@@ -5,18 +5,18 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { NostrAPI, decompressMessage, compressMessage } from '@/api/nostr'
+import { compressMessage, decompressMessage, NostrAPI } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, Secret, DM } from '@/types/models/Account'
+import type { Account, DM, Secret } from '@/types/models/Account'
 import {
   formatAccountLabels,
-  labelsToJSONL,
   JSONLtoLabels,
   type Label,
+  labelsToJSONL,
   type LabelType
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'

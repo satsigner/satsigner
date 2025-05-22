@@ -29,7 +29,7 @@ function SSAddressLabel() {
     const updatedAccount = setAddrLabel(accountId!, addr!, label)
 
     const singleLabelData = {
-      label: label,
+      label,
       ref: addr!,
       type: 'addr' as LabelType,
       spendable: true

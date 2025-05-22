@@ -1,11 +1,11 @@
+import ecc from '@bitcoinerlab/secp256k1'
+import * as bitcoinjs from 'bitcoinjs-lib'
+import { nip19 } from 'nostr-tools'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { nip19 } from 'nostr-tools'
-import * as bitcoinjs from 'bitcoinjs-lib'
-import ecc from '@bitcoinerlab/secp256k1'
 
+import { type NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
-import { NostrAPI } from '@/api/nostr'
 
 // Initialize ECC library
 bitcoinjs.initEccLib(ecc)
@@ -347,5 +347,5 @@ const useNostrStore = create<NostrState & NostrAction>()(
   )
 )
 
-export { useNostrStore, generateColorFromNpub }
+export { generateColorFromNpub, useNostrStore }
 export type { Message }

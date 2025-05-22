@@ -5,9 +5,9 @@ import { create } from 'zustand'
 import { type EntropyType } from '@/types/logic/entropy'
 import {
   type Account,
+  type DM,
   type Key,
-  type Secret,
-  type DM
+  type Secret
 } from '@/types/models/Account'
 
 type AccountBuilderState = {

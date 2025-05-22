@@ -1,5 +1,6 @@
-import { router, useLocalSearchParams, Stack, Redirect } from 'expo-router'
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { nip19 } from 'nostr-tools'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -8,30 +9,29 @@ import {
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
-import { nip19 } from 'nostr-tools'
 import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore, type NostrState, type Member } from '@/store/nostr'
-import useNostrSync from '@/hooks/useNostrSync'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import type { Account, DM } from '@/types/models/Account'
+import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
 
 async function formatNpub(
   pubkey: string,
-  members: Array<{ npub: string; color: string }>
+  members: { npub: string; color: string }[]
 ): Promise<{ text: string; color: string }> {
   if (!pubkey) return { text: 'Unknown sender', color: '#666666' }
 
@@ -65,10 +65,9 @@ function SSDevicesGroupChat() {
     Map<string, { text: string; color: string }>
   >(new Map())
 
-  const [account, updateAccountNostr] = useAccountsStore(
+  const [account] = useAccountsStore(
     useShallow((state) => [
-      state.accounts.find((_account: Account) => _account.id === accountId),
-      state.updateAccountNostr
+      state.accounts.find((_account) => _account.id === accountId)
     ])
   )
 
@@ -98,7 +97,7 @@ function SSDevicesGroupChat() {
   const messages = account?.nostr?.dms || []
 
   // Memoize messages to prevent unnecessary re-renders
-  const memoizedMessages = useMemo(() => messages, [JSON.stringify(messages)])
+  const memoizedMessages = useMemo(() => messages, [messages])
 
   // Memoize the members list to prevent unnecessary recalculations
   const membersList = useMemo(
@@ -170,8 +169,7 @@ function SSDevicesGroupChat() {
     try {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
-    } catch (error) {
-      console.error('Failed to send message:', error)
+    } catch (_error) {
       toast.error('Failed to send message')
     } finally {
       setIsLoading(false)
