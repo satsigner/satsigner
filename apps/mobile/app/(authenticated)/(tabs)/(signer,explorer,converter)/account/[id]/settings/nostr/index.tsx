@@ -96,7 +96,10 @@ function SSNostrSync() {
    * Clears all cached messages and processed events
    */
   const handleClearCaches = async () => {
-    if (!accountId || !account) return
+    if (!accountId || !account?.nostr) {
+      toast.error('Account ID and Nostr configuration are required')
+      return
+    }
 
     try {
       setIsLoading(true)
@@ -122,7 +125,10 @@ function SSNostrSync() {
    * Loads Nostr account data
    */
   const loadNostrAccountData = useCallback(() => {
-    if (!account) return
+    if (!account || !accountId) {
+      toast.error('Account and Account ID are required')
+      return
+    }
 
     // Initialize nostr object if it doesn't exist
     if (!account.nostr) {
@@ -147,9 +153,12 @@ function SSNostrSync() {
    * Toggles auto-sync functionality and manages subscriptions
    */
   const handleToggleAutoSync = useCallback(async () => {
-    try {
-      if (!accountId || !account?.nostr) return
+    if (!accountId || !account?.nostr) {
+      toast.error('Account ID and Nostr configuration are required')
+      return
+    }
 
+    try {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         await updateAccountNostr(accountId, {
@@ -240,7 +249,10 @@ function SSNostrSync() {
    * Toggles member trust status
    */
   const toggleMember = (npub: string) => {
-    if (!accountId || !account?.nostr) return
+    if (!accountId || !account?.nostr) {
+      toast.error('Account ID and Nostr configuration are required')
+      return
+    }
 
     setSelectedMembers((prev) => {
       const newSet = new Set(prev)
