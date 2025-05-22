@@ -43,7 +43,7 @@ async function refillRandomPool() {
       randomPoolIndex = 0
     }
   } catch (error) {
-    console.error('Error refilling random pool:', error)
+    // Error refilling random pool
   }
 }
 
@@ -251,7 +251,6 @@ export class NostrAPI {
         secretNostrKey: randomBytesArray
       }
     } catch (error) {
-      console.error('Error generating Nostr keys:', error)
       throw new Error(
         'Failed to generate Nostr keys: ' +
           (error instanceof Error ? error.message : 'Unknown error')
@@ -271,7 +270,7 @@ export class NostrAPI {
         try {
           await this._callback?.(message)
         } catch (error) {
-          console.error('Error processing message:', error)
+          // Error processing message
         }
       }
     }
@@ -354,7 +353,6 @@ export class NostrAPI {
         this.activeSubscriptions.delete(subscription)
       })
     } catch (error) {
-      console.error('Error setting up subscription:', error)
       this.setLoading(false)
       throw error
     }
@@ -365,11 +363,10 @@ export class NostrAPI {
       try {
         subscription.stop()
       } catch (error) {
-        console.error('Error closing subscription:', error)
+        // Error closing subscription
       }
     }
     this.activeSubscriptions.clear()
-    //this.processedMessageIds.clear()
     this.eventQueue = []
     this._callback = undefined
   }

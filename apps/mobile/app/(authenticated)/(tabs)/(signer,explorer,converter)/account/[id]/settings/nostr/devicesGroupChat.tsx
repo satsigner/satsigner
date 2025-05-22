@@ -150,7 +150,6 @@ function SSDevicesGroupChat() {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
     } catch (error) {
-      console.error('Failed to send message:', error)
       toast.error('Failed to send message')
     } finally {
       setIsLoading(false)
@@ -218,7 +217,6 @@ function SSDevicesGroupChat() {
           </SSVStack>
         )
       } catch (error) {
-        console.error('Error rendering message:', error)
         return (
           <SSVStack gap="xxs" style={styles.message}>
             <SSText size="sm" color="muted">

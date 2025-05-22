@@ -1,6 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { Animated, Easing, Platform, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
-import { useRef, useEffect } from 'react'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'

@@ -26,7 +26,7 @@ function SSUtxoLabel() {
     const updatedAccount = setUtxoLabel(accountId!, txid!, Number(vout!), label)
 
     const singleLabelData = {
-      label: label,
+      label,
       ref: `${txid}:${vout}`,
       type: 'output' as LabelType,
       spendable: true

@@ -1,24 +1,24 @@
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
+import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import SSButton from '@/components/SSButton'
 import SSTextClipboard from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
-import SSIconEyeOn from '@/components/icons/SSIconEyeOn'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore, generateColorFromNpub } from '@/store/nostr'
+import { generateColorFromNpub, useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import type { Account } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 /**
  * NostrSync component for managing Nostr synchronization settings and device management
@@ -472,7 +472,7 @@ function SSNostrSync() {
 
               <SSButton
                 style={{ flex: 0.9 }}
-                variant={'outline'}
+                variant="outline"
                 label={t('account.nostrSync.manageRelays', {
                   count: selectedRelays.length
                 })}

@@ -1,11 +1,11 @@
+import ecc from '@bitcoinerlab/secp256k1'
+import * as bitcoinjs from 'bitcoinjs-lib'
+import { nip19 } from 'nostr-tools'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import { nip19 } from 'nostr-tools'
-import * as bitcoinjs from 'bitcoinjs-lib'
-import ecc from '@bitcoinerlab/secp256k1'
 
+import { type NostrAPI } from '@/api/nostr'
 import mmkvStorage from '@/storage/mmkv'
-import { NostrAPI } from '@/api/nostr'
 
 // Initialize ECC library
 bitcoinjs.initEccLib(ecc)
@@ -115,9 +115,6 @@ async function generateColorFromNpub(npub: string): Promise<string> {
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`
   } catch (error) {
-    // Log error for debugging purposes
-    // eslint-disable-next-line no-console
-    console.error('Error generating color from npub:', error)
     return '#404040' // Default color on error
   }
 }
@@ -155,7 +152,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
               }
             }
           })
-        } catch (_error) {
+        } catch (error) {
           set((state) => {
             const existingMembers = state.members[accountId] || []
             const normalizedMembers = existingMembers.map((member) =>
@@ -166,7 +163,6 @@ const useNostrStore = create<NostrState & NostrAction>()(
 
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
             if (!existingNpubs.has(npub)) {
-              console.log('Adding member with default color:', npub)
               normalizedMembers.push({ npub, color: '#404040' })
             }
 
@@ -177,10 +173,6 @@ const useNostrStore = create<NostrState & NostrAction>()(
                 [accountId]: normalizedMembers
               }
             }
-            console.log(
-              'New members state (with default color):',
-              newState.members[accountId]
-            )
             return newState
           })
         }
@@ -343,5 +335,5 @@ const useNostrStore = create<NostrState & NostrAction>()(
   )
 )
 
-export { useNostrStore, generateColorFromNpub }
+export { generateColorFromNpub, useNostrStore }
 export type { Message }

@@ -5,18 +5,18 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { getWalletData } from '@/api/bdk'
-import { NostrAPI, decompressMessage, compressMessage } from '@/api/nostr'
+import { compressMessage, decompressMessage, NostrAPI } from '@/api/nostr'
 import { PIN_KEY } from '@/config/auth'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, Secret, DM } from '@/types/models/Account'
+import type { Account, DM, Secret } from '@/types/models/Account'
 import {
   formatAccountLabels,
-  labelsToJSONL,
   JSONLtoLabels,
   type Label,
+  labelsToJSONL,
   type LabelType
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
@@ -47,7 +47,7 @@ function useNostrSync() {
       try {
         await api.closeAllSubscriptions()
       } catch (error) {
-        console.error('Error closing subscriptions:', error)
+        // Error closing subscriptions
       }
     }
   }, [clearSubscriptions, getActiveSubscriptions])
@@ -119,7 +119,7 @@ function useNostrSync() {
           )
         }
       } catch (error) {
-        console.error('Failed to store DM:', error)
+        // Failed to store DM
       }
     },
     [updateAccountNostr]
@@ -131,7 +131,6 @@ function useNostrSync() {
       const processedEvents =
         useNostrStore.getState().processedEvents[account.id] || []
       if (processedEvents.includes(unwrappedEvent.id)) {
-        console.log('Skipping already processed event:', unwrappedEvent.id)
         return ''
       }
 
@@ -218,7 +217,7 @@ function useNostrSync() {
           try {
             await addMember(account.id, newMember)
           } catch (error) {
-            console.error('Failed to add member:', error)
+            // Failed to add member
           }
         }
 
@@ -263,8 +262,8 @@ function useNostrSync() {
           async (message) => {
             try {
               await processEvent(account, message.content)
-            } catch (_error) {
-              // Handle error silently
+            } catch (error) {
+              // Error processing message
             }
           },
           undefined,
@@ -272,7 +271,7 @@ function useNostrSync() {
           (nsec) => updateLasEOSETimestamp(account, nsec)
         )
         return nostrApi
-      } catch (_error) {
+      } catch (error) {
         toast.error('Failed to subscribe to protocol events')
         if (nostrApi) {
           await nostrApi.closeAllSubscriptions()
@@ -307,7 +306,7 @@ function useNostrSync() {
             try {
               await processEvent(account, message.content)
             } catch (error) {
-              console.error('Error processing message:', error)
+              // Error processing message
             }
           },
           undefined,
@@ -316,8 +315,7 @@ function useNostrSync() {
         )
         return nostrApi
       } catch (error) {
-        console.error('Failed to setup data exchange subscription:', error)
-        toast.error('Failed to subscribe to data exchange')
+        toast.error('Failed to setup data exchange subscription:')
         if (nostrApi) {
           await nostrApi.closeAllSubscriptions()
         }
@@ -330,20 +328,12 @@ function useNostrSync() {
   const nostrSyncSubscriptions = useCallback(
     async (account?: Account, onLoadingChange?: (loading: boolean) => void) => {
       if (!account || !account.nostr) {
-        console.log('No account or nostr data available')
         return
       }
 
       if (getActiveSubscriptions().size > 0) {
-        console.log('ACTIVE SUBSCRIPTIONS - STOP HERE')
         return
       }
-
-      console.log('Starting nostr sync subscriptions:', {
-        accountId: account.id,
-        autoSync: account.nostr.autoSync,
-        activeSubscriptions: getActiveSubscriptions().size
-      })
 
       // Cleanup existing subscriptions first
       await cleanupSubscriptions()
@@ -353,7 +343,6 @@ function useNostrSync() {
         const protocolApi = await protocolSubscription(account, onLoadingChange)
         if (protocolApi) {
           addSubscription(protocolApi)
-          console.log('Protocol subscription started')
         }
 
         // Start data exchange subscription
@@ -363,18 +352,8 @@ function useNostrSync() {
         )
         if (dataExchangeApi) {
           addSubscription(dataExchangeApi)
-          console.log('Data exchange subscription started')
         }
-
-        console.log('All subscriptions started:', {
-          count: getActiveSubscriptions().size,
-          subscriptions: Array.from(getActiveSubscriptions()).map((api) => ({
-            isActive: true,
-            relays: api.getRelays()
-          }))
-        })
       } catch (error) {
-        console.error('Error starting subscriptions:', error)
         toast.error('Failed to start subscriptions')
         await cleanupSubscriptions()
       }
@@ -391,11 +370,9 @@ function useNostrSync() {
   const sendLabelsToNostr = useCallback(
     async (account?: Account, singleLabel?: Label) => {
       if (!account?.nostr?.autoSync) {
-        console.error('Auto sync disabled, skipping label sync')
         return
       }
       if (!account || !account.nostr) {
-        console.error('No account or nostr data available')
         return
       }
       const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
@@ -406,12 +383,6 @@ function useNostrSync() {
         relays.length === 0 ||
         !deviceNpub
       ) {
-        console.error('Missing required nostr data:', {
-          hasCommonNsec: !!commonNsec,
-          hasCommonNpub: !!commonNpub,
-          relaysCount: relays.length,
-          hasDeviceNpub: !!deviceNpub
-        })
         return
       }
 
@@ -474,7 +445,7 @@ function useNostrSync() {
           )
           await nostrApi.publishEvent(eventKind1059)
         }
-      } catch (_error) {
+      } catch (error) {
         toast.error('Failed to send message')
       }
     },
@@ -571,7 +542,6 @@ function useNostrSync() {
           await nostrApi.publishEvent(eventKind1059)
         }
       } catch (error) {
-        console.error('Failed to send message:', error)
         toast.error('Failed to send message')
       }
     },
@@ -697,7 +667,6 @@ function useNostrSync() {
       )
       await nostrApi.publishEvent(eventKind1059)
     } catch (error) {
-      console.error('Failed to send device announcement:', error)
       toast.error('Failed to send device announcement')
     }
   }, [])

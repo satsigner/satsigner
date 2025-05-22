@@ -30,7 +30,7 @@ function SSTransactionLabel() {
     const updatedAccount = setTxLabel(accountId!, txid!, label)
 
     const singleLabelData = {
-      label: label,
+      label,
       ref: txid!,
       type: 'tx' as LabelType,
       spendable: true
