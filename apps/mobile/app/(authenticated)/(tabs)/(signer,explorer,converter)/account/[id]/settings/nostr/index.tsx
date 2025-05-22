@@ -288,7 +288,7 @@ function SSNostrSync() {
   }, [members, account?.nostr?.trustedMemberDevices])
 
   useEffect(() => {
-    if (account) {
+    if (account && accountId) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         updateAccountNostr(accountId, {
@@ -334,7 +334,7 @@ function SSNostrSync() {
   ])
 
   useEffect(() => {
-    if (account) {
+    if (account && accountId) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         updateAccountNostr(accountId, {
