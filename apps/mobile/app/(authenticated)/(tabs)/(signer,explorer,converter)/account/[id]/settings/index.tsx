@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, StyleSheet, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconEyeOn, SSIconScriptsP2pkh } from '@/components/icons'
@@ -187,7 +187,6 @@ function AccountSettings() {
           <SSHStack>
             <SSButton
               style={styles.button}
-              style={styles.button}
               label={t('account.export.labels')}
               onPress={() =>
                 router.navigate(
@@ -196,7 +195,6 @@ function AccountSettings() {
               }
             />
             <SSButton
-              style={styles.button}
               style={styles.button}
               label={t('account.import.labels')}
               onPress={() =>
