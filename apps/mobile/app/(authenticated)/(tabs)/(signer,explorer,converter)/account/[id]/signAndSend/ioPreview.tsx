@@ -3,7 +3,7 @@ import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
@@ -419,11 +419,6 @@ export default function IOPreview() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <LinearGradient
         style={{
           width: '100%',
