@@ -1,6 +1,6 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { getPublicKey, nip19 } from 'nostr-tools'
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -11,13 +11,12 @@ import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import type { Account, DM, Secret } from '@/types/models/Account'
+import type { Account, Secret } from '@/types/models/Account'
 import {
   formatAccountLabels,
   JSONLtoLabels,
   type Label,
-  labelsToJSONL,
-  type LabelType
+  labelsToJSONL
 } from '@/utils/bip329'
 import { aesDecrypt, sha256 } from '@/utils/crypto'
 
@@ -111,12 +110,6 @@ function useNostrSync() {
           updateAccountNostr(account.id, {
             dms: updatedDms
           })
-
-          // Log the state after update
-          const afterState = useAccountsStore.getState()
-          const afterAccount = afterState.accounts.find(
-            (a) => a.id === account.id
-          )
         }
       } catch (_error) {
         // Failed to store DM
@@ -144,7 +137,7 @@ function useNostrSync() {
         } catch (_jsonError) {
           try {
             eventContent = decompressMessage(unwrappedEvent.content)
-          } catch (decompressError) {
+          } catch (_error) {
             eventContent = unwrappedEvent.content
           }
         }
@@ -211,7 +204,7 @@ function useNostrSync() {
             ) {
               await storeDM(account, unwrappedEvent, eventContent)
             }
-          } catch (error) {}
+          } catch (_error) {}
         } else if (eventContent.public_key_bech32) {
           const newMember = eventContent.public_key_bech32
           try {
@@ -222,7 +215,7 @@ function useNostrSync() {
         }
 
         return eventContent
-      } catch (error) {
+      } catch (_error) {
         // If processing fails, remove the event from processed events
         const currentProcessedEvents =
           useNostrStore.getState().processedEvents[account.id] || []
@@ -626,7 +619,7 @@ function useNostrSync() {
         commonNpub,
         privateKeyBytes
       }
-    } catch (error) {
+    } catch (_error) {
       throw error
     }
   }, [])
@@ -666,7 +659,7 @@ function useNostrSync() {
         compressedMessage
       )
       await nostrApi.publishEvent(eventKind1059)
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send device announcement')
     }
   }, [])

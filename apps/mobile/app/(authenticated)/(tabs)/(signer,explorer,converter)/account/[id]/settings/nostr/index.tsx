@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -17,7 +17,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { generateColorFromNpub, useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { Account } from '@/types/models/Account'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 /**
@@ -69,7 +68,6 @@ function SSNostrSync() {
     clearStoredDMs,
     generateCommonNostrKeys,
     deviceAnnouncement,
-    getActiveSubscriptions,
     cleanupSubscriptions,
     nostrSyncSubscriptions
   } = useNostrSync()
@@ -79,7 +77,6 @@ function SSNostrSync() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [commonNsec, setCommonNsec] = useState('')
-  const [commonNpub, setCommonNpub] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
@@ -228,7 +225,6 @@ function SSNostrSync() {
     accountId,
     cleanupSubscriptions,
     deviceAnnouncement,
-    getActiveSubscriptions,
     getUpdatedAccount,
     nostrSyncSubscriptions,
     updateAccountNostr
@@ -310,13 +306,11 @@ function SSNostrSync() {
       if (!commonNsec) {
         if (account.nostr.commonNsec && account.nostr.commonNpub) {
           setCommonNsec(account.nostr.commonNsec)
-          setCommonNpub(account.nostr.commonNpub)
         } else {
           generateCommonNostrKeys(account)
             .then((keys) => {
               if (keys) {
                 setCommonNsec(keys.commonNsec as string)
-                setCommonNpub(keys.commonNpub as string)
                 updateAccountNostr(accountId, {
                   ...account.nostr,
                   commonNsec: keys.commonNsec,
@@ -324,8 +318,8 @@ function SSNostrSync() {
                 })
               }
             })
-            .catch((error) => {
-              throw new Error(`Error loading common Nostr keys: ${error}`)
+            .catch(() => {
+              throw new Error('Error loading common Nostr keys')
             })
         }
       }
@@ -370,7 +364,7 @@ function SSNostrSync() {
               })
             }
           })
-          .catch((error) => {
+          .catch(() => {
             toast.error('Failed to generate device keys')
           })
       } else {

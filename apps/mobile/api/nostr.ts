@@ -1,21 +1,12 @@
 import 'react-native-get-random-values'
 
 import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
-import NDK, { NDKEvent, NDKPrivateKeySigner, NDKUser } from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import * as CBOR from 'cbor-js'
-import {
-  type Event,
-  getPublicKey,
-  nip17,
-  nip19,
-  nip44,
-  nip59
-} from 'nostr-tools'
+import { type Event, getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
-
-import { useAccountsStore } from '@/store/accounts'
 
 const POOL_SIZE = 1024 // 1KB of random values
 
@@ -227,16 +218,6 @@ export class NostrAPI {
 
   static async generateNostrKeys(): Promise<NostrKeys> {
     try {
-      // Initialize NDK with default relays
-      const ndk = new NDK({
-        explicitRelayUrls: [
-          'wss://relay.damus.io',
-          'wss://nostr.bitcoiner.social',
-          'wss://relay.nostr.band',
-          'wss://nostr.mom'
-        ]
-      })
-
       // Generate random bytes using react-native-aes-crypto
       const randomHex = await crypto.randomKey(32)
       const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
@@ -303,10 +284,6 @@ export class NostrAPI {
       const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
       const { data: recipientPubKey } = nip19.decode(recipientNpub)
 
-      const recipientPubKeyFromNsec = getPublicKey(
-        recipientSecretNostrKey as Uint8Array
-      )
-
       const TWO_DAYS = 48 * 60 * 60
       const bufferedSince = since ? since - TWO_DAYS : undefined
 
@@ -343,7 +320,7 @@ export class NostrAPI {
             this.eventQueue.push(message)
             this.processQueue()
           }
-        } catch (error) {}
+        } catch (_error) {}
       })
 
       subscription?.on('eose', () => {
@@ -354,9 +331,9 @@ export class NostrAPI {
       subscription?.on('close', () => {
         this.activeSubscriptions.delete(subscription)
       })
-    } catch (error) {
+    } catch (_error) {
       this.setLoading(false)
-      throw error
+      throw _error
     }
   }
 
@@ -364,7 +341,7 @@ export class NostrAPI {
     for (const subscription of this.activeSubscriptions) {
       try {
         subscription.stop()
-      } catch (error) {
+      } catch (_error) {
         // Error closing subscription
       }
     }
@@ -470,8 +447,8 @@ export class NostrAPI {
 
               await relay.publish(event)
               return { url, success: true }
-            } catch (error) {
-              return { url, success: false, error }
+            } catch (_error) {
+              return { url, success: false, error: _error }
             }
           })
           const results = await Promise.all(publishPromises)
@@ -490,9 +467,9 @@ export class NostrAPI {
       if (!published) {
         throw new Error('Failed to publish after 3 attempts')
       }
-    } catch (error) {
+    } catch (_error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
+        _error instanceof Error ? _error.message : 'Unknown error'
       throw new Error(`Failed to publish event: ${errorMessage}`)
     }
   }
@@ -578,10 +555,10 @@ export function decompressMessage(compressedString: string): any {
       cborBytes.byteOffset + cborBytes.byteLength
     )
     return CBOR.decode(bufferSlice as unknown as Uint8Array)
-  } catch (err) {
+  } catch (_error) {
     throw new Error(
       'Failed to decompress message: ' +
-        (err instanceof Error ? err.message : 'Unknown error')
+        (_error instanceof Error ? _error.message : 'Unknown error')
     )
   }
 }
