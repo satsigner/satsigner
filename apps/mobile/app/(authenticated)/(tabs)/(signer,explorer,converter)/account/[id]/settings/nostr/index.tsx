@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -17,7 +17,6 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { generateColorFromNpub, useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { Account } from '@/types/models/Account'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 /**
@@ -69,7 +68,6 @@ function SSNostrSync() {
     clearStoredDMs,
     generateCommonNostrKeys,
     deviceAnnouncement,
-    getActiveSubscriptions,
     cleanupSubscriptions,
     nostrSyncSubscriptions
   } = useNostrSync()
@@ -353,7 +351,7 @@ function SSNostrSync() {
               })
             }
           })
-          .catch((_error) => {
+          .catch(() => {
             toast.error('Error loading common Nostr keys')
           })
       }
@@ -399,7 +397,7 @@ function SSNostrSync() {
             })
           }
         })
-        .catch((error) => {
+        .catch(() => {
           toast.error('Failed to generate device keys')
         })
     } else {

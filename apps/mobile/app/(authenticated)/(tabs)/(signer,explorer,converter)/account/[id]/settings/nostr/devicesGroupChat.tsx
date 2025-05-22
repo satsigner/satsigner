@@ -1,4 +1,4 @@
-import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
+import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FlatList, StyleSheet, TextInput, View } from 'react-native'
@@ -15,8 +15,8 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type Member, type NostrState, useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { Account, DM } from '@/types/models/Account'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { DM } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
@@ -43,7 +43,7 @@ async function formatNpub(
     }
     colorCache.set(pubkey, result)
     return result
-  } catch (error) {
+  } catch (_error) {
     return { text: pubkey.slice(0, 8), color: '#404040' }
   }
 }
@@ -165,8 +165,7 @@ function SSDevicesGroupChat() {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
     } catch (_error) {
-      // Handle error silently or propagate it up
-      throw _error
+      toast.error('Failed to send message')
     } finally {
       setIsLoading(false)
     }
