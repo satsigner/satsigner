@@ -32,7 +32,7 @@ import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
 
-function AccountSettings() {
+export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
 
   const [account, updateAccountName, deleteAccount] = useAccountsStore(
@@ -208,9 +208,7 @@ function AccountSettings() {
             style={styles.button}
             label={t('account.nostrSync.sync')}
             onPress={() =>
-              router.navigate(
-                `/account/${currentAccountId}/settings/nostr/nostrSync`
-              )
+              router.navigate(`/account/${currentAccountId}/settings/nostr`)
             }
           />
         </SSVStack>
@@ -397,19 +395,27 @@ function AccountSettings() {
             </SSHStack>
             {account.keys[0].mnemonicWordCount && (
               <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
-                {localMnemonic.split(' ').map((word, index) => (
-                  <View key={index} style={styles.localMnemonicOuterContainer}>
-                    <SSHStack
-                      style={styles.localMnemonicInnerContainer}
-                      gap="sm"
-                    >
-                      <SSText size="md" color="muted">
-                        {(index + 1).toString().padStart(2, '0')}.
-                      </SSText>
-                      <SSText size="md">{word}</SSText>
-                    </SSHStack>
-                  </View>
-                ))}
+                <View style={styles.mnemonicGrid}>
+                  {localMnemonic.split(' ').map((word, index) => (
+                    <View key={index} style={styles.mnemonicWordContainer}>
+                      <SSHStack
+                        style={styles.mnemonicWordInnerContainer}
+                        gap="sm"
+                      >
+                        <SSText
+                          size="sm"
+                          color="muted"
+                          style={styles.wordIndex}
+                        >
+                          {(index + 1).toString().padStart(2, '0')}
+                        </SSText>
+                        <SSText size="md" style={styles.wordText}>
+                          {word}
+                        </SSText>
+                      </SSHStack>
+                    </View>
+                  ))}
+                </View>
               </SSSeedLayout>
             )}
             <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
@@ -454,17 +460,6 @@ const styles = StyleSheet.create({
   fingerprintText: {
     color: Colors.success
   },
-  localMnemonicInnerContainer: {
-    padding: 8,
-    borderRadius: 10,
-    borderColor: Colors.gray[800],
-    borderWidth: 1
-  },
-  localMnemonicOuterContainer: {
-    height: 46,
-    width: '32%',
-    justifyContent: 'center'
-  },
   mainLayout: {
     padding: 20
   },
@@ -474,5 +469,32 @@ const styles = StyleSheet.create({
   },
   multiSigKeyControlCOntainer: {
     marginHorizontal: 20
+  },
+  mnemonicGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4
+  },
+  mnemonicWordContainer: {
+    width: '33.33%',
+    padding: 4
+  },
+  mnemonicWordInnerContainer: {
+    padding: 8,
+    borderRadius: 8,
+    borderColor: Colors.gray[800],
+    borderWidth: 1,
+    backgroundColor: Colors.gray[900],
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48
+  },
+  wordIndex: {
+    minWidth: 24,
+    textAlign: 'center'
+  },
+  wordText: {
+    flex: 1,
+    textAlign: 'left'
   }
 })
