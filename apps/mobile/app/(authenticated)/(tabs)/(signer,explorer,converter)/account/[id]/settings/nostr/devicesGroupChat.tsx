@@ -63,7 +63,7 @@ function SSDevicesGroupChat() {
   ])
 
   const { members } = useNostrStore((state) => ({
-    members: state.members[accountId] || []
+    members: (state.members && state.members[accountId]) || []
   }))
 
   const { sendDM } = useNostrSync()
@@ -80,7 +80,7 @@ function SSDevicesGroupChat() {
   // Memoize the members list to prevent unnecessary recalculations
   const membersList = useMemo(
     () =>
-      members.map((member) => ({
+      members.map((member: { npub: string; color?: string }) => ({
         npub: member.npub,
         color: member.color || '#404040'
       })),

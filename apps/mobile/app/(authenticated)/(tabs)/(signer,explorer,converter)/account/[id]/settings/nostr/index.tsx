@@ -512,7 +512,7 @@ function SSNostrSync() {
                       <SSText color="muted" center>
                         {t('account.nostrSync.nsec')}
                       </SSText>
-                      <SSTextClipboard text={deviceNsec}>
+                      <SSTextClipboard text={deviceNsec || ''}>
                         <SSText
                           center
                           size="xl"
@@ -542,7 +542,7 @@ function SSNostrSync() {
                             marginRight: -30
                           }}
                         />
-                        <SSTextClipboard text={deviceNpub}>
+                        <SSTextClipboard text={deviceNpub || ''}>
                           <SSText
                             center
                             size="xl"
@@ -599,7 +599,7 @@ function SSNostrSync() {
                                   marginRight: -20
                                 }}
                               />
-                              <SSTextClipboard text={member.npub}>
+                              <SSTextClipboard text={member.npub || ''}>
                                 <SSText
                                   center
                                   size="lg"
