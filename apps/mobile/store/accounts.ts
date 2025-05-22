@@ -34,8 +34,16 @@ type AccountsAction = {
   getTags: () => string[]
   setTags: (tags: string[]) => void
   deleteTags: () => void
-  setAddrLabel: (account: string, addr: string, label: string) => void
-  setTxLabel: (accountId: Account['id'], txid: string, label: string) => void
+  setAddrLabel: (
+    accountId: Account['id'],
+    addr: string,
+    label: string
+  ) => Account | undefined
+  setTxLabel: (
+    accountId: Account['id'],
+    txid: string,
+    label: string
+  ) => Account | undefined
   setUtxoLabel: (
     accountId: Account['id'],
     txid: string,
@@ -171,16 +179,16 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
       deleteTags: () => {
         set({ tags: [] })
       },
-      setAddrLabel: (accountName, addr, label) => {
+      setAddrLabel: (accountId, addr, label) => {
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
-        if (!account) return
+        if (!account) return undefined
 
         const addrIndex = account.addresses.findIndex(
           (address) => address.address === addr
         )
-        if (addrIndex === -1) return
+        if (addrIndex === -1) return undefined
 
         set(
           produce((state) => {
@@ -202,10 +210,10 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
-        if (!account) return
+        if (!account) return undefined
 
         const txIndex = account.transactions.findIndex((tx) => tx.id === txid)
-        if (txIndex === -1) return
+        if (txIndex === -1) return undefined
 
         set(
           produce((state) => {
@@ -228,12 +236,12 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
         const account = get().accounts.find(
           (account) => account.id === accountId
         )
-        if (!account) return
+        if (!account) return undefined
 
         const utxoIndex = account.utxos.findIndex((u) => {
           return u.txid === txid && u.vout === vout
         })
-        if (utxoIndex === -1) return
+        if (utxoIndex === -1) return undefined
 
         set(
           produce((state) => {

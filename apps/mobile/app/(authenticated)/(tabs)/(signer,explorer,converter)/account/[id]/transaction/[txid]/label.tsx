@@ -10,6 +10,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
+import { type LabelType } from '@/utils/bip329'
 
 import { SSTxDetailsHeader } from '.'
 
@@ -31,8 +32,8 @@ function SSTransactionLabel() {
     const singleLabelData = {
       label: label,
       ref: txid!,
-      spendable: true,
-      type: 'tx'
+      type: 'tx' as LabelType,
+      spendable: true
     }
 
     if (updatedAccount?.nostr?.autoSync) {

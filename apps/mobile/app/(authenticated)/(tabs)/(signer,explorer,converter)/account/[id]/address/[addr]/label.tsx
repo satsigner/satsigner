@@ -11,6 +11,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import { type LabelType } from '@/utils/bip329'
 
 function SSAddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
@@ -30,7 +31,8 @@ function SSAddressLabel() {
     const singleLabelData = {
       label: label,
       ref: addr!,
-      type: 'addr'
+      type: 'addr' as LabelType,
+      spendable: true
     }
 
     if (updatedAccount?.nostr?.autoSync) {

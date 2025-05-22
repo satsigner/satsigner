@@ -8,6 +8,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { type UtxoSearchParams } from '@/types/navigation/searchParams'
+import { type LabelType } from '@/utils/bip329'
 
 function SSUtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()
@@ -26,8 +27,9 @@ function SSUtxoLabel() {
 
     const singleLabelData = {
       label: label,
-      ref: vout!,
-      type: 'output'
+      ref: `${txid}:${vout}`,
+      type: 'output' as LabelType,
+      spendable: true
     }
 
     if (updatedAccount?.nostr?.autoSync) {
