@@ -4,7 +4,7 @@ import type { NDKKind, NDKSubscription } from '@nostr-dev-kit/ndk'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import { Buffer } from 'buffer'
 import * as CBOR from 'cbor-js'
-import { type Event, getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
 
@@ -35,7 +35,7 @@ async function refillRandomPool() {
       randomPool = newPool
       randomPoolIndex = 0
     }
-  } catch (error) {
+  } catch (_error) {
     // Error refilling random pool
   }
 }
@@ -69,7 +69,7 @@ if (typeof global.crypto === 'undefined') {
       try {
         const randomHex = await crypto.randomKey(length)
         return Buffer.from(randomHex, 'hex').toString('base64')
-      } catch (error) {
+      } catch (_error) {
         throw new Error(
           'Failed to generate secure random values: ' +
             (error instanceof Error ? error.message : 'Unknown error')
@@ -207,7 +207,7 @@ export class NostrAPI {
       }
 
       return true
-    } catch (error) {
+    } catch (_error) {
       this.ndk = null
       throw new Error(
         'Failed to connect to relays: ' +
@@ -233,7 +233,7 @@ export class NostrAPI {
         npub,
         secretNostrKey: randomBytesArray
       }
-    } catch (error) {
+    } catch (_error) {
       throw new Error(
         'Failed to generate Nostr keys: ' +
           (error instanceof Error ? error.message : 'Unknown error')
@@ -252,7 +252,7 @@ export class NostrAPI {
         this.processedMessageIds.add(message.id)
         try {
           await this._callback?.(message)
-        } catch (error) {
+        } catch (_error) {
           // Error processing message
         }
       }
