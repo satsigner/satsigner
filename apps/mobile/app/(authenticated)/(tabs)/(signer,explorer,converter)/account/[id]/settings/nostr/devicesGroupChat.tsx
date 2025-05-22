@@ -1,4 +1,4 @@
-import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, Stack, Redirect } from 'expo-router'
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import {
   ActivityIndicator,
@@ -9,20 +9,22 @@ import {
 } from 'react-native'
 import { toast } from 'sonner-native'
 import { nip19 } from 'nostr-tools'
+import { useShallow } from 'zustand/react/shallow'
 
 import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore } from '@/store/nostr'
+import { useNostrStore, type NostrState } from '@/store/nostr'
 import useNostrSync from '@/hooks/useNostrSync'
 import { Colors } from '@/styles'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import type { DM } from '@/types/models/Account'
+import type { Account, DM } from '@/types/models/Account'
 
 // Cache for npub colors
 const colorCache = new Map<string, { text: string; color: string }>()
@@ -54,6 +56,12 @@ async function formatNpub(
   }
 }
 
+// Add type for member
+type Member = {
+  npub: string
+  color: string
+}
+
 function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [isLoading, setIsLoading] = useState(false)
@@ -63,13 +71,32 @@ function SSDevicesGroupChat() {
     Map<string, { text: string; color: string }>
   >(new Map())
 
-  const [account] = useAccountsStore((state) => [
-    state.accounts.find((_account) => _account.id === accountId)
-  ])
+  const [account, updateAccountNostr] = useAccountsStore(
+    useShallow((state) => [
+      state.accounts.find((_account: Account) => _account.id === accountId),
+      state.updateAccountNostr
+    ])
+  )
 
-  const { members } = useNostrStore((state) => ({
-    members: state.members[accountId] || []
-  }))
+  // Add type guard for members
+  const members = useNostrStore(
+    useShallow((state: NostrState) => {
+      if (!accountId) return []
+      const accountMembers = state.members[accountId] || []
+      return accountMembers
+        .map((member: string | Member) =>
+          typeof member === 'string'
+            ? { npub: member, color: '#404040' }
+            : member
+        )
+        .reduce((acc: Member[], member: Member) => {
+          if (!acc.some((m: Member) => m.npub === member.npub)) {
+            acc.push(member)
+          }
+          return acc
+        }, [] as Member[])
+    })
+  )
 
   const { sendDM } = useNostrSync()
 

@@ -148,10 +148,10 @@ function SSNostrSync() {
    */
   const handleToggleAutoSync = useCallback(async () => {
     try {
-      if (!accountId) return
+      if (!accountId || !account?.nostr) return
 
       // Initialize nostr object if it doesn't exist
-      if (!account?.nostr) {
+      if (!account.nostr) {
         await updateAccountNostr(accountId, {
           autoSync: false,
           relays: [],
@@ -201,7 +201,9 @@ function SSNostrSync() {
 
         if (
           updatedAccount?.nostr?.relays &&
-          updatedAccount.nostr.relays.length > 0
+          updatedAccount.nostr.relays.length > 0 &&
+          updatedAccount.nostr.deviceNpub &&
+          updatedAccount.nostr.deviceNsec
         ) {
           setIsSyncing(true)
           try {
@@ -245,6 +247,7 @@ function SSNostrSync() {
       if (newSet.has(npub)) {
         newSet.delete(npub)
         updateAccountNostr(accountId, {
+          ...account.nostr,
           trustedMemberDevices: account.nostr.trustedMemberDevices.filter(
             (m) => m !== npub
           ),
@@ -253,6 +256,7 @@ function SSNostrSync() {
       } else {
         newSet.add(npub)
         updateAccountNostr(accountId, {
+          ...account.nostr,
           trustedMemberDevices: [...account.nostr.trustedMemberDevices, npub],
           lastUpdated: new Date()
         })
