@@ -20,16 +20,14 @@ const useGetAccountWallet = (id: Account['id']) => {
     if (!account) return
     const walletData = await getWalletData(account, account.network as Network)
     if (!walletData) return
-    addAccountWallet(id, walletData?.wallet)
+    addAccountWallet(id, walletData.wallet)
   }
 
   useEffect(() => {
     if (!wallet) addWallet()
   }, [wallet, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return {
-    wallet
-  }
+  return wallet
 }
 
 export default useGetAccountWallet

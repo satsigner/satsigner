@@ -10,13 +10,13 @@ import SSNumberInput from '@/components/SSNumberInput'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 
 export default function Receive() {
@@ -26,7 +26,7 @@ export default function Receive() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id)
 
   const [localAddress, setLocalAddress] = useState<string>()
   const [localAddressNumber, setLocalAddressNumber] = useState<number>()

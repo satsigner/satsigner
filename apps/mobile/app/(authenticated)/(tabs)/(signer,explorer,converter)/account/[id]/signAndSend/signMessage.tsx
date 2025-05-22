@@ -10,13 +10,13 @@ import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { getBlockchainConfig } from '@/config/servers'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
@@ -33,7 +33,7 @@ export default function SignMessage() {
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id)
   const [selectedNetwork, configs] = useBlockchainStore(
     useShallow((state) => [state.selectedNetwork, state.configs])
   )

@@ -32,6 +32,7 @@ import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -40,7 +41,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
@@ -93,7 +93,7 @@ export default function IOPreview() {
     [mempoolUrl]
   )
 
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id)
   const [changeAddress, setChangeAddress] = useState('')
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
