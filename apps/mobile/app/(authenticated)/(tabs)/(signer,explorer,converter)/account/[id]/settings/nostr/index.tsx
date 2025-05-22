@@ -388,6 +388,29 @@ function SSNostrSync() {
     }
   }, [account, loadNostrAccountData])
 
+  // Add effect to handle auto-sync on mount
+  useEffect(() => {
+    const startAutoSync = async () => {
+      if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
+
+      setIsSyncing(true)
+      try {
+        deviceAnnouncement(account)
+        await nostrSyncSubscriptions(account, (loading) => {
+          requestAnimationFrame(() => {
+            setIsSyncing(loading)
+          })
+        })
+      } catch {
+        toast.error('Failed to setup sync')
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+
+    startAutoSync()
+  }, [account, deviceAnnouncement, nostrSyncSubscriptions])
+
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
@@ -458,7 +481,6 @@ function SSNostrSync() {
             <SSHStack gap="md">
               <SSButton
                 style={{ flex: 0.9 }}
-                variant="outline"
                 label={t('account.nostrSync.setKeys')}
                 onPress={goToNostrKeyPage}
                 disabled={isSyncing}
@@ -466,7 +488,6 @@ function SSNostrSync() {
 
               <SSButton
                 style={{ flex: 0.9 }}
-                variant="outline"
                 label={t('account.nostrSync.manageRelays', {
                   count: selectedRelays.length
                 })}
