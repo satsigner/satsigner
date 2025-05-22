@@ -482,7 +482,7 @@ function SSNostrSync() {
                       <SSVStack key={index} gap="md">
                         {member?.npub && (
                           <SSHStack gap="md">
-                            <SSHStack gap="xxs" style={{ flex: 0.7 }}>
+                            <SSHStack gap="sm" style={{ flex: 0.7 }}>
                               <View
                                 style={{
                                   width: 8,
@@ -490,14 +490,14 @@ function SSNostrSync() {
                                   borderRadius: 4,
                                   backgroundColor: member.color || '#404040',
                                   marginTop: 1,
-                                  marginLeft: 20,
-                                  marginRight: -20
+                                  marginLeft: 15,
+                                  marginRight: -15
                                 }}
                               />
                               <SSTextClipboard text={member.npub}>
                                 <SSText
                                   center
-                                  size="xl"
+                                  size="lg"
                                   type="mono"
                                   style={styles.memberText}
                                   selectable
