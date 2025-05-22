@@ -12,6 +12,8 @@ import { Buffer } from 'buffer'
 import * as pako from 'pako'
 import * as CBOR from 'cbor-js'
 import { useAccountsStore } from '@/store/accounts'
+import crypto from 'react-native-aes-crypto'
+import 'react-native-get-random-values'
 
 export interface NostrKeys {
   nsec: string
@@ -134,18 +136,38 @@ export class NostrAPI {
   }
 
   static async generateNostrKeys(): Promise<NostrKeys> {
-    const signer = NDKPrivateKeySigner.generate()
-    const user = await signer.user()
-    const secretNostrKey = new Uint8Array(
-      Buffer.from(signer.privateKey!, 'hex')
-    )
-    const nsec = nip19.nsecEncode(secretNostrKey)
-    const npub = user.npub
+    try {
+      // Initialize NDK with default relays
+      const ndk = new NDK({
+        explicitRelayUrls: [
+          'wss://relay.damus.io',
+          'wss://nostr.bitcoiner.social',
+          'wss://relay.nostr.band',
+          'wss://nostr.mom'
+        ]
+      })
 
-    return {
-      nsec,
-      npub,
-      secretNostrKey
+      // Generate random bytes using react-native-aes-crypto
+      const randomHex = await crypto.randomKey(32)
+      const randomBytesArray = new Uint8Array(Buffer.from(randomHex, 'hex'))
+
+      // Use the private key directly with NDKPrivateKeySigner
+      const signer = new NDKPrivateKeySigner(randomBytesArray)
+      const user = await signer.user()
+      const nsec = nip19.nsecEncode(randomBytesArray)
+      const npub = user.npub
+
+      return {
+        nsec,
+        npub,
+        secretNostrKey: randomBytesArray
+      }
+    } catch (error) {
+      console.error('Error generating Nostr keys:', error)
+      throw new Error(
+        'Failed to generate Nostr keys: ' +
+          (error instanceof Error ? error.message : 'Unknown error')
+      )
     }
   }
 
@@ -232,9 +254,7 @@ export class NostrAPI {
             this.eventQueue.push(message)
             this.processQueue()
           }
-        } catch (error) {
-          console.error('Error processing event:', error)
-        }
+        } catch (error) {}
       })
 
       subscription?.on('eose', () => {

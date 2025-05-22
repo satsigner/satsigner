@@ -501,6 +501,8 @@ function useNostrSync() {
         )
         await nostrApi.publishEvent(eventKind1059)
 
+        /*
+        
         // Send to commonNpub to match protocol
         eventKind1059 = await nostrApi.createKind1059(
           deviceNsec,
@@ -508,6 +510,8 @@ function useNostrSync() {
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
+        
+        */
 
         /*
         const newMessage = {
@@ -645,45 +649,41 @@ function useNostrSync() {
     }
   }
 
-  const deviceAnnouncement = useCallback(
-    async (account?: Account, npubDevice?: string) => {
-      if (!account?.nostr?.autoSync) return
-      if (!account || !account.nostr) return
-      const { commonNsec, commonNpub, relays } = account.nostr
+  const deviceAnnouncement = useCallback(async (account?: Account) => {
+    if (!account?.nostr?.autoSync) return
+    if (!account || !account.nostr) return
+    const { commonNsec, commonNpub, deviceNpub, relays } = account.nostr
 
-      if (
-        !commonNsec ||
-        commonNpub === '' ||
-        relays.length === 0 ||
-        !npubDevice
-      ) {
-        return
+    if (!commonNsec || !commonNpub || relays.length === 0 || !deviceNpub) {
+      console.log('❤️❤️✅❤️✅❤️❤️ ----- Device announcement not sent')
+      return
+    }
+
+    let nostrApi: NostrAPI | null = null
+    console.log('❤️❤️❤️❤️❤️ -----Device announcement sent')
+    try {
+      const messageContent = {
+        created_at: Math.floor(Date.now() / 1000),
+        public_key_bech32: deviceNpub
       }
 
-      let nostrApi: NostrAPI | null = null
-      try {
-        const messageContent = {
-          created_at: Math.floor(Date.now() / 1000),
-          public_key_bech32: npubDevice
-        }
+      console.log('❤️❤️❤️❤️❤️ ------------- Device announcement sent')
 
-        const compressedMessage = compressMessage(messageContent)
-        nostrApi = new NostrAPI(relays)
-        await nostrApi.connect()
+      const compressedMessage = compressMessage(messageContent)
+      nostrApi = new NostrAPI(relays)
+      await nostrApi.connect()
 
-        const eventKind1059 = await nostrApi.createKind1059(
-          commonNsec,
-          commonNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-      } catch (error) {
-        console.error('Failed to send device announcement:', error)
-        toast.error('Failed to send device announcement')
-      }
-    },
-    []
-  )
+      const eventKind1059 = await nostrApi.createKind1059(
+        commonNsec,
+        commonNpub,
+        compressedMessage
+      )
+      await nostrApi.publishEvent(eventKind1059)
+    } catch (error) {
+      console.error('Failed to send device announcement:', error)
+      toast.error('Failed to send device announcement')
+    }
+  }, [])
 
   return {
     sendLabelsToNostr,

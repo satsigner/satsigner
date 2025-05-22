@@ -85,6 +85,13 @@ function SSNostrSync() {
   const [deviceColor, setDeviceColor] = useState('#404040')
   const [selectedRelays, setSelectedRelays] = useState<string[]>([])
 
+  // Add this useCallback near the top of the component, after other hooks
+  const getUpdatedAccount = useCallback(() => {
+    return useAccountsStore
+      .getState()
+      .accounts.find((_account) => _account.id === accountId)
+  }, [accountId])
+
   /**
    * Clears all cached messages and processed events
    */
@@ -116,15 +123,47 @@ function SSNostrSync() {
    */
   const loadNostrAccountData = useCallback(() => {
     if (!account) return
-    setSelectedRelays(account.nostr.relays)
-  }, [account])
+
+    // Initialize nostr object if it doesn't exist
+    if (!account.nostr) {
+      updateAccountNostr(accountId, {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: '',
+        deviceNsec: '',
+        deviceNpub: ''
+      })
+      setSelectedRelays([])
+      return
+    }
+
+    setSelectedRelays(account.nostr.relays || [])
+  }, [account, accountId, updateAccountNostr])
 
   /**
    * Toggles auto-sync functionality and manages subscriptions
    */
-  const handleToggleAutoSync = async () => {
+  const handleToggleAutoSync = useCallback(async () => {
     try {
-      if (account?.nostr?.autoSync) {
+      // Initialize nostr object if it doesn't exist
+      if (!account?.nostr) {
+        await updateAccountNostr(accountId, {
+          autoSync: false,
+          relays: [],
+          dms: [],
+          trustedMemberDevices: [],
+          commonNsec: '',
+          commonNpub: '',
+          deviceNsec: '',
+          deviceNpub: ''
+        })
+        return
+      }
+
+      if (account.nostr.autoSync) {
         // Turn sync OFF
         setIsSyncing(true)
         try {
@@ -133,7 +172,10 @@ function SSNostrSync() {
           console.log('🔴 Cleaned up all subscriptions')
 
           // Then update state
-          updateAccountNostr(accountId, { autoSync: false })
+          updateAccountNostr(accountId, {
+            ...account.nostr,
+            autoSync: false
+          })
           console.log('🔴 Auto-sync OFF - Active subscriptions:', {
             autoSync: false,
             count: getActiveSubscriptions().size,
@@ -150,27 +192,32 @@ function SSNostrSync() {
         }
       } else {
         // Turn sync ON
-        updateAccountNostr(accountId, { autoSync: true })
+        updateAccountNostr(accountId, {
+          ...account.nostr,
+          autoSync: true
+        })
 
         // Wait a tick for state to update
         await new Promise((resolve) => setTimeout(resolve, 0))
 
-        // Get fresh account state after update
-        const updatedAccount = useAccountsStore
-          .getState()
-          .accounts.find((_account) => _account.id === accountId)
+        // Get fresh account state after update using the callback
+        const updatedAccount = getUpdatedAccount()
 
-        if (updatedAccount && selectedRelays.length > 0) {
+        if (
+          updatedAccount &&
+          updatedAccount.nostr &&
+          updatedAccount.nostr.relays &&
+          updatedAccount.nostr.relays.length > 0
+        ) {
           setIsSyncing(true)
           try {
+            deviceAnnouncement(updatedAccount)
             // Start both subscriptions using the new function
             await nostrSyncSubscriptions(updatedAccount, (loading) => {
               requestAnimationFrame(() => {
                 setIsSyncing(loading)
               })
             })
-
-            deviceAnnouncement(updatedAccount)
           } catch (error) {
             console.error('Error setting up subscriptions:', error)
             toast.error('Failed to setup sync')
@@ -184,7 +231,16 @@ function SSNostrSync() {
       toast.error('Failed to toggle auto sync')
       setIsSyncing(false)
     }
-  }
+  }, [
+    account?.nostr,
+    accountId,
+    cleanupSubscriptions,
+    deviceAnnouncement,
+    getActiveSubscriptions,
+    getUpdatedAccount,
+    nostrSyncSubscriptions,
+    updateAccountNostr
+  ])
 
   /**
    * Toggles member trust status
@@ -237,25 +293,43 @@ function SSNostrSync() {
   }, [members, account?.nostr?.trustedMemberDevices])
 
   useEffect(() => {
-    if (account && !commonNsec) {
-      if (account.nostr.commonNsec && account.nostr.commonNpub) {
-        setCommonNsec(account.nostr.commonNsec)
-        setCommonNpub(account.nostr.commonNpub)
-      } else {
-        generateCommonNostrKeys(account)
-          .then((keys) => {
-            if (keys) {
-              setCommonNsec(keys.commonNsec as string)
-              setCommonNpub(keys.commonNpub as string)
-              updateAccountNostr(accountId, {
-                commonNsec: keys.commonNsec,
-                commonNpub: keys.commonNpub
-              })
-            }
-          })
-          .catch((error) => {
-            throw new Error(`Error loading common Nostr keys: ${error}`)
-          })
+    if (account) {
+      // Initialize nostr object if it doesn't exist
+      if (!account.nostr) {
+        updateAccountNostr(accountId, {
+          autoSync: false,
+          relays: [],
+          dms: [],
+          trustedMemberDevices: [],
+          commonNsec: '',
+          commonNpub: '',
+          deviceNsec: '',
+          deviceNpub: ''
+        })
+        return // Return early as we'll re-run this effect after the update
+      }
+
+      if (!commonNsec) {
+        if (account.nostr.commonNsec && account.nostr.commonNpub) {
+          setCommonNsec(account.nostr.commonNsec)
+          setCommonNpub(account.nostr.commonNpub)
+        } else {
+          generateCommonNostrKeys(account)
+            .then((keys) => {
+              if (keys) {
+                setCommonNsec(keys.commonNsec as string)
+                setCommonNpub(keys.commonNpub as string)
+                updateAccountNostr(accountId, {
+                  ...account.nostr,
+                  commonNsec: keys.commonNsec,
+                  commonNpub: keys.commonNpub
+                })
+              }
+            })
+            .catch((error) => {
+              throw new Error(`Error loading common Nostr keys: ${error}`)
+            })
+        }
       }
     }
   }, [
@@ -267,12 +341,24 @@ function SSNostrSync() {
   ])
 
   useEffect(() => {
-    if (account && !deviceNsec) {
-      if (account.nostr.deviceNsec && account.nostr.deviceNpub) {
-        setDeviceNsec(account.nostr.deviceNsec)
-        setDeviceNpub(account.nostr.deviceNpub)
-        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-      } else {
+    if (account) {
+      // Initialize nostr object if it doesn't exist
+      if (!account.nostr) {
+        updateAccountNostr(accountId, {
+          autoSync: false,
+          relays: [],
+          dms: [],
+          trustedMemberDevices: [],
+          commonNsec: '',
+          commonNpub: '',
+          deviceNsec: '',
+          deviceNpub: ''
+        })
+        return // Return early as we'll re-run this effect after the update
+      }
+
+      // Only try to load device keys if we don't have them yet
+      if (!account.nostr.deviceNsec || !account.nostr.deviceNpub) {
         NostrAPI.generateNostrKeys()
           .then((keys) => {
             if (keys) {
@@ -280,17 +366,24 @@ function SSNostrSync() {
               setDeviceNpub(keys.npub)
               generateColorFromNpub(keys.npub).then(setDeviceColor)
               updateAccountNostr(accountId, {
+                ...account.nostr,
                 deviceNpub: keys.npub,
                 deviceNsec: keys.nsec
               })
             }
           })
           .catch((error) => {
-            throw new Error(`Error loading device Nostr keys: ${error}`)
+            console.error('Error generating device keys:', error)
+            toast.error('Failed to generate device keys')
           })
+      } else {
+        // If we already have the keys, just set them
+        setDeviceNsec(account.nostr.deviceNsec)
+        setDeviceNpub(account.nostr.deviceNpub)
+        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
       }
     }
-  }, [account, accountId, deviceNsec, updateAccountNostr])
+  }, [account, accountId, updateAccountNostr])
 
   useEffect(() => {
     if (deviceNpub && deviceColor === '#404040') {
@@ -401,7 +494,7 @@ function SSNostrSync() {
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
               <SSVStack gap="xxs" style={styles.keysContainer}>
-                {deviceNsec !== '' && deviceNpub !== '' ? (
+                {deviceNsec && deviceNpub ? (
                   <>
                     <SSVStack gap="xxs">
                       <SSText color="muted" center>
@@ -455,8 +548,8 @@ function SSNostrSync() {
                   </>
                 ) : (
                   <SSHStack style={styles.keyContainerLoading}>
-                    <ActivityIndicator />
-                    <SSText uppercase>
+                    <ActivityIndicator color={Colors.white} />
+                    <SSText uppercase color="white">
                       {t('account.nostrSync.loadingKeys')}
                     </SSText>
                   </SSHStack>
