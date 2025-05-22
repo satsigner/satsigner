@@ -51,6 +51,7 @@ function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [isLoading, setIsLoading] = useState(false)
   const [isContentLoaded, setIsContentLoaded] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
   const flatListRef = useRef<FlatList>(null)
   const [formattedNpubs, setFormattedNpubs] = useState<
@@ -113,37 +114,28 @@ function SSDevicesGroupChat() {
   // Separate effect for scrolling
   useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
-      setIsContentLoaded(false)
-      // Wait for content to be fully rendered
-      setTimeout(() => {
+      if (isInitialLoad) {
+        setIsContentLoaded(false)
+        // Wait for content to be fully rendered
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: false })
+            // Double check scroll after a short delay
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: false })
+              setIsContentLoaded(true)
+              setIsInitialLoad(false)
+            }, 200)
+          }
+        }, 100)
+      } else {
+        // For subsequent updates, just scroll without showing loading
         if (flatListRef.current) {
           flatListRef.current.scrollToEnd({ animated: false })
-          // Double check scroll after a short delay
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: false })
-            setIsContentLoaded(true)
-          }, 200)
         }
-      }, 100)
+      }
     }
-  }, [messages.length, account?.nostr?.relays?.length])
-
-  // Add effect to scroll to bottom on mount
-  useEffect(() => {
-    if (messages.length > 0) {
-      setIsContentLoaded(false)
-      setTimeout(() => {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToEnd({ animated: false })
-          // Double check scroll after a short delay
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: false })
-            setIsContentLoaded(true)
-          }, 200)
-        }
-      }, 100)
-    }
-  }, []) // Empty dependency array means this runs once on mount
+  }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) {
@@ -275,7 +267,7 @@ function SSDevicesGroupChat() {
 
         {/* Messages section */}
         <View style={styles.messagesContainer}>
-          {!isContentLoaded && messages.length > 0 && (
+          {!isContentLoaded && isInitialLoad && messages.length > 0 && (
             <View style={styles.loadingContainer}>
               <SSText center color="muted">
                 Loading messages...
@@ -333,8 +325,6 @@ function SSDevicesGroupChat() {
 const styles = StyleSheet.create({
   messagesContainer: {
     flex: 1,
-    backgroundColor: '#1f1f1f',
-    paddingHorizontal: 8,
     paddingBottom: 8
   },
   message: {
