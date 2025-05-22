@@ -44,8 +44,8 @@ async function refillRandomPool() {
       randomPool = newPool
       randomPoolIndex = 0
     }
-  } catch (error) {
-    console.error('Error refilling random pool:', error)
+  } catch (_error) {
+    // Error refilling random pool
   }
 }
 
@@ -253,11 +253,7 @@ export class NostrAPI {
         secretNostrKey: randomBytesArray
       }
     } catch (error) {
-      console.error('Error generating Nostr keys:', error)
-      throw new Error(
-        'Failed to generate Nostr keys: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
+      throw new Error('Failed to generate Nostr keys')
     }
   }
 
@@ -272,8 +268,8 @@ export class NostrAPI {
         this.processedMessageIds.add(message.id)
         try {
           await this._callback?.(message)
-        } catch (error) {
-          console.error('Error processing message:', error)
+        } catch (_error) {
+          // Error processing message
         }
       }
     }
@@ -304,16 +300,11 @@ export class NostrAPI {
       const { data: recipientSecretNostrKey } = nip19.decode(recipientNsec)
       const { data: recipientPubKey } = nip19.decode(recipientNpub)
 
-      const recipientPubKeyFromNsec = getPublicKey(
-        recipientSecretNostrKey as Uint8Array
-      )
-
       const TWO_DAYS = 48 * 60 * 60
       const bufferedSince = since ? since - TWO_DAYS : undefined
 
       const subscriptionQuery = {
         kinds: [1059 as NDKKind],
-        //'#p': [recipientPubKeyFromNsec, recipientPubKey.toString()],
         '#p': [recipientPubKey.toString()],
         ...(limit && { limit }),
         since: bufferedSince
@@ -344,7 +335,9 @@ export class NostrAPI {
             this.eventQueue.push(message)
             this.processQueue()
           }
-        } catch (error) {}
+        } catch (_error) {
+          // Error processing event
+        }
       })
 
       subscription?.on('eose', () => {
@@ -355,10 +348,8 @@ export class NostrAPI {
       subscription?.on('close', () => {
         this.activeSubscriptions.delete(subscription)
       })
-    } catch (error) {
-      console.error('Error setting up subscription:', error)
-      this.setLoading(false)
-      throw error
+    } catch (_error) {
+      throw new Error('Failed to set up subscription')
     }
   }
 
@@ -366,12 +357,11 @@ export class NostrAPI {
     for (const subscription of this.activeSubscriptions) {
       try {
         subscription.stop()
-      } catch (error) {
-        console.error('Error closing subscription:', error)
+      } catch (_error) {
+        // Error closing subscription
       }
     }
     this.activeSubscriptions.clear()
-    //this.processedMessageIds.clear()
     this.eventQueue = []
     this._callback = undefined
   }
@@ -473,8 +463,8 @@ export class NostrAPI {
 
               await relay.publish(event)
               return { url, success: true }
-            } catch (error) {
-              return { url, success: false, error }
+            } catch (_error) {
+              return { url, success: false, error: 'Failed to publish' }
             }
           })
           const results = await Promise.all(publishPromises)
@@ -494,9 +484,7 @@ export class NostrAPI {
         throw new Error('Failed to publish after 3 attempts')
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-      throw new Error(`Failed to publish event: ${errorMessage}`)
+      throw new Error('Failed to publish event')
     }
   }
 }
@@ -504,15 +492,14 @@ export class NostrAPI {
 const BASE85 =
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~'
 
-function base85Encode(buf: Buffer): string {
+function base85Encode(buf: Uint8Array): string {
   const pad = (4 - (buf.length % 4)) % 4
-  const data = pad
-    ? Buffer.concat([buf, Buffer.alloc(pad)], buf.length + pad)
-    : buf
+  const data = pad ? new Uint8Array([...buf, ...new Uint8Array(pad)]) : buf
 
   let out = ''
   for (let i = 0; i < data.length; i += 4) {
-    let acc = data.readUInt32BE(i)
+    let acc =
+      (data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]
     let chunk = ''
     for (let j = 0; j < 5; j++) {
       chunk = BASE85[acc % 85] + chunk
@@ -527,7 +514,7 @@ const BASE85_DECODE = Object.fromEntries(
   BASE85.split('').map((ch, i) => [ch, i])
 )
 
-function base85Decode(str: string): Buffer {
+function base85Decode(str: string): Uint8Array {
   const len = str.length
   const rem = len % 5
   if (rem === 1) {
@@ -556,7 +543,7 @@ function base85Decode(str: string): Buffer {
     out.push(acc & 0xff)
   }
 
-  return Buffer.from(out.slice(0, out.length - padBytes))
+  return new Uint8Array(out.slice(0, out.length - padBytes))
 }
 
 export function compressMessage(data: any): string {
@@ -565,7 +552,7 @@ export function compressMessage(data: any): string {
     const jsonUint8 = new Uint8Array(cborData)
 
     const compressedData = pako.deflate(jsonUint8)
-    const compressedBuffer = Buffer.from(compressedData)
+    const compressedBuffer = new Uint8Array(compressedData)
     return base85Encode(compressedBuffer)
   } catch (_error) {
     throw new Error('Failed to compress data')
@@ -576,15 +563,8 @@ export function decompressMessage(compressedString: string): any {
   try {
     const compressedBytes = base85Decode(compressedString)
     const cborBytes = pako.inflate(new Uint8Array(compressedBytes))
-    const bufferSlice = cborBytes.buffer.slice(
-      cborBytes.byteOffset,
-      cborBytes.byteOffset + cborBytes.byteLength
-    )
-    return CBOR.decode(bufferSlice as unknown as Uint8Array)
-  } catch (err) {
-    throw new Error(
-      'Failed to decompress message: ' +
-        (err instanceof Error ? err.message : 'Unknown error')
-    )
+    return CBOR.decode(cborBytes)
+  } catch (_error) {
+    throw new Error('Failed to decompress message')
   }
 }

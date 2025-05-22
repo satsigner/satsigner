@@ -118,10 +118,7 @@ async function generateColorFromNpub(npub: string): Promise<string> {
     }
 
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`
-  } catch (error) {
-    // Log error for debugging purposes
-    // eslint-disable-next-line no-console
-    console.error('Error generating color from npub:', error)
+  } catch (_error) {
     return '#404040' // Default color on error
   }
 }
@@ -138,7 +135,7 @@ const useNostrStore = create<NostrState & NostrAction>()(
       activeSubscriptions: new Set<NostrAPI>(),
       addMember: async (accountId, npub) => {
         try {
-          const color = await generateColorFromNpub(npub)
+          const _color = await generateColorFromNpub(npub)
           set((state) => {
             const existingMembers = state.members[accountId] || []
             const normalizedMembers = existingMembers.map((member) =>
@@ -149,10 +146,11 @@ const useNostrStore = create<NostrState & NostrAction>()(
 
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
             if (!existingNpubs.has(npub)) {
-              normalizedMembers.push({ npub, color })
+              normalizedMembers.push({ npub, color: '#404040' })
             }
 
             return {
+              ...state,
               members: {
                 ...state.members,
                 [accountId]: normalizedMembers
@@ -170,22 +168,16 @@ const useNostrStore = create<NostrState & NostrAction>()(
 
             const existingNpubs = new Set(normalizedMembers.map((m) => m.npub))
             if (!existingNpubs.has(npub)) {
-              console.log('Adding member with default color:', npub)
               normalizedMembers.push({ npub, color: '#404040' })
             }
 
-            const newState = {
+            return {
               ...state,
               members: {
                 ...state.members,
                 [accountId]: normalizedMembers
               }
             }
-            console.log(
-              'New members state (with default color):',
-              newState.members[accountId]
-            )
-            return newState
           })
         }
       },

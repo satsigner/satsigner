@@ -1,8 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ActivityIndicator,
+import {,
   FlatList,
   StyleSheet,
   TextInput,
@@ -11,17 +10,16 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
+
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { useNostrStore, type NostrState, type Member } from '@/store/nostr'
+import { type Member, type NostrState, useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { Account, DM } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
@@ -169,8 +167,9 @@ function SSDevicesGroupChat() {
     try {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
-    } catch (_error) {
-      toast.error('Failed to send message')
+    } catch (error) {
+      // Handle error silently or propagate it up
+      throw error
     } finally {
       setIsLoading(false)
     }
