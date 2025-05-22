@@ -10,31 +10,13 @@ export const servers: Server[] = [
   {
     name: 'Blockstream',
     backend: 'electrum',
-    url: 'ssl://blockstream.info:700',
-    network: 'bitcoin'
-  },
-  {
-    name: 'Blockstream',
-    backend: 'electrum',
     url: 'ssl://electrum.blockstream.info:50002',
     network: 'bitcoin'
   },
   {
-    name: 'Luke',
+    name: 'Luke BitcoinJS',
     backend: 'electrum',
     url: 'ssl://bitcoin.lu.ke:50002',
-    network: 'bitcoin'
-  },
-  {
-    name: 'Emzy',
-    backend: 'electrum',
-    url: 'ssl://electrum.emzy.de:50002',
-    network: 'bitcoin'
-  },
-  {
-    name: 'Bitaroo',
-    backend: 'electrum',
-    url: 'ssl://electrum.bitaroo.net:50002',
     network: 'bitcoin'
   },
   {
