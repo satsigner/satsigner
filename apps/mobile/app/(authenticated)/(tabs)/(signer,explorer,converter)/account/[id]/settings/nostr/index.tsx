@@ -335,7 +335,15 @@ function SSNostrSync() {
                 account?.nostr?.autoSync ? 'Turn sync OFF' : 'Turn sync ON'
               }
               onPress={handleToggleAutoSync}
+              disabled={
+                !account?.nostr?.autoSync && selectedRelays.length === 0
+              }
             />
+            {!account?.nostr?.autoSync && selectedRelays.length === 0 && (
+              <SSText color="muted" center>
+                {t('account.nostrSync.noRelaysWarning')}
+              </SSText>
+            )}
             {isSyncing && (
               <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                 <ActivityIndicator size="small" color={Colors.white} />
@@ -374,7 +382,7 @@ function SSNostrSync() {
 
               <SSButton
                 style={{ flex: 0.9 }}
-                variant={selectedRelays.length === 0 ? 'secondary' : 'outline'}
+                variant={'outline'}
                 label={t('account.nostrSync.manageRelays', {
                   count: selectedRelays.length
                 })}
@@ -383,7 +391,7 @@ function SSNostrSync() {
               />
             </SSHStack>
 
-            {selectedRelays.length === 0 && (
+            {selectedRelays.length === 0 && account?.nostr?.autoSync && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
               </SSText>
@@ -424,9 +432,9 @@ function SSNostrSync() {
                             height: 8,
                             borderRadius: 4,
                             backgroundColor: deviceColor,
-                            marginTop: 1,
-                            marginLeft: 50,
-                            marginRight: -50
+                            marginTop: 3,
+                            marginLeft: 32,
+                            marginRight: -32
                           }}
                         />
                         <SSTextClipboard text={deviceNpub}>
@@ -537,28 +545,7 @@ function SSNostrSync() {
               onPress={handleClearCaches}
               disabled={isLoading}
               variant="subtle"
-              style={{ flex: 0.33 }}
-            />
-            <SSButton
-              label="Log DM Store"
-              onPress={() => {
-                if (account?.nostr?.dms) {
-                  console.log('Log DM:', account.nostr.dms)
-                } else {
-                  console.log('No DMs')
-                }
-              }}
-              variant="subtle"
-              style={{ flex: 0.33 }}
-            />
-            <SSButton
-              label="Log Members"
-              onPress={() => {
-                const members = useNostrStore.getState().getMembers(accountId)
-                console.log('Members Store:', members)
-              }}
-              variant="subtle"
-              style={{ flex: 0.33 }}
+              style={{ flex: 1 }}
             />
           </SSHStack>
         </SSVStack>
