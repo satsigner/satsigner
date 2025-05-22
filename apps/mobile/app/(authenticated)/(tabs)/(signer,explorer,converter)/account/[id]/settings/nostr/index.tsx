@@ -326,43 +326,43 @@ function SSNostrSync() {
   }, [members, account?.nostr?.trustedMemberDevices])
 
   useEffect(() => {
-    if (account) {
-      // Initialize nostr object if it doesn't exist
-      if (!account.nostr) {
-        updateAccountNostr(accountId, {
-          autoSync: false,
-          relays: [],
-          dms: [],
-          trustedMemberDevices: [],
-          commonNsec: '',
-          commonNpub: '',
-          deviceNsec: '',
-          deviceNpub: ''
-        })
-        return // Return early as we'll re-run this effect after the update
-      }
+    if (!accountId || !account) return
 
-      if (!commonNsec) {
-        if (account.nostr.commonNsec && account.nostr.commonNpub) {
-          setCommonNsec(account.nostr.commonNsec)
-          setCommonNpub(account.nostr.commonNpub)
-        } else {
-          generateCommonNostrKeys(account)
-            .then((keys) => {
-              if (keys) {
-                setCommonNsec(keys.commonNsec as string)
-                setCommonNpub(keys.commonNpub as string)
-                updateAccountNostr(accountId, {
-                  ...account.nostr,
-                  commonNsec: keys.commonNsec,
-                  commonNpub: keys.commonNpub
-                })
-              }
-            })
-            .catch((error) => {
-              throw new Error(`Error loading common Nostr keys: ${error}`)
-            })
-        }
+    // Initialize nostr object if it doesn't exist
+    if (!account.nostr) {
+      updateAccountNostr(accountId, {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: '',
+        deviceNsec: '',
+        deviceNpub: ''
+      })
+      return // Return early as we'll re-run this effect after the update
+    }
+
+    if (!commonNsec) {
+      if (account.nostr.commonNsec && account.nostr.commonNpub) {
+        setCommonNsec(account.nostr.commonNsec)
+        setCommonNpub(account.nostr.commonNpub)
+      } else {
+        generateCommonNostrKeys(account)
+          .then((keys) => {
+            if (keys) {
+              setCommonNsec(keys.commonNsec as string)
+              setCommonNpub(keys.commonNpub as string)
+              updateAccountNostr(accountId, {
+                ...account.nostr,
+                commonNsec: keys.commonNsec,
+                commonNpub: keys.commonNpub
+              })
+            }
+          })
+          .catch((error) => {
+            throw new Error(`Error loading common Nostr keys: ${error}`)
+          })
       }
     }
   }, [
@@ -374,46 +374,46 @@ function SSNostrSync() {
   ])
 
   useEffect(() => {
-    if (account) {
-      // Initialize nostr object if it doesn't exist
-      if (!account.nostr) {
-        updateAccountNostr(accountId, {
-          autoSync: false,
-          relays: [],
-          dms: [],
-          trustedMemberDevices: [],
-          commonNsec: '',
-          commonNpub: '',
-          deviceNsec: '',
-          deviceNpub: ''
-        })
-        return // Return early as we'll re-run this effect after the update
-      }
+    if (!accountId || !account) return
 
-      // Only try to load device keys if we don't have them yet
-      if (!account.nostr.deviceNsec || !account.nostr.deviceNpub) {
-        NostrAPI.generateNostrKeys()
-          .then((keys) => {
-            if (keys) {
-              setDeviceNsec(keys.nsec)
-              setDeviceNpub(keys.npub)
-              generateColorFromNpub(keys.npub).then(setDeviceColor)
-              updateAccountNostr(accountId, {
-                ...account.nostr,
-                deviceNpub: keys.npub,
-                deviceNsec: keys.nsec
-              })
-            }
-          })
-          .catch((error) => {
-            toast.error('Failed to generate device keys')
-          })
-      } else {
-        // If we already have the keys, just set them
-        setDeviceNsec(account.nostr.deviceNsec)
-        setDeviceNpub(account.nostr.deviceNpub)
-        generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
-      }
+    // Initialize nostr object if it doesn't exist
+    if (!account.nostr) {
+      updateAccountNostr(accountId, {
+        autoSync: false,
+        relays: [],
+        dms: [],
+        trustedMemberDevices: [],
+        commonNsec: '',
+        commonNpub: '',
+        deviceNsec: '',
+        deviceNpub: ''
+      })
+      return // Return early as we'll re-run this effect after the update
+    }
+
+    // Only try to load device keys if we don't have them yet
+    if (!account.nostr.deviceNsec || !account.nostr.deviceNpub) {
+      NostrAPI.generateNostrKeys()
+        .then((keys) => {
+          if (keys) {
+            setDeviceNsec(keys.nsec)
+            setDeviceNpub(keys.npub)
+            generateColorFromNpub(keys.npub).then(setDeviceColor)
+            updateAccountNostr(accountId, {
+              ...account.nostr,
+              deviceNpub: keys.npub,
+              deviceNsec: keys.nsec
+            })
+          }
+        })
+        .catch((error) => {
+          toast.error('Failed to generate device keys')
+        })
+    } else {
+      // If we already have the keys, just set them
+      setDeviceNsec(account.nostr.deviceNsec)
+      setDeviceNpub(account.nostr.deviceNpub)
+      generateColorFromNpub(account.nostr.deviceNpub).then(setDeviceColor)
     }
   }, [account, accountId, updateAccountNostr])
 
@@ -424,10 +424,9 @@ function SSNostrSync() {
   }, [deviceNpub, deviceColor])
 
   useEffect(() => {
-    if (account) {
-      loadNostrAccountData()
-    }
-  }, [account, loadNostrAccountData])
+    if (!accountId || !account) return
+    loadNostrAccountData()
+  }, [account, accountId, loadNostrAccountData])
 
   if (!accountId || !account) return <Redirect href="/" />
 
