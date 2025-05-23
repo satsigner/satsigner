@@ -445,98 +445,57 @@ function useNostrSync() {
     []
   )
 
-  const sendDM = useCallback(async (account?: Account, message?: any) => {
-    if (!account?.nostr?.autoSync) return
-    if (!account || !account.nostr) return
-    const { commonNsec, commonNpub, relays, deviceNpub } = account.nostr
+  const sendDM = useCallback(
+    async (account: Account, message: string) => {
+      if (!account?.nostr?.autoSync) return
+      if (!account || !account.nostr) return
+      const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
+        account.nostr
 
-    if (
-      !commonNsec ||
-      commonNpub === '' ||
-      relays.length === 0 ||
-      !deviceNpub
-    ) {
-      return
-    }
-
-    let nostrApi: NostrAPI | null = null
-    try {
-      const messageContent = {
-        // TODO Messages sometimes get out of order, check if created_at timesstamping matches other clients (bitcoin-safe)
-        created_at: Math.floor(Date.now() / 1000),
-        label: 1,
-        description: message
+      if (
+        !commonNsec ||
+        !commonNpub ||
+        relays.length === 0 ||
+        !deviceNsec ||
+        !deviceNpub
+      ) {
+        return
       }
 
-      const compressedMessage = compressMessage(messageContent)
-      nostrApi = new NostrAPI(relays)
-      await nostrApi.connect()
-
-      const deviceNsec = account.nostr.deviceNsec
-      if (!deviceNsec) {
-        throw new Error('Device NSEC not found')
-      }
-
-      // Send to our deviceNpub
-      let eventKind1059 = await nostrApi.createKind1059(
-        deviceNsec,
-        deviceNpub,
-        compressedMessage
-      )
-      await nostrApi.publishEvent(eventKind1059)
-
-      /*
-        
-        // Send to commonNpub to match protocol
-        eventKind1059 = await nostrApi.createKind1059(
-          deviceNsec,
-          commonNpub,
-          compressedMessage
-        )
-        await nostrApi.publishEvent(eventKind1059)
-        
-        */
-
-      /*
-        const newMessage = {
-          id: eventKind1059.id,
-          author: deviceNpub,
-          created_at: messageContent.created_at,
-          description: message,
-          event: JSON.stringify(eventKind1059),
-          label: 1,
-          content: {
-            description: message,
-            created_at: messageContent.created_at,
-            pubkey: deviceNpub
-          }
+      let nostrApi: NostrAPI | null = null
+      try {
+        const messageContent = {
+          created_at: Math.floor(Date.now() / 1000),
+          description: message
         }
 
-        /*
-        const currentDms = account.nostr?.dms || []
-        const updatedDms = [...currentDms, newMessage].sort(
-          (a, b) => a.created_at - b.created_at
-        )
+        const compressedMessage = compressMessage(messageContent)
+        nostrApi = new NostrAPI(relays)
+        await nostrApi.connect()
 
-        updateAccountNostr(account.id, {
-          ...account.nostr,
-          dms: updatedDms
-        })
-        */
-      const trustedDevices = getTrustedDevices(account.id)
-      for (const trustedDeviceNpub of trustedDevices) {
-        if (!deviceNsec) continue
-        eventKind1059 = await nostrApi.createKind1059(
+        let eventKind1059 = await nostrApi.createKind1059(
           deviceNsec,
-          trustedDeviceNpub,
+          deviceNpub,
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
+
+        const trustedDevices = getTrustedDevices(account.id)
+        for (const trustedDeviceNpub of trustedDevices) {
+          if (!deviceNsec) continue
+          eventKind1059 = await nostrApi.createKind1059(
+            deviceNsec,
+            trustedDeviceNpub,
+            compressedMessage
+          )
+          await nostrApi.publishEvent(eventKind1059)
+        }
+      } catch (_error) {
+        toast.error('Failed to send message')
       }
-    } catch (_error) {
-      toast.error('Failed to send message')
-    }
-  }, [])
+    },
+    [updateAccountNostr]
+  )
 
   const loadStoredDMs = useCallback(async (account?: Account) => {
     if (!account) return []
