@@ -445,70 +445,70 @@ function useNostrSync() {
     []
   )
 
-  const sendDM = useCallback(
-    async (account: Account, message: string) => {
-      if (!account?.nostr?.autoSync) return
-      if (!account || !account.nostr) return
-      const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
-        account.nostr
+  const sendDM = useCallback(async (account: Account, message: string) => {
+    if (!account?.nostr?.autoSync) return
+    if (!account || !account.nostr) return
+    const { commonNsec, commonNpub, deviceNsec, deviceNpub, relays } =
+      account.nostr
 
-      if (
-        !commonNsec ||
-        !commonNpub ||
-        relays.length === 0 ||
-        !deviceNsec ||
-        !deviceNpub
-      ) {
-        return
+    if (
+      !commonNsec ||
+      !commonNpub ||
+      relays.length === 0 ||
+      !deviceNsec ||
+      !deviceNpub
+    ) {
+      return
+    }
+
+    let nostrApi: NostrAPI | null = null
+    try {
+      const messageContent = {
+        created_at: Math.floor(Date.now() / 1000),
+        description: message
       }
 
-      let nostrApi: NostrAPI | null = null
-      try {
-        const messageContent = {
-          created_at: Math.floor(Date.now() / 1000),
-          description: message
-        }
+      const compressedMessage = compressMessage(messageContent)
+      nostrApi = new NostrAPI(relays)
+      await nostrApi.connect()
 
-        const compressedMessage = compressMessage(messageContent)
-        nostrApi = new NostrAPI(relays)
-        await nostrApi.connect()
+      let eventKind1059 = await nostrApi.createKind1059(
+        deviceNsec,
+        deviceNpub,
+        compressedMessage
+      )
+      await nostrApi.publishEvent(eventKind1059)
 
-        let eventKind1059 = await nostrApi.createKind1059(
+      const trustedDevices = getTrustedDevices(account.id)
+      for (const trustedDeviceNpub of trustedDevices) {
+        if (!deviceNsec) continue
+        eventKind1059 = await nostrApi.createKind1059(
           deviceNsec,
-          deviceNpub,
+          trustedDeviceNpub,
           compressedMessage
         )
         await nostrApi.publishEvent(eventKind1059)
-
-        const trustedDevices = getTrustedDevices(account.id)
-        for (const trustedDeviceNpub of trustedDevices) {
-          if (!deviceNsec) continue
-          eventKind1059 = await nostrApi.createKind1059(
-            deviceNsec,
-            trustedDeviceNpub,
-            compressedMessage
-          )
-          await nostrApi.publishEvent(eventKind1059)
-        }
-      } catch (_error) {
-        toast.error('Failed to send message')
       }
-    },
-    [updateAccountNostr]
-  )
+    } catch (_error) {
+      toast.error('Failed to send message')
+    }
+  }, [])
 
   const loadStoredDMs = useCallback(async (account?: Account) => {
     if (!account) return []
     return account.nostr?.dms || []
   }, [])
 
-  const clearStoredDMs = useCallback(async (account?: Account) => {
-    if (!account?.nostr) return
-    updateAccountNostr(account.id, {
-      ...account.nostr,
-      dms: []
-    })
-  }, [])
+  const clearStoredDMs = useCallback(
+    async (account?: Account) => {
+      if (!account?.nostr) return
+      updateAccountNostr(account.id, {
+        ...account.nostr,
+        dms: []
+      })
+    },
+    [updateAccountNostr]
+  )
 
   const generateCommonNostrKeys = useCallback(async (account?: Account) => {
     if (!account) return
