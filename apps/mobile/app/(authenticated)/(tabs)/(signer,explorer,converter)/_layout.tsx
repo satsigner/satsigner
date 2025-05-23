@@ -26,6 +26,7 @@ import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
+import { center } from '@shopify/react-native-skia'
 
 export default function StackLayout(params: any) {
   const currentPath = usePathname()
@@ -127,7 +128,12 @@ export default function StackLayout(params: any) {
               )
             : () => (
                 <SSIconButton
-                  style={{ marginLeft: 8, width: 20 }}
+                  style={{
+                    paddingTop: 8,
+                    paddingHorizontal: 8,
+                    width: 30,
+                    height: 30
+                  }}
                   onPress={() => router.back()}
                 >
                   <SSIconBackArrow height={16} width={7} />

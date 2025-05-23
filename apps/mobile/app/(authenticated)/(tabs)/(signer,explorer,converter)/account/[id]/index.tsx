@@ -970,6 +970,12 @@ export default function AccountView() {
           ),
           headerRight: () => (
             <SSIconButton
+              style={{
+                paddingTop: 6,
+                width: 30,
+                height: 30,
+                alignItems: 'center'
+              }}
               onPress={() => router.navigate(`/account/${id}/settings`)}
             >
               <SSIconKeys height={18} width={18} />
