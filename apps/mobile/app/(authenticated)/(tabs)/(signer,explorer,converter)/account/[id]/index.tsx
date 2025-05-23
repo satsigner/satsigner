@@ -1003,7 +1003,7 @@ export default function AccountView() {
           </SSText>
         </SSHStack>
       </TouchableOpacity>
-      <Animated.View style={{ height: gradientHeight }}>
+      <Animated.View style={{ height: gradientHeight, marginTop: -24 }}>
         <SSVStack itemsCenter gap="none">
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
             <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -1031,7 +1031,7 @@ export default function AccountView() {
           <SSVStack gap="none">
             <SSHStack
               justifyEvenly
-              gap="none"
+              gap="xxs"
               style={{ paddingHorizontal: '5%' }}
             >
               {account.policyType !== 'watchonly' && (
