@@ -207,7 +207,8 @@ function SSTransactionCard({
           <SSHStack
             gap="xs"
             style={{
-              alignSelf: 'flex-end'
+              alignSelf: 'flex-end',
+              marginBottom: transaction.label ? 4 : 0
             }}
           >
             {transaction.label ? (
@@ -235,7 +236,10 @@ function SSTransactionCard({
               <SSText
                 size={expand ? 'xxs' : 'xs'}
                 style={[
-                  { textAlign: 'right', color: Colors.gray[500] },
+                  {
+                    textAlign: 'right',
+                    color: Colors.gray[500]
+                  },
                   {
                     backgroundColor: Colors.gray[950],
                     paddingVertical: expand ? 0 : 2,
