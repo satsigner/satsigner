@@ -140,7 +140,6 @@ function NostrKeys() {
               )}
             </SSVStack>
           </SSVStack>
-
           <SSVStack gap="sm">
             <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
             <SSVStack gap="xxs">
@@ -174,7 +173,6 @@ function NostrKeys() {
               </SSVStack>
             </SSVStack>
           </SSVStack>
-
           <SSButton
             label={t('account.nostrSync.save')}
             onPress={saveChanges}

@@ -142,10 +142,7 @@ export default function AccountList() {
   }, [connectionMode, fetchPrices, mempoolUrl])
 
   useFocusEffect(() => {
-    const cleanup = async () => {
-      await cleanupSubscriptions()
-    }
-    cleanup()
+    cleanupSubscriptions()
   })
 
   function handleOnNavigateToAddAccount() {

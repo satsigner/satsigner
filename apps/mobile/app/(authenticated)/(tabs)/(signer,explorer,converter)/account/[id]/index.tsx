@@ -834,10 +834,6 @@ export default function AccountView() {
     router.navigate(`/account/${id}/signAndSend/selectUtxoList`)
   }
 
-  function navigateToSettings() {
-    router.navigate(`/account/${id}/settings`)
-  }
-
   if (!account) return <Redirect href="/" />
 
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
@@ -983,7 +979,9 @@ export default function AccountView() {
             />
           ),
           headerRight: () => (
-            <SSIconButton onPress={navigateToSettings}>
+            <SSIconButton
+              onPress={() => router.navigate(`/account/${id}/settings`)}
+            >
               <SSIconKeys height={18} width={18} />
             </SSIconButton>
           )

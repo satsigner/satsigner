@@ -19,10 +19,7 @@ import { generateColorFromNpub, useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
-/**
- * NostrSync component for managing Nostr synchronization settings and device management
- */
-function SSNostrSync() {
+function NostrSync() {
   // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [account, updateAccountNostr] = useAccountsStore(
@@ -434,7 +431,6 @@ function SSNostrSync() {
           <SSText center uppercase color="muted">
             {t('account.nostrSync.title')}
           </SSText>
-
           {/* Auto-sync section */}
           <SSVStack gap="md">
             <SSButton
@@ -486,7 +482,6 @@ function SSNostrSync() {
                 onPress={goToNostrKeyPage}
                 disabled={isSyncing}
               />
-
               <SSButton
                 style={{ flex: 0.9 }}
                 label={t('account.nostrSync.manageRelays', {
@@ -496,13 +491,11 @@ function SSNostrSync() {
                 disabled={isSyncing}
               />
             </SSHStack>
-
             {selectedRelays.length === 0 && account?.nostr?.autoSync && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
               </SSText>
             )}
-
             {/* Personal Device Keys */}
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
@@ -569,14 +562,12 @@ function SSNostrSync() {
                 )}
               </SSVStack>
             </SSVStack>
-
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="secondary"
               label={t('account.nostrSync.devicesGroupChat')}
               onPress={goToDevicesGroupChat}
             />
-
             {/* Members section */}
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.members')}</SSText>
@@ -643,7 +634,6 @@ function SSNostrSync() {
               )}
             </SSVStack>
           </SSVStack>
-
           {/* Debug buttons */}
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
@@ -698,4 +688,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSNostrSync
+export default NostrSync
