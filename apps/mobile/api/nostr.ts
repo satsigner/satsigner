@@ -249,7 +249,7 @@ export class NostrAPI {
       if (!this.processedMessageIds.has(message.id)) {
         this.processedMessageIds.add(message.id)
         try {
-          await this._callback?.(message)
+          this._callback?.(message)
         } catch (_error) {
           // Error processing message
         }
@@ -301,7 +301,7 @@ export class NostrAPI {
       subscription?.on('event', async (event) => {
         try {
           const rawEvent = await event.toNostrEvent()
-          const unwrappedEvent = await nip59.unwrapEvent(
+          const unwrappedEvent = nip59.unwrapEvent(
             rawEvent as unknown as Event,
             recipientSecretNostrKey as Uint8Array
           )
@@ -346,13 +346,6 @@ export class NostrAPI {
     this.activeSubscriptions.clear()
     this.eventQueue = []
     this._callback = undefined
-  }
-
-  private async getRandomValues(array: Uint8Array): Promise<Uint8Array> {
-    const randomHex = await crypto.randomKey(array.length)
-    const randomBytes = Buffer.from(randomHex, 'hex')
-    array.set(randomBytes)
-    return array
   }
 
   async createKind1059(
