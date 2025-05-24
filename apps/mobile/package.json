@@ -26,7 +26,6 @@
     "@gorhom/bottom-sheet": "^5.1.1",
     "@miblanchard/react-native-slider": "^2.6.0",
     "@nostr-dev-kit/ndk": "^2.14.5",
-    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-navigation/drawer": "6.6.9",
     "@shopify/flash-list": "^1.7.3",
