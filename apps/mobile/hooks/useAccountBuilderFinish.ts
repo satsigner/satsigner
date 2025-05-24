@@ -40,6 +40,8 @@ function useAccountBuilderFinish() {
     setLoading(true)
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
+    const { policyType } = account
+    const { creationType } = account.keys[0]
 
     const walletData = !isImportAddress
       ? await getWalletData(account, network as Network)
@@ -65,6 +67,9 @@ function useAccountBuilderFinish() {
     }
 
     const accountWithEncryptedSecret = getAccountData()
+    // Ensure policy type and creation type are preserved
+    accountWithEncryptedSecret.policyType = policyType
+    accountWithEncryptedSecret.keys[0].creationType = creationType
 
     addAccount(accountWithEncryptedSecret)
     if (walletData)

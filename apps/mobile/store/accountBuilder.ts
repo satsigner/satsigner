@@ -3,7 +3,12 @@ import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
 import { type EntropyType } from '@/types/logic/entropy'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import {
+  type Account,
+  type DM,
+  type Key,
+  type Secret
+} from '@/types/models/Account'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -233,15 +238,35 @@ const useAccountBuilderStore = create<
       syncProgress: {
         tasksDone: 0,
         totalTasks: 0
+      },
+      nostr: {
+        commonNpub: '',
+        commonNsec: '',
+        relays: [],
+        autoSync: false,
+        deviceNpub: '',
+        deviceNsec: '',
+        trustedMemberDevices: [],
+        trustedMemberAliases: [],
+        dms: [] as DM[],
+        lastUpdated: new Date(),
+        syncStart: new Date()
       }
     }
 
     return account
   },
   clearKeyState: () => {
+    const { policyType, creationType, keys } = get()
+    // Preserve the extendedPublicKey from the first key if it exists
+    const extendedPublicKey =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.extendedPublicKey
+        : undefined
+
     set({
       keyName: '',
-      creationType: 'importMnemonic',
+      creationType,
       entropy: 'none',
       mnemonicWordCount: 24,
       mnemonic: '',
@@ -249,7 +274,8 @@ const useAccountBuilderStore = create<
       fingerprint: undefined,
       scriptVersion: 'P2WPKH',
       externalDescriptor: undefined,
-      extendedPublicKey: undefined
+      extendedPublicKey, // Preserve the extendedPublicKey
+      policyType
     })
   },
   clearAccount: () => {

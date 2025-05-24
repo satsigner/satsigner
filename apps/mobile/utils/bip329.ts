@@ -1,3 +1,4 @@
+import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Prices } from '@/types/models/Blockchain'
 import { type Transaction } from '@/types/models/Transaction'
@@ -111,6 +112,14 @@ export function formatUtxoLabels(utxos: Utxo[]): Label[] {
         spendable: true // TODO: allow the user to mark utxo as not spendable
       }
     })
+}
+
+export function formatAccountLabels(account: Account): Label[] {
+  return [
+    ...formatTransactionLabels(account.transactions),
+    ...formatUtxoLabels(account.utxos),
+    ...formatAddressLabels(account.addresses)
+  ]
 }
 
 export function labelsToCSV(labels: Label[]) {

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { StyleSheet, type TextInput, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
 import SSNumberInput from './SSNumberInput'
@@ -35,6 +35,11 @@ function SSNumberGhostInput({
           autoFocus
           allowDecimal={allowDecimal}
           onBlur={() => setIsEditing(false)}
+          style={{
+            fontSize: Sizes.text.fontSize['5xl'],
+            height: 72,
+            fontFamily: Typography.sfProTextLight
+          }}
           {...props}
         />
       ) : (
@@ -47,7 +52,7 @@ function SSNumberGhostInput({
             gap="xs"
             style={{ alignItems: 'baseline', justifyContent: 'center' }}
           >
-            <SSText size="3xl" weight="medium">
+            <SSText size="5xl" weight="light">
               {formatNumber(Number(props.value), allowDecimal ? 2 : 0)}
             </SSText>
             {suffix ? (
@@ -65,8 +70,10 @@ function SSNumberGhostInput({
 const styles = StyleSheet.create({
   inputButtonBase: {
     borderRadius: Sizes.textInput.borderRadius,
-    height: Sizes.textInput.height.default,
-    justifyContent: 'center'
+    height: 72,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.gray[400]
   }
 })
 
