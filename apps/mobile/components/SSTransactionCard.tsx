@@ -226,8 +226,7 @@ function SSTransactionCard({
                       backgroundColor: Colors.gray[700],
                       paddingVertical: 2,
                       paddingHorizontal: 6,
-                      borderRadius: 4,
-                      marginHorizontal: 2
+                      borderRadius: 4
                     }
                   ]}
                   uppercase
@@ -247,7 +246,6 @@ function SSTransactionCard({
                   {
                     backgroundColor: Colors.gray[950],
                     paddingVertical: expand ? 0 : 2,
-                    paddingHorizontal: expand ? 4 : 6,
                     borderRadius: 4
                   }
                 ]}
