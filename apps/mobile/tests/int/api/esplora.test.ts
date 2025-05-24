@@ -54,16 +54,16 @@ describe('Esplora tests', () => {
   })
 
   it('get address tx', async () => {
-    const address = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-    const resp = await esplora.getAddressTx(address)
+    const address = 'bc1qs308e0rcv8aycdq3jcdxxu60ws3a6a5rcnhfyv'
+    const resp = await esplora.getAddressTxs(address)
     expect(Array.isArray(resp)).toBe(true)
     expect(resp.length).toBeGreaterThan(0)
     expect(resp[0]).toHaveProperty('txid')
   })
 
   it('get address tx in mempool', async () => {
-    const address = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-    const resp = await esplora.getAddressTxInMempool(address)
+    const address = 'bc1qs308e0rcv8aycdq3jcdxxu60ws3a6a5rcnhfyv'
+    const resp = await esplora.getAddressTxsInMempool(address)
     expect(Array.isArray(resp)).toBe(true)
     resp.forEach((tx) => {
       expect(tx).toHaveProperty('txid')

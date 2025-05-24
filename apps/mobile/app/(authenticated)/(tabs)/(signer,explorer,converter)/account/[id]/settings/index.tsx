@@ -173,18 +173,17 @@ export default function AccountSettings() {
               />
             </SSHStack>
           )}
-          <SSHStack>
-            <SSButton
-              style={styles.button}
-              label={t('account.export.descriptors')}
-              variant="gradient"
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccountId}/settings/export/descriptors`
-                )
-              }
-            />
-          </SSHStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.export.descriptors')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/export/descriptors`
+              )
+            }
+          />
+        </SSVStack>
+        <SSVStack>
           <SSHStack>
             <SSButton
               style={styles.button}
@@ -201,7 +200,6 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.export.labels')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/export/labels`
@@ -211,7 +209,6 @@ export default function AccountSettings() {
             <SSButton
               style={styles.button}
               label={t('account.import.labels')}
-              variant="gradient"
               onPress={() =>
                 router.navigate(
                   `/account/${currentAccountId}/settings/import/labels`
@@ -219,6 +216,13 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
+          <SSButton
+            style={styles.button}
+            label={t('account.nostrSync.sync')}
+            onPress={() =>
+              router.navigate(`/account/${currentAccountId}/settings/nostr`)
+            }
+          />
         </SSVStack>
         <SSFormLayout>
           <SSFormLayout.Item>
@@ -388,40 +392,95 @@ export default function AccountSettings() {
         fullOpacity
         visible={mnemonicModalVisible}
         onClose={() => setMnemonicModalVisible(false)}
+        closeButtonVariant="ghost"
         label={t('common.close')}
-        closeButtonVariant="subtle"
       >
         {localMnemonic && (
-          <SSVStack gap="lg" itemsCenter>
-            <SSText center uppercase>
-              {account.keys[0].mnemonicWordCount} {t('account.mnemonic.title')}
-            </SSText>
-            <SSHStack style={{ justifyContent: 'center' }}>
-              <SSText uppercase color="muted">
-                {t('account.seed.keepItSecret')}
+          <View style={styles.mnemonicModalOuterContainer}>
+            <SSVStack gap="lg" style={styles.mnemonicModalContainer}>
+              <SSText center uppercase>
+                {account.keys[0].mnemonicWordCount}{' '}
+                {t('account.mnemonic.title')}
               </SSText>
-            </SSHStack>
-            {account.keys[0].mnemonicWordCount && (
-              <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
-                {localMnemonic.split(' ').map((word, index) => (
-                  <View key={index} style={styles.localMnemonicOuterContainer}>
-                    <SSHStack
-                      style={styles.localMnemonicInnerContainer}
-                      gap="sm"
-                    >
-                      <SSText size="md" color="muted">
-                        {(index + 1).toString().padStart(2, '0')}.
-                      </SSText>
-                      <SSText size="md">{word}</SSText>
-                    </SSHStack>
-                  </View>
-                ))}
-              </SSSeedLayout>
-            )}
-            <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
-              <SSButton label={t('common.copy')} />
-            </SSClipboardCopy>
-          </SSVStack>
+              <SSHStack style={{ justifyContent: 'center' }}>
+                <SSText uppercase color="muted">
+                  {t('account.seed.keepItSecret')}
+                </SSText>
+              </SSHStack>
+              <View style={styles.mnemonicWordsContainer}>
+                {account.keys[0].mnemonicWordCount && (
+                  <SSSeedLayout count={account.keys[0].mnemonicWordCount}>
+                    <View style={styles.mnemonicGrid}>
+                      {Array.from({ length: 3 }).map((_, colIndex) => {
+                        // Calculate rows needed based on total words
+                        // For 12 words: 4 rows per column
+                        // For 20 words: 7 rows per column
+                        // For 22 words: 8 rows per column
+                        // For 24 words: 8 rows per column
+                        const totalWords = account.keys[0].mnemonicWordCount!
+                        const wordsPerColumn = Math.ceil(totalWords / 3)
+                        const isLastColumn = colIndex === 2
+                        const wordsInThisColumn = isLastColumn
+                          ? totalWords - wordsPerColumn * 2 // Handle remainder in last column
+                          : wordsPerColumn
+
+                        return (
+                          <View key={colIndex} style={styles.mnemonicColumn}>
+                            {Array.from({ length: wordsPerColumn }).map(
+                              (_, rowIndex) => {
+                                const wordIndex =
+                                  colIndex * wordsPerColumn + rowIndex
+                                const words = localMnemonic.split(' ')
+                                const word =
+                                  wordIndex < words.length &&
+                                  rowIndex < wordsInThisColumn
+                                    ? words[wordIndex]
+                                    : null
+
+                                return word ? (
+                                  <View
+                                    key={rowIndex}
+                                    style={styles.mnemonicWordContainer}
+                                  >
+                                    <SSHStack
+                                      style={styles.mnemonicWordInnerContainer}
+                                      gap="sm"
+                                    >
+                                      <SSText
+                                        size="sm"
+                                        color="muted"
+                                        style={styles.wordIndex}
+                                      >
+                                        {(wordIndex + 1)
+                                          .toString()
+                                          .padStart(2, '0')}
+                                      </SSText>
+                                      <SSText size="md" style={styles.wordText}>
+                                        {word}
+                                      </SSText>
+                                    </SSHStack>
+                                  </View>
+                                ) : null
+                              }
+                            )}
+                          </View>
+                        )
+                      })}
+                    </View>
+                  </SSSeedLayout>
+                )}
+              </View>
+            </SSVStack>
+            <View style={styles.copyButtonContainer}>
+              <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+                <SSButton
+                  label={t('common.copy')}
+                  style={styles.copyButton}
+                  variant="outline"
+                />
+              </SSClipboardCopy>
+            </View>
+          </View>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
@@ -460,17 +519,6 @@ const styles = StyleSheet.create({
   fingerprintText: {
     color: Colors.success
   },
-  localMnemonicInnerContainer: {
-    padding: 8,
-    borderRadius: 10,
-    borderColor: Colors.gray[800],
-    borderWidth: 1
-  },
-  localMnemonicOuterContainer: {
-    height: 46,
-    width: '32%',
-    justifyContent: 'center'
-  },
   mainLayout: {
     padding: 20
   },
@@ -480,5 +528,64 @@ const styles = StyleSheet.create({
   },
   multiSigKeyControlCOntainer: {
     marginHorizontal: 20
+  },
+  mnemonicGrid: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    gap: 8
+  },
+  mnemonicColumn: {
+    flex: 1,
+    maxWidth: '32%'
+  },
+  mnemonicWordContainer: {
+    marginBottom: 8,
+    height: 48
+  },
+  mnemonicWordInnerContainer: {
+    flex: 1,
+    padding: 3,
+    borderRadius: 8,
+    borderColor: Colors.gray[800],
+    borderWidth: 1,
+    backgroundColor: Colors.gray[900],
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row'
+  },
+  wordIndex: {
+    minWidth: 24,
+    textAlign: 'center',
+    lineHeight: 20
+  },
+  wordText: {
+    flex: 1,
+    textAlign: 'left',
+    lineHeight: 20
+  },
+  mnemonicModalOuterContainer: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'space-between'
+  },
+  mnemonicModalContainer: {
+    width: '100%',
+    padding: 0,
+    flex: 0
+  },
+  mnemonicWordsContainer: {
+    width: '100%',
+    marginBottom: 16
+  },
+  copyButtonContainer: {
+    width: '100%',
+    padding: 12,
+    paddingTop: 0
+  },
+  copyButton: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: Colors.gray[700]
   }
 })

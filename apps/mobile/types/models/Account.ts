@@ -11,6 +11,12 @@ export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
 
 export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
+// TODO: merge SyncProgress in SyncStatus ?
+export type SyncProgress = {
+  totalTasks: number
+  tasksDone: number
+}
+
 export type CreationType =
   | 'generateMnemonic'
   | 'importMnemonic'
@@ -45,6 +51,20 @@ export type Key = {
   derivationPath?: string
 }
 
+export type DM = {
+  id: string
+  author: string
+  created_at: number
+  description: string
+  event: string
+  label: number
+  content: {
+    description: string
+    created_at: number
+    pubkey?: string
+  }
+}
+
 export type Account = {
   id: string
   name: string
@@ -67,6 +87,43 @@ export type Account = {
   utxos: Utxo[]
   addresses: Address[]
   createdAt: Date
+  isSyncing?: boolean
   lastSyncedAt?: Date
   syncStatus: SyncStatus
+  syncProgress?: SyncProgress
+  nostr: {
+    commonNpub: string
+    commonNsec: string
+    relays: string[]
+    autoSync: boolean
+    lastBackupFingerprint?: string
+    deviceNpub?: string
+    deviceNsec?: string
+    trustedMemberDevices: string[]
+    dms: DM[]
+    lastUpdated: Date
+    syncStart: Date
+  }
+}
+
+export interface NostrAccount {
+  commonNpub: string
+  commonNsec: string
+  relays: string[]
+  autoSync: boolean
+  lastBackupFingerprint?: string
+  deviceNpub?: string
+  deviceNsec?: string
+  dms?: DM[]
+  members?: NostrMember[]
+  syncStart: Date
+  lastProtocolEOSE?: number
+  lastDataExchangeEOSE?: number
+  lastUpdated: Date
+  trustedMemberDevices: string[]
+}
+
+export interface NostrMember {
+  npub: string
+  color?: string
 }

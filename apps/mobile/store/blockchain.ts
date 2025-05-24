@@ -5,10 +5,10 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { getBlockchain } from '@/api/bdk'
 import {
-  BLOCKSTREAM_BITCOIN_URL,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
   DEFAULT_TIME_OUT,
+  ELECTRUM_URL,
   getBlockchainConfig,
   MEMPOOL_SIGNET_URL,
   MEMPOOL_TESTNET_URL
@@ -74,7 +74,7 @@ const useBlockchainStore = create<BlockchainState & BlockchainAction>()(
         bitcoin: createDefaultNetworkConfig(
           'bitcoin',
           'electrum',
-          BLOCKSTREAM_BITCOIN_URL,
+          ELECTRUM_URL,
           'Blockstream'
         ),
         signet: createDefaultNetworkConfig(

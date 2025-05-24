@@ -35,6 +35,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSAmountInput from '@/components/SSAmountInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -96,7 +97,7 @@ export default function IOPreview() {
     [mempoolUrl]
   )
 
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id!)
   const [changeAddress, setChangeAddress] = useState('')
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
