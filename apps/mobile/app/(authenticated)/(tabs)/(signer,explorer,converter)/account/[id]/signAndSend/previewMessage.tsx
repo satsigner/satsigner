@@ -12,13 +12,13 @@ import SSGradientModal from '@/components/SSGradientModal'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { useWalletsStore } from '@/store/wallets'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -33,11 +33,12 @@ function PreviewMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [inputs, outputs, feeRate, rbf, setTxBuilderResult] =
+  const [inputs, outputs, fee, feeRate, rbf, setTxBuilderResult] =
     useTransactionBuilderStore(
       useShallow((state) => [
         state.inputs,
         state.outputs,
+        state.fee,
         state.feeRate,
         state.rbf,
         state.setTxBuilderResult
@@ -46,7 +47,7 @@ function PreviewMessage() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
 
@@ -72,10 +73,7 @@ function PreviewMessage() {
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
-    const { size, vsize } = estimateTransactionSize(
-      inputs.size,
-      outputs.length + 1
-    )
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
     const vin = [...inputs.values()].map((input: Utxo) => ({
       previousOutput: {
@@ -131,13 +129,16 @@ function PreviewMessage() {
           {
             inputs: Array.from(inputs.values()),
             outputs: Array.from(outputs.values()),
-            feeRate,
+            fee,
             options: {
               rbf
             }
           },
           network as Network
         )
+
+        // transactionMessage.txDetails.transaction.output()
+        // transactionMessage.txDetails.transaction.input()
 
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)

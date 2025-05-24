@@ -52,7 +52,7 @@
     "import.wif.title": "Import WIF (single key)",
     "import.word.noMatch": "No matching words",
     "key.number": "Key number",
-    "load.sample.bitcoin.address.salvadror": "Load sample watch-only EI Salvadror",
+    "load.sample.bitcoin.address.salvador": "Load sample watch-only EI Salvador",
     "load.sample.bitcoin.address.segwit": "Load sample watch-only Segwit",
     "load.sample.signet.address": "Load sample watch-only address",
     "load.sample.signet.legacy": "Load sample Legacy wallet",
@@ -109,6 +109,7 @@
     "sync.status.timeout": "Can't sync\nTimeout",
     "sync.status.unsynced": "Unsynced",
     "syncFailed": "Failed to sync wallet. Make sure you have internet connection.",
+    "syncProgress": "Syncing... %{tasksDone}/%{totalTasks} completed",
     "utxos": "UTXOs",
     "viewMnemonic": "View mnemonic"
   },

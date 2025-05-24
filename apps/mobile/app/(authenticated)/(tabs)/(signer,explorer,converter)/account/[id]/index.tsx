@@ -16,6 +16,7 @@ import {
   useState
 } from 'react'
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Easing,
@@ -60,6 +61,8 @@ import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
+import useGetAccountAddress from '@/hooks/useGetAccountAddress'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -72,7 +75,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
@@ -262,7 +264,7 @@ function DerivedAddresses({
   setSortDirection,
   perPage = 10
 }: DerivedAddressesProps) {
-  const wallet = useWalletsStore((state) => state.wallets[account.id])
+  const wallet = useGetAccountWallet(account.id!)
   const network = useBlockchainStore(
     (state) => state.selectedNetwork
   ) as Network
@@ -646,16 +648,22 @@ export default function AccountView() {
   const { id } = useLocalSearchParams<AccountSearchParams>()
   const { width } = useWindowDimensions()
 
-  const [account, updateAccount] = useAccountsStore(
-    useShallow((state) => [
-      state.accounts.find((account) => account.id === id),
-      state.updateAccount
-    ])
-  )
-  const [wallet, watchOnlyWalletAddress] = useWalletsStore(
-    useShallow((state) => [state.wallets[id!], state.addresses[id!]])
-  )
+  const [updateAccount, account, syncStatus, tasksDone, totalTasks] =
+    useAccountsStore(
+      useShallow((state) => [
+        state.updateAccount,
+        state.accounts.find((a) => a.id === id),
+        state.accounts.find((a) => a.id === id)?.syncStatus,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.tasksDone,
+        state.accounts.find((a) => a.id === id)?.syncProgress?.totalTasks
+      ])
+    )
+
+  const wallet = useGetAccountWallet(id!)
+  const watchOnlyWalletAddress = useGetAccountAddress(id!)
+
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
     useShallow((state) => [
       state.fiatCurrency,
@@ -1085,6 +1093,20 @@ export default function AccountView() {
           </SSVStack>
         </SSVStack>
       </Animated.View>
+      {account.keys[0].creationType === 'importAddress' &&
+        syncStatus === 'syncing' &&
+        tasksDone !== undefined &&
+        totalTasks !== undefined &&
+        totalTasks > 0 && (
+          <View style={{ marginTop: 10, marginBottom: -10 }}>
+            <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+              <ActivityIndicator size={16} color="#fff" />
+              <SSText center>
+                {t('account.syncProgress', { tasksDone, totalTasks })}
+              </SSText>
+            </SSHStack>
+          </View>
+        )}
       <TabView
         swipeEnabled={false}
         navigationState={{ index: tabIndex, routes: tabs }}

@@ -32,6 +32,7 @@ import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -68,7 +69,8 @@ export default function IOPreview() {
     addOutput,
     updateOutput,
     removeOutput,
-    setFeeRate
+    setFeeRate,
+    setFee
   ] = useTransactionBuilderStore(
     useShallow((state) => [
       state.inputs,
@@ -78,7 +80,8 @@ export default function IOPreview() {
       state.addOutput,
       state.updateOutput,
       state.removeOutput,
-      state.setFeeRate
+      state.setFeeRate,
+      state.setFee
     ])
   )
 
@@ -89,6 +92,42 @@ export default function IOPreview() {
     () => new MempoolOracle(mempoolUrl),
     [mempoolUrl]
   )
+
+  const wallet = useGetAccountWallet(id!)
+  const [changeAddress, setChangeAddress] = useState('')
+  const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
+
+  useEffect(() => {
+    if (!account || !wallet) return
+    ;(async () => {
+      const outputAddresses: Record<string, boolean> = {}
+      account.transactions.forEach((tx) => {
+        tx.vout.forEach((output) => {
+          outputAddresses[output.address] = true
+        })
+      })
+
+      for (let i = 0; true; i += 1) {
+        const addressObj = await wallet.getInternalAddress(i)
+        const address = await addressObj.address.asString()
+        if (outputAddresses[address] === true) continue
+        setChangeAddress(address)
+        return
+      }
+    })()
+  }, [account, wallet])
+
+  // this removes the change address if the user goes back to the IO preview.
+  // we add the change address as an output before moving to the next step.
+  useEffect(() => {
+    if (!changeAddress || !shouldRemoveChange) return
+    for (const output of outputs) {
+      if (output.to === changeAddress) {
+        removeOutput(output.localId)
+        return
+      }
+    }
+  }, [outputs, changeAddress, shouldRemoveChange, removeOutput])
 
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -157,8 +196,7 @@ export default function IOPreview() {
 
   const boxPosition = new Animated.Value(localFeeRate)
 
-  // Calculate outputs for chart including remaining balance
-  const singleTxOutputs = useMemo(() => {
+  const remainingBalance = useMemo(() => {
     const { vsize } = transactionSize
     const minerFee = Math.round(feeRate * vsize)
     const totalInputValue = utxosSelectedValue
@@ -166,20 +204,24 @@ export default function IOPreview() {
       (sum, output) => sum + output.amount,
       0
     )
-    const remainingBalance = totalInputValue - totalOutputValue - minerFee
+    return totalInputValue - totalOutputValue - minerFee
+  }, [feeRate, outputs, transactionSize, utxosSelectedValue])
 
-    const chartOutputs: (Omit<Output, 'to'> & { to?: string })[] = [...outputs]
+  // Calculate outputs for chart including remaining balance
+  const singleTxOutputs = useMemo(() => {
+    const chartOutputs: Output[] = [...outputs]
 
     if (remainingBalance > DUST_LIMIT) {
       chartOutputs.push({
-        localId: 'unspent',
+        localId: 'remainingBalance', // WARN: do not chnage it!
         amount: remainingBalance,
-        label: ''
+        label: '',
+        to: changeAddress
       })
     }
 
     return chartOutputs
-  }, [outputs, transactionSize, feeRate, utxosSelectedValue])
+  }, [outputs, remainingBalance, changeAddress])
 
   useEffect(() => {
     if (remainingSats < 0) {
@@ -193,6 +235,10 @@ export default function IOPreview() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    setFee(localFeeRate * transactionSize.vsize)
+  }, [localFeeRate, transactionSize, setFee])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -320,6 +366,48 @@ export default function IOPreview() {
     }
   }
 
+  function handleGoToPreview() {
+    // first, we add the change as an output
+    setShouldRemoveChange(false)
+    addOutput({
+      to: changeAddress,
+      amount: remainingBalance,
+      label: 'Change'
+    })
+
+    // Account not synced. Go to warning page to sync it.
+    if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+    }
+
+    const lastSync = new Date(account.lastSyncedAt as Date)
+    const now = new Date()
+
+    // Discard the time and time-zone information.
+    const currentUtc = Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    )
+    const lastSyncedUtc = Date.UTC(
+      lastSync.getFullYear(),
+      lastSync.getMonth(),
+      lastSync.getDate()
+    )
+    const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+    const daysSinceLastSync = Math.floor(
+      (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
+    )
+
+    // Account updated too long ago.
+    if (daysSinceLastSync > 1) {
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+    }
+
+    // Ok, go to the preview page.
+    router.navigate(`/account/${id}/signAndSend/previewMessage`)
+  }
+
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
     setTopGradientHeight(height + Layout.mainContainer.paddingTop)
@@ -410,7 +498,7 @@ export default function IOPreview() {
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
               inputs={inputs}
-              outputs={outputs}
+              outputs={singleTxOutputs}
               feeRate={feeRate}
             />
           ) : (
@@ -506,9 +594,7 @@ export default function IOPreview() {
             variant="secondary"
             label={t('sign.transaction')}
             disabled={outputs.length === 0}
-            onPress={() =>
-              router.navigate(`/account/${id}/signAndSend/previewMessage`)
-            }
+            onPress={handleGoToPreview}
           />
         </SSVStack>
       </LinearGradient>

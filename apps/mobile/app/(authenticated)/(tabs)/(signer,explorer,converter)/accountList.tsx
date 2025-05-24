@@ -33,7 +33,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
-  sampleSalvadrorAddress,
+  sampleSalvadorAddress,
   sampleSegwitAddress,
   sampleSignetAddress,
   sampleSignetWalletSeed,
@@ -106,7 +106,7 @@ export default function AccountList() {
     | 'legacy'
     | 'watchonlyXpub'
     | 'watchonlyAddress'
-    | 'watchonlySalvadror'
+    | 'watchonlySalvador'
     | 'watchonlySegwit'
     | 'watchonlyTestnet4'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
@@ -203,11 +203,11 @@ export default function AccountList() {
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
         break
-      case 'watchonlySalvadror':
-        sampleAddress = sampleSalvadrorAddress
+      case 'watchonlySalvador':
+        sampleAddress = sampleSalvadorAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
-        setExternalDescriptor(`addr(${sampleSalvadrorAddress})`)
+        setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
         break
       case 'watchonlySegwit':
         sampleAddress = sampleSegwitAddress
@@ -311,10 +311,10 @@ export default function AccountList() {
               {t('accounts.samples')}
             </SSText>
             <SSButton
-              label={t('account.load.sample.bitcoin.address.salvadror')}
+              label={t('account.load.sample.bitcoin.address.salvador')}
               variant="subtle"
-              onPress={() => loadSampleWallet('watchonlySalvadror')}
-              loading={loadingWallet === 'watchonlySalvadror'}
+              onPress={() => loadSampleWallet('watchonlySalvador')}
+              loading={loadingWallet === 'watchonlySalvador'}
             />
             <SSButton
               label={t('account.load.sample.bitcoin.address.segwit')}
