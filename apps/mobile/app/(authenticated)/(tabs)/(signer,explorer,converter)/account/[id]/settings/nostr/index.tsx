@@ -15,9 +15,10 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { generateColorFromNpub, useNostrStore } from '@/store/nostr'
+import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { generateColorFromNpub } from '@/utils/nostr'
 
 function NostrSync() {
   // Account and store hooks
@@ -147,7 +148,7 @@ function NostrSync() {
 
       // Initialize nostr object if it doesn't exist
       if (!account?.nostr) {
-        await updateAccountNostr(accountId, {
+        updateAccountNostr(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
