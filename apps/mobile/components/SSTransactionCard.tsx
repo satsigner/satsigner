@@ -94,8 +94,8 @@ function SSTransactionCard({
         style={[
           {
             paddingHorizontal: 0,
-            paddingTop: expand ? 4 : 8,
-            paddingBottom: expand ? 2 : 4
+            paddingTop: expand ? 0 : 4,
+            paddingBottom: expand ? 6 : 12
           },
           style
         ]}
@@ -197,7 +197,11 @@ function SSTransactionCard({
           <SSText
             size={expand ? 'xs' : 'md'}
             style={[
-              { textAlign: 'left', flex: 1 },
+              {
+                textAlign: 'left',
+                flex: 1,
+                marginBottom: transaction.label ? 4 : 0
+              },
               !transaction.label && { color: Colors.gray[500] }
             ]}
             numberOfLines={1}
@@ -208,7 +212,7 @@ function SSTransactionCard({
             gap="xs"
             style={{
               alignSelf: 'flex-end',
-              marginBottom: transaction.label ? 4 : 0
+              marginBottom: transaction.label ? 8 : 0
             }}
           >
             {transaction.label ? (

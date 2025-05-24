@@ -26,7 +26,6 @@ import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { showNavigation } from '@/utils/navigation'
-import { center } from '@shopify/react-native-skia'
 
 export default function StackLayout(params: any) {
   const currentPath = usePathname()
