@@ -1,6 +1,6 @@
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Animated, StyleSheet, View } from 'react-native'
 
@@ -83,11 +83,6 @@ export default function FeeSelection() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <SSMainLayout style={{ paddingHorizontal: 4 }}>
         <SSVStack justifyBetween>
           <SSVStack>
