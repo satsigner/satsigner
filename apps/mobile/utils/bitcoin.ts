@@ -37,8 +37,9 @@ function bitcoinjsNetwork(network: Network): networks.Network {
     case 'bitcoin':
       return networks['bitcoin']
     case 'signet':
-    case 'testnet':
       return networks['testnet']
+    case 'testnet':
+      return networks['regtest']
   }
 }
 
