@@ -180,9 +180,7 @@ export default function WatchOnly() {
   }
 
   function updateXpub(xpub: string) {
-    console.log('Validating extended public key:', xpub)
     const validXpub = validateExtendedKey(xpub)
-    console.log('Extended public key validation result:', validXpub)
     setValidXpub(!xpub || validXpub)
     setDisabled(!validXpub || !localFingerprint)
     setXpub(xpub)
@@ -205,41 +203,30 @@ export default function WatchOnly() {
         ? "84'/1'/0'"
         : "44'/1'/0'"
       const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
-      console.log('Formatted extended public key:', formattedXpub)
       setExtendedPublicKey(formattedXpub)
       setScriptVersion(scriptVersion)
     }
   }
 
   function updateExternalDescriptor(descriptor: string) {
-    console.log('Validating external descriptor:', descriptor)
     const validExternalDescriptor =
       validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
-    console.log(
-      'External descriptor validation result:',
-      validExternalDescriptor
-    )
+
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
     if (validExternalDescriptor) {
-      console.log('Setting external descriptor in store')
       setExternalDescriptor(descriptor)
     }
   }
 
   function updateInternalDescriptor(descriptor: string) {
-    console.log('Validating internal descriptor:', descriptor)
     const validInternalDescriptor = validateDescriptor(descriptor)
-    console.log(
-      'Internal descriptor validation result:',
-      validInternalDescriptor
-    )
+
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setDisabled(!validInternalDescriptor)
     setLocalInternalDescriptor(descriptor)
     if (validInternalDescriptor) {
-      console.log('Setting internal descriptor in store')
       setInternalDescriptor(descriptor)
     }
   }
@@ -269,16 +256,6 @@ export default function WatchOnly() {
   }
 
   async function confirmAccountCreation() {
-    console.log('Starting account creation with data:', {
-      selectedOption,
-      externalDescriptor,
-      internalDescriptor,
-      xpub,
-      address,
-      scriptVersion,
-      fingerprint: localFingerprint
-    })
-
     setLoadingWallet(true)
     try {
       if (selectedOption === 'importExtendedPub') {
@@ -294,33 +271,24 @@ export default function WatchOnly() {
           toast.error(t('watchonly.error.missingFields'))
           return
         }
-        console.log('Setting extended public key:', xpub)
         setExtendedPublicKey(xpub)
         setFingerprint(localFingerprint)
         setScriptVersion(scriptVersion)
       } else if (selectedOption === 'importAddress') {
-        console.log('Setting address descriptor:', `addr(${address})`)
         setExternalDescriptor(`addr(${address})`)
       }
 
       setNetwork(network)
       setKey(0)
       const account = getAccountData()
-      console.log('Account data from builder:', account)
 
       const data = await accountBuilderFinish(account)
-      console.log('Account builder finish result:', data)
       if (!data) {
-        console.log('Account builder finish failed - no data returned')
         toast.error(t('watchonly.error.creationFailed'))
         return
       }
 
       if (connectionMode === 'auto') {
-        console.log(
-          'Starting account sync with connection mode:',
-          connectionMode
-        )
         try {
           const updatedAccount =
             selectedOption !== 'importAddress'
@@ -332,12 +300,10 @@ export default function WatchOnly() {
                   data.accountWithEncryptedSecret,
                   `addr(${address})`
                 )
-          console.log('Account sync completed:', updatedAccount)
           updateAccount(updatedAccount)
           toast.success(t('watchonly.success.accountCreated'))
           router.replace('/')
         } catch (syncError) {
-          console.error('Error during account sync:', syncError)
           // Even if sync fails, we should still save the account and redirect
           updateAccount(data.accountWithEncryptedSecret)
           toast.warning(t('watchonly.warning.syncFailed'))
@@ -350,7 +316,6 @@ export default function WatchOnly() {
         router.replace('/')
       }
     } catch (error) {
-      console.error('Error during account creation:', error)
       const errorMessage = (error as Error).message
       if (errorMessage) {
         toast.error(errorMessage)
@@ -410,7 +375,12 @@ export default function WatchOnly() {
         return
       }
 
-      const text = nfcData
+      if (!nfcData.text) {
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
+      }
+
+      const text = nfcData.text
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
@@ -454,10 +424,7 @@ export default function WatchOnly() {
   }
 
   function handleQRCodeScanned(data: string | undefined) {
-    console.log('QR Code scanned raw data:', data)
-
     if (!data) {
-      console.log('QR Code scan failed - no data received')
       toast.error(t('watchonly.read.qrError'))
       return
     }
@@ -467,17 +434,14 @@ export default function WatchOnly() {
     // Check if the scanned data is a valid fingerprint (8 bytes hex)
     const fingerprintRegex = /^[0-9a-fA-F]{8}$/
     if (fingerprintRegex.test(data)) {
-      console.log('Processing QR code as fingerprint:', data)
       updateMasterFingerprint(data)
       return
     }
 
     if (selectedOption === 'importDescriptor') {
-      console.log('Processing QR code as descriptor')
       let externalDescriptor = data
       let internalDescriptor = ''
       if (data.match(/<0[,;]1>/)) {
-        console.log('Found <0;1> format in descriptor')
         externalDescriptor = data
           .replace(/<0[,;]1>/, '0')
           .replace(/#[a-z0-9]+$/, '')
@@ -486,30 +450,17 @@ export default function WatchOnly() {
           .replace(/#[a-z0-9]+$/, '')
       }
       if (data.includes('\n')) {
-        console.log('Found multi-line descriptor')
         const lines = data.split('\n')
         externalDescriptor = lines[0].trim()
         internalDescriptor = lines[1].trim()
       }
-      console.log('Processed descriptors:', {
-        externalDescriptor,
-        internalDescriptor,
-        externalLength: externalDescriptor.length,
-        internalLength: internalDescriptor.length
-      })
       if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
       if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
     }
 
     if (selectedOption === 'importExtendedPub') {
-      console.log('Processing QR code as extended public key:', data)
       // Convert vpub to tpub if needed
       const convertedData = convertVpubToTpub(data)
-      console.log('Converted extended public key:', {
-        original: data,
-        converted: convertedData,
-        wasConverted: data !== convertedData
-      })
       if (data !== convertedData) {
         toast.info(
           t('watchonly.info.vpubConverted', {
@@ -522,7 +473,6 @@ export default function WatchOnly() {
     }
 
     if (selectedOption === 'importAddress') {
-      console.log('Processing QR code as address:', data)
       updateAddress(data)
     }
   }
