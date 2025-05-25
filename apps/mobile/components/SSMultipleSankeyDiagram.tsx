@@ -75,10 +75,10 @@ function SSMultipleSankeyDiagram({
 
   const sankeyGenerator = sankey()
     .nodeWidth(NODE_WIDTH)
-    .nodePadding(140)
+    .nodePadding(120)
     .extent([
-      [0, 160],
-      [2000 * (maxDepthH / 11), 1000 * (maxNodeCountInDepthH / 8)]
+      [0, 200],
+      [2000 * (maxDepthH / 10), 1000 * (maxNodeCountInDepthH / 9)]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
