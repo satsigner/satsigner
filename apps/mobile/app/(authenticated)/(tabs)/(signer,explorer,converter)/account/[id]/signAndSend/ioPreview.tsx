@@ -410,7 +410,7 @@ export default function IOPreview() {
 
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
-    setTopGradientHeight(height + Layout.mainContainer.paddingTop)
+    setTopGradientHeight(height)
   }
   const handleLoadHistory = () => {
     setLoadHistory(!loadHistory)
@@ -421,7 +421,6 @@ export default function IOPreview() {
     <View
       style={{
         flex: 1,
-        backgroundColor: 'transparent',
         position: 'relative'
       }}
     >
@@ -513,7 +512,7 @@ export default function IOPreview() {
         colors={['#00000096', '#00000085', '#00000068', '#00000000']}
       />
       {inputs.size > 0 ? (
-        <View>
+        <View style={{ position: 'absolute' }}>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}
