@@ -1,6 +1,10 @@
-import { TouchableHighlight } from '@gorhom/bottom-sheet'
 import { useState } from 'react'
-import { StyleSheet, type TextInput, View } from 'react-native'
+import {
+  StyleSheet,
+  type TextInput,
+  View,
+  TouchableHighlight
+} from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes, Typography } from '@/styles'

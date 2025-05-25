@@ -40,8 +40,16 @@ import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import { getURFragmentsFromPSBT } from '@/utils/ur'
+import { encodePSBTToUR } from '@/utils/ur'
 
 const tn = _tn('transaction.build.preview')
+
+enum QRDisplayMode {
+  RAW = 'RAW',
+  UR = 'UR',
+  BBQR = 'BBQR'
+}
 
 interface NFCTagWithNDEF {
   ndefMessage?: Array<{
@@ -85,7 +93,10 @@ function PreviewMessage() {
 
   const [noKeyModalVisible, setNoKeyModalVisible] = useState(false)
   const [currentChunk, setCurrentChunk] = useState(0)
-  const [showRawPsbt, setShowRawPsbt] = useState(false)
+  const [displayMode, setDisplayMode] = useState<QRDisplayMode>(
+    QRDisplayMode.RAW
+  )
+  const [showRawPsbt, setShowRawPsbt] = useState(true)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [signedPsbt, setSignedPsbt] = useState('')
   const [permission, requestPermission] = useCameraPermissions()
@@ -200,6 +211,8 @@ function PreviewMessage() {
   const [qrChunks, setQrChunks] = useState<string[]>([])
   const [qrError, setQrError] = useState<string | null>(null)
   const [serializedPsbt, setSerializedPsbt] = useState<string>('')
+  const [urChunks, setUrChunks] = useState<string[]>([])
+  const [currentUrChunk, setCurrentUrChunk] = useState(0)
 
   const getPsbtString = useCallback(async () => {
     if (!txBuilderResult?.psbt) {
@@ -208,17 +221,20 @@ function PreviewMessage() {
 
     try {
       const serializedPsbt = await txBuilderResult.psbt.serialize()
-      // Get raw bytes from serialized PSBT
-      const bytes = Uint8Array.from(serializedPsbt)
+      // Convert the raw bytes to a Buffer
+      const psbtBuffer = Buffer.from(serializedPsbt)
 
-      // Create BBQR chunks with max chunk size of 400
-      const bbqrChunks = createBBQRChunks(bytes, 400)
-
+      // Create BBQR chunks with very small chunk size (100 bytes) for better scanning
+      const bbqrChunks = createBBQRChunks(new Uint8Array(psbtBuffer), 100)
       setQrChunks(bbqrChunks)
-      setSerializedPsbt(serializedPsbt)
 
-      return serializedPsbt
-    } catch (_e) {
+      // Store the hex representation for other uses
+      const psbtHex = psbtBuffer.toString('hex')
+      setSerializedPsbt(psbtHex)
+
+      return psbtHex
+    } catch (e) {
+      console.error('PSBT serialization error:', e)
       toast.error(t('error.psbt.serialization'))
       return null
     }
@@ -227,41 +243,56 @@ function PreviewMessage() {
   useEffect(() => {
     const updateQrChunks = async () => {
       try {
-        const psbtString = await getPsbtString()
-        if (!psbtString) {
+        const psbtHex = await getPsbtString()
+        if (!psbtHex) {
           setQrError(t('error.psbt.notAvailable'))
-          setQrChunks([]) // Set empty array instead of undefined
+          setQrChunks([])
+          setUrChunks([])
           return
         }
 
         try {
-          // Create BBQR chunks
-          const bbqrChunks = createBBQRChunks(Uint8Array.from(psbtString))
+          // Create BBQR chunks (keep as is)
+          const psbtBuffer = Buffer.from(psbtHex, 'hex')
+          const bbqrChunks = createBBQRChunks(new Uint8Array(psbtBuffer), 100)
           setQrChunks(bbqrChunks)
+
+          // Convert hex to base64 for UR encoding (BIP 174 standard)
+          const psbtBase64 = Buffer.from(psbtHex, 'hex').toString('base64')
+          const urFragments = getURFragmentsFromPSBT(psbtBase64, 'base64', 50)
+          setUrChunks(urFragments.map((frag) => frag.toUpperCase()))
           setQrError(null)
-        } catch (_e) {
+        } catch (e) {
+          console.error('QR generation error:', e)
           setQrError(t('error.qr.generation'))
-          setQrChunks([]) // Set empty array instead of undefined
+          setQrChunks([])
+          setUrChunks([])
         }
-      } catch (_e) {
+      } catch (e) {
+        console.error('PSBT error:', e)
         setQrError(t('error.psbt.notAvailable'))
-        setQrChunks([]) // Set empty array instead of undefined
+        setQrChunks([])
+        setUrChunks([])
       }
     }
 
     updateQrChunks()
   }, [getPsbtString])
 
-  // Auto-advance chunks for animated QR
+  // Keep animation speed the same but with smaller chunks
   useEffect(() => {
-    if (!qrChunks || qrChunks.length <= 1) return
-
-    const interval = setInterval(() => {
-      setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
-    }, 1000) // Change chunk every second
-
-    return () => clearInterval(interval)
-  }, [qrChunks])
+    if (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
+      }, 750)
+      return () => clearInterval(interval)
+    } else if (displayMode === QRDisplayMode.UR && urChunks.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
+      }, 750)
+      return () => clearInterval(interval)
+    }
+  }, [displayMode, qrChunks.length, urChunks.length])
 
   const handleQRCodeScanned = (data: string | undefined) => {
     if (!data) {
@@ -359,6 +390,63 @@ function PreviewMessage() {
       })
     }
   }, [txBuilderResult])
+
+  const getDisplayModeLabel = () => {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        return t('transaction.preview.showUR')
+      case QRDisplayMode.UR:
+        return t('transaction.preview.showBBQR')
+      case QRDisplayMode.BBQR:
+        return t('transaction.preview.showRaw')
+    }
+  }
+
+  const getQRValue = () => {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        return serializedPsbt
+      case QRDisplayMode.UR:
+        return urChunks[currentUrChunk] || ''
+      case QRDisplayMode.BBQR:
+        return qrChunks?.[currentChunk] || ''
+    }
+  }
+
+  const getDisplayModeDescription = () => {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        return t('transaction.preview.rawPSBT')
+      case QRDisplayMode.UR:
+        return urChunks.length > 1
+          ? t('transaction.preview.scanAllChunks', {
+              current: currentUrChunk + 1,
+              total: urChunks.length
+            })
+          : t('transaction.preview.singleChunk')
+      case QRDisplayMode.BBQR:
+        return qrChunks.length > 1
+          ? t('transaction.preview.scanAllChunks', {
+              current: currentChunk + 1,
+              total: qrChunks.length
+            })
+          : t('transaction.preview.singleChunk')
+    }
+  }
+
+  const handleDisplayModeToggle = () => {
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        setDisplayMode(QRDisplayMode.UR)
+        break
+      case QRDisplayMode.UR:
+        setDisplayMode(QRDisplayMode.BBQR)
+        break
+      case QRDisplayMode.BBQR:
+        setDisplayMode(QRDisplayMode.RAW)
+        break
+    }
+  }
 
   if (!id || !account) return <Redirect href="/" />
 
@@ -559,21 +647,12 @@ function PreviewMessage() {
                     alignItems: 'center'
                   }}
                 >
-                  {showRawPsbt ? (
-                    <SSQRCode
-                      value={serializedPsbt}
-                      color={Colors.black}
-                      backgroundColor={Colors.white}
-                      size={300}
-                    />
-                  ) : (
-                    <SSQRCode
-                      value={qrChunks?.[currentChunk] || ''}
-                      color={Colors.black}
-                      backgroundColor={Colors.white}
-                      size={300}
-                    />
-                  )}
+                  <SSQRCode
+                    value={getQRValue()}
+                    color={Colors.black}
+                    backgroundColor={Colors.white}
+                    size={300}
+                  />
                 </View>
 
                 <SSText
@@ -582,33 +661,18 @@ function PreviewMessage() {
                   size="sm"
                   style={{ marginTop: 8, maxWidth: 300, height: 60 }}
                 >
-                  {showRawPsbt
-                    ? serializedPsbt.length > 150
-                      ? `${serializedPsbt.slice(0, 150)}...`
-                      : serializedPsbt
-                    : qrChunks?.[currentChunk]?.length > 150
-                      ? `${qrChunks[currentChunk].slice(0, 150)}...`
-                      : qrChunks?.[currentChunk] || ''}
+                  {getQRValue().length > 150
+                    ? `${getQRValue().slice(0, 150)}...`
+                    : getQRValue()}
                 </SSText>
                 <SSText center color="muted" size="sm" style={{ marginTop: 8 }}>
-                  {!showRawPsbt && qrChunks.length > 1
-                    ? t('transaction.preview.scanAllChunks', {
-                        current: currentChunk + 1,
-                        total: qrChunks.length
-                      })
-                    : !showRawPsbt && qrChunks.length === 1
-                      ? t('transaction.preview.singleChunk')
-                      : t('transaction.preview.rawPSBT')}
+                  {getDisplayModeDescription()}
                 </SSText>
 
                 <SSButton
                   variant="outline"
-                  label={
-                    showRawPsbt
-                      ? t('transaction.preview.showBBQR')
-                      : t('transaction.preview.showRaw')
-                  }
-                  onPress={() => setShowRawPsbt(!showRawPsbt)}
+                  label={getDisplayModeLabel()}
+                  onPress={handleDisplayModeToggle}
                   style={{ marginBottom: 1, width: '100%' }}
                 />
               </>

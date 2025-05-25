@@ -26,6 +26,7 @@ function SSAmountInput({
   remainingSats
 }: SSAmountInputProps) {
   const [localValue, setLocalValue] = useState(min)
+  const [isSliding, setIsSliding] = useState(false)
 
   useEffect(() => {
     if (value === min) {
@@ -45,13 +46,10 @@ function SSAmountInput({
         value={String(Math.round(localValue))}
         onChangeText={(text) => {
           const newValue = Math.round(Number(text))
-          console.log(
-            'SSAmountInput - input field changed:',
-            text,
-            'parsed:',
-            newValue
-          )
-          setLocalValue(newValue)
+          if (newValue >= min && newValue <= max) {
+            setLocalValue(newValue)
+            onValueChange(newValue)
+          }
         }}
       />
       <SSHStack justifyBetween>
@@ -79,10 +77,16 @@ function SSAmountInput({
         onValueChange={(value) => {
           const newValue = Math.round(value[0])
           setLocalValue(newValue)
+          if (!isSliding) {
+            onValueChange(newValue)
+          }
         }}
+        onSlidingStart={() => setIsSliding(true)}
         onSlidingComplete={(value) => {
           const finalValue = Math.round(value[0])
+          setLocalValue(finalValue)
           onValueChange(finalValue)
+          setIsSliding(false)
         }}
         trackStyle={styles.track}
         thumbStyle={styles.thumb}

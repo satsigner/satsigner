@@ -31,6 +31,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
+import SSSeedQR from '@/components/SSSeedQR'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -59,6 +60,7 @@ export default function AccountSettings() {
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
+  const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
 
@@ -472,18 +474,37 @@ export default function AccountSettings() {
               </View>
             </SSVStack>
             <View style={styles.copyButtonContainer}>
-              <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+              <SSVStack gap="sm">
+                <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+                  <SSButton
+                    label={t('common.copy')}
+                    style={styles.copyButton}
+                    variant="outline"
+                  />
+                </SSClipboardCopy>
                 <SSButton
-                  label={t('common.copy')}
+                  label={t('account.seedqr.title')}
                   style={styles.copyButton}
                   variant="outline"
+                  onPress={() => {
+                    setMnemonicModalVisible(false)
+                    setSeedQRModalVisible(true)
+                  }}
                 />
-              </SSClipboardCopy>
+              </SSVStack>
             </View>
           </View>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
+      <SSSeedQR
+        mnemonic={localMnemonic}
+        visible={seedQRModalVisible}
+        onClose={() => {
+          setSeedQRModalVisible(false)
+          setMnemonicModalVisible(true)
+        }}
+      />
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
         <SSPinEntry
           title={t('account.enter.pin')}
