@@ -418,7 +418,13 @@ export default function IOPreview() {
   // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
-    <View style={{ flex: 1 }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: 'transparent',
+        position: 'relative'
+      }}
+    >
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
@@ -430,14 +436,20 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 0,
+          zIndex: 10,
           pointerEvents: 'none'
         }}
         onLayout={handleTopLayout}
-        locations={[0.185, 0.5554, 0.7713, 1]}
-        colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
+        locations={[0.19, 0.566, 0.77, 1]}
+        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
       >
-        <SSVStack itemsCenter gap="sm" style={{ flex: 1 }}>
+        <SSVStack
+          itemsCenter
+          gap="sm"
+          style={{
+            flex: 1
+          }}
+        >
           <SSVStack itemsCenter gap="xs">
             <SSText>
               {inputs.size} {t('common.of').toLowerCase()}{' '}
@@ -486,13 +498,15 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
+      {/* <View
+        style={{
+          height: loadHistory ? topGradientHeight : 80,
+          backgroundColor: Colors.transparent,
+          zIndex: 20
+        }}
+      /> */}
       {inputs.size > 0 ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: loadHistory ? topGradientHeight : 80
-          }}
-        >
+        <View>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}
