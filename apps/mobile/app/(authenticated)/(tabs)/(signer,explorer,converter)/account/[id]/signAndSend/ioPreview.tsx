@@ -498,13 +498,20 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
-      {/* <View
+      <LinearGradient
         style={{
-          height: loadHistory ? topGradientHeight : 80,
-          backgroundColor: Colors.transparent,
-          zIndex: 20
+          width: '100%',
+          position: 'absolute',
+          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+          paddingTop: Layout.mainContainer.paddingTop,
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: 0.7,
+          height: topGradientHeight
         }}
-      /> */}
+        locations={[0, 0.56, 0.77, 1]}
+        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
+      />
       {inputs.size > 0 ? (
         <View>
           {loadHistory ? (
