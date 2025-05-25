@@ -1049,6 +1049,12 @@
     "read.nfcErrorNoData": "No data found on NFC tag",
     "read.qrcode": "Scan qrcode",
     "read.scanning": "Scanning NFC",
-    "titleModal": "Watch-only wallet"
+    "success": {
+      "accountCreated": "Watch-only account created successfully"
+    },
+    "titleModal": "Watch-only wallet",
+    "warning": {
+      "syncFailed": "Account created but failed to sync. You can try syncing later."
+    }
   }
 }
