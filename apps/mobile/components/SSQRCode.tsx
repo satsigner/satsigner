@@ -6,15 +6,23 @@ type SSQRCodeProps = {
   value: string
   size?: number
   ecl?: 'H' | 'Q' | 'M' | 'L'
+  color?: string
+  backgroundColor?: string
 }
 
-function SSQRCode({ value, size = 200, ecl = 'H' }: SSQRCodeProps) {
+function SSQRCode({
+  value,
+  size = 200,
+  ecl = 'H',
+  color = Colors.white,
+  backgroundColor = Colors.gray[950]
+}: SSQRCodeProps) {
   return (
     <QRCode
       value={value}
       size={size}
-      color={Colors.white}
-      backgroundColor={Colors.gray[950]}
+      color={color}
+      backgroundColor={backgroundColor}
       ecl={ecl}
     />
   )
