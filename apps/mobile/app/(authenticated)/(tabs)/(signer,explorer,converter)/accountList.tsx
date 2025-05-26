@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { Stack, useRouter } from 'expo-router'
+import { Stack, useFocusEffect, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { ScrollView, useWindowDimensions, View } from 'react-native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
@@ -18,6 +18,7 @@ import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSText from '@/components/SSText'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import useNostrSync from '@/hooks/useNostrSync'
 import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
@@ -100,6 +101,7 @@ export default function AccountList() {
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { accountBuilderFinish } = useAccountBuilderFinish()
+  const { cleanupSubscriptions } = useNostrSync()
 
   type SampleWallet =
     | 'segwit'
@@ -138,6 +140,10 @@ export default function AccountList() {
   useEffect(() => {
     if (connectionMode === 'auto') fetchPrices(mempoolUrl)
   }, [connectionMode, fetchPrices, mempoolUrl])
+
+  useFocusEffect(() => {
+    cleanupSubscriptions()
+  })
 
   function handleOnNavigateToAddAccount() {
     clearAccount()

@@ -51,6 +51,20 @@ export type Key = {
   derivationPath?: string
 }
 
+export type DM = {
+  id: string
+  author: string
+  created_at: number
+  description: string
+  event: string
+  label: number
+  content: {
+    description: string
+    created_at: number
+    pubkey?: string
+  }
+}
+
 export type Account = {
   id: string
   name: string
@@ -73,7 +87,43 @@ export type Account = {
   utxos: Utxo[]
   addresses: Address[]
   createdAt: Date
+  isSyncing?: boolean
   lastSyncedAt?: Date
   syncStatus: SyncStatus
   syncProgress?: SyncProgress
+  nostr: {
+    commonNpub: string
+    commonNsec: string
+    relays: string[]
+    autoSync: boolean
+    lastBackupFingerprint?: string
+    deviceNpub?: string
+    deviceNsec?: string
+    trustedMemberDevices: string[]
+    dms: DM[]
+    lastUpdated: Date
+    syncStart: Date
+  }
+}
+
+export type NostrAccount = {
+  commonNpub: string
+  commonNsec: string
+  relays: string[]
+  autoSync: boolean
+  lastBackupFingerprint?: string
+  deviceNpub?: string
+  deviceNsec?: string
+  dms?: DM[]
+  members?: NostrMember[]
+  syncStart: Date
+  lastProtocolEOSE?: number
+  lastDataExchangeEOSE?: number
+  lastUpdated: Date
+  trustedMemberDevices: string[]
+}
+
+export type NostrMember = {
+  npub: string
+  color?: string
 }

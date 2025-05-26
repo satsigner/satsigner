@@ -37,6 +37,7 @@
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix --"
   },
+  "dependencies": {},
   "devDependencies": {
     "cross-env": "^7.0.3",
     "prettier": "^3.2.5",
