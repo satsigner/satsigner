@@ -1,16 +1,9 @@
 import { Redirect, Stack, useLocalSearchParams } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  View
-} from 'react-native'
+import { FlatList, StyleSheet, TextInput, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { NostrAPI } from '@/api/nostr'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import useNostrSync from '@/hooks/useNostrSync'
@@ -49,7 +42,7 @@ async function formatNpub(
     }
     colorCache.set(pubkey, result)
     return result
-  } catch (error) {
+  } catch (_error) {
     return { text: pubkey.slice(0, 8), color: '#404040' }
   }
 }
@@ -57,6 +50,8 @@ async function formatNpub(
 function SSDevicesGroupChat() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [isLoading, setIsLoading] = useState(false)
+  const [isContentLoaded, setIsContentLoaded] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [messageInput, setMessageInput] = useState('')
   const flatListRef = useRef<FlatList>(null)
   const [formattedNpubs, setFormattedNpubs] = useState<
@@ -67,22 +62,28 @@ function SSDevicesGroupChat() {
     state.accounts.find((_account) => _account.id === accountId)
   ])
 
-  const { members } = useNostrStore((state) => ({
-    members: state.members[accountId] || []
-  }))
+  const { members } = useNostrStore((state) => {
+    if (!accountId) return { members: [] }
+    return {
+      members: state.members?.[accountId] || []
+    }
+  })
 
   const { sendDM } = useNostrSync()
 
   // Load messages from account's Nostr DMs store
-  const messages = account?.nostr?.dms || []
+  const messages = useMemo(
+    () => account?.nostr?.dms || [],
+    [account?.nostr?.dms]
+  )
 
   // Memoize messages to prevent unnecessary re-renders
-  const memoizedMessages = useMemo(() => messages, [JSON.stringify(messages)])
+  const memoizedMessages = useMemo(() => messages, [messages])
 
   // Memoize the members list to prevent unnecessary recalculations
   const membersList = useMemo(
     () =>
-      members.map((member) => ({
+      members.map((member: { npub: string; color?: string }) => ({
         npub: member.npub,
         color: member.color || '#404040'
       })),
@@ -119,11 +120,28 @@ function SSDevicesGroupChat() {
   // Separate effect for scrolling
   useEffect(() => {
     if (messages.length > 0 && account?.nostr?.relays?.length) {
-      requestAnimationFrame(() => {
-        flatListRef.current?.scrollToEnd({ animated: false })
-      })
+      if (isInitialLoad) {
+        setIsContentLoaded(false)
+        // Wait for content to be fully rendered
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: false })
+            // Double check scroll after a short delay
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: false })
+              setIsContentLoaded(true)
+              setIsInitialLoad(false)
+            }, 200)
+          }
+        }, 100)
+      } else {
+        // For subsequent updates, just scroll without showing loading
+        if (flatListRef.current) {
+          flatListRef.current.scrollToEnd({ animated: false })
+        }
+      }
     }
-  }, [messages.length, account?.nostr?.relays?.length])
+  }, [messages.length, account?.nostr?.relays?.length, isInitialLoad])
 
   const handleSendMessage = async () => {
     if (!messageInput.trim()) {
@@ -149,7 +167,7 @@ function SSDevicesGroupChat() {
     try {
       await sendDM(account, messageInput.trim())
       setMessageInput('')
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send message')
     } finally {
       setIsLoading(false)
@@ -216,7 +234,7 @@ function SSDevicesGroupChat() {
             </SSText>
           </SSVStack>
         )
-      } catch (error) {
+      } catch (_error) {
         return (
           <SSVStack gap="xxs" style={styles.message}>
             <SSText size="sm" color="muted">
@@ -255,6 +273,13 @@ function SSDevicesGroupChat() {
 
         {/* Messages section */}
         <View style={styles.messagesContainer}>
+          {!isContentLoaded && isInitialLoad && messages.length > 0 && (
+            <View style={styles.loadingContainer}>
+              <SSText center color="muted">
+                Loading messages...
+              </SSText>
+            </View>
+          )}
           <FlatList
             ref={flatListRef}
             data={messages}
@@ -267,6 +292,16 @@ function SSDevicesGroupChat() {
             }
             inverted={false}
             contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+            onContentSizeChange={() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: false })
+              }
+            }}
+            onLayout={() => {
+              if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: false })
+              }
+            }}
           />
         </View>
 
@@ -296,8 +331,6 @@ function SSDevicesGroupChat() {
 const styles = StyleSheet.create({
   messagesContainer: {
     flex: 1,
-    backgroundColor: '#1f1f1f',
-    paddingHorizontal: 8,
     paddingBottom: 8
   },
   message: {
@@ -331,6 +364,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1
   }
 })
 

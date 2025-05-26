@@ -7,7 +7,6 @@ import { TabView } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { NostrAPI } from '@/api/nostr'
 import {
   SSIconBlackIndicator,
   SSIconGreenIndicator,
@@ -143,10 +142,7 @@ export default function AccountList() {
   }, [connectionMode, fetchPrices, mempoolUrl])
 
   useFocusEffect(() => {
-    const cleanup = async () => {
-      await cleanupSubscriptions()
-    }
-    cleanup()
+    cleanupSubscriptions()
   })
 
   function handleOnNavigateToAddAccount() {

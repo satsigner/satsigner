@@ -11,9 +11,9 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type AddrSearchParams } from '@/types/navigation/searchParams'
-import { type LabelType } from '@/utils/bip329'
+import { type Label } from '@/utils/bip329'
 
-function SSAddressLabel() {
+function AddressLabel() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()
 
   const { sendLabelsToNostr } = useNostrSync()
@@ -28,10 +28,10 @@ function SSAddressLabel() {
   function updateLabel(label: string) {
     const updatedAccount = setAddrLabel(accountId!, addr!, label)
 
-    const singleLabelData = {
+    const singleLabelData: Label = {
       label,
       ref: addr!,
-      type: 'addr' as LabelType,
+      type: 'addr',
       spendable: true
     }
 
@@ -67,4 +67,4 @@ function SSAddressLabel() {
   )
 }
 
-export default SSAddressLabel
+export default AddressLabel
