@@ -1,6 +1,6 @@
 import { useHeaderHeight } from '@react-navigation/elements'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -91,11 +91,6 @@ function SelectUtxoBubbles() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <LinearGradient
         style={styles.absoluteTopContainer}
         locations={[0.185, 0.5554, 0.7713, 1]}

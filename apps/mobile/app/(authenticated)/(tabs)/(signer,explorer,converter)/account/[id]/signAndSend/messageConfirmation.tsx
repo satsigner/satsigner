@@ -1,4 +1,4 @@
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -45,11 +45,6 @@ export default function MessageConfirmation() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <SSMainLayout style={{ paddingBottom: 32 }}>
         <SSVStack justifyBetween>
           <SSVStack itemsCenter>

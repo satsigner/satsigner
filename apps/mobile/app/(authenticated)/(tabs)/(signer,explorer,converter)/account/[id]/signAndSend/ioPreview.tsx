@@ -2,20 +2,23 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   type LayoutChangeEvent,
   TouchableOpacity,
-  View
+  View,
+  Alert,
+  ScrollView
 } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { SSIconChevronLeft, SSIconScan } from '@/components/icons'
+import { SSIconChevronLeft } from '@/components/icons'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -23,7 +26,6 @@ import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
-import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSNumberGhostInput from '@/components/SSNumberGhostInput'
@@ -31,6 +33,7 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
+import SSAmountInput from '@/components/SSAmountInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
@@ -41,7 +44,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors, Layout } from '@/styles'
+import { useWalletsStore } from '@/store/wallets'
+import { Colors, Layout, Typography } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
@@ -142,8 +146,9 @@ export default function IOPreview() {
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
   const [localFeeRate, setLocalFeeRate] = useState(1)
+  const [outputsCount, setOutputsCount] = useState(0)
+  const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
 
-  const addOutputBottomSheetRef = useRef<BottomSheet>(null)
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
 
@@ -271,9 +276,18 @@ export default function IOPreview() {
     setCameraModalVisible(false)
   }
 
+  function resetLocalOutput() {
+    setCurrentOutputLocalId(undefined)
+    setCurrentOutputNumber(outputs.length + 1)
+    setOutputTo('')
+    setOutputAmount(DUST_LIMIT)
+    setOutputLabel('')
+  }
+
   function handleOnPressAddOutput() {
     resetLocalOutput()
-    addOutputBottomSheetRef.current?.expand()
+    setOutputAmount(DUST_LIMIT)
+    setAddOutputModalVisible(true)
   }
 
   function handleAddOutput() {
@@ -286,23 +300,16 @@ export default function IOPreview() {
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
 
-    addOutputBottomSheetRef.current?.close()
+    setOutputsCount((prev: number) => prev + 1)
+    setAddOutputModalVisible(false)
     resetLocalOutput()
   }
 
   function handleRemoveOutput() {
     if (!currentOutputLocalId) return
     removeOutput(currentOutputLocalId)
-    addOutputBottomSheetRef.current?.close()
+    setAddOutputModalVisible(false)
     resetLocalOutput()
-  }
-
-  function resetLocalOutput() {
-    setCurrentOutputLocalId(undefined)
-    setCurrentOutputNumber(outputs.length + 1)
-    setOutputTo('')
-    setOutputAmount(DUST_LIMIT)
-    setOutputLabel('')
   }
 
   function handleSetFeeRate() {
@@ -317,7 +324,7 @@ export default function IOPreview() {
       changeFeeBottomSheetRef.current?.expand()
       return
     } else if (localId === 'remainingBalance') {
-      addOutputBottomSheetRef.current?.expand()
+      setAddOutputModalVisible(true)
       return
     }
 
@@ -331,7 +338,7 @@ export default function IOPreview() {
     setOutputLabel(outputs[outputIndex].label)
     setCurrentOutputNumber(outputIndex + 1)
 
-    addOutputBottomSheetRef.current?.expand()
+    setAddOutputModalVisible(true)
   }
 
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
@@ -440,7 +447,12 @@ export default function IOPreview() {
         }}
         onLayout={handleTopLayout}
         locations={[0.19, 0.566, 0.77, 1]}
-        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
+        colors={[
+          '#131313', // solid
+          '#131313cc', // 80% opacity
+          '#13131399', // 60% opacity
+          '#13131300' // transparent
+        ]}
       >
         <SSVStack
           itemsCenter
@@ -509,7 +521,12 @@ export default function IOPreview() {
           height: topGradientHeight
         }}
         locations={[0, 0.56, 0.77, 1]}
-        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
+        colors={[
+          '#131313', // solid
+          '#131313cc', // 80% opacity
+          '#13131399', // 60% opacity
+          '#13131300' // transparent
+        ]}
       />
       {inputs.size > 0 ? (
         <View style={{ position: 'absolute' }}>
@@ -618,13 +635,20 @@ export default function IOPreview() {
           />
         </SSVStack>
       </LinearGradient>
-      <SSBottomSheet
-        ref={addOutputBottomSheetRef}
-        title={t('transaction.build.add.output.number', {
-          number: currentOutputNumber
-        })}
+      <SSModal
+        visible={addOutputModalVisible}
+        onClose={() => setAddOutputModalVisible(false)}
+        fullOpacity
       >
-        <SSVStack>
+        <View style={{ width: '100%', maxWidth: 1000, alignSelf: 'center' }}>
+          <ScrollView style={{ width: '100%' }}>
+            <SSVStack gap="lg" style={{ paddingHorizontal: 16 }}>
+              <SSVStack itemsCenter>
+                <SSText uppercase>
+                  {t('transaction.build.add.output.number', {
+                    number: currentOutputNumber
+                  })}
+        <SSVStack style={{ paddingBottom: 24 }}>
           <SSNumberGhostInput
             min={DUST_LIMIT}
             max={remainingSats}
@@ -642,67 +666,87 @@ export default function IOPreview() {
                 <SSText color="muted" size="sm">
                   {t('bitcoin.sats')}
                 </SSText>
-              </SSHStack>
-              <SSHStack
-                gap="xs"
-                style={{ alignItems: 'baseline', justifyContent: 'center' }}
-              >
-                <SSText weight="medium">{formatNumber(remainingSats)}</SSText>
-                <SSText color="muted" size="sm">
-                  {t('bitcoin.sats')}
-                </SSText>
-              </SSHStack>
-            </SSHStack>
-            <SSSlider
-              min={DUST_LIMIT}
-              max={Math.max(remainingSats, DUST_LIMIT)}
-              value={Math.min(
-                outputAmount,
-                Math.max(remainingSats, DUST_LIMIT)
-              )}
-              step={100}
-              onValueChange={(value) => setOutputAmount(value)}
-            />
-          </SSVStack>
-          <SSTextInput
-            value={outputTo}
-            placeholder={t('transaction.address')}
-            align="left"
-            actionRight={
-              <SSIconButton onPress={() => setCameraModalVisible(true)}>
-                <SSIconScan />
-              </SSIconButton>
-            }
-            onChangeText={(text) => setOutputTo(text)}
-          />
-          <SSTextInput
-            placeholder={t('transaction.build.add.label.title')}
-            align="left"
-            value={outputLabel}
-            onChangeText={(text) => setOutputLabel(text)}
-          />
-          <SSHStack>
-            <SSButton
-              label={t('transaction.build.remove.output.title')}
-              variant="danger"
-              style={{ flex: 1 }}
-              onPress={handleRemoveOutput}
-            />
-            <SSButton
-              label={t('transaction.build.save.output.title')}
-              variant="secondary"
-              style={{ flex: 1 }}
-              disabled={!outputTo || !outputAmount || !outputLabel}
-              onPress={handleAddOutput}
-            />
-          </SSHStack>
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => addOutputBottomSheetRef.current?.close()}
-          />
-        </SSVStack>
-      </SSBottomSheet>
+              </SSVStack>
+              <SSVStack gap="md">
+                <SSVStack gap="none">
+                  <SSAmountInput
+                    key={`amount-input-${outputsCount}`}
+                    min={DUST_LIMIT}
+                    max={Math.max(remainingSats, DUST_LIMIT)}
+                    value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
+                    remainingSats={remainingSats}
+                    onValueChange={(value) => setOutputAmount(value)}
+                  />
+                </SSVStack>
+                <SSVStack>
+                  <SSTextInput
+                    value={outputTo}
+                    placeholder={t('transaction.address')}
+                    align="left"
+                    multiline
+                    numberOfLines={4}
+                    style={{
+                      fontFamily: Typography.sfProMono,
+                      fontSize: 22,
+                      letterSpacing: 0.5,
+                      height: 100,
+                      textAlignVertical: 'top',
+                      paddingTop: 12
+                    }}
+                    onChangeText={(text) => setOutputTo(text)}
+                  />
+                  <SSHStack gap="md">
+                    <SSButton
+                      variant="outline"
+                      label={t('common.paste')}
+                      style={{ flex: 1 }}
+                      onPress={async () => {
+                        try {
+                          const text = await Clipboard.getStringAsync()
+                          if (text && text.trim()) {
+                            setOutputTo(text.trim())
+                          } else {
+                            toast.error(t('common.invalid'))
+                          }
+                        } catch (error) {
+                          toast.error(t('common.invalid'))
+                        }
+                      }}
+                    />
+                    <SSButton
+                      variant="outline"
+                      label={t('camera.scanQRCode')}
+                      style={{ flex: 1 }}
+                      onPress={() => setCameraModalVisible(true)}
+                    />
+                  </SSHStack>
+                </SSVStack>
+                <SSTextInput
+                  placeholder={t('transaction.build.add.label.title')}
+                  align="left"
+                  value={outputLabel}
+                  onChangeText={(text) => setOutputLabel(text)}
+                />
+                <SSHStack>
+                  <SSButton
+                    label={t('transaction.build.remove.output.title')}
+                    variant="danger"
+                    style={{ flex: 1 }}
+                    onPress={handleRemoveOutput}
+                  />
+                  <SSButton
+                    label={t('transaction.build.save.output.title')}
+                    variant="secondary"
+                    style={{ flex: 1 }}
+                    disabled={!outputTo || !outputAmount || !outputLabel}
+                    onPress={handleAddOutput}
+                  />
+                </SSHStack>
+              </SSVStack>
+            </SSVStack>
+          </ScrollView>
+        </View>
+      </SSModal>
       <SSBottomSheet
         ref={optionsBottomSheetRef}
         title={t('transaction.build.options.title')}
@@ -780,29 +824,31 @@ export default function IOPreview() {
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
-        <SSFeeRateChart
-          mempoolStatistics={mempoolStatistics}
-          timeRange="2hours"
-          boxPosition={boxPosition}
-        />
-        <SSFeeInput
-          value={localFeeRate}
-          onValueChange={setLocalFeeRate}
-          vbytes={transactionSize.vsize}
-          max={40}
-          estimatedBlock={Math.trunc(40 / localFeeRate)}
-        />
-        <SSButton
-          label={t('transaction.build.set.fee')}
-          variant="secondary"
-          style={{ flex: 1 }}
-          onPress={handleSetFeeRate}
-        />
-        <SSButton
-          label={t('common.cancel')}
-          variant="ghost"
-          onPress={() => changeFeeBottomSheetRef.current?.close()}
-        />
+        <SSVStack style={{ paddingBottom: 24 }}>
+          <SSFeeRateChart
+            mempoolStatistics={mempoolStatistics}
+            timeRange="2hours"
+            boxPosition={boxPosition}
+          />
+          <SSFeeInput
+            value={localFeeRate}
+            onValueChange={setLocalFeeRate}
+            vbytes={transactionSize.vsize}
+            max={40}
+            estimatedBlock={Math.trunc(40 / localFeeRate)}
+          />
+          <SSButton
+            label={t('transaction.build.set.fee')}
+            variant="secondary"
+            style={{ flex: 1 }}
+            onPress={handleSetFeeRate}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => changeFeeBottomSheetRef.current?.close()}
+          />
+        </SSVStack>
       </SSBottomSheet>
       <SSModal
         visible={cameraModalVisible}

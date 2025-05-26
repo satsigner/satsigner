@@ -78,6 +78,7 @@ import SSIconWarning from './SSIconWarning'
 import SSIconX from './SSIconX'
 import SSIconYellowIndicator from './SSIconYellowIndicator'
 import SSIconZero from './SSIconZero'
+import SSIconLNSettings from './SSIconLNSettings'
 
 export {
   SSIconAbout,
@@ -159,5 +160,6 @@ export {
   SSIconWarning,
   SSIconX,
   SSIconYellowIndicator,
-  SSIconZero
+  SSIconZero,
+  SSIconLNSettings
 }
