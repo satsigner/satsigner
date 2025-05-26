@@ -56,7 +56,7 @@ export default function TabLayout() {
   }, [currentPath, segments])
 
   return (
-    <View style={[styles.container, { paddingBottom: isShowTab ? 0 : 24 }]}>
+    <View style={styles.container}>
       <Tabs
         screenOptions={{
           headerShown: false,

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
@@ -648,6 +648,23 @@ export default function IOPreview() {
                   {t('transaction.build.add.output.number', {
                     number: currentOutputNumber
                   })}
+        <SSVStack style={{ paddingBottom: 24 }}>
+          <SSNumberGhostInput
+            min={DUST_LIMIT}
+            max={remainingSats}
+            suffix={t('bitcoin.sats')}
+            value={String(outputAmount)}
+            onChangeText={(text) => setOutputAmount(Number(text))}
+          />
+          <SSVStack gap="none">
+            <SSHStack justifyBetween>
+              <SSHStack
+                gap="xs"
+                style={{ alignItems: 'baseline', justifyContent: 'center' }}
+              >
+                <SSText weight="medium">{DUST_LIMIT}</SSText>
+                <SSText color="muted" size="sm">
+                  {t('bitcoin.sats')}
                 </SSText>
               </SSVStack>
               <SSVStack gap="md">
@@ -807,29 +824,31 @@ export default function IOPreview() {
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
-        <SSFeeRateChart
-          mempoolStatistics={mempoolStatistics}
-          timeRange="2hours"
-          boxPosition={boxPosition}
-        />
-        <SSFeeInput
-          value={localFeeRate}
-          onValueChange={setLocalFeeRate}
-          vbytes={transactionSize.vsize}
-          max={40}
-          estimatedBlock={Math.trunc(40 / localFeeRate)}
-        />
-        <SSButton
-          label={t('transaction.build.set.fee')}
-          variant="secondary"
-          style={{ flex: 1 }}
-          onPress={handleSetFeeRate}
-        />
-        <SSButton
-          label={t('common.cancel')}
-          variant="ghost"
-          onPress={() => changeFeeBottomSheetRef.current?.close()}
-        />
+        <SSVStack style={{ paddingBottom: 24 }}>
+          <SSFeeRateChart
+            mempoolStatistics={mempoolStatistics}
+            timeRange="2hours"
+            boxPosition={boxPosition}
+          />
+          <SSFeeInput
+            value={localFeeRate}
+            onValueChange={setLocalFeeRate}
+            vbytes={transactionSize.vsize}
+            max={40}
+            estimatedBlock={Math.trunc(40 / localFeeRate)}
+          />
+          <SSButton
+            label={t('transaction.build.set.fee')}
+            variant="secondary"
+            style={{ flex: 1 }}
+            onPress={handleSetFeeRate}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => changeFeeBottomSheetRef.current?.close()}
+          />
+        </SSVStack>
       </SSBottomSheet>
       <SSModal
         visible={cameraModalVisible}

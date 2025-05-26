@@ -194,7 +194,6 @@ function TotalTransactions({
             marginLeft: 16,
             marginRight: 2,
             paddingRight: 14,
-            marginBottom: expand ? 8 : 16,
             height: 400,
             minHeight: 200
           }}
@@ -980,6 +979,12 @@ export default function AccountView() {
           ),
           headerRight: () => (
             <SSIconButton
+              style={{
+                paddingTop: 6,
+                width: 30,
+                height: 30,
+                alignItems: 'center'
+              }}
               onPress={() => router.navigate(`/account/${id}/settings`)}
             >
               <SSIconKeys height={18} width={18} />
@@ -990,9 +995,7 @@ export default function AccountView() {
       <TouchableOpacity
         onPress={() => router.navigate('/settings/network/server')}
       >
-        <SSHStack
-          style={{ justifyContent: 'center', gap: 0, marginBottom: 24 }}
-        >
+        <SSHStack style={{ justifyContent: 'center', gap: 0 }}>
           {connectionState ? (
             isPrivateConnection ? (
               <SSIconYellowIndicator height={24} width={24} />
@@ -1013,6 +1016,98 @@ export default function AccountView() {
           </SSText>
         </SSHStack>
       </TouchableOpacity>
+      {!expand && (
+        <Animated.View style={{ height: gradientHeight }}>
+          <SSVStack itemsCenter gap="none">
+            <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSStyledSatText
+                  amount={account?.summary.balance || 0}
+                  decimals={0}
+                  useZeroPadding={useZeroPadding}
+                  textSize="6xl"
+                  weight="ultralight"
+                  letterSpacing={-1}
+                />
+                <SSText size="xl" color="muted">
+                  {t('bitcoin.sats').toLowerCase()}
+                </SSText>
+              </SSHStack>
+              <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                <SSText color="muted">
+                  {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
+                </SSText>
+                <SSText size="xs" style={{ color: Colors.gray[500] }}>
+                  {fiatCurrency}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+            <SSVStack gap="none">
+              <SSHStack
+                justifyEvenly
+                gap="xxs"
+                style={{ paddingHorizontal: '5%' }}
+              >
+                {account.policyType !== 'watchonly' && (
+                  <>
+                    <SSActionButton
+                      onPress={() => navigateToSignAndSend()}
+                      style={{
+                        ...styles.actionButton,
+                        width: '40%'
+                      }}
+                    >
+                      <SSText uppercase>{t('account.signAndSend')}</SSText>
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/camera`)}
+                      style={{
+                        ...styles.actionButton,
+                        width: '20%'
+                      }}
+                    >
+                      <SSIconCamera height={13} width={18} />
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/receive`)}
+                      style={{
+                        ...styles.actionButton,
+                        width: '40%'
+                      }}
+                    >
+                      <SSText uppercase>{t('account.receive')}</SSText>
+                    </SSActionButton>
+                  </>
+                )}
+                {account.keys[0].creationType === 'importExtendedPub' && (
+                  <SSActionButton
+                    onPress={() => router.navigate(`/account/${id}/receive`)}
+                    style={{
+                      ...styles.actionButton,
+                      width: '100%'
+                    }}
+                  >
+                    <SSText uppercase>{t('account.receive')}</SSText>
+                  </SSActionButton>
+                )}
+                {account.keys[0].creationType === 'importAddress' && (
+                  <SSVStack gap="xs">
+                    <SSText center color="muted" size="xs">
+                      {t('receive.address').toUpperCase()}
+                    </SSText>
+                    <SSAddressDisplay
+                      variant="outline"
+                      type="sans-serif"
+                      style={{ lineHeight: 14 }}
+                      address={watchOnlyWalletAddress || ''}
+                    />
+                  </SSVStack>
+                )}
+              </SSHStack>
+            </SSVStack>
+          </SSVStack>
+        </Animated.View>
+      )}
       <Animated.View style={{ height: gradientHeight }}>
         <SSVStack itemsCenter gap="none">
           <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
@@ -1130,7 +1225,7 @@ const styles = StyleSheet.create({
 
 const addressListStyles = StyleSheet.create({
   container: {
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 10
   },
   header: {

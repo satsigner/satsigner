@@ -1,4 +1,4 @@
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -50,11 +50,6 @@ export default function WalletSyncedConfirmation() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account!.name}</SSText>
-        }}
-      />
       <SSMainLayout>
         <SSVStack justifyBetween style={{ flexGrow: 1 }}>
           <SSVStack>
