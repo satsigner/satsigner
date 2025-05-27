@@ -1,6 +1,6 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -52,7 +52,7 @@ function NostrKeys() {
           lastUpdated: new Date()
         })
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to generate device keys')
     } finally {
       setLoadingDefaultKeys(false)
@@ -140,10 +140,9 @@ function NostrKeys() {
               )}
             </SSVStack>
           </SSVStack>
-
           <SSVStack gap="sm">
-            <SSText center>{t('account.nostrSync.deviceNostrKeys')}</SSText>
-            <SSVStack gap="xxs" style={styles.keysContainer}>
+            <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
+            <SSVStack gap="xxs">
               <SSVStack gap="xxs">
                 <SSText color="muted" center>
                   {t('account.nostrSync.nsec')}
@@ -152,7 +151,10 @@ function NostrKeys() {
                   value={deviceNsec}
                   onChangeText={setNsec}
                   placeholder={t('account.nostrSync.nsec')}
-                  style={styles.input}
+                  style={[styles.input, styles.monoInput]}
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
                 />
               </SSVStack>
               <SSVStack gap="xxs">
@@ -163,12 +165,14 @@ function NostrKeys() {
                   value={deviceNpub}
                   onChangeText={setNpub}
                   placeholder={t('account.nostrSync.npub')}
-                  style={styles.input}
+                  style={[styles.input, styles.monoInput]}
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
                 />
               </SSVStack>
             </SSVStack>
           </SSVStack>
-
           <SSButton
             label={t('account.nostrSync.save')}
             onPress={saveChanges}
@@ -191,7 +195,11 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 'auto',
-    padding: 10
+    padding: 10,
+    minHeight: 80
+  },
+  monoInput: {
+    fontFamily: 'SF-NS-Mono'
   },
   keysContainer: {
     backgroundColor: '#1a1a1a',

@@ -1,5 +1,5 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -15,15 +15,12 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { generateColorFromNpub, useNostrStore } from '@/store/nostr'
+import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import type { Account } from '@/types/models/Account'
 import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import { generateColorFromNpub } from '@/utils/nostr'
 
-/**
- * NostrSync component for managing Nostr synchronization settings and device management
- */
-function SSNostrSync() {
+function NostrSync() {
   // Account and store hooks
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
   const [account, updateAccountNostr] = useAccountsStore(
@@ -45,7 +42,8 @@ function SSNostrSync() {
   // Members management
   const members = useNostrStore(
     useShallow((state) => {
-      const accountMembers = state.members[accountId || ''] || []
+      if (!accountId) return []
+      const accountMembers = state.members[accountId] || []
       return accountMembers
         .map((member) =>
           typeof member === 'string'
@@ -69,7 +67,6 @@ function SSNostrSync() {
     clearStoredDMs,
     generateCommonNostrKeys,
     deviceAnnouncement,
-    getActiveSubscriptions,
     cleanupSubscriptions,
     nostrSyncSubscriptions
   } = useNostrSync()
@@ -79,7 +76,6 @@ function SSNostrSync() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [commonNsec, setCommonNsec] = useState('')
-  const [commonNpub, setCommonNpub] = useState('')
   const [deviceNsec, setDeviceNsec] = useState('')
   const [deviceNpub, setDeviceNpub] = useState('')
   const [deviceColor, setDeviceColor] = useState('#404040')
@@ -122,7 +118,7 @@ function SSNostrSync() {
    * Loads Nostr account data
    */
   const loadNostrAccountData = useCallback(() => {
-    if (!account) return
+    if (!account || !accountId) return
 
     // Initialize nostr object if it doesn't exist
     if (!account.nostr) {
@@ -152,7 +148,7 @@ function SSNostrSync() {
 
       // Initialize nostr object if it doesn't exist
       if (!account?.nostr) {
-        await updateAccountNostr(accountId, {
+        updateAccountNostr(accountId, {
           autoSync: false,
           relays: [],
           dms: [],
@@ -180,7 +176,7 @@ function SSNostrSync() {
             autoSync: false,
             lastUpdated: new Date()
           })
-        } catch (error) {
+        } catch {
           toast.error('Failed to cleanup subscriptions')
         } finally {
           setIsSyncing(false)
@@ -212,14 +208,14 @@ function SSNostrSync() {
                 setIsSyncing(loading)
               })
             })
-          } catch (error) {
+          } catch {
             toast.error('Failed to setup sync')
           } finally {
             setIsSyncing(false)
           }
         }
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to toggle auto sync')
       setIsSyncing(false)
     }
@@ -228,7 +224,6 @@ function SSNostrSync() {
     accountId,
     cleanupSubscriptions,
     deviceAnnouncement,
-    getActiveSubscriptions,
     getUpdatedAccount,
     nostrSyncSubscriptions,
     updateAccountNostr
@@ -291,7 +286,7 @@ function SSNostrSync() {
   }, [members, account?.nostr?.trustedMemberDevices])
 
   useEffect(() => {
-    if (account) {
+    if (account && accountId) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         updateAccountNostr(accountId, {
@@ -310,13 +305,11 @@ function SSNostrSync() {
       if (!commonNsec) {
         if (account.nostr.commonNsec && account.nostr.commonNpub) {
           setCommonNsec(account.nostr.commonNsec)
-          setCommonNpub(account.nostr.commonNpub)
         } else {
           generateCommonNostrKeys(account)
             .then((keys) => {
               if (keys) {
                 setCommonNsec(keys.commonNsec as string)
-                setCommonNpub(keys.commonNpub as string)
                 updateAccountNostr(accountId, {
                   ...account.nostr,
                   commonNsec: keys.commonNsec,
@@ -324,8 +317,8 @@ function SSNostrSync() {
                 })
               }
             })
-            .catch((error) => {
-              throw new Error(`Error loading common Nostr keys: ${error}`)
+            .catch(() => {
+              throw new Error('Error loading common Nostr keys')
             })
         }
       }
@@ -339,7 +332,7 @@ function SSNostrSync() {
   ])
 
   useEffect(() => {
-    if (account) {
+    if (account && accountId) {
       // Initialize nostr object if it doesn't exist
       if (!account.nostr) {
         updateAccountNostr(accountId, {
@@ -370,7 +363,7 @@ function SSNostrSync() {
               })
             }
           })
-          .catch((error) => {
+          .catch(() => {
             toast.error('Failed to generate device keys')
           })
       } else {
@@ -394,6 +387,29 @@ function SSNostrSync() {
     }
   }, [account, loadNostrAccountData])
 
+  // Add effect to handle auto-sync on mount
+  useEffect(() => {
+    const startAutoSync = async () => {
+      if (!account?.nostr?.autoSync || !account?.nostr?.relays?.length) return
+
+      setIsSyncing(true)
+      try {
+        deviceAnnouncement(account)
+        await nostrSyncSubscriptions(account, (loading) => {
+          requestAnimationFrame(() => {
+            setIsSyncing(loading)
+          })
+        })
+      } catch {
+        toast.error('Failed to setup sync')
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+
+    startAutoSync()
+  }, [account, deviceAnnouncement, nostrSyncSubscriptions])
+
   if (!accountId || !account) return <Redirect href="/" />
 
   return (
@@ -416,7 +432,6 @@ function SSNostrSync() {
           <SSText center uppercase color="muted">
             {t('account.nostrSync.title')}
           </SSText>
-
           {/* Auto-sync section */}
           <SSVStack gap="md">
             <SSButton
@@ -464,15 +479,12 @@ function SSNostrSync() {
             <SSHStack gap="md">
               <SSButton
                 style={{ flex: 0.9 }}
-                variant="outline"
                 label={t('account.nostrSync.setKeys')}
                 onPress={goToNostrKeyPage}
                 disabled={isSyncing}
               />
-
               <SSButton
                 style={{ flex: 0.9 }}
-                variant="outline"
                 label={t('account.nostrSync.manageRelays', {
                   count: selectedRelays.length
                 })}
@@ -480,13 +492,11 @@ function SSNostrSync() {
                 disabled={isSyncing}
               />
             </SSHStack>
-
             {selectedRelays.length === 0 && account?.nostr?.autoSync && (
               <SSText color="white" weight="bold" center>
                 {t('account.nostrSync.noRelaysWarning')}
               </SSText>
             )}
-
             {/* Personal Device Keys */}
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.deviceKeys')}</SSText>
@@ -497,7 +507,7 @@ function SSNostrSync() {
                       <SSText color="muted" center>
                         {t('account.nostrSync.nsec')}
                       </SSText>
-                      <SSTextClipboard text={deviceNsec}>
+                      <SSTextClipboard text={deviceNsec || ''}>
                         <SSText
                           center
                           size="xl"
@@ -527,7 +537,7 @@ function SSNostrSync() {
                             marginRight: -30
                           }}
                         />
-                        <SSTextClipboard text={deviceNpub}>
+                        <SSTextClipboard text={deviceNpub || ''}>
                           <SSText
                             center
                             size="xl"
@@ -553,14 +563,12 @@ function SSNostrSync() {
                 )}
               </SSVStack>
             </SSVStack>
-
             <SSButton
               style={{ marginTop: 30, marginBottom: 10 }}
               variant="secondary"
               label={t('account.nostrSync.devicesGroupChat')}
               onPress={goToDevicesGroupChat}
             />
-
             {/* Members section */}
             <SSVStack gap="sm">
               <SSText center>{t('account.nostrSync.members')}</SSText>
@@ -584,7 +592,7 @@ function SSNostrSync() {
                                   marginRight: -20
                                 }}
                               />
-                              <SSTextClipboard text={member.npub}>
+                              <SSTextClipboard text={member.npub || ''}>
                                 <SSText
                                   center
                                   size="lg"
@@ -627,7 +635,6 @@ function SSNostrSync() {
               )}
             </SSVStack>
           </SSVStack>
-
           {/* Debug buttons */}
           <SSHStack gap="xs" style={{ marginTop: 30 }}>
             <SSButton
@@ -682,4 +689,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default SSNostrSync
+export default NostrSync

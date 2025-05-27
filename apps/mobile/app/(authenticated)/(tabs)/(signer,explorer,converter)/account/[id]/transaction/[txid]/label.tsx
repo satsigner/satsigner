@@ -10,11 +10,11 @@ import { useAccountsStore } from '@/store/accounts'
 import { type Account } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type TxSearchParams } from '@/types/navigation/searchParams'
-import { type LabelType } from '@/utils/bip329'
+import { type Label } from '@/utils/bip329'
 
 import { SSTxDetailsHeader } from '.'
 
-function SSTransactionLabel() {
+function TransactionLabel() {
   const { id: accountId, txid } = useLocalSearchParams<TxSearchParams>()
 
   const { sendLabelsToNostr } = useNostrSync()
@@ -29,10 +29,10 @@ function SSTransactionLabel() {
   function updateLabel(label: string) {
     const updatedAccount = setTxLabel(accountId!, txid!, label)
 
-    const singleLabelData = {
+    const singleLabelData: Label = {
       label,
       ref: txid!,
-      type: 'tx' as LabelType,
+      type: 'tx',
       spendable: true
     }
 
@@ -61,4 +61,4 @@ function SSTransactionLabel() {
   )
 }
 
-export default SSTransactionLabel
+export default TransactionLabel
