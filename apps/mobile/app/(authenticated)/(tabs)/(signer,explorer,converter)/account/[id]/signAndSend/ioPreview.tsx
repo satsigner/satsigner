@@ -32,6 +32,7 @@ import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -40,7 +41,6 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { useWalletsStore } from '@/store/wallets'
 import { Colors, Layout } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
@@ -93,7 +93,7 @@ export default function IOPreview() {
     [mempoolUrl]
   )
 
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id!)
   const [changeAddress, setChangeAddress] = useState('')
   const [shouldRemoveChange, setShouldRemoveChange] = useState(true)
 
@@ -410,7 +410,7 @@ export default function IOPreview() {
 
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
-    setTopGradientHeight(height + Layout.mainContainer.paddingTop)
+    setTopGradientHeight(height)
   }
   const handleLoadHistory = () => {
     setLoadHistory(!loadHistory)
@@ -418,7 +418,12 @@ export default function IOPreview() {
   // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
-    <View style={{ flex: 1 }}>
+    <View
+      style={{
+        flex: 1,
+        position: 'relative'
+      }}
+    >
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
@@ -430,14 +435,20 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 0,
+          zIndex: 10,
           pointerEvents: 'none'
         }}
         onLayout={handleTopLayout}
-        locations={[0.185, 0.5554, 0.7713, 1]}
-        colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
+        locations={[0.19, 0.566, 0.77, 1]}
+        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
       >
-        <SSVStack itemsCenter gap="sm" style={{ flex: 1 }}>
+        <SSVStack
+          itemsCenter
+          gap="sm"
+          style={{
+            flex: 1
+          }}
+        >
           <SSVStack itemsCenter gap="xs">
             <SSText>
               {inputs.size} {t('common.of').toLowerCase()}{' '}
@@ -486,13 +497,22 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
+      <LinearGradient
+        style={{
+          width: '100%',
+          position: 'absolute',
+          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+          paddingTop: Layout.mainContainer.paddingTop,
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: 0.7,
+          height: topGradientHeight
+        }}
+        locations={[0, 0.56, 0.77, 1]}
+        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
+      />
       {inputs.size > 0 ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: loadHistory ? topGradientHeight : 80
-          }}
-        >
+        <View style={{ position: 'absolute' }}>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}

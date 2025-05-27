@@ -84,19 +84,23 @@ function SSCurrentTransactionChart({
   const { width, height } = useWindowDimensions()
   const GRAPH_HEIGHT = height * 0.7
   const GRAPH_WIDTH = width
-  const SANKEY_TOP_MARGIN = 120
+  const SANKEY_TOP_MARGIN = 200
 
-  const sankeyGenerator = sankey()
-    .nodeWidth(NODE_WIDTH)
-    .nodePadding(160)
-    .extent([
-      [0, SANKEY_TOP_MARGIN],
-      [
-        width,
-        height * 0.5 * (Math.max(inputMap.size, outputArray.length, 2) * 0.237)
-      ]
-    ])
-    .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
+  const sankeyGenerator = useMemo(() => {
+    return sankey()
+      .nodeWidth(NODE_WIDTH)
+      .nodePadding(160)
+      .extent([
+        [0, SANKEY_TOP_MARGIN],
+        [
+          width,
+          height *
+            0.7 *
+            (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+        ]
+      ])
+      .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
+  }, [inputMap, outputArray, width, height])
 
   sankeyGenerator.nodeAlign((node: SankeyNodeMinimal<object, object>) => {
     const { depthH } = node as Node

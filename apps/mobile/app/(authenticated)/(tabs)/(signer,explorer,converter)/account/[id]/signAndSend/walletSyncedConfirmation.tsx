@@ -4,11 +4,11 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { useAccountsStore } from '@/store/accounts'
-import { useWalletsStore } from '@/store/wallets'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatDate, formatTime } from '@/utils/format'
 
@@ -24,7 +24,7 @@ export default function WalletSyncedConfirmation() {
       state.updateAccount
     ])
   )
-  const wallet = useWalletsStore((state) => state.wallets[id!])
+  const wallet = useGetAccountWallet(id!)
 
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
