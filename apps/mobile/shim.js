@@ -1,3 +1,33 @@
+import 'react-native-url-polyfill/auto'
+import 'react-native-get-random-values'
+
+// Add TextDecoder polyfill
+if (typeof TextDecoder === 'undefined') {
+  class TextDecoderPolyfill {
+    decode(buffer) {
+      if (buffer instanceof Uint8Array) {
+        return String.fromCharCode.apply(null, buffer)
+      }
+      return String.fromCharCode.apply(null, new Uint8Array(buffer))
+    }
+  }
+  global.TextDecoder = TextDecoderPolyfill
+}
+
+// Add TextEncoder polyfill
+if (typeof TextEncoder === 'undefined') {
+  class TextEncoderPolyfill {
+    encode(str) {
+      const arr = new Uint8Array(str.length)
+      for (let i = 0; i < str.length; i++) {
+        arr[i] = str.charCodeAt(i)
+      }
+      return arr
+    }
+  }
+  global.TextEncoder = TextEncoderPolyfill
+}
+
 if (typeof __dirname === 'undefined') global.__dirname = '/'
 if (typeof __filename === 'undefined') global.__filename = ''
 if (typeof process === 'undefined') {
@@ -20,7 +50,3 @@ process.env['NODE_ENV'] = isDev ? 'development' : 'production'
 if (typeof localStorage !== 'undefined') {
   localStorage.debug = isDev ? '*' : ''
 }
-
-// If using the crypto shim, uncomment the following line to ensure
-// crypto is loaded first, so it can populate global.crypto
-// require('crypto')
