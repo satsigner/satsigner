@@ -1,17 +1,18 @@
-import { Stack, useRouter } from 'expo-router'
+/* eslint-disable no-console */
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, TextInput, Clipboard, Alert, View } from 'react-native'
+import { Alert, Clipboard, StyleSheet, TextInput } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import { useLightningStore } from '@/store/lightning'
 import type { LNDConfig } from '@/store/lightning'
+import { useLightningStore } from '@/store/lightning'
 
 export default function LNDRestPage() {
   const router = useRouter()
@@ -67,18 +68,18 @@ export default function LNDRestPage() {
     }
   }
 
-  const testLNDConnection = async (config: LNDConfig): Promise<boolean> => {
-    try {
-      const response = await fetch(`${config.url}/v1/getinfo`, {
-        headers: {
-          'Grpc-Metadata-macaroon': config.macaroon
-        }
-      })
-      return response.ok
-    } catch (_error) {
-      return false
-    }
-  }
+  // const testLNDConnection = async (config: LNDConfig): Promise<boolean> => {
+  //   try {
+  //     const response = await fetch(`${config.url}/v1/getinfo`, {
+  //       headers: {
+  //         'Grpc-Metadata-macaroon': config.macaroon
+  //       }
+  //     })
+  //     return response.ok
+  //   } catch (_error) {
+  //     return false
+  //   }
+  // }
 
   const handleConnect = async () => {
     if (!connectionString.trim()) return
@@ -259,7 +260,6 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 16
   },
-
   camera: {
     width: 340,
     height: 340,

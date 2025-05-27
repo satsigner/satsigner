@@ -1,12 +1,12 @@
 import { Stack, useRouter } from 'expo-router'
-import { StyleSheet, View, TouchableOpacity } from 'react-native'
-import { useLND } from '@/hooks/useLND'
-import { useLightningStore } from '@/store/lightning'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import { useLND } from '@/hooks/useLND'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { useLightningStore } from '@/store/lightning'
 
 export default function LightningPage() {
   const router = useRouter()

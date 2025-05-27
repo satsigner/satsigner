@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { bech32 } from 'bech32'
 
 // Types for LNURL-pay response
@@ -136,6 +137,7 @@ export function decodeLNURL(input: string): string {
 
     // Validate URL format
     try {
+      // eslint-disable-next-line no-new
       new URL(url)
       return url
     } catch {

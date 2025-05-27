@@ -1,36 +1,33 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Animated,
+  Easing,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
-  View,
-  ScrollView,
-  Animated,
-  Easing
+  View
 } from 'react-native'
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { TabView, type SceneRendererProps } from 'react-native-tab-view'
+import { type SceneRendererProps, TabView } from 'react-native-tab-view'
 
-import SSActionButton from '@/components/SSActionButton'
-import SSButton from '@/components/SSButton'
-import SSText from '@/components/SSText'
-import { useLND } from '@/hooks/useLND'
-import SSMainLayout from '@/layouts/SSMainLayout'
-import SSHStack from '@/layouts/SSHStack'
-import SSVStack from '@/layouts/SSVStack'
-import { useLightningStore } from '@/store/lightning'
-import { Colors } from '@/styles'
-import SSIconButton from '@/components/SSIconButton'
 import {
-  SSIconRefresh,
   SSIconCollapse,
   SSIconExpand,
-  SSIconLNSettings
+  SSIconLNSettings,
+  SSIconRefresh
 } from '@/components/icons'
+import SSActionButton from '@/components/SSActionButton'
+import SSButton from '@/components/SSButton'
+import SSIconButton from '@/components/SSIconButton'
 import SSStyledSatText from '@/components/SSStyledSatText'
-import { usePriceStore } from '@/store/price'
-import { useBlockchainStore } from '@/store/blockchain'
-import { useShallow } from 'zustand/react/shallow'
+import SSText from '@/components/SSText'
+import { useLND } from '@/hooks/useLND'
+import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
+import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
+import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 
 interface LNDBalanceResponse {
@@ -109,10 +106,10 @@ interface LNDPayment {
   fee_sat: string
   fee_msat: string
   creation_time_ns: string
-  htlcs: Array<{
+  htlcs: {
     status: string
     route: {
-      hops: Array<{
+      hops: {
         chan_id: string
         chan_capacity: string
         amt_to_forward: string
@@ -121,14 +118,14 @@ interface LNDPayment {
         amt_to_forward_msat: string
         fee_msat: string
         pub_key: string
-      }>
+      }[]
       total_time_lock: number
       total_amt: string
       total_amt_msat: string
       total_fees: string
       total_fees_msat: string
     }
-  }>
+  }[]
 }
 
 interface LNDInvoice {
@@ -172,11 +169,8 @@ export default function NodeDetailPage() {
   const router = useRouter()
   const { width } = useWindowDimensions()
   const params = useLocalSearchParams<{ alias: string; pubkey: string }>()
-  const { config, clearConfig } = useLightningStore()
   const {
-    getInfo,
     getBalance,
-    getChannels,
     channels,
     lastError,
     isConnecting,
@@ -195,7 +189,6 @@ export default function NodeDetailPage() {
 
   // Refs
   const animationValue = useRef(new Animated.Value(0)).current
-  const transactionFetchRef = useRef<Promise<void> | null>(null)
 
   // Constants
   const tabs = [{ key: 'transactions' }, { key: 'channels' }]
@@ -256,10 +249,10 @@ export default function NodeDetailPage() {
     setCurrentPage((prev) => prev + 1)
   }, [])
 
-  const handleDisconnect = useCallback(() => {
-    clearConfig()
-    router.back()
-  }, [clearConfig, router])
+  // const handleDisconnect = useCallback(() => {
+  //   clearConfig()
+  //   router.back()
+  // }, [clearConfig, router])
 
   // Memoized render functions
   const renderBalances = useCallback(() => {

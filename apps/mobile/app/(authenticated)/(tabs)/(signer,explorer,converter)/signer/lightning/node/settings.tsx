@@ -1,17 +1,16 @@
-import { Stack, useRouter, useLocalSearchParams } from 'expo-router'
-import { StyleSheet, View, ScrollView, Alert } from 'react-native'
-import { useState, useCallback } from 'react'
+/* eslint-disable no-console */
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useCallback, useState } from 'react'
+import { Alert, ScrollView, StyleSheet, View } from 'react-native'
 
+import { SSIconChevronLeft, SSIconRefresh } from '@/components/icons'
+import SSButton from '@/components/SSButton'
+import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
+import { useLND } from '@/hooks/useLND'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import SSHStack from '@/layouts/SSHStack'
-import SSButton from '@/components/SSButton'
 import { useLightningStore } from '@/store/lightning'
-import { useLND } from '@/hooks/useLND'
-import { Colors } from '@/styles'
-import SSIconButton from '@/components/SSIconButton'
-import { SSIconChevronLeft, SSIconRefresh } from '@/components/icons'
 
 // Format version to only keep first three numbers matching ##.##.## pattern
 const formatVersion = (version: string) => {

@@ -1,35 +1,28 @@
-import { Stack, useRouter } from 'expo-router'
-import {
-  StyleSheet,
-  View,
-  TextInput,
-  Alert,
-  TouchableOpacity,
-  ScrollView
-} from 'react-native'
-import { useState, useCallback } from 'react'
+/* eslint-disable no-console */
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import { Ionicons } from '@expo/vector-icons'
 import * as Clipboard from 'expo-clipboard'
-import { useShallow } from 'zustand/react/shallow'
 import { useFonts } from 'expo-font'
+import { Stack, useRouter } from 'expo-router'
+import { useCallback, useState } from 'react'
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
-import { useLND } from '@/hooks/useLND'
 import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import { useLND } from '@/hooks/useLND'
+import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import SSHStack from '@/layouts/SSHStack'
-import SSModal from '@/components/SSModal'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { formatNumber } from '@/utils/format'
 import { Typography } from '@/styles'
+import { formatNumber } from '@/utils/format'
 import {
-  isLNURL,
-  handleLNURLPay,
+  decodeLNURL,
   fetchLNURLPayDetails,
-  decodeLNURL
+  handleLNURLPay,
+  isLNURL
 } from '@/utils/lnurl'
 
 // Define the type for makeRequest

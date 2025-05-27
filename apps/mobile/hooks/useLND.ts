@@ -1,8 +1,10 @@
+/* eslint-disable no-console */
 import { useCallback, useEffect } from 'react'
+
 import {
-  useLightningStore,
+  type LNDChannel,
   type LNDNodeInfo,
-  type LNDChannel
+  useLightningStore
 } from '@/store/lightning'
 
 interface LNDRequestOptions {
@@ -98,7 +100,7 @@ export const useLND = () => {
           } else if (response.status >= 500) {
             try {
               await getInfo()
-            } catch (verifyError) {
+            } catch {
               setConnected(false)
             }
           }

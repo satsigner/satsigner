@@ -1,36 +1,35 @@
-import { useState, useEffect, useCallback } from 'react'
+import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import * as Clipboard from 'expo-clipboard'
+import { Stack, useRouter } from 'expo-router'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Alert,
   Dimensions,
+  ScrollView,
   StyleSheet,
   TextInput,
-  View,
-  ScrollView
+  View
 } from 'react-native'
-import { Stack, useRouter } from 'expo-router'
-import * as Clipboard from 'expo-clipboard'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import { useLND } from '@/hooks/useLND'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
+import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { formatNumber } from '@/utils/format'
 import {
-  isLNURL,
   decodeLNURL,
   fetchLNURLWithdrawDetails,
-  requestLNURLWithdrawInvoice,
-  type LNURLWithdrawDetails,
   getLNURLType,
-  type LNURLType
+  isLNURL,
+  type LNURLWithdrawDetails,
+  requestLNURLWithdrawInvoice
 } from '@/utils/lnurl'
-import { useBlockchainStore } from '@/store/blockchain'
 
 const screenWidth = Dimensions.get('window').width
 const qrCodeSize = Math.min(screenWidth - 40, 300) // Account for modal padding (20px on each side)
@@ -90,7 +89,7 @@ export default function InvoicePage() {
       if (newStatus === 'settled' && invoiceStatus !== 'settled') {
         Alert.alert('Success', 'Payment received!')
       }
-    } catch (error) {
+    } catch {
       // Error handling without console.error
     }
   }, [rHash, qrModalVisible, makeRequest, invoiceStatus])
@@ -163,7 +162,7 @@ export default function InvoicePage() {
         }
 
         return true
-      } catch (error) {
+      } catch {
         Alert.alert(
           'Invalid LNURL Type',
           'This LNURL appears to be a pay request. Please use the Send Payment page instead.'
@@ -230,7 +229,7 @@ export default function InvoicePage() {
           'The clipboard content is not a valid Lightning invoice or LNURL'
         )
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to read clipboard content')
     }
   }
