@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { Dimensions, Platform, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -109,11 +109,6 @@ export default function SelectUtxoList() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <SSMainLayout style={{ flex: 0 }}>
         <SSVStack>
           <SSHStack justifyBetween>

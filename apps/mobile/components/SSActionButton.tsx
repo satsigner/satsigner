@@ -20,7 +20,7 @@ function SSActionButton({ style, children, ...props }: SSActionButtonProps) {
   return (
     <TouchableHighlight
       activeOpacity={0.65}
-      underlayColor={Colors.gray[850]}
+      underlayColor={Colors.transparent}
       style={buttonStyle}
       {...props}
     >
