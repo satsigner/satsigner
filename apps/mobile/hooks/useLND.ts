@@ -3,7 +3,7 @@ import {
   useLightningStore,
   type LNDNodeInfo,
   type LNDChannel
-} from '@/stores/lightning'
+} from '@/store/lightning'
 
 interface LNDRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'

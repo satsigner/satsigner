@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router'
 import { StyleSheet, View, TouchableOpacity } from 'react-native'
 import { useLND } from '@/hooks/useLND'
-import { useLightningStore } from '@/stores/lightning'
+import { useLightningStore } from '@/store/lightning'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'

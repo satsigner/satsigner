@@ -10,8 +10,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import { useLightningStore } from '@/stores/lightning'
-import type { LNDConfig } from '@/stores/lightning'
+import { useLightningStore } from '@/store/lightning'
+import type { LNDConfig } from '@/store/lightning'
 
 export default function LNDRestPage() {
   const router = useRouter()

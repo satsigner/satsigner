@@ -17,7 +17,7 @@ import { useLND } from '@/hooks/useLND'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { useLightningStore } from '@/stores/lightning'
+import { useLightningStore } from '@/store/lightning'
 import { Colors } from '@/styles'
 import SSIconButton from '@/components/SSIconButton'
 import {
