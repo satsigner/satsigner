@@ -126,7 +126,7 @@ export default function Confirm() {
   function handleCloseWordsWarning() {
     setWarningModalVisible(false)
     clearAccount()
-    router.navigate('/')
+    router.navigate('/accountList')
   }
 
   function handleOnPressCancel() {
