@@ -144,7 +144,9 @@ export default function SingleSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
+                label={`${t(
+                  `script.${localScriptVersion.toLocaleLowerCase()}.name`
+                )} (${localScriptVersion})`}
                 withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
               />
@@ -152,7 +154,9 @@ export default function SingleSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSButton
-                label={`${localMnemonicWordCount} ${t('bitcoin.words').toLowerCase()}`}
+                label={`${localMnemonicWordCount} ${t(
+                  'bitcoin.words'
+                ).toLowerCase()}`}
                 withSelect
                 onPress={() => setMnemonicWordCountModalVisibile(true)}
               />
