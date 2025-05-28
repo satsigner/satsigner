@@ -43,7 +43,9 @@ export default function ExportLabels() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
     const ext = exportType.toLowerCase()
-    const filename = `${t('export.file.name.labels')}_${accountId}_${date}.${ext}`
+    const filename = `${t(
+      'export.file.name.labels'
+    )}_${accountId}_${date}.${ext}`
     const mime = bip329mimes[exportType]
     shareFile({
       filename,

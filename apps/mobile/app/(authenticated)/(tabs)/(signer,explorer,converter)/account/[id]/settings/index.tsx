@@ -233,7 +233,9 @@ export default function AccountSettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
+                label={`${t(
+                  `script.${scriptVersion.toLocaleLowerCase()}.name`
+                )} (${scriptVersion})`}
                 onPress={() => setScriptVersionModalVisible(true)}
                 withSelect
               />

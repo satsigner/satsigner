@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider'
 import * as bitcoin from 'bitcoinjs-lib'
 import { Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View, Platform } from 'react-native'
+import { Platform, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -12,15 +12,14 @@ import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { t, tn as _tn } from '@/locales'
+import { tn as _tn } from '@/locales'
+import { useEnergyStore } from '@/store/energy'
 import { Colors } from '@/styles'
 import {
   type BlockchainInfo,
   type BlockTemplate,
   type BlockTemplateTransaction
 } from '@/types/models/Rpc'
-import { validateAddress } from '@/utils/validation'
-import { useEnergyStore } from '@/store/energy'
 
 const tn = _tn('converter.energy')
 
@@ -64,7 +63,7 @@ const getAdjustedRpcUrl = (url: string) => {
         newUrl.hostname = '10.0.2.2'
         return newUrl.toString()
       }
-    } catch (e) {
+    } catch {
       // Silent fail - return original URL
     }
   }
@@ -85,29 +84,12 @@ const getNetworkFromAddress = (address: string) => {
   return networks.mainnet
 }
 
-// Add this helper function after the getNetworkFromAddress function
-const bitsToTarget = (bits: string | number): Buffer => {
-  const bitsNum = typeof bits === 'string' ? parseInt(bits, 16) : bits
-  const exponent = bitsNum >>> 24
-  const mantissa = bitsNum & 0xffffff
-  let target = Buffer.alloc(32, 0)
-  let mantissaBuf = Buffer.alloc(4)
-  mantissaBuf.writeUInt32BE(mantissa, 0)
-  if (exponent <= 3) {
-    mantissaBuf = mantissaBuf.slice(4 - exponent)
-    mantissaBuf.copy(target, 32 - mantissaBuf.length)
-  } else {
-    mantissaBuf.copy(target, 32 - exponent)
-  }
-  return target
-}
-
 // Add this helper function after bitsToTarget
 const encodeScriptNum = (num: number): Buffer => {
   if (num === 0) return Buffer.alloc(0)
-  let negative = num < 0
+  const negative = num < 0
   let absvalue = Math.abs(num)
-  let result = []
+  const result = []
   while (absvalue) {
     result.push(absvalue & 0xff)
     absvalue >>= 8
@@ -202,7 +184,7 @@ export default function Energy() {
   }, [blockchainInfo?.chain])
 
   const fetchRpc = useCallback(
-    (requestBody: RpcRequestBody) => {
+    async (requestBody: RpcRequestBody) => {
       const adjustedUrl = getAdjustedRpcUrl(rpcUrl)
       const credentials = `${rpcUsername}:${rpcPassword}`
       const credentialsBase64 = Buffer.from(credentials).toString('base64')
@@ -254,7 +236,9 @@ export default function Energy() {
 
             throw new Error(`Network request failed. Please check if:
                         1. The Bitcoin node is running
-                        2. The RPC port is correct (${new URL(adjustedUrl).port})
+                        2. The RPC port is correct (${
+                          new URL(adjustedUrl).port
+                        })
                         3. The node is accessible from your device
                         4. There are no firewall rules blocking the connection${platformSpecificAdvice}`)
           }
@@ -535,7 +519,7 @@ export default function Energy() {
 
       setIsValidAddress(isValid)
     }
-  }, []) // Only run on mount
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const connectToNode = async () => {
     if (!rpcUrl || !rpcUsername || !rpcPassword) {
@@ -618,7 +602,7 @@ export default function Energy() {
     const bitsNum = parseInt(bits, 16)
     const exponent = bitsNum >>> 24
     const mantissa = bitsNum & 0xffffff
-    let target = Buffer.alloc(32, 0)
+    const target = Buffer.alloc(32, 0)
     let mantissaBuf = Buffer.alloc(4)
     mantissaBuf.writeUInt32BE(mantissa, 0)
     if (exponent <= 3) {
@@ -650,7 +634,6 @@ export default function Energy() {
     }
 
     // Validate time constraints
-    const now = Math.floor(Date.now() / 1000)
     if (template.curtime < template.mintime) {
       throw new Error(
         `Invalid block time: ${template.curtime} (must be after ${template.mintime})`
@@ -679,10 +662,6 @@ export default function Energy() {
           template.coinbasevalue <= 0 ||
           template.coinbasevalue > Number.MAX_SAFE_INTEGER
         ) {
-          console.error('❌ Invalid coinbase value:', {
-            value: template.coinbasevalue,
-            maxSafe: Number.MAX_SAFE_INTEGER
-          })
           throw new Error('Invalid coinbase value: out of bounds')
         }
 
@@ -854,12 +833,7 @@ export default function Energy() {
   )
 
   const createBlockHeader = useCallback(
-    (
-      template: BlockTemplate,
-      merkleRoot: string,
-      timestamp: number,
-      nonce: number
-    ) => {
+    (template: BlockTemplate, merkleRoot: string, nonce: number) => {
       // Validate template first
       //validateBlockTemplate(template)
 
@@ -901,33 +875,13 @@ export default function Energy() {
 
       // Nonce (4 bytes) - little endian
       header.writeUInt32LE(nonce & 0xffffffff, 76)
-      /*
-      // Verify header bytes
-      console.log('🔨 Searching', {
-        version: header.slice(0, 4).toString('hex'),
-        prevBlock: header.slice(4, 36).toString('hex'),
-        merkleRoot: header.slice(36, 68).toString('hex'),
-        timestamp: header.slice(68, 72).toString('hex'),
-        bits: header.slice(72, 76).toString('hex'),
-        nonce: header.slice(76, 80).toString('hex'),
-        header: header.toString('hex')       
-        isRegtest: template.bits === '207fffff',
-        blockTime,
-        templateCurtime: template.curtime
-        
-      })
-      */
       return header
     },
     []
   )
 
   const submitBlock = useCallback(
-    async (
-      blockHeader: Buffer,
-      coinbaseTx: BlockTemplateTransaction,
-      transactions: BlockTemplateTransaction[]
-    ) => {
+    async (blockHeader: Buffer) => {
       try {
         // Always get fresh chain data and template before submission
 
@@ -1006,20 +960,15 @@ export default function Energy() {
         const freshHeader = createBlockHeader(
           freshTemplate,
           freshMerkleRoot,
-          freshTemplate.curtime,
           blockHeader.readUInt32LE(76) // Keep the same nonce
         )
-
-        // Calculate block hash in big-endian (as returned by sha256)
-        const hash = bitcoin.crypto.sha256(bitcoin.crypto.sha256(freshHeader))
-        // Convert to little-endian for submission (node expects little-endian)
-        const hashReversed = Buffer.from(hash).reverse()
-        const blockHash = hashReversed.toString('hex')
 
         // Get all transaction data in hex format, ensuring coinbase is first and only included once
         const rawTransactions = [
           freshCoinbaseTx.data, // Coinbase must be first
-          ...freshMempoolTxs.map((tx) => tx.data).filter(Boolean) // Filter out any undefined/null data
+          ...freshMempoolTxs
+            .map((tx: { data: string }) => tx.data)
+            .filter(Boolean) // Filter out any undefined/null data
         ]
 
         // Create varint for transaction count
@@ -1058,7 +1007,7 @@ export default function Energy() {
 
         setBlocksFound((prev) => prev + 1)
         return true
-      } catch (error) {
+      } catch {
         return false // Return false but don't throw error to continue mining
       }
     },
@@ -1164,8 +1113,6 @@ export default function Energy() {
         let useExtraNonce = false
         const startTime = Date.now()
         let hashes = 0
-        let lastLogTime = startTime
-        let lastTemplateCheck = startTime
         let lastStatsUpdate = startTime
 
         // Cache for coinbase transaction and merkle root
@@ -1214,7 +1161,9 @@ export default function Energy() {
 
         // SEARCH
         toast.info(
-          `Running BitcoinMiner with ${blockTemplate?.transactions?.length || 0} transactions in block`
+          `Running BitcoinMiner with ${
+            blockTemplate?.transactions?.length || 0
+          } transactions in block`
         )
         const miningInterval = setInterval(async () => {
           if (!isMiningRef.current) {
@@ -1298,11 +1247,9 @@ export default function Energy() {
                 continue
               }
 
-              const timestamp = Math.floor(Date.now() / 1000)
               const header = createBlockHeader(
                 blockTemplate,
                 cachedMerkleRoot,
-                timestamp,
                 nonce++
               )
 
@@ -1325,10 +1272,7 @@ export default function Energy() {
 
               if (checkDifficulty(hashHex, blockTemplate.bits)) {
                 // Submit block with fresh data
-                const success = await submitBlock(header, cachedCoinbaseTx, [
-                  cachedCoinbaseTx,
-                  ...cachedMempoolTxs
-                ])
+                const success = await submitBlock(header)
 
                 if (success) {
                   // Update total sats earned
@@ -1349,7 +1293,7 @@ export default function Energy() {
             if (hashes % miningIntensity === 0 || miningIntensity === 10) {
               updateMiningStats()
             }
-          } catch (error) {
+          } catch {
             // Don't stop mining on error, just continue
           }
         }, miningIntervalTime)
@@ -1375,15 +1319,18 @@ export default function Energy() {
       )
     }
   }, [
+    blockchainInfo?.chain,
     blockTemplate,
-    miningAddress,
-    createCoinbaseTransaction,
     createBlockHeader,
+    createCoinbaseTransaction,
     createMerkleRoot,
+    fetchBlockTemplate,
     fetchRpc,
-    submitBlock,
+    isValidAddress,
+    miningAddress,
     miningIntensity,
-    blockchainInfo?.chain
+    miningIntervalTime,
+    submitBlock
   ])
 
   const stopMining = useCallback(() => {
@@ -1415,7 +1362,7 @@ export default function Energy() {
       toast.info('Mining stopped')
       setIsStopping(false)
     })
-  }, [isMining])
+  }, [isMining]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchTransaction = useCallback(async () => {
     if (!txId || !isConnected) return

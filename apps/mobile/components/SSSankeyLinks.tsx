@@ -329,21 +329,37 @@ const generateCustomLink = (points: LinkPoints) => {
   const moveToA = `M ${A[0]} ${A[1]}`
   const lineToB = `L ${B[0]} ${B[1]}`
 
-  let curveToCenterD = `C ${B[0] + (D[0] - B[0]) * firstCurveFirstControlX} ${B[1]}`
-  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * firstCurveSecondControlX} ${B[1]}`
-  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * midpointX} ${B[1] + (D[1] - B[1]) * midpointY}`
+  let curveToCenterD = `C ${B[0] + (D[0] - B[0]) * firstCurveFirstControlX} ${
+    B[1]
+  }`
+  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * firstCurveSecondControlX} ${
+    B[1]
+  }`
+  curveToCenterD += ` ${B[0] + (D[0] - B[0]) * midpointX} ${
+    B[1] + (D[1] - B[1]) * midpointY
+  }`
 
-  let curveToD = `C ${B[0] + (D[0] - B[0]) * midpointX} ${B[1] + (D[1] - B[1]) * midpointY}`
+  let curveToD = `C ${B[0] + (D[0] - B[0]) * midpointX} ${
+    B[1] + (D[1] - B[1]) * midpointY
+  }`
   curveToD += ` ${B[0] + (D[0] - B[0]) * secondCurveSecondControlX} ${D[1]}`
   curveToD += ` ${D[0]} ${D[1]}`
 
   const lineToC = `L ${C[0]} ${C[1]}`
 
-  let curveToCenterA = `C ${C[0] + (A[0] - C[0]) * firstCurveFirstControlX} ${C[1]}`
-  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * firstCurveSecondControlX} ${C[1]}`
-  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * midpointX} ${C[1] + (A[1] - C[1]) * midpointY}`
+  let curveToCenterA = `C ${C[0] + (A[0] - C[0]) * firstCurveFirstControlX} ${
+    C[1]
+  }`
+  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * firstCurveSecondControlX} ${
+    C[1]
+  }`
+  curveToCenterA += ` ${C[0] + (A[0] - C[0]) * midpointX} ${
+    C[1] + (A[1] - C[1]) * midpointY
+  }`
 
-  let curveToA = `C ${C[0] + (A[0] - C[0]) * midpointX} ${C[1] + (A[1] - C[1]) * midpointY}`
+  let curveToA = `C ${C[0] + (A[0] - C[0]) * midpointX} ${
+    C[1] + (A[1] - C[1]) * midpointY
+  }`
   curveToA += ` ${C[0] + (A[0] - C[0]) * secondCurveSecondControlX} ${A[1]}`
   curveToA += ` ${A[0]} ${A[1]}`
 

@@ -234,7 +234,9 @@ function SSSpiralBlocks({
   // Pre-calculate week circles outside of the render function
   const weekCircles = useMemo(() => {
     return RADIUS_WEEKS.map((r, index) => {
-      const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${255 - index * 50})`
+      const weekRingColor = `rgb(${255 - index * 50}, ${255 - index * 50}, ${
+        255 - index * 50
+      })`
       return (
         <Circle key={index} cx={centerX} cy={centerY} r={r} color="transparent">
           <Paint color={weekRingColor} style="stroke" strokeWidth={1}>
