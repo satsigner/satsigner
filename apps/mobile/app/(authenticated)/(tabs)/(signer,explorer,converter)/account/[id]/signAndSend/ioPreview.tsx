@@ -440,7 +440,7 @@ export default function IOPreview() {
         }}
         onLayout={handleTopLayout}
         locations={[0.19, 0.566, 0.77, 1]}
-        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
+        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       >
         <SSVStack
           itemsCenter
@@ -509,7 +509,7 @@ export default function IOPreview() {
           height: topGradientHeight
         }}
         locations={[0, 0.56, 0.77, 1]}
-        colors={['#00000096', '#00000085', '#00000068', '#00000000']}
+        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       />
       {inputs.size > 0 ? (
         <View style={{ position: 'absolute' }}>
