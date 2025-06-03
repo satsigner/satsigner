@@ -55,17 +55,33 @@ function SSCurrentTransactionChart({
   onPressOutput,
   currentOutputLocalId
 }: SSCurrentTransactionChartProps) {
+  const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
+  const totalInputValue = useMemo(
+    () => inputArray.reduce((sum, input) => sum + input.value, 0),
+    [inputArray]
+  )
+  const totalOutputValue = useMemo(
+    () => outputArray.reduce((sum, output) => sum + output.amount, 0),
+    [outputArray]
+  )
+
+  // First calculate without change output
+  const baseSize = estimateTransactionSize(inputMap.size, outputArray.length)
+  const baseFee = Math.round(feeRateProp * baseSize.vsize)
+
+  // Check if we'll have change
+  const hasChange = totalInputValue > totalOutputValue + baseFee
+
+  // Now calculate final size including change if needed
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
     inputMap.size,
-    outputArray.length
+    outputArray.length + (hasChange ? 1 : 0)
   )
 
   const minerFee = useMemo(
     () => Math.round(feeRateProp * txVsize),
     [feeRateProp, txVsize]
   )
-
-  const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
 
