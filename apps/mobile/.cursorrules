@@ -1,0 +1,126 @@
+# Cursor Rules for SatSigner Mobile App
+
+# Inherit base rules
+
+inherit: ../../.cursorrules
+
+# React Native Component Rules
+
+\*.tsx { # Enforce screen component naming
+screen_naming: {Name}Screen
+
+    # Enforce navigation prop types
+    navigation_props: {StackName}NavigationProp
+
+    # Enforce route prop types
+    route_props: {StackName}RouteProp
+
+}
+
+# Mobile-specific Rules
+
+android/,ios/ { # Ignore native platform files
+ignore: true
+}
+
+# Expo Config Rules
+
+app.config.ts,eas.json { # Enforce consistent spacing
+indent: 2
+
+    # Max line length for config files
+    max_line_length: 80
+
+}
+
+# Asset Rules
+
+assets/\*_/_.{png,jpg,gif} { # Ignore image assets
+ignore: true
+}
+
+# Storybook Rules
+
+\*.stories.tsx { # Enforce story naming convention
+story_naming: {ComponentName}Story
+
+    # Enforce consistent story structure
+    story_template: true
+
+}
+
+# Test Rules (extending base rules)
+
+_.test.ts,_.test.tsx { # Additional mobile-specific test patterns
+test_patterns: [
+"renderComponent",
+"fireEvent",
+"waitFor"
+]
+}
+
+# Mobile Style Rules
+
+_.style.ts,styles/_.ts { # Enforce style object naming
+style_naming: {ComponentName}Styles
+
+    # Enforce consistent style properties ordering
+    style_props_order: [
+        "layout",
+        "position",
+        "dimensions",
+        "margin",
+        "padding",
+        "border",
+        "background",
+        "text"
+    ]
+
+}
+
+# Translation Rules
+
+locales/\*.json { # Enforce consistent translation key naming
+translation_key_naming: camelCase
+
+    # Enforce consistent spacing
+    indent: 2
+
+}
+
+# Navigation Rules
+
+navigation/\*.tsx { # Enforce navigator naming
+navigator_naming: {Name}Navigator
+
+    # Enforce screen options naming
+    screen_options_naming: get{Screen}Options
+
+}
+
+# Storage Rules
+
+storage/\*.ts { # Enforce storage key naming
+storage_key_naming: UPPER_SNAKE_CASE
+}
+
+# Hook Rules (extending base rules)
+
+hooks/\*.ts { # Additional hook patterns to enforce
+hook_patterns: [
+"useCallback",
+"useEffect",
+"useState",
+"useMemo"
+]
+}
+
+# API Rules
+
+api/\*.ts { # Enforce API function naming
+api_function_naming: {verb}{Resource}
+
+    # Enforce consistent error handling
+    error_handling: true
+
+}
