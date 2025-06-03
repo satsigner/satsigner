@@ -67,7 +67,6 @@ export default function RootLayout() {
     // Initialize NFC manager
     NfcManager.start().catch(() => {
       // NFC not supported or failed to initialize - this is expected in emulators
-      console.log('NFC not available or failed to initialize')
     })
   }, [])
 
