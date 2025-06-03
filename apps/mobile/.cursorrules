@@ -4,6 +4,25 @@
 
 inherit: ../../.cursorrules
 
+# TypeScript Rules
+
+_.ts,_.tsx { # Prefer interfaces over types
+prefer_interface: true
+
+    # Avoid enums, use const maps
+    avoid_enums: true
+
+    # Enforce strict mode
+    strict_mode: true
+
+    # Use function keyword for pure functions
+    pure_function_style: "function"
+
+    # Enforce named exports
+    prefer_named_exports: true
+
+}
+
 # React Native Component Rules
 
 \*.tsx { # Enforce screen component naming
@@ -15,12 +34,66 @@ screen_naming: {Name}Screen
     # Enforce route prop types
     route_props: {StackName}RouteProp
 
+    # File structure order
+    file_structure: [
+        "exports",
+        "subcomponents",
+        "helpers",
+        "static",
+        "types"
+    ]
+
+    # Variable naming with auxiliary verbs
+    variable_naming: {verb}{Noun}
+
+    # Enforce functional components
+    component_style: functional
+
+    # Enforce accessibility props
+    require_a11y_props: true
+
 }
+
+# Directory Structure Rules
+
+- { # Use lowercase with dashes for directories
+  directory_naming: lowercase-dashed
+  }
 
 # Mobile-specific Rules
 
 android/,ios/ { # Ignore native platform files
 ignore: true
+}
+
+# Safe Area Rules
+
+\*.tsx { # Enforce SafeAreaView usage
+require_safe_area: true
+
+    # Avoid hardcoded insets
+    avoid_hardcoded_insets: true
+
+}
+
+# Performance Rules
+
+\*.tsx { # Minimize useState usage
+prefer_reducer: true
+
+    # Enforce proper memo usage
+    require_memo_deps: true
+
+    # Enforce proper effect deps
+    require_effect_deps: true
+
+    # Image optimization rules
+    image_rules: {
+        prefer_webp: true,
+        require_size: true,
+        lazy_loading: true
+    }
+
 }
 
 # Expo Config Rules
@@ -31,61 +104,15 @@ indent: 2
     # Max line length for config files
     max_line_length: 80
 
+    # Require OTA update configuration
+    require_updates_config: true
+
 }
 
 # Asset Rules
 
-assets/\*_/_.{png,jpg,gif} { # Ignore image assets
+assets/\*_/_.{png,jpg,gif,webp} { # Ignore image assets
 ignore: true
-}
-
-# Storybook Rules
-
-\*.stories.tsx { # Enforce story naming convention
-story_naming: {ComponentName}Story
-
-    # Enforce consistent story structure
-    story_template: true
-
-}
-
-# Test Rules (extending base rules)
-
-_.test.ts,_.test.tsx { # Additional mobile-specific test patterns
-test_patterns: [
-"renderComponent",
-"fireEvent",
-"waitFor"
-]
-}
-
-# Mobile Style Rules
-
-_.style.ts,styles/_.ts { # Enforce style object naming
-style_naming: {ComponentName}Styles
-
-    # Enforce consistent style properties ordering
-    style_props_order: [
-        "layout",
-        "position",
-        "dimensions",
-        "margin",
-        "padding",
-        "border",
-        "background",
-        "text"
-    ]
-
-}
-
-# Translation Rules
-
-locales/\*.json { # Enforce consistent translation key naming
-translation_key_naming: camelCase
-
-    # Enforce consistent spacing
-    indent: 2
-
 }
 
 # Navigation Rules
@@ -96,31 +123,96 @@ navigator_naming: {Name}Navigator
     # Enforce screen options naming
     screen_options_naming: get{Screen}Options
 
+    # Require deep linking setup
+    require_deep_linking: true
+
+    # Use expo-router patterns
+    use_expo_router: true
+
 }
 
-# Storage Rules
+# State Management Rules
 
-storage/\*.ts { # Enforce storage key naming
-storage_key_naming: UPPER_SNAKE_CASE
+store/\*.ts { # Prefer context + reducer
+prefer_context_reducer: true
+
+    # Enforce proper selector usage
+    require_selector_memoization: true
+
 }
 
-# Hook Rules (extending base rules)
-
-hooks/\*.ts { # Additional hook patterns to enforce
-hook_patterns: [
-"useCallback",
-"useEffect",
-"useState",
-"useMemo"
-]
-}
-
-# API Rules
+# API and Data Fetching Rules
 
 api/\*.ts { # Enforce API function naming
 api_function_naming: {verb}{Resource}
 
     # Enforce consistent error handling
     error_handling: true
+
+    # Use react-query patterns
+    use_react_query: true
+
+    # Require HTTPS
+    require_https: true
+
+}
+
+# Security Rules
+
+_.ts,_.tsx { # Require input sanitization
+require_input_sanitization: true
+
+    # Enforce secure storage usage
+    require_secure_storage: true
+
+    # Enforce proper auth patterns
+    require_auth_checks: true
+
+}
+
+# Testing Rules
+
+_.test.ts,_.test.tsx { # Additional mobile-specific test patterns
+test_patterns: [
+"renderComponent",
+"fireEvent",
+"waitFor",
+"act"
+]
+
+    # Require snapshot tests
+    require_snapshots: true
+
+    # Enforce proper mock usage
+    require_proper_mocks: true
+
+}
+
+# Internationalization Rules
+
+_.tsx,locales/_.json { # Enforce i18n usage
+require_i18n: true
+
+    # Support RTL layouts
+    require_rtl_support: true
+
+    # Support text scaling
+    require_text_scaling: true
+
+}
+
+# Error Handling Rules
+
+_.tsx,_.ts { # Early return pattern
+prefer_early_return: true
+
+    # Avoid nested conditionals
+    max_conditional_depth: 2
+
+    # Require error boundaries
+    require_error_boundary: true
+
+    # Use error reporting
+    use_error_reporter: true
 
 }
