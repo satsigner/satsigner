@@ -1,0 +1,102 @@
+# Cursor Rules for SatSigner Development
+
+# TypeScript Rules
+*.ts,*.tsx {
+    # Enforce consistent import ordering
+    import_sort: true
+    
+    # Enforce consistent spacing
+    indent: 2
+    
+    # Enforce consistent quotes
+    quotes: single
+    
+    # Enforce trailing commas in multiline
+    trailing_comma: es5
+    
+    # Enforce semicolons
+    semi: true
+    
+    # Max line length
+    max_line_length: 100
+    
+    # Enforce consistent arrow function parentheses
+    arrow_parens: avoid
+}
+
+# React Component Rules
+*.tsx {
+    # Enforce component naming convention
+    component_naming: PascalCase
+    
+    # Enforce props interface naming
+    props_interface_naming: {ComponentName}Props
+    
+    # Enforce hooks naming
+    hook_naming: use{Name}
+}
+
+# Styling Rules
+*.css,*.scss {
+    # Enforce consistent spacing
+    indent: 2
+    
+    # Enforce consistent quotes
+    quotes: single
+    
+    # Max line length
+    max_line_length: 100
+}
+
+# Documentation Rules
+*.md,*.mdx {
+    # Enforce consistent spacing
+    indent: 2
+    
+    # Max line length for better readability
+    max_line_length: 80
+    
+    # Enforce consistent heading style
+    heading_style: atx
+}
+
+# JSON Rules
+*.json {
+    # Enforce consistent spacing
+    indent: 2
+    
+    # Enforce trailing commas in multiline
+    trailing_comma: none
+}
+
+# Test Files Rules
+*.test.ts,*.test.tsx,*.spec.ts,*.spec.tsx {
+    # Enforce consistent test naming
+    test_naming: describe_it
+    
+    # Enforce consistent spacing
+    indent: 2
+    
+    # Max line length
+    max_line_length: 100
+}
+
+# General Rules
+* {
+    # Enforce consistent end of line
+    end_of_line: lf
+    
+    # Enforce final newline
+    insert_final_newline: true
+    
+    # Remove trailing whitespace
+    trim_trailing_whitespace: true
+    
+    # Enforce consistent file encoding
+    charset: utf-8
+}
+
+# Ignore Rules
+.git/,node_modules/,build/,dist/,coverage/ {
+    ignore: true
+} 
