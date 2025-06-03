@@ -32,9 +32,15 @@ export function useNFCReader() {
 
   async function checkNFCAvailability() {
     try {
+      const supported = await NfcManager.isSupported()
+      if (!supported) {
+        setIsAvailable(false)
+        return
+      }
       const isNFCAvailable = await NfcManager.isEnabled()
       setIsAvailable(isNFCAvailable)
     } catch (_error) {
+      // NFC not supported or not available
       setIsAvailable(false)
     }
   }
@@ -50,7 +56,6 @@ export function useNFCReader() {
       const tag = await NfcManager.getTag()
 
       if (!tag?.ndefMessage?.length) {
-        console.error('No NDEF message found on tag')
         return null
       }
 

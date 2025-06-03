@@ -65,7 +65,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Initialize NFC manager
-    NfcManager.start()
+    NfcManager.start().catch(() => {
+      // NFC not supported or failed to initialize - this is expected in emulators
+      console.log('NFC not available or failed to initialize')
+    })
   }, [])
 
   function handleAppStateChanged(nextAppState: AppStateStatus) {
