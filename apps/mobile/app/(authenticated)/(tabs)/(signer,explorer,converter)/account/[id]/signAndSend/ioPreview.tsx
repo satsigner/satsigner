@@ -145,7 +145,7 @@ export default function IOPreview() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
-  const [localFeeRate, setLocalFeeRate] = useState(1)
+  const [localFeeRate, setLocalFeeRate] = useState(feeRate)
   const [outputsCount, setOutputsCount] = useState(0)
   const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
 
@@ -161,15 +161,32 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
-  // const outputsValue = (outputs: Output[]): number =>
-  //   outputs.reduce((acc, output) => acc + output.amount, 0)
+  // First calculate without change output
+  const baseTransactionSize = useMemo(() => {
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+    return { size, vsize }
+  }, [inputs.size, outputs.length])
 
-  // const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
+  const baseMinerFee = useMemo(
+    () => Math.round(feeRate * baseTransactionSize.vsize),
+    [feeRate, baseTransactionSize.vsize]
+  )
+
+  // Calculate if we'll have change
+  const totalOutputValue = useMemo(
+    () => outputs.reduce((sum, output) => sum + output.amount, 0),
+    [outputs]
+  )
+  const hasChange = useMemo(
+    () => utxosSelectedValue > totalOutputValue + baseMinerFee,
+    [utxosSelectedValue, totalOutputValue, baseMinerFee]
+  )
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
   const [outputTo, setOutputTo] = useState('')
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
+  const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
 
   const remainingSats = useMemo(
@@ -178,9 +195,19 @@ export default function IOPreview() {
       outputs.reduce((acc, output) => acc + output.amount, 0),
     [utxosSelectedValue, outputs]
   )
-  const transactionSize = useMemo(
-    () => estimateTransactionSize(inputs.size, outputs.length + 1),
-    [inputs.size, outputs.length]
+
+  // Now calculate final size including change if needed
+  const transactionSize = useMemo(() => {
+    const { size, vsize } = estimateTransactionSize(
+      inputs.size,
+      outputs.length + (hasChange ? 1 : 0)
+    )
+    return { size, vsize }
+  }, [inputs.size, outputs.length, hasChange])
+
+  const minerFee = useMemo(
+    () => Math.round(feeRate * transactionSize.vsize),
+    [feeRate, transactionSize.vsize]
   )
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
@@ -202,23 +229,22 @@ export default function IOPreview() {
   const boxPosition = new Animated.Value(localFeeRate)
 
   const remainingBalance = useMemo(() => {
-    const { vsize } = transactionSize
-    const minerFee = Math.round(feeRate * vsize)
     const totalInputValue = utxosSelectedValue
     const totalOutputValue = outputs.reduce(
       (sum, output) => sum + output.amount,
       0
     )
     return totalInputValue - totalOutputValue - minerFee
-  }, [feeRate, outputs, transactionSize, utxosSelectedValue])
+  }, [minerFee, outputs, utxosSelectedValue])
 
   // Calculate outputs for chart including remaining balance
   const singleTxOutputs = useMemo(() => {
     const chartOutputs: Output[] = [...outputs]
 
-    if (remainingBalance > DUST_LIMIT) {
+    // Always include remaining balance if there is any
+    if (remainingBalance > 0) {
       chartOutputs.push({
-        localId: 'remainingBalance', // WARN: do not chnage it!
+        localId: 'remainingBalance', // WARN: do not change it!
         amount: remainingBalance,
         label: '',
         to: changeAddress
@@ -244,6 +270,18 @@ export default function IOPreview() {
   useEffect(() => {
     setFee(localFeeRate * transactionSize.vsize)
   }, [localFeeRate, transactionSize, setFee])
+
+  useEffect(() => {
+    setLocalFeeRate(feeRate)
+  }, [feeRate])
+
+  useEffect(() => {
+    Animated.timing(boxPosition, {
+      toValue: localFeeRate,
+      duration: 100,
+      useNativeDriver: true
+    }).start()
+  }, [localFeeRate, boxPosition])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -281,6 +319,7 @@ export default function IOPreview() {
     setCurrentOutputNumber(outputs.length + 1)
     setOutputTo('')
     setOutputAmount(DUST_LIMIT)
+    setOriginalOutputAmount(0)
     setOutputLabel('')
   }
 
@@ -335,6 +374,7 @@ export default function IOPreview() {
 
     setOutputTo(outputs[outputIndex].to)
     setOutputAmount(outputs[outputIndex].amount)
+    setOriginalOutputAmount(outputs[outputIndex].amount)
     setOutputLabel(outputs[outputIndex].label)
     setCurrentOutputNumber(outputIndex + 1)
 
@@ -380,21 +420,28 @@ export default function IOPreview() {
       (acc, output) => acc + output.amount,
       0
     )
-    const totalFees = feeRate * transactionSize.vsize
-    const totalRequired = totalOutputAmount + totalFees
+    const totalRequired = totalOutputAmount + minerFee
 
     if (totalRequired > utxosSelectedValue) {
+      console.log('totalRequired', totalRequired)
+      console.log('utxosSelectedValue', utxosSelectedValue)
+      console.log('totalOutputAmount', totalOutputAmount)
+      console.log('minerFee', minerFee)
+      console.log('feeRate', feeRate)
+      console.log('transactionSize', transactionSize)
       setWarningModalVisible(true)
       return
     }
 
-    // first, we add the change as an output
-    setShouldRemoveChange(false)
-    addOutput({
-      to: changeAddress,
-      amount: remainingBalance,
-      label: 'Change'
-    })
+    // Add change output if there's any remaining amount
+    if (remainingBalance > 0) {
+      setShouldRemoveChange(false)
+      addOutput({
+        to: changeAddress,
+        amount: remainingBalance,
+        label: 'Change'
+      })
+    }
 
     // Account not synced. Go to warning page to sync it.
     if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
@@ -546,7 +593,7 @@ export default function IOPreview() {
             <SSCurrentTransactionChart
               inputs={inputs}
               outputs={singleTxOutputs}
-              feeRate={feeRate}
+              feeRate={localFeeRate}
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
             />
@@ -659,9 +706,20 @@ export default function IOPreview() {
                   <SSAmountInput
                     key={`amount-input-${outputsCount}`}
                     min={DUST_LIMIT}
-                    max={Math.max(remainingSats, DUST_LIMIT)}
+                    max={
+                      currentOutputLocalId
+                        ? Math.max(
+                            remainingSats + originalOutputAmount - minerFee,
+                            DUST_LIMIT
+                          )
+                        : Math.max(remainingSats - minerFee, DUST_LIMIT)
+                    }
                     value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
-                    remainingSats={remainingSats}
+                    remainingSats={
+                      currentOutputLocalId
+                        ? remainingSats + originalOutputAmount - minerFee
+                        : remainingSats - minerFee
+                    }
                     onValueChange={(value) => setOutputAmount(value)}
                   />
                 </SSVStack>
