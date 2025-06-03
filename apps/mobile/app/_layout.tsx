@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
-import { Toaster } from 'sonner-native'
+import { Toaster, toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
@@ -65,8 +65,14 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Initialize NFC manager
-    NfcManager.start().catch(() => {
-      // NFC not supported or failed to initialize - this is expected in emulators
+    NfcManager.start().catch((error) => {
+      // Show a toast notification only in development
+      if (__DEV__) {
+        toast.error('NFC initialization failed', {
+          description:
+            'This is expected in emulators and devices without NFC support'
+        })
+      }
     })
   }, [])
 
