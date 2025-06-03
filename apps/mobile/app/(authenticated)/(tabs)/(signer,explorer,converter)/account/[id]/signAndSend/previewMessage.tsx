@@ -452,11 +452,6 @@ function PreviewMessage() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <SSMainLayout style={styles.mainLayout}>
         <SSVStack justifyBetween>
           <ScrollView>

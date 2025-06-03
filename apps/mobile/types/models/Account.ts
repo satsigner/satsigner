@@ -106,7 +106,7 @@ export type Account = {
   }
 }
 
-export interface NostrAccount {
+export type NostrAccount = {
   commonNpub: string
   commonNsec: string
   relays: string[]
@@ -123,7 +123,7 @@ export interface NostrAccount {
   trustedMemberDevices: string[]
 }
 
-export interface NostrMember {
+export type NostrMember = {
   npub: string
   color?: string
 }

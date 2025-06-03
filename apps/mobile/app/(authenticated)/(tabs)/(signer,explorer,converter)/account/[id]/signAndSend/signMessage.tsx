@@ -1,4 +1,4 @@
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
@@ -127,11 +127,6 @@ export default function SignMessage() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{account.name}</SSText>
-        }}
-      />
       <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
         <ScrollView>
           <SSVStack itemsCenter justifyBetween style={{ minHeight: '100%' }}>

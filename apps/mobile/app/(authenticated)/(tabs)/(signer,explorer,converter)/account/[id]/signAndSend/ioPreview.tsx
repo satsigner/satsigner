@@ -447,12 +447,7 @@ export default function IOPreview() {
         }}
         onLayout={handleTopLayout}
         locations={[0.19, 0.566, 0.77, 1]}
-        colors={[
-          '#131313', // solid
-          '#131313cc', // 80% opacity
-          '#13131399', // 60% opacity
-          '#13131300' // transparent
-        ]}
+        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       >
         <SSVStack
           itemsCenter
@@ -521,12 +516,7 @@ export default function IOPreview() {
           height: topGradientHeight
         }}
         locations={[0, 0.56, 0.77, 1]}
-        colors={[
-          '#131313', // solid
-          '#131313cc', // 80% opacity
-          '#13131399', // 60% opacity
-          '#13131300' // transparent
-        ]}
+        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       />
       {inputs.size > 0 ? (
         <View style={{ position: 'absolute' }}>
@@ -807,29 +797,31 @@ export default function IOPreview() {
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
-        <SSFeeRateChart
-          mempoolStatistics={mempoolStatistics}
-          timeRange="2hours"
-          boxPosition={boxPosition}
-        />
-        <SSFeeInput
-          value={localFeeRate}
-          onValueChange={setLocalFeeRate}
-          vbytes={transactionSize.vsize}
-          max={40}
-          estimatedBlock={Math.trunc(40 / localFeeRate)}
-        />
-        <SSButton
-          label={t('transaction.build.set.fee')}
-          variant="secondary"
-          style={{ flex: 1 }}
-          onPress={handleSetFeeRate}
-        />
-        <SSButton
-          label={t('common.cancel')}
-          variant="ghost"
-          onPress={() => changeFeeBottomSheetRef.current?.close()}
-        />
+        <SSVStack style={{ paddingBottom: 24 }}>
+          <SSFeeRateChart
+            mempoolStatistics={mempoolStatistics}
+            timeRange="2hours"
+            boxPosition={boxPosition}
+          />
+          <SSFeeInput
+            value={localFeeRate}
+            onValueChange={setLocalFeeRate}
+            vbytes={transactionSize.vsize}
+            max={40}
+            estimatedBlock={Math.trunc(40 / localFeeRate)}
+          />
+          <SSButton
+            label={t('transaction.build.set.fee')}
+            variant="secondary"
+            style={{ flex: 1 }}
+            onPress={handleSetFeeRate}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => changeFeeBottomSheetRef.current?.close()}
+          />
+        </SSVStack>
       </SSBottomSheet>
       <SSModal
         visible={cameraModalVisible}
