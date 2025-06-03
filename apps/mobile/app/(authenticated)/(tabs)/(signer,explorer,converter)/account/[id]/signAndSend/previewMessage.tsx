@@ -281,14 +281,17 @@ function PreviewMessage() {
 
   // Keep animation speed the same but with smaller chunks
   useEffect(() => {
-    if (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) {
+    const shouldAnimate =
+      (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) ||
+      (displayMode === QRDisplayMode.UR && urChunks.length > 1)
+
+    if (shouldAnimate) {
       const interval = setInterval(() => {
-        setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
-      }, 750)
-      return () => clearInterval(interval)
-    } else if (displayMode === QRDisplayMode.UR && urChunks.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
+        if (displayMode === QRDisplayMode.UR) {
+          setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
+        } else {
+          setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
+        }
       }, 750)
       return () => clearInterval(interval)
     }
@@ -405,19 +408,32 @@ function PreviewMessage() {
   const getQRValue = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW:
-        return serializedPsbt
+        // Maximum capacity for QR code with error correction level H
+        if (serializedPsbt.length > 1852) {
+          return 'DATA_TOO_LARGE'
+        }
+        return serializedPsbt || 'NO_DATA'
       case QRDisplayMode.UR:
-        return urChunks[currentUrChunk] || ''
+        return urChunks[currentUrChunk] || 'NO_CHUNKS'
       case QRDisplayMode.BBQR:
-        return qrChunks?.[currentChunk] || ''
+        return qrChunks?.[currentChunk] || 'NO_CHUNKS'
     }
   }
 
   const getDisplayModeDescription = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW:
+        if (serializedPsbt.length > 1852) {
+          return t('error.qr.dataTooLarge')
+        }
+        if (!serializedPsbt) {
+          return t('error.psbt.notAvailable')
+        }
         return t('transaction.preview.rawPSBT')
       case QRDisplayMode.UR:
+        if (!urChunks.length) {
+          return t('error.psbt.notAvailable')
+        }
         return urChunks.length > 1
           ? t('transaction.preview.scanAllChunks', {
               current: currentUrChunk + 1,
@@ -425,6 +441,9 @@ function PreviewMessage() {
             })
           : t('transaction.preview.singleChunk')
       case QRDisplayMode.BBQR:
+        if (!qrChunks.length) {
+          return t('error.psbt.notAvailable')
+        }
         return qrChunks.length > 1
           ? t('transaction.preview.scanAllChunks', {
               current: currentChunk + 1,
