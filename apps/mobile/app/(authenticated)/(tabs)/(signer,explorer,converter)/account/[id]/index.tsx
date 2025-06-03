@@ -1016,85 +1016,6 @@ export default function AccountView() {
           </SSText>
         </SSHStack>
       </TouchableOpacity>
-      <Animated.View style={{ height: gradientHeight }}>
-        <SSVStack itemsCenter gap="none">
-          <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSStyledSatText
-                amount={account?.summary.balance || 0}
-                decimals={0}
-                useZeroPadding={useZeroPadding}
-                textSize="6xl"
-                weight="ultralight"
-                letterSpacing={-1}
-              />
-              <SSText size="xl" color="muted">
-                {t('bitcoin.sats').toLowerCase()}
-              </SSText>
-            </SSHStack>
-            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-              <SSText color="muted">
-                {formatNumber(satsToFiat(account.summary.balance || 0), 2)}
-              </SSText>
-              <SSText size="xs" style={{ color: Colors.gray[500] }}>
-                {fiatCurrency}
-              </SSText>
-            </SSHStack>
-          </SSVStack>
-          <SSVStack gap="none">
-            <SSHStack
-              justifyEvenly
-              gap="none"
-              style={{ paddingHorizontal: '5%' }}
-            >
-              {account.keys[0].creationType !== 'importAddress' && (
-                <>
-                  <SSActionButton
-                    onPress={() => navigateToSignAndSend()}
-                    style={{
-                      ...styles.actionButton,
-                      width: '40%'
-                    }}
-                  >
-                    <SSText uppercase>{t('account.signAndSend')}</SSText>
-                  </SSActionButton>
-                  <SSActionButton
-                    onPress={() => router.navigate(`/account/${id}/camera`)}
-                    style={{
-                      ...styles.actionButton,
-                      width: '20%'
-                    }}
-                  >
-                    <SSIconCamera height={13} width={18} />
-                  </SSActionButton>
-                  <SSActionButton
-                    onPress={() => router.navigate(`/account/${id}/receive`)}
-                    style={{
-                      ...styles.actionButton,
-                      width: '40%'
-                    }}
-                  >
-                    <SSText uppercase>{t('account.receive')}</SSText>
-                  </SSActionButton>
-                </>
-              )}
-              {account.keys[0].creationType === 'importAddress' && (
-                <SSVStack gap="xs">
-                  <SSText center color="muted" size="xs">
-                    {t('receive.address').toUpperCase()}
-                  </SSText>
-                  <SSAddressDisplay
-                    variant="outline"
-                    type="sans-serif"
-                    style={{ lineHeight: 14 }}
-                    address={watchOnlyWalletAddress || ''}
-                  />
-                </SSVStack>
-              )}
-            </SSHStack>
-          </SSVStack>
-        </SSVStack>
-      </Animated.View>
       {!expand && (
         <Animated.View style={{ height: gradientHeight }}>
           <SSVStack itemsCenter gap="none">
@@ -1124,10 +1045,10 @@ export default function AccountView() {
             <SSVStack gap="none">
               <SSHStack
                 justifyEvenly
-                gap="xxs"
+                gap="none"
                 style={{ paddingHorizontal: '5%' }}
               >
-                {account.policyType !== 'watchonly' && (
+                {account.keys[0].creationType !== 'importAddress' && (
                   <>
                     <SSActionButton
                       onPress={() => navigateToSignAndSend()}
@@ -1157,17 +1078,6 @@ export default function AccountView() {
                       <SSText uppercase>{t('account.receive')}</SSText>
                     </SSActionButton>
                   </>
-                )}
-                {account.keys[0].creationType === 'importExtendedPub' && (
-                  <SSActionButton
-                    onPress={() => router.navigate(`/account/${id}/receive`)}
-                    style={{
-                      ...styles.actionButton,
-                      width: '100%'
-                    }}
-                  >
-                    <SSText uppercase>{t('account.receive')}</SSText>
-                  </SSActionButton>
                 )}
                 {account.keys[0].creationType === 'importAddress' && (
                   <SSVStack gap="xs">
