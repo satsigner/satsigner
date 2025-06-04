@@ -182,20 +182,17 @@ export default function AccountSettings() {
               )
             }
           />
+          <SSButton
+            style={styles.button}
+            label={t('account.export.pubkeys')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/export/pubkeys`
+              )
+            }
+          />
         </SSVStack>
         <SSVStack>
-          <SSHStack>
-            <SSButton
-              style={styles.button}
-              label={t('account.export.pubkeys')}
-              variant="gradient"
-              onPress={() =>
-                router.navigate(
-                  `/account/${currentAccountId}/settings/export/pubkeys`
-                )
-              }
-            />
-          </SSHStack>
           <SSHStack>
             <SSButton
               style={styles.button}
