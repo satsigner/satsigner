@@ -382,10 +382,11 @@ function PreviewMessage() {
     switch (displayMode) {
       case QRDisplayMode.RAW:
         // Maximum capacity for QR code with error correction level H
-        if (serializedPsbt.length > 1852) {
+        const base64Psbt = txBuilderResult?.psbt?.base64
+        if (base64Psbt && base64Psbt.length > 1852) {
           return 'DATA_TOO_LARGE'
         }
-        return serializedPsbt || 'NO_DATA'
+        return base64Psbt || 'NO_DATA'
       case QRDisplayMode.UR:
         return urChunks[currentUrChunk] || 'NO_CHUNKS'
       case QRDisplayMode.BBQR:
@@ -504,8 +505,10 @@ function PreviewMessage() {
                         label={t('common.copy')}
                         style={{ width: '48%' }}
                         onPress={() => {
-                          if (serializedPsbt) {
-                            Clipboard.setStringAsync(serializedPsbt)
+                          if (txBuilderResult?.psbt?.base64) {
+                            Clipboard.setStringAsync(
+                              txBuilderResult.psbt.base64
+                            )
                             toast(t('common.copied'))
                           }
                         }}
