@@ -95,7 +95,7 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     .nodePadding(GRAPH_HEIGHT / 2)
     .extent([
       [0, 20],
-      [width * 0.9, (GRAPH_HEIGHT * 0.75) / 2]
+      [width * 0.9, (GRAPH_HEIGHT * 0.65) / 2]
     ])
     .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
 
