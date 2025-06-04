@@ -452,7 +452,7 @@ function PreviewMessage() {
                 <SSText color="muted" size="sm" uppercase>
                   {t('transaction.id')}
                 </SSText>
-                <SSText size="lg">
+                <SSText size="lg" type="mono">
                   {messageId || `${t('common.loading')}...`}
                 </SSText>
               </SSVStack>
