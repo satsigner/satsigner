@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native'
+import { StyleSheet, View, Clipboard, Pressable } from 'react-native'
 
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
@@ -7,6 +7,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { encodeStandardSeedQR } from '@/utils/seedqr'
+import { useState } from 'react'
 
 type SSSeedQRProps = {
   mnemonic: string
@@ -28,6 +29,15 @@ export default function SSSeedQR({
     : ''
 
   const qrSize = formattedMnemonic.split(' ').length === 12 ? 250 : 300
+
+  // Format QR value into groups of 4 characters
+  const formattedQRValue = qrValue.match(/.{1,4}/g)?.join(' ') || qrValue
+
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    Clipboard.setString(qrValue)
+  }
 
   return (
     <SSModal
@@ -52,9 +62,11 @@ export default function SSSeedQR({
               />
             </View>
             <View style={styles.dataContainer}>
-              <SSText center color="muted" size="sm" style={styles.dataText}>
-                {qrValue}
-              </SSText>
+              <Pressable onPress={handleCopy}>
+                <SSText center size="lg" type="mono">
+                  {formattedQRValue}
+                </SSText>
+              </Pressable>
             </View>
             <SSText center color="muted" size="sm">
               {t('account.seedqr.standardDescription')}
@@ -86,8 +98,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray[900],
     borderRadius: 8,
     marginTop: 10
-  },
-  dataText: {
-    fontFamily: 'SF Mono'
   }
 })

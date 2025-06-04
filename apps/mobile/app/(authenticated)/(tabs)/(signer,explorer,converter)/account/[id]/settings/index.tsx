@@ -153,9 +153,7 @@ export default function AccountSettings() {
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText style={styles.fingerprintText}>
-              {account.keys[0].fingerprint}
-            </SSText>
+            <SSText>{account.keys[0].fingerprint}</SSText>
           </SSHStack>
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
@@ -369,9 +367,7 @@ export default function AccountSettings() {
         onClose={() => setDeleteModalVisible(false)}
       >
         <SSVStack style={styles.deleteModalOuterContainer}>
-          <SSText size="xl" weight="bold">
-            {t('common.areYouSure')}
-          </SSText>
+          <SSText uppercase>{t('common.areYouSure')}</SSText>
           <SSHStack style={styles.deleteModalInnerContainer}>
             <SSButton
               label={t('common.yes')}
@@ -536,9 +532,6 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  fingerprintText: {
-    color: Colors.success
   },
   mainLayout: {
     padding: 20
