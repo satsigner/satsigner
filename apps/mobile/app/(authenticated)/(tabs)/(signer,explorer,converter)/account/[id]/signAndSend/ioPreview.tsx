@@ -503,7 +503,7 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 10,
+          zIndex: 0,
           pointerEvents: 'none'
         }}
         onLayout={handleTopLayout}
@@ -580,7 +580,7 @@ export default function IOPreview() {
         colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       />
       {inputs.size > 0 ? (
-        <View style={{ position: 'absolute' }}>
+        <View style={{ position: 'absolute', zIndex: -1 }}>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}
