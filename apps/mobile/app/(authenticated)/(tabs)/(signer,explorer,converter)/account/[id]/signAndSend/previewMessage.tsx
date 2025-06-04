@@ -384,16 +384,6 @@ function PreviewMessage() {
     }
   }, [signedPsbt, setSignedTx])
 
-  useEffect(() => {
-    if (txBuilderResult) {
-      console.log('Transaction Builder:', {
-        txid: txBuilderResult.txDetails.txid,
-        psbt: txBuilderResult.psbt,
-        txDetails: txBuilderResult.txDetails
-      })
-    }
-  }, [txBuilderResult])
-
   const getDisplayModeLabel = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW:
@@ -531,8 +521,8 @@ function PreviewMessage() {
                         label={t('common.copy')}
                         style={{ width: '48%' }}
                         onPress={() => {
-                          if (transactionHex) {
-                            Clipboard.setStringAsync(transactionHex)
+                          if (serializedPsbt) {
+                            Clipboard.setStringAsync(serializedPsbt)
                             toast(t('common.copied'))
                           }
                         }}
