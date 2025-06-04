@@ -1,39 +1,43 @@
 import { useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { t } from '@/locales'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
-import { formatAddress, formatTxId } from '@/utils/format'
+import { formatAddress, formatTxId, formatNumber } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { usePriceStore } from '@/store/price'
 
 import type { ExtendedTransaction } from './useInputTransactions'
 
-export interface TxNode {
-  localId?: string
+export type TxNode = {
   id: string
   type: string
   depthH: number
-  value?: number
+  value: number
   txId?: string
   nextTx?: string
   indexV?: number
   vout?: number
   prevout?: any
+  localId?: string
   ioData: {
-    label?: string
-    feeRate?: number
     address?: string
-    minerFee?: number
+    label?: string
+    value: number
+    fiatValue?: string
+    fiatCurrency?: string
     text?: string
+    isUnspent?: boolean
+    feeRate?: number
+    minerFee?: number
     blockTime?: string
     blockHeight?: string
     blockRelativeTime?: string
     txSize?: number
     txId?: number
     vSize?: number
-    isUnspent?: boolean
-    value: number
   }
 }
 
@@ -80,6 +84,10 @@ export const useNodesAndLinks = ({
   outputs,
   feeRate
 }: UseNodesAndLinksProps) => {
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
   const maxExistingDepth =
     transactions.size > 0
       ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
@@ -119,7 +127,9 @@ export const useNodesAndLinks = ({
           label: output.label,
           address: formatAddress(output.to, 4),
           text: t('transaction.build.unspent'),
-          value: output.amount
+          value: output.amount,
+          fiatValue: formatNumber(satsToFiat(output.amount), 2),
+          fiatCurrency
         },
         value: output.amount,
         indexV: index,
@@ -135,6 +145,8 @@ export const useNodesAndLinks = ({
           depthH: blockDepth + 1,
           ioData: {
             value: remainingBalance,
+            fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
+            fiatCurrency,
             text: t('transaction.build.unspent'),
             isUnspent: true
           },
@@ -154,6 +166,8 @@ export const useNodesAndLinks = ({
         ioData: {
           feeRate: Math.round(feeRate),
           minerFee,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          fiatCurrency,
           text: t('transaction.build.minerFee'),
           value: minerFee
         },
@@ -184,7 +198,15 @@ export const useNodesAndLinks = ({
     } else {
       return []
     }
-  }, [inputs, transactions.size, maxExistingDepth, outputs, feeRate])
+  }, [
+    inputs,
+    transactions.size,
+    maxExistingDepth,
+    outputs,
+    feeRate,
+    satsToFiat,
+    fiatCurrency
+  ])
 
   const outputAddresses = useMemo(() => {
     if (transactions.size === 0) return []
@@ -256,6 +278,8 @@ export const useNodesAndLinks = ({
               depthH,
               ioData: {
                 value: input.value,
+                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
+                fiatCurrency,
                 address: `${formatAddress(input.address, 4)}`,
                 label: `${input.label ?? ''}`,
                 txId: tx.id,
@@ -328,6 +352,8 @@ export const useNodesAndLinks = ({
                 label,
                 address: formatAddress(output.address, 4),
                 value: output.value,
+                fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
+                fiatCurrency,
                 text: t('common.from')
               },
               value: output.value,
@@ -356,6 +382,8 @@ export const useNodesAndLinks = ({
                 feeRate: minerFeeRate,
                 value: minerFee,
                 minerFee,
+                fiatValue: formatNumber(satsToFiat(minerFee), 2),
+                fiatCurrency,
                 text: t('transaction.build.minerFee')
               },
               localId: 'past-minerFee'
@@ -379,7 +407,9 @@ export const useNodesAndLinks = ({
     inputs,
     outputAddresses,
     outputValues,
-    transactions
+    transactions,
+    satsToFiat,
+    fiatCurrency
   ])
 
   const nodes = [

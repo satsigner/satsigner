@@ -2,12 +2,14 @@ import { Canvas, Group } from '@shopify/react-native-skia'
 import { sankey, type SankeyNodeMinimal } from 'd3-sankey'
 import { useMemo } from 'react'
 import { useWindowDimensions, View } from 'react-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { type Transaction } from '@/types/models/Transaction'
-import { formatAddress } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 
 import SSSankeyLinks from './SSSankeyLinks'
 import SSSankeyNodes from './SSSankeyNodes'
@@ -33,6 +35,10 @@ type SSTransactionChartProps = {
 }
 
 function SSTransactionChart({ transaction }: SSTransactionChartProps) {
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
   const totalOutputValue = transaction.vout.reduce((prevValue, output) => {
     return prevValue + output.value
   }, 0)
@@ -109,6 +115,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         address: formatAddress(input.txid, 3),
         label: input.label ?? t('common.noLabel'),
         value: input.valueIsKnown ? input.value : 0,
+        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        fiatCurrency,
         text: t('common.from')
       },
       value: input.value
@@ -119,10 +127,11 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         id: String(inputs.length + 1),
         type: 'block',
         depthH: 1,
+        value: totalOutputValue,
         ioData: {
           txSize,
           vSize: txVsize,
-          value: 0
+          value: totalOutputValue
         }
       }
     ]
@@ -133,6 +142,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       depthH: 2,
       ioData: {
         value: output.value,
+        fiatValue: formatNumber(satsToFiat(output.value), 2),
+        fiatCurrency,
         address: formatAddress(output.address, 3),
         label: output.label ?? t('common.noLabel'),
         text: t('common.to')
@@ -147,6 +158,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         depthH: 2,
         ioData: {
           value: minerFee,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          fiatCurrency,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
           text: t('transaction.build.minerFee')
         },
@@ -156,7 +169,16 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     }
 
     return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
-  }, [inputs, outputs, txSize, txVsize, minerFee, feeRate])
+  }, [
+    inputs,
+    outputs,
+    txSize,
+    txVsize,
+    minerFee,
+    feeRate,
+    satsToFiat,
+    fiatCurrency
+  ])
 
   const sankeyLinks = useMemo(() => {
     if (inputs.length === 0 || outputs.length === 0) return []
