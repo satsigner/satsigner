@@ -7,6 +7,8 @@ import { getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
+import SSQRCode from '@/components/SSQRCode'
+import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -30,6 +32,8 @@ export default function ExportDescriptors() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [exportContent, setExportContent] = useState('')
+  const [showSeparate, setShowSeparate] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function getDescriptors() {
@@ -65,6 +69,8 @@ export default function ExportDescriptors() {
         setExportContent(descriptors.join('\n'))
       } catch {
         // TODO
+      } finally {
+        setIsLoading(false)
       }
     }
     getDescriptors()
@@ -85,6 +91,8 @@ export default function ExportDescriptors() {
 
   if (!account) return <Redirect href="/" />
 
+  const descriptors = exportContent.split('\n').filter(Boolean)
+
   return (
     <ScrollView style={{ width: '100%' }}>
       <Stack.Screen
@@ -100,29 +108,105 @@ export default function ExportDescriptors() {
           headerRight: undefined
         }}
       />
-      <SSVStack style={{ padding: 20 }}>
+      <SSVStack style={{ padding: 20 }} gap="lg">
         <SSText center uppercase color="muted">
           {t('account.export.descriptors')}
         </SSText>
-        <View
-          style={{
-            padding: 10,
-            backgroundColor: Colors.gray[950],
-            borderRadius: 5
-          }}
-        >
-          <SSText color="white" size="md" type="mono">
-            {exportContent}
+
+        {isLoading ? (
+          <SSText center color="muted">
+            Loading descriptors...
           </SSText>
-        </View>
-        <SSClipboardCopy text={exportContent}>
-          <SSButton label={t('common.copyToClipboard')} onPress={() => true} />
-        </SSClipboardCopy>
-        <SSButton
-          label={t('common.downloadFile')}
-          variant="secondary"
-          onPress={exportDescriptors}
-        />
+        ) : descriptors.length > 0 ? (
+          <>
+            <SSHStack gap="sm" style={{ justifyContent: 'space-between' }}>
+              <SSRadioButton
+                variant="outline"
+                label="Together"
+                selected={!showSeparate}
+                onPress={() => setShowSeparate(false)}
+                style={{ width: '48%' }}
+              />
+              <SSRadioButton
+                variant="outline"
+                label="Separate"
+                selected={showSeparate}
+                onPress={() => setShowSeparate(true)}
+                style={{ width: '48%' }}
+              />
+            </SSHStack>
+
+            {showSeparate ? (
+              <SSVStack gap="md">
+                {descriptors.map((descriptor, index) => (
+                  <View key={index} style={{ alignItems: 'center' }}>
+                    <View
+                      style={{
+                        backgroundColor: Colors.white,
+                        padding: 16,
+                        borderRadius: 2
+                      }}
+                    >
+                      <SSQRCode
+                        value={descriptor}
+                        size={150}
+                        color={Colors.black}
+                        backgroundColor={Colors.white}
+                      />
+                    </View>
+                    <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
+                      {index === 0 ? 'External' : 'Internal'} Descriptor
+                    </SSText>
+                  </View>
+                ))}
+              </SSVStack>
+            ) : (
+              <View style={{ alignItems: 'center' }}>
+                <View
+                  style={{
+                    backgroundColor: Colors.white,
+                    padding: 16,
+                    borderRadius: 2
+                  }}
+                >
+                  <SSQRCode
+                    value={exportContent}
+                    size={250}
+                    color={Colors.black}
+                    backgroundColor={Colors.white}
+                  />
+                </View>
+              </View>
+            )}
+
+            <View
+              style={{
+                padding: 10,
+                backgroundColor: Colors.gray[950],
+                borderRadius: 5
+              }}
+            >
+              <SSText color="white" size="md" type="mono">
+                {exportContent}
+              </SSText>
+            </View>
+            <SSClipboardCopy text={exportContent}>
+              <SSButton
+                label={t('common.copyToClipboard')}
+                onPress={() => true}
+              />
+            </SSClipboardCopy>
+            <SSButton
+              label={t('common.downloadFile')}
+              variant="secondary"
+              onPress={exportDescriptors}
+            />
+          </>
+        ) : (
+          <SSText center color="muted">
+            No descriptors available
+          </SSText>
+        )}
         <SSButton
           label={t('common.cancel')}
           variant="ghost"
