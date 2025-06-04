@@ -148,23 +148,6 @@ function PreviewMessage() {
       label: output.label || ''
     }))
 
-    const totalVin = vin.reduce((previousValue, input) => {
-      return previousValue + input.value
-    }, 0)
-    const totalVout = vout.reduce((previousValue, output) => {
-      return previousValue + output.value
-    }, 0)
-    const minerFee = feeRate * vsize
-    const changeValue = totalVin - totalVout - minerFee
-
-    if (changeValue !== 0) {
-      vout.push({
-        address: t('transaction.build.change'),
-        value: changeValue,
-        label: ''
-      })
-    }
-
     return {
       id: messageId,
       size,
@@ -172,7 +155,7 @@ function PreviewMessage() {
       vin,
       vout
     } as never as Transaction
-  }, [inputs, outputs, messageId, feeRate])
+  }, [inputs, outputs, messageId])
 
   useEffect(() => {
     async function getTransactionMessage() {
