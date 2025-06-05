@@ -159,7 +159,28 @@ export default function WatchOnly() {
   // Set policy type to watchonly when component mounts
   useEffect(() => {
     setPolicyType('watchonly')
-  }, [setPolicyType])
+    // Initialize script version if not set
+    if (!scriptVersion) {
+      console.log('Initializing script version to P2WPKH')
+      setScriptVersion('P2WPKH')
+    }
+  }, [setPolicyType, scriptVersion, setScriptVersion])
+
+  // Reset local fingerprint when modal becomes visible (fresh start)
+  useEffect(() => {
+    if (modalOptionsVisible) {
+      setLocalFingerprint('')
+      setXpub('')
+      setLocalExternalDescriptor('')
+      setLocalInternalDescriptor('')
+      setAddress('')
+    }
+  }, [modalOptionsVisible])
+
+  // Debug script version changes
+  useEffect(() => {
+    console.log('Script version changed to:', scriptVersion)
+  }, [scriptVersion])
 
   function updateAddress(address: string) {
     const validAddress = validateAddress(address)
@@ -231,17 +252,20 @@ export default function WatchOnly() {
     }
   }
 
-  function convertVpubToTpub(vpub: string): string {
-    // If it's not a vpub, return as is
-    if (!vpub.startsWith('vpub')) return vpub
+  function convertExtendedKeyToTpub(extendedKey: string): string {
+    // If it's already tpub or doesn't need conversion, return as is
+    if (!extendedKey.startsWith('vpub') && !extendedKey.startsWith('upub')) {
+      return extendedKey
+    }
 
     try {
       // Decode the base58check string (includes checksum)
-      const decoded = bs58check.decode(vpub)
+      const decoded = bs58check.decode(extendedKey)
 
       // The first 4 bytes are the version
-      // For vpub: 0x045f1cf6 (testnet segwit)
-      // For tpub: 0x043587cf (testnet)
+      // For vpub: 0x045f1cf6 (testnet segwit P2WPKH)
+      // For upub: 0x044a5262 (testnet P2SH-P2WPKH)
+      // For tpub: 0x043587cf (testnet P2PKH)
       const version = new Uint8Array([0x04, 0x35, 0x87, 0xcf])
 
       // Create new buffer with tpub version
@@ -250,8 +274,8 @@ export default function WatchOnly() {
       // Convert back to base58check (will add checksum)
       return bs58check.encode(newDecoded)
     } catch (error) {
-      console.error('Error converting vpub:', error)
-      return vpub // Return original if conversion fails
+      console.error('Error converting extended key:', error)
+      return extendedKey // Return original if conversion fails
     }
   }
 
@@ -424,12 +448,83 @@ export default function WatchOnly() {
   }
 
   function handleQRCodeScanned(data: string | undefined) {
+    console.log('QR Code scanned:', data)
+
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
       return
     }
 
     setCameraModalVisible(false)
+
+    // Check if the scanned data contains fingerprint and extended key format: [fingerprint/derivation_path]extended_key
+    const extendedKeyWithFingerprintMatch = data.match(
+      /^\[([0-9a-fA-F]{8})\/(\d+)'\/.*?\](.+)$/
+    )
+    if (
+      extendedKeyWithFingerprintMatch &&
+      selectedOption === 'importExtendedPub'
+    ) {
+      const fingerprint = extendedKeyWithFingerprintMatch[1]
+      const purpose = extendedKeyWithFingerprintMatch[2]
+      const extendedKey = extendedKeyWithFingerprintMatch[3]
+
+      // Determine script version based on derivation path purpose
+      let detectedScriptVersion: Key['scriptVersion'] = 'P2PKH' // default
+      switch (purpose) {
+        case '44':
+          detectedScriptVersion = 'P2PKH' // Legacy
+          break
+        case '49':
+          detectedScriptVersion = 'P2SH-P2WPKH' // Nested SegWit
+          break
+        case '84':
+          detectedScriptVersion = 'P2WPKH' // Native SegWit
+          break
+        case '86':
+          detectedScriptVersion = 'P2TR' // Taproot
+          break
+        default:
+          detectedScriptVersion = 'P2PKH' // Default to legacy if unknown
+      }
+
+      // Update fingerprint
+      updateMasterFingerprint(fingerprint)
+
+      // Set script version
+      console.log('Setting script version to:', detectedScriptVersion)
+      console.log('Current script version before setting:', scriptVersion)
+      setScriptVersion(detectedScriptVersion)
+
+      // Force a small delay to see if timing is the issue
+      setTimeout(() => {
+        console.log(
+          'Script version after timeout, should be:',
+          detectedScriptVersion
+        )
+      }, 100)
+
+      // Convert vpub/upub to tpub if needed and update xpub
+      const convertedData = convertExtendedKeyToTpub(extendedKey)
+      if (extendedKey !== convertedData) {
+        const keyType = extendedKey.startsWith('vpub')
+          ? 'vpub'
+          : extendedKey.startsWith('upub')
+            ? 'upub'
+            : 'key'
+        toast.info(
+          `Converted ${keyType} to tpub: ${extendedKey.slice(0, 8)}... → ${convertedData.slice(0, 8)}...`
+        )
+      }
+      updateXpub(convertedData)
+
+      // Show info about detected script version
+      toast.success(
+        `Detected ${detectedScriptVersion} from derivation path m/${purpose}'/1'/0'`
+      )
+
+      return
+    }
 
     // Check if the scanned data is a valid fingerprint (8 bytes hex)
     const fingerprintRegex = /^[0-9a-fA-F]{8}$/
@@ -459,14 +554,16 @@ export default function WatchOnly() {
     }
 
     if (selectedOption === 'importExtendedPub') {
-      // Convert vpub to tpub if needed
-      const convertedData = convertVpubToTpub(data)
+      // Convert vpub/upub to tpub if needed
+      const convertedData = convertExtendedKeyToTpub(data)
       if (data !== convertedData) {
+        const keyType = data.startsWith('vpub')
+          ? 'vpub'
+          : data.startsWith('upub')
+            ? 'upub'
+            : 'key'
         toast.info(
-          t('watchonly.info.vpubConverted', {
-            vpub: data.slice(0, 8) + '...',
-            tpub: convertedData.slice(0, 8) + '...'
-          })
+          `Converted ${keyType} to tpub: ${data.slice(0, 8)}... → ${convertedData.slice(0, 8)}...`
         )
       }
       updateXpub(convertedData)
@@ -500,7 +597,10 @@ export default function WatchOnly() {
             setModalOptionsVisible(false)
             setCreationType(selectedOption)
           }}
-          onCancel={() => router.back()}
+          onCancel={() => {
+            clearAccount()
+            router.back()
+          }}
         >
           {watchOnlyOptions.map((type) => (
             <SSRadioButton
@@ -562,7 +662,7 @@ export default function WatchOnly() {
                         label={t('account.script').toUpperCase()}
                       />
                       <SSButton
-                        label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
+                        label={`${scriptVersion ? t(`script.${scriptVersion.toLowerCase()}.name`) : 'Select Script'} ${scriptVersion ? `(${scriptVersion})` : ''}`}
                         withSelect
                         onPress={() => setScriptVersionModalVisible(true)}
                       />
@@ -641,7 +741,10 @@ export default function WatchOnly() {
               <SSButton
                 label={t('common.cancel')}
                 variant="ghost"
-                onPress={() => setModalOptionsVisible(true)}
+                onPress={() => {
+                  clearAccount()
+                  setModalOptionsVisible(true)
+                }}
               />
             </SSVStack>
           </SSVStack>
