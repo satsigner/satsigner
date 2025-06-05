@@ -14,21 +14,28 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
   async function updateFirstAddress() {
     const seenAddresses: Record<string, boolean> = {}
 
+    if (!account) return
+
     for (const tx of account.transactions) {
       for (const output of tx.vout) {
         if (output.address) {
           seenAddresses[output.address] = true
+          console.log('->', output.address)
         }
       }
     }
 
+    if (!wallet) return
+
     let addrInfo: AddressInfo | null = null
     let newAddress = ''
     let index = -1
+    console.log('going to get these addresses')
     do {
       index += 1
       addrInfo = await wallet.getAddress(index)
       newAddress = await addrInfo.address.asString()
+      console.log(index, '->', newAddress)
     } while (seenAddresses[newAddress] !== undefined)
 
     setAddressIndex(index)
