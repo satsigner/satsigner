@@ -926,8 +926,6 @@
     "preview.rawPSBT": "Raw PSBT",
     "preview.scanAllChunks": "Chunk %{current} of %{total}",
     "preview.showBBQR": "Show BBQR",
-    "preview.showBBQR": "Show BBQR",
-    "preview.showRaw": "Show Raw",
     "preview.showRaw": "Show Raw",
     "preview.showUR": "Show UR",
     "preview.signedPsbt": "Signed PSBT",
