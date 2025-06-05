@@ -6,6 +6,7 @@ import { type Account } from '@/types/models/Account'
 
 function useGetNumberOfUsedAddresses(wallet: Wallet, account: Account) {
   const [addressCount, setAddressCount] = useState(0)
+  const [lastUsedAddressIndex, setLastUsedAddressIndex] = useState(0)
 
   const stopGap = useBlockchainStore(
     (state) => state.configs[account.network].config.stopGap
@@ -36,6 +37,7 @@ function useGetNumberOfUsedAddresses(wallet: Wallet, account: Account) {
       index += 1
     }
 
+    setLastUsedAddressIndex(lastIndexWithFunds)
     setAddressCount(localAddressCount)
   }
 
@@ -43,7 +45,10 @@ function useGetNumberOfUsedAddresses(wallet: Wallet, account: Account) {
     updateAddressCount()
   }, [account, wallet]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return addressCount
+  return {
+    addressCount,
+    lastUsedAddressIndex
+  }
 }
 
 export default useGetNumberOfUsedAddresses

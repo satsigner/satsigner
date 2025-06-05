@@ -34,7 +34,10 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
     updateFirstAddress()
   }, [account, wallet]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return [firstUnusedAddress, addressIndex]
+  return {
+    firstUnusedAddress,
+    addressIndex
+  }
 }
 
 export default useGetFirstUnusedAddress
