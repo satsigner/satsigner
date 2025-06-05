@@ -51,6 +51,9 @@ import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 
+// Maximum number of days without syncing the wallet before we show a warning
+const MAX_DAYS_WITHOUT_SYNCING = 3
+
 export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -378,6 +381,7 @@ export default function IOPreview() {
     // Account not synced. Go to warning page to sync it.
     if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+      return
     }
 
     const lastSync = new Date(account.lastSyncedAt as Date)
@@ -400,8 +404,9 @@ export default function IOPreview() {
     )
 
     // Account updated too long ago.
-    if (daysSinceLastSync > 1) {
+    if (daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+      return
     }
 
     // Ok, go to the preview page.
