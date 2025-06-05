@@ -6,55 +6,99 @@ export interface URData {
   data: Uint8Array
 }
 
-export function encodePSBTToUR(
-  psbtHex: string,
-  fragmentSize: number = 400
-): string[] {
-  // Convert hex string to bytes
-  const psbtBytes = Buffer.from(psbtHex, 'hex')
+/**
+ * Manually create CBOR-encoded crypto-psbt UR data
+ * This avoids issues with the @ngraveio/bc-ur library's automatic CBOR encoding
+ * that causes UnicodeDecodeError on SeedSigner devices
+ */
+function createCryptoPsbtCBOR(psbtBytes: Buffer): Uint8Array {
+  // According to the crypto-psbt specification, we need to create a CBOR byte string
+  // The format is: CBOR byte string tag + length + data
 
-  // Create UR object with type 'crypto-psbt'
-  const ur = new UR(psbtBytes, 'crypto-psbt')
+  const dataLength = psbtBytes.length
 
-  // Use provided fragment size
-  const encoder = new UREncoder(ur, fragmentSize)
+  let cborHeader: number[]
 
-  const uniqueChunks = new Set<string>()
-  // Collect up to 30 unique fragments for robust animated QR
-  for (let i = 0; i < 30; i++) {
-    uniqueChunks.add(encoder.nextPart())
-    if (uniqueChunks.size === encoder.fragments.length) break
+  if (dataLength < 24) {
+    // Short byte string: 0x40 + length
+    cborHeader = [0x40 + dataLength]
+  } else if (dataLength < 256) {
+    // Byte string with 1-byte length: 0x58 + length byte
+    cborHeader = [0x58, dataLength]
+  } else if (dataLength < 65536) {
+    // Byte string with 2-byte length: 0x59 + length bytes (big endian)
+    cborHeader = [0x59, (dataLength >> 8) & 0xff, dataLength & 0xff]
+  } else {
+    // Byte string with 4-byte length: 0x5A + length bytes (big endian)
+    cborHeader = [
+      0x5a,
+      (dataLength >> 24) & 0xff,
+      (dataLength >> 16) & 0xff,
+      (dataLength >> 8) & 0xff,
+      dataLength & 0xff
+    ]
   }
 
-  return Array.from(uniqueChunks)
+  const cborData = new Uint8Array(cborHeader.length + psbtBytes.length)
+  cborData.set(cborHeader, 0)
+  cborData.set(psbtBytes, cborHeader.length)
+
+  return cborData
 }
 
-export function decodeURToPSBT(ur: string): string {
-  // TODO: Implement UR decoding
-  return ''
-}
-
-// New utility: Generate UR fragments from a PSBT base64 string
 export function getURFragmentsFromPSBT(
   psbt: string,
   format: 'base64' | 'hex' = 'hex',
-  fragmentSize = 100
+  fragmentSize = 400 // Smaller fragments for better camera compatibility
 ): string[] {
-  // Convert input to bytes based on format
-  const psbtBytes = Buffer.from(psbt, format)
+  try {
+    if (!psbt || psbt.trim() === '') {
+      throw new Error('PSBT input is empty or null')
+    }
 
-  // Create UR object with type 'crypto-psbt'
-  const ur = new UR(psbtBytes, 'crypto-psbt')
+    const psbtBytes = Buffer.from(psbt, format)
+    if (psbtBytes.length === 0) {
+      throw new Error('Empty PSBT data after parsing')
+    }
 
-  // Create encoder with specified fragment size
-  const encoder = new UREncoder(ur, fragmentSize)
+    // Create manual CBOR structure to avoid @ngraveio/bc-ur library encoding issues
+    const cborData = createCryptoPsbtCBOR(psbtBytes)
 
-  // Collect unique fragments
-  const uniqueFragments = new Set<string>()
-  for (let i = 0; i < 30; i++) {
-    uniqueFragments.add(encoder.nextPart())
-    if (uniqueFragments.size === encoder.fragments.length) break
+    // Create UR directly with the manually crafted CBOR data
+    const ur = new UR(Buffer.from(cborData), 'crypto-psbt')
+
+    // Use appropriate fragment size for reliable camera scanning
+    const finalFragmentSize = fragmentSize // Use the specified fragment size for multiple chunks
+
+    const encoder = new UREncoder(ur, finalFragmentSize)
+
+    const fragments: string[] = []
+    for (let i = 0; i < encoder.fragments.length; i++) {
+      const fragment = encoder.nextPart()
+
+      if (!fragment.toLowerCase().startsWith('ur:crypto-psbt/')) {
+        throw new Error(
+          `Invalid UR fragment at index ${i}: ${fragment.substring(0, 100)}`
+        )
+      }
+
+      // Convert to uppercase to match SeedSigner expected format (like Sparrow example)
+      const uppercaseFragment = fragment.toUpperCase()
+      fragments.push(uppercaseFragment)
+    }
+
+    if (fragments.length === 0) {
+      throw new Error('No fragments were generated')
+    }
+
+    return fragments
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Failed to generate UR fragments: ${message}`)
   }
+}
 
-  return Array.from(uniqueFragments)
+export function decodeURToPSBT(ur: string): string {
+  // TODO: Implement decoding if needed
+  return ''
 }

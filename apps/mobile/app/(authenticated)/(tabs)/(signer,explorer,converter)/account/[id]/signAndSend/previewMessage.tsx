@@ -6,7 +6,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -21,6 +21,8 @@ import SSTextInput from '@/components/SSTextInput'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import { useNFCEmitter } from '@/hooks/useNFCEmitter'
+import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -38,10 +40,9 @@ import { createBBQRChunks } from '@/utils/bbqr'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { useNFCReader } from '@/hooks/useNFCReader'
-import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
-import { encodePSBTToUR } from '@/utils/ur'
+import { gray } from '@/styles/colors'
+import { color } from 'd3'
 
 const tn = _tn('transaction.build.preview')
 
@@ -52,11 +53,11 @@ enum QRDisplayMode {
 }
 
 interface NFCTagWithNDEF {
-  ndefMessage?: Array<{
+  ndefMessage?: {
     tnf: number
     type: Uint8Array
     payload: Uint8Array
-  }>
+  }[]
 }
 
 function PreviewMessage() {
@@ -67,7 +68,6 @@ function PreviewMessage() {
     inputs,
     outputs,
     fee,
-    feeRate,
     rbf,
     setTxBuilderResult,
     txBuilderResult,
@@ -77,7 +77,6 @@ function PreviewMessage() {
       state.inputs,
       state.outputs,
       state.fee,
-      state.feeRate,
       state.rbf,
       state.setTxBuilderResult,
       state.txBuilderResult,
@@ -96,7 +95,6 @@ function PreviewMessage() {
   const [displayMode, setDisplayMode] = useState<QRDisplayMode>(
     QRDisplayMode.RAW
   )
-  const [showRawPsbt, setShowRawPsbt] = useState(true)
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [signedPsbt, setSignedPsbt] = useState('')
   const [permission, requestPermission] = useCameraPermissions()
@@ -110,6 +108,49 @@ function PreviewMessage() {
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
   const [nfcError, setNfcError] = useState<string | null>(null)
+
+  const [qrChunks, setQrChunks] = useState<string[]>([])
+  const [qrError, setQrError] = useState<string | null>(null)
+  const [serializedPsbt, setSerializedPsbt] = useState<string>('')
+  const [urChunks, setUrChunks] = useState<string[]>([])
+  const [currentUrChunk, setCurrentUrChunk] = useState(0)
+  const [rawPsbtChunks, setRawPsbtChunks] = useState<string[]>([])
+  const [currentRawChunk, setCurrentRawChunk] = useState(0)
+  const [qrComplexity, setQrComplexity] = useState(8) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
+  const [animationSpeed, setAnimationSpeed] = useState(6) // 1-12 scale for animation speed
+
+  // Function to split raw PSBT into chunks for animated display
+  const createRawPsbtChunks = useCallback(
+    (base64Psbt: string): string[] => {
+      // Special case: complexity 12 = single static QR with all data
+      if (qrComplexity === 12) {
+        return [base64Psbt] // No chunking, no header, just the full data
+      }
+
+      // Calculate chunk size based on complexity (higher complexity = larger chunks)
+      // Invert the scale: complexity 1 = smallest chunks, complexity 11 = large chunks
+      const baseChunkSize = 50
+      const chunkSize = Math.max(50, baseChunkSize * qrComplexity)
+
+      const chunks: string[] = []
+
+      // First pass: split the data into chunks
+      const dataChunks: string[] = []
+      for (let i = 0; i < base64Psbt.length; i += chunkSize) {
+        dataChunks.push(base64Psbt.slice(i, i + chunkSize))
+      }
+
+      // Second pass: add headers to each chunk
+      const totalChunks = dataChunks.length
+      for (let i = 0; i < totalChunks; i++) {
+        const header = `p${i + 1}of${totalChunks}`
+        chunks.push(header + ' ' + dataChunks[i])
+      }
+
+      return chunks
+    },
+    [qrComplexity]
+  )
 
   const transactionHex = useMemo(() => {
     if (!account) return ''
@@ -191,12 +232,6 @@ function PreviewMessage() {
     getTransactionMessage()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [qrChunks, setQrChunks] = useState<string[]>([])
-  const [qrError, setQrError] = useState<string | null>(null)
-  const [serializedPsbt, setSerializedPsbt] = useState<string>('')
-  const [urChunks, setUrChunks] = useState<string[]>([])
-  const [currentUrChunk, setCurrentUrChunk] = useState(0)
-
   const getPsbtString = useCallback(async () => {
     if (!txBuilderResult?.psbt) {
       return null
@@ -207,17 +242,12 @@ function PreviewMessage() {
       // Convert the raw bytes to a Buffer
       const psbtBuffer = Buffer.from(serializedPsbt)
 
-      // Create BBQR chunks with very small chunk size (100 bytes) for better scanning
-      const bbqrChunks = createBBQRChunks(new Uint8Array(psbtBuffer), 100)
-      setQrChunks(bbqrChunks)
-
       // Store the hex representation for other uses
       const psbtHex = psbtBuffer.toString('hex')
       setSerializedPsbt(psbtHex)
 
       return psbtHex
-    } catch (e) {
-      console.error('PSBT serialization error:', e)
+    } catch (_e) {
       toast.error(t('error.psbt.serialization'))
       return null
     }
@@ -235,50 +265,124 @@ function PreviewMessage() {
         }
 
         try {
-          // Create BBQR chunks (keep as is)
+          // Create BBQR chunks using complexity setting
           const psbtBuffer = Buffer.from(psbtHex, 'hex')
-          const bbqrChunks = createBBQRChunks(new Uint8Array(psbtBuffer), 100)
+          let bbqrChunks: string[]
+
+          try {
+            if (qrComplexity === 12) {
+              // Complexity 12: Create single static BBQR chunk
+              bbqrChunks = createBBQRChunks(
+                new Uint8Array(psbtBuffer),
+                psbtBuffer.length * 10 // Use buffer length multiplied by 10 to ensure single chunk
+              )
+            } else {
+              // Complexity 1-11: Create multiple chunks (higher = larger chunks)
+              const bbqrChunkSize = Math.max(50, 25 * qrComplexity)
+              bbqrChunks = createBBQRChunks(
+                new Uint8Array(psbtBuffer),
+                bbqrChunkSize
+              )
+            }
+          } catch (bbqrError) {
+            console.error('BBQR creation error:', bbqrError)
+            bbqrChunks = []
+          }
           setQrChunks(bbqrChunks)
 
-          // Convert hex to base64 for UR encoding (BIP 174 standard)
-          const psbtBase64 = Buffer.from(psbtHex, 'hex').toString('base64')
-          const urFragments = getURFragmentsFromPSBT(psbtBase64, 'base64', 50)
-          setUrChunks(urFragments.map((frag) => frag.toUpperCase()))
+          if (!txBuilderResult?.psbt?.base64) {
+            throw new Error('PSBT data not available')
+          }
+
+          // Generate raw PSBT chunks using complexity setting
+          const rawChunks = createRawPsbtChunks(txBuilderResult.psbt.base64)
+          setRawPsbtChunks(rawChunks)
+          setCurrentRawChunk(0)
+
+          // Generate UR fragments using complexity setting
+          let urFragments: string[]
+
+          if (qrComplexity === 12) {
+            // Complexity 12: Create single static UR fragment
+            urFragments = getURFragmentsFromPSBT(
+              txBuilderResult.psbt.base64,
+              'base64',
+              txBuilderResult.psbt.base64.length // Use full length for single fragment
+            )
+          } else {
+            // Complexity 1-11: Create multiple fragments (higher = larger fragments)
+            const urFragmentSize = Math.max(10, 5 * qrComplexity)
+            urFragments = getURFragmentsFromPSBT(
+              txBuilderResult.psbt.base64,
+              'base64',
+              urFragmentSize
+            )
+          }
+
+          setUrChunks(urFragments)
+          setCurrentUrChunk(0) // Reset to 0 when new chunks are set
           setQrError(null)
-        } catch (e) {
-          console.error('QR generation error:', e)
+        } catch (_e) {
           setQrError(t('error.qr.generation'))
           setQrChunks([])
           setUrChunks([])
+          setRawPsbtChunks([])
         }
-      } catch (e) {
-        console.error('PSBT error:', e)
+      } catch (_e) {
         setQrError(t('error.psbt.notAvailable'))
         setQrChunks([])
         setUrChunks([])
+        setRawPsbtChunks([])
       }
     }
 
     updateQrChunks()
-  }, [getPsbtString])
+  }, [
+    getPsbtString,
+    txBuilderResult?.psbt?.base64,
+    qrComplexity,
+    createRawPsbtChunks
+  ])
 
   // Keep animation speed the same but with smaller chunks
   useEffect(() => {
+    // Don't animate when complexity is 12 (static mode)
+    if (qrComplexity === 12) {
+      return
+    }
+
     const shouldAnimate =
+      (displayMode === QRDisplayMode.RAW && rawPsbtChunks.length > 1) ||
       (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) ||
       (displayMode === QRDisplayMode.UR && urChunks.length > 1)
 
     if (shouldAnimate) {
-      const interval = setInterval(() => {
-        if (displayMode === QRDisplayMode.UR) {
+      // Calculate animation interval based on speed (1 = slowest, 12 = fastest)
+      // Speed 1 = 2000ms, Speed 12 = 100ms
+      const maxInterval = 2000
+      const minInterval = 200
+      const interval =
+        maxInterval - ((animationSpeed - 1) * (maxInterval - minInterval)) / 11
+
+      const animationInterval = setInterval(() => {
+        if (displayMode === QRDisplayMode.RAW) {
+          setCurrentRawChunk((prev) => (prev + 1) % rawPsbtChunks.length)
+        } else if (displayMode === QRDisplayMode.UR) {
           setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
         } else {
           setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
         }
-      }, 750)
-      return () => clearInterval(interval)
+      }, interval)
+      return () => clearInterval(animationInterval)
     }
-  }, [displayMode, qrChunks.length, urChunks.length])
+  }, [
+    displayMode,
+    qrChunks.length,
+    urChunks.length,
+    rawPsbtChunks.length,
+    qrComplexity,
+    animationSpeed
+  ])
 
   const handleQRCodeScanned = (data: string | undefined) => {
     if (!data) {
@@ -362,33 +466,28 @@ function PreviewMessage() {
 
   useEffect(() => {
     if (signedPsbt) {
-      console.log('Decoded signed transaction:', signedPsbt)
       setSignedTx(signedPsbt)
     }
   }, [signedPsbt, setSignedTx])
 
-  const getDisplayModeLabel = () => {
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        return t('transaction.preview.showUR')
-      case QRDisplayMode.UR:
-        return t('transaction.preview.showBBQR')
-      case QRDisplayMode.BBQR:
-        return t('transaction.preview.showRaw')
-    }
-  }
-
   const getQRValue = () => {
     switch (displayMode) {
-      case QRDisplayMode.RAW:
-        // Maximum capacity for QR code with error correction level H
+      case QRDisplayMode.RAW: {
+        // Always use chunks for RAW mode to ensure animation
+        if (rawPsbtChunks.length > 0) {
+          return rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
+        }
+        // Fallback to full base64 PSBT if chunks not ready
         const base64Psbt = txBuilderResult?.psbt?.base64
         if (base64Psbt && base64Psbt.length > 1852) {
           return 'DATA_TOO_LARGE'
         }
         return base64Psbt || 'NO_DATA'
-      case QRDisplayMode.UR:
-        return urChunks[currentUrChunk] || 'NO_CHUNKS'
+      }
+      case QRDisplayMode.UR: {
+        const urValue = urChunks[currentUrChunk]
+        return urValue || 'NO_CHUNKS'
+      }
       case QRDisplayMode.BBQR:
         return qrChunks?.[currentChunk] || 'NO_CHUNKS'
     }
@@ -397,6 +496,17 @@ function PreviewMessage() {
   const getDisplayModeDescription = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW:
+        if (rawPsbtChunks.length > 0) {
+          if (qrComplexity === 12) {
+            return 'Static QR - Complete PSBT in single code'
+          }
+          return rawPsbtChunks.length > 1
+            ? t('transaction.preview.scanAllChunks', {
+                current: currentRawChunk + 1,
+                total: rawPsbtChunks.length
+              })
+            : t('transaction.preview.singleChunk')
+        }
         if (serializedPsbt.length > 1852) {
           return t('error.qr.dataTooLarge')
         }
@@ -408,6 +518,9 @@ function PreviewMessage() {
         if (!urChunks.length) {
           return t('error.psbt.notAvailable')
         }
+        if (qrComplexity === 12) {
+          return 'Static QR - Complete UR in single code'
+        }
         return urChunks.length > 1
           ? t('transaction.preview.scanAllChunks', {
               current: currentUrChunk + 1,
@@ -418,6 +531,9 @@ function PreviewMessage() {
         if (!qrChunks.length) {
           return t('error.psbt.notAvailable')
         }
+        if (qrComplexity === 12) {
+          return 'Static QR - Complete BBQR in single code'
+        }
         return qrChunks.length > 1
           ? t('transaction.preview.scanAllChunks', {
               current: currentChunk + 1,
@@ -427,21 +543,13 @@ function PreviewMessage() {
     }
   }
 
-  const handleDisplayModeToggle = () => {
-    switch (displayMode) {
-      case QRDisplayMode.RAW:
-        setDisplayMode(QRDisplayMode.UR)
-        break
-      case QRDisplayMode.UR:
-        setDisplayMode(QRDisplayMode.BBQR)
-        break
-      case QRDisplayMode.BBQR:
-        setDisplayMode(QRDisplayMode.RAW)
-        break
-    }
-  }
-
   if (!id || !account) return <Redirect href="/" />
+
+  // Calculate responsive dimensions
+  const screenWidth = Dimensions.get('window').width
+  const screenHeight = Dimensions.get('window').height
+  const qrSize = Math.min(screenWidth * 0.9, screenHeight * 0.5, 700) // 80% of screen width, max 500px
+  const containerPadding = screenWidth * 0.05 // 5% of screen width
 
   return (
     <>
@@ -614,65 +722,170 @@ function PreviewMessage() {
             </SSVStack>
           </ScrollView>
         </SSVStack>
-        <SSGradientModal
+        <SSModal
           visible={noKeyModalVisible}
-          closeText={t('common.cancel')}
+          fullOpacity
           onClose={() => setNoKeyModalVisible(false)}
         >
-          <SSVStack style={{ marginTop: 12 }} itemsCenter>
-            <SSText color="muted" size="lg" uppercase>
+          <SSVStack
+            gap="xs"
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: containerPadding
+            }}
+          >
+            <SSText color="white" uppercase style={{ marginBottom: 5 }}>
               {t('transaction.preview.PSBT')}
             </SSText>
             {qrError ? (
-              <SSText color="muted" size="sm" style={{ marginTop: 16 }}>
+              <SSText color="white" size="sm" style={{ marginTop: 16 }}>
                 {qrError}
               </SSText>
             ) : qrChunks.length > 0 ? (
               <>
                 <View
                   style={{
-                    padding: 10,
+                    padding: 5,
                     backgroundColor: Colors.white,
-                    width: '100%',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    marginBottom: 0,
+                    width: qrSize + 10,
+                    borderRadius: 2
                   }}
                 >
                   <SSQRCode
                     value={getQRValue()}
                     color={Colors.black}
                     backgroundColor={Colors.white}
-                    size={300}
+                    size={qrSize}
                   />
                 </View>
 
+                <SSHStack
+                  gap="xs"
+                  style={{ width: screenWidth * 0.92, marginBottom: 10 }}
+                >
+                  <SSButton
+                    variant={
+                      displayMode === QRDisplayMode.RAW
+                        ? 'secondary'
+                        : 'outline'
+                    }
+                    label="RAW"
+                    onPress={() => setDisplayMode(QRDisplayMode.RAW)}
+                    style={{ flex: 1 }}
+                  />
+                  <SSButton
+                    variant={
+                      displayMode === QRDisplayMode.UR ? 'secondary' : 'outline'
+                    }
+                    label="UR"
+                    onPress={() => setDisplayMode(QRDisplayMode.UR)}
+                    style={{ flex: 1 }}
+                  />
+                  <SSButton
+                    variant={
+                      displayMode === QRDisplayMode.BBQR
+                        ? 'secondary'
+                        : 'outline'
+                    }
+                    label="BBQR"
+                    onPress={() => setDisplayMode(QRDisplayMode.BBQR)}
+                    style={{ flex: 1 }}
+                  />
+                </SSHStack>
                 <SSText
                   center
-                  color="muted"
+                  color="white"
                   size="sm"
-                  style={{ marginTop: 8, maxWidth: 300, height: 60 }}
+                  style={{ maxWidth: screenWidth * 0.9 }}
                 >
-                  {getQRValue().length > 150
-                    ? `${getQRValue().slice(0, 150)}...`
-                    : getQRValue()}
-                </SSText>
-                <SSText center color="muted" size="sm" style={{ marginTop: 8 }}>
                   {getDisplayModeDescription()}
                 </SSText>
+                <SSText
+                  center
+                  color="white"
+                  size="sm"
+                  type="mono"
+                  style={{
+                    padding: 5,
+                    width: screenWidth * 0.92,
+                    height: 80,
+                    backgroundColor: Colors.gray[900],
+                    borderRadius: 2,
+                    textAlignVertical: 'center'
+                  }}
+                >
+                  {getQRValue().length > 100
+                    ? `${getQRValue().slice(0, 100)}...`
+                    : getQRValue()}
+                </SSText>
 
-                <SSButton
-                  variant="outline"
-                  label={getDisplayModeLabel()}
-                  onPress={handleDisplayModeToggle}
-                  style={{ marginBottom: 1, width: '100%' }}
-                />
+                <SSHStack
+                  justifyEvenly
+                  style={{
+                    width: screenWidth * 0.9,
+                    marginBottom: 20
+                  }}
+                >
+                  <SSVStack gap="xs">
+                    <SSText color="white" size="sm" center>
+                      QR density: {qrComplexity}/12
+                    </SSText>
+                    <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                      <SSButton
+                        variant="outline"
+                        label="-"
+                        onPress={() =>
+                          setQrComplexity(Math.max(1, qrComplexity - 1))
+                        }
+                        style={{ height: 50, width: 50 }}
+                      />
+                      <SSButton
+                        variant="outline"
+                        label="+"
+                        onPress={() =>
+                          setQrComplexity(Math.min(12, qrComplexity + 1))
+                        }
+                        style={{ height: 50, width: 50 }}
+                      />
+                    </SSHStack>
+                  </SSVStack>
+
+                  <SSVStack gap="xs">
+                    <SSText color="white" size="sm" center>
+                      Speed: {animationSpeed}/12
+                    </SSText>
+                    <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
+                      <SSButton
+                        variant="outline"
+                        label="-"
+                        onPress={() =>
+                          setAnimationSpeed(Math.max(1, animationSpeed - 1))
+                        }
+                        style={{ height: 50, width: 50 }}
+                      />
+                      <SSButton
+                        variant="outline"
+                        label="+"
+                        onPress={() =>
+                          setAnimationSpeed(Math.min(12, animationSpeed + 1))
+                        }
+                        style={{ height: 50, width: 50 }}
+                      />
+                    </SSHStack>
+                  </SSVStack>
+                </SSHStack>
               </>
             ) : (
-              <SSText color="muted" size="sm" style={{ marginTop: 16 }}>
+              <SSText color="white" size="sm" style={{ marginTop: 16 }}>
                 {t('common.loading')}
               </SSText>
             )}
           </SSVStack>
-        </SSGradientModal>
+        </SSModal>
         <SSModal
           visible={cameraModalVisible}
           fullOpacity
