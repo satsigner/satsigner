@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import NfcManager, {
-  NfcTech,
   Ndef,
+  NfcTech,
   type TagEvent
 } from 'react-native-nfc-manager'
 
 interface NFCTagWithNDEF {
-  ndefMessage?: Array<{
+  ndefMessage?: {
     tnf: number
     type: Uint8Array
     payload: Uint8Array
-  }>
+  }[]
 }
 
 interface NFCReadResult {

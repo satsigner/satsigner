@@ -2,12 +2,12 @@ import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
-import { formatAddress, formatTxId, formatNumber } from '@/utils/format'
+import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { usePriceStore } from '@/store/price'
 
 import type { ExtendedTransaction } from './useInputTransactions'
 

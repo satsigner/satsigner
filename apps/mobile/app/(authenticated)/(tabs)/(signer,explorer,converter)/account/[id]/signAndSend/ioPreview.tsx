@@ -7,18 +7,19 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Alert,
   Animated,
   type LayoutChangeEvent,
+  ScrollView,
   TouchableOpacity,
-  View,
-  Alert,
-  ScrollView
+  View
 } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { SSIconChevronLeft } from '@/components/icons'
+import SSAmountInput from '@/components/SSAmountInput'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -33,7 +34,6 @@ import SSRadioButton from '@/components/SSRadioButton'
 import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import SSAmountInput from '@/components/SSAmountInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import SSHStack from '@/layouts/SSHStack'

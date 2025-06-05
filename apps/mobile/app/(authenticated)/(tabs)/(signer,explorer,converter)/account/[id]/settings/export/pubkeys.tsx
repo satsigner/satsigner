@@ -1,9 +1,9 @@
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import bs58check from 'bs58check'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, View } from 'react-native'
-import bs58check from 'bs58check'
 
 import { extractExtendedKeyFromDescriptor, getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'

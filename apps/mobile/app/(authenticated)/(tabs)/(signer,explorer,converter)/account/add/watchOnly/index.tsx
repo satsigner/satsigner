@@ -1,14 +1,15 @@
+import bs58check from 'bs58check'
+import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Animated, Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
-import { CameraView, useCameraPermissions } from 'expo-camera/next'
-import bs58check from 'bs58check'
 
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
+import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -33,7 +34,6 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import SSModal from '@/components/SSModal'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',

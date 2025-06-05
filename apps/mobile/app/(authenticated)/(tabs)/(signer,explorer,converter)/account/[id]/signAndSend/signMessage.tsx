@@ -5,6 +5,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
+import ElectrumClient from '@/api/electrum'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -20,7 +21,6 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
-import ElectrumClient from '@/api/electrum'
 
 const tn = _tn('transaction.build.sign')
 

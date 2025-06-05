@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager'
+import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
 export function useNFCEmitter() {
   const [isAvailable, setIsAvailable] = useState(false)

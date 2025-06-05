@@ -2,8 +2,8 @@ import { useState } from 'react'
 import {
   StyleSheet,
   type TextInput,
-  View,
-  TouchableHighlight
+  TouchableHighlight,
+  View
 } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'

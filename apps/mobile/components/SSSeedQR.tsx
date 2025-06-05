@@ -1,4 +1,5 @@
-import { StyleSheet, View, Clipboard, Pressable } from 'react-native'
+import { useState } from 'react'
+import { Clipboard, Pressable, StyleSheet, View } from 'react-native'
 
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
@@ -7,7 +8,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { encodeStandardSeedQR } from '@/utils/seedqr'
-import { useState } from 'react'
 
 type SSSeedQRProps = {
   mnemonic: string

@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import NfcManager from 'react-native-nfc-manager'
-import { Toaster, toast } from 'sonner-native'
+import { toast, Toaster } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {

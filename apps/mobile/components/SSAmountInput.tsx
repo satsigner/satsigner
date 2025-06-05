@@ -1,5 +1,5 @@
 import { Slider } from '@miblanchard/react-native-slider'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'

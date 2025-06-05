@@ -13,6 +13,7 @@ import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSSeedQR from '@/components/SSSeedQR'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -31,7 +32,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
-import SSSeedQR from '@/components/SSSeedQR'
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
