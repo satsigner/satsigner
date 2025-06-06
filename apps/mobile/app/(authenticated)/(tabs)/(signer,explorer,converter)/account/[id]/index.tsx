@@ -86,6 +86,7 @@ import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 import { compareTimestamp, sortTransactions } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
+import useGetNumberOfUsedAddresses from '@/hooks/useGetNumberOfUsedAddresses'
 
 type TotalTransactionsProps = {
   account: Account
@@ -711,6 +712,8 @@ export default function AccountView() {
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
 
+  const { addressCount } = useGetNumberOfUsedAddresses(wallet!, account!)
+
   useEffect(() => {
     if (wallet) handleOnRefresh()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -879,7 +882,7 @@ export default function AccountView() {
               >
                 <SSVStack gap="none">
                   <SSText center size="lg">
-                    {account.summary.numberOfAddresses}
+                    {addressCount || account.summary.numberOfAddresses}
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
                     {t('accounts.derivedAddresses')}

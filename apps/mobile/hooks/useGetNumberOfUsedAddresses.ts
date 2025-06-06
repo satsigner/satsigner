@@ -15,6 +15,8 @@ function useGetNumberOfUsedAddresses(wallet: Wallet, account: Account) {
   async function updateAddressCount() {
     const seenAddresses: Record<string, boolean> = {}
 
+    if (!account) return
+
     for (const tx of account.transactions) {
       for (const output of tx.vout) {
         if (output.address) {
@@ -27,7 +29,9 @@ function useGetNumberOfUsedAddresses(wallet: Wallet, account: Account) {
     let lastIndexWithFunds = -1
     let localAddressCount = 0
 
-    while (index > lastIndexWithFunds + stopGap) {
+    if (!wallet) return
+
+    while (index < lastIndexWithFunds + stopGap) {
       const addrInfo = await wallet.getAddress(index)
       const addr = await addrInfo.address.asString()
       if (seenAddresses[addr] !== undefined) {
