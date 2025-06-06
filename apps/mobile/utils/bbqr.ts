@@ -15,14 +15,20 @@ enum BBQREncoding {
   HEX = 'H'
 }
 
-enum BBQRType {
+// Export FileType enum for external usage
+export enum FileType {
   PSBT = 'P',
-  TXN = 'T'
+  TXN = 'T',
+  JSON = 'J',
+  CBOR = 'C',
+  UNICODE = 'U',
+  BINARY = 'B',
+  EXECUTABLE = 'X'
 }
 
 interface BBQRHeader {
   encoding: BBQREncoding
-  type: BBQRType
+  type: FileType
   seqTotal: number
   seqNumber: number
 }
@@ -94,7 +100,7 @@ function parseHeader(part: string): BBQRHeader {
   }
 
   const encoding = part.slice(2, 3) as BBQREncoding
-  const type = part.slice(3, 4) as BBQRType
+  const type = part.slice(3, 4) as FileType
   const seqTotal = decodeFromBase36(part.slice(4, 6))
   const seqNumber = decodeFromBase36(part.slice(6, 8))
 
@@ -112,31 +118,65 @@ export function isBBQRFragment(part: string): boolean {
 
 export function createBBQRChunks(
   data: Uint8Array,
+  fileType: FileType = FileType.PSBT,
   maxChunkSize: number = 400
 ): string[] {
+  console.log('🔍 BBQR createBBQRChunks called with:', {
+    dataLength: data.length,
+    fileType,
+    maxChunkSize
+  })
+
   // Try ZLIB compression first
   let encoded: string
   let encoding = BBQREncoding.ZLIB
 
   try {
-    const compressed = pako.deflate(data)
+    const compressed = pako.deflate(data, { windowBits: 10, level: 9 })
+    console.log('📦 Compression result:', {
+      originalSize: data.length,
+      compressedSize: compressed.length
+    })
+
     const zlibEncoded = base32Encode(compressed)
     const uncompressed = base32Encode(data)
 
+    console.log('📝 Encoding lengths:', {
+      zlibEncodedLength: zlibEncoded.length,
+      uncompressedLength: uncompressed.length
+    })
+
     // Use compression only if it helps
     if (zlibEncoded.length > uncompressed.length) {
+      console.log("⚠️  Compression didn't help, using BASE32")
       throw new Error('Compressed data was larger than uncompressed data')
     }
     encoded = zlibEncoded
+    console.log('✅ Using ZLIB compression')
   } catch (_e) {
     // Fallback to BASE32 if compression fails
     encoded = base32Encode(data)
     encoding = BBQREncoding.BASE32
+    console.log('✅ Using BASE32 encoding')
   }
 
-  // Calculate chunk size using Sparrow's algorithm
+  console.log('📊 Final encoded data:', {
+    encodedLength: encoded.length,
+    encoding: encoding,
+    maxChunkSize: maxChunkSize
+  })
+
+  // Calculate chunk size using standard ceiling division
   const inputLength = encoded.length
-  const numChunks = Math.ceil((inputLength + maxChunkSize - 1) / maxChunkSize)
+  const numChunks = Math.ceil(inputLength / maxChunkSize)
+
+  console.log('🧮 Chunk calculation:', {
+    inputLength,
+    maxChunkSize,
+    numChunks: numChunks,
+    formula: `Math.ceil(${inputLength} / ${maxChunkSize}) = ${numChunks}`
+  })
+
   const chunkSize =
     numChunks === 1 ? maxChunkSize : Math.ceil(inputLength / numChunks)
 
@@ -154,14 +194,20 @@ export function createBBQRChunks(
 
     const header: BBQRHeader = {
       encoding,
-      type: BBQRType.PSBT,
+      type: fileType,
       seqTotal: numChunks,
-      seqNumber: i + 1
+      seqNumber: i
     }
 
-    // Ensure chunk is properly padded
-    const paddedChunk = chunk.padEnd(adjustedChunkSize, '=')
-    chunks.push(`${createHeader(header)}${paddedChunk}`)
+    console.log(`🏷️  Creating chunk ${i + 1}/${numChunks}:`, {
+      seqTotal: header.seqTotal,
+      seqNumber: header.seqNumber,
+      chunkLength: chunk.length,
+      headerString: createHeader(header)
+    })
+
+    // Don't pad chunks - BBQR spec says padding should be omitted
+    chunks.push(`${createHeader(header)}${chunk}`)
     startIndex = endIndex
   }
 
@@ -193,7 +239,7 @@ export function decodeBBQRChunks(chunks: string[]): Uint8Array | null {
     const header = parseHeader(firstChunk)
 
     if (header.encoding === BBQREncoding.ZLIB) {
-      return pako.inflate(bytes)
+      return pako.inflate(bytes, { windowBits: 10 })
     } else {
       return bytes
     }

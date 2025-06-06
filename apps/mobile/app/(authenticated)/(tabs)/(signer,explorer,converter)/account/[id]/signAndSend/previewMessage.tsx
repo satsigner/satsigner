@@ -43,6 +43,7 @@ import { estimateTransactionSize } from '@/utils/transaction'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
 import { gray } from '@/styles/colors'
 import { color } from 'd3'
+import { FileType } from '@/utils/bbqr'
 
 const tn = _tn('transaction.build.preview')
 
@@ -53,11 +54,7 @@ enum QRDisplayMode {
 }
 
 interface NFCTagWithNDEF {
-  ndefMessage?: {
-    tnf: number
-    type: Uint8Array
-    payload: Uint8Array
-  }[]
+  ndefMessage?: { tnf: number; type: Uint8Array; payload: Uint8Array }[]
 }
 
 function PreviewMessage() {
@@ -175,10 +172,7 @@ function PreviewMessage() {
     const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
     const vin = [...inputs.values()].map((input: Utxo) => ({
-      previousOutput: {
-        txid: input.txid,
-        vout: input.vout
-      },
+      previousOutput: { txid: input.txid, vout: input.vout },
       value: input.value,
       label: input.label || ''
     }))
@@ -189,13 +183,7 @@ function PreviewMessage() {
       label: output.label || ''
     }))
 
-    return {
-      id: messageId,
-      size,
-      vsize,
-      vin,
-      vout
-    } as never as Transaction
+    return { id: messageId, size, vsize, vin, vout } as never as Transaction
   }, [inputs, outputs, messageId])
 
   useEffect(() => {
@@ -212,9 +200,7 @@ function PreviewMessage() {
             inputs: Array.from(inputs.values()),
             outputs: Array.from(outputs.values()),
             fee,
-            options: {
-              rbf
-            }
+            options: { rbf }
           },
           network as Network
         )
@@ -269,23 +255,47 @@ function PreviewMessage() {
           const psbtBuffer = Buffer.from(psbtHex, 'hex')
           let bbqrChunks: string[]
 
+          console.log('🔍 BBQR Debug - Starting BBQR generation')
+          console.log('📊 PSBT buffer length:', psbtBuffer.length)
+          console.log('⚙️  QR Complexity setting:', qrComplexity)
+
           try {
             if (qrComplexity === 12) {
               // Complexity 12: Create single static BBQR chunk
+              console.log('📱 Creating single static BBQR chunk')
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
-                psbtBuffer.length * 10 // Use buffer length multiplied by 10 to ensure single chunk
+                FileType.PSBT,
+                psbtBuffer.length * 10
               )
             } else {
               // Complexity 1-11: Create multiple chunks (higher = larger chunks)
               const bbqrChunkSize = Math.max(50, 25 * qrComplexity)
+              console.log(
+                '📱 Creating multiple BBQR chunks with size:',
+                bbqrChunkSize
+              )
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
+                FileType.PSBT,
                 bbqrChunkSize
               )
             }
+
+            console.log('✅ BBQR chunks generated:', bbqrChunks.length)
+            console.log(
+              '📝 First chunk preview:',
+              bbqrChunks[0]?.substring(0, 50) + '...'
+            )
+            console.log('📏 First chunk length:', bbqrChunks[0]?.length)
+
+            // Log each chunk header for debugging
+            bbqrChunks.forEach((chunk, index) => {
+              const header = chunk.substring(0, 8)
+              console.log(`🏷️  Chunk ${index + 1} header:`, header)
+            })
           } catch (bbqrError) {
-            console.error('BBQR creation error:', bbqrError)
+            console.error('❌ BBQR creation error:', bbqrError)
             bbqrChunks = []
           }
           setQrChunks(bbqrChunks)
@@ -488,8 +498,19 @@ function PreviewMessage() {
         const urValue = urChunks[currentUrChunk]
         return urValue || 'NO_CHUNKS'
       }
-      case QRDisplayMode.BBQR:
-        return qrChunks?.[currentChunk] || 'NO_CHUNKS'
+      case QRDisplayMode.BBQR: {
+        const bbqrValue = qrChunks?.[currentChunk] || 'NO_CHUNKS'
+        console.log('🔍 BBQR QR Value Debug:')
+        console.log('📱 Current chunk index:', currentChunk)
+        console.log('📊 Total chunks:', qrChunks.length)
+        console.log('📝 Current QR value length:', bbqrValue.length)
+        console.log(
+          '🏷️  Current QR header (first 8 chars):',
+          bbqrValue.substring(0, 8)
+        )
+        console.log('📄 Current QR full value:', bbqrValue)
+        return bbqrValue
+      }
     }
   }
 
@@ -825,10 +846,7 @@ function PreviewMessage() {
 
                 <SSHStack
                   justifyEvenly
-                  style={{
-                    width: screenWidth * 0.9,
-                    marginBottom: 20
-                  }}
+                  style={{ width: screenWidth * 0.9, marginBottom: 20 }}
                 >
                   <SSVStack gap="xs">
                     <SSText color="white" size="sm" center>
@@ -999,15 +1017,8 @@ function PreviewMessage() {
 }
 
 const styles = StyleSheet.create({
-  mainLayout: {
-    paddingTop: 0,
-    paddingBottom: 20
-  },
-  modalStack: {
-    marginVertical: 32,
-    width: '100%',
-    paddingHorizontal: 32
-  }
+  mainLayout: { paddingTop: 0, paddingBottom: 20 },
+  modalStack: { marginVertical: 32, width: '100%', paddingHorizontal: 32 }
 })
 
 export default PreviewMessage
