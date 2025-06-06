@@ -18,7 +18,20 @@ function parseAccountAddressesDetails({
     labelsBackup[addr.address] = addr.label
   })
 
-  const addressesDetailed = [...addresses]
+  const addressesDetailed = addresses.map((addr) => {
+    return {
+      ...addr,
+      transactions: [] as string[],
+      utxos: [] as string[],
+      summary: {
+        utxos: 0,
+        transactions: 0,
+        balance: 0,
+        satsInMempool: 0
+      },
+      scriptVersion
+    }
+  })
 
   const addrDictionary: Record<string, number> = {}
 
@@ -26,11 +39,6 @@ function parseAccountAddressesDetails({
 
   for (let i = 0; i < addressesDetailed.length; i += 1) {
     addrDictionary[addressesDetailed[i].address] = i
-    addressesDetailed[i].summary.utxos = 0
-    addressesDetailed[i].summary.balance = 0
-    addressesDetailed[i].summary.satsInMempool = 0
-    addressesDetailed[i].summary.transactions = 0
-    addressesDetailed[i].scriptVersion = scriptVersion
   }
 
   for (let i = 0; i < transactions.length; i += 1) {
@@ -39,32 +47,53 @@ function parseAccountAddressesDetails({
 
   for (const tx of transactions) {
     for (const output of tx.vout) {
-      if (addrDictionary[output.address] === undefined) continue
+      if (addrDictionary[output.address] === undefined) {
+        continue
+      }
       const index = addrDictionary[output.address]
-      if (addressesDetailed[index].transactions.includes(tx.id)) continue
+      if (addressesDetailed[index].transactions.includes(tx.id)) {
+        continue
+      }
       addressesDetailed[index].summary.transactions += 1
       addressesDetailed[index].transactions.push(tx.id)
     }
 
     for (const input of tx.vin) {
       const prevTxId = input.previousOutput.txid
-      if (txDictionary[prevTxId] === undefined) continue
+
+      if (txDictionary[prevTxId] === undefined) {
+        continue
+      }
+
       const prevTxIndex = txDictionary[prevTxId]
       const vout = input.previousOutput.vout
       const prevTx = transactions[prevTxIndex]
-      if (prevTx.vout[vout] === undefined) continue
+
+      if (prevTx.vout[vout] === undefined) {
+        continue
+      }
+
       const prevTxAddr = prevTx.vout[vout].address
-      if (addrDictionary[prevTxAddr] === undefined) continue
+
+      if (addrDictionary[prevTxAddr] === undefined) {
+        continue
+      }
+
       const index = addrDictionary[prevTxAddr]
-      if (addressesDetailed[index].transactions.includes(tx.id)) continue
+
+      if (addressesDetailed[index].transactions.includes(tx.id)) {
+        continue
+      }
+
       addressesDetailed[index].summary.transactions += 1
       addressesDetailed[index].transactions.push(tx.id)
     }
   }
 
   for (const utxo of utxos) {
-    if (!utxo.addressTo || addrDictionary[utxo.addressTo] === undefined)
+    if (!utxo.addressTo || addrDictionary[utxo.addressTo] === undefined) {
       continue
+    }
     const index = addrDictionary[utxo.addressTo]
     addressesDetailed[index].summary.utxos += 1
     addressesDetailed[index].summary.balance += utxo.value
