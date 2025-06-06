@@ -255,14 +255,9 @@ function PreviewMessage() {
           const psbtBuffer = Buffer.from(psbtHex, 'hex')
           let bbqrChunks: string[]
 
-          console.log('🔍 BBQR Debug - Starting BBQR generation')
-          console.log('📊 PSBT buffer length:', psbtBuffer.length)
-          console.log('⚙️  QR Complexity setting:', qrComplexity)
-
           try {
             if (qrComplexity === 12) {
               // Complexity 12: Create single static BBQR chunk
-              console.log('📱 Creating single static BBQR chunk')
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
                 FileType.PSBT,
@@ -271,31 +266,14 @@ function PreviewMessage() {
             } else {
               // Complexity 1-11: Create multiple chunks (higher = larger chunks)
               const bbqrChunkSize = Math.max(50, 25 * qrComplexity)
-              console.log(
-                '📱 Creating multiple BBQR chunks with size:',
-                bbqrChunkSize
-              )
+
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
                 FileType.PSBT,
                 bbqrChunkSize
               )
             }
-
-            console.log('✅ BBQR chunks generated:', bbqrChunks.length)
-            console.log(
-              '📝 First chunk preview:',
-              bbqrChunks[0]?.substring(0, 50) + '...'
-            )
-            console.log('📏 First chunk length:', bbqrChunks[0]?.length)
-
-            // Log each chunk header for debugging
-            bbqrChunks.forEach((chunk, index) => {
-              const header = chunk.substring(0, 8)
-              console.log(`🏷️  Chunk ${index + 1} header:`, header)
-            })
           } catch (bbqrError) {
-            console.error('❌ BBQR creation error:', bbqrError)
             bbqrChunks = []
           }
           setQrChunks(bbqrChunks)
@@ -500,15 +478,7 @@ function PreviewMessage() {
       }
       case QRDisplayMode.BBQR: {
         const bbqrValue = qrChunks?.[currentChunk] || 'NO_CHUNKS'
-        console.log('🔍 BBQR QR Value Debug:')
-        console.log('📱 Current chunk index:', currentChunk)
-        console.log('📊 Total chunks:', qrChunks.length)
-        console.log('📝 Current QR value length:', bbqrValue.length)
-        console.log(
-          '🏷️  Current QR header (first 8 chars):',
-          bbqrValue.substring(0, 8)
-        )
-        console.log('📄 Current QR full value:', bbqrValue)
+
         return bbqrValue
       }
     }
@@ -836,7 +806,8 @@ function PreviewMessage() {
                     height: 80,
                     backgroundColor: Colors.gray[900],
                     borderRadius: 2,
-                    textAlignVertical: 'center'
+                    textAlignVertical: 'center',
+                    paddingHorizontal: 20
                   }}
                 >
                   {getQRValue().length > 100
