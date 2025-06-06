@@ -213,6 +213,7 @@ export default function WatchOnly() {
       validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    // For descriptors, we only need the external descriptor to be valid
     setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
     if (validExternalDescriptor) {
@@ -224,7 +225,8 @@ export default function WatchOnly() {
     const validInternalDescriptor = validateDescriptor(descriptor)
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
-    setDisabled(!validInternalDescriptor)
+    // Internal descriptor is optional, so don't disable if it's invalid
+    // The external descriptor validation will handle the disabled state
     setLocalInternalDescriptor(descriptor)
     if (validInternalDescriptor) {
       setInternalDescriptor(descriptor)
@@ -424,6 +426,8 @@ export default function WatchOnly() {
   }
 
   function handleQRCodeScanned(data: string | undefined) {
+    console.log('QR Code scanned data:', data)
+
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
       return
@@ -480,9 +484,7 @@ export default function WatchOnly() {
   return (
     <SSMainLayout>
       <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{name}</SSText>
-        }}
+        options={{ headerTitle: () => <SSText uppercase>{name}</SSText> }}
       />
       <ScrollView>
         <SSSelectModal
@@ -678,8 +680,5 @@ const styles = StyleSheet.create({
     height: 'auto',
     paddingVertical: 10
   },
-  valid: {
-    height: 'auto',
-    paddingVertical: 10
-  }
+  valid: { height: 'auto', paddingVertical: 10 }
 })
