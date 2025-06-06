@@ -56,7 +56,8 @@ function useSyncAccountWithWallet() {
 
       const walletSummary = await getWalletOverview(
         wallet,
-        server.network as Network
+        server.network as Network,
+        config.stopGap
       )
 
       const updatedAccount: Account = { ...account }
