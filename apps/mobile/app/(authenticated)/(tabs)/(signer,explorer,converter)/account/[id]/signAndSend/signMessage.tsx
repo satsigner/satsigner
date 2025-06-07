@@ -5,6 +5,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { broadcastTransaction, getBlockchain, signTransaction } from '@/api/bdk'
+import ElectrumClient from '@/api/electrum'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -27,8 +28,13 @@ export default function SignMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [txBuilderResult, psbt, setPsbt] = useTransactionBuilderStore(
-    useShallow((state) => [state.txBuilderResult, state.psbt, state.setPsbt])
+  const [txBuilderResult, psbt, setPsbt, signedTx] = useTransactionBuilderStore(
+    useShallow((state) => [
+      state.txBuilderResult,
+      state.psbt,
+      state.setPsbt,
+      state.signedTx
+    ])
   )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
@@ -47,7 +53,7 @@ export default function SignMessage() {
   const [rawTx, setRawTx] = useState('')
 
   async function handleBroadcastTransaction() {
-    if (!psbt) return
+    if (!psbt && !signedTx) return
     setBroadcasting(true)
 
     const opts = {
@@ -66,7 +72,19 @@ export default function SignMessage() {
     )
 
     try {
-      const broadcasted = await broadcastTransaction(psbt, blockchain)
+      let broadcasted = false
+      if (signedTx) {
+        // Broadcast raw hex directly to Electrum
+        const electrumClient = await ElectrumClient.initClientFromUrl(
+          currentConfig.server.url,
+          selectedNetwork
+        )
+        await electrumClient.broadcastTransactionHex(signedTx)
+        electrumClient.close()
+        broadcasted = true
+      } else if (psbt) {
+        broadcasted = await broadcastTransaction(psbt, blockchain)
+      }
 
       if (broadcasted) {
         setBroadcasted(true)
@@ -81,6 +99,12 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
+      if (signedTx) {
+        setSigned(true)
+        setRawTx(signedTx)
+        return
+      }
+
       if (!wallet || !txBuilderResult) return
 
       const partiallySignedTransaction = await signTransaction(
@@ -104,28 +128,29 @@ export default function SignMessage() {
   return (
     <>
       <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
-        <SSVStack itemsCenter justifyBetween>
-          <SSVStack itemsCenter>
-            <SSText size="lg" weight="bold">
-              {tn(signed ? 'signed' : 'signing')}
-            </SSText>
-            <SSText color="muted" size="sm" weight="bold" uppercase>
-              {tn('messageId')}
-            </SSText>
-            <SSText size="lg">
-              {formatAddress(txBuilderResult.txDetails.txid)}
-            </SSText>
-            {signed && !broadcasted && (
-              <SSIconSuccess width={159} height={159} variant="outline" />
-            )}
-            {!signed && !broadcasted && (
-              <ActivityIndicator size={160} color="#fff" />
-            )}
-            {broadcasted && (
-              <SSIconSuccess width={159} height={159} variant="filled" />
-            )}
-          </SSVStack>
-          <ScrollView>
+        <ScrollView>
+          <SSVStack itemsCenter justifyBetween style={{ minHeight: '100%' }}>
+            <SSVStack itemsCenter>
+              <SSText size="lg" weight="bold">
+                {tn(signed ? 'signed' : 'signing')}
+              </SSText>
+              <SSText color="muted" size="sm" weight="bold" uppercase>
+                {tn('messageId')}
+              </SSText>
+              <SSText size="lg">
+                {formatAddress(txBuilderResult.txDetails.txid)}
+              </SSText>
+              {signed && !broadcasted && (
+                <SSIconSuccess width={159} height={159} variant="outline" />
+              )}
+              {!signed && !broadcasted && (
+                <ActivityIndicator size={160} color="#fff" />
+              )}
+              {broadcasted && (
+                <SSIconSuccess width={159} height={159} variant="filled" />
+              )}
+            </SSVStack>
+
             <SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
@@ -146,15 +171,16 @@ export default function SignMessage() {
                 {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
               </SSVStack>
             </SSVStack>
-          </ScrollView>
-          <SSButton
-            variant="secondary"
-            label={t('send.broadcast')}
-            disabled={!signed || !psbt}
-            loading={broadcasting}
-            onPress={() => handleBroadcastTransaction()}
-          />
-        </SSVStack>
+
+            <SSButton
+              variant="secondary"
+              label={t('send.broadcast')}
+              disabled={!signed || (!psbt && !signedTx)}
+              loading={broadcasting}
+              onPress={() => handleBroadcastTransaction()}
+            />
+          </SSVStack>
+        </ScrollView>
       </SSMainLayout>
     </>
   )

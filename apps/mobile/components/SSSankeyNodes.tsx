@@ -274,7 +274,7 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          maxLines: 4,
+          maxLines: 5,
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
@@ -326,13 +326,15 @@ function NodeText({
           fontSize: BASE_FONT_SIZE,
           color: Skia.Color('white')
         })
+
         .addText(`${ioData?.value.toLocaleString()} `)
         .pushStyle({
           ...baseTextStyle,
-          fontSize: BASE_FONT_SIZE,
+          fontSize: XS_FONT_SIZE,
           color: Skia.Color(Colors.gray[200])
         })
         .addText(`sats\n`)
+        .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .pushStyle({
           // Style for the icon + text line
           ...baseTextStyle,
@@ -381,6 +383,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
+        .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .addText(ioData?.address ? `${t('common.to')} ` : '')
         .pushStyle({
           ...baseTextStyle,
@@ -432,6 +435,7 @@ function NodeText({
           fontSize: XS_FONT_SIZE,
           color: Skia.Color(gray[300])
         })
+        .addText(`${ioData.fiatValue} ${ioData.fiatCurrency}\n`)
         .addText(`${ioData?.text} `)
         .pushStyle({
           ...baseTextStyle,
