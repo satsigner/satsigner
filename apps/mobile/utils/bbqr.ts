@@ -1,121 +1,80 @@
 /**
  * BBQR (Better Bitcoin QR) utility functions
  * This module provides functions for creating and managing QR code chunks
- * for large binary data like PSBTs.
+ * for large binary data like PSBTs, using the official BBQR library.
  */
 
-import * as pako from 'pako'
+import {
+  joinQRs,
+  splitQRs,
+  type FileType as OfficialFileType,
+  type Version
+} from './bbrq'
 
-const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-const HEADER_PREFIX = 'B$'
+// Re-export the official FileType but with enum-like access for backward compatibility
+export const FileType = {
+  PSBT: 'P' as const,
+  TXN: 'T' as const,
+  JSON: 'J' as const,
+  CBOR: 'C' as const,
+  UNICODE: 'U' as const,
+  BINARY: 'B' as const,
+  EXECUTABLE: 'X' as const
+} as const
 
-enum BBQREncoding {
-  ZLIB = 'Z',
-  BASE32 = '2',
-  HEX = 'H'
-}
+// Export type for the FileType values
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export type FileType = (typeof FileType)[keyof typeof FileType]
 
-// Export FileType enum for external usage
-export enum FileType {
-  PSBT = 'P',
-  TXN = 'T',
-  JSON = 'J',
-  CBOR = 'C',
-  UNICODE = 'U',
-  BINARY = 'B',
-  EXECUTABLE = 'X'
-}
-
-interface BBQRHeader {
-  encoding: BBQREncoding
-  type: FileType
-  seqTotal: number
-  seqNumber: number
-}
-
-// Part modulo for each encoding type
-const ENCODING_MODULO = {
-  [BBQREncoding.ZLIB]: 5,
-  [BBQREncoding.BASE32]: 5,
-  [BBQREncoding.HEX]: 2
-}
-
-function base32Encode(bytes: Uint8Array): string {
-  let bits = 0
-  let value = 0
-  let output = ''
-  for (let i = 0; i < bytes.length; i++) {
-    value = (value << 8) | bytes[i]
-    bits += 8
-    while (bits >= 5) {
-      output += BASE32_ALPHABET[(value >>> (bits - 5)) & 31]
-      bits -= 5
-    }
-  }
-  if (bits > 0) {
-    output += BASE32_ALPHABET[(value << (5 - bits)) & 31]
-  }
-  return output
-}
-
-function base32Decode(str: string): Uint8Array {
-  let bits = 0
-  let value = 0
-  const bytes = []
-  for (let i = 0; i < str.length; i++) {
-    const char = str[i]
-    const index = BASE32_ALPHABET.indexOf(char)
-    if (index === -1) throw new Error('Invalid base32 character')
-
-    value = (value << 5) | index
-    bits += 5
-    while (bits >= 8) {
-      bytes.push((value >>> (bits - 8)) & 255)
-      bits -= 8
-    }
-  }
-  return new Uint8Array(bytes)
-}
-
-function encodeToBase36(number: number): string {
-  // Convert to base36 and pad to 2 digits
-  return number.toString(36).padStart(2, '0').toUpperCase()
-}
-
-function decodeFromBase36(base36: string): number {
-  return parseInt(base36, 36)
-}
-
-function createHeader(header: BBQRHeader): string {
-  return `${HEADER_PREFIX}${header.encoding}${header.type}${encodeToBase36(header.seqTotal)}${encodeToBase36(header.seqNumber)}`
-}
-
-function parseHeader(part: string): BBQRHeader {
-  if (part.length < 8) {
-    throw new Error('Part too short')
-  }
-
-  if (!part.startsWith(HEADER_PREFIX)) {
-    throw new Error(`Part does not start with ${HEADER_PREFIX}`)
-  }
-
-  const encoding = part.slice(2, 3) as BBQREncoding
-  const type = part.slice(3, 4) as FileType
-  const seqTotal = decodeFromBase36(part.slice(4, 6))
-  const seqNumber = decodeFromBase36(part.slice(6, 8))
-
-  return { encoding, type, seqTotal, seqNumber }
-}
-
+/**
+ * Check if a string is a BBQR fragment
+ */
 export function isBBQRFragment(part: string): boolean {
   try {
-    parseHeader(part)
+    // BBQR fragments start with 'B$' followed by encoding and file type
+    if (part.length < 8 || !part.startsWith('B$')) {
+      return false
+    }
+
+    // Check if the header format is valid
+    const encoding = part.slice(2, 3)
+    const fileType = part.slice(3, 4)
+    const seqTotal = part.slice(4, 6)
+    const seqNumber = part.slice(6, 8)
+
+    // Validate encoding (H, Z, or 2)
+    if (!['H', 'Z', '2'].includes(encoding)) {
+      return false
+    }
+
+    // Validate file type (single uppercase letter)
+    if (!/^[A-Z]$/.test(fileType)) {
+      return false
+    }
+
+    // Validate sequence numbers are valid base36
+    const totalParts = parseInt(seqTotal, 36)
+    const partNumber = parseInt(seqNumber, 36)
+
+    if (
+      isNaN(totalParts) ||
+      isNaN(partNumber) ||
+      totalParts < 1 ||
+      partNumber >= totalParts
+    ) {
+      return false
+    }
+
     return true
   } catch (_e) {
     return false
   }
 }
 
+/**
+ * Create BBQR chunks from binary data
+ * This function maintains backward compatibility with the original API
+ */
 export function createBBQRChunks(
   data: Uint8Array,
   fileType: FileType = FileType.PSBT,
@@ -127,123 +86,194 @@ export function createBBQRChunks(
     maxChunkSize
   })
 
-  // Try ZLIB compression first
-  let encoded: string
-  let encoding = BBQREncoding.ZLIB
-
   try {
-    const compressed = pako.deflate(data, { windowBits: 10, level: 9 })
-    console.log('📦 Compression result:', {
-      originalSize: data.length,
-      compressedSize: compressed.length
-    })
+    // Convert our FileType to the official library's string format
+    const officialFileType = fileType as OfficialFileType
 
-    const zlibEncoded = base32Encode(compressed)
-    const uncompressed = base32Encode(data)
+    // Calculate the target number of chunks based on maxChunkSize
+    // to match the behavior of RAW PSBT and UR encoding
+    let targetChunks: number
+    let minSplit: number
+    let maxSplit: number
 
-    console.log('📝 Encoding lengths:', {
-      zlibEncodedLength: zlibEncoded.length,
-      uncompressedLength: uncompressed.length
-    })
+    // For very large maxChunkSize (single chunk mode), force single chunk
+    if (maxChunkSize >= data.length * 2) {
+      targetChunks = 1
+      minSplit = 1
+      maxSplit = 1
+    } else {
+      // Calculate target chunks based on data size and desired chunk size
+      targetChunks = Math.ceil(data.length / maxChunkSize)
 
-    // Use compression only if it helps
-    if (zlibEncoded.length > uncompressed.length) {
-      console.log("⚠️  Compression didn't help, using BASE32")
-      throw new Error('Compressed data was larger than uncompressed data')
-    }
-    encoded = zlibEncoded
-    console.log('✅ Using ZLIB compression')
-  } catch (_e) {
-    // Fallback to BASE32 if compression fails
-    encoded = base32Encode(data)
-    encoding = BBQREncoding.BASE32
-    console.log('✅ Using BASE32 encoding')
-  }
+      // For very small chunk sizes (which should create many simple QR codes),
+      // we need to be more realistic about what the BBQR library can handle
+      if (maxChunkSize <= 75 && targetChunks > 12) {
+        // For very small chunks, aim for a reasonable number that the library can handle
+        // but still more than larger chunk sizes would create
+        targetChunks = Math.max(8, Math.min(targetChunks, 15))
+        console.log(
+          `📝 Adjusted target chunks for small maxChunkSize (${maxChunkSize}): ${targetChunks}`
+        )
+      } else {
+        // Limit maximum chunks to prevent impossible scenarios
+        targetChunks = Math.min(targetChunks, 50)
+      }
 
-  console.log('📊 Final encoded data:', {
-    encodedLength: encoded.length,
-    encoding: encoding,
-    maxChunkSize: maxChunkSize
-  })
+      // Be more strict about honoring the user's QR density choice
+      // Only give minimal flexibility to handle QR version constraints
+      let flexibility: number
+      if (targetChunks <= 3) {
+        flexibility = 1 // Very small flexibility for very low chunk counts
+      } else if (targetChunks <= 10) {
+        flexibility = 2 // Small flexibility for low-medium chunk counts
+      } else {
+        flexibility = 3 // Moderate flexibility for high chunk counts
+      }
 
-  // Calculate chunk size using standard ceiling division
-  const inputLength = encoded.length
-  const numChunks = Math.ceil(inputLength / maxChunkSize)
+      minSplit = Math.max(1, targetChunks - flexibility)
+      maxSplit = Math.min(50, targetChunks + flexibility)
 
-  console.log('🧮 Chunk calculation:', {
-    inputLength,
-    maxChunkSize,
-    numChunks: numChunks,
-    formula: `Math.ceil(${inputLength} / ${maxChunkSize}) = ${numChunks}`
-  })
+      // For small chunk sizes, ensure we have a reasonable minimum
+      if (maxChunkSize <= 75) {
+        minSplit = Math.max(5, minSplit) // Ensure at least 5 chunks for small sizes
+      }
 
-  const chunkSize =
-    numChunks === 1 ? maxChunkSize : Math.ceil(inputLength / numChunks)
-
-  // Adjust chunk size to match encoding modulo
-  const modulo = chunkSize % ENCODING_MODULO[encoding]
-  const adjustedChunkSize =
-    modulo > 0 ? chunkSize + (ENCODING_MODULO[encoding] - modulo) : chunkSize
-
-  const chunks: string[] = []
-  let startIndex = 0
-
-  for (let i = 0; i < numChunks; i++) {
-    const endIndex = Math.min(startIndex + adjustedChunkSize, encoded.length)
-    const chunk = encoded.slice(startIndex, endIndex)
-
-    const header: BBQRHeader = {
-      encoding,
-      type: fileType,
-      seqTotal: numChunks,
-      seqNumber: i
+      // If the flexibility range is too small and might cause "Cannot make it fit",
+      // gradually increase the upper bound while keeping the lower bound closer to target
+      if (maxSplit - minSplit < 3) {
+        maxSplit = Math.min(50, targetChunks + 5)
+      }
     }
 
-    console.log(`🏷️  Creating chunk ${i + 1}/${numChunks}:`, {
-      seqTotal: header.seqTotal,
-      seqNumber: header.seqNumber,
-      chunkLength: chunk.length,
-      headerString: createHeader(header)
+    // Try to split with the calculated constraints
+    let result
+    try {
+      result = splitQRs(data, officialFileType, {
+        encoding: 'Z', // Try compression first (same as original implementation)
+        minSplit,
+        maxSplit,
+        minVersion: 5 as Version,
+        maxVersion: 40 as Version
+      })
+    } catch (error) {
+      // If strict constraints fail, try with more flexibility
+      console.log(
+        '⚠️ BBQR strict constraints failed, trying with more flexibility'
+      )
+      let fallbackMinSplit = Math.max(1, Math.floor(targetChunks * 0.5))
+      let fallbackMaxSplit = Math.min(50, Math.ceil(targetChunks * 1.5))
+
+      // For small chunk sizes, ensure we still aim for multiple chunks
+      if (maxChunkSize <= 75) {
+        fallbackMinSplit = Math.max(3, fallbackMinSplit)
+        fallbackMaxSplit = Math.max(8, fallbackMaxSplit)
+      }
+
+      try {
+        result = splitQRs(data, officialFileType, {
+          encoding: 'Z',
+          minSplit: fallbackMinSplit,
+          maxSplit: fallbackMaxSplit,
+          minVersion: 5 as Version,
+          maxVersion: 40 as Version
+        })
+        console.log(
+          '✅ BBQR fallback succeeded with range:',
+          `${fallbackMinSplit}-${fallbackMaxSplit}`
+        )
+      } catch (fallbackError) {
+        // As last resort, let the library decide with minimal constraints
+        console.log('⚠️ BBQR fallback failed, using minimal constraints')
+        try {
+          result = splitQRs(data, officialFileType, {
+            encoding: 'Z',
+            minSplit: 1,
+            maxSplit: Math.min(50, targetChunks * 2),
+            minVersion: 5 as Version,
+            maxVersion: 40 as Version
+          })
+        } catch (finalError) {
+          // Ultimate fallback: let the library use its default settings
+          console.log('⚠️ BBQR all constraints failed, using library defaults')
+          result = splitQRs(data, officialFileType, {
+            encoding: 'Z' // Let library choose all other defaults
+          })
+        }
+      }
+    }
+
+    console.log('📊 BBQR split result:', {
+      version: result.version,
+      encoding: result.encoding,
+      partsCount: result.parts.length,
+      requestedMaxChunkSize: maxChunkSize,
+      targetChunks: targetChunks,
+      actualChunks: result.parts.length,
+      splitRange: `${minSplit}-${maxSplit}`
     })
 
-    // Don't pad chunks - BBQR spec says padding should be omitted
-    chunks.push(`${createHeader(header)}${chunk}`)
-    startIndex = endIndex
-  }
+    // Log full chunk contents
+    console.log('📋 BBQR chunks:')
+    result.parts.forEach((chunk, index) => {
+      console.log(`  Chunk ${index + 1}/${result.parts.length}: ${chunk}`)
+    })
 
-  return chunks
+    // Ensure we always return at least one chunk
+    if (!result.parts || result.parts.length === 0) {
+      console.error('❌ BBQR produced no chunks, this should not happen')
+      throw new Error('BBQR produced no chunks')
+    }
+
+    return result.parts
+  } catch (error) {
+    console.error('❌ BBQR createBBQRChunks error:', error)
+
+    // As absolute last resort, create a simple non-BBQR fallback
+    // This ensures we never return empty and the UI doesn't break
+    console.log('🔧 Creating emergency fallback chunks')
+    const chunkSize = Math.max(100, maxChunkSize)
+    const chunks: string[] = []
+    const dataStr = Array.from(data)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+
+    for (let i = 0; i < dataStr.length; i += chunkSize) {
+      const chunk = dataStr.slice(i, i + chunkSize)
+      chunks.push(`FALLBACK_${Math.floor(i / chunkSize) + 1}: ${chunk}`)
+    }
+
+    console.log(`🔧 Created ${chunks.length} emergency fallback chunks`)
+    return chunks
+  }
 }
 
+/**
+ * Decode BBQR chunks back to binary data
+ * This function maintains backward compatibility with the original API
+ */
 export function decodeBBQRChunks(chunks: string[]): Uint8Array | null {
   try {
-    // Validate all chunks are BBQR fragments
-    if (!chunks.every(isBBQRFragment)) {
-      throw new Error('Invalid BBQR fragment')
-    }
-
-    // Sort chunks by part number using TreeMap-like approach
-    const sortedChunks = chunks.sort((a, b) => {
-      const aHeader = parseHeader(a)
-      const bHeader = parseHeader(b)
-      return aHeader.seqNumber - bHeader.seqNumber
+    console.log('🔍 BBQR decodeBBQRChunks called with:', {
+      chunksCount: chunks.length
     })
 
-    // Extract data from chunks
-    const data = sortedChunks.map((chunk) => chunk.slice(8)).join('')
-
-    // Decode base32
-    const bytes = base32Decode(data)
-
-    // Check if data is compressed
-    const firstChunk = sortedChunks[0]
-    const header = parseHeader(firstChunk)
-
-    if (header.encoding === BBQREncoding.ZLIB) {
-      return pako.inflate(bytes, { windowBits: 10 })
-    } else {
-      return bytes
+    // Validate all chunks are BBQR fragments
+    if (!chunks.every(isBBQRFragment)) {
+      console.error('❌ Invalid BBQR fragment detected')
+      return null
     }
-  } catch (_e) {
+
+    const result = joinQRs(chunks)
+
+    console.log('✅ BBQR decode successful:', {
+      fileType: result.fileType,
+      encoding: result.encoding,
+      dataLength: result.raw.length
+    })
+
+    return result.raw
+  } catch (error) {
+    console.error('❌ BBQR decodeBBQRChunks error:', error)
     return null
   }
 }

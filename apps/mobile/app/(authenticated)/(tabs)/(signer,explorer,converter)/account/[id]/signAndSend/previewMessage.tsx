@@ -2,6 +2,7 @@
 // External dependencies
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
+import { color } from 'd3'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -32,18 +33,16 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors, Typography } from '@/styles'
+import { gray } from '@/styles/colors'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { createBBQRChunks } from '@/utils/bbqr'
+import { createBBQRChunks, FileType } from '@/utils/bbqr'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
-import { gray } from '@/styles/colors'
-import { color } from 'd3'
-import { FileType } from '@/utils/bbqr'
 
 const tn = _tn('transaction.build.preview')
 
@@ -225,8 +224,16 @@ function PreviewMessage() {
 
     try {
       const serializedPsbt = await txBuilderResult.psbt.serialize()
-      // Convert the raw bytes to a Buffer
-      const psbtBuffer = Buffer.from(serializedPsbt)
+
+      // Check if serializedPsbt is already a string (base64) or binary data
+      let psbtBuffer: Buffer
+      if (typeof serializedPsbt === 'string') {
+        // If it's a string, assume it's base64 and decode it to binary
+        psbtBuffer = Buffer.from(serializedPsbt, 'base64')
+      } else {
+        // If it's binary data (Uint8Array or similar), convert directly
+        psbtBuffer = Buffer.from(serializedPsbt)
+      }
 
       // Store the hex representation for other uses
       const psbtHex = psbtBuffer.toString('hex')
