@@ -5,9 +5,9 @@
  */
 
 import {
+  type FileType as OfficialFileType,
   joinQRs,
   splitQRs,
-  type FileType as OfficialFileType,
   type Version
 } from './bbrq'
 

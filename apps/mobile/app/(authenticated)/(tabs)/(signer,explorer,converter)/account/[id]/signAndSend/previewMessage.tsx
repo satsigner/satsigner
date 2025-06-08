@@ -41,14 +41,17 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
   createBBQRChunks,
   decodeBBQRChunks,
-  isBBQRFragment,
-  FileType
+  FileType,
+  isBBQRFragment
 } from '@/utils/bbqr'
-import { decodeURToPSBT, decodeMultiPartURToPSBT } from '@/utils/ur'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { getURFragmentsFromPSBT } from '@/utils/ur'
+import {
+  decodeMultiPartURToPSBT,
+  decodeURToPSBT,
+  getURFragmentsFromPSBT
+} from '@/utils/ur'
 
 const tn = _tn('transaction.build.preview')
 

@@ -1,4 +1,4 @@
-import { UR, UREncoder, URDecoder } from '@ngraveio/bc-ur'
+import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 import { Buffer } from 'buffer'
 
 export interface URData {
