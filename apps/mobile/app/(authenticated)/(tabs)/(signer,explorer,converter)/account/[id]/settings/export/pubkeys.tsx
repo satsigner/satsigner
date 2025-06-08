@@ -4,6 +4,7 @@ import bs58check from 'bs58check'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, View } from 'react-native'
+import { toast } from 'sonner-native'
 
 import { extractExtendedKeyFromDescriptor, getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
@@ -42,28 +43,12 @@ export default function ExportPubkeys() {
 
     try {
       const decoded = bs58check.decode(xpub)
-
       const version = new Uint8Array([0x04, 0x5f, 0x1c, 0xf6])
-
       const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
-
       const result = bs58check.encode(newDecoded)
-
-      console.log('Original tpub:', xpub)
-      console.log('Converted vpub:', result)
-      console.log(
-        'Expected vpub:',
-        'vpub5ZQimUTGc8Nyfj8XvYzERucugauCm4nFzuqR5mnJa3y9pgvvEt8zzv1xaCDdAtKneiXo339o8iqP9wTnNV2jD3botLwNSWCheK193C8BWwN'
-      )
-      console.log(
-        'Match:',
-        result ===
-          'vpub5ZQimUTGc8Nyfj8XvYzERucugauCm4nFzuqR5mnJa3y9pgvvEt8zzv1xaCDdAtKneiXo339o8iqP9wTnNV2jD3botLwNSWCheK193C8BWwN'
-      )
-
       return result
     } catch (error) {
-      console.error('Error converting xpub:', error)
+      toast.error(String(error))
       return xpub
     }
   }

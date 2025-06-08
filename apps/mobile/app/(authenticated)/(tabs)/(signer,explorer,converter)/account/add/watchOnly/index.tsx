@@ -426,8 +426,6 @@ export default function WatchOnly() {
   }
 
   function handleQRCodeScanned(data: string | undefined) {
-    console.log('QR Code scanned data:', data)
-
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
       return
