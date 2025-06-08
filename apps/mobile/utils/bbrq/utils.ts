@@ -124,7 +124,7 @@ export function looksLikePsbt(data: Uint8Array) {
     return new Uint8Array([0x70, 0x73, 0x62, 0x74, 0xff]).every(
       (b, i) => b === data[i]
     )
-  } catch (err) {
+  } catch (_err) {
     return false
   }
 }

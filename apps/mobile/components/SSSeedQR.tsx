@@ -33,7 +33,7 @@ export default function SSSeedQR({
   // Format QR value into groups of 4 characters
   const formattedQRValue = qrValue.match(/.{1,4}/g)?.join(' ') || qrValue
 
-  const [copied, setCopied] = useState(false)
+  const [_copied, _setCopied] = useState(false)
 
   const handleCopy = () => {
     Clipboard.setString(qrValue)

@@ -65,7 +65,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Initialize NFC manager
-    NfcManager.start().catch((error) => {
+    NfcManager.start().catch(() => {
       // Show a toast notification only in development
       if (__DEV__) {
         toast.error('NFC initialization failed', {

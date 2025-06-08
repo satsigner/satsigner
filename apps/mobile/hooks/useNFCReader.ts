@@ -1,17 +1,5 @@
 import { useEffect, useState } from 'react'
-import NfcManager, {
-  Ndef,
-  NfcTech,
-  type TagEvent
-} from 'react-native-nfc-manager'
-
-interface NFCTagWithNDEF {
-  ndefMessage?: {
-    tnf: number
-    type: Uint8Array
-    payload: Uint8Array
-  }[]
-}
+import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
 interface NFCReadResult {
   txId?: string
@@ -62,7 +50,7 @@ export function useNFCReader() {
       const result: NFCReadResult = {}
 
       // Process each record
-      const records = tag.ndefMessage.map((record, index) => {
+      const _records = tag.ndefMessage.map((record, index) => {
         // Convert type to string if it's an array of numbers
         const type =
           typeof record.type === 'string'
@@ -81,9 +69,6 @@ export function useNFCReader() {
           }
         } else if (type === 'bitcoin.org:txn') {
           // Store the raw transaction data
-          console.log(
-            `[NFC Reader] Found transaction data in record ${index + 1}`
-          )
           result.txData = new Uint8Array(record.payload)
         }
 
@@ -98,10 +83,8 @@ export function useNFCReader() {
         return result
       }
 
-      console.log('[NFC Reader] No transaction data found')
       return null
     } catch (error) {
-      console.log('[NFC Reader] Error reading NFC tag:', error)
       throw error
     } finally {
       setIsReading(false)

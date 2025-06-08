@@ -71,7 +71,6 @@ const useGetAccountAddress = (id: Account['id']) => {
       )
 
       if (!walletData) {
-        console.error('Failed to get wallet data for account:', account.id)
         return
       }
 
@@ -80,15 +79,15 @@ const useGetAccountAddress = (id: Account['id']) => {
       const firstAddress = await addressInfo.address.asString()
 
       addAccountAddress(account.id, firstAddress)
-    } catch (error) {
-      console.error('Failed to get account address:', error)
+    } catch (_error) {
+      // Silently handle errors
     }
   }
 
   useEffect(() => {
     if (!address) {
-      addAddress().catch((error) => {
-        console.error('Error in addAddress:', error)
+      addAddress().catch(() => {
+        // Silently handle errors
       })
     }
   }, [address, id, account]) // eslint-disable-line react-hooks/exhaustive-deps

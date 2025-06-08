@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
-import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 import SSText from './SSText'

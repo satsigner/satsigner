@@ -202,7 +202,7 @@ export default function SignMessage() {
                       // Try to decode as raw transaction
                       try {
                         return <SSTransactionDecoded txHex={rawTx} />
-                      } catch (error) {
+                      } catch (_error) {
                         return (
                           <SSText color="muted" size="sm">
                             Unable to decode transaction format. Data will be
@@ -226,7 +226,7 @@ export default function SignMessage() {
               }}
             />
             {(() => {
-              const isDisabled = !signed || (!psbt && !signedTx)
+              const _isDisabled = !signed || (!psbt && !signedTx)
               return null
             })()}
           </SSVStack>

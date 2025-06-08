@@ -146,7 +146,7 @@ export function createBBQRChunks(
         minVersion: 5 as Version,
         maxVersion: 40 as Version
       })
-    } catch (error) {
+    } catch (_error) {
       // If strict constraints fail, try with more flexibility
       let fallbackMinSplit = Math.max(1, Math.floor(targetChunks * 0.5))
       let fallbackMaxSplit = Math.min(50, Math.ceil(targetChunks * 1.5))
@@ -165,7 +165,7 @@ export function createBBQRChunks(
           minVersion: 5 as Version,
           maxVersion: 40 as Version
         })
-      } catch (fallbackError) {
+      } catch (_fallbackError) {
         // As last resort, let the library decide with minimal constraints
         try {
           result = splitQRs(data, officialFileType, {
@@ -175,7 +175,7 @@ export function createBBQRChunks(
             minVersion: 5 as Version,
             maxVersion: 40 as Version
           })
-        } catch (finalError) {
+        } catch (_finalError) {
           // Ultimate fallback: let the library use its default settings
           result = splitQRs(data, officialFileType, {
             encoding: 'Z' // Let library choose all other defaults
@@ -190,7 +190,7 @@ export function createBBQRChunks(
     }
 
     return result.parts
-  } catch (error) {
+  } catch (_error) {
     // As absolute last resort, create a simple non-BBQR fallback
     // This ensures we never return empty and the UI doesn't break
     const chunkSize = Math.max(100, maxChunkSize)
@@ -222,7 +222,7 @@ export function decodeBBQRChunks(chunks: string[]): Uint8Array | null {
     const result = joinQRs(chunks)
 
     return result.raw
-  } catch (error) {
+  } catch (_error) {
     return null
   }
 }

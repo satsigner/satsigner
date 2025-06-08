@@ -251,8 +251,7 @@ export default function WatchOnly() {
 
       // Convert back to base58check (will add checksum)
       return bs58check.encode(newDecoded)
-    } catch (error) {
-      console.error('Error converting vpub:', error)
+    } catch (_error) {
       return vpub // Return original if conversion fails
     }
   }
@@ -262,14 +261,6 @@ export default function WatchOnly() {
     try {
       if (selectedOption === 'importExtendedPub') {
         if (!xpub || !localFingerprint || !scriptVersion) {
-          console.error(
-            'Missing required fields for extended public key import:',
-            {
-              xpub: !!xpub,
-              fingerprint: !!localFingerprint,
-              scriptVersion: !!scriptVersion
-            }
-          )
           toast.error(t('watchonly.error.missingFields'))
           return
         }
@@ -305,7 +296,7 @@ export default function WatchOnly() {
           updateAccount(updatedAccount)
           toast.success(t('watchonly.success.accountCreated'))
           router.replace('/')
-        } catch (syncError) {
+        } catch (_syncError) {
           // Even if sync fails, we should still save the account and redirect
           updateAccount(data.accountWithEncryptedSecret)
           toast.warning(t('watchonly.warning.syncFailed'))

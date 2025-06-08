@@ -482,6 +482,8 @@ function NodeText({
     ioData?.text,
     ioData?.address,
     ioData.label,
+    ioData.fiatValue,
+    ioData.fiatCurrency,
     isPastMinerFee,
     isChange
   ])

@@ -141,22 +141,18 @@ export async function detectFileType(
     raw = input
 
     if (looksLikePsbt(input)) {
-      console.debug('Detected type "P" from binary input')
       return { fileType: 'P', raw }
     }
 
     if (raw[0] === 0x01 || raw[0] === 0x02) {
-      console.debug('Detected type "T" from binary input')
       return { fileType: 'T', raw }
     }
 
     // otherwise, try to decode as text (could be contents of a file)
     try {
       decoded = new TextDecoder('utf-8', { fatal: true }).decode(raw)
-    } catch (err) {
+    } catch (_err) {
       // not text, so fall back to generic binary
-
-      console.debug('Detected type "B" from binary input')
       return { fileType: 'B', raw }
     }
   } else if (typeof input === 'string') {
@@ -169,15 +165,11 @@ export async function detectFileType(
 
   if (/^70736274ff[0-9A-Fa-f]+$/.test(trimmed)) {
     // PSBT in hex format
-    console.debug('Detected type "P" from hex input')
-
     return { fileType: 'P', raw: hexToBytes(trimmed) }
   }
 
   if (/^0[1,2]000000[0-9A-Fa-f]+$/.test(trimmed)) {
     // Transaction in hex format
-    console.debug('Detected type "T" from hex input')
-
     return { fileType: 'T', raw: hexToBytes(trimmed) }
   }
 
@@ -186,12 +178,10 @@ export async function detectFileType(
     const bytes = base64ToBytes(decoded)
 
     if (looksLikePsbt(bytes)) {
-      console.debug('Detected type "P" from base64 input')
       return { fileType: 'P', raw: bytes }
     }
 
     if (bytes[0] === 0x01 || bytes[0] === 0x02) {
-      console.debug('Detected type "T" from base64 input')
       return { fileType: 'T', raw: bytes }
     }
   }
@@ -201,12 +191,9 @@ export async function detectFileType(
 
   try {
     JSON.parse(decoded)
-    console.debug('Detected type "J"')
     return { fileType: 'J', raw }
-  } catch (err) {
+  } catch (_err) {
     // not JSON - fall back to generic Unicode
-
-    console.debug('Detected type "U"')
     return { fileType: 'U', raw }
   }
 }

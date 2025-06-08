@@ -7,7 +7,6 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert,
   Animated,
   type LayoutChangeEvent,
   ScrollView,
@@ -223,7 +222,10 @@ export default function IOPreview() {
     staleTime: time.minutes(5)
   })
 
-  const boxPosition = new Animated.Value(localFeeRate)
+  const boxPosition = useMemo(
+    () => new Animated.Value(localFeeRate),
+    [localFeeRate]
+  )
 
   const remainingBalance = useMemo(() => {
     const totalInputValue = utxosSelectedValue
@@ -742,7 +744,7 @@ export default function IOPreview() {
                           } else {
                             toast.error(t('common.invalid'))
                           }
-                        } catch (error) {
+                        } catch (_error) {
                           toast.error(t('common.invalid'))
                         }
                       }}

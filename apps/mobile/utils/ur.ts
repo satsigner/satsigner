@@ -131,7 +131,7 @@ function decodeBase32ToHex(base32Data: string): string {
       const psbtBytes = parseCBORByteString(new Uint8Array(cborBytes))
       const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
       return psbtHex
-    } catch (cborError) {
+    } catch (_cborError) {
       // Check if the raw hex might already be PSBT format
       if (hexResult.toLowerCase().startsWith('70736274')) {
         return hexResult
@@ -139,7 +139,7 @@ function decodeBase32ToHex(base32Data: string): string {
       // Return raw hex as fallback
       return hexResult
     }
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Failed to decode base32 data')
   }
 }
@@ -169,7 +169,7 @@ export function decodeURToPSBT(ur: string): string {
       try {
         const hexData = decodeBase32ToHex(base32Data)
         return extractRawTransactionFromPSBT(hexData)
-      } catch (base32Error) {
+      } catch (_base32Error) {
         // Return the base32 data as last resort for debugging
         return base32Data
       }
@@ -212,11 +212,11 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
       try {
         const hexData = decodeBase32ToHex(concatenatedBase32)
         return extractRawTransactionFromPSBT(hexData)
-      } catch (base32Error) {
+      } catch (_base32Error) {
         return concatenatedBase32
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Fallback to simple concatenation and base32 decode in case of any error
     const dataParts = urFragments
       .map((fragment) => {
@@ -230,7 +230,7 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
     try {
       const hexData = decodeBase32ToHex(concatenatedBase32)
       return extractRawTransactionFromPSBT(hexData)
-    } catch (base32Error) {
+    } catch (_base32Error) {
       return concatenatedBase32
     }
   }
@@ -288,7 +288,7 @@ function extractRawTransactionFromPSBT(psbtHex: string): string {
     }
 
     return psbtHex
-  } catch (error) {
+  } catch (_error) {
     return psbtHex
   }
 }

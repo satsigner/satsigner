@@ -88,7 +88,7 @@ export default function ExportPubkeys() {
 
         // For each key in the account, get its public key from the wallet data
         const pubkeys = await Promise.all(
-          temporaryAccount.keys.map(async (key, index) => {
+          temporaryAccount.keys.map(async (key) => {
             if (isImportAddress) {
               // For watch-only accounts, we can get the extended public key from the secret
               const keyInfo =

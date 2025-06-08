@@ -177,7 +177,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     minerFee,
     feeRate,
     satsToFiat,
-    fiatCurrency
+    fiatCurrency,
+    totalOutputValue
   ])
 
   const sankeyLinks = useMemo(() => {

@@ -4,7 +4,7 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -55,10 +55,6 @@ enum QRDisplayMode {
   RAW = 'RAW',
   UR = 'UR',
   BBQR = 'BBQR'
-}
-
-interface NFCTagWithNDEF {
-  ndefMessage?: { tnf: number; type: Uint8Array; payload: Uint8Array }[]
 }
 
 function PreviewMessage() {
@@ -141,8 +137,8 @@ function PreviewMessage() {
       if (match) {
         return {
           type: 'raw' as const,
-          current: parseInt(match[1]) - 1, // Convert to 0-based index
-          total: parseInt(match[2]),
+          current: parseInt(match[1], 10) - 1, // Convert to 0-based index
+          total: parseInt(match[2], 10),
           content: data.substring(match[0].length)
         }
       }
@@ -166,12 +162,12 @@ function PreviewMessage() {
       // or ur:crypto-psbt/[data] for single part
       const urMatch = data.match(/^ur:crypto-psbt\/(?:(\d+)-(\d+)\/)?(.+)$/i)
       if (urMatch) {
-        const [, currentStr, totalStr, content] = urMatch
+        const [, currentStr, totalStr] = urMatch
 
         if (currentStr && totalStr) {
           // Multi-part UR
-          const current = parseInt(currentStr) - 1 // Convert to 0-based index
-          const total = parseInt(totalStr)
+          const current = parseInt(currentStr, 10) - 1 // Convert to 0-based index
+          const total = parseInt(totalStr, 10)
           return {
             type: 'ur' as const,
             current,
@@ -218,7 +214,7 @@ function PreviewMessage() {
           // Assemble RAW format chunks
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
-            .map(([_, content]) => content)
+            .map(([, content]) => content)
           return sortedChunks.join('')
         }
 
@@ -226,13 +222,13 @@ function PreviewMessage() {
           // Assemble BBQR format chunks
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
-            .map(([_, content]) => content)
+            .map(([, content]) => content)
 
           const decoded = decodeBBQRChunks(sortedChunks)
 
           if (decoded) {
             // Convert binary PSBT to base64 for compatibility
-            const hexResult = Buffer.from(decoded).toString('hex')
+            const _hexResult = Buffer.from(decoded).toString('hex')
             const base64Result = Buffer.from(decoded).toString('base64')
 
             return base64Result
@@ -245,7 +241,7 @@ function PreviewMessage() {
           // UR format assembly using proper UR decoder
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
-            .map(([_, content]) => content)
+            .map(([, content]) => content)
 
           let result: string
           if (sortedChunks.length === 1) {
@@ -260,10 +256,12 @@ function PreviewMessage() {
           try {
             const isValidHex = /^[a-fA-F0-9]+$/.test(result)
             if (isValidHex) {
-              const base64Result = Buffer.from(result, 'hex').toString('base64')
+              const _base64Result = Buffer.from(result, 'hex').toString(
+                'base64'
+              )
             }
-          } catch (error) {
-            toast.error(String(error))
+          } catch (_error) {
+            toast.error(String(_error))
           }
 
           return result
@@ -403,7 +401,7 @@ function PreviewMessage() {
       setSerializedPsbt(psbtHex)
 
       return psbtHex
-    } catch (_e) {
+    } catch (_error) {
       toast.error(t('error.psbt.serialization'))
       return null
     }
@@ -443,7 +441,7 @@ function PreviewMessage() {
                 bbqrChunkSize
               )
             }
-          } catch (bbqrError) {
+          } catch (_bbqrError) {
             bbqrChunks = []
           }
           setQrChunks(bbqrChunks)
@@ -480,13 +478,13 @@ function PreviewMessage() {
           setUrChunks(urFragments)
           setCurrentUrChunk(0) // Reset to 0 when new chunks are set
           setQrError(null)
-        } catch (_e) {
+        } catch (_error) {
           setQrError(t('error.qr.generation'))
           setQrChunks([])
           setUrChunks([])
           setRawPsbtChunks([])
         }
-      } catch (_e) {
+      } catch (_error) {
         setQrError(t('error.psbt.notAvailable'))
         setQrChunks([])
         setUrChunks([])
