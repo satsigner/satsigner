@@ -80,12 +80,6 @@ export function createBBQRChunks(
   fileType: FileType = FileType.PSBT,
   maxChunkSize: number = 400
 ): string[] {
-  console.log('🔍 BBQR createBBQRChunks called with:', {
-    dataLength: data.length,
-    fileType,
-    maxChunkSize
-  })
-
   try {
     // Convert our FileType to the official library's string format
     const officialFileType = fileType as OfficialFileType
@@ -111,9 +105,6 @@ export function createBBQRChunks(
         // For very small chunks, aim for a reasonable number that the library can handle
         // but still more than larger chunk sizes would create
         targetChunks = Math.max(8, Math.min(targetChunks, 15))
-        console.log(
-          `📝 Adjusted target chunks for small maxChunkSize (${maxChunkSize}): ${targetChunks}`
-        )
       } else {
         // Limit maximum chunks to prevent impossible scenarios
         targetChunks = Math.min(targetChunks, 50)
@@ -157,9 +148,6 @@ export function createBBQRChunks(
       })
     } catch (error) {
       // If strict constraints fail, try with more flexibility
-      console.log(
-        '⚠️ BBQR strict constraints failed, trying with more flexibility'
-      )
       let fallbackMinSplit = Math.max(1, Math.floor(targetChunks * 0.5))
       let fallbackMaxSplit = Math.min(50, Math.ceil(targetChunks * 1.5))
 
@@ -177,13 +165,8 @@ export function createBBQRChunks(
           minVersion: 5 as Version,
           maxVersion: 40 as Version
         })
-        console.log(
-          '✅ BBQR fallback succeeded with range:',
-          `${fallbackMinSplit}-${fallbackMaxSplit}`
-        )
       } catch (fallbackError) {
         // As last resort, let the library decide with minimal constraints
-        console.log('⚠️ BBQR fallback failed, using minimal constraints')
         try {
           result = splitQRs(data, officialFileType, {
             encoding: 'Z',
@@ -194,7 +177,6 @@ export function createBBQRChunks(
           })
         } catch (finalError) {
           // Ultimate fallback: let the library use its default settings
-          console.log('⚠️ BBQR all constraints failed, using library defaults')
           result = splitQRs(data, officialFileType, {
             encoding: 'Z' // Let library choose all other defaults
           })
@@ -202,35 +184,15 @@ export function createBBQRChunks(
       }
     }
 
-    console.log('📊 BBQR split result:', {
-      version: result.version,
-      encoding: result.encoding,
-      partsCount: result.parts.length,
-      requestedMaxChunkSize: maxChunkSize,
-      targetChunks: targetChunks,
-      actualChunks: result.parts.length,
-      splitRange: `${minSplit}-${maxSplit}`
-    })
-
-    // Log full chunk contents
-    console.log('📋 BBQR chunks:')
-    result.parts.forEach((chunk, index) => {
-      console.log(`  Chunk ${index + 1}/${result.parts.length}: ${chunk}`)
-    })
-
     // Ensure we always return at least one chunk
     if (!result.parts || result.parts.length === 0) {
-      console.error('❌ BBQR produced no chunks, this should not happen')
       throw new Error('BBQR produced no chunks')
     }
 
     return result.parts
   } catch (error) {
-    console.error('❌ BBQR createBBQRChunks error:', error)
-
     // As absolute last resort, create a simple non-BBQR fallback
     // This ensures we never return empty and the UI doesn't break
-    console.log('🔧 Creating emergency fallback chunks')
     const chunkSize = Math.max(100, maxChunkSize)
     const chunks: string[] = []
     const dataStr = Array.from(data)
@@ -242,7 +204,6 @@ export function createBBQRChunks(
       chunks.push(`FALLBACK_${Math.floor(i / chunkSize) + 1}: ${chunk}`)
     }
 
-    console.log(`🔧 Created ${chunks.length} emergency fallback chunks`)
     return chunks
   }
 }
@@ -253,27 +214,15 @@ export function createBBQRChunks(
  */
 export function decodeBBQRChunks(chunks: string[]): Uint8Array | null {
   try {
-    console.log('🔍 BBQR decodeBBQRChunks called with:', {
-      chunksCount: chunks.length
-    })
-
     // Validate all chunks are BBQR fragments
     if (!chunks.every(isBBQRFragment)) {
-      console.error('❌ Invalid BBQR fragment detected')
       return null
     }
 
     const result = joinQRs(chunks)
 
-    console.log('✅ BBQR decode successful:', {
-      fileType: result.fileType,
-      encoding: result.encoding,
-      dataLength: result.raw.length
-    })
-
     return result.raw
   } catch (error) {
-    console.error('❌ BBQR decodeBBQRChunks error:', error)
     return null
   }
 }

@@ -38,7 +38,13 @@ import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { createBBQRChunks, FileType } from '@/utils/bbqr'
+import {
+  createBBQRChunks,
+  decodeBBQRChunks,
+  isBBQRFragment,
+  FileType
+} from '@/utils/bbqr'
+import { decodeURToPSBT, decodeMultiPartURToPSBT } from '@/utils/ur'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
@@ -114,6 +120,164 @@ function PreviewMessage() {
   const [currentRawChunk, setCurrentRawChunk] = useState(0)
   const [qrComplexity, setQrComplexity] = useState(8) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
   const [animationSpeed, setAnimationSpeed] = useState(6) // 1-12 scale for animation speed
+
+  // Multi-part QR scanning state
+  const [scanProgress, setScanProgress] = useState<{
+    type: 'raw' | 'ur' | 'bbqr' | null
+    total: number
+    scanned: Set<number>
+    chunks: Map<number, string>
+  }>({
+    type: null,
+    total: 0,
+    scanned: new Set(),
+    chunks: new Map()
+  })
+
+  // Helper functions for QR code detection and parsing
+  const detectQRType = (data: string) => {
+    // Check for RAW format (pXofY header)
+    if (/^p\d+of\d+\s/.test(data)) {
+      const match = data.match(/^p(\d+)of(\d+)\s/)
+      if (match) {
+        return {
+          type: 'raw' as const,
+          current: parseInt(match[1]) - 1, // Convert to 0-based index
+          total: parseInt(match[2]),
+          content: data.substring(match[0].length)
+        }
+      }
+    }
+
+    // Check for BBQR format
+    if (isBBQRFragment(data)) {
+      const total = parseInt(data.slice(4, 6), 36)
+      const current = parseInt(data.slice(6, 8), 36)
+      return {
+        type: 'bbqr' as const,
+        current,
+        total,
+        content: data
+      }
+    }
+
+    // Check for UR format
+    if (data.toLowerCase().startsWith('ur:crypto-psbt/')) {
+      // UR format: ur:crypto-psbt/[sequence]/[data] for multi-part
+      // or ur:crypto-psbt/[data] for single part
+      const urMatch = data.match(/^ur:crypto-psbt\/(?:(\d+)-(\d+)\/)?(.+)$/i)
+      if (urMatch) {
+        const [, currentStr, totalStr, content] = urMatch
+
+        if (currentStr && totalStr) {
+          // Multi-part UR
+          const current = parseInt(currentStr) - 1 // Convert to 0-based index
+          const total = parseInt(totalStr)
+          return {
+            type: 'ur' as const,
+            current,
+            total,
+            content: data
+          }
+        } else {
+          // Single-part UR
+          return {
+            type: 'ur' as const,
+            current: 0,
+            total: 1,
+            content: data
+          }
+        }
+      }
+    }
+
+    // Single QR code (no multi-part format detected)
+    return {
+      type: 'single' as const,
+      current: 0,
+      total: 1,
+      content: data
+    }
+  }
+
+  const resetScanProgress = () => {
+    setScanProgress({
+      type: null,
+      total: 0,
+      scanned: new Set(),
+      chunks: new Map()
+    })
+  }
+
+  const assembleMultiPartQR = (
+    type: 'raw' | 'ur' | 'bbqr',
+    chunks: Map<number, string>
+  ): string | null => {
+    try {
+      switch (type) {
+        case 'raw': {
+          // Assemble RAW format chunks
+          const sortedChunks = Array.from(chunks.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([_, content]) => content)
+          return sortedChunks.join('')
+        }
+
+        case 'bbqr': {
+          // Assemble BBQR format chunks
+          const sortedChunks = Array.from(chunks.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([_, content]) => content)
+
+          const decoded = decodeBBQRChunks(sortedChunks)
+
+          if (decoded) {
+            // Convert binary PSBT to base64 for compatibility
+            const hexResult = Buffer.from(decoded).toString('hex')
+            const base64Result = Buffer.from(decoded).toString('base64')
+
+            return base64Result
+          }
+
+          return null
+        }
+
+        case 'ur': {
+          // UR format assembly using proper UR decoder
+          const sortedChunks = Array.from(chunks.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([_, content]) => content)
+
+          let result: string
+          if (sortedChunks.length === 1) {
+            // Single UR chunk
+            result = decodeURToPSBT(sortedChunks[0])
+          } else {
+            // Multi-part UR
+            result = decodeMultiPartURToPSBT(sortedChunks)
+          }
+
+          // Try to convert to base64 if it's valid hex
+          try {
+            const isValidHex = /^[a-fA-F0-9]+$/.test(result)
+            if (isValidHex) {
+              const base64Result = Buffer.from(result, 'hex').toString('base64')
+            }
+          } catch (error) {
+            toast.error(String(error))
+          }
+
+          return result
+        }
+
+        default:
+          return null
+      }
+    } catch (error) {
+      toast.error(String(error))
+      return null
+    }
+  }
 
   // Function to split raw PSBT into chunks for animated display
   const createRawPsbtChunks = useCallback(
@@ -384,10 +548,81 @@ function PreviewMessage() {
       toast.error('Failed to scan QR code')
       return
     }
-    setCameraModalVisible(false)
-    // Set the scanned QR code data in the input field
-    setSignedPsbt(data)
-    toast.success('QR code scanned successfully')
+
+    // Detect QR code type and format
+    const qrInfo = detectQRType(data)
+
+    // Handle single QR codes (complete data in one scan)
+    if (qrInfo.type === 'single' || qrInfo.total === 1) {
+      setCameraModalVisible(false)
+      setSignedPsbt(qrInfo.content)
+      resetScanProgress()
+      toast.success('QR code scanned successfully')
+      return
+    }
+
+    // Handle multi-part QR codes
+    const { type, current, total, content } = qrInfo
+
+    // Check if this is the start of a new scan session or continuation
+    if (
+      scanProgress.type === null ||
+      scanProgress.type !== type ||
+      scanProgress.total !== total
+    ) {
+      // Start new scan session
+      const newScanned = new Set([current])
+      const newChunks = new Map([[current, content]])
+
+      setScanProgress({
+        type,
+        total,
+        scanned: newScanned,
+        chunks: newChunks
+      })
+
+      toast.success(`Scanned part ${current + 1} of ${total}`)
+      return
+    }
+
+    // Continue existing scan session
+    if (scanProgress.scanned.has(current)) {
+      toast.info(`Part ${current + 1} already scanned`)
+      return
+    }
+
+    // Add new chunk
+    const newScanned = new Set(scanProgress.scanned).add(current)
+    const newChunks = new Map(scanProgress.chunks).set(current, content)
+
+    setScanProgress({
+      type,
+      total,
+      scanned: newScanned,
+      chunks: newChunks
+    })
+
+    // Check if we have all chunks
+    if (newScanned.size === total) {
+      // All chunks collected, assemble the final result
+      const assembledData = assembleMultiPartQR(type, newChunks)
+
+      if (assembledData) {
+        setCameraModalVisible(false)
+        setSignedPsbt(assembledData)
+        resetScanProgress()
+        toast.success(
+          `Successfully assembled ${type.toUpperCase()} transaction from ${total} parts`
+        )
+      } else {
+        toast.error('Failed to assemble multi-part QR code')
+        resetScanProgress()
+      }
+    } else {
+      toast.success(
+        `Scanned part ${current + 1} of ${total} (${newScanned.size}/${total} complete)`
+      )
+    }
   }
 
   async function handleNFCExport() {
@@ -885,22 +1120,74 @@ function PreviewMessage() {
         <SSModal
           visible={cameraModalVisible}
           fullOpacity
-          onClose={() => setCameraModalVisible(false)}
+          onClose={() => {
+            setCameraModalVisible(false)
+            resetScanProgress()
+          }}
         >
-          <SSText color="muted" uppercase>
-            {t('camera.scanQRCode')}
-          </SSText>
-          <CameraView
-            onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
-            barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-            style={{ width: 340, height: 340 }}
-          />
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
+          <SSVStack itemsCenter gap="md">
+            <SSText color="muted" uppercase>
+              {scanProgress.type
+                ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
+                : t('camera.scanQRCode')}
+            </SSText>
+
+            {/* Show progress if scanning multi-part QR */}
+            {scanProgress.type && scanProgress.total > 1 && (
+              <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
+                <SSText color="white" center>
+                  {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
+                </SSText>
+                <View
+                  style={{
+                    width: 300,
+                    height: 4,
+                    backgroundColor: Colors.gray[700],
+                    borderRadius: 2
+                  }}
+                >
+                  <View
+                    style={{
+                      width:
+                        (scanProgress.scanned.size / scanProgress.total) * 300,
+                      height: 4,
+                      backgroundColor: Colors.warning,
+                      borderRadius: 2
+                    }}
+                  />
+                </View>
+                <SSText color="muted" size="sm" center>
+                  {`Scanned parts: ${Array.from(scanProgress.scanned)
+                    .sort((a, b) => a - b)
+                    .map((n) => n + 1)
+                    .join(', ')}`}
+                </SSText>
+              </SSVStack>
+            )}
+
+            <CameraView
+              onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
+              barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+              style={{ width: 340, height: 340 }}
             />
-          )}
+
+            {!permission?.granted && (
+              <SSButton
+                label={t('camera.enableCameraAccess')}
+                onPress={requestPermission}
+              />
+            )}
+
+            {/* Reset button for multi-part scans */}
+            {scanProgress.type && (
+              <SSButton
+                label="Reset Scan"
+                variant="outline"
+                onPress={resetScanProgress}
+                style={{ marginTop: 10 }}
+              />
+            )}
+          </SSVStack>
         </SSModal>
         <SSModal
           visible={nfcModalVisible}

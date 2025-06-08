@@ -91,7 +91,7 @@ export default function SignMessage() {
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
       }
     } catch (err) {
-      toast(String(err))
+      toast.error(err instanceof Error ? err.message : String(err))
     } finally {
       setBroadcasting(false)
     }
@@ -168,7 +168,51 @@ export default function SignMessage() {
                 >
                   {tn('message')}
                 </SSText>
-                {rawTx !== '' && <SSTransactionDecoded txHex={rawTx} />}
+                {rawTx !== '' && (
+                  <>
+                    {(() => {
+                      const isValidHex =
+                        /^[a-fA-F0-9]+$/.test(rawTx) && rawTx.length >= 8
+
+                      if (!isValidHex) {
+                        return (
+                          <SSText color="muted" size="sm">
+                            Invalid transaction format:{' '}
+                            {rawTx.substring(0, 100)}
+                            ...
+                          </SSText>
+                        )
+                      }
+
+                      // Check if this might be PSBT data (starts with specific PSBT magic bytes)
+                      const isPossiblyPSBT = rawTx
+                        .toLowerCase()
+                        .startsWith('70736274')
+
+                      if (isPossiblyPSBT) {
+                        return (
+                          <SSText color="muted" size="sm">
+                            PSBT format detected - Cannot display raw
+                            transaction view. Transaction will be processed for
+                            broadcasting.
+                          </SSText>
+                        )
+                      }
+
+                      // Try to decode as raw transaction
+                      try {
+                        return <SSTransactionDecoded txHex={rawTx} />
+                      } catch (error) {
+                        return (
+                          <SSText color="muted" size="sm">
+                            Unable to decode transaction format. Data will be
+                            processed for broadcasting.
+                          </SSText>
+                        )
+                      }
+                    })()}
+                  </>
+                )}
               </SSVStack>
             </SSVStack>
 
@@ -177,8 +221,14 @@ export default function SignMessage() {
               label={t('send.broadcast')}
               disabled={!signed || (!psbt && !signedTx)}
               loading={broadcasting}
-              onPress={() => handleBroadcastTransaction()}
+              onPress={() => {
+                handleBroadcastTransaction()
+              }}
             />
+            {(() => {
+              const isDisabled = !signed || (!psbt && !signedTx)
+              return null
+            })()}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>
