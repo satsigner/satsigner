@@ -413,8 +413,6 @@ export default function IOPreview() {
     }
   }
 
-  const [warningModalVisible, setWarningModalVisible] = useState(false)
-
   function handleGoToPreview() {
     const totalOutputAmount = outputs.reduce(
       (acc, output) => acc + output.amount,
@@ -423,13 +421,7 @@ export default function IOPreview() {
     const totalRequired = totalOutputAmount + minerFee
 
     if (totalRequired > utxosSelectedValue) {
-      console.log('totalRequired', totalRequired)
-      console.log('utxosSelectedValue', utxosSelectedValue)
-      console.log('totalOutputAmount', totalOutputAmount)
-      console.log('minerFee', minerFee)
-      console.log('feeRate', feeRate)
-      console.log('transactionSize', transactionSize)
-      setWarningModalVisible(true)
+      toast.error(t('transaction.error.insufficientInputs'))
       return
     }
 
@@ -914,22 +906,6 @@ export default function IOPreview() {
             onPress={requestPermission}
           />
         )}
-      </SSModal>
-      <SSModal
-        visible={warningModalVisible}
-        onClose={() => setWarningModalVisible(false)}
-      >
-        <SSVStack itemsCenter gap="lg">
-          <SSText size="xl" weight="bold" center>
-            {t('common.warning')}
-          </SSText>
-          <SSText center>{t('transaction.error.insufficientInputs')}</SSText>
-          <SSButton
-            label={t('common.ok')}
-            variant="secondary"
-            onPress={() => setWarningModalVisible(false)}
-          />
-        </SSVStack>
       </SSModal>
     </View>
   )
