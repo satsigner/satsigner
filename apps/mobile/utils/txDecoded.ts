@@ -111,8 +111,9 @@ export class TxDecoded extends bitcoinjs.Transaction {
 
   getInputHash(index: number): TxDecodedField {
     const bigEndianHash = this.ins[index].hash
-    const hex = bigEndianHash.toString('hex')
-    const value = Endian(bigEndianHash.toString('hex'))
+    const bigEndianHex = bigEndianHash.toString('hex')
+    const hex = bigEndianHexToLittleEndian(bigEndianHex)
+    const value = Endian(bigEndianHex)
     const field = TxField.TxInHash
     const placeholders = { input: index }
     return { hex, value, field, placeholders }
@@ -330,4 +331,12 @@ function Endian(hexStr: string) {
     result += hexStr.substr(i, 2)
   }
   return result
+}
+
+function bigEndianHexToLittleEndian(bigEndianHex: string) {
+  let littleEndianHex = ''
+  for (let i = bigEndianHex.length; i > 0; i -= 2) {
+    littleEndianHex += bigEndianHex[i-2] + bigEndianHex[i-1]
+  }
+  return littleEndianHex
 }
