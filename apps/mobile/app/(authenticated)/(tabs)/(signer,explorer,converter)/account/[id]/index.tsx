@@ -275,7 +275,7 @@ function DerivedAddresses({
   const [addressCount, setAddressCount] = useState(
     Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
   )
-  const [addresses, setAddresses] = useState([ ...account.addresses ])
+  const [addresses, setAddresses] = useState([...account.addresses])
   const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
 
   function updateDerivationPath() {

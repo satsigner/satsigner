@@ -5,8 +5,7 @@ import { useEffect, useState } from 'react'
 import { type Account } from '@/types/models/Account'
 
 function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
-  const [firstUnusedAddress, setUnusedFirstAddress] =
-    useState('')
+  const [firstUnusedAddress, setUnusedFirstAddress] = useState('')
   const [firstUnusedAddressInfo, setUnusedFirstAddressInfo] =
     useState<AddressInfo | null>(null)
   const [addressIndex, setAddressIndex] = useState(0)
@@ -20,7 +19,6 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
       for (const output of tx.vout) {
         if (output.address) {
           seenAddresses[output.address] = true
-          console.log('->', output.address)
         }
       }
     }
@@ -30,12 +28,10 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
     let addrInfo: AddressInfo | null = null
     let newAddress = ''
     let index = -1
-    console.log('going to get these addresses')
     do {
       index += 1
       addrInfo = await wallet.getAddress(index)
       newAddress = await addrInfo.address.asString()
-      console.log(index, '->', newAddress)
     } while (seenAddresses[newAddress] !== undefined)
 
     setAddressIndex(index)

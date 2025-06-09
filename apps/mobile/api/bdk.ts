@@ -448,7 +448,7 @@ async function getWalletAddressesUsingStopGap(
   wallet: Wallet,
   network: Network,
   transactions: Transaction[],
-  stopGap: number,
+  stopGap: number
 ): Promise<Account['addresses']> {
   const addresses: Account['addresses'] = []
   const seenAddresses: Record<string, boolean> = {}
