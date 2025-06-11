@@ -25,7 +25,7 @@ const useGetAccountWallet = (id: Account['id']) => {
 
   useEffect(() => {
     if (!wallet) addWallet()
-  }, [wallet, id, account]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, account]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return wallet
 }
