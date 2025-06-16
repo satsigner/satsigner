@@ -198,14 +198,23 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    if (selectedOption === 'importExtendedPub') {
-      setExtendedPublicKey(xpub)
-    } else if (selectedOption === 'importAddress') {
-      setExternalDescriptor(`addr(${address})`)
-    }
 
     setNetwork(network)
-    setKey(0)
+
+    if (selectedOption === 'importExtendedPub') {
+      setExtendedPublicKey(xpub)
+      setKey(0)
+    }
+
+    if (selectedOption === 'importAddress') {
+      const addresses = address.split('\n')
+      for (let index = 0; index < addresses.length; index += 1) {
+        const address = addresses[index]
+        setExternalDescriptor(`addr(${address})`)
+        setKey(index)
+      }
+    }
+
     const account = getAccountData()
 
     const data = await accountBuilderFinish(account)
