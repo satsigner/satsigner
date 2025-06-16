@@ -529,7 +529,20 @@ function useSyncAccountWithAddress() {
     }
   }
 
-  return { syncAccountWithAddress, loading }
+  async function syncAccountWithAddresses(
+    account: Account,
+    descriptors: string[]
+  ) {
+    for (const descriptor of descriptors) {
+      await syncAccountWithAddress(account, descriptor)
+    }
+  }
+
+  return {
+    syncAccountWithAddress,
+    syncAccountWithAddresses,
+    loading
+  }
 }
 
 export default useSyncAccountWithAddress
