@@ -150,7 +150,9 @@ export default function WatchOnly() {
   }, [isReading, pulseAnim, scaleAnim])
 
   function updateAddress(address: string) {
-    const validAddress = validateAddress(address)
+    const validAddress = address.includes('\n')
+      ? address.split('\n').every(validateAddress)
+      : validateAddress(address)
     setValidAddress(!address || validAddress)
     setDisabled(!validAddress)
     setAddress(address)
@@ -196,9 +198,11 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    if (selectedOption === 'importExtendedPub') setExtendedPublicKey(xpub)
-    else if (selectedOption === 'importAddress')
+    if (selectedOption === 'importExtendedPub') {
+      setExtendedPublicKey(xpub)
+    } else if (selectedOption === 'importAddress') {
       setExternalDescriptor(`addr(${address})`)
+    }
 
     setNetwork(network)
     setKey(0)
