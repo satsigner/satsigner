@@ -406,7 +406,7 @@ function useSyncAccountWithAddress() {
     }
   }
 
-  async function syncAccountWithAddress(
+  async function syncAccountWithAddressDescriptor(
     account: Account,
     addressDescriptor: string
   ) {
@@ -563,16 +563,20 @@ function useSyncAccountWithAddress() {
     return addressDescriptors
   }
 
-  async function syncAccountWithAddresses(account: Account) {
+  async function syncAccountWithAddress(account: Account): Promise<Account> {
     const addressDescriptors = await decryptAccountAddressDescriptors(account)
+    let updatedAccount: Account = { ...account }
     for (const addressDescriptor of addressDescriptors) {
-      await syncAccountWithAddress(account, addressDescriptor)
+      updatedAccount = await syncAccountWithAddressDescriptor(
+        account,
+        addressDescriptor
+      )
     }
+    return updatedAccount
   }
 
   return {
     syncAccountWithAddress,
-    syncAccountWithAddresses,
     loading
   }
 }

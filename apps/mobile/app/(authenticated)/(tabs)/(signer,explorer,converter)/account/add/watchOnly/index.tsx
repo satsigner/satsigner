@@ -228,10 +228,7 @@ export default function WatchOnly() {
                 data.accountWithEncryptedSecret,
                 data.wallet!
               )
-            : await syncAccountWithAddress(
-                data.accountWithEncryptedSecret,
-                `addr(${address})`
-              )
+            : await syncAccountWithAddress(data.accountWithEncryptedSecret)
         updateAccount(updatedAccount)
       }
     } catch (error) {

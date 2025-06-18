@@ -163,10 +163,7 @@ export default function AccountList() {
         const updatedAccount =
           account.policyType !== 'watchonly'
             ? await syncAccountWithWallet(account, wallets[account.id]!)
-            : await syncAccountWithAddress(
-                account,
-                `addr(${addresses[account.id]!})`
-              )
+            : await syncAccountWithAddress(account)
         updateAccount(updatedAccount)
       }
     }
@@ -179,7 +176,7 @@ export default function AccountList() {
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
-    let sampleAddress
+    let _sampleAddress
 
     switch (type) {
       case 'segwit':
@@ -204,25 +201,25 @@ export default function AccountList() {
         setFingerprint(sampleSignetXpubFingerprint)
         break
       case 'watchonlyAddress':
-        sampleAddress = sampleSignetAddress
+        _sampleAddress = sampleSignetAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
         break
       case 'watchonlySalvador':
-        sampleAddress = sampleSalvadorAddress
+        _sampleAddress = sampleSalvadorAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
         break
       case 'watchonlySegwit':
-        sampleAddress = sampleSegwitAddress
+        _sampleAddress = sampleSegwitAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSegwitAddress})`)
         break
       case 'watchonlyTestnet4':
-        sampleAddress = sampleTestnet4Address
+        _sampleAddress = sampleTestnet4Address
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleTestnet4Address})`)
@@ -244,10 +241,7 @@ export default function AccountList() {
               data.accountWithEncryptedSecret,
               data.wallet!
             )
-          : await syncAccountWithAddress(
-              data.accountWithEncryptedSecret,
-              `addr(${sampleAddress})`
-            )
+          : await syncAccountWithAddress(data.accountWithEncryptedSecret)
         updateAccount(updatedAccount)
       }
     } catch (error) {

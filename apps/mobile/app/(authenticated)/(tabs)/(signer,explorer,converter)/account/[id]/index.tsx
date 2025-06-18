@@ -797,10 +797,7 @@ export default function AccountView() {
     try {
       const updatedAccount = !isImportAddress
         ? await syncAccountWithWallet(account, wallet!)
-        : await syncAccountWithAddress(
-            account,
-            `addr(${watchOnlyWalletAddress!})`
-          )
+        : await syncAccountWithAddress(account)
       updateAccount(updatedAccount)
     } catch (error) {
       toast.error((error as Error).message)
