@@ -198,7 +198,6 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-
     setNetwork(network)
 
     if (selectedOption === 'importExtendedPub') {
@@ -211,7 +210,7 @@ export default function WatchOnly() {
       for (let index = 0; index < addresses.length; index += 1) {
         const address = addresses[index]
         setExternalDescriptor(`addr(${address})`)
-        setKey(index)
+        const key = setKey(index)
       }
     }
 

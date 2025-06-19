@@ -567,10 +567,24 @@ function useSyncAccountWithAddress() {
     const addressDescriptors = await decryptAccountAddressDescriptors(account)
     let updatedAccount: Account = { ...account }
     for (const addressDescriptor of addressDescriptors) {
-      updatedAccount = await syncAccountWithAddressDescriptor(
-        account,
+      const updatedData = await syncAccountWithAddressDescriptor(
+        updatedAccount,
         addressDescriptor
       )
+
+      // update summary
+      type Summary = Record<string, number>
+      const prevSummary = updatedAccount.summary as Summary
+      const newSummary = updatedData.summary as Summary
+      const summary = {} as Summary
+      for (const key in prevSummary) {
+        summary[key] = prevSummary[key] + newSummary[key]
+      }
+
+      updatedAccount = {
+        ...updatedData,
+        summary: summary as Account['summary']
+      }
     }
     return updatedAccount
   }

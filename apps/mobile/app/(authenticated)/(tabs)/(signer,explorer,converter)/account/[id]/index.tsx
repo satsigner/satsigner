@@ -791,8 +791,9 @@ export default function AccountView() {
     if (!account) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
+
     if (isImportAddress && !watchOnlyWalletAddress) return
-    else if (!isImportAddress && !wallet) return
+    if (!isImportAddress && !wallet) return
 
     try {
       const updatedAccount = !isImportAddress
