@@ -1088,19 +1088,20 @@ export default function AccountView() {
                     <SSText uppercase>{t('account.receive')}</SSText>
                   </SSActionButton>
                 )}
-                {account.keys[0].creationType === 'importAddress' && (
-                  <SSVStack gap="xs">
-                    <SSText center color="muted" size="xs">
-                      {t('receive.address').toUpperCase()}
-                    </SSText>
-                    <SSAddressDisplay
-                      variant="outline"
-                      type="sans-serif"
-                      style={{ lineHeight: 14 }}
-                      address={watchOnlyWalletAddress || ''}
-                    />
-                  </SSVStack>
-                )}
+                {account.keys[0].creationType === 'importAddress' &&
+                  account.keys.length === 1 && (
+                    <SSVStack gap="xs">
+                      <SSText center color="muted" size="xs">
+                        {t('receive.address').toUpperCase()}
+                      </SSText>
+                      <SSAddressDisplay
+                        variant="outline"
+                        type="sans-serif"
+                        style={{ lineHeight: 14 }}
+                        address={watchOnlyWalletAddress || ''}
+                      />
+                    </SSVStack>
+                  )}
               </SSHStack>
             </SSVStack>
           </SSVStack>
