@@ -77,6 +77,7 @@ function useSyncAccountWithAddress() {
       numberOfUtxos: esploraUtxos.length,
       numberOfAddresses: 1
     }
+
     updateAccount(account)
 
     // because we update the whole account at once, spread is necessary
@@ -204,6 +205,24 @@ function useSyncAccountWithAddress() {
       balance: confirmed,
       satsInMempool: unconfirmed
     }
+
+    // update address
+    account.addresses = [
+      ...account.addresses.filter((a) => a.address !== address),
+      {
+        address,
+        label: '',
+        utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`),
+        transactions: esploraTxs.map((t) => t.txid),
+        summary: {
+          utxos: esploraTxs.length,
+          transactions: esploraUtxos.length,
+          balance: confirmed,
+          satsInMempool: unconfirmed
+        }
+      }
+    ]
+
     updateAccount(account)
 
     return {
@@ -248,6 +267,24 @@ function useSyncAccountWithAddress() {
       balance: balance.confirmed,
       satsInMempool: balance.unconfirmed
     }
+
+    // update address
+    account.addresses = [
+      ...account.addresses.filter((a) => a.address !== address),
+      {
+        address,
+        label: '',
+        utxos: addressUtxos.map((u) => `${u.tx_hash}:${u.tx_pos}`),
+        transactions: addressTxs.map((t) => t.tx_hash),
+        summary: {
+          utxos: addressUtxos.length,
+          transactions: addressTxs.length,
+          balance: balance.confirmed,
+          satsInMempool: balance.unconfirmed
+        }
+      }
+    ]
+
     updateAccount(account)
 
     // prevent modifying object just updated in store
