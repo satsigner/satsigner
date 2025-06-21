@@ -870,7 +870,7 @@ export default function AccountView() {
                 )}
               </SSVStack>
             </SSActionButton>
-            {!isImportAddress && (
+            {(!isImportAddress || account.keys.length > 1) && (
               <SSActionButton
                 style={{ width: tabWidth }}
                 onPress={() => setTabIndex(1)}
