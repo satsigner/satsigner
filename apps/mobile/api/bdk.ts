@@ -424,7 +424,68 @@ async function getWalletAddresses(
     const changeAddrInfo = await wallet.getInternalAddress(i)
     const changeAddr = await changeAddrInfo.address.asString()
 
-    if (changeAddr === receiveAddr) continue // Because bdk not returning correct internal addresses?
+    addresses.push({
+      address: changeAddr,
+      keychain: 'internal',
+      transactions: [],
+      utxos: [],
+      index: i,
+      network: network as BlockchainNetwork,
+      label: '',
+      summary: {
+        transactions: 0,
+        utxos: 0,
+        balance: 0,
+        satsInMempool: 0
+      }
+    })
+  }
+
+  return addresses
+}
+
+async function getWalletAddressesUsingStopGap(
+  wallet: Wallet,
+  network: Network,
+  transactions: Transaction[],
+  stopGap: number
+): Promise<Account['addresses']> {
+  const addresses: Account['addresses'] = []
+  const seenAddresses: Record<string, boolean> = {}
+
+  for (const tx of transactions) {
+    for (const output of tx.vout) {
+      seenAddresses[output.address] = true
+    }
+  }
+
+  let lastIndexWithFunds = -1
+
+  for (let i = 0; i < lastIndexWithFunds + stopGap; i += 1) {
+    const receiveAddrInfo = await wallet.getAddress(i)
+    const receiveAddr = await receiveAddrInfo.address.asString()
+    addresses.push({
+      address: receiveAddr,
+      keychain: 'external',
+      transactions: [],
+      utxos: [],
+      index: i,
+      network: network as BlockchainNetwork,
+      label: '',
+      summary: {
+        transactions: 0,
+        utxos: 0,
+        balance: 0,
+        satsInMempool: 0
+      }
+    })
+
+    if (seenAddresses[receiveAddr] !== undefined) {
+      lastIndexWithFunds = i
+    }
+
+    const changeAddrInfo = await wallet.getInternalAddress(i)
+    const changeAddr = await changeAddrInfo.address.asString()
 
     addresses.push({
       address: changeAddr,
@@ -448,7 +509,8 @@ async function getWalletAddresses(
 
 async function getWalletOverview(
   wallet: Wallet,
-  network: Network
+  network: Network,
+  stopGap = 10
 ): Promise<Pick<Account, 'transactions' | 'utxos' | 'addresses' | 'summary'>> {
   if (!wallet) {
     return {
@@ -465,7 +527,7 @@ async function getWalletOverview(
     }
   }
 
-  const [balance, addressInfo, transactionsDetails, localUtxos] =
+  const [balance, _addressInfo, transactionsDetails, localUtxos] =
     await Promise.all([
       wallet.getBalance(),
       wallet.getAddress(AddressIndex.New),
@@ -495,7 +557,13 @@ async function getWalletOverview(
   }
   // TO DO: Try Promise.all() method instead Sequential one.
 
-  let addresses = await getWalletAddresses(wallet, network)
+  let addresses = await getWalletAddressesUsingStopGap(
+    wallet,
+    network,
+    transactions,
+    stopGap
+  )
+
   addresses = parseAccountAddressesDetails({
     transactions,
     utxos,
@@ -507,13 +575,29 @@ async function getWalletOverview(
     ]
   } as Account)
 
+  const seenAddress: Record<string, boolean> = {}
+  for (const tx of transactions) {
+    for (const output of tx.vout) {
+      if (output.address) {
+        seenAddress[output.address] = true
+      }
+    }
+  }
+
+  let numberOfAddresses = 0
+  for (const address of addresses) {
+    if (address.keychain === 'external' && seenAddress[address.address]) {
+      numberOfAddresses += 1
+    }
+  }
+
   return {
     addresses,
     transactions,
     utxos,
     summary: {
       balance: balance.confirmed,
-      numberOfAddresses: addressInfo.index + 1,
+      numberOfAddresses,
       numberOfTransactions: transactionsDetails.length,
       numberOfUtxos: localUtxos.length,
       satsInMempool: balance.trustedPending + balance.untrustedPending
