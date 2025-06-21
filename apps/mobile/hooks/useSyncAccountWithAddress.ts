@@ -431,13 +431,6 @@ function useSyncAccountWithAddress() {
       // the address extracted from the descriptor
       const address = parseAddressDescriptorToAddress(addressDescriptor)
 
-      // reset the account sync progress
-      updatedAccount.syncProgress = {
-        tasksDone: 0,
-        totalTasks: 0
-      }
-      setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
-
       let addrInfo: AddressInfo | undefined
 
       if (backend === 'esplora') {
@@ -521,8 +514,6 @@ function useSyncAccountWithAddress() {
       updatedAccount.syncStatus = 'synced'
       updatedAccount.lastSyncedAt = new Date()
 
-      updatedAccount.syncProgress.totalTasks = 0
-      updatedAccount.syncProgress.tasksDone = 0
       setLoading(false)
       return updatedAccount
     } catch {
@@ -566,6 +557,14 @@ function useSyncAccountWithAddress() {
   async function syncAccountWithAddress(account: Account): Promise<Account> {
     const addressDescriptors = await decryptAccountAddressDescriptors(account)
     let updatedAccount: Account = { ...account }
+
+    // reset the account sync progress
+    updatedAccount.syncProgress = {
+      tasksDone: 0,
+      totalTasks: 0
+    }
+    setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
+
     for (const addressDescriptor of addressDescriptors) {
       const updatedData = await syncAccountWithAddressDescriptor(
         updatedAccount,
@@ -586,6 +585,7 @@ function useSyncAccountWithAddress() {
         summary: summary as Account['summary']
       }
     }
+
     return updatedAccount
   }
 
