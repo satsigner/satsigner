@@ -905,7 +905,7 @@ export default function NodeDetailPage() {
                 router.push({
                   pathname: '/signer/lightning/node/settings',
                   params: { alias: params.alias }
-                })
+                } as never)
               }
             >
               <SSIconLNSettings height={20} width={20} />
