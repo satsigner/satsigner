@@ -1,102 +1,21 @@
-# Cursor Rules for SatSigner Development
+[COMMON RULES]
 
-# TypeScript Rules
-*.ts,*.tsx {
-    # Enforce consistent import ordering
-    import_sort: true
-    
-    # Enforce consistent spacing
-    indent: 2
-    
-    # Enforce consistent quotes
-    quotes: single
-    
-    # Enforce trailing commas in multiline
-    trailing_comma: es5
-    
-    # Enforce semicolons
-    semi: true
-    
-    # Max line length
-    max_line_length: 100
-    
-    # Enforce consistent arrow function parentheses
-    arrow_parens: avoid
-}
+In satsigner we use prettier.
+We have the following rules with prettier:
 
-# React Component Rules
-*.tsx {
-    # Enforce component naming convention
-    component_naming: PascalCase
-    
-    # Enforce props interface naming
-    props_interface_naming: {ComponentName}Props
-    
-    # Enforce hooks naming
-    hook_naming: use{Name}
-}
+printWidth 80
+semi false
+singleQuote true
+trailingComma none
 
-# Styling Rules
-*.css,*.scss {
-    # Enforce consistent spacing
-    indent: 2
-    
-    # Enforce consistent quotes
-    quotes: single
-    
-    # Max line length
-    max_line_length: 100
-}
+We also alphabetically sort .json files under mobile/locales folder
 
-# Documentation Rules
-*.md,*.mdx {
-    # Enforce consistent spacing
-    indent: 2
-    
-    # Max line length for better readability
-    max_line_length: 80
-    
-    # Enforce consistent heading style
-    heading_style: atx
-}
+We use 2 for identation
 
-# JSON Rules
-*.json {
-    # Enforce consistent spacing
-    indent: 2
-    
-    # Enforce trailing commas in multiline
-    trailing_comma: none
-}
+[TYPESCRIPT RULES]
 
-# Test Files Rules
-*.test.ts,*.test.tsx,*.spec.ts,*.spec.tsx {
-    # Enforce consistent test naming
-    test_naming: describe_it
-    
-    # Enforce consistent spacing
-    indent: 2
-    
-    # Max line length
-    max_line_length: 100
-}
-
-# General Rules
-* {
-    # Enforce consistent end of line
-    end_of_line: lf
-    
-    # Enforce final newline
-    insert_final_newline: true
-    
-    # Remove trailing whitespace
-    trim_trailing_whitespace: true
-    
-    # Enforce consistent file encoding
-    charset: utf-8
-}
-
-# Ignore Rules
-.git/,node_modules/,build/,dist/,coverage/ {
-    ignore: true
-} 
+For typescript we prefer to use function keyword to create functions
+We prefer types over interfaces
+For constants we use uppercase and underscores like: ELECTRUM_URL
+We try to avoid any at all costs
+When importing types, we add the type keyword before the type name like: import { type Block } from '...'
