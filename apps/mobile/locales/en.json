@@ -54,6 +54,7 @@
     "key.number": "Key number",
     "load.sample.bitcoin.address.salvador": "Load sample watch-only EI Salvador",
     "load.sample.bitcoin.address.segwit": "Load sample watch-only Segwit",
+    "load.sample.bitcoin.address.tether": "Load sample multi-address watch-only Tether",
     "load.sample.signet.address": "Load sample watch-only address",
     "load.sample.signet.legacy": "Load sample Legacy wallet",
     "load.sample.signet.segwit": "Load sample SegWit wallet",
