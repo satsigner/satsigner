@@ -91,7 +91,15 @@ export default function SignMessage() {
         router.navigate(`/account/${id}/signAndSend/messageConfirmation`)
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err))
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err !== null && 'message' in err
+            ? String(err.message)
+            : typeof err === 'object' && err !== null
+              ? JSON.stringify(err)
+              : String(err)
+      toast.error(errorMessage)
     } finally {
       setBroadcasting(false)
     }

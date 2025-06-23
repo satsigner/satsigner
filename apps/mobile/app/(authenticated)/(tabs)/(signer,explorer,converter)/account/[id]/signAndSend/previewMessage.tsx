@@ -208,6 +208,8 @@ function PreviewMessage() {
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
   ): string | null => {
+    console.log(`🔧 Assembling ${type.toUpperCase()} chunks:`, chunks)
+
     try {
       switch (type) {
         case 'raw': {
@@ -215,7 +217,13 @@ function PreviewMessage() {
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
-          return sortedChunks.join('')
+          const assembled = sortedChunks.join('')
+          console.log('✅ RAW assembled result:', assembled)
+          console.log(
+            '✅ RAW assembled result (hex):',
+            Buffer.from(assembled, 'utf8').toString('hex')
+          )
+          return assembled
         }
 
         case 'bbqr': {
@@ -228,12 +236,16 @@ function PreviewMessage() {
 
           if (decoded) {
             // Convert binary PSBT to base64 for compatibility
-            const _hexResult = Buffer.from(decoded).toString('hex')
+            const hexResult = Buffer.from(decoded).toString('hex')
             const base64Result = Buffer.from(decoded).toString('base64')
+
+            console.log('✅ BBQR decoded hex result:', hexResult)
+            console.log('✅ BBQR decoded base64 result:', base64Result)
 
             return base64Result
           }
 
+          console.log('❌ BBQR decoding failed')
           return null
         }
 
@@ -252,16 +264,20 @@ function PreviewMessage() {
             result = decodeMultiPartURToPSBT(sortedChunks)
           }
 
+          console.log('✅ UR decoded result:', result)
+
           // Try to convert to base64 if it's valid hex
           try {
             const isValidHex = /^[a-fA-F0-9]+$/.test(result)
             if (isValidHex) {
-              const _base64Result = Buffer.from(result, 'hex').toString(
-                'base64'
-              )
+              const base64Result = Buffer.from(result, 'hex').toString('base64')
+              console.log('✅ UR result converted to base64:', base64Result)
+            } else {
+              console.log('⚠️ UR result is not valid hex, keeping as-is')
             }
-          } catch (_error) {
-            toast.error(String(_error))
+          } catch (error) {
+            console.log('❌ Error converting UR result:', error)
+            toast.error(String(error))
           }
 
           return result
@@ -546,11 +562,22 @@ function PreviewMessage() {
       return
     }
 
+    console.log('🔍 QR Scan Result:', data)
+    console.log(
+      '🔍 QR Scan Result (hex):',
+      Buffer.from(data, 'utf8').toString('hex')
+    )
+
     // Detect QR code type and format
     const qrInfo = detectQRType(data)
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
+      console.log('✅ Single QR scan complete:', qrInfo.content)
+      console.log(
+        '✅ Single QR scan complete (hex):',
+        Buffer.from(qrInfo.content, 'utf8').toString('hex')
+      )
       setCameraModalVisible(false)
       setSignedPsbt(qrInfo.content)
       resetScanProgress()
@@ -599,26 +626,108 @@ function PreviewMessage() {
       chunks: newChunks
     })
 
-    // Check if we have all chunks
-    if (newScanned.size === total) {
-      // All chunks collected, assemble the final result
-      const assembledData = assembleMultiPartQR(type, newChunks)
+    // For UR format, we need to handle fountain encoding differently
+    if (type === 'ur') {
+      // UR uses fountain encoding - try to assemble after collecting enough fragments
+      // Don't wait for all theoretical fragments, try assembling periodically
+      const shouldTryAssembly =
+        newScanned.size >= Math.max(Math.ceil(total * 0.6), 6) ||
+        (newScanned.size >= 8 && newScanned.size % 2 === 0)
 
-      if (assembledData) {
-        setCameraModalVisible(false)
-        setSignedPsbt(assembledData)
-        resetScanProgress()
-        toast.success(
-          `Successfully assembled ${type.toUpperCase()} transaction from ${total} parts`
+      if (shouldTryAssembly) {
+        console.log(
+          `🎯 Attempting UR assembly with ${newScanned.size} chunks (need ~${total})...`
         )
-      } else {
-        toast.error('Failed to assemble multi-part QR code')
-        resetScanProgress()
+        const assembledData = assembleMultiPartQR(type, newChunks)
+
+        if (assembledData) {
+          console.log('🎉 UR assembly successful!')
+          console.log(
+            '🎉 Final assembled data:',
+            assembledData.substring(0, 100) + '...'
+          )
+          setCameraModalVisible(false)
+          setSignedPsbt(assembledData)
+          resetScanProgress()
+          toast.success(
+            `Successfully assembled UR transaction from ${newScanned.size} fragments`
+          )
+          return
+        } else {
+          console.log(
+            `⏳ UR assembly not ready yet, need more fragments (${newScanned.size}/${total})`
+          )
+        }
       }
-    } else {
-      toast.success(
-        `Scanned part ${current + 1} of ${total} (${newScanned.size}/${total} complete)`
+
+      // Continue scanning for UR, but with stricter limits
+      // Stop after collecting 3x the expected fragments or 25 fragments max
+      if (newScanned.size >= Math.min(total * 3, 25)) {
+        console.log(
+          `❌ UR fragment limit reached: ${newScanned.size} fragments collected`
+        )
+
+        // Try one final assembly attempt before giving up
+        console.log('🎯 Final UR assembly attempt...')
+        const finalAssembly = assembleMultiPartQR(type, newChunks)
+
+        if (finalAssembly) {
+          console.log('🎉 Final UR assembly successful!')
+          setCameraModalVisible(false)
+          setSignedPsbt(finalAssembly)
+          resetScanProgress()
+          toast.success(
+            `Successfully assembled UR transaction from ${newScanned.size} fragments`
+          )
+          return
+        }
+
+        // If final assembly fails, stop scanning
+        toast.error(
+          `Unable to decode UR after ${newScanned.size} fragments. Try again.`
+        )
+        resetScanProgress()
+        setCameraModalVisible(false)
+        return
+      }
+
+      console.log(
+        `📊 UR Progress: ${newScanned.size} fragments collected (target: ~${total})`
       )
+      toast.success(
+        `UR: Collected ${newScanned.size} fragments (need ~${total})`
+      )
+    } else {
+      // For RAW and BBQR, wait for all chunks as before
+      if (newScanned.size === total) {
+        // All chunks collected, assemble the final result
+        console.log(`🎯 All ${total} chunks collected, assembling...`)
+        const assembledData = assembleMultiPartQR(type, newChunks)
+
+        if (assembledData) {
+          console.log('🎉 Multi-part assembly successful!')
+          console.log('🎉 Final assembled data:', assembledData)
+          console.log(
+            '🎉 Final assembled data (hex):',
+            Buffer.from(assembledData, 'utf8').toString('hex')
+          )
+          setCameraModalVisible(false)
+          setSignedPsbt(assembledData)
+          resetScanProgress()
+          toast.success(
+            `Successfully assembled ${type.toUpperCase()} transaction from ${total} parts`
+          )
+        } else {
+          console.log('❌ Multi-part assembly failed')
+          toast.error('Failed to assemble multi-part QR code')
+          resetScanProgress()
+        }
+      } else {
+        console.log(`📊 Progress: ${newScanned.size}/${total} chunks collected`)
+        toast.success(
+          `Scanned part ${current + 1} of ${total} (${newScanned.size}/${total} complete)`
+        )
+      }
     }
   }
 

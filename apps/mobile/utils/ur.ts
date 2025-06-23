@@ -1,5 +1,6 @@
 import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
 import { Buffer } from 'buffer'
+import * as bitcoin from 'bitcoinjs-lib'
 
 export interface URData {
   type: string
@@ -145,35 +146,65 @@ function decodeBase32ToHex(base32Data: string): string {
 }
 
 export function decodeURToPSBT(ur: string): string {
+  console.log('🔧 Decoding single UR:', ur.substring(0, 50) + '...')
+
   try {
     // Try using URDecoder for proper UR parsing
     const decoder = new URDecoder()
     decoder.receivePart(ur)
 
+    console.log('🔧 Single UR Decoder complete?', decoder.isComplete())
+
     if (decoder.isComplete()) {
       const result = decoder.resultUR()
+      console.log('🔧 Single UR Result type:', result.type)
+      console.log('🔧 Single UR CBOR data length:', result.cbor.length)
+
       const cborData = result.cbor
       const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
       const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
 
-      // Extract raw transaction from PSBT for consistent UI behavior with BBQR
-      return extractRawTransactionFromPSBT(psbtHex)
+      console.log('✅ Single UR decoded PSBT hex length:', psbtHex.length)
+      console.log(
+        '✅ Single UR decoded PSBT hex (first 100 chars):',
+        psbtHex.substring(0, 100)
+      )
+
+      // Try to extract final transaction, but return PSBT if extraction fails
+      if (psbtHex.toLowerCase().startsWith('70736274')) {
+        console.log(
+          '✅ Valid PSBT detected, attempting to extract final transaction'
+        )
+        try {
+          const finalTxHex = extractFinalTransactionHexFromPSBT(psbtHex)
+          console.log(
+            '✅ Successfully extracted final transaction hex:',
+            finalTxHex.substring(0, 100) + '...'
+          )
+          return finalTxHex
+        } catch (extractError) {
+          console.log(
+            '⚠️ Failed to extract final transaction, returning PSBT hex instead:',
+            extractError
+          )
+          console.log(
+            '⚠️ This might be a partially signed PSBT or missing witness data'
+          )
+          return psbtHex
+        }
+      } else {
+        console.log('⚠️ Not a valid PSBT, returning as-is')
+        return psbtHex
+      }
     } else {
       throw new Error('UR decoder not complete after receiving part')
     }
   } catch (error) {
-    // Fallback: extract base32 data and decode it
-    const urMatch = ur.match(/^ur:crypto-psbt\/(.+)$/i)
-    if (urMatch) {
-      const base32Data = urMatch[1]
-      try {
-        const hexData = decodeBase32ToHex(base32Data)
-        return extractRawTransactionFromPSBT(hexData)
-      } catch (_base32Error) {
-        // Return the base32 data as last resort for debugging
-        return base32Data
-      }
-    }
+    console.log('❌ Single UR decoder failed:', error)
+    console.log('🔍 Single UR error details:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+      urString: ur.substring(0, 100) + '...'
+    })
 
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`Failed to decode UR to PSBT: ${message}`)
@@ -181,115 +212,308 @@ export function decodeURToPSBT(ur: string): string {
 }
 
 export function decodeMultiPartURToPSBT(urFragments: string[]): string {
+  console.log(
+    '🔧 Decoding multi-part UR fragments:',
+    urFragments.length,
+    'fragments'
+  )
+
   try {
     // Use URDecoder for proper multi-part UR parsing
     const decoder = new URDecoder()
 
-    // Feed all fragments to the decoder
-    for (const fragment of urFragments) {
-      decoder.receivePart(fragment)
-    }
+    // Sort fragments by sequence number first (following Java implementation pattern)
+    const sortedFragments = urFragments.slice().sort((a, b) => {
+      // Extract sequence number from fragments like "UR:CRYPTO-PSBT/881-13/..."
+      const aMatch = a.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
+      const bMatch = b.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
 
-    if (decoder.isComplete()) {
-      const result = decoder.resultUR()
-      const cborData = result.cbor
-      const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
-      const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+      if (aMatch && bMatch) {
+        const aSeq = parseInt(aMatch[1], 10)
+        const bSeq = parseInt(bMatch[1], 10)
+        return aSeq - bSeq
+      }
 
-      // Extract raw transaction from PSBT for consistent UI behavior with BBQR
-      return extractRawTransactionFromPSBT(psbtHex)
-    } else {
-      // Fallback: concatenate base32 data parts and decode
-      const dataParts = urFragments
-        .map((fragment) => {
-          const urMatch = fragment.match(/^ur:crypto-psbt\/\d+-\d+\/(.+)$/i)
-          return urMatch ? urMatch[1] : ''
-        })
-        .filter((part) => part.length > 0)
+      return 0
+    })
 
-      const concatenatedBase32 = dataParts.join('')
+    console.log('🔧 Fragment sequence order check:')
+    sortedFragments.slice(0, 3).forEach((fragment, i) => {
+      const match = fragment.match(/ur:crypto-psbt\/(\d+)-(\d+)\//i)
+      if (match) {
+        console.log(`   Fragment ${i}: seq=${match[1]}, total=${match[2]}`)
+      }
+    })
 
-      try {
-        const hexData = decodeBase32ToHex(concatenatedBase32)
-        return extractRawTransactionFromPSBT(hexData)
-      } catch (_base32Error) {
-        return concatenatedBase32
+    // Feed all fragments to the decoder in sequence order
+    for (let i = 0; i < sortedFragments.length; i++) {
+      const fragment = sortedFragments[i]
+      console.log(
+        `🔧 Adding fragment ${i + 1}/${sortedFragments.length}:`,
+        fragment.substring(0, 50) + '...'
+      )
+
+      const success = decoder.receivePart(fragment)
+      console.log(`🔧 Fragment ${i + 1} received successfully:`, success)
+
+      if (!success) {
+        console.log(`❌ Failed to receive fragment ${i + 1}`)
       }
     }
-  } catch (_error) {
-    // Fallback to simple concatenation and base32 decode in case of any error
-    const dataParts = urFragments
-      .map((fragment) => {
-        const urMatch = fragment.match(/^ur:crypto-psbt\/\d+-\d+\/(.+)$/i)
-        return urMatch ? urMatch[1] : ''
-      })
-      .filter((part) => part.length > 0)
 
-    const concatenatedBase32 = dataParts.join('')
+    console.log('🔧 UR Decoder complete?', decoder.isComplete())
+    console.log('🔧 UR Decoder progress:', decoder.estimatedPercentComplete())
 
-    try {
-      const hexData = decodeBase32ToHex(concatenatedBase32)
-      return extractRawTransactionFromPSBT(hexData)
-    } catch (_base32Error) {
-      return concatenatedBase32
+    // For fountain encoding, check if decoder is actually complete, not just the expected fragment count
+    const isDecoderComplete = decoder.isComplete()
+    const progress = decoder.estimatedPercentComplete()
+
+    console.log('🔧 Decoder completion status:', {
+      isComplete: isDecoderComplete,
+      progress: progress,
+      expectedFragments: sortedFragments.length
+    })
+
+    // Try to get result even if isComplete() returns undefined or false
+    // Some UR implementations complete at different thresholds
+    const shouldTryDecoding =
+      isDecoderComplete === true ||
+      (isDecoderComplete === undefined && progress > 0.9) ||
+      progress >= 1.0
+
+    if (shouldTryDecoding) {
+      try {
+        const result = decoder.resultUR()
+        if (result && result.cbor) {
+          console.log('🔧 UR Result type:', result.type)
+          console.log('🔧 UR CBOR data length:', result.cbor.length)
+
+          const cborData = result.cbor
+          const psbtBytes = parseCBORByteString(new Uint8Array(cborData))
+          const psbtHex = Buffer.from(Array.from(psbtBytes)).toString('hex')
+
+          console.log('✅ Decoded PSBT hex length:', psbtHex.length)
+          console.log(
+            '✅ Decoded PSBT hex (first 100 chars):',
+            psbtHex.substring(0, 100)
+          )
+
+          // Try to extract final transaction, but return PSBT if extraction fails
+          if (psbtHex.toLowerCase().startsWith('70736274')) {
+            console.log(
+              '✅ Valid PSBT detected, attempting to extract final transaction'
+            )
+            try {
+              const finalTxHex = extractFinalTransactionHexFromPSBT(psbtHex)
+              console.log(
+                '✅ Successfully extracted final transaction hex:',
+                finalTxHex.substring(0, 100) + '...'
+              )
+              return finalTxHex
+            } catch (extractError) {
+              console.log(
+                '⚠️ Failed to extract final transaction, returning PSBT hex instead:',
+                extractError
+              )
+              console.log(
+                '⚠️ This might be a partially signed PSBT or missing witness data'
+              )
+              return psbtHex
+            }
+          } else {
+            console.log('⚠️ Not a valid PSBT, returning as-is')
+            return psbtHex
+          }
+        }
+      } catch (resultError) {
+        console.log('❌ Failed to get result from decoder:', resultError)
+      }
     }
+
+    // If we get here, the decoder isn't ready yet
+    if (progress < 0.3) {
+      throw new Error(
+        `UR decoder needs more fragments: ${Math.round(progress * 100)}% complete`
+      )
+    } else {
+      throw new Error(
+        `UR decoder not ready: ${Math.round(progress * 100)}% complete`
+      )
+    }
+  } catch (error) {
+    console.log('❌ UR decoder failed:', error)
+
+    // The proper approach is to use the UR library correctly, not manual concatenation
+    // Let's try to understand why the decoder failed
+    console.log('🔍 URDecoder error details:', {
+      errorMessage: error instanceof Error ? error.message : String(error),
+      fragmentCount: urFragments.length,
+      firstFragment: urFragments[0]?.substring(0, 100),
+      lastFragment: urFragments[urFragments.length - 1]?.substring(0, 100)
+    })
+
+    // Don't fall back to manual concatenation - that approach is fundamentally wrong
+    // The UR format uses Bytewords encoding, not base32, and requires proper fragment handling
+    throw new Error(
+      `UR decoding failed: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
 /**
- * Extract raw transaction from PSBT data
- * PSBT contains the raw transaction plus additional signing data
- * We want to extract just the raw transaction for display consistency with BBQR
+ * Extract final transaction hex from PSBT data by finalizing all inputs
+ * This properly handles PSBTs by finalizing them and extracting the final transaction
  */
-function extractRawTransactionFromPSBT(psbtHex: string): string {
+function extractFinalTransactionHexFromPSBT(psbtHex: string): string {
+  console.log(
+    '🔧 Starting PSBT extraction for hex:',
+    psbtHex.substring(0, 50) + '...'
+  )
+
   try {
-    // PSBT format: magic bytes (4) + separator (1) + global map + input maps + output maps + separator (1)
-    // We need to find the raw transaction in the global map
+    const psbt = bitcoin.Psbt.fromHex(psbtHex)
+
+    console.log('🔧 PSBT input count:', psbt.data.inputs.length)
+    console.log('🔧 PSBT output count:', psbt.data.outputs.length)
+
+    // Log detailed input information
+    for (let i = 0; i < psbt.data.inputs.length; i++) {
+      const input = psbt.data.inputs[i]
+      console.log(`🔧 Input ${i}:`)
+      console.log(
+        `   - finalScriptSig: ${input.finalScriptSig ? 'present' : 'missing'}`
+      )
+      console.log(
+        `   - finalScriptWitness: ${input.finalScriptWitness ? 'present' : 'missing'}`
+      )
+      console.log(
+        `   - partialSig count: ${input.partialSig ? input.partialSig.length : 0}`
+      )
+    }
+
+    // Try extraction first (in case it's already finalized)
+    try {
+      console.log('🔧 Attempting direct transaction extraction...')
+      const tx = psbt.extractTransaction()
+      const txHex = tx.toHex()
+
+      console.log('✅ Direct extraction successful!')
+      console.log('✅ Transaction hex length:', txHex.length)
+      console.log(
+        '✅ Transaction hex preview:',
+        txHex.substring(0, 100) + '...'
+      )
+      console.log('✅ Transaction starts with:', txHex.substring(0, 20))
+
+      return txHex
+    } catch (directError) {
+      console.log('⚠️ Direct extraction failed:', directError)
+
+      // If direct extraction fails, try finalizing first
+      console.log('🔧 Attempting to finalize inputs before extraction...')
+      try {
+        // Create a new PSBT instance to avoid state issues
+        const freshPsbt = bitcoin.Psbt.fromHex(psbtHex)
+        freshPsbt.finalizeAllInputs()
+        console.log('✅ Successfully finalized PSBT inputs')
+
+        const tx = freshPsbt.extractTransaction()
+        const txHex = tx.toHex()
+
+        console.log('✅ Post-finalization extraction successful!')
+        console.log('✅ Transaction hex length:', txHex.length)
+        console.log(
+          '✅ Transaction hex preview:',
+          txHex.substring(0, 100) + '...'
+        )
+        console.log('✅ Transaction starts with:', txHex.substring(0, 20))
+
+        return txHex
+      } catch (finalizeError) {
+        console.log('❌ Finalization and extraction failed:', finalizeError)
+
+        // Last resort: try manual witness extraction if this is a witness transaction
+        console.log('🔧 Attempting manual witness transaction extraction...')
+        try {
+          const manualTxHex = extractWitnessTransactionFromPSBT(psbtHex)
+          if (
+            manualTxHex &&
+            (manualTxHex.startsWith('01000000') ||
+              manualTxHex.startsWith('02000000'))
+          ) {
+            console.log(
+              '✅ Manual extraction successful!',
+              manualTxHex.substring(0, 100) + '...'
+            )
+            return manualTxHex
+          }
+        } catch (manualError) {
+          console.log('❌ Manual extraction also failed:', manualError)
+        }
+
+        throw finalizeError
+      }
+    }
+  } catch (error) {
+    console.log('❌ All PSBT extraction attempts failed:', error)
+    throw new Error(
+      `Failed to extract final transaction: ${(error as Error).message}`
+    )
+  }
+}
+
+/**
+ * Manual extraction of witness transaction from PSBT hex
+ * This is a fallback when bitcoinjs-lib extraction fails
+ */
+function extractWitnessTransactionFromPSBT(psbtHex: string): string {
+  try {
+    // PSBT format: magic(4) + separator(1) + length + global_map + input_maps + output_maps
+    // We need to find and extract the witness transaction
 
     if (!psbtHex.toLowerCase().startsWith('70736274ff')) {
-      // Not a PSBT, return as-is
-      return psbtHex
+      throw new Error('Not a valid PSBT (missing magic bytes)')
     }
 
-    // Skip magic bytes (70736274) and separator (ff)
-    let offset = 10 // 5 bytes * 2 chars each
+    // Skip PSBT header: 70736274ff (5 bytes)
+    let offset = 10 // 5 bytes * 2 hex chars
 
-    // Parse global map to find raw transaction
-    while (offset < psbtHex.length) {
-      if (offset + 2 > psbtHex.length) break
+    // Skip global map length and data
+    // This is a simplified approach - in reality we'd need to parse the full PSBT structure
+    // But for now, let's try to find the transaction data after the PSBT header
 
-      const keyLen = parseInt(psbtHex.substr(offset, 2), 16)
-      offset += 2
+    // Look for transaction version (01000000 or 02000000) after the PSBT header
+    for (let i = offset; i < psbtHex.length - 16; i += 2) {
+      const potential = psbtHex.substring(i, i + 16).toLowerCase()
+      if (
+        potential.startsWith('01000000') ||
+        potential.startsWith('02000000')
+      ) {
+        console.log('🔧 Found potential transaction start at offset:', i)
 
-      if (keyLen === 0) {
-        // End of global map
-        break
-      }
+        // Try to extract from this point to the end
+        const remainingHex = psbtHex.substring(i)
 
-      if (offset + keyLen * 2 > psbtHex.length) break
-
-      const key = psbtHex.substr(offset, keyLen * 2)
-      offset += keyLen * 2
-
-      if (offset + 2 > psbtHex.length) break
-
-      const valueLen = parseInt(psbtHex.substr(offset, 2), 16)
-      offset += 2
-
-      if (offset + valueLen * 2 > psbtHex.length) break
-
-      const value = psbtHex.substr(offset, valueLen * 2)
-      offset += valueLen * 2
-
-      // Key type 0x00 contains the raw transaction
-      if (key === '00') {
-        return value
+        // Use the full remaining hex to preserve all transaction data
+        // This ensures we don't cut off essential witness/signature data
+        if (remainingHex.length >= 60) {
+          console.log(
+            '🔧 Using full transaction hex (preserving all data):',
+            remainingHex.substring(0, 100) + '...'
+          )
+          console.log(
+            '🔧 Transaction length:',
+            remainingHex.length / 2,
+            'bytes'
+          )
+          return remainingHex
+        }
       }
     }
 
-    return psbtHex
-  } catch (_error) {
-    return psbtHex
+    throw new Error('No valid transaction data found in PSBT')
+  } catch (error) {
+    throw new Error(`Manual extraction failed: ${(error as Error).message}`)
   }
 }
 
