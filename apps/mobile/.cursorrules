@@ -1,218 +1,73 @@
-# Cursor Rules for SatSigner Mobile App
+[COMMON RULES]
 
-# Inherit base rules
+In satsigner we use prettier.
+We have the following rules with prettier:
 
-inherit: ../../.cursorrules
+printWidth 80
+semi false
+singleQuote true
+trailingComma none
 
-# TypeScript Rules
+We also alphabetically sort .json files under mobile/locales folder
 
-_.ts,_.tsx { # Prefer interfaces over types
-prefer_interface: true
+We use 2 for identation
 
-    # Avoid enums, use const maps
-    avoid_enums: true
+[TYPESCRIPT RULES]
 
-    # Enforce strict mode
-    strict_mode: true
+For typescript we prefer to use function keyword to create functions
+We prefer types over interfaces
+For constants we use uppercase and underscores like: ELECTRUM_URL
+We try to avoid any at all costs
+When importing types, we add the type keyword before the type name like: import { type Block } from '...'
 
-    # Use function keyword for pure functions
-    pure_function_style: "function"
+[MOBILE RULES]
 
-    # Enforce named exports
-    prefer_named_exports: true
+[i18n]
+Strings should be localized. Add translation in en.json. Use the translation like: t('common.cancel')
+Strings in i18n files should only be 1 level deep at most. Then use dots to separate like: "address": { "details.balance.confirmed": "Confirmed", "details.balance.title": "Balance" }
 
-}
+[Navigation]
+We use expo-router. Follow expo-router best practices.
+Use useLocalSearchParams with type annotation for type the params like: useLocalSearchParams<AccountSearchParams>(). Navigation searchParams types should be under mobile/types/navigation/searchParams
 
-# React Native Component Rules
+[State Management]
+We use zustand for state management. Stores are under the store folder. Stores that need to persist, we use mmkvStorage (use createJSONStorage and persist functions from zustand)
+We type our State and Actions separately like: type AuthState = {}; type AuthAction = {}
+We recommend using derived types from state when typing actions like: setFirstTime: (firstTime: AuthState['firstTime']) => void
+Use immer to mutate nested state in objects/arrays and a simple set for trivial state mutations.
+Zustand should only be responsible to store and mutate state and not run external functions or business logic
+Use useShallow if you are selecting for that one piece of state from one store like: const [exampleState3, exampleAction5] = useBearStore(useShallow((state) => [state.exampleState3, state.exampleAction5]))
+See docs/pages/develop/store.mdx for more state management best practices
 
-\*.tsx { # Enforce screen component naming
-screen_naming: {Name}Screen
+[TSX]
 
-    # Enforce navigation prop types
-    navigation_props: {StackName}NavigationProp
+Don't add spaces between component/react native tags
+Prioritize using already created layouts and components. Layouts components are under layouts folder and components under components folder.
 
-    # Enforce route prop types
-    route_props: {StackName}RouteProp
+[Components]
+Components and layouts are prefixed with "SS"
+Follow the component anatomy & best practices described in docs/pages/develop/components.mdx
 
-    # File structure order
-    file_structure: [
-        "exports",
-        "subcomponents",
-        "helpers",
-        "static",
-        "types"
-    ]
+[Pages]
+Inside the app folder is where our pages are.
+Prioritize using inline styles for overriding components defaults before creating const styles = StyleSheet.create
+Organize the code inside the page - this is very important - first declare hooks, then use zustand stores, then useState and useMemo/useCallback then useEffects/useFocusEffect/function declarations - finally the jsx
+Avoid creating unnecessary state with useState and overuse useEffect
 
-    # Variable naming with auxiliary verbs
-    variable_naming: {verb}{Noun}
+[Storage]
+Use storage/encrypted to store things in keychain securely
+Use storage/mmkv for fast read/write (fully synchronous)
 
-    # Enforce functional components
-    component_style: functional
+[API]
+We put api logic inside api folder
+Pages code should call these functions and local state (with useState)/zustand should handle the state
 
-    # Enforce accessibility props
-    require_a11y_props: true
+[Constants]
+Add/update constants inside the constants folder
 
-}
+[Before commiting]
 
-# Directory Structure Rules
-
-- { # Use lowercase with dashes for directories
-  directory_naming: lowercase-dashed
-  }
-
-# Mobile-specific Rules
-
-android/,ios/ { # Ignore native platform files
-ignore: true
-}
-
-# Safe Area Rules
-
-\*.tsx { # Enforce SafeAreaView usage
-require_safe_area: true
-
-    # Avoid hardcoded insets
-    avoid_hardcoded_insets: true
-
-}
-
-# Performance Rules
-
-\*.tsx { # Minimize useState usage
-prefer_reducer: true
-
-    # Enforce proper memo usage
-    require_memo_deps: true
-
-    # Enforce proper effect deps
-    require_effect_deps: true
-
-    # Image optimization rules
-    image_rules: {
-        prefer_webp: true,
-        require_size: true,
-        lazy_loading: true
-    }
-
-}
-
-# Expo Config Rules
-
-app.config.ts,eas.json { # Enforce consistent spacing
-indent: 2
-
-    # Max line length for config files
-    max_line_length: 80
-
-    # Require OTA update configuration
-    require_updates_config: true
-
-}
-
-# Asset Rules
-
-assets/\*_/_.{png,jpg,gif,webp} { # Ignore image assets
-ignore: true
-}
-
-# Navigation Rules
-
-navigation/\*.tsx { # Enforce navigator naming
-navigator_naming: {Name}Navigator
-
-    # Enforce screen options naming
-    screen_options_naming: get{Screen}Options
-
-    # Require deep linking setup
-    require_deep_linking: true
-
-    # Use expo-router patterns
-    use_expo_router: true
-
-}
-
-# State Management Rules
-
-store/\*.ts { # Prefer context + reducer
-prefer_context_reducer: true
-
-    # Enforce proper selector usage
-    require_selector_memoization: true
-
-}
-
-# API and Data Fetching Rules
-
-api/\*.ts { # Enforce API function naming
-api_function_naming: {verb}{Resource}
-
-    # Enforce consistent error handling
-    error_handling: true
-
-    # Use react-query patterns
-    use_react_query: true
-
-    # Require HTTPS
-    require_https: true
-
-}
-
-# Security Rules
-
-_.ts,_.tsx { # Require input sanitization
-require_input_sanitization: true
-
-    # Enforce secure storage usage
-    require_secure_storage: true
-
-    # Enforce proper auth patterns
-    require_auth_checks: true
-
-}
-
-# Testing Rules
-
-_.test.ts,_.test.tsx { # Additional mobile-specific test patterns
-test_patterns: [
-"renderComponent",
-"fireEvent",
-"waitFor",
-"act"
-]
-
-    # Require snapshot tests
-    require_snapshots: true
-
-    # Enforce proper mock usage
-    require_proper_mocks: true
-
-}
-
-# Internationalization Rules
-
-_.tsx,locales/_.json { # Enforce i18n usage
-require_i18n: true
-
-    # Support RTL layouts
-    require_rtl_support: true
-
-    # Support text scaling
-    require_text_scaling: true
-
-}
-
-# Error Handling Rules
-
-_.tsx,_.ts { # Early return pattern
-prefer_early_return: true
-
-    # Avoid nested conditionals
-    max_conditional_depth: 2
-
-    # Require error boundaries
-    require_error_boundary: true
-
-    # Use error reporting
-    use_error_reporter: true
-
-}
+Remove console.logs
+Run the linter: yarn lint:fix
+Run the formatter: yarn format:fix
+Run type-checking: yarn type-check
