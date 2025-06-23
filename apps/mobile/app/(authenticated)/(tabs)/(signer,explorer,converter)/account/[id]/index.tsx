@@ -1043,10 +1043,10 @@ export default function AccountView() {
             <SSVStack gap="none">
               <SSHStack
                 justifyEvenly
-                gap="xxs"
+                gap="none"
                 style={{ paddingHorizontal: '5%' }}
               >
-                {account.policyType !== 'watchonly' && (
+                {account.keys[0].creationType !== 'importAddress' && (
                   <>
                     <SSActionButton
                       onPress={() => navigateToSignAndSend()}
@@ -1076,17 +1076,6 @@ export default function AccountView() {
                       <SSText uppercase>{t('account.receive')}</SSText>
                     </SSActionButton>
                   </>
-                )}
-                {account.keys[0].creationType === 'importExtendedPub' && (
-                  <SSActionButton
-                    onPress={() => router.navigate(`/account/${id}/receive`)}
-                    style={{
-                      ...styles.actionButton,
-                      width: '100%'
-                    }}
-                  >
-                    <SSText uppercase>{t('account.receive')}</SSText>
-                  </SSActionButton>
                 )}
                 {account.keys[0].creationType === 'importAddress' && (
                   <SSVStack gap="xs">

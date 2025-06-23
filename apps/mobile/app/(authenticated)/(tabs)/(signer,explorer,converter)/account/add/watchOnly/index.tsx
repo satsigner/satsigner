@@ -1,3 +1,5 @@
+import bs58check from 'bs58check'
+import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
@@ -7,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
+import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
@@ -24,7 +27,7 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType } from '@/types/models/Account'
+import { type CreationType, type Key } from '@/types/models/Account'
 import {
   validateAddress,
   validateDescriptor,
@@ -53,7 +56,8 @@ export default function WatchOnly() {
     setExtendedPublicKey,
     setScriptVersion,
     setKey,
-    setNetwork
+    setNetwork,
+    setPolicyType
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -68,7 +72,8 @@ export default function WatchOnly() {
       state.setExtendedPublicKey,
       state.setScriptVersion,
       state.setKey,
-      state.setNetwork
+      state.setNetwork,
+      state.setPolicyType
     ])
   )
   const [network, connectionMode] = useBlockchainStore((state) => [
@@ -79,6 +84,8 @@ export default function WatchOnly() {
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const [cameraModalVisible, setCameraModalVisible] = useState(false)
+  const [permission, requestPermission] = useCameraPermissions()
 
   const [selectedOption, setSelectedOption] =
     useState<CreationType>('importExtendedPub')
@@ -149,6 +156,11 @@ export default function WatchOnly() {
     }
   }, [isReading, pulseAnim, scaleAnim])
 
+  // Set policy type to watchonly when component mounts
+  useEffect(() => {
+    setPolicyType('watchonly')
+  }, [setPolicyType])
+
   function updateAddress(address: string) {
     const validAddress = validateAddress(address)
     setValidAddress(!address || validAddress)
@@ -172,66 +184,141 @@ export default function WatchOnly() {
     setValidXpub(!xpub || validXpub)
     setDisabled(!validXpub || !localFingerprint)
     setXpub(xpub)
-    if (xpub.match(/^x(pub|priv)/)) setScriptVersion('P2PKH')
-    if (xpub.match(/^y(pub|priv)/)) setScriptVersion('P2SH-P2WPKH')
-    if (xpub.match(/^z(pub|priv)/)) setScriptVersion('P2WPKH')
+
+    // Handle script version based on extended key prefix
+    // tpub -> P2PKH (testnet legacy)
+    // vpub -> P2WPKH (testnet SegWit)
+    // ypub -> P2SH-P2WPKH (mainnet)
+    // zpub -> P2WPKH (mainnet)
+    let scriptVersion: Key['scriptVersion'] | undefined
+    if (xpub.match(/^t(pub|priv)/)) scriptVersion = 'P2PKH'
+    if (xpub.match(/^v(pub|priv)/)) scriptVersion = 'P2WPKH'
+    if (xpub.match(/^y(pub|priv)/)) scriptVersion = 'P2SH-P2WPKH'
+    if (xpub.match(/^z(pub|priv)/)) scriptVersion = 'P2WPKH'
+
+    if (scriptVersion && validXpub && localFingerprint) {
+      // Format the extended public key with fingerprint and derivation path
+      // For testnet SegWit (vpub), use BIP84 derivation path
+      const derivationPath = xpub.match(/^v(pub|priv)/)
+        ? "84'/1'/0'"
+        : "44'/1'/0'"
+      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      setExtendedPublicKey(formattedXpub)
+      setScriptVersion(scriptVersion)
+    }
   }
 
   function updateExternalDescriptor(descriptor: string) {
     const validExternalDescriptor =
       validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
+
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
+    // For descriptors, we only need the external descriptor to be valid
     setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
-    if (validExternalDescriptor) setExternalDescriptor(descriptor)
+    if (validExternalDescriptor) {
+      setExternalDescriptor(descriptor)
+    }
   }
 
   function updateInternalDescriptor(descriptor: string) {
     const validInternalDescriptor = validateDescriptor(descriptor)
+
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
-    setDisabled(!validInternalDescriptor)
+    // Internal descriptor is optional, so don't disable if it's invalid
+    // The external descriptor validation will handle the disabled state
     setLocalInternalDescriptor(descriptor)
-    if (validInternalDescriptor) setInternalDescriptor(descriptor)
+    if (validInternalDescriptor) {
+      setInternalDescriptor(descriptor)
+    }
+  }
+
+  function convertVpubToTpub(vpub: string): string {
+    // If it's not a vpub, return as is
+    if (!vpub.startsWith('vpub')) return vpub
+
+    try {
+      // Decode the base58check string (includes checksum)
+      const decoded = bs58check.decode(vpub)
+
+      // The first 4 bytes are the version
+      // For vpub: 0x045f1cf6 (testnet segwit)
+      // For tpub: 0x043587cf (testnet)
+      const version = new Uint8Array([0x04, 0x35, 0x87, 0xcf])
+
+      // Create new buffer with tpub version
+      const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
+
+      // Convert back to base58check (will add checksum)
+      return bs58check.encode(newDecoded)
+    } catch (_error) {
+      return vpub // Return original if conversion fails
+    }
   }
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    if (selectedOption === 'importExtendedPub') setExtendedPublicKey(xpub)
-    else if (selectedOption === 'importAddress')
-      setExternalDescriptor(`addr(${address})`)
-
-    setNetwork(network)
-    setKey(0)
-    const account = getAccountData()
-
-    const data = await accountBuilderFinish(account)
-    if (!data) return
-
     try {
+      if (selectedOption === 'importExtendedPub') {
+        if (!xpub || !localFingerprint || !scriptVersion) {
+          toast.error(t('watchonly.error.missingFields'))
+          return
+        }
+        setExtendedPublicKey(xpub)
+        setFingerprint(localFingerprint)
+        setScriptVersion(scriptVersion)
+      } else if (selectedOption === 'importAddress') {
+        setExternalDescriptor(`addr(${address})`)
+      }
+
+      setNetwork(network)
+      setKey(0)
+      const account = getAccountData()
+
+      const data = await accountBuilderFinish(account)
+      if (!data) {
+        toast.error(t('watchonly.error.creationFailed'))
+        return
+      }
+
       if (connectionMode === 'auto') {
-        const updatedAccount =
-          selectedOption !== 'importAddress'
-            ? await syncAccountWithWallet(
-                data.accountWithEncryptedSecret,
-                data.wallet!
-              )
-            : await syncAccountWithAddress(
-                data.accountWithEncryptedSecret,
-                `addr(${address})`
-              )
-        updateAccount(updatedAccount)
+        try {
+          const updatedAccount =
+            selectedOption !== 'importAddress'
+              ? await syncAccountWithWallet(
+                  data.accountWithEncryptedSecret,
+                  data.wallet!
+                )
+              : await syncAccountWithAddress(
+                  data.accountWithEncryptedSecret,
+                  `addr(${address})`
+                )
+          updateAccount(updatedAccount)
+          toast.success(t('watchonly.success.accountCreated'))
+          router.replace('/')
+        } catch (_syncError) {
+          // Even if sync fails, we should still save the account and redirect
+          updateAccount(data.accountWithEncryptedSecret)
+          toast.warning(t('watchonly.warning.syncFailed'))
+          router.replace('/')
+        }
+      } else {
+        // If not auto sync, just save the account and redirect
+        updateAccount(data.accountWithEncryptedSecret)
+        toast.success(t('watchonly.success.accountCreated'))
+        router.replace('/')
       }
     } catch (error) {
       const errorMessage = (error as Error).message
       if (errorMessage) {
         toast.error(errorMessage)
+      } else {
+        toast.error(t('watchonly.error.creationFailed'))
       }
     } finally {
       clearAccount()
       setLoadingWallet(false)
     }
-
-    router.navigate('/')
   }
 
   async function pasteFromClipboard() {
@@ -281,7 +368,12 @@ export default function WatchOnly() {
         return
       }
 
-      const text = nfcData
+      if (!nfcData.text) {
+        toast.error(t('watchonly.read.nfcErrorNoData'))
+        return
+      }
+
+      const text = nfcData.text
         .trim()
         .replace(/[^\S\n]+/g, '') // Remove all whitespace except newlines
         .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width spaces and other invisible characters
@@ -324,12 +416,64 @@ export default function WatchOnly() {
     }
   }
 
+  function handleQRCodeScanned(data: string | undefined) {
+    if (!data) {
+      toast.error(t('watchonly.read.qrError'))
+      return
+    }
+
+    setCameraModalVisible(false)
+
+    // Check if the scanned data is a valid fingerprint (8 bytes hex)
+    const fingerprintRegex = /^[0-9a-fA-F]{8}$/
+    if (fingerprintRegex.test(data)) {
+      updateMasterFingerprint(data)
+      return
+    }
+
+    if (selectedOption === 'importDescriptor') {
+      let externalDescriptor = data
+      let internalDescriptor = ''
+      if (data.match(/<0[,;]1>/)) {
+        externalDescriptor = data
+          .replace(/<0[,;]1>/, '0')
+          .replace(/#[a-z0-9]+$/, '')
+        internalDescriptor = data
+          .replace(/<0[,;]1>/, '1')
+          .replace(/#[a-z0-9]+$/, '')
+      }
+      if (data.includes('\n')) {
+        const lines = data.split('\n')
+        externalDescriptor = lines[0].trim()
+        internalDescriptor = lines[1].trim()
+      }
+      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+      if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+    }
+
+    if (selectedOption === 'importExtendedPub') {
+      // Convert vpub to tpub if needed
+      const convertedData = convertVpubToTpub(data)
+      if (data !== convertedData) {
+        toast.info(
+          t('watchonly.info.vpubConverted', {
+            vpub: data.slice(0, 8) + '...',
+            tpub: convertedData.slice(0, 8) + '...'
+          })
+        )
+      }
+      updateXpub(convertedData)
+    }
+
+    if (selectedOption === 'importAddress') {
+      updateAddress(data)
+    }
+  }
+
   return (
     <SSMainLayout>
       <Stack.Screen
-        options={{
-          headerTitle: () => <SSText uppercase>{name}</SSText>
-        }}
+        options={{ headerTitle: () => <SSText uppercase>{name}</SSText> }}
       />
       <ScrollView>
         <SSSelectModal
@@ -451,7 +595,10 @@ export default function WatchOnly() {
                   label={t('watchonly.read.clipboard')}
                   onPress={pasteFromClipboard}
                 />
-                <SSButton label={t('watchonly.read.qrcode')} disabled />
+                <SSButton
+                  label={t('watchonly.read.qrcode')}
+                  onPress={() => setCameraModalVisible(true)}
+                />
                 <Animated.View
                   style={{
                     opacity: pulseAnim.interpolate({
@@ -491,6 +638,26 @@ export default function WatchOnly() {
           </SSVStack>
         )}
       </ScrollView>
+      <SSModal
+        visible={cameraModalVisible}
+        fullOpacity
+        onClose={() => setCameraModalVisible(false)}
+      >
+        <SSText color="muted" uppercase>
+          {t('camera.scanQRCode')}
+        </SSText>
+        <CameraView
+          onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
+          barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+          style={{ width: 340, height: 340 }}
+        />
+        {!permission?.granted && (
+          <SSButton
+            label={t('camera.enableCameraAccess')}
+            onPress={requestPermission}
+          />
+        )}
+      </SSModal>
     </SSMainLayout>
   )
 }
@@ -502,8 +669,5 @@ const styles = StyleSheet.create({
     height: 'auto',
     paddingVertical: 10
   },
-  valid: {
-    height: 'auto',
-    paddingVertical: 10
-  }
+  valid: { height: 'auto', paddingVertical: 10 }
 })

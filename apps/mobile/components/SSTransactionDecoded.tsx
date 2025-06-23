@@ -212,11 +212,10 @@ function SSTransactionDecodedItem({
   return (
     <SSVStack gap="none">
       <SSText weight="bold">{tn(`label.${field}`, { ...placeholders })}</SSText>
-      <SSText color="muted">{value}</SSText>
+      <SSText type="mono">{value}</SSText>
       <SSText color="muted" size="xxs">
         {tn(`description.${field}`, { ...placeholders })}
       </SSText>
-      <SSText type="mono">{value}</SSText>
     </SSVStack>
   )
 }
