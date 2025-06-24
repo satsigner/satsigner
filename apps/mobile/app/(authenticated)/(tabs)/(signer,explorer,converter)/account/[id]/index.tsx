@@ -383,11 +383,16 @@ function DerivedAddresses({
         }
       >
         <SSHStack style={addressListStyles.row}>
-          <SSText
-            style={[addressListStyles.indexText, addressListStyles.columnIndex]}
-          >
-            {item.index}
-          </SSText>
+          {!isMultiAddressWatchOnly && (
+            <SSText
+              style={[
+                addressListStyles.indexText,
+                addressListStyles.columnIndex
+              ]}
+            >
+              {item.index}
+            </SSText>
+          )}
           <SSText
             style={[
               addressListStyles.addressText,
@@ -487,14 +492,16 @@ function DerivedAddresses({
       <ScrollView style={{ marginTop: 10 }} horizontal>
         <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
           <SSHStack style={addressListStyles.headerRow}>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnIndex
-              ]}
-            >
-              {t('address.list.table.index')}
-            </SSText>
+            {!isMultiAddressWatchOnly && (
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnIndex
+                ]}
+              >
+                {t('address.list.table.index')}
+              </SSText>
+            )}
             <SSText
               style={[
                 addressListStyles.headerText,
@@ -537,15 +544,17 @@ function DerivedAddresses({
             </SSText>
           </SSHStack>
           <FlashList
-            data={addresses?.filter((address) =>
-              change
-                ? address.keychain === 'internal'
-                : address.keychain === 'external'
+            data={addresses?.filter(
+              (address) =>
+                isMultiAddressWatchOnly ||
+                (change
+                  ? address.keychain === 'internal'
+                  : address.keychain === 'external')
             )}
             renderItem={renderItem}
             estimatedItemSize={150}
             keyExtractor={(item) => {
-              return `${item.index}:${item.address}:${item.keychain}`
+              return `${item.index || ''}:${item.address}:${item.keychain || ''}`
             }}
             removeClippedSubviews
           />
