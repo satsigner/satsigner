@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { getLastUnusedAddressFromWallet } from '@/api/bdk'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSNumberInput from '@/components/SSNumberInput'
@@ -11,6 +10,7 @@ import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
+import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -57,13 +57,19 @@ export default function Receive() {
     setLocalFinalAddressQR(finalUri)
   }, [localCustomAmount, localLabel]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { addressInfo } = useGetFirstUnusedAddress(wallet!, account!)
+
   useEffect(() => {
     async function loadAddress() {
       if (!wallet) {
         toast(t('error.notFound.wallet'))
         return
       }
-      const addressInfo = await getLastUnusedAddressFromWallet(wallet)
+
+      if (addressInfo === null) {
+        toast('Trying to find a fresh address...')
+        return
+      }
 
       const [address, qrUri] = await Promise.all([
         addressInfo.address.asString(),
@@ -79,7 +85,7 @@ export default function Receive() {
     }
 
     loadAddress()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addressInfo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!account) return <Redirect href="/" />
 
