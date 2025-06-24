@@ -215,8 +215,8 @@ function useSyncAccountWithAddress() {
         utxos: esploraUtxos.map((u) => `${u.txid}:${u.vout}`),
         transactions: esploraTxs.map((t) => t.txid),
         summary: {
-          utxos: esploraTxs.length,
-          transactions: esploraUtxos.length,
+          transactions: esploraTxs.length,
+          utxos: esploraUtxos.length,
           balance: confirmed,
           satsInMempool: unconfirmed
         }
