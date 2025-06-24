@@ -279,13 +279,31 @@ function DerivedAddresses({
     account.addresses.slice(0, addressCount)
   )
   const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
+  const isMultiAddressWatchOnly = useMemo(() => {
+    return (
+      account.keys.length > 1 &&
+      account.keys[0].creationType === 'importAddress'
+    )
+  }, [account])
 
   function updateDerivationPath() {
+    if (isMultiAddressWatchOnly) return
     if (account.keys[0].derivationPath)
       setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
   }
 
+  function loadExactAccountAddresses() {
+    setAddresses([...account.addresses])
+    setAddressCount(account.addresses.length)
+  }
+
   async function refreshAddresses() {
+    if (isMultiAddressWatchOnly) {
+      loadExactAccountAddresses()
+      console.log(account.addresses)
+      return
+    }
+
     let addresses = await getWalletAddresses(wallet!, network!, addressCount)
     addresses = parseAccountAddressesDetails({ ...account, addresses })
     setAddresses(addresses.slice(0, addressCount))
@@ -293,6 +311,12 @@ function DerivedAddresses({
   }
 
   async function loadMoreAddresses() {
+    if (isMultiAddressWatchOnly) {
+      loadExactAccountAddresses()
+      console.log(account.addresses)
+      return
+    }
+
     setHasLoadMoreAddresses(true)
     const newAddressCount =
       addresses.length < addressCount ? addressCount : addressCount + perPage
@@ -425,37 +449,41 @@ function DerivedAddresses({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSHStack gap="sm">
-          <SSText color="muted" uppercase>
-            {t('receive.path')}
-          </SSText>
-          <SSText>{addressPath}</SSText>
-        </SSHStack>
+        {!isMultiAddressWatchOnly && (
+          <SSHStack gap="sm">
+            <SSText color="muted" uppercase>
+              {t('receive.path')}
+            </SSText>
+            <SSText>{addressPath}</SSText>
+          </SSHStack>
+        )}
         <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
           <SSSortDirectionToggle
             onDirectionChanged={() => setSortDirection()}
           />
         </SSHStack>
       </SSHStack>
-      <SSHStack
-        gap="md"
-        justifyBetween
-        style={addressListStyles.receiveChangeContainer}
-      >
-        {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
-          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-            <SSButton
-              style={{
-                borderColor: change === (index === 1) ? '#fff' : '#333'
-              }}
-              uppercase
-              onPress={() => setChange(index === 1)}
-              label={type}
-              variant="outline"
-            />
-          </SSHStack>
-        ))}
-      </SSHStack>
+      {!isMultiAddressWatchOnly && (
+        <SSHStack
+          gap="md"
+          justifyBetween
+          style={addressListStyles.receiveChangeContainer}
+        >
+          {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+              <SSButton
+                style={{
+                  borderColor: change === (index === 1) ? '#fff' : '#333'
+                }}
+                uppercase
+                onPress={() => setChange(index === 1)}
+                label={type}
+                variant="outline"
+              />
+            </SSHStack>
+          ))}
+        </SSHStack>
+      )}
       <ScrollView style={{ marginTop: 10 }} horizontal>
         <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
           <SSHStack style={addressListStyles.headerRow}>
@@ -523,14 +551,16 @@ function DerivedAddresses({
           />
         </SSVStack>
       </ScrollView>
-      <SSButton
-        variant="outline"
-        uppercase
-        style={{ marginTop: 10 }}
-        label={t('address.list.table.loadMore')}
-        disabled={loadingAddresses}
-        onPress={loadMoreAddresses}
-      />
+      {!isMultiAddressWatchOnly && (
+        <SSButton
+          variant="outline"
+          uppercase
+          style={{ marginTop: 10 }}
+          label={t('address.list.table.loadMore')}
+          disabled={loadingAddresses}
+          onPress={loadMoreAddresses}
+        />
+      )}
     </SSMainLayout>
   )
 }
@@ -836,7 +866,8 @@ export default function AccountView() {
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
     const isImportAddress = account.keys[0].creationType === 'importAddress'
-    const tabWidth = isImportAddress ? '33.33%' : '25%'
+    const tabWidth =
+      isImportAddress && account.keys.length === 1 ? '33.33%' : '25%'
 
     return (
       <>
