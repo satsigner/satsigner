@@ -701,6 +701,14 @@ export default function AccountView() {
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
+  const isMultiAddressWatchOnly = useMemo(() => {
+    return (
+      account &&
+      account.keys.length > 1 &&
+      account.keys[0].creationType === 'importAddress'
+    )
+  }, [account])
+
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
@@ -744,7 +752,7 @@ export default function AccountView() {
   const animationValue = useRef(new Animated.Value(0)).current
   const gradientHeight = animationValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [190, 0]
+    outputRange: [isMultiAddressWatchOnly ? 100 : 190, 0]
   })
 
   const [connectionState, connectionString, isPrivateConnection] =
