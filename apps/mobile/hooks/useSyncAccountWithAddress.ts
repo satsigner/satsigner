@@ -595,12 +595,22 @@ function useSyncAccountWithAddress() {
     const addressDescriptors = await decryptAccountAddressDescriptors(account)
     let updatedAccount: Account = { ...account }
 
-    // reset the account sync progress
+    // reset account sync progress
     updatedAccount.syncProgress = {
       tasksDone: 0,
       totalTasks: 0
     }
     setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
+
+    // reset account summary
+    updatedAccount.summary = {
+      numberOfAddresses: 0,
+      numberOfUtxos: 0,
+      numberOfTransactions: 0,
+      balance: 0,
+      satsInMempool: 0
+    }
+    updateAccount(updatedAccount)
 
     for (const addressDescriptor of addressDescriptors) {
       const updatedData = await syncAccountWithAddressDescriptor(
