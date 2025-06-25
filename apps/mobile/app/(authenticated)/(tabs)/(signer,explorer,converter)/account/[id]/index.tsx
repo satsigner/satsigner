@@ -926,7 +926,9 @@ export default function AccountView() {
                     {account.summary.numberOfAddresses}
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {t('accounts.derivedAddresses')}
+                    {isMultiAddressWatchOnly
+                      ? t('accounts.watchedAddresses')
+                      : t('accounts.derivedAddresses')}
                   </SSText>
                   {tabIndex === 1 && (
                     <View

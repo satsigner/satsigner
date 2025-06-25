@@ -154,6 +154,7 @@
     "address": "Address",
     "change": "Change",
     "derivedAddresses": "Derived\nAddresses",
+    "watchedAddresses": "Watched\nAddresses",
     "empty": "No keys yet",
     "index": "Index",
     "label": "Label",
