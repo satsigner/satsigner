@@ -70,26 +70,42 @@ function useSyncAccountWithAddress() {
     account.syncProgress.tasksDone += 2
     setSyncProgress(account.id, account.syncProgress)
 
-    // update summary
+    // track existing txs and utxos
+    const existingTxs: Record<Transaction['id'], number> = {}
+    const existingUtxos: Record<string, number> = {}
+    account.transactions.forEach((tx, index) => {
+      existingTxs[tx.id] = index
+    })
+    account.utxos.forEach((u, index) => {
+      existingUtxos[getUtxoOutpoint(u)] = index
+    })
+
+    // compute new tx count and new utxo count
+    let newTxsCount = 0
+    let newUtxosCount = 0
+    esploraTxs.forEach((tx) => {
+      if (existingTxs[tx.txid] !== undefined)
+        newTxsCount += 1
+    })
+    esploraUtxos.forEach((utxo) => {
+      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] !== undefined)
+        newUtxosCount += 1
+    })
+
+    // update account summary with new transactions and utxos
     account.summary = {
       ...account.summary,
-      numberOfTransactions: esploraTxs.length,
-      numberOfUtxos: esploraUtxos.length,
-      numberOfAddresses: 1
+      numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
+      numberOfUtxos: account.summary.numberOfUtxos + newUtxosCount
     }
-
     updateAccount(account)
 
     // because we update the whole account at once, spread is necessary
     account.syncProgress = { ...account.syncProgress }
 
     // compute how much more requests are needed
-    const existingTx: Record<string, number> = {}
-    account.transactions.forEach((tx, index) => {
-      existingTx[tx.id] = index
-    })
     for (const tx of esploraTxs) {
-      if (existingTx[tx.txid] === undefined) {
+      if (existingTxs[tx.txid] === undefined) {
         account.syncProgress.totalTasks += 1
       }
     }
@@ -100,7 +116,7 @@ function useSyncAccountWithAddress() {
     for (let index = 0; index < esploraTxs.length; index++) {
       const t = esploraTxs[index]
 
-      if (existingTx[t.txid] !== undefined) {
+      if (existingTxs[t.txid] !== undefined) {
         continue
       }
 
@@ -259,11 +275,31 @@ function useSyncAccountWithAddress() {
     account.syncProgress.tasksDone += 3
     setSyncProgress(account.id, account.syncProgress)
 
+    // track transactions and utxos already known
+    const existingTx: Record<string, number> = {}
+    const existingUtxo: Record<string, number> = {}
+    account.transactions.forEach((tx, index) => {
+      existingTx[tx.id] = index
+    })
+    account.utxos.forEach((utxo, index) => {
+      existingUtxo[getUtxoOutpoint(utxo)] = index
+    })
+
+    // TODO: update it correctly
+    let newTxsCount = 0
+    let newUtxosCount = 0
+    addressTxs.forEach((t) => {
+      if (existingTx[t.tx_hash]) newTxsCount += 1
+    })
+    addressUtxos.forEach((u) => {
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`]) newUtxosCount += 1
+    })
+
     // update summary
     account.summary = {
-      numberOfTransactions: addressTxs.length,
-      numberOfUtxos: addressUtxos.length,
-      numberOfAddresses: 1,
+      ...account.summary,
+      numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
+      numberOfUtxos: account.summary.numberOfUtxos + newUtxosCount,
       balance: balance.confirmed,
       satsInMempool: balance.unconfirmed
     }
@@ -289,17 +325,6 @@ function useSyncAccountWithAddress() {
 
     // prevent modifying object just updated in store
     account.syncProgress = { ...account.syncProgress }
-
-    // transactions and utxos already known
-    const existingTx: Record<string, number> = {}
-    const existingUtxo: Record<string, number> = {}
-
-    account.transactions.forEach((tx, index) => {
-      existingTx[tx.id] = index
-    })
-    account.utxos.forEach((utxo, index) => {
-      existingUtxo[getUtxoOutpoint(utxo)] = index
-    })
 
     // transactions and utxos not known by the wallet
     const pendingTx = addressTxs.filter((t) => {
@@ -602,11 +627,9 @@ function useSyncAccountWithAddress() {
     }
     setSyncProgress(updatedAccount.id, updatedAccount.syncProgress)
 
-    // reset account summary
+    // reset account summary confirmed and unconfirmed balance
     updatedAccount.summary = {
-      numberOfAddresses: 0,
-      numberOfUtxos: 0,
-      numberOfTransactions: 0,
+      ...updatedAccount.summary,
       balance: 0,
       satsInMempool: 0
     }
@@ -619,17 +642,16 @@ function useSyncAccountWithAddress() {
       )
 
       // update summary
-      type Summary = Record<string, number>
-      const prevSummary = updatedAccount.summary as Summary
-      const newSummary = updatedData.summary as Summary
-      const summary = {} as Summary
-      for (const key in prevSummary) {
-        summary[key] = prevSummary[key] + newSummary[key]
-      }
+      const prevSummary = updatedAccount.summary as Account['summary']
+      const newSummary = updatedData.summary as Account['summary']
 
       updatedAccount = {
         ...updatedData,
-        summary: summary as Account['summary']
+        summary: {
+          ...newSummary,
+          balance: prevSummary.balance + newSummary.balance,
+          satsInMempool: prevSummary.satsInMempool + newSummary.satsInMempool
+        }
       }
     }
 
