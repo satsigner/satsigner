@@ -17,7 +17,13 @@ const useGetAccountWallet = (id: Account['id']) => {
   )
 
   async function addWallet() {
-    if (!account) return
+    if (
+      !account ||
+      account.keys.length === 0 ||
+      account.keys[0].creationType === 'importAddress'
+    ) {
+      return
+    }
     const walletData = await getWalletData(account, account.network as Network)
     if (!walletData) return
     addAccountWallet(id, walletData.wallet)

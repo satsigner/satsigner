@@ -126,10 +126,7 @@ export default function AuthenticatedLayout() {
 
           const updatedAccount = !isImportAddress
             ? await syncAccountWithWallet(account, walletData!.wallet)
-            : await syncAccountWithAddress(
-                account,
-                (temporaryAccount.keys[0].secret as Secret).externalDescriptor!
-              )
+            : await syncAccountWithAddress(account)
           updateAccount(updatedAccount)
         }
       } catch (error) {

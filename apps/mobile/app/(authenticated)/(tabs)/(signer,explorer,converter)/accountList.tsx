@@ -34,6 +34,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
+  sampleMultiAddressTether,
   sampleSalvadorAddress,
   sampleSegwitAddress,
   sampleSignetAddress,
@@ -111,6 +112,7 @@ export default function AccountList() {
     | 'watchonlySalvador'
     | 'watchonlySegwit'
     | 'watchonlyTestnet4'
+    | 'watchonlyTether'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
@@ -163,10 +165,7 @@ export default function AccountList() {
         const updatedAccount =
           account.policyType !== 'watchonly'
             ? await syncAccountWithWallet(account, wallets[account.id]!)
-            : await syncAccountWithAddress(
-                account,
-                `addr(${addresses[account.id]!})`
-              )
+            : await syncAccountWithAddress(account)
         updateAccount(updatedAccount)
       }
     }
@@ -179,7 +178,7 @@ export default function AccountList() {
     setKeyCount(1)
     setKeysRequired(1)
     setNetwork(network)
-    let sampleAddress
+    let _sampleAddress
 
     switch (type) {
       case 'segwit':
@@ -204,32 +203,39 @@ export default function AccountList() {
         setFingerprint(sampleSignetXpubFingerprint)
         break
       case 'watchonlyAddress':
-        sampleAddress = sampleSignetAddress
+        _sampleAddress = sampleSignetAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSignetAddress})`)
         break
       case 'watchonlySalvador':
-        sampleAddress = sampleSalvadorAddress
+        _sampleAddress = sampleSalvadorAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSalvadorAddress})`)
         break
       case 'watchonlySegwit':
-        sampleAddress = sampleSegwitAddress
+        _sampleAddress = sampleSegwitAddress
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleSegwitAddress})`)
         break
       case 'watchonlyTestnet4':
-        sampleAddress = sampleTestnet4Address
+        _sampleAddress = sampleTestnet4Address
         setPolicyType('watchonly')
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleTestnet4Address})`)
         break
+      case 'watchonlyTether':
+        setPolicyType('watchonly')
+        setCreationType('importAddress')
+        sampleMultiAddressTether.forEach((address, index) => {
+          setExternalDescriptor(`addr(${address})`)
+          setKey(index)
+        })
     }
 
-    setKey(0)
+    if (type !== 'watchonlyTether') setKey(0)
     const account = getAccountData()
 
     const data = await accountBuilderFinish(account)
@@ -244,10 +250,7 @@ export default function AccountList() {
               data.accountWithEncryptedSecret,
               data.wallet!
             )
-          : await syncAccountWithAddress(
-              data.accountWithEncryptedSecret,
-              `addr(${sampleAddress})`
-            )
+          : await syncAccountWithAddress(data.accountWithEncryptedSecret)
         updateAccount(updatedAccount)
       }
     } catch (error) {
@@ -327,6 +330,12 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => loadSampleWallet('watchonlySegwit')}
               loading={loadingWallet === 'watchonlySegwit'}
+            />
+            <SSButton
+              label={t('account.load.sample.bitcoin.address.tether')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyTether')}
+              loading={loadingWallet === 'watchonlyTether'}
             />
           </SSVStack>
         )
