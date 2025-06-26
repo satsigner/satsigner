@@ -84,8 +84,7 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     esploraTxs.forEach((tx) => {
-      if (existingTxs[tx.txid] === undefined)
-        newTxsCount += 1
+      if (existingTxs[tx.txid] === undefined) newTxsCount += 1
     })
     esploraUtxos.forEach((utxo) => {
       if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined)
@@ -185,35 +184,40 @@ function useSyncAccountWithAddress() {
     }
 
     // update utxos
-    account.utxos = esploraUtxos.map((u) => {
-      if (u.status.confirmed) {
-        confirmed += u.value
-      } else {
-        unconfirmed += u.value
-      }
+    const newUtxos = esploraUtxos
+      .filter((u) => {
+        return existingUtxos[`${u.txid}:${u.vout}`] === undefined
+      })
+      .map((u) => {
+        if (u.status.confirmed) {
+          confirmed += u.value
+        } else {
+          unconfirmed += u.value
+        }
 
-      let script: number[] | undefined
+        let script: number[] | undefined
 
-      if (txDictionary[u.txid] !== undefined) {
-        const index = txDictionary[u.txid]
-        const tx = esploraTxs[index]
-        script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
-      }
+        if (txDictionary[u.txid] !== undefined) {
+          const index = txDictionary[u.txid]
+          const tx = esploraTxs[index]
+          script = parseHexToBytes(tx.vout[u.vout].scriptpubkey)
+        }
 
-      const utxo: Utxo = {
-        txid: u.txid,
-        vout: u.vout,
-        value: u.value,
-        label: '',
-        addressTo: address,
-        keychain: 'external',
-        script,
-        timestamp: u.status.block_time
-          ? new Date(u.status.block_time * 1000)
-          : undefined
-      }
-      return utxo
-    })
+        const utxo: Utxo = {
+          txid: u.txid,
+          vout: u.vout,
+          value: u.value,
+          label: '',
+          addressTo: address,
+          keychain: 'external',
+          script,
+          timestamp: u.status.block_time
+            ? new Date(u.status.block_time * 1000)
+            : undefined
+        }
+        return utxo
+      })
+    account.utxos = [...account.utxos, ...newUtxos]
 
     // update account
     account.summary = {
@@ -289,12 +293,10 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     addressTxs.forEach((t) => {
-      if (existingTx[t.tx_hash] === undefined)
-        newTxsCount += 1
+      if (existingTx[t.tx_hash] === undefined) newTxsCount += 1
     })
     addressUtxos.forEach((u) => {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`])
-        newUtxosCount += 1
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined) newUtxosCount += 1
     })
 
     // update summary
