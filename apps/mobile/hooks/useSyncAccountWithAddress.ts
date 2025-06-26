@@ -84,11 +84,11 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     esploraTxs.forEach((tx) => {
-      if (existingTxs[tx.txid] !== undefined)
+      if (existingTxs[tx.txid] === undefined)
         newTxsCount += 1
     })
     esploraUtxos.forEach((utxo) => {
-      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] !== undefined)
+      if (existingUtxos[`${utxo.txid}:${utxo.vout}`] === undefined)
         newUtxosCount += 1
     })
 
@@ -289,10 +289,12 @@ function useSyncAccountWithAddress() {
     let newTxsCount = 0
     let newUtxosCount = 0
     addressTxs.forEach((t) => {
-      if (existingTx[t.tx_hash]) newTxsCount += 1
+      if (existingTx[t.tx_hash] === undefined)
+        newTxsCount += 1
     })
     addressUtxos.forEach((u) => {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`]) newUtxosCount += 1
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`])
+        newUtxosCount += 1
     })
 
     // update summary
@@ -630,6 +632,7 @@ function useSyncAccountWithAddress() {
     // reset account summary confirmed and unconfirmed balance
     updatedAccount.summary = {
       ...updatedAccount.summary,
+      numberOfAddresses: addressDescriptors.length,
       balance: 0,
       satsInMempool: 0
     }
@@ -654,6 +657,14 @@ function useSyncAccountWithAddress() {
         }
       }
     }
+
+    // make sure the final summary is right
+    updatedAccount.summary = {
+      ...updatedAccount.summary,
+      numberOfTransactions: updatedAccount.transactions.length,
+      numberOfUtxos: updatedAccount.utxos.length
+    }
+    updateAccount(updatedAccount)
 
     return updatedAccount
   }
