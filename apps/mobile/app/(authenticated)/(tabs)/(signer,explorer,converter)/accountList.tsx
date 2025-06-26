@@ -34,6 +34,7 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Network } from '@/types/settings/blockchain'
 import {
+  sampleMultiAddressTether,
   sampleSalvadorAddress,
   sampleSegwitAddress,
   sampleSignetAddress,
@@ -111,6 +112,7 @@ export default function AccountList() {
     | 'watchonlySalvador'
     | 'watchonlySegwit'
     | 'watchonlyTestnet4'
+    | 'watchonlyTether'
   const [loadingWallet, setLoadingWallet] = useState<SampleWallet>()
 
   const tabs = [{ key: 'bitcoin' }, { key: 'testnet' }, { key: 'signet' }]
@@ -224,9 +226,16 @@ export default function AccountList() {
         setCreationType('importAddress')
         setExternalDescriptor(`addr(${sampleTestnet4Address})`)
         break
+      case 'watchonlyTether':
+        setPolicyType('watchonly')
+        setCreationType('importAddress')
+        sampleMultiAddressTether.forEach((address, index) => {
+          setExternalDescriptor(`addr(${address})`)
+          setKey(index)
+        })
     }
 
-    setKey(0)
+    if (type !== 'watchonlyTether') setKey(0)
     const account = getAccountData()
 
     const data = await accountBuilderFinish(account)
@@ -321,6 +330,12 @@ export default function AccountList() {
               variant="subtle"
               onPress={() => loadSampleWallet('watchonlySegwit')}
               loading={loadingWallet === 'watchonlySegwit'}
+            />
+            <SSButton
+              label={t('account.load.sample.bitcoin.address.tether')}
+              variant="subtle"
+              onPress={() => loadSampleWallet('watchonlyTether')}
+              loading={loadingWallet === 'watchonlyTether'}
             />
           </SSVStack>
         )

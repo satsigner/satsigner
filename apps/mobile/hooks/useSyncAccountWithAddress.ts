@@ -296,7 +296,8 @@ function useSyncAccountWithAddress() {
       if (existingTx[t.tx_hash] === undefined) newTxsCount += 1
     })
     addressUtxos.forEach((u) => {
-      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined) newUtxosCount += 1
+      if (existingUtxo[`${u.tx_hash}:${u.tx_pos}`] === undefined)
+        newUtxosCount += 1
     })
 
     // update summary
