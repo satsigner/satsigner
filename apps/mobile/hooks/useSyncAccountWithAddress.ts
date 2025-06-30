@@ -289,7 +289,6 @@ function useSyncAccountWithAddress() {
       existingUtxo[getUtxoOutpoint(utxo)] = index
     })
 
-    // TODO: update it correctly
     let newTxsCount = 0
     let newUtxosCount = 0
     addressTxs.forEach((t) => {
@@ -305,8 +304,8 @@ function useSyncAccountWithAddress() {
       ...account.summary,
       numberOfTransactions: account.summary.numberOfTransactions + newTxsCount,
       numberOfUtxos: account.summary.numberOfUtxos + newUtxosCount,
-      balance: balance.confirmed,
-      satsInMempool: balance.unconfirmed
+      balance: account.summary.balance + balance.confirmed,
+      satsInMempool: account.summary.satsInMempool + balance.unconfirmed
     }
 
     // update address
@@ -346,7 +345,6 @@ function useSyncAccountWithAddress() {
 
     // variable to track timestamp data for both transactions and utxos
     const timestampByHeight: Record<number, number> = {}
-
     const rawTransactions = []
     const txTimestamps: number[] = []
 
