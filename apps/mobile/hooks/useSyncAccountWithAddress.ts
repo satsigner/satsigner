@@ -402,13 +402,22 @@ function useSyncAccountWithAddress() {
       account.syncProgress = { ...account.syncProgress }
     }
 
+    //
+    const addressTxsDict: Record<string, boolean> = {}
+    addressTxs.forEach((tx) => {
+      addressTxsDict[tx.tx_hash] = true
+    })
+
     // Parse the raw transaction and timestamps to transaction objects.
     // This will  correctly include vin, vout, sent and received.
     const allTransactions = electrumClient.parseAddressPartialTransactions(
       address,
-      account.transactions
+      account.transactions.filter((tx) => addressTxsDict[tx.id])
     )
-    account.transactions = allTransactions
+    account.transactions = [
+      ...allTransactions,
+      ...account.transactions.filter((tx) => !addressTxsDict[tx.id])
+    ]
     updateAccount(account)
 
     // prevent modifying store object just updated
