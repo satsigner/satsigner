@@ -43,7 +43,6 @@ Pages code should call these functions and local state (with useState)/zustand s
 Add/update constants inside the constants folder
 
 [Before commiting]
-
 Remove console.logs
 Run the linter: yarn lint:fix
 Run the formatter: yarn format:fix
