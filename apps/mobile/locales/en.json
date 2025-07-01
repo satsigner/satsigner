@@ -154,7 +154,6 @@
     "address": "Address",
     "change": "Change",
     "derivedAddresses": "Derived\nAddresses",
-    "watchedAddresses": "Watched\nAddresses",
     "empty": "No keys yet",
     "index": "Index",
     "label": "Label",
@@ -165,7 +164,8 @@
     "totalTransactions": "Total\nTransactions",
     "txs": "Txs",
     "unspentSats": "Sats",
-    "utxos": "UTXOs"
+    "utxos": "UTXOs",
+    "watchedAddresses": "Watched\nAddresses"
   },
   "address": {
     "details.balance.confirmed": "Confirmed",

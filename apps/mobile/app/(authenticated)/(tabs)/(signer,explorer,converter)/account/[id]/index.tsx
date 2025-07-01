@@ -298,7 +298,6 @@ function DerivedAddresses({
   async function refreshAddresses() {
     if (isMultiAddressWatchOnly) {
       loadExactAccountAddresses()
-      console.log(account.addresses)
       return
     }
 
@@ -311,7 +310,6 @@ function DerivedAddresses({
   async function loadMoreAddresses() {
     if (isMultiAddressWatchOnly) {
       loadExactAccountAddresses()
-      console.log(account.addresses)
       return
     }
 
