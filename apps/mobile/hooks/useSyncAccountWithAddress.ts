@@ -222,8 +222,8 @@ function useSyncAccountWithAddress() {
     // update account
     account.summary = {
       ...account.summary,
-      balance: confirmed,
-      satsInMempool: unconfirmed
+      balance: account.summary.balance + confirmed,
+      satsInMempool: account.summary.satsInMempool + unconfirmed
     }
 
     // update address
@@ -655,16 +655,11 @@ function useSyncAccountWithAddress() {
       )
 
       // update summary
-      const prevSummary = updatedAccount.summary as Account['summary']
       const newSummary = updatedData.summary as Account['summary']
 
       updatedAccount = {
         ...updatedData,
-        summary: {
-          ...newSummary,
-          balance: prevSummary.balance + newSummary.balance,
-          satsInMempool: prevSummary.satsInMempool + newSummary.satsInMempool
-        }
+        summary: newSummary
       }
     }
 
