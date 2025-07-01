@@ -18,7 +18,6 @@ Use useShallow if you are selecting for that one piece of state from one store l
 See docs/pages/develop/store.mdx for more state management best practices
 
 [TSX]
-
 Don't add spaces between component/react native tags
 Prioritize using already created layouts and components. Layouts components are under layouts folder and components under components folder.
 
