@@ -1,0 +1,49 @@
+[MOBILE RULES]
+
+[i18n]
+Strings should be localized. Add translation in en.json. Use the translation like: t('common.cancel')
+Strings in i18n files should only be 1 level deep at most. Then use dots to separate like: "address": { "details.balance.confirmed": "Confirmed", "details.balance.title": "Balance" }
+
+[Navigation]
+We use expo-router. Follow expo-router best practices.
+Use useLocalSearchParams with type annotation for type the params like: useLocalSearchParams<AccountSearchParams>(). Navigation searchParams types should be under mobile/types/navigation/searchParams
+
+[State Management]
+We use zustand for state management. Stores are under the store folder. Stores that need to persist, we use mmkvStorage (use createJSONStorage and persist functions from zustand)
+We type our State and Actions separately like: type AuthState = {}; type AuthAction = {}
+We recommend using derived types from state when typing actions like: setFirstTime: (firstTime: AuthState['firstTime']) => void
+Use immer to mutate nested state in objects/arrays and a simple set for trivial state mutations.
+Zustand should only be responsible to store and mutate state and not run external functions or business logic
+Use useShallow if you are selecting for that one piece of state from one store like: const [exampleState3, exampleAction5] = useBearStore(useShallow((state) => [state.exampleState3, state.exampleAction5]))
+See docs/pages/develop/store.mdx for more state management best practices
+
+[TSX]
+Don't add spaces between component/react native tags
+Prioritize using already created layouts and components. Layouts components are under layouts folder and components under components folder.
+
+[Components]
+Components and layouts are prefixed with "SS"
+Follow the component anatomy & best practices described in docs/pages/develop/components.mdx
+
+[Pages]
+Inside the app folder is where our pages are.
+Prioritize using inline styles for overriding components defaults before creating const styles = StyleSheet.create
+Organize the code inside the page - this is very important - first declare hooks, then use zustand stores, then useState and useMemo/useCallback then useEffects/useFocusEffect/function declarations - finally the jsx
+Avoid creating unnecessary state with useState and overuse useEffect
+
+[Storage]
+Use storage/encrypted to store things in keychain securely
+Use storage/mmkv for fast read/write (fully synchronous)
+
+[API]
+We put api logic inside api folder
+Pages code should call these functions and local state (with useState)/zustand should handle the state
+
+[Constants]
+Add/update constants inside the constants folder
+
+[Before commiting]
+Remove console.logs
+Run the linter: yarn lint:fix
+Run the formatter: yarn format:fix
+Run type-checking: yarn type-check
