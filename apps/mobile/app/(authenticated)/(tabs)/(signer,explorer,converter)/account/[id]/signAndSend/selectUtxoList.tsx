@@ -180,7 +180,11 @@ export default function SelectUtxoList() {
       <SSHStack justifyBetween style={{ paddingHorizontal: '5%' }}>
         <SSButton
           variant="ghost"
-          label={`${selectedAllUtxos ? t('common.deselectAll').toUpperCase() : t('common.selectAll').toUpperCase()} ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${t('bitcoin.sats').toLowerCase()}`}
+          label={`${
+            selectedAllUtxos
+              ? t('common.deselectAll').toUpperCase()
+              : t('common.selectAll').toUpperCase()
+          } ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${t('bitcoin.sats').toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],
