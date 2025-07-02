@@ -12,6 +12,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 // Internal imports
 import { buildTransaction } from '@/api/bdk'
+import { PartiallySignedTransaction } from 'bdk-rn'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
@@ -195,6 +196,82 @@ function PreviewMessage() {
     }
   }
 
+  // Function to convert PSBT hex to final transaction hex
+  const convertPsbtToFinalTransaction = (psbtHex: string): string => {
+    try {
+      // First, try to combine with original PSBT if available
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (originalPsbtBase64) {
+        try {
+          // Convert hex PSBT to base64 for combination
+          const signedPsbtBase64 = Buffer.from(psbtHex, 'hex').toString(
+            'base64'
+          )
+
+          // Combine the PSBTs using bitcoinjs-lib
+          const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
+
+          // Combine the PSBTs - this merges the signatures from signed PSBT with the full data from original PSBT
+          const combinedPsbt = originalPsbt.combine(signedPsbt)
+
+          // Try to finalize the combined PSBT
+          try {
+            combinedPsbt.finalizeAllInputs()
+
+            // Extract the final transaction
+            const tx = combinedPsbt.extractTransaction()
+            const finalTxHex = tx.toHex().toUpperCase()
+
+            return finalTxHex
+          } catch (finalizeError) {
+            // If finalization fails, return the combined PSBT as base64
+            const combinedBase64 = combinedPsbt.toBase64()
+            return combinedBase64
+          }
+        } catch (combineError) {
+          // Fall back to direct PSBT processing
+        }
+      }
+
+      // Fallback: try direct PSBT processing without combination
+      const psbt = bitcoinjs.Psbt.fromHex(psbtHex)
+
+      // Check if inputs are already finalized
+      let needsFinalization = false
+      for (let i = 0; i < psbt.data.inputs.length; i++) {
+        const input = psbt.data.inputs[i]
+        if (!input.finalScriptSig && !input.finalScriptWitness) {
+          needsFinalization = true
+          break
+        }
+      }
+
+      // Try to finalize all inputs if needed
+      if (needsFinalization) {
+        try {
+          psbt.finalizeAllInputs()
+        } catch (finalizeError) {
+          // If finalization fails, return the PSBT hex as-is
+          return psbtHex
+        }
+      }
+
+      // Extract the final transaction
+      try {
+        const tx = psbt.extractTransaction()
+        const finalTxHex = tx.toHex().toUpperCase()
+        return finalTxHex
+      } catch (extractError) {
+        // If extraction fails, return the PSBT hex as-is
+        return psbtHex
+      }
+    } catch (error) {
+      // Return original PSBT hex as fallback
+      return psbtHex
+    }
+  }
+
   const resetScanProgress = () => {
     setScanProgress({
       type: null,
@@ -208,8 +285,6 @@ function PreviewMessage() {
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
   ): string | null => {
-    console.log(`🔧 Assembling ${type.toUpperCase()} chunks:`, chunks)
-
     try {
       switch (type) {
         case 'raw': {
@@ -218,11 +293,6 @@ function PreviewMessage() {
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
-          console.log('✅ RAW assembled result:', assembled)
-          console.log(
-            '✅ RAW assembled result (hex):',
-            Buffer.from(assembled, 'utf8').toString('hex')
-          )
           return assembled
         }
 
@@ -236,16 +306,10 @@ function PreviewMessage() {
 
           if (decoded) {
             // Convert binary PSBT to base64 for compatibility
-            const hexResult = Buffer.from(decoded).toString('hex')
             const base64Result = Buffer.from(decoded).toString('base64')
-
-            console.log('✅ BBQR decoded hex result:', hexResult)
-            console.log('✅ BBQR decoded base64 result:', base64Result)
-
             return base64Result
           }
 
-          console.log('❌ BBQR decoding failed')
           return null
         }
 
@@ -264,23 +328,22 @@ function PreviewMessage() {
             result = decodeMultiPartURToPSBT(sortedChunks)
           }
 
-          console.log('✅ UR decoded result:', result)
+          // Check if result is a PSBT and convert to final transaction
+          if (result.toLowerCase().startsWith('70736274ff')) {
+            const convertedResult = convertPsbtToFinalTransaction(result)
 
-          // Try to convert to base64 if it's valid hex
-          try {
-            const isValidHex = /^[a-fA-F0-9]+$/.test(result)
-            if (isValidHex) {
-              const base64Result = Buffer.from(result, 'hex').toString('base64')
-              console.log('✅ UR result converted to base64:', base64Result)
+            // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
+            if (
+              convertedResult.toLowerCase().startsWith('70736274ff') ||
+              convertedResult.startsWith('cHNidP')
+            ) {
+              return convertedResult
             } else {
-              console.log('⚠️ UR result is not valid hex, keeping as-is')
+              return convertedResult
             }
-          } catch (error) {
-            console.log('❌ Error converting UR result:', error)
-            toast.error(String(error))
+          } else {
+            return result
           }
-
-          return result
         }
 
         default:
@@ -562,22 +625,11 @@ function PreviewMessage() {
       return
     }
 
-    console.log('🔍 QR Scan Result:', data)
-    console.log(
-      '🔍 QR Scan Result (hex):',
-      Buffer.from(data, 'utf8').toString('hex')
-    )
-
     // Detect QR code type and format
     const qrInfo = detectQRType(data)
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
-      console.log('✅ Single QR scan complete:', qrInfo.content)
-      console.log(
-        '✅ Single QR scan complete (hex):',
-        Buffer.from(qrInfo.content, 'utf8').toString('hex')
-      )
       setCameraModalVisible(false)
       setSignedPsbt(qrInfo.content)
       resetScanProgress()
@@ -635,46 +687,60 @@ function PreviewMessage() {
         (newScanned.size >= 8 && newScanned.size % 2 === 0)
 
       if (shouldTryAssembly) {
-        console.log(
-          `🎯 Attempting UR assembly with ${newScanned.size} chunks (need ~${total})...`
-        )
         const assembledData = assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
-          console.log('🎉 UR assembly successful!')
-          console.log(
-            '🎉 Final assembled data:',
-            assembledData.substring(0, 100) + '...'
-          )
+          // Check if the assembled data is a PSBT and convert it
+          if (assembledData.toLowerCase().startsWith('70736274ff')) {
+            const convertedResult = convertPsbtToFinalTransaction(assembledData)
+
+            // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
+            if (
+              convertedResult.toLowerCase().startsWith('70736274ff') ||
+              convertedResult.startsWith('cHNidP')
+            ) {
+              setSignedPsbt(convertedResult)
+            } else {
+              setSignedPsbt(convertedResult)
+            }
+          } else {
+            setSignedPsbt(assembledData)
+          }
+
           setCameraModalVisible(false)
-          setSignedPsbt(assembledData)
           resetScanProgress()
           toast.success(
             `Successfully assembled UR transaction from ${newScanned.size} fragments`
           )
           return
-        } else {
-          console.log(
-            `⏳ UR assembly not ready yet, need more fragments (${newScanned.size}/${total})`
-          )
         }
       }
 
       // Continue scanning for UR, but with stricter limits
       // Stop after collecting 3x the expected fragments or 25 fragments max
       if (newScanned.size >= Math.min(total * 3, 25)) {
-        console.log(
-          `❌ UR fragment limit reached: ${newScanned.size} fragments collected`
-        )
-
         // Try one final assembly attempt before giving up
-        console.log('🎯 Final UR assembly attempt...')
         const finalAssembly = assembleMultiPartQR(type, newChunks)
 
         if (finalAssembly) {
-          console.log('🎉 Final UR assembly successful!')
+          // Check if the assembled data is a PSBT and convert it
+          if (finalAssembly.toLowerCase().startsWith('70736274ff')) {
+            const convertedResult = convertPsbtToFinalTransaction(finalAssembly)
+
+            // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
+            if (
+              convertedResult.toLowerCase().startsWith('70736274ff') ||
+              convertedResult.startsWith('cHNidP')
+            ) {
+              setSignedPsbt(convertedResult)
+            } else {
+              setSignedPsbt(convertedResult)
+            }
+          } else {
+            setSignedPsbt(finalAssembly)
+          }
+
           setCameraModalVisible(false)
-          setSignedPsbt(finalAssembly)
           resetScanProgress()
           toast.success(
             `Successfully assembled UR transaction from ${newScanned.size} fragments`
@@ -691,9 +757,6 @@ function PreviewMessage() {
         return
       }
 
-      console.log(
-        `📊 UR Progress: ${newScanned.size} fragments collected (target: ~${total})`
-      )
       toast.success(
         `UR: Collected ${newScanned.size} fragments (need ~${total})`
       )
@@ -701,16 +764,9 @@ function PreviewMessage() {
       // For RAW and BBQR, wait for all chunks as before
       if (newScanned.size === total) {
         // All chunks collected, assemble the final result
-        console.log(`🎯 All ${total} chunks collected, assembling...`)
         const assembledData = assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
-          console.log('🎉 Multi-part assembly successful!')
-          console.log('🎉 Final assembled data:', assembledData)
-          console.log(
-            '🎉 Final assembled data (hex):',
-            Buffer.from(assembledData, 'utf8').toString('hex')
-          )
           setCameraModalVisible(false)
           setSignedPsbt(assembledData)
           resetScanProgress()
@@ -718,12 +774,10 @@ function PreviewMessage() {
             `Successfully assembled ${type.toUpperCase()} transaction from ${total} parts`
           )
         } else {
-          console.log('❌ Multi-part assembly failed')
           toast.error('Failed to assemble multi-part QR code')
           resetScanProgress()
         }
       } else {
-        console.log(`📊 Progress: ${newScanned.size}/${total} chunks collected`)
         toast.success(
           `Scanned part ${current + 1} of ${total} (${newScanned.size}/${total} complete)`
         )
@@ -1272,7 +1326,9 @@ function PreviewMessage() {
             )}
 
             <CameraView
-              onBarcodeScanned={(res) => handleQRCodeScanned(res.raw)}
+              onBarcodeScanned={(res) => {
+                handleQRCodeScanned(res.raw)
+              }}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               style={{ width: 340, height: 340 }}
             />

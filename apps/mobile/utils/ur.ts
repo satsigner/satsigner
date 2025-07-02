@@ -170,28 +170,14 @@ export function decodeURToPSBT(ur: string): string {
         psbtHex.substring(0, 100)
       )
 
-      // Try to extract final transaction, but return PSBT if extraction fails
+      // For UR format, return the PSBT hex directly instead of trying to extract final transaction
+      // This ensures we preserve all the witness data and signatures
       if (psbtHex.toLowerCase().startsWith('70736274')) {
         console.log(
-          '✅ Valid PSBT detected, attempting to extract final transaction'
+          '✅ Valid PSBT detected, returning PSBT hex directly to preserve witness data'
         )
-        try {
-          const finalTxHex = extractFinalTransactionHexFromPSBT(psbtHex)
-          console.log(
-            '✅ Successfully extracted final transaction hex:',
-            finalTxHex.substring(0, 100) + '...'
-          )
-          return finalTxHex
-        } catch (extractError) {
-          console.log(
-            '⚠️ Failed to extract final transaction, returning PSBT hex instead:',
-            extractError
-          )
-          console.log(
-            '⚠️ This might be a partially signed PSBT or missing witness data'
-          )
-          return psbtHex
-        }
+        console.log('✅ PSBT hex length:', psbtHex.length, 'bytes')
+        return psbtHex
       } else {
         console.log('⚠️ Not a valid PSBT, returning as-is')
         return psbtHex
@@ -298,28 +284,14 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
             psbtHex.substring(0, 100)
           )
 
-          // Try to extract final transaction, but return PSBT if extraction fails
+          // For UR format, return the PSBT hex directly instead of trying to extract final transaction
+          // This ensures we preserve all the witness data and signatures
           if (psbtHex.toLowerCase().startsWith('70736274')) {
             console.log(
-              '✅ Valid PSBT detected, attempting to extract final transaction'
+              '✅ Valid PSBT detected, returning PSBT hex directly to preserve witness data'
             )
-            try {
-              const finalTxHex = extractFinalTransactionHexFromPSBT(psbtHex)
-              console.log(
-                '✅ Successfully extracted final transaction hex:',
-                finalTxHex.substring(0, 100) + '...'
-              )
-              return finalTxHex
-            } catch (extractError) {
-              console.log(
-                '⚠️ Failed to extract final transaction, returning PSBT hex instead:',
-                extractError
-              )
-              console.log(
-                '⚠️ This might be a partially signed PSBT or missing witness data'
-              )
-              return psbtHex
-            }
+            console.log('✅ PSBT hex length:', psbtHex.length, 'bytes')
+            return psbtHex
           } else {
             console.log('⚠️ Not a valid PSBT, returning as-is')
             return psbtHex
