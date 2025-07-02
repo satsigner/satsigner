@@ -1,0 +1,21 @@
+[COMMON RULES]
+
+In satsigner we use prettier.
+We have the following rules with prettier:
+
+printWidth 80
+semi false
+singleQuote true
+trailingComma none
+
+We also alphabetically sort .json files under mobile/locales folder
+
+We use 2 for identation
+
+[TYPESCRIPT RULES]
+
+For typescript we prefer to use function keyword to create functions
+We prefer types over interfaces
+For constants we use uppercase and underscores like: ELECTRUM_URL
+We try to avoid any at all costs
+When importing types, we add the type keyword before the type name like: import { type Block } from '...'
