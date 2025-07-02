@@ -9,6 +9,7 @@ import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import useNostrSync from '@/hooks/useNostrSync'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -33,6 +34,8 @@ export default function ImportLabels() {
     ])
   )
 
+  const { sendLabelsToNostr } = useNostrSync()
+
   const [importType, setImportType] = useState<Bip329FileType>('JSONL')
   const [importContent, setImportContent] = useState('')
   const [invalidContent, setInvalidContent] = useState(false)
@@ -47,6 +50,7 @@ export default function ImportLabels() {
     setImportCount(importCount)
     setImportCountTotal(labels.length)
     setSuccessMsgVisible(true)
+    sendLabelsToNostr(account)
   }
 
   function importLabelsFromClipboard() {

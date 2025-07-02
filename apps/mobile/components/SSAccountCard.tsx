@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Animated, Easing, Platform, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -27,16 +28,30 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
-  const rotateAnim = new Animated.Value(0)
+  const rotateAnim = useRef(new Animated.Value(0)).current
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null)
 
-  Animated.loop(
-    Animated.timing(rotateAnim, {
-      toValue: 1,
-      duration: 1500,
-      easing: Easing.linear,
-      useNativeDriver: true
-    })
-  ).start()
+  useEffect(() => {
+    if (account.syncStatus === 'syncing') {
+      animationRef.current = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.linear,
+          useNativeDriver: true
+        })
+      )
+      animationRef.current.start()
+    } else {
+      animationRef.current?.stop()
+      rotateAnim.setValue(0)
+    }
+
+    return () => {
+      animationRef.current?.stop()
+      rotateAnim.setValue(0)
+    }
+  }, [account.syncStatus, rotateAnim])
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -80,7 +95,6 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.year', { value: years })}`
           }
         }
-
         break
       }
       case 'syncing': {

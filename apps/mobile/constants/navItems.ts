@@ -29,8 +29,8 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.lightning'),
         icon: SSIconLightning,
-        url: '',
-        isSoon: true,
+        url: '/signer/lightning',
+        isSoon: false,
         platform: PLATFORM.HYBRID
       },
       {
@@ -109,7 +109,7 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.currency'),
         icon: SSIconCurrency,
-        url: '/currency',
+        url: '/converter/currency',
         isSoon: false,
         platform: PLATFORM.HYBRID
       },
@@ -123,8 +123,8 @@ export const navMenuGroups: NavMenuGroup[] = [
       {
         title: t('navigation.item.energy'),
         icon: SSIconLightning,
-        url: '',
-        isSoon: true,
+        url: '/converter/energy',
+        isSoon: false,
         platform: PLATFORM.ANDROID
       }
     ]

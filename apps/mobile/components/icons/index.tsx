@@ -53,6 +53,7 @@ import SSIconKeys from './SSIconKeys'
 import SSIconLightning from './SSIconLightning'
 import SSIconLiquid from './SSIconLiquid'
 import SSIconList from './SSIconList'
+import SSIconLNSettings from './SSIconLNSettings'
 import SSIconLock from './SSIconLock'
 import SSIconMempool from './SSIconMempool'
 import SSIconMenu from './SSIconMenu'
@@ -135,6 +136,7 @@ export {
   SSIconLightning,
   SSIconLiquid,
   SSIconList,
+  SSIconLNSettings,
   SSIconLock,
   SSIconMempool,
   SSIconMenu,

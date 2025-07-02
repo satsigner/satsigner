@@ -51,6 +51,9 @@ import { formatNumber } from '@/utils/format'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 
+// Maximum number of days without syncing the wallet before we show a warning
+const MAX_DAYS_WITHOUT_SYNCING = 3
+
 export default function IOPreview() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -378,6 +381,7 @@ export default function IOPreview() {
     // Account not synced. Go to warning page to sync it.
     if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+      return
     }
 
     const lastSync = new Date(account.lastSyncedAt as Date)
@@ -400,8 +404,9 @@ export default function IOPreview() {
     )
 
     // Account updated too long ago.
-    if (daysSinceLastSync > 1) {
+    if (daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+      return
     }
 
     // Ok, go to the preview page.
@@ -410,7 +415,7 @@ export default function IOPreview() {
 
   const handleTopLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout
-    setTopGradientHeight(height + Layout.mainContainer.paddingTop)
+    setTopGradientHeight(height)
   }
   const handleLoadHistory = () => {
     setLoadHistory(!loadHistory)
@@ -418,7 +423,12 @@ export default function IOPreview() {
   // if (!nodes.length || !links.length) return <Redirect href="/" />
 
   return (
-    <View style={{ flex: 1 }}>
+    <View
+      style={{
+        flex: 1,
+        position: 'relative'
+      }}
+    >
       <Stack.Screen
         options={{
           headerTitle: () => <SSText uppercase>{account.name}</SSText>
@@ -430,14 +440,20 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 0,
+          zIndex: 10,
           pointerEvents: 'none'
         }}
         onLayout={handleTopLayout}
-        locations={[0.185, 0.5554, 0.7713, 1]}
-        colors={['#131313F5', '#131313A6', '#1313134B', '#13131300']}
+        locations={[0.19, 0.566, 0.77, 1]}
+        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       >
-        <SSVStack itemsCenter gap="sm" style={{ flex: 1 }}>
+        <SSVStack
+          itemsCenter
+          gap="sm"
+          style={{
+            flex: 1
+          }}
+        >
           <SSVStack itemsCenter gap="xs">
             <SSText>
               {inputs.size} {t('common.of').toLowerCase()}{' '}
@@ -486,13 +502,22 @@ export default function IOPreview() {
           </SSVStack>
         </SSVStack>
       </LinearGradient>
+      <LinearGradient
+        style={{
+          width: '100%',
+          position: 'absolute',
+          paddingHorizontal: Layout.mainContainer.paddingHorizontal,
+          paddingTop: Layout.mainContainer.paddingTop,
+          zIndex: 10,
+          pointerEvents: 'none',
+          opacity: 0.7,
+          height: topGradientHeight
+        }}
+        locations={[0, 0.56, 0.77, 1]}
+        colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
+      />
       {inputs.size > 0 ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: loadHistory ? topGradientHeight : 80
-          }}
-        >
+        <View style={{ position: 'absolute' }}>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}
@@ -604,7 +629,7 @@ export default function IOPreview() {
           number: currentOutputNumber
         })}
       >
-        <SSVStack>
+        <SSVStack style={{ paddingBottom: 24 }}>
           <SSNumberGhostInput
             min={DUST_LIMIT}
             max={remainingSats}
@@ -760,29 +785,31 @@ export default function IOPreview() {
         ref={changeFeeBottomSheetRef}
         title={t('transaction.build.update.fee.title')}
       >
-        <SSFeeRateChart
-          mempoolStatistics={mempoolStatistics}
-          timeRange="2hours"
-          boxPosition={boxPosition}
-        />
-        <SSFeeInput
-          value={localFeeRate}
-          onValueChange={setLocalFeeRate}
-          vbytes={transactionSize.vsize}
-          max={40}
-          estimatedBlock={Math.trunc(40 / localFeeRate)}
-        />
-        <SSButton
-          label={t('transaction.build.set.fee')}
-          variant="secondary"
-          style={{ flex: 1 }}
-          onPress={handleSetFeeRate}
-        />
-        <SSButton
-          label={t('common.cancel')}
-          variant="ghost"
-          onPress={() => changeFeeBottomSheetRef.current?.close()}
-        />
+        <SSVStack style={{ paddingBottom: 24 }}>
+          <SSFeeRateChart
+            mempoolStatistics={mempoolStatistics}
+            timeRange="2hours"
+            boxPosition={boxPosition}
+          />
+          <SSFeeInput
+            value={localFeeRate}
+            onValueChange={setLocalFeeRate}
+            vbytes={transactionSize.vsize}
+            max={40}
+            estimatedBlock={Math.trunc(40 / localFeeRate)}
+          />
+          <SSButton
+            label={t('transaction.build.set.fee')}
+            variant="secondary"
+            style={{ flex: 1 }}
+            onPress={handleSetFeeRate}
+          />
+          <SSButton
+            label={t('common.cancel')}
+            variant="ghost"
+            onPress={() => changeFeeBottomSheetRef.current?.close()}
+          />
+        </SSVStack>
       </SSBottomSheet>
       <SSModal
         visible={cameraModalVisible}
