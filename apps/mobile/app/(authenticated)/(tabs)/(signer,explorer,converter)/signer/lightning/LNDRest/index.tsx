@@ -57,9 +57,7 @@ export default function LNDRestPage() {
 
       if (!lndConfig.macaroon || !lndConfig.url) {
         throw new Error(
-          `Invalid config format: missing required fields. Found: ${Object.keys(
-            lndConfig
-          ).join(', ')}`
+          `Invalid config format: missing required fields. Found: ${Object.keys(lndConfig).join(', ')}`
         )
       }
 

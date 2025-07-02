@@ -74,9 +74,7 @@ export default function ExportDescriptors() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
-    const filename = `${t(
-      'export.file.name.descriptors'
-    )}_${accountId}_${date}.${ext}`
+    const filename = `${t('export.file.name.descriptors')}_${accountId}_${date}.${ext}`
     shareFile({
       filename,
       fileContent: exportContent,

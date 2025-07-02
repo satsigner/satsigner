@@ -197,5 +197,3 @@ yarn android
 
 yarn ios
 ```
-
-# Test GPG signing

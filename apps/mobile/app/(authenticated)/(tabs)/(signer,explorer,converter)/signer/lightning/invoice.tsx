@@ -275,9 +275,7 @@ export default function InvoicePage() {
           amountMillisats > lnurlDetails.maxWithdrawable
         ) {
           throw new Error(
-            `Amount must be between ${Math.ceil(
-              lnurlDetails.minWithdrawable / 1000
-            )} and ${Math.floor(lnurlDetails.maxWithdrawable / 1000)} sats`
+            `Amount must be between ${Math.ceil(lnurlDetails.minWithdrawable / 1000)} and ${Math.floor(lnurlDetails.maxWithdrawable / 1000)} sats`
           )
         }
 
