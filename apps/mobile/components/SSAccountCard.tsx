@@ -95,7 +95,6 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.year', { value: years })}`
           }
         }
-
         break
       }
       case 'syncing': {
