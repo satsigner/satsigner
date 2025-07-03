@@ -12,7 +12,6 @@ import { useShallow } from 'zustand/react/shallow'
 
 // Internal imports
 import { buildTransaction } from '@/api/bdk'
-import { PartiallySignedTransaction } from 'bdk-rn'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
@@ -224,13 +223,13 @@ function PreviewMessage() {
             const finalTxHex = tx.toHex().toUpperCase()
 
             return finalTxHex
-          } catch (finalizeError) {
+          } catch (_finalizeError) {
             // If finalization fails, return the combined PSBT as base64
             const combinedBase64 = combinedPsbt.toBase64()
 
             return combinedBase64
           }
-        } catch (combineError) {
+        } catch (_combineError) {
           // Fall back to direct PSBT processing
         }
       }
@@ -252,7 +251,7 @@ function PreviewMessage() {
       if (needsFinalization) {
         try {
           psbt.finalizeAllInputs()
-        } catch (finalizeError) {
+        } catch (_finalizeError) {
           // If finalization fails, return the PSBT hex as-is
           return psbtHex
         }
@@ -264,11 +263,11 @@ function PreviewMessage() {
         const finalTxHex = tx.toHex().toUpperCase()
 
         return finalTxHex
-      } catch (extractError) {
+      } catch (_extractError) {
         // If extraction fails, return the PSBT hex as-is
         return psbtHex
       }
-    } catch (error) {
+    } catch (_error) {
       // Return original PSBT hex as fallback
       return psbtHex
     }

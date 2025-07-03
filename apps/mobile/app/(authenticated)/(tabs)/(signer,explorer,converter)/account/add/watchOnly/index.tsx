@@ -291,7 +291,6 @@ export default function WatchOnly() {
 
       setNetwork(network)
       setKey(0)
-      const account = getAccountData()
 
       const data = await accountBuilderFinish(account)
       if (!data) {

@@ -1,6 +1,6 @@
 import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur'
-import { Buffer } from 'buffer'
 import * as bitcoin from 'bitcoinjs-lib'
+import { Buffer } from 'buffer'
 
 export interface URData {
   type: string
@@ -103,7 +103,7 @@ export function getURFragmentsFromPSBT(
  * Simple base32 decoder for UR data
  * This is a fallback when the proper UR library fails
  */
-function decodeBase32ToHex(base32Data: string): string {
+function _decodeBase32ToHex(base32Data: string): string {
   try {
     // Base32 alphabet used by UR format
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
@@ -244,7 +244,7 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
             return psbtHex
           }
         }
-      } catch (resultError) {
+      } catch (_resultError) {
         // Continue to error handling
       }
     }
@@ -273,7 +273,7 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
             return psbtHex
           }
         }
-      } catch (forceError) {
+      } catch (_forceError) {
         // Continue to final error
       }
 
@@ -292,7 +292,7 @@ export function decodeMultiPartURToPSBT(urFragments: string[]): string {
  * Extract final transaction hex from PSBT data by finalizing all inputs
  * This properly handles PSBTs by finalizing them and extracting the final transaction
  */
-function extractFinalTransactionHexFromPSBT(psbtHex: string): string {
+function _extractFinalTransactionHexFromPSBT(psbtHex: string): string {
   try {
     const psbt = bitcoin.Psbt.fromHex(psbtHex)
 
@@ -301,7 +301,7 @@ function extractFinalTransactionHexFromPSBT(psbtHex: string): string {
       const tx = psbt.extractTransaction()
       const txHex = tx.toHex()
       return txHex
-    } catch (directError) {
+    } catch (_directError) {
       // If direct extraction fails, try finalizing first
       try {
         // Create a new PSBT instance to avoid state issues
@@ -311,7 +311,7 @@ function extractFinalTransactionHexFromPSBT(psbtHex: string): string {
         const tx = freshPsbt.extractTransaction()
         const txHex = tx.toHex()
         return txHex
-      } catch (finalizeError) {
+      } catch (_finalizeError) {
         // Last resort: try manual witness extraction if this is a witness transaction
         try {
           const manualTxHex = extractWitnessTransactionFromPSBT(psbtHex)
@@ -322,11 +322,11 @@ function extractFinalTransactionHexFromPSBT(psbtHex: string): string {
           ) {
             return manualTxHex
           }
-        } catch (manualError) {
+        } catch (_manualError) {
           // Continue to final error
         }
 
-        throw finalizeError
+        throw _finalizeError
       }
     }
   } catch (error) {
@@ -350,7 +350,7 @@ function extractWitnessTransactionFromPSBT(psbtHex: string): string {
     }
 
     // Skip PSBT header: 70736274ff (5 bytes)
-    let offset = 10 // 5 bytes * 2 hex chars
+    const offset = 10 // 5 bytes * 2 hex chars
 
     // Skip global map length and data
     // This is a simplified approach - in reality we'd need to parse the full PSBT structure
