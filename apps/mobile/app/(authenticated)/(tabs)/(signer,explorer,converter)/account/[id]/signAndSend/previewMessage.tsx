@@ -227,6 +227,7 @@ function PreviewMessage() {
           } catch (finalizeError) {
             // If finalization fails, return the combined PSBT as base64
             const combinedBase64 = combinedPsbt.toBase64()
+
             return combinedBase64
           }
         } catch (combineError) {
@@ -261,6 +262,7 @@ function PreviewMessage() {
       try {
         const tx = psbt.extractTransaction()
         const finalTxHex = tx.toHex().toUpperCase()
+
         return finalTxHex
       } catch (extractError) {
         // If extraction fails, return the PSBT hex as-is
@@ -394,7 +396,10 @@ function PreviewMessage() {
     const transaction = new bitcoinjs.Transaction()
     const network = bitcoinjsNetwork(account.network)
 
-    for (const input of inputs.values()) {
+    // Convert inputs to array once to avoid repeated Map iteration
+    const inputArray = Array.from(inputs.values())
+
+    for (const input of inputArray) {
       const hashBuffer = Buffer.from(parseHexToBytes(input.txid))
       transaction.addInput(hashBuffer, input.vout)
     }
@@ -404,7 +409,13 @@ function PreviewMessage() {
       transaction.addOutput(outputScript, output.amount)
     }
 
-    return transaction.toHex()
+    const hex = transaction.toHex()
+
+    // Clear transaction data to help garbage collection
+    transaction.ins = []
+    transaction.outs = []
+
+    return hex
   }, [account, inputs, outputs])
 
   const transaction = useMemo(() => {
@@ -433,19 +444,20 @@ function PreviewMessage() {
       }
 
       try {
+        // Convert inputs and outputs to arrays once to avoid repeated conversions
+        const inputArray = Array.from(inputs.values())
+        const outputArray = Array.from(outputs.values())
+
         const transactionMessage = await buildTransaction(
           wallet,
           {
-            inputs: Array.from(inputs.values()),
-            outputs: Array.from(outputs.values()),
+            inputs: inputArray,
+            outputs: outputArray,
             fee,
             options: { rbf }
           },
           network as Network
         )
-
-        // transactionMessage.txDetails.transaction.output()
-        // transactionMessage.txDetails.transaction.input()
 
         setMessageId(transactionMessage.txDetails.txid)
         setTxBuilderResult(transactionMessage)
@@ -524,6 +536,9 @@ function PreviewMessage() {
             bbqrChunks = []
           }
           setQrChunks(bbqrChunks)
+
+          // Clear the buffer to help garbage collection
+          psbtBuffer.fill(0)
 
           if (!txBuilderResult?.psbt?.base64) {
             throw new Error('PSBT data not available')
@@ -681,10 +696,10 @@ function PreviewMessage() {
     // For UR format, we need to handle fountain encoding differently
     if (type === 'ur') {
       // UR uses fountain encoding - try to assemble after collecting enough fragments
-      // Don't wait for all theoretical fragments, try assembling periodically
+      // For fountain encoding, we need more fragments than the theoretical minimum
       const shouldTryAssembly =
-        newScanned.size >= Math.max(Math.ceil(total * 0.6), 6) ||
-        (newScanned.size >= 8 && newScanned.size % 2 === 0)
+        newScanned.size >= Math.max(Math.ceil(total * 1.5), 12) ||
+        (newScanned.size >= 15 && newScanned.size % 3 === 0)
 
       if (shouldTryAssembly) {
         const assembledData = assembleMultiPartQR(type, newChunks)
@@ -716,9 +731,9 @@ function PreviewMessage() {
         }
       }
 
-      // Continue scanning for UR, but with stricter limits
-      // Stop after collecting 3x the expected fragments or 25 fragments max
-      if (newScanned.size >= Math.min(total * 3, 25)) {
+      // Continue scanning for UR with more generous limits for fountain encoding
+      // Fountain encoding often needs 2-3x the theoretical minimum fragments
+      if (newScanned.size >= Math.min(total * 4, 40)) {
         // Try one final assembly attempt before giving up
         const finalAssembly = assembleMultiPartQR(type, newChunks)
 
@@ -758,7 +773,7 @@ function PreviewMessage() {
       }
 
       toast.success(
-        `UR: Collected ${newScanned.size} fragments (need ~${total})`
+        `UR: Collected ${newScanned.size} fragments (need ~${Math.ceil(total * 1.5)})`
       )
     } else {
       // For RAW and BBQR, wait for all chunks as before
@@ -1311,7 +1326,8 @@ function PreviewMessage() {
                       width:
                         (scanProgress.scanned.size / scanProgress.total) * 300,
                       height: 4,
-                      backgroundColor: Colors.warning,
+                      maxWidth: scanProgress.total * 300,
+                      backgroundColor: Colors.white,
                       borderRadius: 2
                     }}
                   />
