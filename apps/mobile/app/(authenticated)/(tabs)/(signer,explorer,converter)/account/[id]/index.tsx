@@ -1089,10 +1089,10 @@ export default function AccountView() {
             <SSVStack gap="none">
               <SSHStack
                 justifyEvenly
-                gap="xxs"
+                gap="none"
                 style={{ paddingHorizontal: '5%' }}
               >
-                {account.policyType !== 'watchonly' && (
+                {account.keys[0].creationType !== 'importAddress' && (
                   <>
                     <SSActionButton
                       onPress={() => navigateToSignAndSend()}

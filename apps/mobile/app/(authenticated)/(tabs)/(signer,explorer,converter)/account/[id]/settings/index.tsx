@@ -13,6 +13,7 @@ import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSSeedQR from '@/components/SSSeedQR'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -59,6 +60,7 @@ export default function AccountSettings() {
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
+  const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
 
@@ -151,9 +153,7 @@ export default function AccountSettings() {
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText style={styles.fingerprintText}>
-              {account.keys[0].fingerprint}
-            </SSText>
+            <SSText>{account.keys[0].fingerprint}</SSText>
           </SSHStack>
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
@@ -179,6 +179,15 @@ export default function AccountSettings() {
             onPress={() =>
               router.navigate(
                 `/account/${currentAccountId}/settings/export/descriptors`
+              )
+            }
+          />
+          <SSButton
+            style={styles.button}
+            label={t('account.export.pubkeys')}
+            onPress={() =>
+              router.navigate(
+                `/account/${currentAccountId}/settings/export/pubkeys`
               )
             }
           />
@@ -355,9 +364,7 @@ export default function AccountSettings() {
         onClose={() => setDeleteModalVisible(false)}
       >
         <SSVStack style={styles.deleteModalOuterContainer}>
-          <SSText size="xl" weight="bold">
-            {t('common.areYouSure')}
-          </SSText>
+          <SSText uppercase>{t('common.areYouSure')}</SSText>
           <SSHStack style={styles.deleteModalInnerContainer}>
             <SSButton
               label={t('common.yes')}
@@ -460,18 +467,37 @@ export default function AccountSettings() {
               </View>
             </SSVStack>
             <View style={styles.copyButtonContainer}>
-              <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+              <SSVStack gap="sm">
+                <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+                  <SSButton
+                    label={t('common.copy')}
+                    style={styles.copyButton}
+                    variant="outline"
+                  />
+                </SSClipboardCopy>
                 <SSButton
-                  label={t('common.copy')}
+                  label={t('account.seedqr.title')}
                   style={styles.copyButton}
                   variant="outline"
+                  onPress={() => {
+                    setMnemonicModalVisible(false)
+                    setSeedQRModalVisible(true)
+                  }}
                 />
-              </SSClipboardCopy>
+              </SSVStack>
             </View>
           </View>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
+      <SSSeedQR
+        mnemonic={localMnemonic}
+        visible={seedQRModalVisible}
+        onClose={() => {
+          setSeedQRModalVisible(false)
+          setMnemonicModalVisible(true)
+        }}
+      />
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
         <SSPinEntry
           title={t('account.enter.pin')}
@@ -503,9 +529,6 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center'
-  },
-  fingerprintText: {
-    color: Colors.success
   },
   mainLayout: {
     padding: 20
