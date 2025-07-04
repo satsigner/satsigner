@@ -277,13 +277,30 @@ function DerivedAddresses({
   )
   const [addresses, setAddresses] = useState([...account.addresses])
   const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
+  const isMultiAddressWatchOnly = useMemo(() => {
+    return (
+      account.keys.length > 1 &&
+      account.keys[0].creationType === 'importAddress'
+    )
+  }, [account])
 
   function updateDerivationPath() {
+    if (isMultiAddressWatchOnly) return
     if (account.keys[0].derivationPath)
       setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
   }
 
+  function loadExactAccountAddresses() {
+    setAddresses([...account.addresses])
+    setAddressCount(account.addresses.length)
+  }
+
   async function refreshAddresses() {
+    if (isMultiAddressWatchOnly) {
+      loadExactAccountAddresses()
+      return
+    }
+
     let addresses = await getWalletAddresses(wallet!, network!, addressCount)
     addresses = parseAccountAddressesDetails({ ...account, addresses })
     setAddresses(addresses.slice(0, addressCount))
@@ -291,6 +308,11 @@ function DerivedAddresses({
   }
 
   async function loadMoreAddresses() {
+    if (isMultiAddressWatchOnly) {
+      loadExactAccountAddresses()
+      return
+    }
+
     setHasLoadMoreAddresses(true)
     const newAddressCount =
       addresses.length < addressCount ? addressCount : addressCount + perPage
@@ -357,11 +379,16 @@ function DerivedAddresses({
         }
       >
         <SSHStack style={addressListStyles.row}>
-          <SSText
-            style={[addressListStyles.indexText, addressListStyles.columnIndex]}
-          >
-            {item.index}
-          </SSText>
+          {!isMultiAddressWatchOnly && (
+            <SSText
+              style={[
+                addressListStyles.indexText,
+                addressListStyles.columnIndex
+              ]}
+            >
+              {item.index}
+            </SSText>
+          )}
           <SSText
             style={[
               addressListStyles.addressText,
@@ -423,48 +450,54 @@ function DerivedAddresses({
             )}
           </SSIconButton>
         </SSHStack>
-        <SSHStack gap="sm">
-          <SSText color="muted" uppercase>
-            {t('receive.path')}
-          </SSText>
-          <SSText>{addressPath}</SSText>
-        </SSHStack>
+        {!isMultiAddressWatchOnly && (
+          <SSHStack gap="sm">
+            <SSText color="muted" uppercase>
+              {t('receive.path')}
+            </SSText>
+            <SSText>{addressPath}</SSText>
+          </SSHStack>
+        )}
         <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
           <SSSortDirectionToggle
             onDirectionChanged={() => setSortDirection()}
           />
         </SSHStack>
       </SSHStack>
-      <SSHStack
-        gap="md"
-        justifyBetween
-        style={addressListStyles.receiveChangeContainer}
-      >
-        {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
-          <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
-            <SSButton
-              style={{
-                borderColor: change === (index === 1) ? '#fff' : '#333'
-              }}
-              uppercase
-              onPress={() => setChange(index === 1)}
-              label={type}
-              variant="outline"
-            />
-          </SSHStack>
-        ))}
-      </SSHStack>
+      {!isMultiAddressWatchOnly && (
+        <SSHStack
+          gap="md"
+          justifyBetween
+          style={addressListStyles.receiveChangeContainer}
+        >
+          {[t('accounts.receive'), t('accounts.change')].map((type, index) => (
+            <SSHStack key={type} style={{ flex: 1, justifyContent: 'center' }}>
+              <SSButton
+                style={{
+                  borderColor: change === (index === 1) ? '#fff' : '#333'
+                }}
+                uppercase
+                onPress={() => setChange(index === 1)}
+                label={type}
+                variant="outline"
+              />
+            </SSHStack>
+          ))}
+        </SSHStack>
+      )}
       <ScrollView style={{ marginTop: 10 }} horizontal>
         <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
           <SSHStack style={addressListStyles.headerRow}>
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnIndex
-              ]}
-            >
-              {t('address.list.table.index')}
-            </SSText>
+            {!isMultiAddressWatchOnly && (
+              <SSText
+                style={[
+                  addressListStyles.headerText,
+                  addressListStyles.columnIndex
+                ]}
+              >
+                {t('address.list.table.index')}
+              </SSText>
+            )}
             <SSText
               style={[
                 addressListStyles.headerText,
@@ -507,28 +540,32 @@ function DerivedAddresses({
             </SSText>
           </SSHStack>
           <FlashList
-            data={addresses?.filter((address) =>
-              change
-                ? address.keychain === 'internal'
-                : address.keychain === 'external'
+            data={addresses?.filter(
+              (address) =>
+                isMultiAddressWatchOnly ||
+                (change
+                  ? address.keychain === 'internal'
+                  : address.keychain === 'external')
             )}
             renderItem={renderItem}
             estimatedItemSize={150}
             keyExtractor={(item) => {
-              return `${item.index}:${item.address}:${item.keychain}`
+              return `${item.index || ''}:${item.address}:${item.keychain || ''}`
             }}
             removeClippedSubviews
           />
         </SSVStack>
       </ScrollView>
-      <SSButton
-        variant="outline"
-        uppercase
-        style={{ marginTop: 10 }}
-        label={t('address.list.table.loadMore')}
-        disabled={loadingAddresses}
-        onPress={loadMoreAddresses}
-      />
+      {!isMultiAddressWatchOnly && (
+        <SSButton
+          variant="outline"
+          uppercase
+          style={{ marginTop: 10 }}
+          label={t('address.list.table.loadMore')}
+          disabled={loadingAddresses}
+          onPress={loadMoreAddresses}
+        />
+      )}
     </SSMainLayout>
   )
 }
@@ -660,6 +697,14 @@ export default function AccountView() {
   const wallet = useGetAccountWallet(id!)
   const watchOnlyWalletAddress = useGetAccountAddress(id!)
 
+  const isMultiAddressWatchOnly = useMemo(() => {
+    return (
+      account &&
+      account.keys.length > 1 &&
+      account.keys[0].creationType === 'importAddress'
+    )
+  }, [account])
+
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   const [fiatCurrency, satsToFiat, fetchPrices] = usePriceStore(
@@ -703,7 +748,7 @@ export default function AccountView() {
   const animationValue = useRef(new Animated.Value(0)).current
   const gradientHeight = animationValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [190, 0]
+    outputRange: [isMultiAddressWatchOnly ? 100 : 190, 0]
   })
 
   const [connectionState, connectionString, isPrivateConnection] =
@@ -789,16 +834,14 @@ export default function AccountView() {
     if (!account) return
 
     const isImportAddress = account.keys[0].creationType === 'importAddress'
+
     if (isImportAddress && !watchOnlyWalletAddress) return
-    else if (!isImportAddress && !wallet) return
+    if (!isImportAddress && !wallet) return
 
     try {
       const updatedAccount = !isImportAddress
         ? await syncAccountWithWallet(account, wallet!)
-        : await syncAccountWithAddress(
-            account,
-            `addr(${watchOnlyWalletAddress!})`
-          )
+        : await syncAccountWithAddress(account)
       updateAccount(updatedAccount)
     } catch (error) {
       toast.error((error as Error).message)
@@ -836,7 +879,8 @@ export default function AccountView() {
   // TODO: Handle tab indicator | https://reactnavigation.org/docs/tab-view/#renderindicator
   const renderTab = () => {
     const isImportAddress = account.keys[0].creationType === 'importAddress'
-    const tabWidth = isImportAddress ? '33.33%' : '25%'
+    const tabWidth =
+      isImportAddress && account.keys.length === 1 ? '33.33%' : '25%'
 
     return (
       <>
@@ -870,7 +914,7 @@ export default function AccountView() {
                 )}
               </SSVStack>
             </SSActionButton>
-            {!isImportAddress && (
+            {(!isImportAddress || account.keys.length > 1) && (
               <SSActionButton
                 style={{ width: tabWidth }}
                 onPress={() => setTabIndex(1)}
@@ -880,7 +924,9 @@ export default function AccountView() {
                     {account.summary.numberOfAddresses}
                   </SSText>
                   <SSText center color="muted" style={{ lineHeight: 12 }}>
-                    {t('accounts.derivedAddresses')}
+                    {isMultiAddressWatchOnly
+                      ? t('accounts.watchedAddresses')
+                      : t('accounts.derivedAddresses')}
                   </SSText>
                   {tabIndex === 1 && (
                     <View
@@ -1088,19 +1134,20 @@ export default function AccountView() {
                     <SSText uppercase>{t('account.receive')}</SSText>
                   </SSActionButton>
                 )}
-                {account.keys[0].creationType === 'importAddress' && (
-                  <SSVStack gap="xs">
-                    <SSText center color="muted" size="xs">
-                      {t('receive.address').toUpperCase()}
-                    </SSText>
-                    <SSAddressDisplay
-                      variant="outline"
-                      type="sans-serif"
-                      style={{ lineHeight: 14 }}
-                      address={watchOnlyWalletAddress || ''}
-                    />
-                  </SSVStack>
-                )}
+                {account.keys[0].creationType === 'importAddress' &&
+                  account.keys.length === 1 && (
+                    <SSVStack gap="xs">
+                      <SSText center color="muted" size="xs">
+                        {t('receive.address').toUpperCase()}
+                      </SSText>
+                      <SSAddressDisplay
+                        variant="outline"
+                        type="sans-serif"
+                        style={{ lineHeight: 14 }}
+                        address={watchOnlyWalletAddress || ''}
+                      />
+                    </SSVStack>
+                  )}
               </SSHStack>
             </SSVStack>
           </SSVStack>
