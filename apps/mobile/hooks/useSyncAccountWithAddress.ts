@@ -166,7 +166,7 @@ function useSyncAccountWithAddress() {
         sent,
         size: t.size,
         timestamp: new Date(t.status.block_time * 1000),
-        type: sent > 0 ? 'send' : 'receive',
+        type: received > 0 ? 'receive' : 'send',
         version: t.version,
         vin,
         vout,
