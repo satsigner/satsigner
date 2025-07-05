@@ -377,10 +377,13 @@ function useSyncAccountWithAddress() {
       const rawTxParsed = bitcoinjs.Transaction.fromHex(rawTx)
 
       const received = rawTxParsed.outs.reduce((previousValue, output) => {
+        if (!output) return previousValue
+
         const outputAddr = bitcoinjs.address.fromOutputScript(
           output.script,
           bitcoinjsNetwork(network)
         )
+
         if (outputAddr === address) {
           return previousValue + output.value
         } else {
@@ -390,7 +393,7 @@ function useSyncAccountWithAddress() {
 
       const transaction: Transaction = {
         id: rawTxParsed.getId(),
-        type: 'receive',
+        type: received > 0 ? 'receive' : 'send',
         sent: 0, // THIS HAS TO BE COMPUTED LATER
         received,
         address,
