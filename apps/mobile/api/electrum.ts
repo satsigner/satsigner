@@ -361,7 +361,7 @@ class ElectrumClient extends BaseElectrumClient {
       const parsedTx = TxDecoded.fromHex(rawTx)
       const tx: Transaction = {
         id: parsedTx.getId(),
-        type: 'receive',
+        type: 'send',
         sent: 0,
         received: 0,
         address,
