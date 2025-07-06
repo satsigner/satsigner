@@ -111,47 +111,48 @@ function SSTransactionCard({
             {formatConfirmations(confirmations)}
           </SSText>
         </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none">
-            <SSHStack
-              gap={expand ? 'xs' : 'sm'}
-              style={{
-                height: expand ? 24 : 42,
-                marginTop: expand ? 0 : -8
-              }}
-            >
-              {transaction.type === 'receive' && (
-                <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
-                  <SSIconIncoming
-                    height={expand ? 12 : 21}
-                    width={expand ? 12 : 21}
-                  />
-                </SSHStack>
-              )}
-              {transaction.type === 'send' && (
-                <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
-                  <SSIconOutgoing
-                    height={expand ? 12 : 21}
-                    width={expand ? 12 : 21}
-                  />
-                </SSHStack>
-              )}
-              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
-                <SSStyledSatText
-                  amount={amount}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  type={transaction.type}
-                  textSize={expand ? 'xl' : '4xl'}
-                  noColor={false}
-                  weight="light"
-                  letterSpacing={expand ? 0 : -0.5}
+        <SSVStack gap="none">
+          <SSHStack
+            gap={expand ? 'xs' : 'sm'}
+            style={{
+              height: expand ? 24 : 42,
+              marginTop: expand ? 0 : -4
+            }}
+          >
+            {transaction.type === 'receive' && (
+              <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
+                <SSIconIncoming
+                  height={expand ? 12 : 21}
+                  width={expand ? 12 : 21}
                 />
-                <SSText color="muted" size={expand ? 'xs' : 'sm'}>
-                  {t('bitcoin.sats').toLowerCase()}
-                </SSText>
               </SSHStack>
+            )}
+            {transaction.type === 'send' && (
+              <SSHStack style={{ marginTop: expand ? 4 : 12 }}>
+                <SSIconOutgoing
+                  height={expand ? 12 : 21}
+                  width={expand ? 12 : 21}
+                />
+              </SSHStack>
+            )}
+            <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+              <SSStyledSatText
+                amount={amount}
+                decimals={0}
+                useZeroPadding={useZeroPadding}
+                type={transaction.type}
+                textSize={expand ? 'xl' : '4xl'}
+                noColor={false}
+                weight="light"
+                letterSpacing={expand ? 0 : -0.5}
+              />
+              <SSText color="muted" size={expand ? 'xs' : 'sm'}>
+                {t('bitcoin.sats').toLowerCase()}
+              </SSText>
             </SSHStack>
+          </SSHStack>
+
+          <SSHStack justifyBetween>
             <SSHStack
               gap="xs"
               style={{
@@ -174,25 +175,24 @@ function SSTransactionCard({
                 {percentChange}
               </SSText>
             </SSHStack>
-          </SSVStack>
-
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            {walletBalance !== undefined && (
-              <SSText color="muted" style={[{ textAlign: 'right' }]}>
-                <SSStyledSatText
-                  amount={walletBalance}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  type={transaction.type}
-                  textSize={expand ? 'xs' : 'sm'}
-                />
+            <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+              {walletBalance !== undefined && (
+                <SSText color="muted" style={[{ textAlign: 'right' }]}>
+                  <SSStyledSatText
+                    amount={walletBalance}
+                    decimals={0}
+                    useZeroPadding={useZeroPadding}
+                    type={transaction.type}
+                    textSize={expand ? 'xs' : 'sm'}
+                  />
+                </SSText>
+              )}
+              <SSText size="xs" color="muted" style={[{ textAlign: 'right' }]}>
+                {t('bitcoin.sats').toLowerCase()}
               </SSText>
-            )}
-            <SSText size="xs" color="muted" style={[{ textAlign: 'right' }]}>
-              {t('bitcoin.sats').toLowerCase()}
-            </SSText>
+            </SSHStack>
           </SSHStack>
-        </SSHStack>
+        </SSVStack>
         <SSHStack justifyBetween>
           <SSText
             size={expand ? 'xs' : 'md'}
