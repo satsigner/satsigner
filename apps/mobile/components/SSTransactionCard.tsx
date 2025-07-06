@@ -257,6 +257,11 @@ function SSTransactionCard({
             )}
           </SSHStack>
         </SSHStack>
+        <SSHStack>
+          <SSText size="2xxs" color="muted" type="mono" uppercase>
+            {t('transaction.txid') + ': ' + transaction.id}
+          </SSText>
+        </SSHStack>
       </SSVStack>
     </TouchableOpacity>
   )
