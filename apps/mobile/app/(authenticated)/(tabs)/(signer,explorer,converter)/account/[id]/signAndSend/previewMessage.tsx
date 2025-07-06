@@ -286,52 +286,92 @@ function PreviewMessage() {
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
   ): string | null => {
+    console.log('=== ASSEMBLE MULTI-PART QR DEBUG ===')
+    console.log('Type:', type)
+    console.log('Chunks count:', chunks.size)
+    console.log('Chunks entries:', Array.from(chunks.entries()))
+
     try {
       switch (type) {
         case 'raw': {
+          console.log('Assembling RAW format chunks')
           // Assemble RAW format chunks
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
+          console.log('Sorted chunks:', sortedChunks)
           const assembled = sortedChunks.join('')
-          return assembled
+          console.log('RAW assembled result:', assembled)
+          console.log('RAW assembled length:', assembled.length)
+
+          // Convert base64 to hex for RAW format
+          try {
+            const hexResult = Buffer.from(assembled, 'base64').toString('hex')
+            console.log('RAW converted to hex:', hexResult)
+            console.log('RAW hex length:', hexResult.length)
+            console.log('RAW hex starts with:', hexResult.substring(0, 50))
+            return hexResult
+          } catch (error) {
+            console.log('ERROR converting RAW to hex:', error)
+            return assembled
+          }
         }
 
         case 'bbqr': {
+          console.log('Assembling BBQR format chunks')
           // Assemble BBQR format chunks
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
+          console.log('BBQR sorted chunks:', sortedChunks)
 
           const decoded = decodeBBQRChunks(sortedChunks)
+          console.log('BBQR decoded result:', decoded)
+          console.log('BBQR decoded length:', decoded?.length)
 
           if (decoded) {
             // Convert binary PSBT to base64 for compatibility
             const base64Result = Buffer.from(decoded).toString('base64')
+            console.log('BBQR base64 result:', base64Result)
+            console.log('BBQR base64 length:', base64Result.length)
             return base64Result
           }
 
+          console.log('BBQR decoding failed')
           return null
         }
 
         case 'ur': {
+          console.log('Assembling UR format chunks')
           // UR format assembly using proper UR decoder
           const sortedChunks = Array.from(chunks.entries())
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
+          console.log('UR sorted chunks:', sortedChunks)
+          console.log('UR chunks count:', sortedChunks.length)
 
           let result: string
           if (sortedChunks.length === 1) {
             // Single UR chunk
+            console.log('Processing single UR chunk')
             result = decodeURToPSBT(sortedChunks[0])
           } else {
             // Multi-part UR
+            console.log('Processing multi-part UR chunks')
             result = decodeMultiPartURToPSBT(sortedChunks)
           }
+          console.log('UR decoded result:', result)
+          console.log('UR result length:', result?.length)
+          console.log('UR result starts with:', result?.substring(0, 50))
 
           // Check if result is a PSBT and convert to final transaction
           if (result.toLowerCase().startsWith('70736274ff')) {
+            console.log(
+              'UR result is PSBT hex, converting to final transaction'
+            )
             const convertedResult = convertPsbtToFinalTransaction(result)
+            console.log('UR converted result:', convertedResult)
+            console.log('UR converted length:', convertedResult?.length)
 
             // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
             if (
@@ -343,6 +383,7 @@ function PreviewMessage() {
               return convertedResult
             }
           } else {
+            console.log('UR result is not PSBT hex, returning as-is')
             return result
           }
         }
@@ -351,6 +392,8 @@ function PreviewMessage() {
           return null
       }
     } catch (error) {
+      console.log('ERROR in assembleMultiPartQR:', error)
+      console.log('Error message:', String(error))
       toast.error(String(error))
       return null
     }
@@ -634,18 +677,48 @@ function PreviewMessage() {
   ])
 
   const handleQRCodeScanned = (data: string | undefined) => {
+    console.log('=== QR CODE SCAN DEBUG ===')
+    console.log('Raw scanned data:', data)
+    console.log('Data length:', data?.length)
+    console.log('Data type:', typeof data)
+
     if (!data) {
+      console.log('ERROR: No data received from QR scan')
       toast.error('Failed to scan QR code')
       return
     }
 
     // Detect QR code type and format
     const qrInfo = detectQRType(data)
+    console.log('Detected QR info:', qrInfo)
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
+      console.log('Processing single QR code')
+      console.log('Content to be set as signed PSBT:', qrInfo.content)
+      console.log('Content length:', qrInfo.content.length)
+      console.log('Content starts with:', qrInfo.content.substring(0, 50))
+
+      // Convert base64 to hex for single RAW QR codes
+      let finalContent = qrInfo.content
+      try {
+        // Check if it looks like base64 PSBT (starts with cHNidP)
+        if (qrInfo.content.startsWith('cHNidP')) {
+          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
+            'hex'
+          )
+          console.log('Single QR converted to hex:', hexResult)
+          console.log('Single QR hex length:', hexResult.length)
+          console.log('Single QR hex starts with:', hexResult.substring(0, 50))
+          finalContent = hexResult
+        }
+      } catch (error) {
+        console.log('ERROR converting single QR to hex:', error)
+        // Keep original content if conversion fails
+      }
+
       setCameraModalVisible(false)
-      setSignedPsbt(qrInfo.content)
+      setSignedPsbt(finalContent)
       resetScanProgress()
       toast.success('QR code scanned successfully')
       return
@@ -778,9 +851,26 @@ function PreviewMessage() {
       // For RAW and BBQR, wait for all chunks as before
       if (newScanned.size === total) {
         // All chunks collected, assemble the final result
+        console.log('All chunks collected, assembling multi-part QR')
+        console.log('Type:', type)
+        console.log('Total chunks:', total)
+        console.log('Chunks map:', Array.from(newChunks.entries()))
+
         const assembledData = assembleMultiPartQR(type, newChunks)
+        console.log('Assembled data:', assembledData)
+        console.log('Assembled data length:', assembledData?.length)
+        console.log(
+          'Assembled data starts with:',
+          assembledData?.substring(0, 50)
+        )
 
         if (assembledData) {
+          console.log('=== FINAL RESULT DEBUG ===')
+          console.log('Final assembled data:', assembledData)
+          console.log('Final data length:', assembledData.length)
+          console.log('Final data starts with:', assembledData.substring(0, 50))
+          console.log('Setting signed PSBT in text area')
+
           setCameraModalVisible(false)
           setSignedPsbt(assembledData)
           resetScanProgress()
@@ -788,6 +878,7 @@ function PreviewMessage() {
             `Successfully assembled ${type.toUpperCase()} transaction from ${total} parts`
           )
         } else {
+          console.log('ERROR: Failed to assemble multi-part QR code')
           toast.error('Failed to assemble multi-part QR code')
           resetScanProgress()
         }
@@ -1065,21 +1156,36 @@ function PreviewMessage() {
                     >
                       {t('transaction.preview.importSigned')}
                     </SSText>
-                    <SSTextInput
-                      placeholder={t('transaction.preview.signedPsbt')}
-                      editable={false}
+                    <View
                       style={{
-                        fontFamily: Typography.sfProMono,
-                        fontSize: 12,
-                        height: 200,
-                        textAlignVertical: 'top',
+                        minHeight: 200,
+                        maxHeight: 600,
                         paddingTop: 12,
-                        paddingBottom: 12
+                        paddingBottom: 12,
+                        paddingHorizontal: 12,
+                        backgroundColor: Colors.gray[900],
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: Colors.gray[700]
                       }}
-                      value={signedPsbt}
-                      multiline
-                      numberOfLines={18}
-                    />
+                    >
+                      <ScrollView
+                        style={{ flex: 1 }}
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                      >
+                        <SSText
+                          style={{
+                            fontFamily: Typography.sfProMono,
+                            fontSize: 12,
+                            color: Colors.white,
+                            lineHeight: 18
+                          }}
+                        >
+                          {signedPsbt || t('transaction.preview.signedPsbt')}
+                        </SSText>
+                      </ScrollView>
+                    </View>
                     <SSHStack gap="xxs" justifyBetween>
                       <SSButton
                         label="Paste"
