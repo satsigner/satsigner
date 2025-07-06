@@ -17,7 +17,8 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   formatConfirmations,
   formatFiatPrice,
-  formatPercentualChange
+  formatPercentualChange,
+  formatTxId
 } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
@@ -101,11 +102,23 @@ function SSTransactionCard({
         ]}
         gap="none"
       >
-        <SSHStack justifyBetween style={{ height: 18 }}>
+        <SSHStack
+          justifyBetween
+          style={{ height: 18 }}
+        >
           <SSText color="muted">
             {transaction.timestamp && (
               <SSTimeAgoText date={new Date(transaction.timestamp)} />
             )}
+          </SSText>
+          <SSText
+            color="muted"
+            type="mono"
+            size="xs"
+            uppercase
+            style={{ marginBottom: -5 }}
+          >
+            {formatTxId(transaction.id)}
           </SSText>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
             {formatConfirmations(confirmations)}
@@ -261,11 +274,6 @@ function SSTransactionCard({
               </SSText>
             )}
           </SSHStack>
-        </SSHStack>
-        <SSHStack>
-          <SSText size="2xxs" color="muted" type="mono" uppercase>
-            {t('transaction.txid') + ': ' + transaction.id}
-          </SSText>
         </SSHStack>
       </SSVStack>
     </TouchableOpacity>
