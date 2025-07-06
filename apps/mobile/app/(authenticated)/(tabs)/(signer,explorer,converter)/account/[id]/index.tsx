@@ -1069,7 +1069,9 @@ export default function AccountView() {
                   amount={account?.summary.balance || 0}
                   decimals={0}
                   useZeroPadding={useZeroPadding}
-                  textSize={account?.summary.balance > 1_000_000_000 ? "4xl" : "6xl"}
+                  textSize={
+                    account?.summary.balance > 1_000_000_000 ? '4xl' : '6xl'
+                  }
                   weight="ultralight"
                   letterSpacing={-1}
                 />
