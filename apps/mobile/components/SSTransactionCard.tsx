@@ -111,6 +111,7 @@ function SSTransactionCard({
             {formatConfirmations(confirmations)}
           </SSText>
         </SSHStack>
+
         <SSVStack gap="none">
           <SSHStack
             gap={expand ? 'xs' : 'sm'}
@@ -195,7 +196,7 @@ function SSTransactionCard({
         </SSVStack>
         <SSHStack justifyBetween>
           <SSText
-            size={expand ? 'xs' : 'md'}
+            size={expand ? 'xxs' : 'xs'}
             style={[
               {
                 textAlign: 'left',
@@ -206,7 +207,11 @@ function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {parseLabel(transaction.label || t('transaction.noLabel')).label}
+            {
+              parseLabel(
+                transaction.label || t('transaction.noLabel').toUpperCase()
+              ).label
+            }
           </SSText>
           <SSHStack
             gap="xs"
