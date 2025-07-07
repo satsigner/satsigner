@@ -1,5 +1,6 @@
 export const text = {
   fontSize: {
+    '2xxs': 8,
     xxs: 9,
     xs: 10,
     sm: 12,
