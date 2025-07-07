@@ -166,7 +166,7 @@ function useSyncAccountWithAddress() {
         sent,
         size: t.size,
         timestamp: new Date(t.status.block_time * 1000),
-        type: sent > 0 ? 'send' : 'receive',
+        type: received > 0 ? 'receive' : 'send',
         version: t.version,
         vin,
         vout,
@@ -375,11 +375,29 @@ function useSyncAccountWithAddress() {
       // Update partial transaction.
       // It is missing sent, receive, vin and vout which must update later.
       const rawTxParsed = bitcoinjs.Transaction.fromHex(rawTx)
+
+      const received = rawTxParsed.outs.reduce((previousValue, output) => {
+        try {
+          const outputAddr = bitcoinjs.address.fromOutputScript(
+            output.script,
+            bitcoinjsNetwork(network)
+          )
+
+          if (outputAddr === address) {
+            return previousValue + output.value
+          } else {
+            return previousValue
+          }
+        } catch {
+          return previousValue
+        }
+      }, 0)
+
       const transaction: Transaction = {
         id: rawTxParsed.getId(),
-        type: 'receive',
-        sent: 0,
-        received: 0,
+        type: received > 0 ? 'receive' : 'send',
+        sent: 0, // THIS HAS TO BE COMPUTED LATER
+        received,
         address,
         blockHeight: height,
         timestamp: new Date(timestamp * 1000),
