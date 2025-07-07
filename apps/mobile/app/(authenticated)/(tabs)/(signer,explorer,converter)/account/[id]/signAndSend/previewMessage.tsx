@@ -16,7 +16,6 @@ import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -227,28 +226,19 @@ function PreviewMessage() {
             const finalTxHex = tx.toHex().toUpperCase()
 
             return finalTxHex
-          } catch (finalizeError) {
+          } catch (_finalizeError) {
             // If finalization fails, return the combined PSBT as base64
             const combinedBase64 = combinedPsbt.toBase64()
 
             return combinedBase64
           }
-        } catch (combineError) {
+        } catch (_combineError) {
           // Fall back to direct PSBT processing
         }
       }
 
       // Fallback: try direct PSBT processing without combination
       const psbt = bitcoinjs.Psbt.fromHex(psbtHex)
-
-      // Check if PSBT has any signatures
-      let totalSignatures = 0
-      for (let i = 0; i < psbt.data.inputs.length; i++) {
-        const input = psbt.data.inputs[i]
-        if (input.partialSig) {
-          totalSignatures += input.partialSig.length
-        }
-      }
 
       // Check if inputs are already finalized
       let needsFinalization = false
@@ -296,7 +286,7 @@ function PreviewMessage() {
             const tx = psbt.extractTransaction()
             const finalTxHex = tx.toHex().toUpperCase()
             return finalTxHex
-          } catch (extractError) {
+          } catch (_extractError) {
             return psbtHex
           }
         }
@@ -308,11 +298,11 @@ function PreviewMessage() {
         const finalTxHex = tx.toHex().toUpperCase()
 
         return finalTxHex
-      } catch (extractError) {
+      } catch (_extractError) {
         // If extraction fails, return the PSBT hex as-is
         return psbtHex
       }
-    } catch (error) {
+    } catch (_error) {
       // Return original PSBT hex as fallback
       return psbtHex
     }
@@ -337,7 +327,7 @@ function PreviewMessage() {
       }
 
       return data
-    } catch (error) {
+    } catch (_error) {
       return data
     }
   }
@@ -359,7 +349,7 @@ function PreviewMessage() {
           try {
             const hexResult = Buffer.from(assembled, 'base64').toString('hex')
             return hexResult
-          } catch (error) {
+          } catch (_error) {
             return assembled
           }
         }
@@ -395,7 +385,7 @@ function PreviewMessage() {
             // Multi-part UR
             try {
               result = decodeMultiPartURToPSBT(sortedChunks)
-            } catch (error) {
+            } catch (_error) {
               return null
             }
           }
@@ -741,8 +731,8 @@ function PreviewMessage() {
   }, [
     getPsbtString,
     txBuilderResult?.psbt?.base64,
-    qrComplexity
-    // Removed createRawPsbtChunks from dependencies to prevent unnecessary re-runs
+    qrComplexity,
+    createRawPsbtChunks
   ])
 
   // High-performance animation using requestAnimationFrame
@@ -854,7 +844,7 @@ function PreviewMessage() {
 
         // Process the data (convert PSBT to final transaction if needed)
         finalContent = processScannedData(finalContent)
-      } catch (error) {
+      } catch (_error) {
         // Keep original content if conversion fails
       }
 
@@ -1017,8 +1007,8 @@ function PreviewMessage() {
     try {
       await emitNFCTag(serializedPsbt)
       toast.success(t('transaction.preview.nfcExported'))
-    } catch (error) {
-      const errorMessage = (error as Error).message
+    } catch (_error) {
+      const errorMessage = (_error as Error).message
       if (errorMessage) {
         setNfcError(errorMessage)
         toast.error(errorMessage)
@@ -1361,8 +1351,8 @@ function PreviewMessage() {
                     >
                       <ScrollView
                         style={{ flex: 1 }}
-                        showsVerticalScrollIndicator={true}
-                        nestedScrollEnabled={true}
+                        showsVerticalScrollIndicator
+                        nestedScrollEnabled
                       >
                         <SSText
                           style={{
@@ -1740,7 +1730,7 @@ function PreviewMessage() {
             {scanProgress.type && (
               <SSHStack>
                 <SSButton
-                  label="Reset Scan!"
+                  label="Reset Scan"
                   variant="outline"
                   onPress={resetScanProgress}
                   style={{ marginTop: 10, width: 200 }}
