@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   type StyleProp,
   StyleSheet,
@@ -17,7 +17,8 @@ import { type Transaction } from '@/types/models/Transaction'
 import {
   formatConfirmations,
   formatFiatPrice,
-  formatPercentualChange
+  formatPercentualChange,
+  formatTxId
 } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 
@@ -88,6 +89,10 @@ function SSTransactionCard({
 
   const router = useRouter()
 
+  const walletBalanceTextHasOverlap = useMemo(() => {
+    return `${amount}`.length > 10
+  }, [amount])
+
   return (
     <TouchableOpacity onPress={() => router.navigate(link)}>
       <SSVStack
@@ -107,17 +112,32 @@ function SSTransactionCard({
               <SSTimeAgoText date={new Date(transaction.timestamp)} />
             )}
           </SSText>
+          <SSText
+            color="muted"
+            type="mono"
+            size="xs"
+            uppercase
+            style={{ marginBottom: -5 }}
+          >
+            {formatTxId(transaction.id)}
+          </SSText>
           <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
             {formatConfirmations(confirmations)}
           </SSText>
         </SSHStack>
-        <SSHStack justifyBetween>
-          <SSVStack gap="none">
+
+        <SSVStack gap="none">
+          <SSHStack
+            style={{
+              justifyContent: 'space-between',
+              alignItems: 'flex-end'
+            }}
+          >
             <SSHStack
               gap={expand ? 'xs' : 'sm'}
               style={{
                 height: expand ? 24 : 42,
-                marginTop: expand ? 0 : -8
+                marginTop: expand ? 0 : -4
               }}
             >
               {transaction.type === 'receive' && (
@@ -152,50 +172,85 @@ function SSTransactionCard({
                 </SSText>
               </SSHStack>
             </SSHStack>
-            <SSHStack
-              gap="xs"
-              style={{
-                height: expand ? 14 : 22
-              }}
-            >
-              <SSText
-                style={{ color: Colors.gray[400] }}
-                size={expand ? 'xs' : 'sm'}
-              >
-                {priceDisplay}
-              </SSText>
-              <SSText
-                style={{
-                  color:
-                    percentChange[0] === '+' ? Colors.mainGreen : Colors.mainRed
-                }}
-                size={expand ? 'xs' : 'sm'}
-              >
-                {percentChange}
-              </SSText>
-            </SSHStack>
-          </SSVStack>
-
-          <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
-            {walletBalance !== undefined && (
-              <SSText color="muted" style={[{ textAlign: 'right' }]}>
-                <SSStyledSatText
-                  amount={walletBalance}
-                  decimals={0}
-                  useZeroPadding={useZeroPadding}
-                  type={transaction.type}
-                  textSize={expand ? 'xs' : 'sm'}
-                />
-              </SSText>
+            {!walletBalanceTextHasOverlap && (
+              <SSHStack gap="xs">
+                {walletBalance !== undefined && (
+                  <SSText color="muted" style={[{ textAlign: 'right' }]}>
+                    <SSStyledSatText
+                      amount={walletBalance}
+                      decimals={0}
+                      useZeroPadding={useZeroPadding}
+                      type={transaction.type}
+                      textSize={expand ? 'xs' : 'sm'}
+                    />
+                  </SSText>
+                )}
+                <SSText
+                  size="xs"
+                  color="muted"
+                  style={[{ textAlign: 'right' }]}
+                >
+                  {t('bitcoin.sats').toLowerCase()}
+                </SSText>
+              </SSHStack>
             )}
-            <SSText size="xs" color="muted" style={[{ textAlign: 'right' }]}>
-              {t('bitcoin.sats').toLowerCase()}
-            </SSText>
           </SSHStack>
-        </SSHStack>
+
+          {(priceDisplay !== '' && percentChange !== '') ||
+            (walletBalanceTextHasOverlap && (
+              <SSHStack justifyBetween>
+                <SSHStack
+                  gap="xs"
+                  style={{
+                    height: expand ? 14 : 22
+                  }}
+                >
+                  <SSText
+                    style={{ color: Colors.gray[400] }}
+                    size={expand ? 'xs' : 'sm'}
+                  >
+                    {priceDisplay}
+                  </SSText>
+                  <SSText
+                    style={{
+                      color:
+                        percentChange[0] === '+'
+                          ? Colors.mainGreen
+                          : Colors.mainRed
+                    }}
+                    size={expand ? 'xs' : 'sm'}
+                  >
+                    {percentChange}
+                  </SSText>
+                </SSHStack>
+                {walletBalanceTextHasOverlap && (
+                  <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
+                    {walletBalance !== undefined && (
+                      <SSText color="muted" style={[{ textAlign: 'right' }]}>
+                        <SSStyledSatText
+                          amount={walletBalance}
+                          decimals={0}
+                          useZeroPadding={useZeroPadding}
+                          type={transaction.type}
+                          textSize={expand ? 'xs' : 'sm'}
+                        />
+                      </SSText>
+                    )}
+                    <SSText
+                      size="xs"
+                      color="muted"
+                      style={[{ textAlign: 'right' }]}
+                    >
+                      {t('bitcoin.sats').toLowerCase()}
+                    </SSText>
+                  </SSHStack>
+                )}
+              </SSHStack>
+            ))}
+        </SSVStack>
         <SSHStack justifyBetween>
           <SSText
-            size={expand ? 'xs' : 'md'}
+            size={expand ? 'xxs' : 'xs'}
             style={[
               {
                 textAlign: 'left',
@@ -206,7 +261,11 @@ function SSTransactionCard({
             ]}
             numberOfLines={1}
           >
-            {parseLabel(transaction.label || t('transaction.noLabel')).label}
+            {
+              parseLabel(
+                transaction.label || t('transaction.noLabel').toUpperCase()
+              ).label
+            }
           </SSText>
           <SSHStack
             gap="xs"
