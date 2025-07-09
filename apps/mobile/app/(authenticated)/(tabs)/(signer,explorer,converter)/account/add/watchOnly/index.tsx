@@ -262,21 +262,10 @@ export default function WatchOnly() {
     setLoadingWallet(true)
     setNetwork(network)
 
-    if (selectedOption === 'importExtendedPub') {
-      setExtendedPublicKey(xpub)
-      setKey(0)
-    }
-
-    if (selectedOption === 'importAddress') {
-      const addresses = address.split('\n')
-      for (let index = 0; index < addresses.length; index += 1) {
-        const address = addresses[index]
-        setExternalDescriptor(`addr(${address})`)
-      }
-    }
-
-    const account = getAccountData()
     try {
+      // Set the creation type first
+      setCreationType(selectedOption)
+
       if (selectedOption === 'importExtendedPub') {
         if (!xpub || !localFingerprint || !scriptVersion) {
           toast.error(t('watchonly.error.missingFields'))
@@ -286,11 +275,19 @@ export default function WatchOnly() {
         setFingerprint(localFingerprint)
         setScriptVersion(scriptVersion)
       } else if (selectedOption === 'importAddress') {
-        setExternalDescriptor(`addr(${address})`)
+        const addresses = address.split('\n')
+        for (let index = 0; index < addresses.length; index += 1) {
+          const address = addresses[index]
+          setExternalDescriptor(`addr(${address})`)
+        }
+      } else if (selectedOption === 'importDescriptor') {
+        // Descriptor data should already be set via the input fields
       }
 
       setNetwork(network)
       setKey(0)
+
+      const account = getAccountData()
 
       const data = await accountBuilderFinish(account)
       if (!data) {
@@ -306,21 +303,24 @@ export default function WatchOnly() {
                   data.accountWithEncryptedSecret,
                   data.wallet!
                 )
-              : await syncAccountWithAddress(data.accountWithEncryptedSecret)
+              : await syncAccountWithAddress(
+                  data.accountWithEncryptedSecret,
+                  `addr(${address})`
+                )
           updateAccount(updatedAccount)
           toast.success(t('watchonly.success.accountCreated'))
-          router.replace('/')
+          router.replace('/accountList')
         } catch (_syncError) {
           // Even if sync fails, we should still save the account and redirect
           updateAccount(data.accountWithEncryptedSecret)
           toast.warning(t('watchonly.warning.syncFailed'))
-          router.replace('/')
+          router.replace('/accountList')
         }
       } else {
         // If not auto sync, just save the account and redirect
         updateAccount(data.accountWithEncryptedSecret)
         toast.success(t('watchonly.success.accountCreated'))
-        router.replace('/')
+        router.replace('/accountList')
       }
     } catch (error) {
       const errorMessage = (error as Error).message
