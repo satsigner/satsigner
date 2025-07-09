@@ -6,7 +6,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -104,6 +110,9 @@ function PreviewMessage() {
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
   const [nfcError, setNfcError] = useState<string | null>(null)
+
+  // Animation for NFC pulsating effect
+  const nfcPulseAnim = useRef(new Animated.Value(0)).current
 
   const [qrChunks, setQrChunks] = useState<string[]>([])
   const [qrError, setQrError] = useState<string | null>(null)
@@ -1020,6 +1029,28 @@ function PreviewMessage() {
     }
   }
 
+  async function handlePasteFromClipboard() {
+    try {
+      const text = await Clipboard.getStringAsync()
+      if (!text) {
+        toast.error('No data found in clipboard')
+        return
+      }
+
+      // Process the pasted data similar to scanned data
+      const processedData = processScannedData(text)
+      setSignedPsbt(processedData)
+      toast.success('Data pasted successfully')
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      if (errorMessage) {
+        toast.error(errorMessage)
+      } else {
+        toast.error('Failed to paste from clipboard')
+      }
+    }
+  }
+
   async function handleNFCScan() {
     if (isReading) {
       await cancelNFCScan()
@@ -1041,10 +1072,10 @@ function PreviewMessage() {
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
         setSignedPsbt(txHex)
-        toast.success(t('watchonly.read.success'))
+        toast.success(t('transaction.preview.nfcImported'))
       } else if (result.txId) {
         setSignedPsbt(result.txId)
-        toast.success(t('watchonly.read.success'))
+        toast.success(t('transaction.preview.nfcImported'))
       } else {
         toast.error(t('watchonly.read.nfcErrorNoData'))
       }
@@ -1063,6 +1094,33 @@ function PreviewMessage() {
       setSignedTx(signedPsbt)
     }
   }, [signedPsbt, setSignedTx])
+
+  // NFC pulsating animation effect
+  useEffect(() => {
+    if (nfcModalVisible || nfcScanModalVisible) {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(nfcPulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: false
+          }),
+          Animated.timing(nfcPulseAnim, {
+            toValue: 0,
+            duration: 1000,
+            useNativeDriver: false
+          })
+        ])
+      )
+
+      pulseAnimation.start()
+
+      return () => {
+        pulseAnimation.stop()
+        nfcPulseAnim.setValue(0)
+      }
+    }
+  }, [nfcModalVisible, nfcScanModalVisible, nfcPulseAnim])
 
   // Cleanup effect when component unmounts
   useEffect(() => {
@@ -1291,7 +1349,7 @@ function PreviewMessage() {
                             Clipboard.setStringAsync(
                               txBuilderResult.psbt.base64
                             )
-                            toast(t('common.copied'))
+                            toast(t('common.copiedToClipboard'))
                           }
                         }}
                       />
@@ -1371,6 +1429,7 @@ function PreviewMessage() {
                         label="Paste"
                         style={{ width: '48%' }}
                         variant="outline"
+                        onPress={handlePasteFromClipboard}
                       />
                       <SSButton
                         label="Scan QR"
@@ -1749,45 +1808,32 @@ function PreviewMessage() {
           }}
         >
           <SSVStack itemsCenter gap="lg">
-            <SSText color="muted" uppercase>
-              {nfcError
-                ? t('common.error')
-                : t('transaction.preview.exportingNFC')}
+            <SSText center style={{ maxWidth: 300 }}>
+              {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
             </SSText>
             {nfcError ? (
               <SSVStack itemsCenter gap="md">
                 <SSText color="white" center>
                   {nfcError}
                 </SSText>
-                <SSText color="muted" center size="sm">
-                  {t('transaction.preview.nfcExportTip')}
-                </SSText>
               </SSVStack>
             ) : (
-              <View
+              <Animated.View
                 style={{
                   width: 200,
                   height: 200,
-                  backgroundColor: Colors.gray[800],
+                  backgroundColor: nfcPulseAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [Colors.gray[800], Colors.gray[400]]
+                  }),
                   borderRadius: 100,
                   justifyContent: 'center',
                   alignItems: 'center'
                 }}
               >
-                <SSText size="lg" color="muted">
-                  {isEmitting ? '...' : 'NFC'}
-                </SSText>
-              </View>
+                <SSText uppercase>Emitting NFC</SSText>
+              </Animated.View>
             )}
-            <SSButton
-              label={nfcError ? t('common.close') : t('common.cancel')}
-              variant="ghost"
-              onPress={() => {
-                setNfcModalVisible(false)
-                setNfcError(null)
-                if (isEmitting) cancelNFCEmitterScan()
-              }}
-            />
           </SSVStack>
         </SSModal>
         <SSModal
@@ -1799,31 +1845,24 @@ function PreviewMessage() {
           }}
         >
           <SSVStack itemsCenter gap="lg">
-            <SSText color="muted" uppercase>
-              {t('watchonly.read.scanning')}
+            <SSText center style={{ maxWidth: 300 }}>
+              {nfcError ? t('common.error') : t('transaction.preview.nfcTip')}
             </SSText>
-            <View
+            <Animated.View
               style={{
                 width: 200,
                 height: 200,
-                backgroundColor: Colors.gray[800],
+                backgroundColor: nfcPulseAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [Colors.gray[800], Colors.gray[400]]
+                }),
                 borderRadius: 100,
                 justifyContent: 'center',
                 alignItems: 'center'
               }}
             >
-              <SSText size="lg" color="muted">
-                {isReading ? '...' : 'NFC'}
-              </SSText>
-            </View>
-            <SSButton
-              label={t('common.cancel')}
-              variant="ghost"
-              onPress={() => {
-                setNfcScanModalVisible(false)
-                if (isReading) cancelNFCScan()
-              }}
-            />
+              <SSText uppercase>Scanning NFC</SSText>
+            </Animated.View>
           </SSVStack>
         </SSModal>
       </SSMainLayout>
