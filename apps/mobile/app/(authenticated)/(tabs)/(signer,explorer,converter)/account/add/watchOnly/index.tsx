@@ -262,6 +262,27 @@ export default function WatchOnly() {
     setLoadingWallet(true)
     setNetwork(network)
 
+    if (selectedOption === 'importExtendedPub') {
+      setExtendedPublicKey(xpub)
+      setKey(0)
+    }
+
+    if (selectedOption === 'importAddress') {
+      const addresses = address.split('\n')
+      for (let index = 0; index < addresses.length; index += 1) {
+        const address = addresses[index]
+        setExternalDescriptor(`addr(${address})`)
+      }
+    }
+
+    const account = getAccountData()
+
+    const data = await accountBuilderFinish(account)
+    if (!data) {
+      toast.error(t('watchonly.error.creationFailed'))
+      return
+    }
+
     try {
       // Set the creation type first
       setCreationType(selectedOption)
@@ -303,10 +324,7 @@ export default function WatchOnly() {
                   data.accountWithEncryptedSecret,
                   data.wallet!
                 )
-              : await syncAccountWithAddress(
-                  data.accountWithEncryptedSecret,
-                  `addr(${address})`
-                )
+              : await syncAccountWithAddress(data.accountWithEncryptedSecret)
           updateAccount(updatedAccount)
           toast.success(t('watchonly.success.accountCreated'))
           router.replace('/accountList')
