@@ -5,19 +5,17 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 // Internal imports
 import { buildTransaction } from '@/api/bdk'
-import { PartiallySignedTransaction } from 'bdk-rn'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -116,6 +114,10 @@ function PreviewMessage() {
   const [currentRawChunk, setCurrentRawChunk] = useState(0)
   const [qrComplexity, setQrComplexity] = useState(8) // 1-12 scale, 8 is default (higher = simpler/larger QR codes)
   const [animationSpeed, setAnimationSpeed] = useState(6) // 1-12 scale for animation speed
+
+  // Animation refs to prevent unnecessary re-renders
+  const animationRef = useRef<number | null>(null)
+  const lastUpdateRef = useRef<number>(0)
 
   // Multi-part QR scanning state
   const [scanProgress, setScanProgress] = useState<{
@@ -224,13 +226,13 @@ function PreviewMessage() {
             const finalTxHex = tx.toHex().toUpperCase()
 
             return finalTxHex
-          } catch (finalizeError) {
+          } catch (_finalizeError) {
             // If finalization fails, return the combined PSBT as base64
             const combinedBase64 = combinedPsbt.toBase64()
 
             return combinedBase64
           }
-        } catch (combineError) {
+        } catch (_combineError) {
           // Fall back to direct PSBT processing
         }
       }
@@ -240,11 +242,27 @@ function PreviewMessage() {
 
       // Check if inputs are already finalized
       let needsFinalization = false
+      const inputDetails = []
       for (let i = 0; i < psbt.data.inputs.length; i++) {
         const input = psbt.data.inputs[i]
-        if (!input.finalScriptSig && !input.finalScriptWitness) {
+        const hasFinalScriptSig = !!input.finalScriptSig
+        const hasFinalScriptWitness = !!input.finalScriptWitness
+        const hasWitnessScript = !!input.witnessScript
+        const hasRedeemScript = !!input.redeemScript
+        const hasPartialSigs = input.partialSig && input.partialSig.length > 0
+
+        inputDetails.push({
+          index: i,
+          hasFinalScriptSig,
+          hasFinalScriptWitness,
+          hasWitnessScript,
+          hasRedeemScript,
+          hasPartialSigs,
+          partialSigCount: input.partialSig?.length || 0
+        })
+
+        if (!hasFinalScriptSig && !hasFinalScriptWitness) {
           needsFinalization = true
-          break
         }
       }
 
@@ -253,8 +271,24 @@ function PreviewMessage() {
         try {
           psbt.finalizeAllInputs()
         } catch (finalizeError) {
-          // If finalization fails, return the PSBT hex as-is
-          return psbtHex
+          // Check if this is a "No script found" error - this means the PSBT is incomplete
+          if (
+            finalizeError instanceof Error &&
+            finalizeError.message &&
+            finalizeError.message.includes('No script found')
+          ) {
+            // For incomplete PSBTs, return the hex as-is since we can't finalize without the missing data
+            return psbtHex
+          }
+
+          // For other finalization errors, try to extract what we can
+          try {
+            const tx = psbt.extractTransaction()
+            const finalTxHex = tx.toHex().toUpperCase()
+            return finalTxHex
+          } catch (_extractError) {
+            return psbtHex
+          }
         }
       }
 
@@ -264,11 +298,11 @@ function PreviewMessage() {
         const finalTxHex = tx.toHex().toUpperCase()
 
         return finalTxHex
-      } catch (extractError) {
+      } catch (_extractError) {
         // If extraction fails, return the PSBT hex as-is
         return psbtHex
       }
-    } catch (error) {
+    } catch (_error) {
       // Return original PSBT hex as fallback
       return psbtHex
     }
@@ -283,6 +317,21 @@ function PreviewMessage() {
     })
   }
 
+  // Helper function to convert PSBT to final transaction if needed
+  const processScannedData = (data: string): string => {
+    try {
+      // Check if data is a PSBT and convert to final transaction
+      if (data.toLowerCase().startsWith('70736274ff')) {
+        const convertedResult = convertPsbtToFinalTransaction(data)
+        return convertedResult
+      }
+
+      return data
+    } catch (_error) {
+      return data
+    }
+  }
+
   const assembleMultiPartQR = (
     type: 'raw' | 'ur' | 'bbqr',
     chunks: Map<number, string>
@@ -295,7 +344,14 @@ function PreviewMessage() {
             .sort(([a], [b]) => a - b)
             .map(([, content]) => content)
           const assembled = sortedChunks.join('')
-          return assembled
+
+          // Convert base64 to hex for RAW format
+          try {
+            const hexResult = Buffer.from(assembled, 'base64').toString('hex')
+            return hexResult
+          } catch (_error) {
+            return assembled
+          }
         }
 
         case 'bbqr': {
@@ -307,9 +363,9 @@ function PreviewMessage() {
           const decoded = decodeBBQRChunks(sortedChunks)
 
           if (decoded) {
-            // Convert binary PSBT to base64 for compatibility
-            const base64Result = Buffer.from(decoded).toString('base64')
-            return base64Result
+            // Convert binary PSBT to hex for consistency with RAW format
+            const hexResult = Buffer.from(decoded).toString('hex')
+            return hexResult
           }
 
           return null
@@ -327,7 +383,15 @@ function PreviewMessage() {
             result = decodeURToPSBT(sortedChunks[0])
           } else {
             // Multi-part UR
-            result = decodeMultiPartURToPSBT(sortedChunks)
+            try {
+              result = decodeMultiPartURToPSBT(sortedChunks)
+            } catch (_error) {
+              return null
+            }
+          }
+
+          if (!result) {
+            return null
           }
 
           // Check if result is a PSBT and convert to final transaction
@@ -359,16 +423,37 @@ function PreviewMessage() {
 
   // Function to split raw PSBT into chunks for animated display
   const createRawPsbtChunks = useCallback(
-    (base64Psbt: string): string[] => {
+    (base64Psbt: string, complexity: number): string[] => {
       // Special case: complexity 12 = single static QR with all data
-      if (qrComplexity === 12) {
+      if (complexity === 12) {
+        // Check if the data would be too large for a single QR code
+        if (base64Psbt.length > 1500) {
+          // Fall back to the most dense possible configuration
+          const baseChunkSize = 100
+          const chunkSize = Math.max(100, baseChunkSize * 8) // Use maximum density (900 characters per chunk)
+
+          const chunks: string[] = []
+          const dataChunks: string[] = []
+          for (let i = 0; i < base64Psbt.length; i += chunkSize) {
+            dataChunks.push(base64Psbt.slice(i, i + chunkSize))
+          }
+
+          const totalChunks = dataChunks.length
+          for (let i = 0; i < totalChunks; i++) {
+            const header = `p${i + 1}of${totalChunks}`
+            chunks.push(header + ' ' + dataChunks[i])
+          }
+
+          return chunks
+        }
         return [base64Psbt] // No chunking, no header, just the full data
       }
 
       // Calculate chunk size based on complexity (higher complexity = larger chunks)
       // Invert the scale: complexity 1 = smallest chunks, complexity 11 = large chunks
-      const baseChunkSize = 50
-      const chunkSize = Math.max(50, baseChunkSize * qrComplexity)
+      // Increase base chunk size significantly - QR codes can handle much more data
+      const baseChunkSize = 100
+      const chunkSize = Math.max(100, baseChunkSize * Math.min(complexity, 8)) // Cap at 8 to avoid too large chunks
 
       const chunks: string[] = []
 
@@ -387,7 +472,7 @@ function PreviewMessage() {
 
       return chunks
     },
-    [qrComplexity]
+    [] // Remove qrComplexity dependency to prevent unnecessary re-creation
   )
 
   const transactionHex = useMemo(() => {
@@ -491,6 +576,9 @@ function PreviewMessage() {
       const psbtHex = psbtBuffer.toString('hex')
       setSerializedPsbt(psbtHex)
 
+      // Clear the buffer to help garbage collection
+      psbtBuffer.fill(0)
+
       return psbtHex
     } catch (_error) {
       toast.error(t('error.psbt.serialization'))
@@ -499,32 +587,51 @@ function PreviewMessage() {
   }, [txBuilderResult])
 
   useEffect(() => {
+    let isMounted = true
+    let psbtBuffer: Buffer | null = null
+
     const updateQrChunks = async () => {
       try {
         const psbtHex = await getPsbtString()
-        if (!psbtHex) {
-          setQrError(t('error.psbt.notAvailable'))
-          setQrChunks([])
-          setUrChunks([])
+        if (!psbtHex || !isMounted) {
+          if (isMounted) {
+            setQrError(t('error.psbt.notAvailable'))
+            setQrChunks([])
+            setUrChunks([])
+            setRawPsbtChunks([])
+          }
           return
         }
 
         try {
           // Create BBQR chunks using complexity setting
-          const psbtBuffer = Buffer.from(psbtHex, 'hex')
+          psbtBuffer = Buffer.from(psbtHex, 'hex')
           let bbqrChunks: string[]
 
           try {
             if (qrComplexity === 12) {
               // Complexity 12: Create single static BBQR chunk
-              bbqrChunks = createBBQRChunks(
-                new Uint8Array(psbtBuffer),
-                FileType.PSBT,
-                psbtBuffer.length * 10
-              )
+              // Check if the data would be too large for a single QR code
+              const estimatedBBQRSize = psbtBuffer.length * 1.5 // BBQR encoding adds overhead
+              if (estimatedBBQRSize > 1500) {
+                // Fall back to the most dense possible configuration
+                const bbqrChunkSize = Math.max(100, 30 * 12) // Use maximum density (460 characters per chunk)
+                bbqrChunks = createBBQRChunks(
+                  new Uint8Array(psbtBuffer),
+                  FileType.PSBT,
+                  bbqrChunkSize
+                )
+              } else {
+                bbqrChunks = createBBQRChunks(
+                  new Uint8Array(psbtBuffer),
+                  FileType.PSBT,
+                  psbtBuffer.length * 10
+                )
+              }
             } else {
               // Complexity 1-11: Create multiple chunks (higher = larger chunks)
-              const bbqrChunkSize = Math.max(50, 25 * qrComplexity)
+              // Increase chunk size significantly - BBQR can handle much more data
+              const bbqrChunkSize = Math.max(100, 30 * qrComplexity)
 
               bbqrChunks = createBBQRChunks(
                 new Uint8Array(psbtBuffer),
@@ -535,33 +642,49 @@ function PreviewMessage() {
           } catch (_bbqrError) {
             bbqrChunks = []
           }
-          setQrChunks(bbqrChunks)
+
+          if (!isMounted) return
 
           // Clear the buffer to help garbage collection
           psbtBuffer.fill(0)
+          psbtBuffer = null
 
           if (!txBuilderResult?.psbt?.base64) {
             throw new Error('PSBT data not available')
           }
 
           // Generate raw PSBT chunks using complexity setting
-          const rawChunks = createRawPsbtChunks(txBuilderResult.psbt.base64)
-          setRawPsbtChunks(rawChunks)
-          setCurrentRawChunk(0)
+          const rawChunks = createRawPsbtChunks(
+            txBuilderResult.psbt.base64,
+            qrComplexity
+          )
 
           // Generate UR fragments using complexity setting
           let urFragments: string[]
 
           if (qrComplexity === 12) {
             // Complexity 12: Create single static UR fragment
-            urFragments = getURFragmentsFromPSBT(
-              txBuilderResult.psbt.base64,
-              'base64',
-              txBuilderResult.psbt.base64.length // Use full length for single fragment
-            )
+            // Check if the data would be too large for a single QR code
+            const estimatedURSize = txBuilderResult.psbt.base64.length * 1.5 // UR encoding adds overhead
+            if (estimatedURSize > 1500) {
+              // Fall back to the most dense possible configuration
+              const urFragmentSize = Math.max(50, 15 * 12) // Use maximum density (180 characters per fragment)
+              urFragments = getURFragmentsFromPSBT(
+                txBuilderResult.psbt.base64,
+                'base64',
+                urFragmentSize
+              )
+            } else {
+              urFragments = getURFragmentsFromPSBT(
+                txBuilderResult.psbt.base64,
+                'base64',
+                txBuilderResult.psbt.base64.length // Use full length for single fragment
+              )
+            }
           } else {
             // Complexity 1-11: Create multiple fragments (higher = larger fragments)
-            const urFragmentSize = Math.max(10, 5 * qrComplexity)
+            // Increase the fragment size significantly - UR can handle much more data
+            const urFragmentSize = Math.max(50, 15 * qrComplexity)
             urFragments = getURFragmentsFromPSBT(
               txBuilderResult.psbt.base64,
               'base64',
@@ -569,24 +692,42 @@ function PreviewMessage() {
             )
           }
 
+          if (!isMounted) return
+
+          setQrChunks(bbqrChunks)
           setUrChunks(urFragments)
-          setCurrentUrChunk(0) // Reset to 0 when new chunks are set
+          setRawPsbtChunks(rawChunks)
+          setCurrentRawChunk(0)
+          setCurrentUrChunk(0)
           setQrError(null)
         } catch (_error) {
-          setQrError(t('error.qr.generation'))
+          if (isMounted) {
+            setQrError(t('error.qr.generation'))
+            setQrChunks([])
+            setUrChunks([])
+            setRawPsbtChunks([])
+          }
+        }
+      } catch (_error) {
+        if (isMounted) {
+          setQrError(t('error.psbt.notAvailable'))
           setQrChunks([])
           setUrChunks([])
           setRawPsbtChunks([])
         }
-      } catch (_error) {
-        setQrError(t('error.psbt.notAvailable'))
-        setQrChunks([])
-        setUrChunks([])
-        setRawPsbtChunks([])
       }
     }
 
     updateQrChunks()
+
+    // Cleanup function
+    return () => {
+      isMounted = false
+      if (psbtBuffer) {
+        psbtBuffer.fill(0)
+        psbtBuffer = null
+      }
+    }
   }, [
     getPsbtString,
     txBuilderResult?.psbt?.base64,
@@ -594,11 +735,19 @@ function PreviewMessage() {
     createRawPsbtChunks
   ])
 
-  // Keep animation speed the same but with smaller chunks
+  // High-performance animation using requestAnimationFrame
   useEffect(() => {
-    // Don't animate when complexity is 12 (static mode)
+    // Don't animate when complexity is 12 (static mode) - but only for single chunks
     if (qrComplexity === 12) {
-      return
+      // Check if we actually have a single chunk or multiple chunks
+      const hasMultipleChunks =
+        (displayMode === QRDisplayMode.RAW && rawPsbtChunks.length > 1) ||
+        (displayMode === QRDisplayMode.BBQR && qrChunks.length > 1) ||
+        (displayMode === QRDisplayMode.UR && urChunks.length > 1)
+
+      if (!hasMultipleChunks) {
+        return // Don't animate if we have a single chunk
+      }
     }
 
     const shouldAnimate =
@@ -614,16 +763,32 @@ function PreviewMessage() {
       const interval =
         maxInterval - ((animationSpeed - 1) * (maxInterval - minInterval)) / 11
 
-      const animationInterval = setInterval(() => {
-        if (displayMode === QRDisplayMode.RAW) {
-          setCurrentRawChunk((prev) => (prev + 1) % rawPsbtChunks.length)
-        } else if (displayMode === QRDisplayMode.UR) {
-          setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
-        } else {
-          setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
+      // Cap minimum interval to prevent excessive updates
+      const safeInterval = Math.max(interval, 100)
+
+      const animate = (timestamp: number) => {
+        if (timestamp - lastUpdateRef.current >= safeInterval) {
+          if (displayMode === QRDisplayMode.RAW) {
+            setCurrentRawChunk((prev) => (prev + 1) % rawPsbtChunks.length)
+          } else if (displayMode === QRDisplayMode.UR) {
+            setCurrentUrChunk((prev) => (prev + 1) % urChunks.length)
+          } else {
+            setCurrentChunk((prev) => (prev + 1) % qrChunks.length)
+          }
+          lastUpdateRef.current = timestamp
         }
-      }, interval)
-      return () => clearInterval(animationInterval)
+
+        animationRef.current = requestAnimationFrame(animate)
+      }
+
+      animationRef.current = requestAnimationFrame(animate)
+
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current)
+          animationRef.current = null
+        }
+      }
     }
   }, [
     displayMode,
@@ -645,8 +810,46 @@ function PreviewMessage() {
 
     // Handle single QR codes (complete data in one scan)
     if (qrInfo.type === 'single' || qrInfo.total === 1) {
+      let finalContent = qrInfo.content
+      try {
+        // Check if it's a single BBQR QR code
+        if (isBBQRFragment(qrInfo.content)) {
+          const decoded = decodeBBQRChunks([qrInfo.content])
+          if (decoded) {
+            // Convert binary PSBT to hex for consistency
+            const hexResult = Buffer.from(decoded).toString('hex')
+            finalContent = hexResult
+          } else {
+            toast.error('Failed to decode BBQR QR code')
+            return
+          }
+        }
+        // Check if it looks like base64 PSBT (starts with cHNidP)
+        else if (qrInfo.content.startsWith('cHNidP')) {
+          const hexResult = Buffer.from(qrInfo.content, 'base64').toString(
+            'hex'
+          )
+          finalContent = hexResult
+        }
+        // Check if it's a single UR QR code
+        else if (qrInfo.content.toLowerCase().startsWith('ur:crypto-psbt/')) {
+          const decoded = decodeURToPSBT(qrInfo.content)
+          if (decoded) {
+            finalContent = decoded
+          } else {
+            toast.error('Failed to decode UR QR code')
+            return
+          }
+        }
+
+        // Process the data (convert PSBT to final transaction if needed)
+        finalContent = processScannedData(finalContent)
+      } catch (_error) {
+        // Keep original content if conversion fails
+      }
+
       setCameraModalVisible(false)
-      setSignedPsbt(qrInfo.content)
+      setSignedPsbt(finalContent)
       resetScanProgress()
       toast.success('QR code scanned successfully')
       return
@@ -672,7 +875,6 @@ function PreviewMessage() {
         chunks: newChunks
       })
 
-      toast.success(`Scanned part ${current + 1} of ${total}`)
       return
     }
 
@@ -693,87 +895,60 @@ function PreviewMessage() {
       chunks: newChunks
     })
 
-    // For UR format, we need to handle fountain encoding differently
+    // For UR format, use fountain encoding logic
     if (type === 'ur') {
-      // UR uses fountain encoding - try to assemble after collecting enough fragments
-      // For fountain encoding, we need more fragments than the theoretical minimum
+      // For fountain encoding, we need to find the highest fragment number to determine the actual range
+      const maxFragmentNumber = Math.max(...newScanned)
+      const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
+
+      // For fountain encoding, try assembly after collecting enough fragments
+      // Be more aggressive - try when we have enough fragments to potentially succeed
+      // Use either 1.1x the actual range or the theoretical minimum, whichever is lower
+      const conservativeTarget = Math.ceil(actualTotal * 1.1)
+      const theoreticalTarget = Math.ceil(total * 1.5)
+      const assemblyTarget = Math.min(conservativeTarget, theoreticalTarget)
+
+      // Also try assembly if we have most of the available fragments (80% of actual range)
+      const fallbackTarget = Math.ceil(actualTotal * 0.8)
       const shouldTryAssembly =
-        newScanned.size >= Math.max(Math.ceil(total * 1.5), 12) ||
-        (newScanned.size >= 15 && newScanned.size % 3 === 0)
+        newScanned.size >= assemblyTarget || newScanned.size >= fallbackTarget
 
       if (shouldTryAssembly) {
         const assembledData = assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
-          // Check if the assembled data is a PSBT and convert it
-          if (assembledData.toLowerCase().startsWith('70736274ff')) {
-            const convertedResult = convertPsbtToFinalTransaction(assembledData)
+          // Process the assembled data (convert PSBT to final transaction if needed)
+          const finalData = processScannedData(assembledData)
 
-            // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
-            if (
-              convertedResult.toLowerCase().startsWith('70736274ff') ||
-              convertedResult.startsWith('cHNidP')
-            ) {
-              setSignedPsbt(convertedResult)
-            } else {
-              setSignedPsbt(convertedResult)
-            }
-          } else {
-            setSignedPsbt(assembledData)
-          }
+          setSignedPsbt(finalData)
 
           setCameraModalVisible(false)
           resetScanProgress()
-          toast.success(
-            `Successfully assembled UR transaction from ${newScanned.size} fragments`
-          )
+
+          // Check if the result is still a PSBT (not finalized)
+          if (
+            finalData.toLowerCase().startsWith('70736274ff') ||
+            finalData.startsWith('cHNidP')
+          ) {
+            toast.success(
+              `PSBT assembled successfully (${newScanned.size} fragments). Note: PSBT may need additional signatures to finalize.`
+            )
+          } else {
+            toast.success(
+              `Successfully assembled final transaction from ${newScanned.size} fragments`
+            )
+          }
           return
         }
       }
 
-      // Continue scanning for UR with more generous limits for fountain encoding
-      // Fountain encoding often needs 2-3x the theoretical minimum fragments
-      if (newScanned.size >= Math.min(total * 4, 40)) {
-        // Try one final assembly attempt before giving up
-        const finalAssembly = assembleMultiPartQR(type, newChunks)
-
-        if (finalAssembly) {
-          // Check if the assembled data is a PSBT and convert it
-          if (finalAssembly.toLowerCase().startsWith('70736274ff')) {
-            const convertedResult = convertPsbtToFinalTransaction(finalAssembly)
-
-            // Check if conversion returned a finalized transaction, PSBT hex, or PSBT base64
-            if (
-              convertedResult.toLowerCase().startsWith('70736274ff') ||
-              convertedResult.startsWith('cHNidP')
-            ) {
-              setSignedPsbt(convertedResult)
-            } else {
-              setSignedPsbt(convertedResult)
-            }
-          } else {
-            setSignedPsbt(finalAssembly)
-          }
-
-          setCameraModalVisible(false)
-          resetScanProgress()
-          toast.success(
-            `Successfully assembled UR transaction from ${newScanned.size} fragments`
-          )
-          return
-        }
-
-        // If final assembly fails, stop scanning
-        toast.error(
-          `Unable to decode UR after ${newScanned.size} fragments. Try again.`
-        )
-        resetScanProgress()
-        setCameraModalVisible(false)
-        return
-      }
-
+      // Continue scanning for fountain encoding
+      const targetForDisplay = Math.min(
+        Math.ceil(actualTotal * 1.1),
+        Math.ceil(total * 1.5)
+      )
       toast.success(
-        `UR: Collected ${newScanned.size} fragments (need ~${Math.ceil(total * 1.5)})`
+        `UR: Collected ${newScanned.size} fragments (need ~${targetForDisplay})`
       )
     } else {
       // For RAW and BBQR, wait for all chunks as before
@@ -782,12 +957,26 @@ function PreviewMessage() {
         const assembledData = assembleMultiPartQR(type, newChunks)
 
         if (assembledData) {
+          // Process the assembled data (convert PSBT to final transaction if needed)
+          const finalData = processScannedData(assembledData)
+
           setCameraModalVisible(false)
-          setSignedPsbt(assembledData)
+          setSignedPsbt(finalData)
           resetScanProgress()
-          toast.success(
-            `Successfully assembled ${type.toUpperCase()} transaction from ${total} parts`
-          )
+
+          // Check if the result is still a PSBT (not finalized)
+          if (
+            finalData.toLowerCase().startsWith('70736274ff') ||
+            finalData.startsWith('cHNidP')
+          ) {
+            toast.success(
+              `PSBT assembled successfully (${total} parts). Note: PSBT may need additional signatures to finalize.`
+            )
+          } else {
+            toast.success(
+              `Successfully assembled final transaction from ${total} parts`
+            )
+          }
         } else {
           toast.error('Failed to assemble multi-part QR code')
           resetScanProgress()
@@ -818,8 +1007,8 @@ function PreviewMessage() {
     try {
       await emitNFCTag(serializedPsbt)
       toast.success(t('transaction.preview.nfcExported'))
-    } catch (error) {
-      const errorMessage = (error as Error).message
+    } catch (_error) {
+      const errorMessage = (_error as Error).message
       if (errorMessage) {
         setNfcError(errorMessage)
         toast.error(errorMessage)
@@ -875,37 +1064,112 @@ function PreviewMessage() {
     }
   }, [signedPsbt, setSignedTx])
 
+  // Cleanup effect when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cancel any running animations
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+        animationRef.current = null
+      }
+      // Clear all QR-related state to free memory
+      setQrChunks([])
+      setUrChunks([])
+      setRawPsbtChunks([])
+    }
+  }, [])
+
   const getQRValue = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW: {
         // Always use chunks for RAW mode to ensure animation
         if (rawPsbtChunks.length > 0) {
-          return rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
+          // Safety check for out-of-bounds access
+          if (currentRawChunk >= rawPsbtChunks.length) {
+            return 'NO_CHUNKS'
+          }
+
+          const value = rawPsbtChunks[currentRawChunk] || 'NO_CHUNKS'
+          // Runtime safety check to prevent crashes
+          if (value.length > 1500) {
+            return 'DATA_TOO_LARGE_FOR_QR'
+          }
+          return value
         }
         // Fallback to full base64 PSBT if chunks not ready
         const base64Psbt = txBuilderResult?.psbt?.base64
-        if (base64Psbt && base64Psbt.length > 1852) {
+        if (base64Psbt && base64Psbt.length > 1500) {
           return 'DATA_TOO_LARGE'
         }
         return base64Psbt || 'NO_DATA'
       }
       case QRDisplayMode.UR: {
+        // Safety check for out-of-bounds access
+        if (currentUrChunk >= urChunks.length) {
+          return 'NO_CHUNKS'
+        }
+
         const urValue = urChunks[currentUrChunk]
+        // Runtime safety check to prevent crashes
+        if (urValue && urValue.length > 1500) {
+          return 'DATA_TOO_LARGE_FOR_QR'
+        }
         return urValue || 'NO_CHUNKS'
       }
       case QRDisplayMode.BBQR: {
-        const bbqrValue = qrChunks?.[currentChunk] || 'NO_CHUNKS'
+        // Safety check for out-of-bounds access
+        if (currentChunk >= qrChunks.length) {
+          return 'NO_CHUNKS'
+        }
 
-        return bbqrValue
+        const bbqrValue = qrChunks?.[currentChunk]
+        // Runtime safety check to prevent crashes
+        if (bbqrValue && bbqrValue.length > 1500) {
+          return 'DATA_TOO_LARGE_FOR_QR'
+        }
+        return bbqrValue || 'NO_CHUNKS'
       }
     }
+  }
+
+  // Helper function to check if data would be too large for single QR code
+  const isDataTooLargeForSingleQR = () => {
+    const base64Psbt = txBuilderResult?.psbt?.base64
+    if (!base64Psbt) return false
+
+    // Check the actual chunk sizes for the current display mode
+    let maxChunkSize = 0
+
+    switch (displayMode) {
+      case QRDisplayMode.RAW:
+        if (rawPsbtChunks.length > 0) {
+          maxChunkSize = Math.max(...rawPsbtChunks.map((c) => c.length))
+        }
+        break
+      case QRDisplayMode.UR:
+        if (urChunks.length > 0) {
+          maxChunkSize = Math.max(...urChunks.map((c) => c.length))
+        }
+        break
+      case QRDisplayMode.BBQR:
+        if (qrChunks.length > 0) {
+          maxChunkSize = Math.max(...qrChunks.map((c) => c.length))
+        }
+        break
+    }
+
+    // Use a more conservative limit to prevent QR code crashes
+    const limit = 1500 // Reduced to prevent crashes
+
+    return maxChunkSize > limit
   }
 
   const getDisplayModeDescription = () => {
     switch (displayMode) {
       case QRDisplayMode.RAW:
         if (rawPsbtChunks.length > 0) {
-          if (qrComplexity === 12) {
+          // Only show "Static QR" if we actually have a single chunk at complexity 12
+          if (qrComplexity === 12 && rawPsbtChunks.length === 1) {
             return 'Static QR - Complete PSBT in single code'
           }
           return rawPsbtChunks.length > 1
@@ -915,7 +1179,7 @@ function PreviewMessage() {
               })
             : t('transaction.preview.singleChunk')
         }
-        if (serializedPsbt.length > 1852) {
+        if (serializedPsbt.length > 1500) {
           return t('error.qr.dataTooLarge')
         }
         if (!serializedPsbt) {
@@ -926,7 +1190,8 @@ function PreviewMessage() {
         if (!urChunks.length) {
           return t('error.psbt.notAvailable')
         }
-        if (qrComplexity === 12) {
+        // Only show "Static QR" if we actually have a single chunk at complexity 12
+        if (qrComplexity === 12 && urChunks.length === 1) {
           return 'Static QR - Complete UR in single code'
         }
         return urChunks.length > 1
@@ -937,9 +1202,10 @@ function PreviewMessage() {
           : t('transaction.preview.singleChunk')
       case QRDisplayMode.BBQR:
         if (!qrChunks.length) {
-          return t('error.psbt.notAvailable')
+          return 'Loading BBQR chunks...'
         }
-        if (qrComplexity === 12) {
+        // Only show "Static QR" if we actually have a single chunk at complexity 12
+        if (qrComplexity === 12 && qrChunks.length === 1) {
           return 'Static QR - Complete BBQR in single code'
         }
         return qrChunks.length > 1
@@ -1064,23 +1330,42 @@ function PreviewMessage() {
                       uppercase
                       style={{ marginTop: 16 }}
                     >
-                      {t('transaction.preview.importSigned')}
+                      {signedPsbt &&
+                      (signedPsbt.toLowerCase().startsWith('70736274ff') ||
+                        signedPsbt.startsWith('cHNidP'))
+                        ? 'Imported PSBT (may need additional signatures)'
+                        : t('transaction.preview.importSigned')}
                     </SSText>
-                    <SSTextInput
-                      placeholder={t('transaction.preview.signedPsbt')}
-                      editable={false}
+                    <View
                       style={{
-                        fontFamily: Typography.sfProMono,
-                        fontSize: 12,
-                        height: 200,
-                        textAlignVertical: 'top',
+                        minHeight: 200,
+                        maxHeight: 600,
                         paddingTop: 12,
-                        paddingBottom: 12
+                        paddingBottom: 12,
+                        paddingHorizontal: 12,
+                        backgroundColor: Colors.gray[900],
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: Colors.gray[700]
                       }}
-                      value={signedPsbt}
-                      multiline
-                      numberOfLines={18}
-                    />
+                    >
+                      <ScrollView
+                        style={{ flex: 1 }}
+                        showsVerticalScrollIndicator
+                        nestedScrollEnabled
+                      >
+                        <SSText
+                          style={{
+                            fontFamily: Typography.sfProMono,
+                            fontSize: 12,
+                            color: Colors.white,
+                            lineHeight: 18
+                          }}
+                        >
+                          {signedPsbt || t('transaction.preview.signedPsbt')}
+                        </SSText>
+                      </ScrollView>
+                    </View>
                     <SSHStack gap="xxs" justifyBetween>
                       <SSButton
                         label="Paste"
@@ -1182,7 +1467,11 @@ function PreviewMessage() {
                         : 'outline'
                     }
                     label="RAW"
-                    onPress={() => setDisplayMode(QRDisplayMode.RAW)}
+                    onPress={() => {
+                      setDisplayMode(QRDisplayMode.RAW)
+                      // Reset chunk index when switching modes
+                      setCurrentRawChunk(0)
+                    }}
                     style={{ flex: 1 }}
                   />
                   <SSButton
@@ -1190,7 +1479,11 @@ function PreviewMessage() {
                       displayMode === QRDisplayMode.UR ? 'secondary' : 'outline'
                     }
                     label="UR"
-                    onPress={() => setDisplayMode(QRDisplayMode.UR)}
+                    onPress={() => {
+                      setDisplayMode(QRDisplayMode.UR)
+                      // Reset chunk index when switching modes
+                      setCurrentUrChunk(0)
+                    }}
                     style={{ flex: 1 }}
                   />
                   <SSButton
@@ -1200,7 +1493,11 @@ function PreviewMessage() {
                         : 'outline'
                     }
                     label="BBQR"
-                    onPress={() => setDisplayMode(QRDisplayMode.BBQR)}
+                    onPress={() => {
+                      setDisplayMode(QRDisplayMode.BBQR)
+                      // Reset chunk index when switching modes
+                      setCurrentChunk(0)
+                    }}
                     style={{ flex: 1 }}
                   />
                 </SSHStack>
@@ -1212,6 +1509,16 @@ function PreviewMessage() {
                 >
                   {getDisplayModeDescription()}
                 </SSText>
+                {isDataTooLargeForSingleQR() && qrComplexity >= 11 && (
+                  <SSText
+                    center
+                    color="muted"
+                    size="xs"
+                    style={{ marginTop: 5 }}
+                  >
+                    Max density limited due to data size
+                  </SSText>
+                )}
                 <SSText
                   center
                   color="white"
@@ -1250,11 +1557,24 @@ function PreviewMessage() {
                         style={{ height: 50, width: 50 }}
                       />
                       <SSButton
-                        variant="outline"
-                        label="+"
-                        onPress={() =>
-                          setQrComplexity(Math.min(12, qrComplexity + 1))
+                        variant={
+                          qrComplexity === 11 && isDataTooLargeForSingleQR()
+                            ? 'ghost'
+                            : 'outline'
                         }
+                        label="+"
+                        onPress={() => {
+                          const newComplexity = qrComplexity + 1
+                          // Check if the new complexity would create data too large for QR codes
+                          if (
+                            newComplexity === 12 &&
+                            isDataTooLargeForSingleQR()
+                          ) {
+                            toast.error('Data too large for single QR code')
+                            return
+                          }
+                          setQrComplexity(Math.min(12, newComplexity))
+                        }}
                         style={{ height: 50, width: 50 }}
                       />
                     </SSHStack>
@@ -1307,40 +1627,6 @@ function PreviewMessage() {
                 : t('camera.scanQRCode')}
             </SSText>
 
-            {/* Show progress if scanning multi-part QR */}
-            {scanProgress.type && scanProgress.total > 1 && (
-              <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
-                <SSText color="white" center>
-                  {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
-                </SSText>
-                <View
-                  style={{
-                    width: 300,
-                    height: 4,
-                    backgroundColor: Colors.gray[700],
-                    borderRadius: 2
-                  }}
-                >
-                  <View
-                    style={{
-                      width:
-                        (scanProgress.scanned.size / scanProgress.total) * 300,
-                      height: 4,
-                      maxWidth: scanProgress.total * 300,
-                      backgroundColor: Colors.white,
-                      borderRadius: 2
-                    }}
-                  />
-                </View>
-                <SSText color="muted" size="sm" center>
-                  {`Scanned parts: ${Array.from(scanProgress.scanned)
-                    .sort((a, b) => a - b)
-                    .map((n) => n + 1)
-                    .join(', ')}`}
-                </SSText>
-              </SSVStack>
-            )}
-
             <CameraView
               onBarcodeScanned={(res) => {
                 handleQRCodeScanned(res.raw)
@@ -1348,6 +1634,90 @@ function PreviewMessage() {
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               style={{ width: 340, height: 340 }}
             />
+
+            {/* Show progress if scanning multi-part QR */}
+            {scanProgress.type && scanProgress.total > 1 && (
+              <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
+                {scanProgress.type === 'ur' ? (
+                  // For UR fountain encoding, show the actual target
+                  <>
+                    {(() => {
+                      const maxFragment = Math.max(...scanProgress.scanned)
+                      const actualTotal = maxFragment + 1
+                      const conservativeTarget = Math.ceil(actualTotal * 1.1)
+                      const theoreticalTarget = Math.ceil(
+                        scanProgress.total * 1.5
+                      )
+                      const displayTarget = Math.min(
+                        conservativeTarget,
+                        theoreticalTarget
+                      )
+
+                      return (
+                        <>
+                          <SSText color="white" center>
+                            {`UR fountain encoding: ${scanProgress.scanned.size}/${displayTarget} fragments`}
+                          </SSText>
+                          <View
+                            style={{
+                              width: 300,
+                              height: 4,
+                              backgroundColor: Colors.gray[700],
+                              borderRadius: 2
+                            }}
+                          >
+                            <View
+                              style={{
+                                width:
+                                  (scanProgress.scanned.size / displayTarget) *
+                                  300,
+                                height: 4,
+                                maxWidth: 300,
+                                backgroundColor: Colors.white,
+                                borderRadius: 2
+                              }}
+                            />
+                          </View>
+                        </>
+                      )
+                    })()}
+                  </>
+                ) : (
+                  // For RAW and BBQR, show normal progress
+                  <>
+                    <SSText color="white" center>
+                      {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
+                    </SSText>
+                    <View
+                      style={{
+                        width: 300,
+                        height: 4,
+                        backgroundColor: Colors.gray[700],
+                        borderRadius: 2
+                      }}
+                    >
+                      <View
+                        style={{
+                          width:
+                            (scanProgress.scanned.size / scanProgress.total) *
+                            300,
+                          height: 4,
+                          maxWidth: scanProgress.total * 300,
+                          backgroundColor: Colors.white,
+                          borderRadius: 2
+                        }}
+                      />
+                    </View>
+                    <SSText color="muted" size="sm" center>
+                      {`Scanned parts: ${Array.from(scanProgress.scanned)
+                        .sort((a, b) => a - b)
+                        .map((n) => n + 1)
+                        .join(', ')}`}
+                    </SSText>
+                  </>
+                )}
+              </SSVStack>
+            )}
 
             {!permission?.granted && (
               <SSButton
@@ -1358,12 +1728,14 @@ function PreviewMessage() {
 
             {/* Reset button for multi-part scans */}
             {scanProgress.type && (
-              <SSButton
-                label="Reset Scan"
-                variant="outline"
-                onPress={resetScanProgress}
-                style={{ marginTop: 10 }}
-              />
+              <SSHStack>
+                <SSButton
+                  label="Reset Scan"
+                  variant="outline"
+                  onPress={resetScanProgress}
+                  style={{ marginTop: 10, width: 200 }}
+                />
+              </SSHStack>
             )}
           </SSVStack>
         </SSModal>

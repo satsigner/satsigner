@@ -162,7 +162,9 @@ export default function WatchOnly() {
   }, [setPolicyType])
 
   function updateAddress(address: string) {
-    const validAddress = validateAddress(address)
+    const validAddress = address.includes('\n')
+      ? address.split('\n').every(validateAddress)
+      : validateAddress(address)
     setValidAddress(!address || validAddress)
     setDisabled(!validAddress)
     setAddress(address)
@@ -258,6 +260,22 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
+    setNetwork(network)
+
+    if (selectedOption === 'importExtendedPub') {
+      setExtendedPublicKey(xpub)
+      setKey(0)
+    }
+
+    if (selectedOption === 'importAddress') {
+      const addresses = address.split('\n')
+      for (let index = 0; index < addresses.length; index += 1) {
+        const address = addresses[index]
+        setExternalDescriptor(`addr(${address})`)
+      }
+    }
+
+    const account = getAccountData()
     try {
       if (selectedOption === 'importExtendedPub') {
         if (!xpub || !localFingerprint || !scriptVersion) {
@@ -273,7 +291,6 @@ export default function WatchOnly() {
 
       setNetwork(network)
       setKey(0)
-      const account = getAccountData()
 
       const data = await accountBuilderFinish(account)
       if (!data) {
@@ -289,10 +306,7 @@ export default function WatchOnly() {
                   data.accountWithEncryptedSecret,
                   data.wallet!
                 )
-              : await syncAccountWithAddress(
-                  data.accountWithEncryptedSecret,
-                  `addr(${address})`
-                )
+              : await syncAccountWithAddress(data.accountWithEncryptedSecret)
           updateAccount(updatedAccount)
           toast.success(t('watchonly.success.accountCreated'))
           router.replace('/')
