@@ -25,7 +25,6 @@ function SSSwitch({
   onToggle
 }: SSSwitchProps) {
   const scaleBySize: Record<TextFontSize, number> = {
-    '2xxs': 0.3,
     xxs: 0.4,
     xs: 0.5,
     sm: 0.6,
@@ -42,7 +41,6 @@ function SSSwitch({
   }
 
   const gapBySize: Record<TextFontSize, HStackGap> = {
-    '2xxs': 'none',
     xxs: 'none',
     xs: 'none',
     sm: 'none',
