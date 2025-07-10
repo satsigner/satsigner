@@ -22,7 +22,9 @@ function SSTimeAgoText({ date, ...textProps }: SSTimeAgoTextProps) {
       date={date}
       live
       component={(props: any) => (
-        <SSText color="muted" {...textProps}>{props.children}</SSText>
+        <SSText color="muted" {...textProps}>
+          {props.children}
+        </SSText>
       )}
       formatter={timeFormatter}
     />

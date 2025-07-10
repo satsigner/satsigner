@@ -107,10 +107,13 @@ function SSTransactionCard({
         gap="none"
       >
         <SSHStack justifyBetween>
-          <SSText color="muted" type="mono">
+          <SSText color="muted" size="xs">
             {formatTxId(transaction.id)}
           </SSText>
-          <SSText style={[{ textAlign: 'right' }, getConfirmationsColor()]}>
+          <SSText
+            size="xs"
+            style={[{ textAlign: 'right' }, getConfirmationsColor()]}
+          >
             {formatConfirmations(confirmations)}
           </SSText>
         </SSHStack>
@@ -119,15 +122,15 @@ function SSTransactionCard({
           <SSTimeAgoText
             date={new Date(transaction.timestamp)}
             size="xs"
-            style={{ marginTop: -5, marginBottom: -5 }}
+            style={{ marginTop: -5 }}
           />
         )}
 
-        <SSVStack gap="none" style={{ marginTop: 0 }}>
+        <SSVStack gap="none" style={{ marginTop: 5 }}>
           <SSHStack
             style={{
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'flex-end'
             }}
           >
             <SSHStack
@@ -148,7 +151,12 @@ function SSTransactionCard({
                   width={smallView ? 12 : 21}
                 />
               )}
-              <SSHStack gap="xxs" style={{ alignItems: 'baseline' }}>
+              <SSHStack
+                gap="xxs"
+                style={{
+                  alignItems: 'flex-end'
+                }}
+              >
                 <SSStyledSatText
                   amount={amount}
                   decimals={0}
@@ -166,7 +174,7 @@ function SSTransactionCard({
             </SSHStack>
             {walletBalance !== undefined && (
               <SSHStack gap="xs">
-                <SSText color="muted" style={[{ textAlign: 'right' }]}>
+                <SSText color="muted">
                   <SSStyledSatText
                     amount={walletBalance}
                     decimals={0}
@@ -175,11 +183,7 @@ function SSTransactionCard({
                     textSize={smallView ? 'xs' : 'sm'}
                   />
                 </SSText>
-                <SSText
-                  size="xs"
-                  color="muted"
-                  style={[{ textAlign: 'right' }]}
-                >
+                <SSText size="xs" color="muted">
                   {t('bitcoin.sats').toLowerCase()}
                 </SSText>
               </SSHStack>
