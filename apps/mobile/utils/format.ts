@@ -83,18 +83,29 @@ function formatFiatPrice(sats: number, btcPrice: number) {
 }
 
 function formatConfirmations(confirmations: number) {
-  if (confirmations <= 0) return t('bitcoin.confirmations.unconfirmed')
-  if (confirmations === 1)
-    return `1 ${t('bitcoin.confirmations.oneBlock').toLowerCase()}`
-  const manyBlocks = t('bitcoin.confirmations.manyBlocks').toLowerCase()
-  if (confirmations < 1_000) return `${confirmations} ${manyBlocks}`
+  if (confirmations <= 0) {
+    return t('bitcoin.confirmations.unconfirmed')
+  }
+
+  if (confirmations === 1) {
+    return t('bitcoin.confirmations.oneBlock')
+  }
+
+  const manyBlocks = (blocks: string) =>
+    t('bitcoin.confirmations.manyBlocks', { blocks })
+
+  if (confirmations < 1_000) {
+    return manyBlocks(`${confirmations}`)
+  }
 
   if (confirmations < 1_000_000) {
     const roundedValue = Math.round(confirmations / 1_000)
-    return `~${roundedValue}k ${manyBlocks}`
+    return manyBlocks(`~${roundedValue}k`)
   }
+
   const roundedValue = Math.round(confirmations / 1_000_000)
-  return `~${roundedValue}M ${manyBlocks}`
+
+  return manyBlocks(`~${roundedValue}M`)
 }
 
 type TimeFromNow = [

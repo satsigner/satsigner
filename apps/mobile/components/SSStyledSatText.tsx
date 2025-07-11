@@ -1,5 +1,5 @@
 import { Colors } from '@/styles'
-import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
+import { text, type TextFontSize, type TextFontWeight } from '@/styles/sizes'
 import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'
@@ -50,6 +50,7 @@ function SSStyledSatText({
             weight={weight}
             style={{
               letterSpacing,
+              lineHeight: text.fontSize[textSize],
               color: noColor
                 ? isBeforeFirstNonZero
                   ? Colors.softWhite

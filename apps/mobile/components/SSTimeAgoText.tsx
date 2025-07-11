@@ -3,13 +3,13 @@ import TimeAgo from 'react-timeago'
 import { t } from '@/locales'
 import { formatDate, formatTime } from '@/utils/format'
 
-import SSText from './SSText'
+import SSText, { type SSTextProps } from './SSText'
 
 type SSTimeAgoTextProps = {
   date: Date
-}
+} & SSTextProps
 
-function SSTimeAgoText({ date }: SSTimeAgoTextProps) {
+function SSTimeAgoText({ date, ...textProps }: SSTimeAgoTextProps) {
   function timeFormatter(value: number, unit: string, suffix: string) {
     if (unit === 'second') return `${t('time.lessThanAMinute')} ${suffix}`
     else if (unit === 'minute' || unit === 'hour')
@@ -22,7 +22,9 @@ function SSTimeAgoText({ date }: SSTimeAgoTextProps) {
       date={date}
       live
       component={(props: any) => (
-        <SSText color="muted">{props.children}</SSText>
+        <SSText color="muted" {...textProps}>
+          {props.children}
+        </SSText>
       )}
       formatter={timeFormatter}
     />
