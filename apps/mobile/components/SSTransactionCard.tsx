@@ -48,25 +48,34 @@ function SSTransactionCard({
   expand,
   style = {}
 }: SSTransactionCardProps) {
-  const confirmations = transaction.blockHeight
-    ? blockHeight - transaction.blockHeight + 1
-    : 0
+  const hasConfirmation = useMemo(() => {
+    return transaction.blockHeight && transaction.blockHeight > 0
+  }, [transaction])
 
-  function getConfirmationsColor() {
+  const confirmations = useMemo(() => {
+    return transaction.blockHeight
+      ? blockHeight - transaction.blockHeight + 1
+      : 0
+  }, [transaction, blockHeight])
+
+  const confirmationColor = useMemo(() => {
     if (confirmations <= 0) return styles.unconfirmed
     else if (confirmations < 6) return styles.confirmedFew
     else return styles.confirmedEnough
-  }
+  }, [confirmations])
 
   const [priceDisplay, setPriceDisplay] = useState('')
   const [percentChange, setPercentChange] = useState('')
 
-  const { type, received, sent, prices } = transaction
-  const amount = type === 'receive' ? received : sent - received
+  const amount = useMemo(() => {
+    const { type, received, sent } = transaction
+    return type === 'receive' ? received : sent - received
+  }, [transaction])
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
   useEffect(() => {
+    const { prices } = transaction
     const itemsToDisplay: string[] = []
 
     const oldPrice = prices ? prices[fiatCurrency] : null
@@ -85,7 +94,7 @@ function SSTransactionCard({
       setPercentChange(formatPercentualChange(btcPrice, oldPrice))
 
     setPriceDisplay(itemsToDisplay.join(' '))
-  }, [btcPrice, fiatCurrency, amount, prices])
+  }, [btcPrice, fiatCurrency, amount, transaction])
 
   const router = useRouter()
 
@@ -110,12 +119,21 @@ function SSTransactionCard({
           <SSText color="muted" size="xs">
             {formatTxId(transaction.id)}
           </SSText>
-          <SSText
-            size="xs"
-            style={[{ textAlign: 'right' }, getConfirmationsColor()]}
-          >
-            {formatConfirmations(confirmations)}
-          </SSText>
+          <SSHStack gap="none">
+            {(confirmations >= 0 || !hasConfirmation) && (
+              <SSText size="xs" style={confirmationColor}>
+                {formatConfirmations(confirmations) + ' - '}
+              </SSText>
+            )}
+            <SSText
+              size="xs"
+              style={
+                confirmations >= 0 ? confirmationColor : styles.confirmedEnough
+              }
+            >
+              {`${t('bitcoin.block')} ${transaction.blockHeight}`}
+            </SSText>
+          </SSHStack>
         </SSHStack>
 
         {transaction.timestamp && (
