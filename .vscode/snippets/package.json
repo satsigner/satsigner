@@ -1,0 +1,15 @@
+{
+  "name": "SatSigner snippets",
+  "description": "This package.json was created by happycoder",
+  "contributes": {
+    "snippets": [
+      {
+        "language": [
+          "typescript",
+          "typescriptreact"
+        ],
+        "path": "./typescriptreact.json"
+      }
+    ]
+  }
+}
