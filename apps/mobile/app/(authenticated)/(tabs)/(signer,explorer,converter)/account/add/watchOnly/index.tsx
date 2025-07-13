@@ -180,6 +180,24 @@ export default function WatchOnly() {
     setPolicyType('watchonly')
   }, [setPolicyType])
 
+  const updateDescriptorValidationState = useCallback(() => {
+    // Allow import if either external or internal descriptor is valid
+    // At least one descriptor must be provided and valid
+    const hasValidExternal = externalDescriptor && validExternalDescriptor
+    const hasValidInternal = internalDescriptor && validInternalDescriptor
+    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
+
+    if (selectedOption === 'importDescriptor') {
+      setDisabled(!hasAnyValidDescriptor)
+    }
+  }, [
+    externalDescriptor,
+    internalDescriptor,
+    validExternalDescriptor,
+    validInternalDescriptor,
+    selectedOption
+  ])
+
   // Initialize validation state when selected option changes
   useEffect(() => {
     if (selectedOption === 'importDescriptor') {
@@ -275,24 +293,6 @@ export default function WatchOnly() {
     // Update disabled state based on both external and internal descriptors
     updateDescriptorValidationState()
   }
-
-  const updateDescriptorValidationState = useCallback(() => {
-    // Allow import if either external or internal descriptor is valid
-    // At least one descriptor must be provided and valid
-    const hasValidExternal = externalDescriptor && validExternalDescriptor
-    const hasValidInternal = internalDescriptor && validInternalDescriptor
-    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-
-    if (selectedOption === 'importDescriptor') {
-      setDisabled(!hasAnyValidDescriptor)
-    }
-  }, [
-    externalDescriptor,
-    internalDescriptor,
-    validExternalDescriptor,
-    validInternalDescriptor,
-    selectedOption
-  ])
 
   function convertVpubToTpub(vpub: string): string {
     // If it's not a vpub, return as is
