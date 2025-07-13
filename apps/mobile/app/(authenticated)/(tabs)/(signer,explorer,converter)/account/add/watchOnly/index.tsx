@@ -4,7 +4,7 @@ import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { router, Stack } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -180,19 +180,37 @@ export default function WatchOnly() {
     setPolicyType('watchonly')
   }, [setPolicyType])
 
+  // Initialize validation state when selected option changes
+  useEffect(() => {
+    if (selectedOption === 'importDescriptor') {
+      updateDescriptorValidationState()
+    }
+  }, [
+    selectedOption,
+    externalDescriptor,
+    internalDescriptor,
+    validExternalDescriptor,
+    validInternalDescriptor,
+    updateDescriptorValidationState
+  ])
+
   function updateAddress(address: string) {
     const validAddress = address.includes('\n')
       ? address.split('\n').every(validateAddress)
       : validateAddress(address)
     setValidAddress(!address || validAddress)
-    setDisabled(!validAddress)
+    if (selectedOption === 'importAddress') {
+      setDisabled(!validAddress)
+    }
     setAddress(address)
   }
 
   function updateMasterFingerprint(fingerprint: string) {
     const validFingerprint = validateFingerprint(fingerprint)
     setValidMasterFingerprint(!fingerprint || validFingerprint)
-    setDisabled(!validXpub || !validFingerprint)
+    if (selectedOption === 'importExtendedPub') {
+      setDisabled(!validXpub || !validFingerprint)
+    }
     setLocalFingerprint(fingerprint)
     if (validFingerprint) {
       setFingerprint(fingerprint)
@@ -203,7 +221,9 @@ export default function WatchOnly() {
   function updateXpub(xpub: string) {
     const validXpub = validateExtendedKey(xpub)
     setValidXpub(!xpub || validXpub)
-    setDisabled(!validXpub || !localFingerprint)
+    if (selectedOption === 'importExtendedPub') {
+      setDisabled(!validXpub || !localFingerprint)
+    }
     setXpub(xpub)
 
     // Handle script version based on extended key prefix
@@ -234,25 +254,45 @@ export default function WatchOnly() {
       validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
-    // For descriptors, we only need the external descriptor to be valid
-    setDisabled(!validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
     if (validExternalDescriptor) {
       setExternalDescriptor(descriptor)
     }
+
+    // Update disabled state based on both external and internal descriptors
+    updateDescriptorValidationState()
   }
 
   function updateInternalDescriptor(descriptor: string) {
     const validInternalDescriptor = validateDescriptor(descriptor)
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
-    // Internal descriptor is optional, so don't disable if it's invalid
-    // The external descriptor validation will handle the disabled state
     setLocalInternalDescriptor(descriptor)
     if (validInternalDescriptor) {
       setInternalDescriptor(descriptor)
     }
+
+    // Update disabled state based on both external and internal descriptors
+    updateDescriptorValidationState()
   }
+
+  const updateDescriptorValidationState = useCallback(() => {
+    // Allow import if either external or internal descriptor is valid
+    // At least one descriptor must be provided and valid
+    const hasValidExternal = externalDescriptor && validExternalDescriptor
+    const hasValidInternal = internalDescriptor && validInternalDescriptor
+    const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
+
+    if (selectedOption === 'importDescriptor') {
+      setDisabled(!hasAnyValidDescriptor)
+    }
+  }, [
+    externalDescriptor,
+    internalDescriptor,
+    validExternalDescriptor,
+    validInternalDescriptor,
+    selectedOption
+  ])
 
   function convertVpubToTpub(vpub: string): string {
     // If it's not a vpub, return as is
@@ -371,7 +411,13 @@ export default function WatchOnly() {
           return cryptoAccountResult
         }
 
-        // If not crypto-account format, try standard CBOR structure
+        // Try to process as crypto-output format
+        const cryptoOutputResult = processCryptoOutputCBOR(decodedData)
+        if (cryptoOutputResult) {
+          return cryptoOutputResult
+        }
+
+        // If not crypto-output format, try crypto-account format
         if (decodedData && typeof decodedData === 'object') {
           // Look for the expected crypto-account structure
           // The CBOR should contain a map with keys for fingerprint, derivation path, and xpub
@@ -420,7 +466,7 @@ export default function WatchOnly() {
           // If we only found xpub, try to extract fingerprint and path from the CBOR structure
           if (xpub) {
             // Look for fingerprint in the CBOR data (might be stored as bytes)
-            for (const [_key, value] of Object.entries(decodedData)) {
+            for (const [, value] of Object.entries(decodedData)) {
               // Check if this is a fingerprint (4 bytes = 8 hex chars)
               if (
                 typeof value === 'number' &&
@@ -461,7 +507,7 @@ export default function WatchOnly() {
             }
           }
         }
-      } catch (_cborError) {
+      } catch {
         // CBOR decode failed, continue with other methods
       }
 
@@ -482,7 +528,7 @@ export default function WatchOnly() {
             network: jsonData.network || 'mainnet'
           }
         }
-      } catch (_error) {
+      } catch {
         // Not JSON, continue with other methods
       }
 
@@ -538,7 +584,7 @@ export default function WatchOnly() {
               network: getNetworkFromXpub(base58String)
             }
           }
-        } catch (_error) {
+        } catch {
           // Continue to next byte string
         }
       }
@@ -621,6 +667,153 @@ export default function WatchOnly() {
     )
       return 'testnet'
     return 'mainnet' // Default
+  }
+
+  // Helper function to process crypto-output CBOR structure
+  function processCryptoOutputCBOR(result: any) {
+    // Crypto-output typically contains script data and amount
+    // Look for common crypto-output fields
+    if (result && typeof result === 'object') {
+      // Check for script data (usually in a specific field)
+      let scriptData = null
+      let amount = null
+      let chainCode = null
+      let fingerprint = null
+      let derivationPath = null
+
+      // Look for script in various possible locations
+      if (result.script || result.scriptPubKey) {
+        scriptData = result.script || result.scriptPubKey
+      } else if (result['1']) {
+        // Script might be in field 1
+        scriptData = result['1']
+      } else if (result['3']) {
+        // Script might be in field 3 (based on the actual CBOR structure)
+        scriptData = result['3']
+      }
+
+      // Look for chain code (field 4)
+      if (result['4']) {
+        chainCode = result['4']
+      }
+
+      // Look for fingerprint (field 2 or field 6.2)
+      if (result['2'] && typeof result['2'] === 'number') {
+        fingerprint = result['2'].toString(16).padStart(8, '0')
+      } else if (
+        result['6'] &&
+        result['6']['2'] &&
+        typeof result['6']['2'] === 'number'
+      ) {
+        fingerprint = result['6']['2'].toString(16).padStart(8, '0')
+      }
+
+      // Look for derivation path (field 6)
+      if (result['6'] && result['6']['1']) {
+        const pathComponents = result['6']['1']
+        // Convert components to path string (e.g., [84, true, 1, true, 0, true] -> "84'/1'/0'")
+        const pathParts = []
+        for (let i = 0; i < pathComponents.length; i += 2) {
+          if (pathComponents[i] !== undefined) {
+            const component = pathComponents[i]
+            const hardened = pathComponents[i + 1] === true
+            pathParts.push(component.toString() + (hardened ? "'" : ''))
+          }
+        }
+        derivationPath = pathParts.join('/')
+      }
+
+      // Look for amount
+      if (result.amount || result.value) {
+        amount = result.amount || result.value
+      } else if (result['2'] && typeof result['2'] === 'boolean') {
+        // Amount might be in field 2 (if it's not a fingerprint)
+        amount = result['2']
+      }
+
+      if (scriptData) {
+        // Convert script data to hex if it's a Uint8Array
+        let scriptHex = scriptData
+        if (scriptData instanceof Uint8Array || Array.isArray(scriptData)) {
+          scriptHex = Buffer.from(scriptData).toString('hex')
+        }
+
+        // Try to construct extended public key if we have all components
+        if (scriptData && chainCode && fingerprint && derivationPath) {
+          try {
+            // Construct xpub from public key + chain code
+            // xpub format: [version(4)][depth(1)][fingerprint(4)][child(4)][chaincode(32)][key(33)]
+
+            // For testnet, use tpub version: 0x043587cf
+            const version = new Uint8Array([0x04, 0x35, 0x87, 0xcf]) // tpub version
+            const depth = new Uint8Array([0x00]) // depth 0 (master)
+
+            // Convert fingerprint to bytes
+            const fingerprintBytes = new Uint8Array(4)
+            const fingerprintValue = parseInt(fingerprint, 16)
+            fingerprintBytes[0] = (fingerprintValue >> 24) & 0xff
+            fingerprintBytes[1] = (fingerprintValue >> 16) & 0xff
+            fingerprintBytes[2] = (fingerprintValue >> 8) & 0xff
+            fingerprintBytes[3] = fingerprintValue & 0xff
+
+            const childNumber = new Uint8Array([0x00, 0x00, 0x00, 0x00]) // child number
+
+            // Convert chain code to Uint8Array
+            const chainCodeBytes =
+              chainCode instanceof Uint8Array
+                ? chainCode
+                : new Uint8Array(chainCode)
+
+            // Convert script data to Uint8Array
+            const scriptBytes =
+              scriptData instanceof Uint8Array
+                ? scriptData
+                : new Uint8Array(scriptData)
+
+            // Construct full xpub: version + depth + fingerprint + child + chaincode + key
+            const fullXpubBytes = new Uint8Array([
+              ...version,
+              ...depth,
+              ...fingerprintBytes,
+              ...childNumber,
+              ...chainCodeBytes,
+              ...scriptBytes
+            ])
+
+            // Encode as base58check
+            const fullXpub = bs58check.encode(fullXpubBytes)
+
+            // Check if it's a valid xpub format
+            if (fullXpub.match(/^tpub[a-zA-Z0-9]{107}$/)) {
+              const formattedXpub = `[${fingerprint}/${derivationPath}]${fullXpub}`
+
+              return {
+                type: 'crypto-account',
+                xpub: formattedXpub,
+                fingerprint,
+                derivationPath,
+                name: 'Imported Account',
+                scriptType: 'P2WPKH', // BIP84
+                network: 'testnet'
+              }
+            }
+          } catch (_error) {
+            return null
+          }
+        }
+
+        // Fallback to raw script format
+        return {
+          type: 'crypto-output',
+          script: scriptHex,
+          amount
+        }
+      } else {
+        return null
+      }
+    }
+
+    return null
   }
 
   // Helper function to process crypto-account CBOR structure
@@ -791,7 +984,7 @@ export default function WatchOnly() {
         if (xpub) {
           const hexFingerprint = fingerprint.toString(16).padStart(8, '0')
           const formattedXpub = derivationPath
-            ? `[${hexFingerprint}${derivationPath}]${xpub}`
+            ? `[${hexFingerprint}/${derivationPath}]${xpub}`
             : xpub
 
           return {
@@ -880,25 +1073,27 @@ export default function WatchOnly() {
           } else {
             // Multi-part UR
             try {
-              const result = decodeMultiPartURToPSBT(sortedChunks)
-              return result
-            } catch (_error) {
-              // Try crypto-account decoding for multi-part
+              // Try crypto-account decoding for multi-part first
+              const decoder = new URDecoder()
+              for (const chunk of sortedChunks) {
+                decoder.receivePart(chunk)
+              }
+
+              if (decoder.isComplete()) {
+                const urResult = decoder.resultUR()
+                if (urResult && urResult.cbor) {
+                  const decodedAccount = decodeURCryptoAccount(
+                    new Uint8Array(urResult.cbor)
+                  )
+                  return JSON.stringify(decodedAccount)
+                }
+              }
+            } catch {
+              // Fall back to PSBT decoding
               try {
-                const decoder = new URDecoder()
-                for (const chunk of sortedChunks) {
-                  decoder.receivePart(chunk)
-                }
-                if (decoder.isComplete()) {
-                  const urResult = decoder.resultUR()
-                  if (urResult && urResult.cbor) {
-                    const decodedAccount = decodeURCryptoAccount(
-                      new Uint8Array(urResult.cbor)
-                    )
-                    return JSON.stringify(decodedAccount)
-                  }
-                }
-              } catch (_cryptoError) {
+                const result = decodeMultiPartURToPSBT(sortedChunks)
+                return result
+              } catch {
                 return null
               }
             }
@@ -918,28 +1113,6 @@ export default function WatchOnly() {
 
   async function confirmAccountCreation() {
     setLoadingWallet(true)
-    setNetwork(network)
-
-    if (selectedOption === 'importExtendedPub') {
-      setExtendedPublicKey(xpub)
-      setKey(0)
-    }
-
-    if (selectedOption === 'importAddress') {
-      const addresses = address.split('\n')
-      for (let index = 0; index < addresses.length; index += 1) {
-        const address = addresses[index]
-        setExternalDescriptor(`addr(${address})`)
-      }
-    }
-
-    const account = getAccountData()
-
-    const data = await accountBuilderFinish(account)
-    if (!data) {
-      toast.error(t('watchonly.error.creationFailed'))
-      return
-    }
 
     try {
       // Set the creation type first
@@ -974,29 +1147,38 @@ export default function WatchOnly() {
         return
       }
 
+      // Save the account and redirect immediately
+      updateAccount(data.accountWithEncryptedSecret)
+      toast.success(t('watchonly.success.accountCreated'))
+      router.replace('/accountList')
+
+      // Start sync in background if auto mode is enabled
       if (connectionMode === 'auto') {
-        try {
-          const updatedAccount =
-            selectedOption !== 'importAddress'
-              ? await syncAccountWithWallet(
-                  data.accountWithEncryptedSecret,
-                  data.wallet!
-                )
-              : await syncAccountWithAddress(data.accountWithEncryptedSecret)
-          updateAccount(updatedAccount)
-          toast.success(t('watchonly.success.accountCreated'))
-          router.replace('/accountList')
-        } catch (_syncError) {
-          // Even if sync fails, we should still save the account and redirect
-          updateAccount(data.accountWithEncryptedSecret)
-          toast.warning(t('watchonly.warning.syncFailed'))
-          router.replace('/accountList')
-        }
-      } else {
-        // If not auto sync, just save the account and redirect
-        updateAccount(data.accountWithEncryptedSecret)
-        toast.success(t('watchonly.success.accountCreated'))
-        router.replace('/accountList')
+        // Use setTimeout to ensure this runs after the current execution context
+        setTimeout(() => {
+          // Wrap the entire async operation in a try-catch
+          const backgroundSync = async () => {
+            try {
+              const updatedAccount =
+                selectedOption !== 'importAddress'
+                  ? await syncAccountWithWallet(
+                      data.accountWithEncryptedSecret,
+                      data.wallet!
+                    )
+                  : await syncAccountWithAddress(
+                      data.accountWithEncryptedSecret
+                    )
+              updateAccount(updatedAccount)
+            } catch {
+              // Sync failed in background, but user is already on account page
+            }
+          }
+
+          // Execute the background sync and catch any unhandled rejections
+          backgroundSync().catch(() => {
+            return null
+          })
+        }, 100)
       }
     } catch (error) {
       const errorMessage = (error as Error).message
@@ -1132,9 +1314,15 @@ export default function WatchOnly() {
         if (isBBQRFragment(qrInfo.content)) {
           const decoded = decodeBBQRChunks([qrInfo.content])
           if (decoded) {
-            // Convert binary data to hex for consistency
-            const hexResult = Buffer.from(decoded).toString('hex')
-            finalContent = hexResult
+            // Try to convert binary data to string first (for descriptors)
+            try {
+              const stringResult = Buffer.from(decoded).toString('utf8')
+              finalContent = stringResult
+            } catch (_error) {
+              // Fallback to hex if string conversion fails
+              const hexResult = Buffer.from(decoded).toString('hex')
+              finalContent = hexResult
+            }
           } else {
             toast.error('Failed to decode BBQR QR code')
             return
@@ -1167,7 +1355,7 @@ export default function WatchOnly() {
                   // Try multiple patterns to extract fingerprint
                   let extractedFingerprint = null
 
-                  // Pattern 1: [fingerprint/derivation]xpub
+                  // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
                   const fingerprintMatch1 = xpubWithPrefix.match(
                     /^\[([0-9a-fA-F]{8})\//
                   )
@@ -1175,7 +1363,7 @@ export default function WatchOnly() {
                     extractedFingerprint = fingerprintMatch1[1]
                   }
 
-                  // Pattern 2: [fingerprintderivation]xpub (no slash separator)
+                  // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
                   if (!extractedFingerprint) {
                     const fingerprintMatch2 =
                       xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
@@ -1184,7 +1372,7 @@ export default function WatchOnly() {
                     }
                   }
 
-                  // Pattern 3: [fingerprint...]xpub (any length hex)
+                  // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
                   if (!extractedFingerprint) {
                     const fingerprintMatch3 =
                       xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
@@ -1239,6 +1427,51 @@ export default function WatchOnly() {
                     }
                   }
 
+                  // Handle descriptor mode - convert xpub to descriptor format
+                  if (selectedOption === 'importDescriptor') {
+                    // Convert the xpub to a proper descriptor format
+                    // For BIP84 (P2WPKH), use wpkh descriptor
+                    // For BIP49 (P2SH-P2WPKH), use sh(wpkh()) descriptor
+                    // For BIP44 (P2PKH), use pkh descriptor
+                    let externalDescriptor = ''
+                    let internalDescriptor = ''
+
+                    if (
+                      decodedAccount.derivationPath &&
+                      decodedAccount.derivationPath.includes("84'")
+                    ) {
+                      // BIP84 - P2WPKH
+                      externalDescriptor = `wpkh(${xpubWithPrefix}/0/*)`
+                      internalDescriptor = `wpkh(${xpubWithPrefix}/1/*)`
+                    } else if (
+                      decodedAccount.derivationPath &&
+                      decodedAccount.derivationPath.includes("49'")
+                    ) {
+                      // BIP49 - P2SH-P2WPKH
+                      externalDescriptor = `sh(wpkh(${xpubWithPrefix}/0/*))`
+                      internalDescriptor = `sh(wpkh(${xpubWithPrefix}/1/*))`
+                    } else if (
+                      decodedAccount.derivationPath &&
+                      decodedAccount.derivationPath.includes("44'")
+                    ) {
+                      // BIP44 - P2PKH
+                      externalDescriptor = `pkh(${xpubWithPrefix}/0/*)`
+                      internalDescriptor = `pkh(${xpubWithPrefix}/1/*)`
+                    } else {
+                      // Default to wpkh for unknown derivation paths
+                      externalDescriptor = `wpkh(${xpubWithPrefix}/0/*)`
+                      internalDescriptor = `wpkh(${xpubWithPrefix}/1/*)`
+                    }
+
+                    updateExternalDescriptor(externalDescriptor)
+                    updateInternalDescriptor(internalDescriptor)
+                    toast.success(
+                      'Crypto account converted to descriptor successfully'
+                    )
+                    setCameraModalVisible(false)
+                    return
+                  }
+
                   toast.success('Crypto account imported successfully')
                   setCameraModalVisible(false)
                   return
@@ -1248,7 +1481,7 @@ export default function WatchOnly() {
                 }
               }
             }
-          } catch (_error) {
+          } catch {
             toast.error('Failed to decode UR crypto account')
             return
           }
@@ -1271,8 +1504,12 @@ export default function WatchOnly() {
             externalDescriptor = lines[0].trim()
             internalDescriptor = lines[1].trim()
           }
-          if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+          if (externalDescriptor) {
+            updateExternalDescriptor(externalDescriptor)
+          }
+          if (internalDescriptor) {
+            updateInternalDescriptor(internalDescriptor)
+          }
         }
 
         if (selectedOption === 'importExtendedPub') {
@@ -1292,7 +1529,7 @@ export default function WatchOnly() {
         if (selectedOption === 'importAddress') {
           updateAddress(finalContent)
         }
-      } catch (_error) {
+      } catch {
         // Keep original content if conversion fails
       }
 
@@ -1376,7 +1613,7 @@ export default function WatchOnly() {
               // Try multiple patterns to extract fingerprint
               let extractedFingerprint = null
 
-              // Pattern 1: [fingerprint/derivation]xpub
+              // Pattern 1: [fingerprint/derivation]xpub (with slash separator)
               const fingerprintMatch1 = xpubWithPrefix.match(
                 /^\[([0-9a-fA-F]{8})\//
               )
@@ -1384,7 +1621,7 @@ export default function WatchOnly() {
                 extractedFingerprint = fingerprintMatch1[1]
               }
 
-              // Pattern 2: [fingerprintderivation]xpub (no slash separator)
+              // Pattern 2: [fingerprintderivation]xpub (no slash separator - legacy)
               if (!extractedFingerprint) {
                 const fingerprintMatch2 =
                   xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
@@ -1393,7 +1630,7 @@ export default function WatchOnly() {
                 }
               }
 
-              // Pattern 3: [fingerprint...]xpub (any length hex)
+              // Pattern 3: [fingerprint...]xpub (any length hex - fallback)
               if (!extractedFingerprint) {
                 const fingerprintMatch3 =
                   xpubWithPrefix.match(/^\[([0-9a-fA-F]+)/)
@@ -1448,18 +1685,165 @@ export default function WatchOnly() {
                 }
               }
 
+              // Handle descriptor mode - convert xpub to descriptor format
+              if (selectedOption === 'importDescriptor') {
+                // Convert the xpub to a proper descriptor format
+                let externalDescriptor = ''
+                let internalDescriptor = ''
+
+                if (
+                  parsedData.derivationPath &&
+                  parsedData.derivationPath.includes("84'")
+                ) {
+                  // BIP84 - P2WPKH
+                  externalDescriptor = `wpkh(${xpubWithPrefix}/0/*)`
+                  internalDescriptor = `wpkh(${xpubWithPrefix}/1/*)`
+                } else if (
+                  parsedData.derivationPath &&
+                  parsedData.derivationPath.includes("49'")
+                ) {
+                  // BIP49 - P2SH-P2WPKH
+                  externalDescriptor = `sh(wpkh(${xpubWithPrefix}/0/*))`
+                  internalDescriptor = `sh(wpkh(${xpubWithPrefix}/1/*))`
+                } else if (
+                  parsedData.derivationPath &&
+                  parsedData.derivationPath.includes("44'")
+                ) {
+                  // BIP44 - P2PKH
+                  externalDescriptor = `pkh(${xpubWithPrefix}/0/*)`
+                  internalDescriptor = `pkh(${xpubWithPrefix}/1/*)`
+                } else {
+                  // Default to wpkh for unknown derivation paths
+                  externalDescriptor = `wpkh(${xpubWithPrefix}/0/*)`
+                  internalDescriptor = `wpkh(${xpubWithPrefix}/1/*)`
+                }
+
+                updateExternalDescriptor(externalDescriptor)
+                updateInternalDescriptor(internalDescriptor)
+                toast.success(
+                  'Crypto account converted to descriptor successfully'
+                )
+                return
+              }
+
               toast.success('Crypto account imported successfully')
               return
             }
-          } catch (_jsonError) {
+          } catch {
             // Not JSON, continue with regular processing
           }
 
           // Process the assembled data based on selected option
           if (selectedOption === 'importDescriptor') {
-            updateExternalDescriptor(assembledData)
+            // Check if the assembled data is JSON (crypto-account or crypto-output)
+            try {
+              const parsedData = JSON.parse(assembledData)
+              if (parsedData.type === 'crypto-account') {
+                if (parsedData.xpub) {
+                  // Convert crypto-account to wpkh descriptor format
+                  // The xpub already contains the fingerprint and path prefix
+                  const externalDescriptor = `wpkh(${parsedData.xpub}/0/*)`
+                  const internalDescriptor = `wpkh(${parsedData.xpub}/1/*)`
+                  updateExternalDescriptor(externalDescriptor)
+                  updateInternalDescriptor(internalDescriptor)
+                } else {
+                  toast.error(
+                    'Crypto-account format not supported for descriptor import'
+                  )
+                }
+              } else if (parsedData.type === 'crypto-output') {
+                if (parsedData.script) {
+                  // Convert script hex to descriptor format
+                  // This is a raw script, so we need to create a descriptor from it
+                  const descriptor = `raw(${parsedData.script})`
+                  updateExternalDescriptor(descriptor)
+                } else {
+                  toast.error(
+                    'Crypto-output format not supported for descriptor import'
+                  )
+                }
+              } else {
+                // Regular descriptor data
+                updateExternalDescriptor(assembledData)
+              }
+            } catch (_jsonError) {
+              updateExternalDescriptor(assembledData)
+            }
           } else if (selectedOption === 'importExtendedPub') {
-            updateXpub(assembledData)
+            // Check if the assembled data is JSON (crypto-account or crypto-output)
+            try {
+              const parsedData = JSON.parse(assembledData)
+              if (parsedData.type === 'crypto-output') {
+                if (parsedData.script) {
+                  // Convert script hex to descriptor format
+                  const descriptor = `raw(${parsedData.script})`
+                  updateExternalDescriptor(descriptor)
+                  toast.success('Crypto output converted to descriptor')
+                } else {
+                  toast.error(
+                    'Crypto-output format not supported for xpub import'
+                  )
+                }
+              } else if (
+                parsedData.type === 'crypto-account' &&
+                parsedData.xpub
+              ) {
+                // Extract xpub from crypto-account format
+                const xpubWithPrefix = parsedData.xpub
+
+                // Extract fingerprint from the prefix [fingerprint/derivation]xpub
+                let extractedFingerprint = null
+                const fingerprintMatch1 = xpubWithPrefix.match(
+                  /^\[([0-9a-fA-F]{8})\//
+                )
+                if (fingerprintMatch1) {
+                  extractedFingerprint = fingerprintMatch1[1]
+                } else {
+                  const fingerprintMatch2 =
+                    xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
+                  if (fingerprintMatch2) {
+                    extractedFingerprint = fingerprintMatch2[1]
+                  }
+                }
+
+                if (extractedFingerprint) {
+                  updateMasterFingerprint(extractedFingerprint)
+                }
+
+                // Extract just the xpub part
+                const xpubMatch = xpubWithPrefix.match(
+                  /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
+                )
+                if (xpubMatch) {
+                  updateXpub(xpubMatch[1])
+                } else {
+                  updateXpub(xpubWithPrefix)
+                }
+
+                // Set script version based on derivation path or script type
+                if (parsedData.derivationPath) {
+                  if (parsedData.derivationPath.includes("84'")) {
+                    setScriptVersion('P2WPKH')
+                  } else if (parsedData.derivationPath.includes("49'")) {
+                    setScriptVersion('P2SH-P2WPKH')
+                  } else if (parsedData.derivationPath.includes("44'")) {
+                    setScriptVersion('P2PKH')
+                  }
+                } else if (parsedData.scriptType) {
+                  setScriptVersion(parsedData.scriptType)
+                }
+
+                // Also populate the descriptor field with the full xpub format
+                updateExternalDescriptor(xpubWithPrefix)
+
+                toast.success('Crypto account imported successfully')
+              } else {
+                // Regular xpub data
+                updateXpub(assembledData)
+              }
+            } catch (_jsonError) {
+              updateXpub(assembledData)
+            }
           } else if (selectedOption === 'importAddress') {
             updateAddress(assembledData)
           }
@@ -1477,9 +1861,107 @@ export default function WatchOnly() {
 
           // Process the assembled data based on selected option
           if (selectedOption === 'importDescriptor') {
-            updateExternalDescriptor(assembledData)
+            // Check if the assembled data is JSON (crypto-account or crypto-output)
+            try {
+              const parsedData = JSON.parse(assembledData)
+              if (parsedData.type === 'crypto-output') {
+                if (parsedData.script) {
+                  const descriptor = `raw(${parsedData.script})`
+                  updateExternalDescriptor(descriptor)
+                } else {
+                  toast.error(
+                    'Crypto-output format not supported for descriptor import'
+                  )
+                }
+              } else if (parsedData.type === 'crypto-account') {
+                if (parsedData.xpub) {
+                  const externalDescriptor = `wpkh(${parsedData.xpub}/0/*)`
+                  const internalDescriptor = `wpkh(${parsedData.xpub}/1/*)`
+                  updateExternalDescriptor(externalDescriptor)
+                  updateInternalDescriptor(internalDescriptor)
+                } else {
+                  toast.error(
+                    'Crypto-account format not supported for descriptor import'
+                  )
+                }
+              } else {
+                updateExternalDescriptor(assembledData)
+              }
+            } catch (_jsonError) {
+              updateExternalDescriptor(assembledData)
+            }
           } else if (selectedOption === 'importExtendedPub') {
-            updateXpub(assembledData)
+            // Check if the assembled data is JSON (crypto-account or crypto-output)
+            try {
+              const parsedData = JSON.parse(assembledData)
+              if (parsedData.type === 'crypto-output') {
+                if (parsedData.script) {
+                  const descriptor = `raw(${parsedData.script})`
+                  updateExternalDescriptor(descriptor)
+                  toast.success('Crypto output converted to descriptor')
+                } else {
+                  toast.error(
+                    'Crypto-output format not supported for xpub import'
+                  )
+                }
+              } else if (
+                parsedData.type === 'crypto-account' &&
+                parsedData.xpub
+              ) {
+                const xpubWithPrefix = parsedData.xpub
+
+                // Extract fingerprint from the prefix [fingerprint/derivation]xpub
+                let extractedFingerprint = null
+                const fingerprintMatch1 = xpubWithPrefix.match(
+                  /^\[([0-9a-fA-F]{8})\//
+                )
+                if (fingerprintMatch1) {
+                  extractedFingerprint = fingerprintMatch1[1]
+                } else {
+                  const fingerprintMatch2 =
+                    xpubWithPrefix.match(/^\[([0-9a-fA-F]{8})/)
+                  if (fingerprintMatch2) {
+                    extractedFingerprint = fingerprintMatch2[1]
+                  }
+                }
+
+                if (extractedFingerprint) {
+                  updateMasterFingerprint(extractedFingerprint)
+                }
+
+                // Extract just the xpub part
+                const xpubMatch = xpubWithPrefix.match(
+                  /\]([txyzuv]pub[a-zA-Z0-9]{107})$/
+                )
+                if (xpubMatch) {
+                  updateXpub(xpubMatch[1])
+                } else {
+                  updateXpub(xpubWithPrefix)
+                }
+
+                // Set script version based on derivation path or script type
+                if (parsedData.derivationPath) {
+                  if (parsedData.derivationPath.includes("84'")) {
+                    setScriptVersion('P2WPKH')
+                  } else if (parsedData.derivationPath.includes("49'")) {
+                    setScriptVersion('P2SH-P2WPKH')
+                  } else if (parsedData.derivationPath.includes("44'")) {
+                    setScriptVersion('P2PKH')
+                  }
+                } else if (parsedData.scriptType) {
+                  setScriptVersion(parsedData.scriptType)
+                }
+
+                // Also populate the descriptor field with the full xpub format
+                updateExternalDescriptor(xpubWithPrefix)
+
+                toast.success('Crypto account imported successfully')
+              } else {
+                updateXpub(assembledData)
+              }
+            } catch (_jsonError) {
+              updateXpub(assembledData)
+            }
           } else if (selectedOption === 'importAddress') {
             updateAddress(assembledData)
           }
