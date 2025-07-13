@@ -1200,19 +1200,42 @@ export default function WatchOnly() {
     if (selectedOption === 'importDescriptor') {
       let externalDescriptor = text
       let internalDescriptor = ''
-      if (text.match(/<0[,;]1>/)) {
-        externalDescriptor = text
-          .replace(/<0[,;]1>/, '0')
-          .replace(/#[a-z0-9]+$/, '')
-        internalDescriptor = text
-          .replace(/<0[,;]1>/, '1')
-          .replace(/#[a-z0-9]+$/, '')
+
+      // Try to parse as JSON first
+      try {
+        const jsonData = JSON.parse(text)
+
+        if (jsonData.descriptor) {
+          externalDescriptor = jsonData.descriptor
+
+          // Derive internal descriptor from external descriptor
+          // Replace /0/* with /1/* for internal chain and remove checksum
+          const descriptorWithoutChecksum = externalDescriptor.replace(
+            /#[a-z0-9]+$/,
+            ''
+          )
+          internalDescriptor = descriptorWithoutChecksum.replace(
+            /\/0\/\*/g,
+            '/1/*'
+          )
+        }
+      } catch (_jsonError) {
+        // Handle legacy formats
+        if (text.match(/<0[,;]1>/)) {
+          externalDescriptor = text
+            .replace(/<0[,;]1>/, '0')
+            .replace(/#[a-z0-9]+$/, '')
+          internalDescriptor = text
+            .replace(/<0[,;]1>/, '1')
+            .replace(/#[a-z0-9]+$/, '')
+        }
+        if (text.includes('\n')) {
+          const lines = text.split('\n')
+          externalDescriptor = lines[0]
+          internalDescriptor = lines[1]
+        }
       }
-      if (text.includes('\n')) {
-        const lines = text.split('\n')
-        externalDescriptor = lines[0]
-        internalDescriptor = lines[1]
-      }
+
       if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
       if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
     }
@@ -1313,6 +1336,7 @@ export default function WatchOnly() {
         // Check if it's a single BBQR QR code
         if (isBBQRFragment(qrInfo.content)) {
           const decoded = decodeBBQRChunks([qrInfo.content])
+
           if (decoded) {
             // Try to convert binary data to string first (for descriptors)
             try {
@@ -1491,19 +1515,43 @@ export default function WatchOnly() {
         if (selectedOption === 'importDescriptor') {
           let externalDescriptor = finalContent
           let internalDescriptor = ''
-          if (finalContent.match(/<0[,;]1>/)) {
-            externalDescriptor = finalContent
-              .replace(/<0[,;]1>/, '0')
-              .replace(/#[a-z0-9]+$/, '')
-            internalDescriptor = finalContent
-              .replace(/<0[,;]1>/, '1')
-              .replace(/#[a-z0-9]+$/, '')
+
+          // Try to parse as JSON first
+          try {
+            const jsonData = JSON.parse(finalContent)
+
+            if (jsonData.descriptor) {
+              externalDescriptor = jsonData.descriptor
+
+              // Derive internal descriptor from external descriptor
+              // Replace /0/* with /1/* for internal chain and remove checksum
+              const descriptorWithoutChecksum = externalDescriptor.replace(
+                /#[a-z0-9]+$/,
+                ''
+              )
+              internalDescriptor = descriptorWithoutChecksum.replace(
+                /\/0\/\*/g,
+                '/1/*'
+              )
+            }
+          } catch (_jsonError) {
+            // Handle legacy formats
+            if (finalContent.match(/<0[,;]1>/)) {
+              externalDescriptor = finalContent
+                .replace(/<0[,;]1>/, '0')
+                .replace(/#[a-z0-9]+$/, '')
+              internalDescriptor = finalContent
+                .replace(/<0[,;]1>/, '1')
+                .replace(/#[a-z0-9]+$/, '')
+            }
+
+            if (finalContent.includes('\n')) {
+              const lines = finalContent.split('\n')
+              externalDescriptor = lines[0].trim()
+              internalDescriptor = lines[1].trim()
+            }
           }
-          if (finalContent.includes('\n')) {
-            const lines = finalContent.split('\n')
-            externalDescriptor = lines[0].trim()
-            internalDescriptor = lines[1].trim()
-          }
+
           if (externalDescriptor) {
             updateExternalDescriptor(externalDescriptor)
           }
