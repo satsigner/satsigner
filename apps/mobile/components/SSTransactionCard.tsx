@@ -48,29 +48,24 @@ function SSTransactionCard({
   expand,
   style = {}
 }: SSTransactionCardProps) {
-  const hasConfirmation = useMemo(() => {
-    return transaction.blockHeight && transaction.blockHeight > 0
-  }, [transaction])
+  const hasConfirmation = transaction.blockHeight && transaction.blockHeight > 0
 
-  const confirmations = useMemo(() => {
-    return transaction.blockHeight
-      ? blockHeight - transaction.blockHeight + 1
-      : 0
-  }, [transaction, blockHeight])
+  const confirmations = transaction.blockHeight
+    ? blockHeight - transaction.blockHeight + 1
+    : 0
 
-  const confirmationColor = useMemo(() => {
-    if (confirmations <= 0) return styles.unconfirmed
-    else if (confirmations < 6) return styles.confirmedFew
-    else return styles.confirmedEnough
-  }, [confirmations])
+  const confirmationColor =
+    confirmations < 0
+      ? styles.unconfirmed
+      : confirmations < 6
+        ? styles.confirmedFew
+        : styles.confirmedEnough
 
   const [priceDisplay, setPriceDisplay] = useState('')
   const [percentChange, setPercentChange] = useState('')
 
-  const amount = useMemo(() => {
-    const { type, received, sent } = transaction
-    return type === 'receive' ? received : sent - received
-  }, [transaction])
+  const { type, received, sent } = transaction
+  const amount = type === 'receive' ? received : sent - received
 
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
 
@@ -80,7 +75,9 @@ function SSTransactionCard({
 
     const oldPrice = prices ? prices[fiatCurrency] : null
 
-    if (btcPrice) itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
+    if (btcPrice) {
+      itemsToDisplay.push(formatFiatPrice(amount, btcPrice))
+    }
 
     if (prices && prices[fiatCurrency]) {
       itemsToDisplay.push(
@@ -88,19 +85,20 @@ function SSTransactionCard({
       )
     }
 
-    if (btcPrice || oldPrice) itemsToDisplay.push(fiatCurrency)
+    if (btcPrice || oldPrice) {
+      itemsToDisplay.push(fiatCurrency)
+    }
 
-    if (btcPrice && oldPrice)
+    if (btcPrice && oldPrice) {
       setPercentChange(formatPercentualChange(btcPrice, oldPrice))
+    }
 
     setPriceDisplay(itemsToDisplay.join(' '))
   }, [btcPrice, fiatCurrency, amount, transaction])
 
   const router = useRouter()
 
-  const smallView = useMemo(() => {
-    return expand || `${amount}`.length > 10
-  }, [amount, expand])
+  const smallView = expand || `${amount}`.length > 10
 
   return (
     <TouchableOpacity onPress={() => router.navigate(link)}>
