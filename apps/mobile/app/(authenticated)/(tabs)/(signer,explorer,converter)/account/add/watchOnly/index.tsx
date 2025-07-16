@@ -2313,12 +2313,14 @@ export default function WatchOnly() {
             </SSVStack>
           )}
 
-          {!permission?.granted && (
-            <SSButton
-              label={t('camera.enableCameraAccess')}
-              onPress={requestPermission}
-            />
-          )}
+          <SSHStack>
+            {!permission?.granted && (
+              <SSButton
+                label={t('camera.enableCameraAccess')}
+                onPress={requestPermission}
+              />
+            )}
+          </SSHStack>
 
           {/* Reset button for multi-part scans */}
           {scanProgress.type && (
