@@ -1094,37 +1094,40 @@ export default function AccountView() {
                 gap="none"
                 style={{ paddingHorizontal: '5%' }}
               >
-                {account.keys[0].creationType !== 'importAddress' && (
-                  <>
-                    <SSActionButton
-                      onPress={() => navigateToSignAndSend()}
-                      style={{
-                        ...styles.actionButton,
-                        width: '40%'
-                      }}
-                    >
-                      <SSText uppercase>{t('account.signAndSend')}</SSText>
-                    </SSActionButton>
-                    <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/camera`)}
-                      style={{
-                        ...styles.actionButton,
-                        width: '20%'
-                      }}
-                    >
-                      <SSIconCamera height={13} width={18} />
-                    </SSActionButton>
-                    <SSActionButton
-                      onPress={() => router.navigate(`/account/${id}/receive`)}
-                      style={{
-                        ...styles.actionButton,
-                        width: '40%'
-                      }}
-                    >
-                      <SSText uppercase>{t('account.receive')}</SSText>
-                    </SSActionButton>
-                  </>
-                )}
+                {account.keys[0].creationType !== 'importAddress' &&
+                  account.keys[0].creationType !== 'importExtendedPub' && (
+                    <>
+                      <SSActionButton
+                        onPress={() => navigateToSignAndSend()}
+                        style={{
+                          ...styles.actionButton,
+                          width: '40%'
+                        }}
+                      >
+                        <SSText uppercase>{t('account.signAndSend')}</SSText>
+                      </SSActionButton>
+                      <SSActionButton
+                        onPress={() => router.navigate(`/account/${id}/camera`)}
+                        style={{
+                          ...styles.actionButton,
+                          width: '20%'
+                        }}
+                      >
+                        <SSIconCamera height={13} width={18} />
+                      </SSActionButton>
+                      <SSActionButton
+                        onPress={() =>
+                          router.navigate(`/account/${id}/receive`)
+                        }
+                        style={{
+                          ...styles.actionButton,
+                          width: '40%'
+                        }}
+                      >
+                        <SSText uppercase>{t('account.receive')}</SSText>
+                      </SSActionButton>
+                    </>
+                  )}
                 {account.keys[0].creationType === 'importExtendedPub' && (
                   <SSActionButton
                     onPress={() => router.navigate(`/account/${id}/receive`)}
