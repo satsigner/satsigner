@@ -1,0 +1,32 @@
+{
+	"sstext": {
+		"scope": "typescriptreact",
+		"prefix": "text",
+		"body": [
+			"<SSText>",
+			"\t$0",
+			"</SSText>"
+		],
+		"description": "SSText component"
+	},
+	"sshstack": {
+		"scope": "typescriptreact",
+		"prefix": "hstack",
+		"body": [
+			"<SSHStack>",
+			"\t$0",
+			"</SSHStack>"
+		],
+		"description": "SSHStack component"
+	},
+	"ssvstack": {
+		"scope": "typescriptreact",
+		"prefix": "vstack",
+		"body": [
+			"<SSVStack>",
+			"\t$0",
+			"</SSVStack>"
+		],
+		"description": "SSVStack component"
+	}
+}
