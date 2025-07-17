@@ -327,7 +327,7 @@ function Endian(hexStr: string) {
   // Reverse the byte order
   let result = ''
   for (let i = hexStr.length - 2; i >= 0; i -= 2) {
-    result += hexStr.substr(i, 2)
+    result += hexStr.slice(i, i + 2)
   }
   return result
 }

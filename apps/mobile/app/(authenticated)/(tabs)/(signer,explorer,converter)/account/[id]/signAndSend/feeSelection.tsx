@@ -180,6 +180,7 @@ export default function FeeSelection() {
                 max={1000}
                 value={feeSelected}
                 step={1}
+                suffix={t('bitcoin.satVb')}
                 onValueChange={handleSliderChange}
               />
             </SSVStack>
