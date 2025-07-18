@@ -1,4 +1,44 @@
 {
+  "scrollw": {
+    "scope": "typescriptreact",
+    "prefix": "scrollview",
+    "body": ["<ScrollView>", "\t$0", "</ScrollView>"],
+    "description": "Scroll View React Native"
+  },
+  "touchableopacity": {
+    "scope": "typescriptreact",
+    "prefix": "touchable",
+    "body": ["<TouchableOpacity onPress={$1}>", "\t$0", "</TouchableOpacity>"],
+    "description": "Scroll View React Native"
+  },
+  "ssbutton": {
+    "scope": "typescriptreact",
+    "prefix": "button",
+    "body": ["<SSButton>", "\t$0", "</SSButton>"],
+    "description": "SSButton component"
+  },
+  "ssinput": {
+    "scope": "typescriptreact",
+    "prefix": "input",
+    "body": [
+      "<SSTextInput value={$1} onChangeText={$2}>",
+      "\t$0",
+      "</SSTextInput>"
+    ],
+    "description": "SSInput component"
+  },
+  "ssmodal": {
+    "scope": "typescriptreact",
+    "prefix": "modal",
+    "body": ["<SSModal visible={$1} onClose={$2}>", "\t$0", "</SSModal>"],
+    "description": "SSModal component"
+  },
+  "ssseparator": {
+    "scope": "typescriptreact",
+    "prefix": "sep",
+    "body": ["<SSSeparator>", "\t$0", "</SSSeparator>"],
+    "description": "SSText component"
+  },
   "sstext": {
     "scope": "typescriptreact",
     "prefix": "text",
