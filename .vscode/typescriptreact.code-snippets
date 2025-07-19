@@ -1,5 +1,5 @@
 {
-  "scrollw": {
+  "scrollview": {
     "scope": "typescriptreact",
     "prefix": "scrollview",
     "body": ["<ScrollView>", "\t$0", "</ScrollView>"],
@@ -9,12 +9,12 @@
     "scope": "typescriptreact",
     "prefix": "touchable",
     "body": ["<TouchableOpacity onPress={$1}>", "\t$0", "</TouchableOpacity>"],
-    "description": "Scroll View React Native"
+    "description": "TouchableOpacity React Native"
   },
   "ssbutton": {
     "scope": "typescriptreact",
     "prefix": "button",
-    "body": ["<SSButton>", "\t$0", "</SSButton>"],
+    "body": ["<SSButton onPress={$1}>", "\t$0", "</SSButton>"],
     "description": "SSButton component"
   },
   "ssinput": {
@@ -25,7 +25,7 @@
       "\t$0",
       "</SSTextInput>"
     ],
-    "description": "SSInput component"
+    "description": "SSTextInput component"
   },
   "ssmodal": {
     "scope": "typescriptreact",
@@ -37,7 +37,7 @@
     "scope": "typescriptreact",
     "prefix": "sep",
     "body": ["<SSSeparator>", "\t$0", "</SSSeparator>"],
-    "description": "SSText component"
+    "description": "SSSeparator component"
   },
   "sstext": {
     "scope": "typescriptreact",
