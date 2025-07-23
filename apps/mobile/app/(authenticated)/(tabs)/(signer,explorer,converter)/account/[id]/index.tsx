@@ -36,30 +36,25 @@ import {
   SSIconBlackIndicator,
   SSIconBubbles,
   SSIconCamera,
-  SSIconChartSettings,
   SSIconCollapse,
   SSIconExpand,
   SSIconEyeOn,
   SSIconGreenIndicator,
-  SSIconHistoryChart,
   SSIconKeys,
   SSIconList,
-  SSIconMenu,
   SSIconRefresh,
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
-import SSBalanceChangeBar from '@/components/SSBalanceChangeBar'
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSButton from '@/components/SSButton'
-import SSHistoryChart from '@/components/SSHistoryChart'
 import SSIconButton from '@/components/SSIconButton'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
-import SSTransactionCard from '@/components/SSTransactionCard'
+import TotalTransactions from '@/components/SSTotalTransactions'
 import SSUtxoCard from '@/components/SSUtxoCard'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -84,162 +79,8 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress, formatNumber } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-import { compareTimestamp, sortTransactions } from '@/utils/sort'
+import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
-
-type TotalTransactionsProps = {
-  account: Account
-  handleOnRefresh: () => Promise<void>
-  handleOnExpand: (state: boolean) => Promise<void>
-  expand: boolean
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>
-  refreshing: boolean
-  sortDirection: Direction
-  blockchainHeight: number
-}
-
-function TotalTransactions({
-  account,
-  handleOnRefresh,
-  handleOnExpand,
-  expand,
-  setSortDirection,
-  refreshing,
-  blockchainHeight,
-  sortDirection
-}: TotalTransactionsProps) {
-  const router = useRouter()
-
-  const [btcPrice, fiatCurrency] = usePriceStore(
-    useShallow((state) => [state.btcPrice, state.fiatCurrency])
-  )
-
-  const sortedTransactions = useMemo(() => {
-    return sortTransactions([...account.transactions], sortDirection)
-  }, [account.transactions, sortDirection])
-
-  const chartTransactions = useMemo(() => {
-    return sortTransactions([...account.transactions], 'desc')
-  }, [account.transactions])
-
-  const transactionBalances = useMemo(() => {
-    let balance = 0
-    const balances = sortedTransactions.map((tx) => {
-      const received = tx.received || 0
-      const sent = tx.sent || 0
-      balance = balance + received - sent
-      return balance
-    })
-
-    return balances.reverse()
-  }, [sortedTransactions])
-
-  const maxBalance = useMemo(() => {
-    if (transactionBalances.length === 0) return 0
-    return Math.max(...transactionBalances)
-  }, [transactionBalances])
-
-  const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
-
-  return (
-    <SSMainLayout style={{ paddingTop: 0, paddingHorizontal: 0 }}>
-      <SSHStack
-        justifyBetween
-        style={{ paddingVertical: 16, paddingHorizontal: 16 }}
-      >
-        <SSHStack>
-          <SSIconButton onPress={() => handleOnRefresh()}>
-            <SSIconRefresh height={18} width={22} />
-          </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
-            {expand ? (
-              <SSIconCollapse height={15} width={15} />
-            ) : (
-              <SSIconExpand height={15} width={16} />
-            )}
-          </SSIconButton>
-          {showHistoryChart && (
-            <SSIconButton
-              onPress={() => router.navigate(`/settings/features/historyChart`)}
-            >
-              <SSIconChartSettings width={22} height={18} />
-            </SSIconButton>
-          )}
-        </SSHStack>
-        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
-        <SSHStack>
-          <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
-            {showHistoryChart ? (
-              <SSIconMenu width={18} height={18} />
-            ) : (
-              <SSIconHistoryChart width={18} height={18} />
-            )}
-          </SSIconButton>
-          <SSSortDirectionToggle
-            onDirectionChanged={(direction) => setSortDirection(direction)}
-          />
-        </SSHStack>
-      </SSHStack>
-      {showHistoryChart && sortedTransactions.length > 0 ? (
-        <View style={{ flex: 1, zIndex: -1 }}>
-          <SSHistoryChart
-            transactions={chartTransactions}
-            utxos={account.utxos}
-          />
-        </View>
-      ) : (
-        <SSVStack
-          style={{
-            flex: 1,
-            marginLeft: 16,
-            marginRight: 2,
-            paddingRight: 14,
-            height: 400,
-            minHeight: 200
-          }}
-          gap={expand ? 'sm' : 'md'}
-        >
-          <FlashList
-            data={sortedTransactions.slice().reverse()}
-            renderItem={({ item, index }) => (
-              <SSVStack gap="none">
-                <SSBalanceChangeBar
-                  transaction={item}
-                  balance={transactionBalances[index]}
-                  maxBalance={maxBalance}
-                />
-                <SSTransactionCard
-                  btcPrice={btcPrice}
-                  fiatCurrency={fiatCurrency}
-                  transaction={item}
-                  expand={expand}
-                  walletBalance={transactionBalances[index]}
-                  blockHeight={blockchainHeight}
-                  link={`/account/${account.id}/transaction/${item.id}`}
-                />
-              </SSVStack>
-            )}
-            estimatedItemSize={120}
-            ListEmptyComponent={
-              <SSVStack>
-                <SSText>No transactions</SSText>
-              </SSVStack>
-            }
-            keyExtractor={(item) => item.id}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleOnRefresh}
-                colors={[Colors.gray[950]]}
-                progressBackgroundColor={Colors.white}
-              />
-            }
-          />
-        </SSVStack>
-      )}
-    </SSMainLayout>
-  )
-}
 
 type DerivedAddressesProps = {
   account: Account
