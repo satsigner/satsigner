@@ -1,0 +1,40 @@
+# SNIPPETS
+
+Project-specific snippets are stored in the root folder `.vscode` in
+`*.code-snippets` files. For example, the `typescriptreact.code-snippets` file
+has snippets for `tsx` files. These snippets are meant to enhance workflow
+specific to SatSigner project. Feel free to contribute with snippets that can
+benefit all developers.
+
+## Vscode
+
+Vscode automatically loads the project snippets.
+
+## NeoVim
+
+The neovim plugin `LuaSnip` can be used to load snippets in the Vscode format.
+
+Add the following `lua` code to your neovim configuration, which will
+automatically load vscode snippets (if they exist) when you open SatSigner
+in neovim.
+
+```lua
+local autocmd = vim.api.nvim_create_autocmd
+local augroup = function(name)
+    return vim.api.nvim_create_augroup(name, { clear = true })
+end
+
+autocmd({ "UIEnter" }, {
+    group = augroup("autoload_vscode_snippets"),
+    callback = function()
+        local vscode_dir = vim.fn.getcwd() .. "/.vscode"
+        local fs_stat = vim.loop.fs_stat
+        if fs_stat(vscode_dir) and fs_stat(vscode_dir).type == "directory" then
+            require("luasnip.loaders.from_vscode").lazy_load({
+                paths = { vscode_dir },
+            })
+        end
+    end,
+    desc = "Auto-load Vscode project snippets"
+})
+```
