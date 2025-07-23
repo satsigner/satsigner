@@ -1,11 +1,9 @@
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type Dispatch, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
   Easing,
-  RefreshControl,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
@@ -17,28 +15,20 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   SSIconBlackIndicator,
-  SSIconBubbles,
   SSIconCamera,
-  SSIconCollapse,
-  SSIconExpand,
   SSIconEyeOn,
   SSIconGreenIndicator,
   SSIconKeys,
-  SSIconList,
-  SSIconRefresh,
   SSIconYellowIndicator
 } from '@/components/icons'
 import SSActionButton from '@/components/SSActionButton'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
-import SSBubbleChart from '@/components/SSBubbleChart'
 import DerivedAddresses from '@/components/SSDerivedAddresses'
 import SSIconButton from '@/components/SSIconButton'
-import SSSeparator from '@/components/SSSeparator'
-import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
+import SpendableOutputs from '@/components/SSSpendableOutputs'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
 import TotalTransactions from '@/components/SSTotalTransactions'
-import SSUtxoCard from '@/components/SSUtxoCard'
 import useGetAccountAddress from '@/hooks/useGetAccountAddress'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useNostrSync from '@/hooks/useNostrSync'
@@ -56,112 +46,10 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
-import { getUtxoOutpoint } from '@/utils/utxo'
-
-type SpendableOutputsProps = {
-  account: Account
-  handleOnRefresh: () => Promise<void>
-  handleOnExpand: (state: boolean) => Promise<void>
-  expand: boolean
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>
-  refreshing: boolean
-  sortUtxos: (utxos: Utxo[]) => Utxo[]
-}
-
-function SpendableOutputs({
-  account,
-  handleOnRefresh,
-  setSortDirection,
-  handleOnExpand,
-  expand,
-  refreshing,
-  sortUtxos
-}: SpendableOutputsProps) {
-  const router = useRouter()
-  const { width, height } = useWindowDimensions()
-
-  const [view, setView] = useState('list')
-
-  const halfHeight = height / 2
-  const horizontalPadding = 48
-  const GRAPH_HEIGHT = halfHeight
-  const GRAPH_WIDTH = width - horizontalPadding
-
-  return (
-    <SSMainLayout style={{ paddingTop: 0 }}>
-      <SSHStack justifyBetween style={{ paddingVertical: 16 }}>
-        <SSHStack>
-          <SSIconButton onPress={() => {}}>
-            <SSIconRefresh height={18} width={22} />
-          </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
-            {expand ? (
-              <SSIconCollapse height={15} width={15} />
-            ) : (
-              <SSIconExpand height={15} width={16} />
-            )}
-          </SSIconButton>
-        </SSHStack>
-        <SSText color="muted">{t('account.parentAccountActivity')}</SSText>
-        <SSHStack>
-          {view === 'list' && (
-            <SSIconButton onPress={() => setView('bubbles')}>
-              <SSIconBubbles height={16} width={16} />
-            </SSIconButton>
-          )}
-          {view === 'bubbles' && (
-            <SSIconButton onPress={() => setView('list')}>
-              <SSIconList height={16} width={16} />
-            </SSIconButton>
-          )}
-          <SSSortDirectionToggle
-            onDirectionChanged={(direction) => setSortDirection(direction)}
-          />
-        </SSHStack>
-      </SSHStack>
-      {view === 'list' && (
-        <ScrollView
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleOnRefresh}
-              colors={[Colors.gray[950]]}
-              progressBackgroundColor={Colors.white}
-            />
-          }
-        >
-          <SSVStack style={{ marginBottom: 16 }}>
-            {sortUtxos([...account.utxos]).map((utxo) => (
-              <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
-                <SSSeparator color="grayDark" />
-                <SSUtxoCard utxo={utxo} />
-              </SSVStack>
-            ))}
-          </SSVStack>
-        </ScrollView>
-      )}
-      <View style={{ flex: 1 }}>
-        {view === 'bubbles' && (
-          <SSBubbleChart
-            utxos={[...account.utxos]}
-            canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
-            inputs={[]}
-            onPress={({ txid, vout }: Utxo) =>
-              router.navigate(
-                `/account/${account.id}/transaction/${txid}/utxo/${vout}`
-              )
-            }
-          />
-        )}
-      </View>
-    </SSMainLayout>
-  )
-}
 
 function SatsInMempool() {
   return (
