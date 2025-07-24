@@ -13,12 +13,14 @@ type SSSeedQRProps = {
   mnemonic: string
   visible: boolean
   onClose: () => void
+  title?: string
 }
 
 export default function SSSeedQR({
   mnemonic,
   visible,
-  onClose
+  onClose,
+  title
 }: SSSeedQRProps) {
   // Format mnemonic by trimming whitespace and ensuring single spaces between words
   const formattedMnemonic = mnemonic.trim().replace(/\s+/g, ' ')
@@ -48,6 +50,11 @@ export default function SSSeedQR({
       label={t('common.close')}
     >
       <SSVStack gap="lg" style={styles.container}>
+        {title && (
+          <SSText center uppercase>
+            {title}
+          </SSText>
+        )}
         <SSText center uppercase>
           {t('account.seedqr.title')}
         </SSText>

@@ -394,6 +394,9 @@ export default function AccountSettings() {
           <View style={styles.mnemonicModalOuterContainer}>
             <SSVStack gap="lg" style={styles.mnemonicModalContainer}>
               <SSText center uppercase>
+                {account.name}
+              </SSText>
+              <SSText center uppercase>
                 {account.keys[0].mnemonicWordCount}{' '}
                 {t('account.mnemonic.title')}
               </SSText>
@@ -493,6 +496,7 @@ export default function AccountSettings() {
       <SSSeedQR
         mnemonic={localMnemonic}
         visible={seedQRModalVisible}
+        title={account.name}
         onClose={() => {
           setSeedQRModalVisible(false)
           setMnemonicModalVisible(true)
