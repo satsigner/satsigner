@@ -38,6 +38,8 @@ export type TxNode = {
     txSize?: number
     txId?: number
     vSize?: number
+    higherFee?: boolean // miner fee is 10% or higher of the total transaction value
+    feePercentage?: number // miner fee is 10% or higher of the total transaction value
   }
 }
 
@@ -158,6 +160,21 @@ export const useNodesAndLinks = ({
       }
 
       // Add mining fee node
+      // Calculate total output value for outputs with addresses configured
+      const totalOutputValueWithAddresses = outputs
+        .filter((output) => output.to && output.to.trim() !== '')
+        .reduce((sum, output) => sum + output.amount, 0)
+
+      const higherFeeForCurrentTx =
+        totalOutputValueWithAddresses > 0
+          ? minerFee >= totalOutputValueWithAddresses * 0.1
+          : false
+
+      const feePercentageForCurrentTx =
+        totalOutputValueWithAddresses > 0
+          ? (minerFee / totalOutputValueWithAddresses) * 100
+          : 0
+
       outputNodes.push({
         id: `vout-${blockDepth + 1}-0`,
         type: 'text',
@@ -169,7 +186,9 @@ export const useNodesAndLinks = ({
           fiatValue: formatNumber(satsToFiat(minerFee), 2),
           fiatCurrency,
           text: t('transaction.build.minerFee'),
-          value: minerFee
+          value: minerFee,
+          higherFee: higherFeeForCurrentTx,
+          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100
         },
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
@@ -252,6 +271,12 @@ export const useNodesAndLinks = ({
             (sum, output) => sum + (output.value ?? 0),
             0
           )
+
+          // Calculate total output value for outputs with addresses configured
+          const totalOutputValueWithAddresses = tx.vout
+            .filter((output) => output.address && output.address.trim() !== '')
+            .reduce((sum, output) => sum + (output.value ?? 0), 0)
+
           const minerFee = totalInputValue - totalOutputValue
 
           const allInputNodes = tx.vin.reduce((nodes, input) => {
@@ -371,6 +396,17 @@ export const useNodesAndLinks = ({
             // Use vout length as index, similar to outputNodesCurrentTransaction fee calculation
             const feeVoutIndex = tx.vout.length
             const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
+            const higherFeeForPastTx =
+              totalOutputValueWithAddresses > 0
+                ? minerFee >= totalOutputValueWithAddresses * 0.1
+                : false
+
+            // Calculate fee percentage for past transaction
+            const feePercentageForPastTx =
+              totalOutputValueWithAddresses > 0
+                ? (minerFee / totalOutputValueWithAddresses) * 100
+                : 0
+
             feeNode.push({
               id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               type: 'text',
@@ -384,7 +420,9 @@ export const useNodesAndLinks = ({
                 minerFee,
                 fiatValue: formatNumber(satsToFiat(minerFee), 2),
                 fiatCurrency,
-                text: t('transaction.build.minerFee')
+                text: t('transaction.build.minerFee'),
+                higherFee: higherFeeForPastTx,
+                feePercentage: Math.round(feePercentageForPastTx * 100) / 100
               },
               localId: 'past-minerFee'
             })

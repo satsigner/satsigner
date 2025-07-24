@@ -112,7 +112,7 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
       type: 'text',
       depthH: 0,
       ioData: {
-        address: formatAddress(input.txid, 3),
+        address: formatAddress(input.txid, 4),
         label: input.label ?? t('common.noLabel'),
         value: input.valueIsKnown ? input.value : 0,
         fiatValue: formatNumber(satsToFiat(input.value), 2),
@@ -144,12 +144,27 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         value: output.value,
         fiatValue: formatNumber(satsToFiat(output.value), 2),
         fiatCurrency,
-        address: formatAddress(output.address, 3),
+        address: formatAddress(output.address, 4),
         label: output.label ?? t('common.noLabel'),
         text: t('common.to')
       },
       value: output.value
     }))
+
+    const totalOutputValueWithAddresses = outputs
+      .filter((output) => output.address && output.address.trim() !== '')
+      .reduce((sum, output) => sum + output.value, 0)
+
+    const higherFee =
+      totalOutputValueWithAddresses > 0
+        ? minerFee !== undefined &&
+          minerFee >= totalOutputValueWithAddresses * 0.1
+        : false
+
+    const feePercentage =
+      totalOutputValueWithAddresses > 0 && minerFee !== undefined
+        ? (minerFee / totalOutputValueWithAddresses) * 100
+        : 0
 
     if (minerFee !== undefined) {
       outputNodes.push({
@@ -161,7 +176,9 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
           fiatValue: formatNumber(satsToFiat(minerFee), 2),
           fiatCurrency,
           feeRate: feeRate !== undefined ? Math.round(feeRate) : undefined,
-          text: t('transaction.build.minerFee')
+          text: t('transaction.build.minerFee'),
+          higherFee,
+          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
         },
         value: minerFee,
         localId: 'past-minerFee'

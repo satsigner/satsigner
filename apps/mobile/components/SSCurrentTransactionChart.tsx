@@ -137,7 +137,7 @@ function SSCurrentTransactionChart({
       type: 'text',
       depthH: 0,
       ioData: {
-        address: formatAddress(input.txid, 3),
+        address: formatAddress(input.txid, 4),
         label: input.label ?? t('common.noLabel'),
         value: input.value,
         fiatValue: formatNumber(satsToFiat(input.value), 2),
@@ -179,6 +179,21 @@ function SSCurrentTransactionChart({
     }))
 
     if (minerFee !== undefined && minerFee > 0) {
+      // Calculate total output value with addresses for fee analysis
+      const totalOutputValueWithAddresses = outputArray
+        .filter((output) => output.to && output.to.trim() !== '')
+        .reduce((sum, output) => sum + output.amount, 0)
+
+      const higherFee =
+        totalOutputValueWithAddresses > 0
+          ? minerFee >= totalOutputValueWithAddresses * 0.1
+          : false
+
+      const feePercentage =
+        totalOutputValueWithAddresses > 0
+          ? (minerFee / totalOutputValueWithAddresses) * 100
+          : 0
+
       outputNodes.push({
         id: String(inputArray.length + outputArray.length + 2),
         type: 'text',
@@ -189,7 +204,9 @@ function SSCurrentTransactionChart({
           fiatCurrency,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
-          text: t('transaction.build.minerFee')
+          text: t('transaction.build.minerFee'),
+          higherFee,
+          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
         },
         value: minerFee,
         localId: 'current-minerFee'

@@ -892,6 +892,7 @@
     "build.save.output.title": "Save output",
     "build.select.customAmount": "Custom amount",
     "build.select.spendableOutputs": "Select spendable outputs",
+    "build.selfSend": "Self-send",
     "build.set.fee": "Set fee",
     "build.set.highestFeePossible": "Set Highest Fee Possible",
     "build.set.minimumAutomaticFee": "Set Minimum Automatic Fee",

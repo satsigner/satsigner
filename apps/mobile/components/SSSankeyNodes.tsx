@@ -57,6 +57,11 @@ function SSSankeyNodes({
   }, [nodes])
 
   const renderNode = (node: Node, index: number) => {
+    // Add console.log for miner fee nodes with higherFee property
+
+    const isHigherCurrentMinerFee =
+      node.localId === 'current-minerFee' && node.ioData?.higherFee
+
     // Calculate dynamic height for block nodes
 
     const getBlockNodeHeight = () => {
@@ -134,6 +139,7 @@ function SSSankeyNodes({
           localId={node?.localId ?? ''}
           isTransactionChart={isTransactionChart}
           selectedOutputNode={selectedOutputNode}
+          isHigherCurrentMinerFee={isHigherCurrentMinerFee}
         />
       </Group>
     )
@@ -153,7 +159,8 @@ function NodeText({
   customFontManager,
   ioData,
   isTransactionChart,
-  selectedOutputNode
+  selectedOutputNode,
+  isHigherCurrentMinerFee
 }: {
   localId: string
   isBlock: boolean
@@ -164,6 +171,7 @@ function NodeText({
   ioData: TxNode['ioData']
   isTransactionChart: boolean
   selectedOutputNode?: string
+  isHigherCurrentMinerFee?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
@@ -352,7 +360,12 @@ function NodeText({
           TextBaseline.Alphabetic,
           0
         )
-        .addText(` ${ioData?.text ?? ''}\n`) // Add optional chaining and nullish coalescing
+        .addText(` ${ioData?.text ?? ''} `) // Add optional chaining and nullish coalescing
+        .addText(
+          isHigherCurrentMinerFee && ioData?.feePercentage
+            ? `${ioData?.feePercentage}%`
+            : ''
+        )
         .pop()
 
       return para.build()
