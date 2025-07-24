@@ -29,9 +29,6 @@ export default function WalletSyncedConfirmation() {
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
 
   const goToNextStep = async () => {
-    // TODO: add internal change address as an output
-
-    // finally, go to the next page
     router.replace(`/account/${id}/signAndSend/ioPreview`)
   }
 
