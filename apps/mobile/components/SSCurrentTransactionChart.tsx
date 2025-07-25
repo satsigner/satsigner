@@ -48,6 +48,7 @@ type SSCurrentTransactionChartProps = {
   feeRate: number
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
+  ownAddresses?: Set<string> // NEW: prop for own addresses
 }
 
 function SSCurrentTransactionChart({
@@ -55,7 +56,8 @@ function SSCurrentTransactionChart({
   outputs: outputArray,
   feeRate: feeRateProp,
   onPressOutput,
-  currentOutputLocalId
+  currentOutputLocalId,
+  ownAddresses = new Set()
 }: SSCurrentTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -118,7 +120,8 @@ function SSCurrentTransactionChart({
           width,
           height *
             0.7 *
-            (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+            // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+            (Math.max(inputMap.size, outputArray.length + 1) * 0.25)
         ]
       ])
       .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
@@ -173,7 +176,8 @@ function SSCurrentTransactionChart({
         fiatCurrency,
         address: output?.to ? formatAddress(output?.to, 4) : '',
         label: output.label,
-        text: t('transaction.build.unspent')
+        text: t('transaction.build.unspent'),
+        isSelfSend: !!(output.to && ownAddresses.has(output.to))
       },
       value: output.amount
     }))
@@ -222,7 +226,8 @@ function SSCurrentTransactionChart({
     minerFee,
     feeRateProp,
     satsToFiat,
-    fiatCurrency
+    fiatCurrency,
+    ownAddresses
   ])
 
   const sankeyLinks = useMemo(() => {

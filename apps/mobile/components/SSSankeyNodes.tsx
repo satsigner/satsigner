@@ -140,6 +140,9 @@ function SSSankeyNodes({
           isTransactionChart={isTransactionChart}
           selectedOutputNode={selectedOutputNode}
           isHigherCurrentMinerFee={isHigherCurrentMinerFee}
+          isSelfSend={
+            node.ioData?.isSelfSend && !(node?.localId === 'remainingBalance')
+          }
         />
       </Group>
     )
@@ -160,7 +163,8 @@ function NodeText({
   ioData,
   isTransactionChart,
   selectedOutputNode,
-  isHigherCurrentMinerFee
+  isHigherCurrentMinerFee,
+  isSelfSend
 }: {
   localId: string
   isBlock: boolean
@@ -172,6 +176,7 @@ function NodeText({
   isTransactionChart: boolean
   selectedOutputNode?: string
   isHigherCurrentMinerFee?: boolean
+  isSelfSend?: boolean
 }) {
   const isMiningFee = localId.includes('minerFee')
   const isChange = localId === 'remainingBalance'
@@ -213,7 +218,6 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          maxLines: 5,
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
@@ -282,7 +286,7 @@ function NodeText({
     const createParagraphBuilder = () => {
       return Skia.ParagraphBuilder.Make(
         {
-          maxLines: 5,
+          maxLines: isSelfSend ? 6 : 5,
           textAlign: isBlock ? TextAlign.Center : TextAlign.Left,
           strutStyle: {
             strutEnabled: true,
@@ -423,6 +427,24 @@ function NodeText({
         .addText(
           isChange ? ` ${t('transaction.build.change')}` : ` ${ioData.label}`
         )
+        .pushStyle({
+          ...baseTextStyle,
+          fontSize: XS_FONT_SIZE,
+          fontStyle: {
+            weight: 800
+          },
+          color: Skia.Color(mainGreen)
+        })
+        .addText(isSelfSend ? `\n` : ``)
+        // Add placeholder for the self-send svg icon
+        .addPlaceholder(
+          ICON_SIZE,
+          ICON_SIZE,
+          PlaceholderAlignment.Middle,
+          TextBaseline.Alphabetic,
+          0
+        )
+        .addText(isSelfSend ? ` ${t('transaction.build.selfSend')}` : ``)
         .pop()
 
       return para.build()
@@ -492,13 +514,16 @@ function NodeText({
     ioData.vSize,
     ioData?.feeRate,
     ioData?.value,
-    ioData?.text,
-    ioData?.address,
-    ioData.label,
     ioData.fiatValue,
     ioData.fiatCurrency,
+    ioData?.text,
+    ioData?.feePercentage,
+    ioData?.address,
+    ioData.label,
     isPastMinerFee,
-    isChange
+    isHigherCurrentMinerFee,
+    isChange,
+    isSelfSend
   ])
 
   // Calculate position for the paragraph and potentially the icon
@@ -583,13 +608,26 @@ function NodeText({
       {isUnspent &&
         changeIconSvg &&
         placeholderRectsUnspentIcon.length > 0 &&
-        !ioData?.label && (
+        !ioData?.label &&
+        isChange && (
           <ImageSVG
             svg={changeIconSvg}
             x={groupBaseX + placeholderRectsUnspentIcon[0].rect.x}
             y={paragraphY + placeholderRectsUnspentIcon[0].rect.y}
             width={placeholderRectsUnspentIcon[0].rect.width}
             height={placeholderRectsUnspentIcon[0].rect.height}
+          />
+        )}
+      {isUnspent &&
+        changeIconSvg &&
+        placeholderRectsUnspentIcon.length > 0 &&
+        isSelfSend && (
+          <ImageSVG
+            svg={changeIconSvg}
+            x={groupBaseX + placeholderRectsUnspentIcon[1].rect.x}
+            y={paragraphY + placeholderRectsUnspentIcon[1].rect.y}
+            width={placeholderRectsUnspentIcon[1].rect.width}
+            height={placeholderRectsUnspentIcon[1].rect.height}
           />
         )}
       {isMiningFee &&

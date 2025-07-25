@@ -481,6 +481,12 @@ export default function IOPreview() {
   }
   // if (!nodes.length || !links.length) return <Redirect href="/" />
 
+  // Memoized set of own addresses for efficient lookup
+  const ownAddressesSet = useMemo<Set<string>>(() => {
+    if (!account) return new Set<string>()
+    return new Set<string>(account.addresses.map((a) => a.address))
+  }, [account])
+
   return (
     <View
       style={{
@@ -584,6 +590,7 @@ export default function IOPreview() {
               inputs={inputs}
               outputs={singleTxOutputs}
               feeRate={feeRate}
+              ownAddresses={ownAddressesSet}
             />
           ) : (
             <SSCurrentTransactionChart
@@ -592,6 +599,7 @@ export default function IOPreview() {
               feeRate={localFeeRate}
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
+              ownAddresses={ownAddressesSet}
             />
           )}
         </View>

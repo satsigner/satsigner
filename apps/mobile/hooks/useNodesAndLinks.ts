@@ -40,6 +40,7 @@ export type TxNode = {
     vSize?: number
     higherFee?: boolean // miner fee is 10% or higher of the total transaction value
     feePercentage?: number // miner fee is 10% or higher of the total transaction value
+    isSelfSend?: boolean // NEW: flag for self-send
   }
 }
 
@@ -78,13 +79,15 @@ type UseNodesAndLinksProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  ownAddresses?: Set<string>
 }
 
 export const useNodesAndLinks = ({
   transactions,
   inputs,
   outputs,
-  feeRate
+  feeRate,
+  ownAddresses = new Set()
 }: UseNodesAndLinksProps) => {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
@@ -131,7 +134,8 @@ export const useNodesAndLinks = ({
           text: t('transaction.build.unspent'),
           value: output.amount,
           fiatValue: formatNumber(satsToFiat(output.amount), 2),
-          fiatCurrency
+          fiatCurrency,
+          isSelfSend: ownAddresses.has(output.to)
         },
         value: output.amount,
         indexV: index,
@@ -224,7 +228,8 @@ export const useNodesAndLinks = ({
     outputs,
     feeRate,
     satsToFiat,
-    fiatCurrency
+    fiatCurrency,
+    ownAddresses
   ])
 
   const outputAddresses = useMemo(() => {
@@ -308,7 +313,8 @@ export const useNodesAndLinks = ({
                 address: `${formatAddress(input.address, 4)}`,
                 label: `${input.label ?? ''}`,
                 txId: tx.id,
-                text: t('common.from')
+                text: t('common.from'),
+                isSelfSend: ownAddresses.has(input.address)
               },
               value: input.value,
               txId: tx.id,
@@ -379,7 +385,8 @@ export const useNodesAndLinks = ({
                 value: output.value,
                 fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
                 fiatCurrency,
-                text: t('common.from')
+                text: t('common.from'),
+                isSelfSend: ownAddresses.has(output.address)
               },
               value: output.value,
               txId: tx.id,
@@ -447,7 +454,8 @@ export const useNodesAndLinks = ({
     outputValues,
     transactions,
     satsToFiat,
-    fiatCurrency
+    fiatCurrency,
+    ownAddresses
   ])
 
   const nodes = [

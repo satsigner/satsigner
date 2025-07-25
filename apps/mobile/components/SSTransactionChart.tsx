@@ -32,9 +32,13 @@ const NODE_WIDTH = 98
 
 type SSTransactionChartProps = {
   transaction: Transaction
+  ownAddresses?: Set<string> // NEW: prop for own addresses
 }
 
-function SSTransactionChart({ transaction }: SSTransactionChartProps) {
+function SSTransactionChart({
+  transaction,
+  ownAddresses = new Set()
+}: SSTransactionChartProps) {
   const [fiatCurrency, satsToFiat] = usePriceStore(
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
@@ -146,7 +150,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
         fiatCurrency,
         address: formatAddress(output.address, 4),
         label: output.label ?? t('common.noLabel'),
-        text: t('common.to')
+        text: t('common.to'),
+        isSelfSend: !!(output.address && ownAddresses.has(output.address))
       },
       value: output.value
     }))
@@ -195,7 +200,8 @@ function SSTransactionChart({ transaction }: SSTransactionChartProps) {
     feeRate,
     satsToFiat,
     fiatCurrency,
-    totalOutputValue
+    totalOutputValue,
+    ownAddresses
   ])
 
   const sankeyLinks = useMemo(() => {
