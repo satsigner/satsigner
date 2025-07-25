@@ -86,7 +86,7 @@ function SSTransactionChart({
 
   // Fixed base height with dynamic scaling for larger transactions
   const FIXED_BASE_HEIGHT = 400
-  const SCALING_THRESHOLD = 3 // Start scaling when more than 5 inputs or outputs
+  const SCALING_THRESHOLD = 2 // Start scaling when more than 5 inputs or outputs
   const GRAPH_HEIGHT =
     maxInputOutputLength > SCALING_THRESHOLD
       ? FIXED_BASE_HEIGHT *
