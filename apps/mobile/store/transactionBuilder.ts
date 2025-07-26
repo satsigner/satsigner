@@ -19,6 +19,7 @@ type TransactionBuilderState = {
   rbf: boolean
   txBuilderResult?: TxBuilderResult
   psbt?: PartiallySignedTransaction
+  signedTx?: string
 }
 
 type TransactionBuilderAction = {
@@ -40,6 +41,9 @@ type TransactionBuilderAction = {
     txBuilderResult: NonNullable<TransactionBuilderState['txBuilderResult']>
   ) => void
   setPsbt: (pbst: NonNullable<TransactionBuilderState['psbt']>) => void
+  setSignedTx: (
+    signedTx: NonNullable<TransactionBuilderState['signedTx']>
+  ) => void
 }
 
 const useTransactionBuilderStore = create<
@@ -58,7 +62,8 @@ const useTransactionBuilderStore = create<
       outputs: [],
       feeRate: 0,
       txBuilderResult: undefined,
-      psbt: undefined
+      psbt: undefined,
+      signedTx: undefined
     })
   },
   getInputs: () => {
@@ -122,6 +127,9 @@ const useTransactionBuilderStore = create<
   },
   setPsbt: (psbt) => {
     set({ psbt })
+  },
+  setSignedTx: (signedTx) => {
+    set({ signedTx })
   }
 }))
 

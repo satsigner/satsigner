@@ -1,14 +1,16 @@
+import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import bs58check from 'bs58check'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { ActivityIndicator, ScrollView, View } from 'react-native'
+import { toast } from 'sonner-native'
 
-import { getWalletData } from '@/api/bdk'
+import { extractExtendedKeyFromDescriptor, getWalletData } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
-import SSRadioButton from '@/components/SSRadioButton'
 import SSText from '@/components/SSText'
 import { PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -23,7 +25,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
-export default function ExportDescriptors() {
+export default function ExportPubkeys() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
 
   const account = useAccountsStore((state) =>
@@ -32,12 +34,37 @@ export default function ExportDescriptors() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [exportContent, setExportContent] = useState('')
-  const [showSeparate, setShowSeparate] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [useVpubFormat, setUseVpubFormat] = useState(false)
+  const [rawPubkeys, setRawPubkeys] = useState<string[]>([])
+
+  function convertToVpub(xpub: string): string {
+    if (!xpub.startsWith('tpub')) return xpub
+
+    try {
+      const decoded = bs58check.decode(xpub)
+      const version = new Uint8Array([0x04, 0x5f, 0x1c, 0xf6])
+      const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
+      const result = bs58check.encode(newDecoded)
+      return result
+    } catch (error) {
+      toast.error(String(error))
+      return xpub
+    }
+  }
 
   useEffect(() => {
-    async function getDescriptors() {
+    if (!rawPubkeys.length) return
+    const formattedPubkeys = useVpubFormat
+      ? rawPubkeys.map(convertToVpub)
+      : rawPubkeys
+    setExportContent(formattedPubkeys.join('\n'))
+  }, [useVpubFormat, rawPubkeys])
+
+  useEffect(() => {
+    async function getPubkeys() {
       if (!account) return
+      setIsLoading(true)
       const pin = await getItem(PIN_KEY)
       if (!pin) return
       try {
@@ -59,28 +86,44 @@ export default function ExportDescriptors() {
           ? await getWalletData(temporaryAccount, network as Network)
           : undefined
 
-        const descriptors = !isImportAddress
-          ? [walletData?.externalDescriptor!, walletData?.internalDescriptor!]
-          : [
-              (typeof temporaryAccount.keys[0].secret === 'object' &&
-                temporaryAccount.keys[0].secret.externalDescriptor!) as string
-            ]
+        // For each key in the account, get its public key from the wallet data
+        const pubkeys = await Promise.all(
+          temporaryAccount.keys.map(async (key) => {
+            if (isImportAddress) {
+              // For watch-only accounts, we can get the extended public key from the secret
+              const keyInfo =
+                typeof key.secret === 'object' ? key.secret : undefined
+              return keyInfo?.extendedPublicKey || 'N/A'
+            } else {
+              // For regular accounts, we need to extract the extended public key from the descriptor
+              if (!walletData?.externalDescriptor) return 'N/A'
+              const descriptor = await new Descriptor().create(
+                walletData.externalDescriptor,
+                network as Network
+              )
+              const extendedKey =
+                await extractExtendedKeyFromDescriptor(descriptor)
+              return extendedKey || 'N/A'
+            }
+          })
+        )
 
-        setExportContent(descriptors.join('\n'))
+        setRawPubkeys(pubkeys)
+        setExportContent(pubkeys.join('\n'))
       } catch {
-        // TODO
+        // TODO: Handle error
       } finally {
         setIsLoading(false)
       }
     }
-    getDescriptors()
+    getPubkeys()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function exportDescriptors() {
+  async function exportPubkeys() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
-    const filename = `${t('export.file.name.descriptors')}_${accountId}_${date}.${ext}`
+    const filename = `PublicKeys_${accountId}_${date}.${ext}`
     shareFile({
       filename,
       fileContent: exportContent,
@@ -90,8 +133,6 @@ export default function ExportDescriptors() {
   }
 
   if (!account) return <Redirect href="/" />
-
-  const descriptors = exportContent.split('\n').filter(Boolean)
 
   return (
     <ScrollView style={{ width: '100%' }}>
@@ -108,77 +149,41 @@ export default function ExportDescriptors() {
           headerRight: undefined
         }}
       />
-      <SSVStack style={{ padding: 20 }} gap="lg">
+      <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase color="muted">
-          {t('account.export.descriptors')}
+          {t('account.export.pubkeys')}
         </SSText>
-
-        {isLoading ? (
-          <SSText center color="muted">
-            Loading descriptors...
-          </SSText>
-        ) : descriptors.length > 0 ? (
+        {!isLoading && rawPubkeys.length > 0 && (
+          <SSHStack style={{ marginBottom: 20, justifyContent: 'center' }}>
+            <SSButton
+              label={useVpubFormat ? 'VPUB Format' : 'XPUB Format'}
+              variant={useVpubFormat ? 'gradient' : 'secondary'}
+              onPress={() => setUseVpubFormat(!useVpubFormat)}
+            />
+          </SSHStack>
+        )}
+        <View style={{ alignItems: 'center', marginVertical: 20 }}>
+          {isLoading ? (
+            <ActivityIndicator size="large" color={Colors.gray[400]} />
+          ) : exportContent ? (
+            <View
+              style={{
+                backgroundColor: 'white',
+                padding: 20,
+                borderRadius: 10
+              }}
+            >
+              <SSQRCode
+                value={exportContent}
+                size={250}
+                color="black"
+                backgroundColor="white"
+              />
+            </View>
+          ) : null}
+        </View>
+        {!isLoading && exportContent && (
           <>
-            <SSHStack gap="sm" style={{ justifyContent: 'space-between' }}>
-              <SSRadioButton
-                variant="outline"
-                label="Together"
-                selected={!showSeparate}
-                onPress={() => setShowSeparate(false)}
-                style={{ width: '48%' }}
-              />
-              <SSRadioButton
-                variant="outline"
-                label="Separate"
-                selected={showSeparate}
-                onPress={() => setShowSeparate(true)}
-                style={{ width: '48%' }}
-              />
-            </SSHStack>
-
-            {showSeparate ? (
-              <SSVStack gap="md">
-                {descriptors.map((descriptor, index) => (
-                  <View key={index} style={{ alignItems: 'center' }}>
-                    <View
-                      style={{
-                        backgroundColor: Colors.white,
-                        padding: 16,
-                        borderRadius: 2
-                      }}
-                    >
-                      <SSQRCode
-                        value={descriptor}
-                        size={150}
-                        color={Colors.black}
-                        backgroundColor={Colors.white}
-                      />
-                    </View>
-                    <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                      {index === 0 ? 'External' : 'Internal'} Descriptor
-                    </SSText>
-                  </View>
-                ))}
-              </SSVStack>
-            ) : (
-              <View style={{ alignItems: 'center' }}>
-                <View
-                  style={{
-                    backgroundColor: Colors.white,
-                    padding: 16,
-                    borderRadius: 2
-                  }}
-                >
-                  <SSQRCode
-                    value={exportContent}
-                    size={250}
-                    color={Colors.black}
-                    backgroundColor={Colors.white}
-                  />
-                </View>
-              </View>
-            )}
-
             <View
               style={{
                 padding: 10,
@@ -186,7 +191,7 @@ export default function ExportDescriptors() {
                 borderRadius: 5
               }}
             >
-              <SSText color="white" size="md" type="mono">
+              <SSText color="white" size="lg" type="mono">
                 {exportContent}
               </SSText>
             </View>
@@ -199,13 +204,9 @@ export default function ExportDescriptors() {
             <SSButton
               label={t('common.downloadFile')}
               variant="secondary"
-              onPress={exportDescriptors}
+              onPress={exportPubkeys}
             />
           </>
-        ) : (
-          <SSText center color="muted">
-            No descriptors available
-          </SSText>
         )}
         <SSButton
           label={t('common.cancel')}
