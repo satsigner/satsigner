@@ -746,10 +746,6 @@ export default function AccountView() {
   ]
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
-  const gradientHeight = animationValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [isMultiAddressWatchOnly ? 100 : 190, 0]
-  })
 
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
@@ -1061,7 +1057,7 @@ export default function AccountView() {
         </SSHStack>
       </TouchableOpacity>
       {!expand && (
-        <Animated.View style={{ height: gradientHeight }}>
+        <Animated.View>
           <SSVStack itemsCenter gap="none">
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -1094,50 +1090,36 @@ export default function AccountView() {
                 gap="none"
                 style={{ paddingHorizontal: '5%' }}
               >
-                {account.keys[0].creationType !== 'importAddress' &&
-                  account.keys[0].creationType !== 'importExtendedPub' && (
-                    <>
-                      <SSActionButton
-                        onPress={() => navigateToSignAndSend()}
-                        style={{
-                          ...styles.actionButton,
-                          width: '40%'
-                        }}
-                      >
-                        <SSText uppercase>{t('account.signAndSend')}</SSText>
-                      </SSActionButton>
-                      <SSActionButton
-                        onPress={() => router.navigate(`/account/${id}/camera`)}
-                        style={{
-                          ...styles.actionButton,
-                          width: '20%'
-                        }}
-                      >
-                        <SSIconCamera height={13} width={18} />
-                      </SSActionButton>
-                      <SSActionButton
-                        onPress={() =>
-                          router.navigate(`/account/${id}/receive`)
-                        }
-                        style={{
-                          ...styles.actionButton,
-                          width: '40%'
-                        }}
-                      >
-                        <SSText uppercase>{t('account.receive')}</SSText>
-                      </SSActionButton>
-                    </>
-                  )}
-                {account.keys[0].creationType === 'importExtendedPub' && (
-                  <SSActionButton
-                    onPress={() => router.navigate(`/account/${id}/receive`)}
-                    style={{
-                      ...styles.actionButton,
-                      width: '100%'
-                    }}
-                  >
-                    <SSText uppercase>{t('account.receive')}</SSText>
-                  </SSActionButton>
+                {account.keys[0].creationType !== 'importAddress' && (
+                  <>
+                    <SSActionButton
+                      onPress={() => navigateToSignAndSend()}
+                      style={{
+                        ...styles.actionButton,
+                        width: '40%'
+                      }}
+                    >
+                      <SSText uppercase>{t('account.signAndSend')}</SSText>
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/camera`)}
+                      style={{
+                        ...styles.actionButton,
+                        width: '20%'
+                      }}
+                    >
+                      <SSIconCamera height={13} width={18} />
+                    </SSActionButton>
+                    <SSActionButton
+                      onPress={() => router.navigate(`/account/${id}/receive`)}
+                      style={{
+                        ...styles.actionButton,
+                        width: '40%'
+                      }}
+                    >
+                      <SSText uppercase>{t('account.receive')}</SSText>
+                    </SSActionButton>
+                  </>
                 )}
                 {account.keys[0].creationType === 'importAddress' &&
                   account.keys.length === 1 && (
