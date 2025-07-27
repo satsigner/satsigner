@@ -34,6 +34,7 @@ import SSText from './SSText'
 type TotalTransactionsProps = {
   transactions: Transaction[]
   utxos: Utxo[]
+  // TODO: allow the transaction to belong to distinct accounts
   accountId: Account['id']
   handleOnRefresh: () => Promise<void>
   handleOnExpand: (state: boolean) => Promise<void>
@@ -128,6 +129,9 @@ function TotalTransactions({
           />
         </SSHStack>
       </SSHStack>
+      {/* TODO: show it elsewhere because the total transaction list should be
+       /* decoupled from the history chart.
+        */}
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
           <SSHistoryChart transactions={chartTransactions} utxos={utxos} />
