@@ -148,7 +148,9 @@ export default function AccountView() {
       case 'totalTransactions':
         return (
           <TotalTransactions
-            account={account}
+            transactions={account.transactions}
+            utxos={account.utxos}
+            accountId={account.id}
             handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}

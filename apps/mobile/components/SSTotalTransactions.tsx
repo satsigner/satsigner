@@ -23,6 +23,8 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { sortTransactions } from '@/utils/sort'
 
 import SSIconButton from './SSIconButton'
@@ -30,7 +32,9 @@ import SSSortDirectionToggle from './SSSortDirectionToggle'
 import SSText from './SSText'
 
 type TotalTransactionsProps = {
-  account: Account
+  transactions: Transaction[]
+  utxos: Utxo[]
+  accountId: Account['id']
   handleOnRefresh: () => Promise<void>
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
@@ -41,7 +45,9 @@ type TotalTransactionsProps = {
 }
 
 function TotalTransactions({
-  account,
+  transactions,
+  utxos,
+  accountId,
   handleOnRefresh,
   handleOnExpand,
   expand,
@@ -57,12 +63,12 @@ function TotalTransactions({
   )
 
   const sortedTransactions = useMemo(() => {
-    return sortTransactions([...account.transactions], sortDirection)
-  }, [account.transactions, sortDirection])
+    return sortTransactions([...transactions], sortDirection)
+  }, [transactions, sortDirection])
 
   const chartTransactions = useMemo(() => {
-    return sortTransactions([...account.transactions], 'desc')
-  }, [account.transactions])
+    return sortTransactions([...transactions], 'desc')
+  }, [transactions])
 
   const transactionBalances = useMemo(() => {
     let balance = 0
@@ -124,10 +130,7 @@ function TotalTransactions({
       </SSHStack>
       {showHistoryChart && sortedTransactions.length > 0 ? (
         <View style={{ flex: 1, zIndex: -1 }}>
-          <SSHistoryChart
-            transactions={chartTransactions}
-            utxos={account.utxos}
-          />
+          <SSHistoryChart transactions={chartTransactions} utxos={utxos} />
         </View>
       ) : (
         <SSVStack
@@ -157,7 +160,7 @@ function TotalTransactions({
                   expand={expand}
                   walletBalance={transactionBalances[index]}
                   blockHeight={blockchainHeight}
-                  link={`/account/${account.id}/transaction/${item.id}`}
+                  link={`/account/${accountId}/transaction/${item.id}`}
                 />
               </SSVStack>
             )}
