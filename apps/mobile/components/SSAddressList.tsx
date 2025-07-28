@@ -16,7 +16,7 @@ import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { formatAddress } from '@/utils/format'
 
-type SSAddressListItem = {
+export type SSAddressListItem = {
   accountId: Account['id']
 } & Address
 
@@ -42,28 +42,18 @@ function SSAddressList({
           router.navigate(`/account/${item.accountId}/address/${item.address}`)
         }
       >
-        <SSHStack style={addressListStyles.row}>
+        <SSHStack style={styles.row}>
           {!showDerivationPath && (
-            <SSText
-              style={[
-                addressListStyles.indexText,
-                addressListStyles.columnIndex
-              ]}
-            >
+            <SSText style={[styles.indexText, styles.columnIndex]}>
               {item.index}
             </SSText>
           )}
-          <SSText
-            style={[
-              addressListStyles.addressText,
-              addressListStyles.columnAddress
-            ]}
-          >
+          <SSText style={[styles.addressText, styles.columnAddress]}>
             {formatAddress(item.address, 4)}
           </SSText>
           <SSText
             style={[
-              addressListStyles.columnLabel,
+              styles.columnLabel,
               { color: item.label ? '#fff' : '#333' }
             ]}
           >
@@ -71,7 +61,7 @@ function SSAddressList({
           </SSText>
           <SSText
             style={[
-              addressListStyles.columnTxs,
+              styles.columnTxs,
               { color: item.summary.transactions === 0 ? '#333' : '#fff' }
             ]}
           >
@@ -79,7 +69,7 @@ function SSAddressList({
           </SSText>
           <SSText
             style={[
-              addressListStyles.columnSats,
+              styles.columnSats,
               { color: item.summary.balance === 0 ? '#333' : '#fff' }
             ]}
           >
@@ -87,7 +77,7 @@ function SSAddressList({
           </SSText>
           <SSText
             style={[
-              addressListStyles.columnUtxos,
+              styles.columnUtxos,
               { color: item.summary.utxos === 0 ? '#333' : '#fff' }
             ]}
           >
@@ -102,49 +92,25 @@ function SSAddressList({
   return (
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
-        <SSHStack style={addressListStyles.headerRow}>
+        <SSHStack style={styles.headerRow}>
           {!showDerivationPath && (
-            <SSText
-              style={[
-                addressListStyles.headerText,
-                addressListStyles.columnIndex
-              ]}
-            >
+            <SSText style={[styles.headerText, styles.columnIndex]}>
               {t('address.list.table.index')}
             </SSText>
           )}
-          <SSText
-            style={[
-              addressListStyles.headerText,
-              addressListStyles.columnAddress
-            ]}
-          >
+          <SSText style={[styles.headerText, styles.columnAddress]}>
             {t('bitcoin.address')}
           </SSText>
-          <SSText
-            style={[
-              addressListStyles.headerText,
-              addressListStyles.columnLabel
-            ]}
-          >
+          <SSText style={[styles.headerText, styles.columnLabel]}>
             {t('common.label')}
           </SSText>
-          <SSText
-            style={[addressListStyles.headerText, addressListStyles.columnTxs]}
-          >
+          <SSText style={[styles.headerText, styles.columnTxs]}>
             {t('address.list.table.tx')}
           </SSText>
-          <SSText
-            style={[addressListStyles.headerText, addressListStyles.columnSats]}
-          >
+          <SSText style={[styles.headerText, styles.columnSats]}>
             {t('address.list.table.balance')}
           </SSText>
-          <SSText
-            style={[
-              addressListStyles.headerText,
-              addressListStyles.columnUtxos
-            ]}
-          >
+          <SSText style={[styles.headerText, styles.columnUtxos]}>
             {t('address.list.table.utxo')}
           </SSText>
         </SSHStack>
@@ -168,7 +134,7 @@ function SSAddressList({
   )
 }
 
-const addressListStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   headerText: {
     color: '#777',
     textTransform: 'uppercase'
