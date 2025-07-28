@@ -43,7 +43,7 @@ function SSAddressList({
         }
       >
         <SSHStack style={styles.row}>
-          {!showDerivationPath && (
+          {showDerivationPath && (
             <SSText style={[styles.indexText, styles.columnIndex]}>
               {item.index}
             </SSText>
@@ -93,7 +93,7 @@ function SSAddressList({
     <ScrollView style={{ marginTop: 10 }} horizontal>
       <SSVStack gap="none" style={{ width: ADDRESS_LIST_WIDTH }}>
         <SSHStack style={styles.headerRow}>
-          {!showDerivationPath && (
+          {showDerivationPath && (
             <SSText style={[styles.headerText, styles.columnIndex]}>
               {t('address.list.table.index')}
             </SSText>
@@ -117,7 +117,7 @@ function SSAddressList({
         <FlashList
           data={addresses?.filter(
             (address) =>
-              showDerivationPath ||
+              !showDerivationPath ||
               (change
                 ? address.keychain === 'internal'
                 : address.keychain === 'external')
