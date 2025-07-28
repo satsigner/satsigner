@@ -4,6 +4,9 @@ import { StyleSheet } from 'react-native'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import { SSIconCollapse, SSIconExpand, SSIconRefresh } from '@/components/icons'
+import SSAddressList, {
+  type SSAddressListItem
+} from '@/components/SSAddressList'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -18,8 +21,6 @@ import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { parseAccountAddressesDetails } from '@/utils/parse'
-
-import SSAddressList, { type SSAddressListItem } from './SSAddressList'
 
 type DerivedAddressesProps = {
   account: Account
