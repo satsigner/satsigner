@@ -121,7 +121,7 @@ function SSCurrentTransactionChart({
           height *
             0.7 *
             // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
-            (Math.max(inputMap.size, outputArray.length + 1) * 0.25)
+            (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
         ]
       ])
       .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
