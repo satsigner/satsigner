@@ -6,10 +6,8 @@ import { useShallow } from 'zustand/react/shallow'
 import { generateMnemonic, getFingerprint } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSRadioButton from '@/components/SSRadioButton'
-import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
-import SSTextInput from '@/components/SSTextInput'
 import { ENTROPY_TYPES } from '@/config/entropy'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -27,9 +25,7 @@ export default function MultiSigKeySettings() {
   const router = useRouter()
   const [
     name,
-    setKeyName,
     keyCount,
-    setScriptVersion,
     setEntropy,
     setMnemonicWordCount,
     setMnemonic,
@@ -39,9 +35,7 @@ export default function MultiSigKeySettings() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
-      state.setKeyName,
       state.keyCount,
-      state.setScriptVersion,
       state.setEntropy,
       state.setMnemonicWordCount,
       state.setMnemonic,
@@ -53,16 +47,10 @@ export default function MultiSigKeySettings() {
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
-
-  const [localKeyName, setLocalKeyName] = useState('')
-  const [localScriptVersion, setLocalScriptVersion] =
-    useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
-  const [scriptVersionModalVisible, setScriptVersionModalVisible] =
-    useState(false)
   const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
     useState(false)
 
@@ -70,8 +58,6 @@ export default function MultiSigKeySettings() {
 
   async function handleOnPress(type: NonNullable<Key['creationType']>) {
     setCreationType(type)
-    setKeyName(localKeyName)
-    setScriptVersion(localScriptVersion)
     setEntropy(localEntropyType)
     setMnemonicWordCount(localMnemonicWordCount)
     setNetwork(network)
@@ -113,10 +99,7 @@ export default function MultiSigKeySettings() {
           break
         }
       }
-    } else if (type === 'importMnemonic')
-      router.navigate(`/account/add/import/mnemonic/${index}`)
-    else if (type === 'importDescriptor')
-      router.navigate(`/account/add/import/descriptor/${index}`)
+    }
   }
 
   function handleOnSelectMnemonicWordCount() {
@@ -154,24 +137,11 @@ export default function MultiSigKeySettings() {
               </SSText>
             </SSFormLayout.Item>
             <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.name')} />
-              <SSTextInput
-                value={localKeyName}
-                onChangeText={(text) => setLocalKeyName(text)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.script')} />
-              <SSButton
-                label={`${t(`script.${localScriptVersion.toLocaleLowerCase()}.name`)} (${localScriptVersion})`}
-                withSelect
-                onPress={() => setScriptVersionModalVisible(true)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.mnemonic.title')} />
               <SSButton
-                label={`${localMnemonicWordCount} ${t('bitcoin.words').toLowerCase()}`}
+                label={`${localMnemonicWordCount} ${t(
+                  'bitcoin.words'
+                ).toLowerCase()}`}
                 withSelect
                 onPress={() => setMnemonicWordCountModalVisibile(true)}
               />
@@ -188,19 +158,8 @@ export default function MultiSigKeySettings() {
         </SSVStack>
         <SSVStack>
           <SSButton
-            label={t('account.import.descriptor')}
-            disabled={!localKeyName}
-            onPress={() => handleOnPress('importDescriptor')}
-          />
-          <SSButton
-            label={t('account.import.title2')}
-            disabled={!localKeyName}
-            onPress={() => handleOnPress('importMnemonic')}
-          />
-          <SSButton
             label={t('account.generate.title')}
             variant="secondary"
-            disabled={!localKeyName}
             loading={loading}
             onPress={() => handleOnPress('generateMnemonic')}
           />
@@ -211,15 +170,6 @@ export default function MultiSigKeySettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSScriptVersionModal
-        visible={scriptVersionModalVisible}
-        scriptVersion={localScriptVersion}
-        onSelect={(scriptVersion) => {
-          setLocalScriptVersion(scriptVersion)
-          setScriptVersionModalVisible(false)
-        }}
-        onCancel={() => setScriptVersionModalVisible(false)}
-      />
       <SSSelectModal
         visible={mnemonicWordCountModalVisible}
         title={t('account.mnemonic.title')}

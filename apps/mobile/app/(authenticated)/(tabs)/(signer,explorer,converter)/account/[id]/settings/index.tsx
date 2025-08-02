@@ -163,36 +163,6 @@ export default function AccountSettings() {
           </SSHStack>
         </SSVStack>
         <SSVStack>
-          {(account.keys[0].creationType === 'generateMnemonic' ||
-            account.keys[0].creationType === 'importMnemonic') && (
-            <SSHStack>
-              <SSButton
-                style={styles.button}
-                label={t('account.viewMnemonic')}
-                onPress={() => handleOnViewMnemonic()}
-              />
-            </SSHStack>
-          )}
-          <SSButton
-            style={styles.button}
-            label={t('account.export.descriptors')}
-            onPress={() =>
-              router.navigate(
-                `/account/${currentAccountId}/settings/export/descriptors`
-              )
-            }
-          />
-          <SSButton
-            style={styles.button}
-            label={t('account.export.pubkeys')}
-            onPress={() =>
-              router.navigate(
-                `/account/${currentAccountId}/settings/export/pubkeys`
-              )
-            }
-          />
-        </SSVStack>
-        <SSVStack>
           <SSHStack>
             <SSButton
               style={styles.button}
@@ -213,6 +183,38 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
+        </SSVStack>
+        <SSVStack>
+          {(account.keys[0].creationType === 'generateMnemonic' ||
+            account.keys[0].creationType === 'importMnemonic') && (
+            <SSHStack>
+              <SSButton
+                style={styles.button}
+                label={t('account.viewMnemonic')}
+                onPress={() => handleOnViewMnemonic()}
+              />
+            </SSHStack>
+          )}
+          <SSHStack>
+            <SSButton
+              style={styles.button}
+              label={t('account.export.descriptors')}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/export/descriptors`
+                )
+              }
+            />
+            <SSButton
+              style={styles.button}
+              label={t('account.export.pubkeys')}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/export/pubkeys`
+                )
+              }
+            />
+          </SSHStack>
           <SSButton
             style={styles.button}
             label={t('account.nostrSync.sync')}
@@ -221,6 +223,7 @@ export default function AccountSettings() {
             }
           />
         </SSVStack>
+
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
@@ -268,6 +271,14 @@ export default function AccountSettings() {
                   index={index}
                   keyCount={account.keyCount}
                   keyDetails={key}
+                  isSettingsMode={true}
+                  accountId={currentAccountId}
+                  onRefresh={() => {
+                    // Refresh the page to show updated data
+                    router.replace(
+                      `/account/${currentAccountId}/settings/` as any
+                    )
+                  }}
                 />
               ))}
             </SSVStack>
@@ -539,10 +550,10 @@ const styles = StyleSheet.create({
   },
   multiSigContainer: {
     backgroundColor: '#131313',
-    paddingHorizontal: 16
+    paddingHorizontal: 0
   },
   multiSigKeyControlCOntainer: {
-    marginHorizontal: 20
+    marginHorizontal: 0
   },
   mnemonicGrid: {
     flexDirection: 'row',

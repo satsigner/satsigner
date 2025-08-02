@@ -26,7 +26,8 @@ export function validateDescriptor(descriptor: string) {
   const keyDerivationPath = `\\/[0-9]+[h']?`
   const fullFingerprint = `\\[(${fingerprint})?(${keyDerivationPath})+\\]`
   const content = '[a-zA-Z0-9]+'
-  const addressDerivationPath = '(\\/[0-9*])*'
+  // Updated to handle <0;1>/* pattern and other address derivation patterns
+  const addressDerivationPath = '(\\/[0-9*<>;,]+)*'
   const checksum = '#[a-z0-9]{8}'
   const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
   const singleKey = `^${kind}\\(${key}\\)$`
