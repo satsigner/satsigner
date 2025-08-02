@@ -9,7 +9,6 @@ import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { extractExtendedKeyFromDescriptor, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -40,8 +39,6 @@ export default function ImportDescriptor() {
   // State for import data
   const [externalDescriptor, setExternalDescriptor] = useState('')
   const [internalDescriptor, setInternalDescriptor] = useState('')
-  const [localExternalDescriptor, setLocalExternalDescriptor] = useState('')
-  const [localInternalDescriptor, setLocalInternalDescriptor] = useState('')
 
   // Validation state
   const [disabled, setDisabled] = useState(true)
@@ -110,41 +107,52 @@ export default function ImportDescriptor() {
     ])
   )
 
-  function updateDescriptorValidationState() {
+  const updateDescriptorValidationState = useCallback(() => {
     // Allow import if either external or internal descriptor is valid
     // At least one descriptor must be provided and valid
     const hasValidExternal = externalDescriptor && validExternalDescriptor
     const hasValidInternal = internalDescriptor && validInternalDescriptor
     const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
-
     setDisabled(!hasAnyValidDescriptor)
-  }
+  }, [
+    externalDescriptor,
+    internalDescriptor,
+    validExternalDescriptor,
+    validInternalDescriptor
+  ])
+
+  // Initialize validation state when descriptors change
+  useEffect(() => {
+    updateDescriptorValidationState()
+  }, [
+    externalDescriptor,
+    internalDescriptor,
+    validExternalDescriptor,
+    validInternalDescriptor,
+    updateDescriptorValidationState
+  ])
 
   function updateExternalDescriptor(descriptor: string) {
+    console.log('updateExternalDescriptor', descriptor)
     const validExternalDescriptor =
       validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
-    setLocalExternalDescriptor(descriptor)
+    setExternalDescriptor(descriptor)
     if (validExternalDescriptor) {
-      setExternalDescriptor(descriptor)
+      setStoreExternalDescriptor(descriptor)
     }
-
-    // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState()
   }
 
   function updateInternalDescriptor(descriptor: string) {
+    console.log('updateInternalDescriptor', descriptor)
     const validInternalDescriptor = validateDescriptor(descriptor)
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
-    setLocalInternalDescriptor(descriptor)
+    setInternalDescriptor(descriptor)
     if (validInternalDescriptor) {
-      setInternalDescriptor(descriptor)
+      setStoreInternalDescriptor(descriptor)
     }
-
-    // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState()
   }
 
   const detectQRType = (data: string) => {
@@ -235,7 +243,7 @@ export default function ImportDescriptor() {
       clearKeyState()
 
       toast.success(t('import.success'))
-      router.dismiss(2)
+      router.dismiss(1)
     } catch (error) {
       toast.error(t('import.error'))
     }
@@ -243,6 +251,7 @@ export default function ImportDescriptor() {
 
   async function pasteFromClipboard() {
     const text = await Clipboard.getStringAsync()
+
     if (!text) return
 
     let externalDescriptor = text
@@ -256,7 +265,7 @@ export default function ImportDescriptor() {
         externalDescriptor = jsonData.descriptor
 
         // Derive internal descriptor from external descriptor
-        // Replace /0/* with /1/* for internal chain and remove checksum
+        // Replace /0/* with /1/* for internal chain
         const descriptorWithoutChecksum = externalDescriptor.replace(
           /#[a-z0-9]+$/,
           ''
@@ -265,16 +274,17 @@ export default function ImportDescriptor() {
           /\/0\/\*/g,
           '/1/*'
         )
+        // Add back the checksum to internal descriptor
+        const checksum = externalDescriptor.match(/#[a-z0-9]+$/)
+        if (checksum) {
+          internalDescriptor += checksum[0]
+        }
       }
     } catch (_jsonError) {
       // Handle legacy formats
       if (text.match(/<0[,;]1>/)) {
-        externalDescriptor = text
-          .replace(/<0[,;]1>/, '0')
-          .replace(/#[a-z0-9]+$/, '')
-        internalDescriptor = text
-          .replace(/<0[,;]1>/, '1')
-          .replace(/#[a-z0-9]+$/, '')
+        externalDescriptor = text.replace(/<0[,;]1>/, '0')
+        internalDescriptor = text.replace(/<0[,;]1>/, '1')
       }
       if (text.includes('\n')) {
         const lines = text.split('\n')
@@ -317,12 +327,8 @@ export default function ImportDescriptor() {
       let externalDescriptor = text
       let internalDescriptor = ''
       if (text.match(/<0[,;]1>/)) {
-        externalDescriptor = text
-          .replace(/<0[,;]1>/, '0')
-          .replace(/#[a-z0-9]+$/, '')
-        internalDescriptor = text
-          .replace(/<0[,;]1>/, '1')
-          .replace(/#[a-z0-9]+$/, '')
+        externalDescriptor = text.replace(/<0[,;]1>/, '0')
+        internalDescriptor = text.replace(/<0[,;]1>/, '1')
       }
       if (text.includes('\n')) {
         const lines = text.split('\n')
@@ -464,7 +470,7 @@ export default function ImportDescriptor() {
               <SSVStack gap="xxs">
                 <SSText center>{t('watchonly.importDescriptor.label')}</SSText>
                 <SSTextInput
-                  value={localExternalDescriptor}
+                  value={externalDescriptor}
                   style={
                     validExternalDescriptor ? styles.valid : styles.invalid
                   }
@@ -477,7 +483,7 @@ export default function ImportDescriptor() {
                   {t('watchonly.importDescriptor.internal')}
                 </SSText>
                 <SSTextInput
-                  value={localInternalDescriptor}
+                  value={internalDescriptor}
                   style={
                     validInternalDescriptor ? styles.valid : styles.invalid
                   }
@@ -624,7 +630,7 @@ export default function ImportDescriptor() {
                             (scanProgress.scanned.size / scanProgress.total) *
                             300,
                           height: 4,
-                          maxWidth: scanProgress.total * 300,
+                          maxWidth: 300,
                           backgroundColor: Colors.white,
                           borderRadius: 2
                         }}

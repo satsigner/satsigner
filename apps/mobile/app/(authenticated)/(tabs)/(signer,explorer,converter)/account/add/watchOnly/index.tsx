@@ -3,7 +3,7 @@ import bs58check from 'bs58check'
 import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { router, Stack, useLocalSearchParams } from 'expo-router'
+import { router, Stack } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -46,13 +46,7 @@ const watchOnlyOptions: CreationType[] = [
   'importAddress'
 ]
 
-type WatchOnlySearchParams = {
-  importType?: 'descriptor' | 'extendedPub'
-  keyIndex?: string
-}
-
 export default function WatchOnly() {
-  const { importType, keyIndex } = useLocalSearchParams<WatchOnlySearchParams>()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
@@ -98,11 +92,10 @@ export default function WatchOnly() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
-  const [selectedOption, setSelectedOption] = useState<CreationType>(
-    importType === 'descriptor' ? 'importDescriptor' : 'importExtendedPub'
-  )
+  const [selectedOption, setSelectedOption] =
+    useState<CreationType>('importExtendedPub')
 
-  const [modalOptionsVisible, setModalOptionsVisible] = useState(!importType)
+  const [modalOptionsVisible, setModalOptionsVisible] = useState(true)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
 
@@ -190,6 +183,7 @@ export default function WatchOnly() {
   const updateDescriptorValidationState = useCallback(() => {
     // Allow import if either external or internal descriptor is valid
     // At least one descriptor must be provided and valid
+
     const hasValidExternal = externalDescriptor && validExternalDescriptor
     const hasValidInternal = internalDescriptor && validInternalDescriptor
     const hasAnyValidDescriptor = hasValidExternal || hasValidInternal
@@ -285,7 +279,7 @@ export default function WatchOnly() {
     }
 
     // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState()
+    // updateDescriptorValidationState()
   }
 
   function updateInternalDescriptor(descriptor: string) {
@@ -298,7 +292,7 @@ export default function WatchOnly() {
     }
 
     // Update disabled state based on both external and internal descriptors
-    updateDescriptorValidationState()
+    // updateDescriptorValidationState()
   }
 
   function convertVpubToTpub(vpub: string): string {
@@ -1144,18 +1138,8 @@ export default function WatchOnly() {
       }
 
       setNetwork(network)
-
-      // Handle multisig mode
-      if (keyIndex !== undefined) {
-        // Set the key data for multisig
-        setKey(Number(keyIndex))
-        toast.success(t('account.import.success'))
-        router.back()
-        return
-      }
-
-      // Handle watchonly mode (original behavior)
       setKey(0)
+
       const account = getAccountData()
 
       const data = await accountBuilderFinish(account)
