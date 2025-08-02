@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -19,6 +20,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type Key, type Secret } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 
 type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
@@ -56,6 +59,45 @@ function SSMultisigKeyControl({
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [localKeyName, setLocalKeyName] = useState(keyDetails?.name || '')
+  const [extractedPublicKey, setExtractedPublicKey] = useState('')
+
+  // Extract public key from descriptor when key details change
+  useEffect(() => {
+    async function extractPublicKey() {
+      if (!keyDetails || typeof keyDetails.secret !== 'object') {
+        setExtractedPublicKey('')
+        return
+      }
+
+      const secret = keyDetails.secret as Secret
+
+      // If we already have an extended public key, use it
+      if (secret.extendedPublicKey) {
+        setExtractedPublicKey(secret.extendedPublicKey)
+        return
+      }
+
+      // If we have a descriptor, extract the public key from it
+      if (secret.externalDescriptor) {
+        try {
+          const network = useBlockchainStore.getState().selectedNetwork
+          const descriptor = await new Descriptor().create(
+            secret.externalDescriptor,
+            network as Network
+          )
+          const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
+          setExtractedPublicKey(publicKey)
+        } catch (error) {
+          console.log('Failed to extract public key from descriptor:', error)
+          setExtractedPublicKey('')
+        }
+      } else {
+        setExtractedPublicKey('')
+      }
+    }
+
+    extractPublicKey()
+  }, [keyDetails])
 
   function getSourceLabel() {
     if (!keyDetails) {
@@ -102,6 +144,26 @@ function SSMultisigKeyControl({
   }
 
   function getDropSeedLabel() {
+    // If we have an extended public key, use its prefix to determine the label
+    if (displayPublicKey) {
+      if (
+        displayPublicKey.startsWith('xpub') ||
+        displayPublicKey.startsWith('tpub')
+      ) {
+        return t('account.seed.dropAndKeep.xpub')
+      }
+      if (displayPublicKey.startsWith('ypub')) {
+        return t('account.seed.dropAndKeep.ypub')
+      }
+      if (displayPublicKey.startsWith('zpub')) {
+        return t('account.seed.dropAndKeep.zpub')
+      }
+      if (displayPublicKey.startsWith('vpub')) {
+        return t('account.seed.dropAndKeep.vpub')
+      }
+    }
+
+    // Fallback to global script version
     switch (scriptVersion) {
       case 'P2PKH':
         return t('account.seed.dropAndKeep.xpub')
@@ -113,6 +175,41 @@ function SSMultisigKeyControl({
         return t('account.seed.dropAndKeep.vpub')
       default:
         return t('account.seed.dropAndKeep.xpub')
+    }
+  }
+
+  function getShareXpubLabel() {
+    // If we have an extended public key, use its prefix to determine the label
+    if (displayPublicKey) {
+      if (
+        displayPublicKey.startsWith('xpub') ||
+        displayPublicKey.startsWith('tpub')
+      ) {
+        return t('account.seed.shareXpub')
+      }
+      if (displayPublicKey.startsWith('ypub')) {
+        return t('account.seed.shareYpub')
+      }
+      if (displayPublicKey.startsWith('zpub')) {
+        return t('account.seed.shareZpub')
+      }
+      if (displayPublicKey.startsWith('vpub')) {
+        return t('account.seed.shareVpub')
+      }
+    }
+
+    // Fallback to global script version
+    switch (scriptVersion) {
+      case 'P2PKH':
+        return t('account.seed.shareXpub')
+      case 'P2SH-P2WPKH':
+        return t('account.seed.shareYpub')
+      case 'P2WPKH':
+        return t('account.seed.shareZpub')
+      case 'P2TR':
+        return t('account.seed.shareVpub')
+      default:
+        return t('account.seed.shareXpub')
     }
   }
 
@@ -224,12 +321,24 @@ function SSMultisigKeyControl({
     )
   }
 
-  // Check if key is completed (has extended public key or is in settings mode)
+  // Check if key is completed (has been created with necessary data)
   const isKeyCompleted = isSettingsMode
     ? true
     : keyDetails &&
+      keyDetails.creationType &&
+      keyDetails.fingerprint &&
       typeof keyDetails.secret === 'object' &&
-      keyDetails.secret?.extendedPublicKey
+      keyDetails.secret &&
+      (keyDetails.secret.extendedPublicKey ||
+        keyDetails.secret.externalDescriptor ||
+        keyDetails.secret.mnemonic) &&
+      // Ensure we have both fingerprint and public key/descriptor
+      keyDetails.fingerprint.length > 0 &&
+      ((keyDetails.secret.extendedPublicKey &&
+        keyDetails.secret.extendedPublicKey.length > 0) ||
+        (keyDetails.secret.externalDescriptor &&
+          keyDetails.secret.externalDescriptor.length > 0) ||
+        (keyDetails.secret.mnemonic && keyDetails.secret.mnemonic.length > 0))
 
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
@@ -244,15 +353,67 @@ function SSMultisigKeyControl({
 
   // Extract fingerprint and extendedPublicKey for display, with null checks
   const fingerprint = keyDetails?.fingerprint || ''
-  const extendedPublicKey =
+
+  // Use the extracted public key for display
+  const displayPublicKey =
+    extractedPublicKey ||
     (typeof keyDetails?.secret === 'object' &&
       keyDetails.secret.extendedPublicKey) ||
     ''
+  console.log('displayPublicKey', displayPublicKey)
+  console.log('extractedPublicKey', extractedPublicKey)
 
   // Format public key for display: first 7, last 4 chars
-  let formattedPubKey = extendedPublicKey
-  if (extendedPublicKey && extendedPublicKey.length > 12) {
-    formattedPubKey = `${extendedPublicKey.slice(0, 7)}...${extendedPublicKey.slice(-4)}`
+  let formattedPubKey = displayPublicKey
+  if (displayPublicKey && displayPublicKey.length > 12) {
+    formattedPubKey = `${displayPublicKey.slice(0, 7)}...${displayPublicKey.slice(-4)}`
+  }
+
+  // Extract descriptor information for fallback
+  const externalDescriptor =
+    (typeof keyDetails?.secret === 'object' &&
+      keyDetails.secret.externalDescriptor) ||
+    ''
+
+  // Format descriptor for display
+  let formattedDescriptor = externalDescriptor
+  if (externalDescriptor && externalDescriptor.length > 20) {
+    formattedDescriptor = `${externalDescriptor.slice(0, 10)}...${externalDescriptor.slice(-10)}`
+  }
+
+  // Determine what to display in the public key field
+  const displayKey = displayPublicKey || externalDescriptor
+  const formattedDisplayKey = displayPublicKey
+    ? formattedPubKey
+    : formattedDescriptor
+
+  // Get the appropriate label for the extended public key based on script version
+  function getExtendedPubLabel() {
+    if (!displayPublicKey) return t('account.seed.publicKey')
+
+    // Check the prefix to determine the type
+    if (
+      displayPublicKey.startsWith('xpub') ||
+      displayPublicKey.startsWith('tpub')
+    ) {
+      return t('account.import.xpub')
+    }
+    if (displayPublicKey.startsWith('ypub')) {
+      return t('account.import.ypub')
+    }
+    if (displayPublicKey.startsWith('zpub')) {
+      return t('account.import.zpub')
+    }
+    if (displayPublicKey.startsWith('vpub')) {
+      return t('account.import.vpub')
+    }
+
+    // If it's a descriptor, show a different label
+    if (displayKey.includes('(') && displayKey.includes(')')) {
+      return t('account.seed.external')
+    }
+
+    return t('account.seed.publicKey')
   }
 
   return (
@@ -296,12 +457,12 @@ function SSMultisigKeyControl({
               {fingerprint || t('account.fingerprint')}
             </SSText>
             <SSText
-              color={extendedPublicKey ? 'white' : 'muted'}
+              color={displayPublicKey ? 'white' : 'muted'}
               selectable
               numberOfLines={1}
               ellipsizeMode="middle"
             >
-              {formattedPubKey || t('account.seed.publicKey')}
+              {formattedDisplayKey || t('account.seed.publicKey')}
             </SSText>
           </SSVStack>
         </SSHStack>
@@ -334,7 +495,7 @@ function SSMultisigKeyControl({
                   }}
                 />
                 <SSButton
-                  label={t('account.seed.sharePub')}
+                  label={getShareXpubLabel()}
                   onPress={() => handleCompletedKeyAction('shareXpub')}
                 />
                 <SSButton

@@ -153,6 +153,20 @@ const useAccountBuilderStore = create<
       internalDescriptor,
       extendedPublicKey
     } = get()
+
+    // Validate that the key has both fingerprint and public key/descriptor
+    if (!fingerprint) {
+      throw new Error('Fingerprint is required for all keys')
+    }
+
+    // Check if we have either a public key or descriptor
+    const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
+    if (!hasPublicKey) {
+      throw new Error(
+        'Each key must have either a public key, descriptor, or mnemonic'
+      )
+    }
+
     const key: Key = {
       index,
       name: keyName,

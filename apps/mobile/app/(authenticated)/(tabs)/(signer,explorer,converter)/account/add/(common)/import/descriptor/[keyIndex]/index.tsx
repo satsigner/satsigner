@@ -94,6 +94,7 @@ export default function ImportDescriptor() {
     updateKeyFingerprint,
     setKeyDerivationPath,
     setExtendedPublicKey,
+    setFingerprint,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -103,6 +104,7 @@ export default function ImportDescriptor() {
       state.updateKeyFingerprint,
       state.setKeyDerivationPath,
       state.setExtendedPublicKey,
+      state.setFingerprint,
       state.clearKeyState
     ])
   )
@@ -232,10 +234,25 @@ export default function ImportDescriptor() {
 
   async function handleConfirm() {
     try {
+      // Extract fingerprint from the descriptor if possible
+      let fingerprint = ''
+
+      // Try to extract fingerprint from descriptor string using regex
+      // Pattern: [fingerprint/derivation]xpub or [fingerprint]xpub
+      const fingerprintMatch = externalDescriptor.match(/\[([0-9a-fA-F]{8})\/?/)
+      if (fingerprintMatch) {
+        fingerprint = fingerprintMatch[1]
+      }
+
       // Set the descriptors in the store
       setStoreExternalDescriptor(externalDescriptor)
       if (internalDescriptor.trim()) {
         setStoreInternalDescriptor(internalDescriptor)
+      }
+
+      // Set the fingerprint if we extracted it
+      if (fingerprint) {
+        setFingerprint(fingerprint)
       }
 
       // Set the key data

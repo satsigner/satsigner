@@ -25,10 +25,22 @@ export default function MultiSigManager() {
     ])
   )
 
-  const allKeysFilled = useMemo(
-    () => keys?.length === keyCount,
-    [keys, keyCount]
-  )
+  const allKeysFilled = useMemo(() => {
+    if (!keys || keys.length !== keyCount) return false
+
+    // Check that each key has both fingerprint and public key/descriptor
+    return keys.every((key) => {
+      if (!key || !key.fingerprint) return false
+
+      // Check if key has either public key, descriptor, or mnemonic
+      const hasPublicKey =
+        (typeof key.secret === 'object' && key.secret.extendedPublicKey) ||
+        (typeof key.secret === 'object' && key.secret.externalDescriptor) ||
+        (typeof key.secret === 'object' && key.secret.mnemonic)
+
+      return hasPublicKey
+    })
+  }, [keys, keyCount])
 
   if (!keyCount || !keysRequired) return <Redirect href="/" />
 
