@@ -9,6 +9,9 @@ import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
+import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -244,11 +247,34 @@ export default function ImportDescriptor() {
         fingerprint = fingerprintMatch[1]
       }
 
+      // Extract extended public key from descriptor
+      let extendedPublicKey = ''
+      try {
+        // Create descriptor and extract public key
+        const descriptor = await new Descriptor().create(
+          externalDescriptor,
+          network as Network
+        )
+        extendedPublicKey = await extractExtendedKeyFromDescriptor(descriptor)
+
+        console.log('Extracted extended public key:', extendedPublicKey)
+      } catch (error) {
+        console.error(
+          'Failed to extract extended public key from descriptor:',
+          error
+        )
+        toast.error(t('import.error'))
+        return
+      }
+
       // Set the descriptors in the store
       setStoreExternalDescriptor(externalDescriptor)
       if (internalDescriptor.trim()) {
         setStoreInternalDescriptor(internalDescriptor)
       }
+
+      // Set the extended public key in the store
+      setExtendedPublicKey(extendedPublicKey)
 
       // Set the fingerprint if we extracted it
       if (fingerprint) {
@@ -262,6 +288,7 @@ export default function ImportDescriptor() {
       toast.success(t('import.success'))
       router.dismiss(1)
     } catch (error) {
+      console.error('Error in handleConfirm:', error)
       toast.error(t('import.error'))
     }
   }

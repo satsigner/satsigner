@@ -144,25 +144,6 @@ function SSMultisigKeyControl({
   }
 
   function getDropSeedLabel() {
-    // If we have an extended public key, use its prefix to determine the label
-    if (extractedPublicKey) {
-      if (
-        extractedPublicKey.startsWith('xpub') ||
-        extractedPublicKey.startsWith('tpub')
-      ) {
-        return t('account.seed.dropAndKeep.xpub')
-      }
-      if (extractedPublicKey.startsWith('ypub')) {
-        return t('account.seed.dropAndKeep.ypub')
-      }
-      if (extractedPublicKey.startsWith('zpub')) {
-        return t('account.seed.dropAndKeep.zpub')
-      }
-      if (extractedPublicKey.startsWith('vpub')) {
-        return t('account.seed.dropAndKeep.vpub')
-      }
-    }
-
     // Fallback to global script version
     switch (scriptVersion) {
       case 'P2PKH':
@@ -179,25 +160,6 @@ function SSMultisigKeyControl({
   }
 
   function getShareXpubLabel() {
-    // If we have an extended public key, use its prefix to determine the label
-    if (extractedPublicKey) {
-      if (
-        extractedPublicKey.startsWith('xpub') ||
-        extractedPublicKey.startsWith('tpub')
-      ) {
-        return t('account.seed.shareXpub')
-      }
-      if (extractedPublicKey.startsWith('ypub')) {
-        return t('account.seed.shareYpub')
-      }
-      if (extractedPublicKey.startsWith('zpub')) {
-        return t('account.seed.shareZpub')
-      }
-      if (extractedPublicKey.startsWith('vpub')) {
-        return t('account.seed.shareVpub')
-      }
-    }
-
     // Fallback to global script version
     switch (scriptVersion) {
       case 'P2PKH':
@@ -353,7 +315,11 @@ function SSMultisigKeyControl({
 
   // Extract fingerprint and extendedPublicKey for display, with null checks
   const fingerprint = keyDetails?.fingerprint || ''
+  console.log('keyDetails', keyDetails?.secret)
+
+  // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
+    extractedPublicKey ||
     (typeof keyDetails?.secret === 'object' &&
       keyDetails.secret.extendedPublicKey) ||
     ''
