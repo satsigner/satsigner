@@ -50,14 +50,7 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
-
-function SatsInMempool() {
-  return (
-    <SSMainLayout>
-      <SSText>Being built...</SSText>
-    </SSMainLayout>
-  )
-}
+import SSSatsInMempool from '@/components/SSSatsInMempool'
 
 export default function AccountView() {
   const router = useRouter()
@@ -185,7 +178,7 @@ export default function AccountView() {
           />
         )
       case 'satsInMempool':
-        return <SatsInMempool />
+        return <SSSatsInMempool />
       default:
         return null
     }

@@ -42,6 +42,7 @@ function SSSearchFilterResults({
   change,
   showDerivationPath
 }: SSSearchFilterResultsProps) {
+  // TODO: implement tab view which displayes data after being filtered out
   return (
     <>
       <SSTransactionList
