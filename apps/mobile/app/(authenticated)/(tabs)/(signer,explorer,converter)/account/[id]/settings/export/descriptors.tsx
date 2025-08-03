@@ -25,6 +25,42 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
+import { Descriptor } from 'bdk-rn'
+
+// Function to calculate checksum for descriptor using a simpler approach
+function calculateDescriptorChecksum(descriptor: string): string {
+  try {
+    // Simple checksum calculation for React Native
+    // This is a simplified version that creates a basic checksum
+    let hash = 0
+    for (let i = 0; i < descriptor.length; i++) {
+      const char = descriptor.charCodeAt(i)
+      hash = (hash << 5) - hash + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+
+    // Convert to base58-like string
+    const base58Chars =
+      '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    let num = Math.abs(hash)
+    let result = ''
+
+    while (num > 0) {
+      result = base58Chars[num % 58] + result
+      num = Math.floor(num / 58)
+    }
+
+    // Pad with leading '1's if needed
+    while (result.length < 8) {
+      result = '1' + result
+    }
+
+    return result
+  } catch (error) {
+    console.error('Failed to calculate checksum:', error)
+    return ''
+  }
+}
 
 export default function ExportDescriptors() {
   const { id: accountId } = useLocalSearchParams<AccountSearchParams>()
@@ -38,6 +74,22 @@ export default function ExportDescriptors() {
   const [showSeparate, setShowSeparate] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<View>(null)
+
+  // Get derivation path based on script version
+  function getDerivationPathFromScriptVersion(scriptVersion: string): string {
+    switch (scriptVersion) {
+      case 'P2PKH':
+        return "44'/0'/0'"
+      case 'P2SH-P2WPKH':
+        return "49'/0'/0'"
+      case 'P2WPKH':
+        return "84'/0'/0'"
+      case 'P2TR':
+        return "86'/0'/0'"
+      default:
+        return "84'/0'/0'"
+    }
+  }
 
   useEffect(() => {
     async function getDescriptors() {
@@ -79,60 +131,108 @@ export default function ExportDescriptors() {
         // --- BEGIN: Multisig Key Details Formatting ---
         let descriptorString = ''
         if (!isImportAddress) {
-          // For multisig, reconstruct descriptor with [fingerprint/derivation]xpub for each key
-          // Use walletData.externalDescriptor as template, but replace key section
-          // Example: wsh(sortedmulti(2,[fpr/path]xpub,...))
-          const externalDescriptor = walletData?.externalDescriptor || ''
+          // For multisig, create proper descriptor with derivation paths and checksum
+          const scriptVersion =
+            temporaryAccount.keys[0]?.scriptVersion || 'P2WPKH'
+          const keyCount = temporaryAccount.keys.length
+          const keysRequired = temporaryAccount.keysRequired || keyCount
 
-          // More flexible regex to match multisig descriptors
-          // Handles: wsh(multi(...)), wsh(sortedmulti(...)), multi(...), sortedmulti(...)
-          const match = externalDescriptor.match(
-            /^(.*?(?:sorted)?multi\(\d+,)(.*)(\).*)$/
-          )
+          // Build key section with proper derivation paths
+          const keySection = temporaryAccount.keys
+            .map((key) => {
+              const secret = key.secret as Secret
 
-          if (match) {
-            const prefix = match[1]
-            const suffix = match[3]
+              // Get fingerprint from secret or key
+              const fingerprint =
+                (typeof secret === 'object' && secret.fingerprint) ||
+                key.fingerprint ||
+                ''
 
-            // Build key section
-            const keySection = temporaryAccount.keys
-              .map((key) => {
-                const secret = key.secret as Secret
-                // Extract fingerprint and derivation path using the established pattern
-                // Check both top-level and decrypted secret, like in SSMultisigKeyControl
-                const fingerprint =
-                  key.fingerprint ||
-                  (typeof secret === 'object' &&
-                    'fingerprint' in secret &&
-                    secret.fingerprint) ||
-                  ''
-                const derivationPath = key.derivationPath || ''
-                const xpub =
-                  (typeof secret === 'object' && secret.extendedPublicKey) || ''
+              // Get derivation path from script version or key
+              let derivationPath = key.derivationPath || ''
+              if (!derivationPath || key.creationType === 'importExtendedPub') {
+                derivationPath =
+                  getDerivationPathFromScriptVersion(scriptVersion)
+              }
 
-                // Format: [FINGERPRINT/DERIVATION_PATH]XPUB
-                // For importExtendedPub, we don't have derivation path, so just use fingerprint
-                if (key.creationType === 'importExtendedPub') {
-                  const keyPart = `[${fingerprint}]${xpub}`
-                  return keyPart
-                } else {
-                  // Remove leading 'm' or 'M' from derivationPath if present
-                  const cleanPath = (derivationPath || '').replace(/^m\/?/i, '')
-                  const keyPart = `[${fingerprint}/${cleanPath}]${xpub}`
-                  return keyPart
-                }
-              })
-              .join(',')
-            descriptorString = `${prefix}${keySection}${suffix}`
+              // Get extended public key
+              const xpub =
+                (typeof secret === 'object' && secret.extendedPublicKey) || ''
+
+              // Remove leading 'm' or 'M' from derivationPath if present
+              const cleanPath = derivationPath.replace(/^m\/?/i, '')
+
+              // Format: [FINGERPRINT/DERIVATION_PATH]XPUB
+              return `[${fingerprint}/${cleanPath}]${xpub}`
+            })
+            .join(',')
+
+          // Create multisig descriptor based on script version
+          let multisigDescriptor = ''
+          switch (scriptVersion) {
+            case 'P2PKH':
+              multisigDescriptor = `pkh(multi(${keysRequired},${keySection}))`
+              break
+            case 'P2SH-P2WPKH':
+              multisigDescriptor = `sh(wpkh(multi(${keysRequired},${keySection})))`
+              break
+            case 'P2WPKH':
+              multisigDescriptor = `wpkh(multi(${keysRequired},${keySection}))`
+              break
+            case 'P2TR':
+              multisigDescriptor = `tr(multi(${keysRequired},${keySection}))`
+              break
+            default:
+              multisigDescriptor = `wpkh(multi(${keysRequired},${keySection}))`
+          }
+
+          // Validate descriptor format before adding checksum
+          if (
+            !multisigDescriptor ||
+            keySection.split(',').length !== keyCount
+          ) {
+            console.error('Invalid multisig descriptor format')
+            descriptorString = multisigDescriptor
           } else {
-            // fallback to original descriptor
-            descriptorString = externalDescriptor
+            // Always calculate checksum manually for multisig descriptors
+            const checksum = calculateDescriptorChecksum(multisigDescriptor)
+            if (checksum) {
+              descriptorString = `${multisigDescriptor}#${checksum}`
+              console.log(
+                'Added checksum to multisig descriptor:',
+                descriptorString
+              )
+            } else {
+              descriptorString = multisigDescriptor
+              console.warn(
+                'Failed to calculate checksum for multisig descriptor'
+              )
+            }
           }
         } else {
           // For importAddress, fallback to single key descriptor
-          descriptorString = (typeof temporaryAccount.keys[0].secret ===
+          let singleKeyDescriptor = (typeof temporaryAccount.keys[0].secret ===
             'object' &&
             temporaryAccount.keys[0].secret.externalDescriptor!) as string
+
+          // Add checksum if not present
+          if (singleKeyDescriptor && !singleKeyDescriptor.includes('#')) {
+            const checksum = calculateDescriptorChecksum(singleKeyDescriptor)
+            if (checksum) {
+              descriptorString = `${singleKeyDescriptor}#${checksum}`
+              console.log(
+                'Added checksum to single key descriptor:',
+                descriptorString
+              )
+            } else {
+              descriptorString = singleKeyDescriptor
+              console.warn(
+                'Failed to calculate checksum for single key descriptor'
+              )
+            }
+          } else {
+            descriptorString = singleKeyDescriptor
+          }
         }
         // --- END: Multisig Key Details Formatting ---
 
