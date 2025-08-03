@@ -152,10 +152,10 @@
     "script": "Script",
     "seed": {
       "dropAndKeep": {
-        "vpub": "Drop Seed & Keep VPub",
+        "vpub": "Drop Seed & Keep XPub/VPub",
         "xpub": "Drop Seed & Keep XPub",
-        "ypub": "Drop Seed & Keep YPub",
-        "zpub": "Drop Seed & Keep ZPub"
+        "ypub": "Drop Seed & Keep XPub/YPub",
+        "zpub": "Drop Seed & Keep XPub/ZPub"
       },
       "external": "External Descriptor",
       "importedSeed": "Imported Seed ({name})",
@@ -163,10 +163,10 @@
       "noLabel": "No Label",
       "publicKey": "Public Key",
       "shareDescriptor": "Share Descriptor",
-      "shareVpub": "Share VPub",
+      "shareVpub": "Share XPub/VPub",
       "shareXpub": "Share XPub",
-      "shareYpub": "Share YPub",
-      "shareZpub": "Share ZPub"
+      "shareYpub": "Share XPub/YPub",
+      "shareZpub": "Share XPub/ZPub"
     },
     "selectKeySource": "Select Key Source",
     "settings.title": "Account Settings and Tools",

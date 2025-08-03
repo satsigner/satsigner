@@ -219,7 +219,7 @@ export default function PublicKeyPage() {
       />
       <SSVStack style={{ padding: 20 }}>
         <SSText center uppercase color="muted">
-          {t('account.publicKey.title')}
+          {t('common.publicKeys')}
         </SSText>
 
         {/* Format Selection Buttons */}
