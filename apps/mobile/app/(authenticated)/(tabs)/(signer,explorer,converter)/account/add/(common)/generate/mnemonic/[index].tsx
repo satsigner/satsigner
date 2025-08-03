@@ -36,6 +36,7 @@ export default function GenerateMnemonic() {
     mnemonic,
     fingerprint,
     policyType,
+    scriptVersion,
     setPassphrase,
     setFingerprint,
     setKey,
@@ -47,6 +48,7 @@ export default function GenerateMnemonic() {
       state.mnemonic.split(' '),
       state.fingerprint,
       state.policyType,
+      state.scriptVersion,
       state.setPassphrase,
       state.setFingerprint,
       state.setKey,
@@ -86,7 +88,7 @@ export default function GenerateMnemonic() {
       try {
         const externalDescriptor = await getDescriptor(
           mnemonic.join(' '),
-          'P2WPKH', // Use the script version from store
+          scriptVersion, // Use the script version from store
           KeychainKind.External,
           '', // No passphrase for now
           network as Network

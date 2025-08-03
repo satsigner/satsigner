@@ -51,11 +51,17 @@ function SSMultisigKeyControl({
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const scriptVersion = useAccountBuilderStore(
+  const globalScriptVersion = useAccountBuilderStore(
     (state) => state.scriptVersion
   ) as ScriptVersionType
   const updateAccountName = useAccountsStore((state) => state.updateAccountName)
   const updateAccount = useAccountsStore((state) => state.updateAccount)
+
+  // Use account's script version in settings mode, global script version in creation mode
+  const scriptVersion =
+    isSettingsMode && keyDetails?.scriptVersion
+      ? keyDetails.scriptVersion
+      : globalScriptVersion
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [localKeyName, setLocalKeyName] = useState(keyDetails?.name || '')
@@ -145,6 +151,7 @@ function SSMultisigKeyControl({
 
   function getDropSeedLabel() {
     // Fallback to global script version
+    console.log('scriptVersion', scriptVersion)
     switch (scriptVersion) {
       case 'P2PKH':
         return t('account.seed.dropAndKeep.xpub')

@@ -138,7 +138,6 @@ export default function ImportDescriptor() {
   ])
 
   function updateExternalDescriptor(descriptor: string) {
-    console.log('updateExternalDescriptor', descriptor)
     const validExternalDescriptor =
       validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
 
@@ -150,7 +149,6 @@ export default function ImportDescriptor() {
   }
 
   function updateInternalDescriptor(descriptor: string) {
-    console.log('updateInternalDescriptor', descriptor)
     const validInternalDescriptor = validateDescriptor(descriptor)
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
@@ -261,9 +259,6 @@ export default function ImportDescriptor() {
         // Extract derivation path from the same descriptor
         const parsedDescriptor = await parseDescriptor(descriptor)
         derivationPath = parsedDescriptor.derivationPath
-
-        console.log('Extracted extended public key:', extendedPublicKey)
-        console.log('Extracted derivation path:', derivationPath)
       } catch (error) {
         console.error(
           'Failed to extract extended public key from descriptor:',

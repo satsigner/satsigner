@@ -274,7 +274,7 @@ const useAccountBuilderStore = create<
     return account
   },
   clearKeyState: () => {
-    const { policyType, creationType, keys } = get()
+    const { policyType, creationType, keys, scriptVersion } = get()
     // Preserve the extendedPublicKey from the first key if it exists
     const extendedPublicKey =
       keys[0]?.secret && typeof keys[0].secret === 'object'
@@ -289,7 +289,7 @@ const useAccountBuilderStore = create<
       mnemonic: '',
       passphrase: undefined,
       fingerprint: undefined,
-      scriptVersion: 'P2WPKH',
+      scriptVersion, // Preserve the script version
       externalDescriptor: undefined,
       extendedPublicKey, // Preserve the extendedPublicKey
       policyType

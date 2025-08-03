@@ -47,8 +47,9 @@ export default function AccountSettings() {
     (state) => state.removeAccountWallet
   )
 
-  const [scriptVersion, setScriptVersion] =
-    useState<Key['scriptVersion']>('P2WPKH') // TODO: use current account script
+  const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
+    account?.keys[0]?.scriptVersion || 'P2WPKH'
+  )
   const [network, setNetwork] = useState<NonNullable<string>>('signet')
   const [accountName, setAccountName] = useState<Account['name']>(
     account?.name || ''
@@ -167,6 +168,12 @@ export default function AccountSettings() {
 
     decryptKeys()
   }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (account?.keys[0]?.scriptVersion) {
+      setScriptVersion(account.keys[0].scriptVersion)
+    }
+  }, [account])
 
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
