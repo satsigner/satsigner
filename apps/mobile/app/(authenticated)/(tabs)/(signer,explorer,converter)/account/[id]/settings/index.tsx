@@ -50,7 +50,9 @@ export default function AccountSettings() {
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
-  const [network, setNetwork] = useState<NonNullable<string>>('signet')
+  const [network, setNetwork] = useState<NonNullable<string>>(
+    account?.network || 'signet'
+  )
   const [accountName, setAccountName] = useState<Account['name']>(
     account?.name || ''
   )
@@ -154,7 +156,6 @@ export default function AccountSettings() {
                 secret: decryptedSecret
               }
             } else {
-              // Secret is already decrypted (shouldn't happen in normal flow)
               return key
             }
           })
@@ -165,15 +166,22 @@ export default function AccountSettings() {
         console.error('Failed to decrypt keys:', error)
       }
     }
-
     decryptKeys()
-  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [account])
 
+  // Update network when account changes
+  useEffect(() => {
+    if (account?.network) {
+      setNetwork(account.network)
+    }
+  }, [account?.network])
+
+  // Update script version when account changes
   useEffect(() => {
     if (account?.keys[0]?.scriptVersion) {
       setScriptVersion(account.keys[0].scriptVersion)
     }
-  }, [account])
+  }, [account?.keys[0]?.scriptVersion])
 
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
@@ -285,7 +293,7 @@ export default function AccountSettings() {
             <SSFormLayout.Label label={t('account.network.title')} />
             <SSButton
               label={network}
-              onPress={() => setNetworkModalVisible(true)}
+              // onPress={() => setNetworkModalVisible(true)}
               withSelect
             />
           </SSFormLayout.Item>
