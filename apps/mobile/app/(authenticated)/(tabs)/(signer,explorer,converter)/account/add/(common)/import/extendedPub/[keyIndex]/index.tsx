@@ -336,7 +336,7 @@ export default function ImportExtendedPub() {
       clearKeyState()
 
       toast.success(t('import.success'))
-      router.dismiss(2)
+      router.dismiss(1)
     } catch (error) {
       toast.error(t('import.error'))
     }

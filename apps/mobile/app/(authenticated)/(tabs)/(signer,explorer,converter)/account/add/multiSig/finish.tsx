@@ -33,23 +33,34 @@ export default function ConfirmScreen() {
   const [accountId, setAccountId] = useState<string>()
 
   const createMultisigWallet = useCallback(async () => {
-    const account = getAccountData()
-    setAccountId(account.id)
-
-    const data = await accountBuilderFinish(account)
-    if (!data) return
-    setCompleted(true)
-
     try {
-      if (connectionMode === 'auto') {
-        const updatedAccount = await syncAccountWithWallet(
-          data.accountWithEncryptedSecret,
-          data.wallet!
-        )
-        updateAccount(updatedAccount)
+      const account = getAccountData()
+      setAccountId(account.id)
+
+      const data = await accountBuilderFinish(account)
+      if (!data) {
+        console.error('Failed to create account - no data returned')
+        toast.error(t('account.multisig.createError'))
+        return
+      }
+
+      setCompleted(true)
+
+      try {
+        if (connectionMode === 'auto') {
+          const updatedAccount = await syncAccountWithWallet(
+            data.accountWithEncryptedSecret,
+            data.wallet!
+          )
+          updateAccount(updatedAccount)
+        }
+      } catch (error) {
+        console.error('Error syncing account:', error)
+        toast.error((error as Error).message)
       }
     } catch (error) {
-      toast.error((error as Error).message)
+      console.error('Error creating multisig wallet:', error)
+      toast.error(t('account.multisig.createError'))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

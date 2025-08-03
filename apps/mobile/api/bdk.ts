@@ -102,16 +102,46 @@ async function getWalletData(account: Account, network: Network) {
       break
     }
     case 'multisig': {
-      const extendedPublicKeys = account.keys
-        .map((key) => {
-          if (typeof key.secret === 'object' && key.secret?.extendedPublicKey) {
-            return key.secret.extendedPublicKey
+      const extendedPublicKeys = await Promise.all(
+        account.keys.map(async (key) => {
+          if (typeof key.secret === 'object') {
+            // If we have an extended public key directly, use it
+            if (key.secret.extendedPublicKey) {
+              return key.secret.extendedPublicKey
+            }
+
+            // If we have a descriptor, extract the extended public key from it
+            if (key.secret.externalDescriptor) {
+              try {
+                const descriptor = await new Descriptor().create(
+                  key.secret.externalDescriptor,
+                  network
+                )
+                const extendedKey =
+                  await extractExtendedKeyFromDescriptor(descriptor)
+                return extendedKey
+              } catch (error) {
+                console.log(
+                  'Failed to extract extended key from descriptor:',
+                  error
+                )
+                return null
+              }
+            }
           }
           return null
         })
-        .filter((x): x is string => x !== null)
+      )
 
-      const multisigDescriptorString = `wsh(multi(${account.keysRequired},${extendedPublicKeys.join(',')}))`
+      const validExtendedPublicKeys = extendedPublicKeys.filter(
+        (x): x is string => x !== null
+      )
+
+      if (validExtendedPublicKeys.length !== account.keys.length) {
+        throw new Error('Failed to extract extended public keys from all keys')
+      }
+
+      const multisigDescriptorString = `wsh(multi(${account.keysRequired},${validExtendedPublicKeys.join(',')}))`
       const multisigDescriptor = await new Descriptor().create(
         multisigDescriptorString,
         network

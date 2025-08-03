@@ -478,6 +478,14 @@
     "from": "Import from %{name}",
     "success": "Imported %{importCount} from a total of %{total} labels matching your wallet"
   },
+  "multisig": {
+    "create": "Create Multi-Signature",
+    "createError": "Failed to create multi-signature wallet",
+    "created": "Multi-Signature Wallet Created!",
+    "creating": "Creating Multi-Signature Wallet...",
+    "gotoWallet": "Go to Wallet",
+    "viewAllWallets": "View All Wallets"
+  },
   "navigation": {
     "item.bitcoin": "Bitcoin",
     "item.block": "Block",

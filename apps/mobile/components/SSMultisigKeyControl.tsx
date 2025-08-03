@@ -145,20 +145,20 @@ function SSMultisigKeyControl({
 
   function getDropSeedLabel() {
     // If we have an extended public key, use its prefix to determine the label
-    if (displayPublicKey) {
+    if (extractedPublicKey) {
       if (
-        displayPublicKey.startsWith('xpub') ||
-        displayPublicKey.startsWith('tpub')
+        extractedPublicKey.startsWith('xpub') ||
+        extractedPublicKey.startsWith('tpub')
       ) {
         return t('account.seed.dropAndKeep.xpub')
       }
-      if (displayPublicKey.startsWith('ypub')) {
+      if (extractedPublicKey.startsWith('ypub')) {
         return t('account.seed.dropAndKeep.ypub')
       }
-      if (displayPublicKey.startsWith('zpub')) {
+      if (extractedPublicKey.startsWith('zpub')) {
         return t('account.seed.dropAndKeep.zpub')
       }
-      if (displayPublicKey.startsWith('vpub')) {
+      if (extractedPublicKey.startsWith('vpub')) {
         return t('account.seed.dropAndKeep.vpub')
       }
     }
@@ -180,20 +180,20 @@ function SSMultisigKeyControl({
 
   function getShareXpubLabel() {
     // If we have an extended public key, use its prefix to determine the label
-    if (displayPublicKey) {
+    if (extractedPublicKey) {
       if (
-        displayPublicKey.startsWith('xpub') ||
-        displayPublicKey.startsWith('tpub')
+        extractedPublicKey.startsWith('xpub') ||
+        extractedPublicKey.startsWith('tpub')
       ) {
         return t('account.seed.shareXpub')
       }
-      if (displayPublicKey.startsWith('ypub')) {
+      if (extractedPublicKey.startsWith('ypub')) {
         return t('account.seed.shareYpub')
       }
-      if (displayPublicKey.startsWith('zpub')) {
+      if (extractedPublicKey.startsWith('zpub')) {
         return t('account.seed.shareZpub')
       }
-      if (displayPublicKey.startsWith('vpub')) {
+      if (extractedPublicKey.startsWith('vpub')) {
         return t('account.seed.shareVpub')
       }
     }
@@ -353,67 +353,15 @@ function SSMultisigKeyControl({
 
   // Extract fingerprint and extendedPublicKey for display, with null checks
   const fingerprint = keyDetails?.fingerprint || ''
-
-  // Use the extracted public key for display
-  const displayPublicKey =
-    extractedPublicKey ||
+  const extendedPublicKey =
     (typeof keyDetails?.secret === 'object' &&
       keyDetails.secret.extendedPublicKey) ||
     ''
-  console.log('displayPublicKey', displayPublicKey)
-  console.log('extractedPublicKey', extractedPublicKey)
 
   // Format public key for display: first 7, last 4 chars
-  let formattedPubKey = displayPublicKey
-  if (displayPublicKey && displayPublicKey.length > 12) {
-    formattedPubKey = `${displayPublicKey.slice(0, 7)}...${displayPublicKey.slice(-4)}`
-  }
-
-  // Extract descriptor information for fallback
-  const externalDescriptor =
-    (typeof keyDetails?.secret === 'object' &&
-      keyDetails.secret.externalDescriptor) ||
-    ''
-
-  // Format descriptor for display
-  let formattedDescriptor = externalDescriptor
-  if (externalDescriptor && externalDescriptor.length > 20) {
-    formattedDescriptor = `${externalDescriptor.slice(0, 10)}...${externalDescriptor.slice(-10)}`
-  }
-
-  // Determine what to display in the public key field
-  const displayKey = displayPublicKey || externalDescriptor
-  const formattedDisplayKey = displayPublicKey
-    ? formattedPubKey
-    : formattedDescriptor
-
-  // Get the appropriate label for the extended public key based on script version
-  function getExtendedPubLabel() {
-    if (!displayPublicKey) return t('account.seed.publicKey')
-
-    // Check the prefix to determine the type
-    if (
-      displayPublicKey.startsWith('xpub') ||
-      displayPublicKey.startsWith('tpub')
-    ) {
-      return t('account.import.xpub')
-    }
-    if (displayPublicKey.startsWith('ypub')) {
-      return t('account.import.ypub')
-    }
-    if (displayPublicKey.startsWith('zpub')) {
-      return t('account.import.zpub')
-    }
-    if (displayPublicKey.startsWith('vpub')) {
-      return t('account.import.vpub')
-    }
-
-    // If it's a descriptor, show a different label
-    if (displayKey.includes('(') && displayKey.includes(')')) {
-      return t('account.seed.external')
-    }
-
-    return t('account.seed.publicKey')
+  let formattedPubKey = extendedPublicKey
+  if (extendedPublicKey && extendedPublicKey.length > 12) {
+    formattedPubKey = `${extendedPublicKey.slice(0, 7)}...${extendedPublicKey.slice(-4)}`
   }
 
   return (
@@ -457,12 +405,12 @@ function SSMultisigKeyControl({
               {fingerprint || t('account.fingerprint')}
             </SSText>
             <SSText
-              color={displayPublicKey ? 'white' : 'muted'}
+              color={extendedPublicKey ? 'white' : 'muted'}
               selectable
               numberOfLines={1}
               ellipsizeMode="middle"
             >
-              {formattedDisplayKey || t('account.seed.publicKey')}
+              {formattedPubKey || t('account.seed.publicKey')}
             </SSText>
           </SSVStack>
         </SSHStack>
