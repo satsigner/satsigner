@@ -16,7 +16,7 @@ export default function Warning() {
 
   function handleConfirm() {
     setShowWarning(false)
-    router.push('/')
+    router.replace('/')
   }
 
   return (
