@@ -70,7 +70,17 @@ function useAccountBuilderFinish() {
         )
 
         if (walletData) {
-          updateKeyFingerprint(key.index, walletData.fingerprint)
+          if (account.policyType === 'multisig' && walletData.keyFingerprints) {
+            // For multisig, use individual key fingerprints
+            walletData.keyFingerprints.forEach(
+              (fingerprint: string, index: number) => {
+                updateKeyFingerprint(index, fingerprint)
+              }
+            )
+          } else {
+            // For singlesig, use the single fingerprint
+            updateKeyFingerprint(key.index, walletData.fingerprint)
+          }
           setKeyDerivationPath(key.index, walletData.derivationPath)
         }
         updateKeySecret(key.index, encryptedSecret)

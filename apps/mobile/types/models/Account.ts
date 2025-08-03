@@ -34,6 +34,8 @@ export type Secret = {
   internalDescriptor?: string
   /** Only for watch-only */
   extendedPublicKey?: string
+  /** Fingerprint of the key */
+  fingerprint?: string
 }
 
 export type Key = {

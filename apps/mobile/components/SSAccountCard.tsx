@@ -144,7 +144,10 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               size="xs"
               style={{ color: Colors.gray[500], lineHeight: 10 }}
             >
-              {account.keys[0].fingerprint}
+              {typeof account.keys[0].secret === 'object' &&
+              account.keys[0].secret.fingerprint
+                ? account.keys[0].secret.fingerprint
+                : account.keys[0].fingerprint || '-'}
             </SSText>
           )}
           <SSHStack gap="sm">

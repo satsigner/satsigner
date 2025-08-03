@@ -40,6 +40,7 @@ export default function ImportExtendedPub() {
     setExtendedPublicKey,
     setFingerprint,
     setScriptVersion,
+    setKeyDerivationPath,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -47,6 +48,7 @@ export default function ImportExtendedPub() {
       state.setExtendedPublicKey,
       state.setFingerprint,
       state.setScriptVersion,
+      state.setKeyDerivationPath,
       state.clearKeyState
     ])
   )
@@ -325,6 +327,26 @@ export default function ImportExtendedPub() {
         )
       }
 
+      // Extract derivation path from extended public key
+      let derivationPath = ''
+      try {
+        // Create a descriptor from the extended public key to extract derivation path
+        const descriptorString = `pkh(${convertedXpub})`
+        const { Descriptor } = await import('bdk-rn')
+        const { parseDescriptor } = await import('@/api/bdk')
+
+        const descriptor = await new Descriptor().create(
+          descriptorString,
+          network
+        )
+        const parsedDescriptor = await parseDescriptor(descriptor)
+        derivationPath = parsedDescriptor.derivationPath
+      } catch (error) {
+        console.error('Failed to extract derivation path:', error)
+        // Use default derivation path if extraction fails
+        derivationPath = "m/44'/0'/0'"
+      }
+
       // Set the data in the store
       setExtendedPublicKey(convertedXpub)
       if (localFingerprint) {
@@ -332,7 +354,11 @@ export default function ImportExtendedPub() {
       }
 
       // Create the key
-      setKey(Number(keyIndex))
+      const key = setKey(Number(keyIndex))
+
+      // Set the derivation path for this key
+      setKeyDerivationPath(Number(keyIndex), derivationPath)
+
       clearKeyState()
 
       toast.success(t('import.success'))

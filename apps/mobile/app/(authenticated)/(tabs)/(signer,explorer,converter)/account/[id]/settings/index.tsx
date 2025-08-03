@@ -54,6 +54,7 @@ export default function AccountSettings() {
     account?.name || ''
   )
   const [localMnemonic, setLocalMnemonic] = useState('')
+  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
@@ -128,6 +129,45 @@ export default function AccountSettings() {
     getMnemonic()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    async function decryptKeys() {
+      const pin = await getItem(PIN_KEY)
+      if (!account || !pin) return
+
+      try {
+        const decryptedKeysData = await Promise.all(
+          account.keys.map(async (key) => {
+            if (typeof key.secret === 'string') {
+              // Decrypt the key's secret
+              const decryptedSecretString = await aesDecrypt(
+                key.secret,
+                pin,
+                key.iv
+              )
+              const decryptedSecret = JSON.parse(
+                decryptedSecretString
+              ) as Secret
+
+              return {
+                ...key,
+                secret: decryptedSecret
+              }
+            } else {
+              // Secret is already decrypted (shouldn't happen in normal flow)
+              return key
+            }
+          })
+        )
+
+        setDecryptedKeys(decryptedKeysData)
+      } catch (error) {
+        console.error('Failed to decrypt keys:', error)
+      }
+    }
+
+    decryptKeys()
+  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
 
@@ -153,7 +193,12 @@ export default function AccountSettings() {
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText>{account.keys[0].fingerprint}</SSText>
+            <SSText>
+              {typeof account.keys[0].secret === 'object' &&
+              account.keys[0].secret.fingerprint
+                ? account.keys[0].secret.fingerprint
+                : account.keys[0].fingerprint || '-'}
+            </SSText>
           </SSHStack>
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
@@ -264,23 +309,30 @@ export default function AccountSettings() {
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>
             <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
-              {account.keys.map((key, index) => (
-                <SSMultisigKeyControl
-                  key={index}
-                  isBlackBackground={index % 2 === 1}
-                  index={index}
-                  keyCount={account.keyCount}
-                  keyDetails={key}
-                  isSettingsMode={true}
-                  accountId={currentAccountId}
-                  onRefresh={() => {
-                    // Refresh the page to show updated data
-                    router.replace(
-                      `/account/${currentAccountId}/settings/` as any
-                    )
-                  }}
-                />
-              ))}
+              {decryptedKeys.length > 0 ? (
+                decryptedKeys.map((key, index) => (
+                  <SSMultisigKeyControl
+                    key={index}
+                    isBlackBackground={index % 2 === 1}
+                    index={index}
+                    keyCount={account.keyCount}
+                    keyDetails={key}
+                    isSettingsMode={true}
+                    accountId={currentAccountId}
+                    onRefresh={() => {
+                      // Refresh the page to show updated data
+                      router.replace(
+                        `/account/${currentAccountId}/settings/` as any
+                      )
+                    }}
+                  />
+                ))
+              ) : (
+                // Show loading state while decrypting
+                <SSText center color="muted">
+                  Loading keys...
+                </SSText>
+              )}
             </SSVStack>
           </>
         )}

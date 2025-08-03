@@ -30,7 +30,14 @@ export default function MultiSigManager() {
 
     // Check that each key has both fingerprint and public key/descriptor
     return keys.every((key) => {
-      if (!key || !key.fingerprint) return false
+      if (!key) return false
+
+      // Check for fingerprint in secret or key property
+      const hasFingerprint =
+        (typeof key.secret === 'object' && key.secret.fingerprint) ||
+        key.fingerprint
+
+      if (!hasFingerprint) return false
 
       // Check if key has either public key, descriptor, or mnemonic
       const hasPublicKey =

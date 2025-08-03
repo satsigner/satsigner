@@ -1,10 +1,16 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getFingerprint, validateMnemonic } from '@/api/bdk'
+import {
+  getFingerprint,
+  validateMnemonic,
+  getDescriptor,
+  parseDescriptor
+} from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -32,7 +38,8 @@ export default function GenerateMnemonic() {
     policyType,
     setPassphrase,
     setFingerprint,
-    setKey
+    setKey,
+    setKeyDerivationPath
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -42,7 +49,8 @@ export default function GenerateMnemonic() {
       state.policyType,
       state.setPassphrase,
       state.setFingerprint,
-      state.setKey
+      state.setKey,
+      state.setKeyDerivationPath
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -71,9 +79,36 @@ export default function GenerateMnemonic() {
     else if (policyType === 'singlesig') router.dismissAll()
   }
 
-  function handleOnPressConfirm() {
-    setKey(Number(index))
-    router.navigate(`/account/add/confirm/${index}/word/0`)
+  async function handleOnPressConfirm() {
+    try {
+      // Extract derivation path from mnemonic
+      let derivationPath = ''
+      try {
+        const externalDescriptor = await getDescriptor(
+          mnemonic.join(' '),
+          'P2WPKH', // Use the script version from store
+          KeychainKind.External,
+          '', // No passphrase for now
+          network as Network
+        )
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        derivationPath = parsedDescriptor.derivationPath
+      } catch (error) {
+        console.error('Failed to extract derivation path from mnemonic:', error)
+        // Use default derivation path if extraction fails
+        derivationPath = "m/84'/0'/0'"
+      }
+
+      // Create the key
+      const key = setKey(Number(index))
+
+      // Set the derivation path for this key
+      setKeyDerivationPath(Number(index), derivationPath)
+
+      router.navigate(`/account/add/confirm/${index}/word/0`)
+    } catch (error) {
+      console.error('Error in handleOnPressConfirm:', error)
+    }
   }
 
   if (mnemonic.length !== mnemonicWordCount) return <Redirect href="/" />

@@ -37,6 +37,15 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 import ElectrumClient from './electrum'
 import Esplora from './esplora'
 
+type WalletData = {
+  fingerprint: string
+  derivationPath: string
+  externalDescriptor: string
+  internalDescriptor: string
+  wallet: Wallet
+  keyFingerprints?: string[] // Optional for multisig accounts
+}
+
 async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
 ) {
@@ -69,7 +78,29 @@ async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   return true
 }
 
-async function getWalletData(account: Account, network: Network) {
+async function extractFingerprintFromExtendedPublicKey(
+  extendedPublicKey: string,
+  network: Network
+): Promise<string> {
+  try {
+    // Create a descriptor from the extended public key to extract fingerprint
+    const descriptorString = `pkh(${extendedPublicKey})`
+    const descriptor = await new Descriptor().create(descriptorString, network)
+    const parsedDescriptor = await parseDescriptor(descriptor)
+    return parsedDescriptor.fingerprint
+  } catch (error) {
+    console.error(
+      'Failed to extract fingerprint from extended public key:',
+      error
+    )
+    return ''
+  }
+}
+
+async function getWalletData(
+  account: Account,
+  network: Network
+): Promise<WalletData | undefined> {
   switch (account.policyType) {
     case 'singlesig': {
       if (account.keys.length !== 1)
@@ -141,6 +172,16 @@ async function getWalletData(account: Account, network: Network) {
         throw new Error('Failed to extract extended public keys from all keys')
       }
 
+      // Extract fingerprints for each individual key
+      const keyFingerprints = await Promise.all(
+        validExtendedPublicKeys.map(async (extendedPublicKey) => {
+          return await extractFingerprintFromExtendedPublicKey(
+            extendedPublicKey,
+            network
+          )
+        })
+      )
+
       const multisigDescriptorString = `wsh(multi(${account.keysRequired},${validExtendedPublicKeys.join(',')}))`
       const multisigDescriptor = await new Descriptor().create(
         multisigDescriptorString,
@@ -159,7 +200,8 @@ async function getWalletData(account: Account, network: Network) {
         derivationPath: parsedDescriptor.derivationPath,
         externalDescriptor: multisigDescriptorString,
         internalDescriptor: '',
-        wallet
+        wallet,
+        keyFingerprints // Add individual key fingerprints
       }
     }
     case 'watchonly': {
@@ -853,6 +895,7 @@ export {
   broadcastTransaction,
   buildTransaction,
   extractExtendedKeyFromDescriptor,
+  extractFingerprintFromExtendedPublicKey,
   generateMnemonic,
   generateMnemonicFromEntropy,
   getBlockchain,

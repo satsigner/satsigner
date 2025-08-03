@@ -177,10 +177,10 @@ const useAccountBuilderStore = create<
         ...(passphrase && { passphrase }),
         ...(externalDescriptor && { externalDescriptor }),
         ...(internalDescriptor && { internalDescriptor }),
-        ...(extendedPublicKey && { extendedPublicKey })
+        ...(extendedPublicKey && { extendedPublicKey }),
+        ...(fingerprint && { fingerprint })
       },
       iv: uuid.v4().replace(/-/g, ''),
-      fingerprint,
       scriptVersion
     }
 
@@ -204,8 +204,12 @@ const useAccountBuilderStore = create<
   updateKeyFingerprint: (index, fingerprint) => {
     set(
       produce((state: AccountBuilderState) => {
-        if (state.keys[index]) {
-          state.keys[index].fingerprint = fingerprint
+        if (
+          state.keys[index] &&
+          state.keys[index].secret &&
+          typeof state.keys[index].secret === 'object'
+        ) {
+          state.keys[index].secret.fingerprint = fingerprint
         }
       })
     )

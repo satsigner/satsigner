@@ -11,7 +11,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
+import { extractExtendedKeyFromDescriptor, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -249,6 +249,7 @@ export default function ImportDescriptor() {
 
       // Extract extended public key from descriptor
       let extendedPublicKey = ''
+      let derivationPath = ''
       try {
         // Create descriptor and extract public key
         const descriptor = await new Descriptor().create(
@@ -257,7 +258,12 @@ export default function ImportDescriptor() {
         )
         extendedPublicKey = await extractExtendedKeyFromDescriptor(descriptor)
 
+        // Extract derivation path from the same descriptor
+        const parsedDescriptor = await parseDescriptor(descriptor)
+        derivationPath = parsedDescriptor.derivationPath
+
         console.log('Extracted extended public key:', extendedPublicKey)
+        console.log('Extracted derivation path:', derivationPath)
       } catch (error) {
         console.error(
           'Failed to extract extended public key from descriptor:',
@@ -282,7 +288,11 @@ export default function ImportDescriptor() {
       }
 
       // Set the key data
-      setKey(Number(keyIndex))
+      const key = setKey(Number(keyIndex))
+
+      // Set the derivation path for this key
+      setKeyDerivationPath(Number(keyIndex), derivationPath)
+
       clearKeyState()
 
       toast.success(t('import.success'))

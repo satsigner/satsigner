@@ -271,7 +271,7 @@ function SSMultisigKeyControl({
   function handleShareXpub() {
     if (!accountId) return
     router.navigate(
-      `/account/${accountId}/settings/export/shareXpub?keyIndex=${index}`
+      `/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
     )
   }
 
@@ -283,24 +283,17 @@ function SSMultisigKeyControl({
     )
   }
 
-  // Check if key is completed (has been created with necessary data)
-  const isKeyCompleted = isSettingsMode
-    ? true
-    : keyDetails &&
-      keyDetails.creationType &&
-      keyDetails.fingerprint &&
-      typeof keyDetails.secret === 'object' &&
-      keyDetails.secret &&
+  // Check if the key is completed based on its data
+  console.log('keyDetails', keyDetails)
+  const isKeyCompleted =
+    keyDetails &&
+    keyDetails.creationType &&
+    ((typeof keyDetails.secret === 'object' &&
+      keyDetails.secret.fingerprint &&
       (keyDetails.secret.extendedPublicKey ||
         keyDetails.secret.externalDescriptor ||
-        keyDetails.secret.mnemonic) &&
-      // Ensure we have both fingerprint and public key/descriptor
-      keyDetails.fingerprint.length > 0 &&
-      ((keyDetails.secret.extendedPublicKey &&
-        keyDetails.secret.extendedPublicKey.length > 0) ||
-        (keyDetails.secret.externalDescriptor &&
-          keyDetails.secret.externalDescriptor.length > 0) ||
-        (keyDetails.secret.mnemonic && keyDetails.secret.mnemonic.length > 0))
+        keyDetails.secret.mnemonic)) ||
+      (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
 
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
@@ -314,8 +307,10 @@ function SSMultisigKeyControl({
   if (typeof keyDetails?.secret === 'string' && !isSettingsMode) return null
 
   // Extract fingerprint and extendedPublicKey for display, with null checks
-  const fingerprint = keyDetails?.fingerprint || ''
-  console.log('keyDetails', keyDetails?.secret)
+  const fingerprint =
+    (typeof keyDetails?.secret === 'object' && keyDetails.secret.fingerprint) ||
+    keyDetails?.fingerprint ||
+    ''
 
   // Use the extracted public key from state, or fall back to direct access
   const extendedPublicKey =
