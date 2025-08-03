@@ -13,16 +13,17 @@ import { type Transaction } from '@/types/models/Transaction'
 
 import SSText from './SSText'
 
-type SSTransactionListItem = {
+export type SSTransactionListItem = {
   accountId: Account['id']
 } & Transaction
 
-type SSTransactionListProps = {
+export type SSTransactionListProps = {
   transactions: SSTransactionListItem[]
-  handleOnRefresh: () => Promise<void>
   expand: boolean
-  refreshing: boolean
   blockchainHeight: number
+  // TODO: move out this props to the parent, refreshing should not be handled here
+  handleOnRefresh: () => Promise<void>
+  refreshing: boolean
 }
 
 function SSTransactionList({

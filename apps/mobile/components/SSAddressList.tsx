@@ -20,7 +20,7 @@ export type SSAddressListItem = {
   accountId: Account['id']
 } & Address
 
-type SSAddressListProps = {
+export type SSAddressListProps = {
   addresses: SSAddressListItem[]
   change: boolean
   showDerivationPath?: boolean
