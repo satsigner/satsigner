@@ -20,13 +20,14 @@ import { type Key } from '@/types/models/Account'
 
 export default function MultiSig() {
   const router = useRouter()
-  const [name, setKeyCount, setKeysRequired, setScriptVersion] =
+  const [name, setKeyCount, setKeysRequired, setScriptVersion, clearAllKeys] =
     useAccountBuilderStore(
       useShallow((state) => [
         state.name,
         state.setKeyCount,
         state.setKeysRequired,
-        state.setScriptVersion
+        state.setScriptVersion,
+        state.clearAllKeys
       ])
     )
 
@@ -95,7 +96,10 @@ export default function MultiSig() {
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            onPress={() => router.navigate('/')}
+            onPress={() => {
+              clearAllKeys()
+              router.navigate('/')
+            }}
           />
         </SSVStack>
       </SSVStack>

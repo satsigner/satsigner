@@ -79,7 +79,22 @@ export default function PublicKeyPage() {
     publicKey: string,
     targetFormat: PublicKeyFormat
   ): string {
-    if (!publicKey.startsWith('tpub') && !publicKey.startsWith('xpub')) {
+    // Check if the public key is in a valid format
+    const validPrefixes = [
+      'xpub',
+      'ypub',
+      'zpub',
+      'vpub',
+      'tpub',
+      'upub',
+      'vpub',
+      'wpub'
+    ]
+    const hasValidPrefix = validPrefixes.some((prefix) =>
+      publicKey.startsWith(prefix)
+    )
+
+    if (!hasValidPrefix) {
       return publicKey
     }
 
@@ -87,23 +102,43 @@ export default function PublicKeyPage() {
       const decoded = bs58check.decode(publicKey)
       let version: Uint8Array
 
+      // Define version bytes for different formats
+      const versionBytes = {
+        xpub: new Uint8Array([0x04, 0x88, 0xb2, 0x1e]), // xpub (mainnet)
+        ypub: new Uint8Array([0x04, 0x9d, 0x7c, 0xb2]), // ypub (mainnet)
+        zpub: new Uint8Array([0x04, 0xb2, 0x47, 0x46]), // zpub (mainnet)
+        vpub_mainnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]), // vpub (mainnet)
+        tpub: new Uint8Array([0x04, 0x35, 0x87, 0xcf]), // tpub (testnet)
+        upub: new Uint8Array([0x04, 0x4a, 0x52, 0x62]), // upub (testnet)
+        vpub_testnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]), // vpub (testnet)
+        wpub: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]) // wpub (testnet)
+      }
+
+      // Determine if we're dealing with mainnet or testnet
+      const isMainnet =
+        publicKey.startsWith('xpub') ||
+        publicKey.startsWith('ypub') ||
+        publicKey.startsWith('zpub') ||
+        publicKey.startsWith('vpub')
+
       switch (targetFormat) {
         case 'xpub':
-          version = new Uint8Array([0x04, 0x88, 0xb2, 0x1e]) // xpub
+          version = isMainnet ? versionBytes.xpub : versionBytes.tpub
           break
         case 'ypub':
-          version = new Uint8Array([0x04, 0x9d, 0x7c, 0xb2]) // ypub
+          version = isMainnet ? versionBytes.ypub : versionBytes.upub
           break
         case 'zpub':
-          version = new Uint8Array([0x04, 0xb2, 0x47, 0x46]) // zpub
+          version = isMainnet ? versionBytes.zpub : versionBytes.vpub_testnet
           break
         case 'vpub':
-          version = new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]) // vpub
+          version = isMainnet ? versionBytes.vpub_mainnet : versionBytes.wpub
           break
         default:
           return publicKey
       }
 
+      // Create new decoded data with the target version
       const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
       return bs58check.encode(newDecoded)
     } catch (error) {
@@ -136,7 +171,28 @@ export default function PublicKeyPage() {
         // Set initial selected format based on available formats
         const availableFormats = getAvailableFormats(keyScriptVersion)
         if (availableFormats.length > 0) {
-          setSelectedFormat(availableFormats[0])
+          // For P2PKH, default to xpub
+          // For P2SH-P2WPKH, default to ypub (more specific)
+          // For P2WPKH, default to zpub (more specific)
+          // For P2TR, default to vpub (more specific)
+          let defaultFormat: PublicKeyFormat = 'xpub'
+          if (
+            keyScriptVersion === 'P2SH-P2WPKH' &&
+            availableFormats.includes('ypub')
+          ) {
+            defaultFormat = 'ypub'
+          } else if (
+            keyScriptVersion === 'P2WPKH' &&
+            availableFormats.includes('zpub')
+          ) {
+            defaultFormat = 'zpub'
+          } else if (
+            keyScriptVersion === 'P2TR' &&
+            availableFormats.includes('vpub')
+          ) {
+            defaultFormat = 'vpub'
+          }
+          setSelectedFormat(defaultFormat)
         }
 
         // Decrypt the key's secret
@@ -224,20 +280,19 @@ export default function PublicKeyPage() {
 
         {/* Format Selection Buttons */}
         {!isLoading && rawPublicKey && (
-          <SSHStack
-            style={{ marginBottom: 20, justifyContent: 'center' }}
-            gap="sm"
-          >
-            {formatButtons.map(({ format, label }) => (
-              <SSButton
-                key={format}
-                label={label}
-                variant={selectedFormat === format ? 'gradient' : 'secondary'}
-                onPress={() => setSelectedFormat(format)}
-                style={{ flex: 1 }}
-              />
-            ))}
-          </SSHStack>
+          <SSVStack gap="sm">
+            <SSHStack style={{ justifyContent: 'center' }} gap="sm">
+              {formatButtons.map(({ format, label }) => (
+                <SSButton
+                  key={format}
+                  label={label}
+                  variant={selectedFormat === format ? 'gradient' : 'secondary'}
+                  onPress={() => setSelectedFormat(format)}
+                  style={{ flex: 1 }}
+                />
+              ))}
+            </SSHStack>
+          </SSVStack>
         )}
 
         {/* QR Code */}

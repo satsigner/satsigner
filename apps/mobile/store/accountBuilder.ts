@@ -72,6 +72,7 @@ type AccountBuilderAction = {
   getAccountData: () => Account
   clearKeyState: () => void
   clearAccount: () => void
+  clearAllKeys: () => void
 }
 
 const initialState: AccountBuilderState = {
@@ -297,6 +298,29 @@ const useAccountBuilderStore = create<
   },
   clearAccount: () => {
     set({ ...initialState })
+  },
+  clearAllKeys: () => {
+    const { name, network, policyType, scriptVersion, keyCount, keysRequired } =
+      get()
+    set({
+      name,
+      network,
+      policyType,
+      scriptVersion,
+      keyCount,
+      keysRequired,
+      keyName: '',
+      creationType: 'importMnemonic',
+      entropy: 'none',
+      mnemonicWordCount: 24,
+      mnemonic: '',
+      passphrase: undefined,
+      externalDescriptor: undefined,
+      internalDescriptor: undefined,
+      extendedPublicKey: undefined,
+      fingerprint: undefined,
+      keys: []
+    })
   }
 }))
 

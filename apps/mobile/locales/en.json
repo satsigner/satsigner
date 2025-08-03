@@ -744,6 +744,8 @@
     "weight": "Weight"
   },
   "publicKey": {
+    "currentFormat": "Current Format: %{format}",
+    "selectFormat": "Select Format",
     "title": "Public Key"
   },
   "receive": {

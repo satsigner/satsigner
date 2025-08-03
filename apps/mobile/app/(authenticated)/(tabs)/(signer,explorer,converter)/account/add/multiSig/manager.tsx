@@ -16,14 +16,16 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 export default function MultiSigManager() {
   const router = useRouter()
 
-  const [name, keys, keyCount, keysRequired] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.name,
-      state.keys,
-      state.keyCount,
-      state.keysRequired
-    ])
-  )
+  const [name, keys, keyCount, keysRequired, clearAllKeys] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.name,
+        state.keys,
+        state.keyCount,
+        state.keysRequired,
+        state.clearAllKeys
+      ])
+    )
 
   const allKeysFilled = useMemo(() => {
     if (!keys || keys.length !== keyCount) return false
@@ -93,7 +95,10 @@ export default function MultiSigManager() {
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => router.back()}
+              onPress={() => {
+                clearAllKeys()
+                router.back()
+              }}
             />
           </SSVStack>
         </ScrollView>
