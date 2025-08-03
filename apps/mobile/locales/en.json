@@ -168,6 +168,13 @@
         "ypub": "Drop Seed & Keep XPub/YPub",
         "zpub": "Drop Seed & Keep XPub/ZPub"
       },
+      "dropSeedConfirm": {
+        "confirm": "Drop Seed",
+        "message": "This will permanently remove the seed (mnemonic) from this key. You will only be able to use the extended public key for signing. This action cannot be undone.",
+        "title": "Drop Seed"
+      },
+      "dropSeedError": "Failed to drop seed",
+      "dropSeedSuccess": "Seed dropped successfully",
       "external": "External Descriptor",
       "importedSeed": "Imported Seed ({name})",
       "newSeed": "New Seed ({name})",

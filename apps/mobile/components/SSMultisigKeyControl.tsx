@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useState, useEffect } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { TouchableOpacity, View, Alert } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
@@ -22,6 +22,7 @@ import { type ScriptVersionType } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import { toast } from 'sonner-native'
 
 type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
@@ -222,57 +223,77 @@ function SSMultisigKeyControl({
   async function handleDropSeed() {
     if (!keyDetails || !accountId) return
 
-    try {
-      // Get the current account
-      const accounts = useAccountsStore.getState().accounts
-      const account = accounts.find((acc) => acc.id === accountId)
-      if (!account) return
+    // Show confirmation dialog
+    Alert.alert(
+      t('account.seed.dropSeedConfirm.title'),
+      t('account.seed.dropSeedConfirm.message'),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('account.seed.dropSeedConfirm.confirm'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Get the current account
+              const accounts = useAccountsStore.getState().accounts
+              const account = accounts.find((acc) => acc.id === accountId)
+              if (!account) return
 
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return
+              const pin = await getItem(PIN_KEY)
+              if (!pin) return
 
-      // Decrypt the key's secret
-      let decryptedSecret: Secret
-      if (typeof keyDetails.secret === 'string') {
-        const decryptedSecretString = await aesDecrypt(
-          keyDetails.secret,
-          pin,
-          keyDetails.iv
-        )
-        decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-      } else {
-        decryptedSecret = keyDetails.secret as Secret
-      }
+              // Decrypt the key's secret
+              let decryptedSecret: Secret
+              if (typeof keyDetails.secret === 'string') {
+                const decryptedSecretString = await aesDecrypt(
+                  keyDetails.secret,
+                  pin,
+                  keyDetails.iv
+                )
+                decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+              } else {
+                decryptedSecret = keyDetails.secret as Secret
+              }
 
-      // Remove mnemonic and passphrase, keep only extended public key and metadata
-      const cleanedSecret: Secret = {
-        extendedPublicKey: decryptedSecret.extendedPublicKey,
-        externalDescriptor: decryptedSecret.externalDescriptor,
-        internalDescriptor: decryptedSecret.internalDescriptor
-      }
+              // Remove mnemonic and passphrase, keep only extended public key and metadata
+              const cleanedSecret: Secret = {
+                extendedPublicKey: decryptedSecret.extendedPublicKey,
+                externalDescriptor: decryptedSecret.externalDescriptor,
+                internalDescriptor: decryptedSecret.internalDescriptor,
+                fingerprint: decryptedSecret.fingerprint // Preserve fingerprint
+              }
 
-      // Re-encrypt the cleaned secret
-      const stringifiedSecret = JSON.stringify(cleanedSecret)
-      const encryptedSecret = await aesEncrypt(
-        stringifiedSecret,
-        pin,
-        keyDetails.iv
-      )
+              // Re-encrypt the cleaned secret
+              const stringifiedSecret = JSON.stringify(cleanedSecret)
+              const encryptedSecret = await aesEncrypt(
+                stringifiedSecret,
+                pin,
+                keyDetails.iv
+              )
 
-      // Update the account with the new encrypted secret
-      const updatedAccount = { ...account }
-      updatedAccount.keys[index] = {
-        ...keyDetails,
-        secret: encryptedSecret
-      }
+              // Update the account with the new encrypted secret
+              const updatedAccount = { ...account }
+              updatedAccount.keys[index] = {
+                ...keyDetails,
+                secret: encryptedSecret
+              }
 
-      // Update the account in the store
-      await updateAccount(updatedAccount)
+              // Update the account in the store
+              await updateAccount(updatedAccount)
 
-      onRefresh?.()
-    } catch {
-      // Handle error silently
-    }
+              toast.success(t('account.seed.dropSeedSuccess'))
+              onRefresh?.()
+            } catch (error) {
+              console.error('Failed to drop seed:', error)
+              toast.error(t('account.seed.dropSeedError'))
+            }
+          }
+        }
+      ]
+    )
   }
 
   function handleShareXpub() {
