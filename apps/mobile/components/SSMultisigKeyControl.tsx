@@ -286,7 +286,7 @@ function SSMultisigKeyControl({
     if (!accountId) return
 
     router.navigate(
-      `/account/${accountId}/settings/export/shareDescriptor?keyIndex=${index}`
+      `/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
     )
   }
 

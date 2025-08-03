@@ -12,6 +12,17 @@
       "title": "Delete Account"
     },
     "derivationPath": "Derivation path",
+    "descriptor": {
+      "checksum": "Checksum",
+      "components": "Descriptor Components",
+      "creationType": "Creation Type: %{type}",
+      "derivationPath": "Derivation Path",
+      "fingerprint": "Fingerprint",
+      "publicKey": "Public Key",
+      "scriptFunction": "Script Function",
+      "scriptVersion": "Script Version: %{version}",
+      "title": "Descriptor"
+    },
     "duplicate": {
       "title": "Duplicate Account"
     },
