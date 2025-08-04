@@ -166,7 +166,6 @@ export default function SignMessage() {
                 </SSText>
                 <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
               </SSVStack>
-
               <SSVStack gap="xxs">
                 <SSText
                   color="muted"
@@ -223,7 +222,6 @@ export default function SignMessage() {
                 )}
               </SSVStack>
             </SSVStack>
-
             <SSButton
               variant="secondary"
               label={t('send.broadcast')}
@@ -233,10 +231,6 @@ export default function SignMessage() {
                 handleBroadcastTransaction()
               }}
             />
-            {(() => {
-              const _isDisabled = !signed || (!psbt && !signedTx)
-              return null
-            })()}
           </SSVStack>
         </ScrollView>
       </SSMainLayout>

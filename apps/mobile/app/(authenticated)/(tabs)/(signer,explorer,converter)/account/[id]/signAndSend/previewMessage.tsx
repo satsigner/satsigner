@@ -1373,7 +1373,9 @@ function PreviewMessage() {
 
                       <SSButton
                         label={
-                          isEmitting ? t('watchonly.read.scanning') : 'Emit NFC'
+                          isEmitting
+                            ? t('watchonly.read.scanning')
+                            : t('watchonly.emit.nfc')
                         }
                         style={{ width: '48%' }}
                         variant="outline"
@@ -1514,7 +1516,6 @@ function PreviewMessage() {
                     size={qrSize}
                   />
                 </View>
-
                 <SSHStack
                   gap="xs"
                   style={{ width: screenWidth * 0.92, marginBottom: 10 }}
@@ -1597,7 +1598,6 @@ function PreviewMessage() {
                     ? `${getQRValue().slice(0, 100)}...`
                     : getQRValue()}
                 </SSText>
-
                 <SSHStack
                   justifyEvenly
                   style={{ width: screenWidth * 0.9, marginBottom: 20 }}
@@ -1638,10 +1638,9 @@ function PreviewMessage() {
                       />
                     </SSHStack>
                   </SSVStack>
-
                   <SSVStack gap="xs">
                     <SSText color="white" size="sm" center>
-                      Speed: {animationSpeed}/12
+                      {t('common.speed')}: {animationSpeed}/12
                     </SSText>
                     <SSHStack gap="sm" style={{ justifyContent: 'center' }}>
                       <SSButton
@@ -1745,7 +1744,7 @@ function PreviewMessage() {
                   // For RAW and BBQR, show normal progress
                   <>
                     <SSText color="white" center>
-                      {`Progress: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
+                      {`${t('common.progress')}: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
                     </SSText>
                     <View
                       style={{
@@ -1861,7 +1860,7 @@ function PreviewMessage() {
                 alignItems: 'center'
               }}
             >
-              <SSText uppercase>Scanning NFC</SSText>
+              <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
             </Animated.View>
           </SSVStack>
         </SSModal>

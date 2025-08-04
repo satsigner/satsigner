@@ -112,10 +112,9 @@ export default function ExportDescriptors() {
         <SSText center uppercase color="muted">
           {t('account.export.descriptors')}
         </SSText>
-
         {isLoading ? (
           <SSText center color="muted">
-            Loading descriptors...
+            {t('common.loadingX', { x: 'descriptors...' })}
           </SSText>
         ) : descriptors.length > 0 ? (
           <>
@@ -135,7 +134,6 @@ export default function ExportDescriptors() {
                 style={{ width: '48%' }}
               />
             </SSHStack>
-
             {showSeparate ? (
               <SSVStack gap="md">
                 {descriptors.map((descriptor, index) => (
@@ -155,7 +153,8 @@ export default function ExportDescriptors() {
                       />
                     </View>
                     <SSText color="muted" size="sm" style={{ marginTop: 8 }}>
-                      {index === 0 ? 'External' : 'Internal'} Descriptor
+                      {index === 0 ? 'External' : 'Internal'}{' '}
+                      {t('common.descriptor')}
                     </SSText>
                   </View>
                 ))}
@@ -178,7 +177,6 @@ export default function ExportDescriptors() {
                 </View>
               </View>
             )}
-
             <View
               style={{
                 padding: 10,
@@ -204,7 +202,7 @@ export default function ExportDescriptors() {
           </>
         ) : (
           <SSText center color="muted">
-            No descriptors available
+            {t('account.descriptors.noAvailable')}
           </SSText>
         )}
         <SSButton
