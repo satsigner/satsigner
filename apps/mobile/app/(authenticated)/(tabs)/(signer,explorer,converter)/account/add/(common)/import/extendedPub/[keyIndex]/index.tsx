@@ -24,7 +24,11 @@ import { Colors } from '@/styles'
 import { type Key } from '@/types/models/Account'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
-import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
+import {
+  validateExtendedKey,
+  validateFingerprint,
+  validateDescriptorScriptVersion
+} from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
@@ -35,22 +39,24 @@ export default function ImportExtendedPub() {
   const router = useRouter()
   const network = useBlockchainStore((state) => state.selectedNetwork)
 
-  const [
+  const {
     setKey,
     setExtendedPublicKey,
     setFingerprint,
     setScriptVersion,
     setKeyDerivationPath,
+    scriptVersion,
     clearKeyState
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.setKey,
-      state.setExtendedPublicKey,
-      state.setFingerprint,
-      state.setScriptVersion,
-      state.setKeyDerivationPath,
-      state.clearKeyState
-    ])
+  } = useAccountBuilderStore(
+    useShallow((state) => ({
+      setKey: state.setKey,
+      setExtendedPublicKey: state.setExtendedPublicKey,
+      setFingerprint: state.setFingerprint,
+      setScriptVersion: state.setScriptVersion,
+      setKeyDerivationPath: state.setKeyDerivationPath,
+      scriptVersion: state.scriptVersion,
+      clearKeyState: state.clearKeyState
+    }))
   )
 
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
@@ -65,6 +71,7 @@ export default function ImportExtendedPub() {
   const [disabled, setDisabled] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
   const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
+  const [xpubError, setXpubError] = useState('')
 
   // Multipart QR scanning state
   const urDecoderRef = useRef<URDecoder>(new URDecoder())
@@ -141,7 +148,6 @@ export default function ImportExtendedPub() {
   function updateXpub(xpub: string) {
     const validXpub = validateExtendedKey(xpub)
     setValidXpub(!xpub || validXpub)
-    setDisabled(!validXpub || !localFingerprint)
     setXpub(xpub)
 
     // Handle script version based on extended key prefix
@@ -149,13 +155,48 @@ export default function ImportExtendedPub() {
     // vpub -> P2WPKH (testnet SegWit)
     // ypub -> P2SH-P2WPKH (mainnet)
     // zpub -> P2WPKH (mainnet)
-    let scriptVersion: Key['scriptVersion'] | undefined
-    if (xpub.match(/^t(pub|priv)/)) scriptVersion = 'P2PKH'
-    if (xpub.match(/^v(pub|priv)/)) scriptVersion = 'P2WPKH'
-    if (xpub.match(/^y(pub|priv)/)) scriptVersion = 'P2SH-P2WPKH'
-    if (xpub.match(/^z(pub|priv)/)) scriptVersion = 'P2WPKH'
+    let detectedScriptVersion: Key['scriptVersion'] | undefined
+    if (xpub.match(/^t(pub|priv)/)) detectedScriptVersion = 'P2PKH'
+    if (xpub.match(/^v(pub|priv)/)) detectedScriptVersion = 'P2WPKH'
+    if (xpub.match(/^y(pub|priv)/)) detectedScriptVersion = 'P2SH-P2WPKH'
+    if (xpub.match(/^z(pub|priv)/)) detectedScriptVersion = 'P2WPKH'
 
-    if (scriptVersion && validXpub && localFingerprint) {
+    // Validate script version compatibility for multisig
+    let scriptVersionValidation = { isValid: true }
+    if (validXpub && detectedScriptVersion && scriptVersion) {
+      // Create a descriptor from the xpub to validate against the multisig script version
+      const testDescriptor = `pkh(${xpub})` // Use pkh as a base for validation
+      scriptVersionValidation = validateDescriptorScriptVersion(
+        testDescriptor,
+        scriptVersion
+      )
+    }
+
+    const finalValidXpub = validXpub && scriptVersionValidation.isValid
+    setValidXpub(!xpub || finalValidXpub)
+    setDisabled(!finalValidXpub || !localFingerprint)
+
+    // Clear previous error first
+    setXpubError('')
+
+    // Show error message if validation fails
+    if (xpub) {
+      if (!validXpub) {
+        // Show error for basic validation failures
+        const errorMessage = t('account.import.error.descriptorFormat')
+        setXpubError(errorMessage)
+        toast.error(errorMessage)
+      } else if (validXpub && !scriptVersionValidation.isValid) {
+        // Show error for script version validation failures
+        const errorMessage =
+          scriptVersionValidation.error ||
+          t('account.import.error.xpubIncompatible')
+        setXpubError(errorMessage)
+        toast.error(errorMessage)
+      }
+    }
+
+    if (detectedScriptVersion && finalValidXpub && localFingerprint) {
       // Format the extended public key with fingerprint and derivation path
       // For testnet SegWit (vpub), use BIP84 derivation path
       const derivationPath = xpub.match(/^v(pub|priv)/)
@@ -163,7 +204,7 @@ export default function ImportExtendedPub() {
         : "44'/1'/0'"
       const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
       setExtendedPublicKey(formattedXpub)
-      setScriptVersion(scriptVersion)
+      setScriptVersion(detectedScriptVersion)
     }
   }
 
@@ -361,7 +402,7 @@ export default function ImportExtendedPub() {
 
       clearKeyState()
 
-      toast.success(t('import.success'))
+      toast.success(t('account.import.success'))
       router.dismiss(1)
     } catch (error) {
       toast.error(t('import.error'))
@@ -679,6 +720,18 @@ export default function ImportExtendedPub() {
                   onChangeText={updateXpub}
                   multiline
                 />
+                {xpubError && (
+                  <SSText
+                    style={{
+                      color: Colors.error,
+                      fontSize: 12,
+                      textAlign: 'center',
+                      marginTop: 4
+                    }}
+                  >
+                    {xpubError}
+                  </SSText>
+                )}
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText center>{t('common.fingerprint')}</SSText>

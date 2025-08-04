@@ -3,7 +3,8 @@ import {
   validateDerivationPath,
   validateDescriptor,
   validateExtendedKey,
-  validateFingerprint
+  validateFingerprint,
+  validateDescriptorScriptVersion
 } from '@/utils/validation'
 
 describe('Validates addresses', () => {
@@ -129,16 +130,57 @@ describe('Validates descriptors', () => {
     'bc1qmj3dcj45tugree3f87mrxvc5aqm4hkz4vhskgj'
   ]
 
-  it('Recognizes valid descriptors', () => {
+  it('Recognizes valid descriptors', async () => {
     for (const descriptor of validDescriptors) {
-      expect(validateDescriptor(descriptor)).toBe(true)
+      expect(await validateDescriptor(descriptor)).toEqual({ isValid: true })
     }
   })
 
-  it('Recognizes invalid descriptors', () => {
+  it('Recognizes invalid descriptors', async () => {
     for (const descriptor of invalidDescriptors) {
-      expect(validateDescriptor(descriptor)).toBe(false)
+      expect(await validateDescriptor(descriptor)).toEqual({
+        isValid: false,
+        error: expect.any(String)
+      })
     }
+  })
+
+  it('Returns specific error messages for different validation failures', async () => {
+    // Test missing parenthesis error
+    expect(
+      await validateDescriptor(
+        'pkh(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5'
+      )
+    ).toEqual({
+      isValid: false,
+      error: 'missingParenthesis'
+    })
+
+    // Test invalid script function
+    expect(
+      await validateDescriptor(
+        'invalid(02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5)'
+      )
+    ).toEqual({
+      isValid: false,
+      error: 'scriptFunctionInvalid'
+    })
+
+    // Test unclosed bracket
+    expect(
+      await validateDescriptor('pkh([12345678/44h/0h/0hxpub1234567890abcdef)')
+    ).toEqual({
+      isValid: false,
+      error: 'derivationPathBracket'
+    })
+
+    // Test unexpected bracket
+    expect(
+      await validateDescriptor('pkh(12345678/44h/0h/0h]xpub1234567890abcdef)')
+    ).toEqual({
+      isValid: false,
+      error: 'unexpectedBracket'
+    })
   })
 })
 
@@ -156,5 +198,96 @@ describe('Validates extended keys', () => {
     for (const key of validExtendedKeys) {
       expect(validateExtendedKey(key)).toBe(true)
     }
+  })
+})
+
+describe('validateDescriptorScriptVersion', () => {
+  it('should validate P2PKH descriptors correctly', () => {
+    const pkhDescriptor = 'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)'
+
+    expect(validateDescriptorScriptVersion(pkhDescriptor, 'P2PKH')).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(pkhDescriptor, 'P2WPKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "pkh" is not compatible with multisig script version "P2WPKH". Expected: wpkh'
+    })
+  })
+
+  it('should validate P2WPKH descriptors correctly', () => {
+    const wpkhDescriptor = 'wpkh([12345678/84h/0h/0h]xpub1234567890abcdef)'
+
+    expect(validateDescriptorScriptVersion(wpkhDescriptor, 'P2WPKH')).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(wpkhDescriptor, 'P2PKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "wpkh" is not compatible with multisig script version "P2PKH". Expected: pkh'
+    })
+  })
+
+  it('should validate P2SH-P2WPKH descriptors correctly', () => {
+    const shDescriptor = 'sh([12345678/49h/0h/0h]xpub1234567890abcdef)'
+
+    expect(
+      validateDescriptorScriptVersion(shDescriptor, 'P2SH-P2WPKH')
+    ).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(shDescriptor, 'P2WPKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "sh" is not compatible with multisig script version "P2WPKH". Expected: wpkh'
+    })
+  })
+
+  it('should validate P2TR descriptors correctly', () => {
+    const trDescriptor = 'tr([12345678/86h/0h/0h]xpub1234567890abcdef)'
+
+    expect(validateDescriptorScriptVersion(trDescriptor, 'P2TR')).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(trDescriptor, 'P2WPKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "tr" is not compatible with multisig script version "P2WPKH". Expected: wpkh'
+    })
+  })
+
+  it('should handle descriptors with checksums', () => {
+    const descriptorWithChecksum =
+      'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)#abcd1234'
+
+    expect(
+      validateDescriptorScriptVersion(descriptorWithChecksum, 'P2PKH')
+    ).toEqual({
+      isValid: true
+    })
+  })
+
+  it('should handle invalid descriptor formats', () => {
+    const invalidDescriptor = 'invalid-descriptor-format'
+
+    expect(validateDescriptorScriptVersion(invalidDescriptor, 'P2PKH')).toEqual(
+      {
+        isValid: false,
+        error: 'Invalid descriptor format'
+      }
+    )
+  })
+
+  it('should handle unknown script versions', () => {
+    const pkhDescriptor = 'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)'
+
+    expect(validateDescriptorScriptVersion(pkhDescriptor, 'UNKNOWN')).toEqual({
+      isValid: false,
+      error: 'Unknown script version: UNKNOWN'
+    })
   })
 })

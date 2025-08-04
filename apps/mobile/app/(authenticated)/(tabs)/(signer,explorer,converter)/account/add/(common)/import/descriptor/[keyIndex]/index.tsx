@@ -28,7 +28,10 @@ import { Colors } from '@/styles'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
-import { validateDescriptor } from '@/utils/validation'
+import {
+  validateDescriptor,
+  validateDescriptorScriptVersion
+} from '@/utils/validation'
 
 export default function ImportDescriptor() {
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
@@ -47,6 +50,8 @@ export default function ImportDescriptor() {
   const [disabled, setDisabled] = useState(true)
   const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
+  const [externalDescriptorError, setExternalDescriptorError] = useState('')
+  const [internalDescriptorError, setInternalDescriptorError] = useState('')
 
   // Multipart QR scanning state
   const urDecoderRef = useRef<URDecoder>(new URDecoder())
@@ -90,7 +95,7 @@ export default function ImportDescriptor() {
     }
   }, [isReading, pulseAnim])
 
-  const [
+  const {
     setKey,
     setStoreExternalDescriptor,
     setStoreInternalDescriptor,
@@ -98,18 +103,20 @@ export default function ImportDescriptor() {
     setKeyDerivationPath,
     setExtendedPublicKey,
     setFingerprint,
+    scriptVersion,
     clearKeyState
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.setKey,
-      state.setExternalDescriptor,
-      state.setInternalDescriptor,
-      state.updateKeyFingerprint,
-      state.setKeyDerivationPath,
-      state.setExtendedPublicKey,
-      state.setFingerprint,
-      state.clearKeyState
-    ])
+  } = useAccountBuilderStore(
+    useShallow((state) => ({
+      setKey: state.setKey,
+      setStoreExternalDescriptor: state.setExternalDescriptor,
+      setStoreInternalDescriptor: state.setInternalDescriptor,
+      updateKeyFingerprint: state.updateKeyFingerprint,
+      setKeyDerivationPath: state.setKeyDerivationPath,
+      setExtendedPublicKey: state.setExtendedPublicKey,
+      setFingerprint: state.setFingerprint,
+      scriptVersion: state.scriptVersion,
+      clearKeyState: state.clearKeyState
+    }))
   )
 
   const updateDescriptorValidationState = useCallback(() => {
@@ -137,22 +144,96 @@ export default function ImportDescriptor() {
     updateDescriptorValidationState
   ])
 
-  function updateExternalDescriptor(descriptor: string) {
+  async function updateExternalDescriptor(descriptor: string) {
+    // Basic descriptor validation
+    const descriptorValidation = await validateDescriptor(descriptor)
+    const basicValidation =
+      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+
+    // Script version validation for multisig
+    let scriptVersionValidation: { isValid: boolean; error?: string } = {
+      isValid: true
+    }
+    if (basicValidation && scriptVersion) {
+      scriptVersionValidation = validateDescriptorScriptVersion(
+        descriptor,
+        scriptVersion
+      )
+    }
+
     const validExternalDescriptor =
-      validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
+      basicValidation && scriptVersionValidation.isValid
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
+
+    // Clear previous error first
+    setExternalDescriptorError('')
+
+    // Show error message if validation fails
+    if (descriptor) {
+      if (!basicValidation) {
+        // Show error for basic validation failures
+        const errorMessage = descriptorValidation.error
+          ? t(`account.import.error.${descriptorValidation.error}`)
+          : t('account.import.error.descriptorFormat')
+        setExternalDescriptorError(errorMessage)
+      } else if (basicValidation && !scriptVersionValidation.isValid) {
+        // Show error for script version validation failures
+        const errorMessage =
+          scriptVersionValidation.error ||
+          t('account.import.error.descriptorIncompatible')
+        setExternalDescriptorError(errorMessage)
+      }
+    }
+
     if (validExternalDescriptor) {
       setStoreExternalDescriptor(descriptor)
     }
   }
 
-  function updateInternalDescriptor(descriptor: string) {
-    const validInternalDescriptor = validateDescriptor(descriptor)
+  async function updateInternalDescriptor(descriptor: string) {
+    // Basic descriptor validation
+    const descriptorValidation = await validateDescriptor(descriptor)
+    const basicValidation = descriptorValidation.isValid
+
+    // Script version validation for multisig
+    let scriptVersionValidation: { isValid: boolean; error?: string } = {
+      isValid: true
+    }
+    if (basicValidation && scriptVersion) {
+      scriptVersionValidation = validateDescriptorScriptVersion(
+        descriptor,
+        scriptVersion
+      )
+    }
+
+    const validInternalDescriptor =
+      basicValidation && scriptVersionValidation.isValid
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
+
+    // Clear previous error first
+    setInternalDescriptorError('')
+
+    // Show error message if validation fails
+    if (descriptor) {
+      if (!basicValidation) {
+        // Show error for basic validation failures
+        const errorMessage = descriptorValidation.error
+          ? t(`account.import.error.${descriptorValidation.error}`)
+          : t('account.import.error.descriptorFormat')
+        setInternalDescriptorError(errorMessage)
+      } else if (basicValidation && !scriptVersionValidation.isValid) {
+        // Show error for script version validation failures
+        const errorMessage =
+          scriptVersionValidation.error ||
+          t('account.import.error.descriptorIncompatible')
+        setInternalDescriptorError(errorMessage)
+      }
+    }
+
     if (validInternalDescriptor) {
       setStoreInternalDescriptor(descriptor)
     }
@@ -264,7 +345,6 @@ export default function ImportDescriptor() {
           'Failed to extract extended public key from descriptor:',
           error
         )
-        toast.error(t('import.error'))
         return
       }
 
@@ -290,11 +370,9 @@ export default function ImportDescriptor() {
 
       clearKeyState()
 
-      toast.success(t('import.success'))
       router.dismiss(1)
     } catch (error) {
       console.error('Error in handleConfirm:', error)
-      toast.error(t('import.error'))
     }
   }
 
@@ -342,8 +420,8 @@ export default function ImportDescriptor() {
       }
     }
 
-    if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-    if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+    if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
+    if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
   }
 
   async function handleNFCRead() {
@@ -384,8 +462,8 @@ export default function ImportDescriptor() {
         externalDescriptor = lines[0]
         internalDescriptor = lines[1]
       }
-      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-      if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
+      if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
 
       toast.success(t('watchonly.success.nfcRead'))
     } catch (error) {
@@ -393,7 +471,7 @@ export default function ImportDescriptor() {
     }
   }
 
-  function handleQRCodeScanned(scanningResult: any) {
+  async function handleQRCodeScanned(scanningResult: any) {
     const data = scanningResult?.data
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
@@ -431,7 +509,7 @@ export default function ImportDescriptor() {
         }
       }
 
-      updateExternalDescriptor(finalContent)
+      await updateExternalDescriptor(finalContent)
       setCameraModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
       return
@@ -526,6 +604,18 @@ export default function ImportDescriptor() {
                   onChangeText={updateExternalDescriptor}
                   multiline
                 />
+                {externalDescriptorError && (
+                  <SSText
+                    style={{
+                      color: Colors.error,
+                      fontSize: 12,
+                      textAlign: 'center',
+                      marginTop: 4
+                    }}
+                  >
+                    {externalDescriptorError}
+                  </SSText>
+                )}
               </SSVStack>
               <SSVStack gap="xxs">
                 <SSText center>
@@ -539,6 +629,18 @@ export default function ImportDescriptor() {
                   multiline
                   onChangeText={updateInternalDescriptor}
                 />
+                {internalDescriptorError && (
+                  <SSText
+                    style={{
+                      color: Colors.error,
+                      fontSize: 12,
+                      textAlign: 'center',
+                      marginTop: 4
+                    }}
+                  >
+                    {internalDescriptorError}
+                  </SSText>
+                )}
               </SSVStack>
             </SSVStack>
             <SSVStack>
@@ -722,3 +824,22 @@ export default function ImportDescriptor() {
     </SSMainLayout>
   )
 }
+
+const styles = StyleSheet.create({
+  valid: {
+    height: 'auto',
+    paddingVertical: 8
+  },
+  invalid: {
+    borderColor: Colors.error,
+    borderWidth: 1,
+    height: 'auto',
+    paddingVertical: 8
+  },
+  errorMessage: {
+    color: Colors.error,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4
+  }
+})

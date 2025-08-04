@@ -268,9 +268,10 @@ export default function WatchOnly() {
     }
   }
 
-  function updateExternalDescriptor(descriptor: string) {
+  async function updateExternalDescriptor(descriptor: string) {
+    const descriptorValidation = await validateDescriptor(descriptor)
     const validExternalDescriptor =
-      validateDescriptor(descriptor) && !descriptor.match(/[txyz]priv/)
+      descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
@@ -282,8 +283,9 @@ export default function WatchOnly() {
     // updateDescriptorValidationState()
   }
 
-  function updateInternalDescriptor(descriptor: string) {
-    const validInternalDescriptor = validateDescriptor(descriptor)
+  async function updateInternalDescriptor(descriptor: string) {
+    const descriptorValidation = await validateDescriptor(descriptor)
+    const validInternalDescriptor = descriptorValidation.isValid
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setLocalInternalDescriptor(descriptor)

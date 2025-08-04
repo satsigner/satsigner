@@ -61,6 +61,23 @@
     "generate.newSecretSeed": "Generate new secret seed",
     "generate.title": "Generate seed",
     "generate.warning": "Keep this information secret and backed up.",
+    "import": {
+      "error": {
+        "checksumFormat": "Invalid checksum format",
+        "checksumInvalid": "Invalid checksum",
+        "derivationPathBracket": "Unclosed derivation path bracket",
+        "derivationPathComponent": "Invalid derivation path component",
+        "descriptorFormat": "Invalid descriptor format",
+        "descriptorIncompatible": "Descriptor is incompatible with multisig script version",
+        "fingerprintFormat": "Invalid fingerprint format",
+        "missingParenthesis": "Missing closing parenthesis",
+        "scriptFunctionInvalid": "Unknown or invalid script function",
+        "scriptVersionMismatch": "Script type \"%{scriptType}\" is not compatible with multisig script version \"%{scriptVersion}\". Expected: %{expectedTypes}",
+        "unexpectedBracket": "Unexpected closing bracket in derivation path",
+        "xpubIncompatible": "Extended public key is incompatible with multisig script version"
+      },
+      "success": "Key imported successfully"
+    },
     "import.descriptor": "Import Descriptor",
     "import.error": "Failed to import key",
     "import.existingSingleWallet": "Exisiting Single Key Wallets",
