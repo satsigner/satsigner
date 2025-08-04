@@ -38,8 +38,11 @@ import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
 import {
   validateAddress,
   validateDescriptor,
+  validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint
+  validateFingerprint,
+  isCombinedDescriptor,
+  validateCombinedDescriptor
 } from '@/utils/validation'
 
 const watchOnlyOptions: CreationType[] = [
@@ -270,8 +273,13 @@ export default function WatchOnly() {
     }
   }
 
-  async function updateExternalDescriptor(descriptor: string) {
-    const descriptorValidation = await validateDescriptor(descriptor)
+  async function updateExternalDescriptor(
+    descriptor: string,
+    skipChecksumValidation = false
+  ) {
+    const descriptorValidation = skipChecksumValidation
+      ? await validateDescriptorFormat(descriptor)
+      : await validateDescriptor(descriptor)
     const basicValidation =
       descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
 
@@ -314,8 +322,13 @@ export default function WatchOnly() {
     // updateDescriptorValidationState()
   }
 
-  async function updateInternalDescriptor(descriptor: string) {
-    const descriptorValidation = await validateDescriptor(descriptor)
+  async function updateInternalDescriptor(
+    descriptor: string,
+    skipChecksumValidation = false
+  ) {
+    const descriptorValidation = skipChecksumValidation
+      ? await validateDescriptorFormat(descriptor)
+      : await validateDescriptor(descriptor)
     const basicValidation = descriptorValidation.isValid
 
     // Network validation - check if descriptor is compatible with selected network
@@ -1284,14 +1297,6 @@ export default function WatchOnly() {
         }
       } catch (_jsonError) {
         // Handle legacy formats
-        if (text.match(/<0[,;]1>/)) {
-          externalDescriptor = text
-            .replace(/<0[,;]1>/, '0')
-            .replace(/#[a-z0-9]+$/, '')
-          internalDescriptor = text
-            .replace(/<0[,;]1>/, '1')
-            .replace(/#[a-z0-9]+$/, '')
-        }
         if (text.includes('\n')) {
           const lines = text.split('\n')
           externalDescriptor = lines[0]
@@ -1299,8 +1304,56 @@ export default function WatchOnly() {
         }
       }
 
-      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-      if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      if (isCombinedDescriptor(text)) {
+        console.log(
+          '🔍 WatchOnly (pasteFromClipboard): Detected combined descriptor:',
+          text
+        )
+
+        // Validate the combined descriptor and get separated descriptors
+        const combinedValidation = await validateCombinedDescriptor(text)
+
+        console.log(
+          '📊 WatchOnly (pasteFromClipboard): Combined validation result:',
+          {
+            isValid: combinedValidation.isValid,
+            error: combinedValidation.error,
+            externalDescriptor: combinedValidation.externalDescriptor,
+            internalDescriptor: combinedValidation.internalDescriptor
+          }
+        )
+
+        if (combinedValidation.isValid) {
+          // Set both descriptors and mark them as valid
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
+
+          // Store the descriptors in the store
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+
+          console.log(
+            '✅ WatchOnly (pasteFromClipboard): Successfully set external and internal descriptors as valid'
+          )
+        } else {
+          // Set the separated descriptors but mark them as invalid
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
+
+          console.log(
+            '❌ WatchOnly (pasteFromClipboard): Set external and internal descriptors as invalid due to combined validation failure'
+          )
+        }
+      } else {
+        // Handle non-combined descriptors with existing logic
+        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      }
     }
 
     if (selectedOption === 'importExtendedPub') {
@@ -1342,21 +1395,62 @@ export default function WatchOnly() {
       if (selectedOption === 'importDescriptor') {
         let externalDescriptor = text
         let internalDescriptor = ''
-        if (text.match(/<0[,;]1>/)) {
-          externalDescriptor = text
-            .replace(/<0[,;]1>/, '0')
-            .replace(/#[a-z0-9]+$/, '')
-          internalDescriptor = text
-            .replace(/<0[,;]1>/, '1')
-            .replace(/#[a-z0-9]+$/, '')
-        }
         if (text.includes('\n')) {
           const lines = text.split('\n')
           externalDescriptor = lines[0]
           internalDescriptor = lines[1]
         }
-        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+
+        // Check if the descriptor is combined (contains <0;1> or <0,1>)
+        if (isCombinedDescriptor(text)) {
+          console.log(
+            '🔍 WatchOnly (handleNFCRead): Detected combined descriptor:',
+            text
+          )
+
+          // Validate the combined descriptor and get separated descriptors
+          const combinedValidation = await validateCombinedDescriptor(text)
+
+          console.log(
+            '📊 WatchOnly (handleNFCRead): Combined validation result:',
+            {
+              isValid: combinedValidation.isValid,
+              error: combinedValidation.error,
+              externalDescriptor: combinedValidation.externalDescriptor,
+              internalDescriptor: combinedValidation.internalDescriptor
+            }
+          )
+
+          if (combinedValidation.isValid) {
+            // Set both descriptors and mark them as valid
+            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+            setValidExternalDescriptor(true)
+            setValidInternalDescriptor(true)
+
+            // Store the descriptors in the store
+            setExternalDescriptor(combinedValidation.externalDescriptor)
+            setInternalDescriptor(combinedValidation.internalDescriptor)
+
+            console.log(
+              '✅ WatchOnly (handleNFCRead): Successfully set external and internal descriptors as valid'
+            )
+          } else {
+            // Set the separated descriptors but mark them as invalid
+            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+            setValidExternalDescriptor(false)
+            setValidInternalDescriptor(false)
+
+            console.log(
+              '❌ WatchOnly (handleNFCRead): Set external and internal descriptors as invalid due to combined validation failure'
+            )
+          }
+        } else {
+          // Handle non-combined descriptors with existing logic
+          if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        }
       }
 
       if (selectedOption === 'importExtendedPub') {
@@ -1374,7 +1468,7 @@ export default function WatchOnly() {
     }
   }
 
-  function handleQRCodeScanned(data: string | undefined) {
+  async function handleQRCodeScanned(data: string | undefined) {
     if (!data) {
       toast.error(t('watchonly.read.qrError'))
       return
@@ -1599,15 +1693,6 @@ export default function WatchOnly() {
             }
           } catch (_jsonError) {
             // Handle legacy formats
-            if (finalContent.match(/<0[,;]1>/)) {
-              externalDescriptor = finalContent
-                .replace(/<0[,;]1>/, '0')
-                .replace(/#[a-z0-9]+$/, '')
-              internalDescriptor = finalContent
-                .replace(/<0[,;]1>/, '1')
-                .replace(/#[a-z0-9]+$/, '')
-            }
-
             if (finalContent.includes('\n')) {
               const lines = finalContent.split('\n')
               externalDescriptor = lines[0].trim()
@@ -1615,11 +1700,57 @@ export default function WatchOnly() {
             }
           }
 
-          if (externalDescriptor) {
-            updateExternalDescriptor(externalDescriptor)
-          }
-          if (internalDescriptor) {
-            updateInternalDescriptor(internalDescriptor)
+          // Check if the descriptor is combined (contains <0;1> or <0,1>)
+          if (isCombinedDescriptor(finalContent)) {
+            console.log(
+              '🔍 WatchOnly: Detected combined descriptor:',
+              finalContent
+            )
+
+            // Validate the combined descriptor and get separated descriptors
+            const combinedValidation =
+              await validateCombinedDescriptor(finalContent)
+
+            console.log('📊 WatchOnly: Combined validation result:', {
+              isValid: combinedValidation.isValid,
+              error: combinedValidation.error,
+              externalDescriptor: combinedValidation.externalDescriptor,
+              internalDescriptor: combinedValidation.internalDescriptor
+            })
+
+            if (combinedValidation.isValid) {
+              // Set both descriptors and mark them as valid
+              setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+              setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+              setValidExternalDescriptor(true)
+              setValidInternalDescriptor(true)
+
+              // Store the descriptors in the store
+              setExternalDescriptor(combinedValidation.externalDescriptor)
+              setInternalDescriptor(combinedValidation.internalDescriptor)
+
+              console.log(
+                '✅ WatchOnly: Successfully set external and internal descriptors as valid'
+              )
+            } else {
+              // Set the separated descriptors but mark them as invalid
+              setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+              setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+              setValidExternalDescriptor(false)
+              setValidInternalDescriptor(false)
+
+              console.log(
+                '❌ WatchOnly: Set external and internal descriptors as invalid due to combined validation failure'
+              )
+            }
+          } else {
+            // Handle non-combined descriptors with existing logic
+            if (externalDescriptor) {
+              updateExternalDescriptor(externalDescriptor)
+            }
+            if (internalDescriptor) {
+              updateInternalDescriptor(internalDescriptor)
+            }
           }
         }
 

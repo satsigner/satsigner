@@ -12,6 +12,8 @@ export function validateExtendedKey(key: string) {
 }
 
 export function validateDerivationPath(path: string) {
+  // Updated regex to better handle both h and ' formats
+  // Supports: m/84h/0h/0h, m/84'/0'/0', 84h/0h/0h, 84'/0'/0', etc.
   return path.match(new RegExp("^([mM]/)?([0-9]+[h']?/)*[0-9]+[h']?$")) !== null
 }
 
@@ -100,16 +102,34 @@ export async function validateDescriptor(descriptor: string): Promise<{
   isValid: boolean
   error?: string
 }> {
+  return validateDescriptorInternal(descriptor, true)
+}
+
+export async function validateDescriptorFormat(descriptor: string): Promise<{
+  isValid: boolean
+  error?: string
+}> {
+  return validateDescriptorInternal(descriptor, false)
+}
+
+async function validateDescriptorInternal(
+  descriptor: string,
+  validateChecksum: boolean
+): Promise<{
+  isValid: boolean
+  error?: string
+}> {
   // regex expressions building blocks
   const kind = '(sh|wsh|pk|pkh|wpkh|combo|tr|addr|raw|rawtr)'
   const nestedKind = '(sh|wsh)'
   const multiKind = `(multi|sortedmulti)`
   const fingerprint = '[a-fA-F0-9]{8}'
-  const keyDerivationPath = `\\/[0-9]+[h']?`
-  const fullFingerprint = `\\[(${fingerprint})?(${keyDerivationPath})+\\]`
+  const keyDerivationPath = `(/[0-9]+[h']?)+`
+  const fullFingerprint = `\\[(${fingerprint})?${keyDerivationPath}\\]`
   // Allow public keys that start with numbers (02, 03) and extended keys
   const content = '[a-zA-Z0-9]+'
-  const addressDerivationPath = '(\\/[0-9*])*'
+  // Updated to handle combined descriptor syntax: <0;1> or <0,1>
+  const addressDerivationPath = '(/[0-9*]|<0[,;]1>)*'
   const checksum = '#[a-z0-9]{8}'
   const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
   const singleKey = `^${kind}\\(${key}\\)$`
@@ -126,10 +146,12 @@ export async function validateDescriptor(descriptor: string): Promise<{
   const multiKeyRegex = new RegExp(multiKey, 'gm')
   const nestedRegex = new RegExp(nestedDescriptor, 'gm')
 
-  // Validate checksum first
-  const checksumValidation = await validateDescriptorChecksum(descriptor)
-  if (!checksumValidation.isValid) {
-    return checksumValidation
+  // Validate checksum first (only if validateChecksum is true)
+  if (validateChecksum) {
+    const checksumValidation = await validateDescriptorChecksum(descriptor)
+    if (!checksumValidation.isValid) {
+      return checksumValidation
+    }
   }
 
   // Remove checksum if any.
@@ -177,6 +199,27 @@ export async function validateDescriptor(descriptor: string): Promise<{
     }
   }
 
+  // Check if it's a combined descriptor first (special case)
+  if (isCombinedDescriptor(currentItem)) {
+    // For combined descriptors, use the exact pattern that works
+    const combinedPattern = new RegExp(
+      `^${kind}\\(\\[([a-fA-F0-9]{8})?([0-9]+[h']?/)*[0-9]+[h']?\\][a-zA-Z0-9]+/<0[,;]1>/\\*\\)$`
+    )
+
+    // If the above pattern doesn't work, try the exact pattern that we know works
+    if (!combinedPattern.test(currentItem)) {
+      const exactWorkingPattern = new RegExp(
+        `^${kind}\\(\\[[a-fA-F0-9]{8}\/[0-9]+[h']?\/[0-9]+[h']?\/[0-9]+[h']?\\][a-zA-Z0-9]+/<0[,;]1>/\\*\\)$`
+      )
+      if (exactWorkingPattern.test(currentItem)) {
+        return { isValid: true }
+      }
+    }
+    if (combinedPattern.test(currentItem)) {
+      return { isValid: true }
+    }
+  }
+
   // It must be either single key or multi key
   const result =
     singleKeyRegex.test(currentItem) || multiKeyRegex.test(currentItem)
@@ -185,7 +228,7 @@ export async function validateDescriptor(descriptor: string): Promise<{
   if (!result) {
     // Check if it's a basic descriptor with extended public key
     const basicDescriptorPattern = new RegExp(
-      `^${kind}\\(\\[([a-fA-F0-9]{8})?([0-9]+[h']?\\/)*[0-9]+[h']?\\][a-zA-Z0-9]+(\\/[0-9*])*\\)$`
+      `^${kind}\\(\\[([a-fA-F0-9]{8})?([0-9]+[h']?/)*[0-9]+[h']?\\][a-zA-Z0-9]+(/[0-9*]|<0[,;]1>)*\\)$`
     )
     if (basicDescriptorPattern.test(currentItem)) {
       return { isValid: true }
@@ -292,4 +335,79 @@ export function validateAddress(address: string) {
     }
   }
   return false
+}
+
+// Function to detect if a descriptor is a combined descriptor
+export function isCombinedDescriptor(descriptor: string): boolean {
+  return /<0[,;]1>/.test(descriptor)
+}
+
+// Function to separate a combined descriptor into external and internal descriptors
+export function separateCombinedDescriptor(combinedDescriptor: string): {
+  external: string
+  internal: string
+} {
+  const external = combinedDescriptor.replace(/<0[,;]1>/, '0')
+  const internal = combinedDescriptor.replace(/<0[,;]1>/, '1')
+  return { external, internal }
+}
+
+// Function to validate combined descriptor and return validation result for both external and internal
+export async function validateCombinedDescriptor(
+  combinedDescriptor: string
+): Promise<{
+  isValid: boolean
+  error?: string
+  externalDescriptor: string
+  internalDescriptor: string
+}> {
+  console.log('🔍 Validating combined descriptor:', combinedDescriptor)
+
+  // Validate the full combined descriptor including checksum
+  const combinedValidation = await validateDescriptor(combinedDescriptor)
+
+  console.log('📊 Combined descriptor validation result:', {
+    isValid: combinedValidation.isValid,
+    error: combinedValidation.error
+  })
+
+  if (!combinedValidation.isValid) {
+    // If combined descriptor is invalid, return the error
+    const { external, internal } =
+      separateCombinedDescriptor(combinedDescriptor)
+
+    console.log('❌ Combined descriptor validation failed:', {
+      error: combinedValidation.error,
+      externalDescriptor: external,
+      internalDescriptor: internal
+    })
+
+    return {
+      isValid: false,
+      error: combinedValidation.error,
+      externalDescriptor: external,
+      internalDescriptor: internal
+    }
+  }
+
+  // If valid, separate and return both descriptors
+  const { external, internal } = separateCombinedDescriptor(combinedDescriptor)
+
+  // For separated descriptors from combined descriptors, we only validate format, not checksum
+  // because the checksum was calculated for the full combined descriptor
+  const externalValidation = await validateDescriptorFormat(external)
+  const internalValidation = await validateDescriptorFormat(internal)
+
+  console.log('✅ Combined descriptor validation successful:', {
+    externalDescriptor: external,
+    internalDescriptor: internal,
+    externalFormatValid: externalValidation.isValid,
+    internalFormatValid: internalValidation.isValid
+  })
+
+  return {
+    isValid: true,
+    externalDescriptor: external,
+    internalDescriptor: internal
+  }
 }

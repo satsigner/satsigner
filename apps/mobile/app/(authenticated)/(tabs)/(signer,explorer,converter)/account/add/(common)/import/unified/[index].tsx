@@ -24,8 +24,11 @@ import { Colors } from '@/styles'
 import { type CreationType, type Key } from '@/types/models/Account'
 import {
   validateDescriptor,
+  validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint
+  validateFingerprint,
+  isCombinedDescriptor,
+  validateCombinedDescriptor
 } from '@/utils/validation'
 
 type UnifiedImportSearchParams = {
@@ -131,8 +134,13 @@ export default function UnifiedImport() {
     }
   }
 
-  async function updateExternalDescriptor(descriptor: string) {
-    const descriptorValidation = await validateDescriptor(descriptor)
+  async function updateExternalDescriptor(
+    descriptor: string,
+    skipChecksumValidation = false
+  ) {
+    const descriptorValidation = skipChecksumValidation
+      ? await validateDescriptorFormat(descriptor)
+      : await validateDescriptor(descriptor)
     const basicValidation =
       descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
 
@@ -175,8 +183,13 @@ export default function UnifiedImport() {
     updateDescriptorValidationState()
   }
 
-  async function updateInternalDescriptor(descriptor: string) {
-    const descriptorValidation = await validateDescriptor(descriptor)
+  async function updateInternalDescriptor(
+    descriptor: string,
+    skipChecksumValidation = false
+  ) {
+    const descriptorValidation = skipChecksumValidation
+      ? await validateDescriptorFormat(descriptor)
+      : await validateDescriptor(descriptor)
     const basicValidation = descriptorValidation.isValid
 
     // Network validation - check if descriptor is compatible with selected network
@@ -286,14 +299,6 @@ export default function UnifiedImport() {
         }
       } catch (_jsonError) {
         // Handle legacy formats
-        if (text.match(/<0[,;]1>/)) {
-          externalDescriptor = text
-            .replace(/<0[,;]1>/, '0')
-            .replace(/#[a-z0-9]+$/, '')
-          internalDescriptor = text
-            .replace(/<0[,;]1>/, '1')
-            .replace(/#[a-z0-9]+$/, '')
-        }
         if (text.includes('\n')) {
           const lines = text.split('\n')
           externalDescriptor = lines[0]
@@ -301,8 +306,33 @@ export default function UnifiedImport() {
         }
       }
 
-      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-      if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      if (isCombinedDescriptor(text)) {
+        // Validate the combined descriptor and get separated descriptors
+        const combinedValidation = await validateCombinedDescriptor(text)
+
+        if (combinedValidation.isValid) {
+          // Set both descriptors and mark them as valid
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
+
+          // Store the descriptors in the store
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+        } else {
+          // Set the separated descriptors but mark them as invalid
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
+        }
+      } else {
+        // Handle non-combined descriptors with existing logic
+        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      }
     }
 
     if (importType === 'extendedPub') {
@@ -345,21 +375,39 @@ export default function UnifiedImport() {
       if (importType === 'descriptor') {
         let externalDescriptor = text
         let internalDescriptor = ''
-        if (text.match(/<0[,;]1>/)) {
-          externalDescriptor = text
-            .replace(/<0[,;]1>/, '0')
-            .replace(/#[a-z0-9]+$/, '')
-          internalDescriptor = text
-            .replace(/<0[,;]1>/, '1')
-            .replace(/#[a-z0-9]+$/, '')
-        }
         if (text.includes('\n')) {
           const lines = text.split('\n')
           externalDescriptor = lines[0]
           internalDescriptor = lines[1]
         }
-        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+
+        // Check if the descriptor is combined (contains <0;1> or <0,1>)
+        if (isCombinedDescriptor(text)) {
+          // Validate the combined descriptor and get separated descriptors
+          const combinedValidation = await validateCombinedDescriptor(text)
+
+          if (combinedValidation.isValid) {
+            // Set both descriptors and mark them as valid
+            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+            setValidExternalDescriptor(true)
+            setValidInternalDescriptor(true)
+
+            // Store the descriptors in the store
+            setExternalDescriptor(combinedValidation.externalDescriptor)
+            setInternalDescriptor(combinedValidation.internalDescriptor)
+          } else {
+            // Set the separated descriptors but mark them as invalid
+            setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+            setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+            setValidExternalDescriptor(false)
+            setValidInternalDescriptor(false)
+          }
+        } else {
+          // Handle non-combined descriptors with existing logic
+          if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+          if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+        }
       }
 
       if (importType === 'extendedPub') {
@@ -373,7 +421,7 @@ export default function UnifiedImport() {
     }
   }
 
-  function handleQRCodeScanned(scanningResult: any) {
+  async function handleQRCodeScanned(scanningResult: any) {
     const data = scanningResult?.data
     if (!data) return
 
@@ -398,14 +446,6 @@ export default function UnifiedImport() {
         }
       } catch (_jsonError) {
         // Handle legacy formats
-        if (data.match(/<0[,;]1>/)) {
-          externalDescriptor = data
-            .replace(/<0[,;]1>/, '0')
-            .replace(/#[a-z0-9]+$/, '')
-          internalDescriptor = data
-            .replace(/<0[,;]1>/, '1')
-            .replace(/#[a-z0-9]+$/, '')
-        }
         if (data.includes('\n')) {
           const lines = data.split('\n')
           externalDescriptor = lines[0]
@@ -413,8 +453,33 @@ export default function UnifiedImport() {
         }
       }
 
-      if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
-      if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      if (isCombinedDescriptor(data)) {
+        // Validate the combined descriptor and get separated descriptors
+        const combinedValidation = await validateCombinedDescriptor(data)
+
+        if (combinedValidation.isValid) {
+          // Set both descriptors and mark them as valid
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
+
+          // Store the descriptors in the store
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+        } else {
+          // Set the separated descriptors but mark them as invalid
+          setLocalExternalDescriptor(combinedValidation.externalDescriptor)
+          setLocalInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
+        }
+      } else {
+        // Handle non-combined descriptors with existing logic
+        if (externalDescriptor) updateExternalDescriptor(externalDescriptor)
+        if (internalDescriptor) updateInternalDescriptor(internalDescriptor)
+      }
     }
 
     if (importType === 'extendedPub') {

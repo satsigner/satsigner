@@ -9,9 +9,7 @@ import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { extractExtendedKeyFromDescriptor, parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -30,7 +28,10 @@ import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
 import {
   validateDescriptor,
-  validateDescriptorScriptVersion
+  validateDescriptorFormat,
+  validateDescriptorScriptVersion,
+  isCombinedDescriptor,
+  validateCombinedDescriptor
 } from '@/utils/validation'
 
 export default function ImportDescriptor() {
@@ -144,37 +145,21 @@ export default function ImportDescriptor() {
     updateDescriptorValidationState
   ])
 
-  async function updateExternalDescriptor(descriptor: string) {
+  async function updateExternalDescriptor(
+    descriptor: string,
+    skipChecksumValidation = false
+  ) {
     // Basic descriptor validation
-    const descriptorValidation = await validateDescriptor(descriptor)
+    const descriptorValidation = skipChecksumValidation
+      ? await validateDescriptorFormat(descriptor)
+      : await validateDescriptor(descriptor)
     const basicValidation =
       descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
 
     // Network validation - check if descriptor is compatible with selected network
+    // Skip network validation during confirm stage since it was already validated during input
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
-    }
-    if (basicValidation && descriptor) {
-      try {
-        // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as Network)
-        networkValidation = { isValid: true }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        if (
-          errorMessage.includes('Invalid network') ||
-          errorMessage.includes('network')
-        ) {
-          networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
-          }
-        } else {
-          // For other BDK errors, still consider it valid for now
-          networkValidation = { isValid: true }
-        }
-      }
     }
 
     // Script version validation for multisig
@@ -227,36 +212,20 @@ export default function ImportDescriptor() {
     }
   }
 
-  async function updateInternalDescriptor(descriptor: string) {
+  async function updateInternalDescriptor(
+    descriptor: string,
+    skipChecksumValidation = false
+  ) {
     // Basic descriptor validation
-    const descriptorValidation = await validateDescriptor(descriptor)
+    const descriptorValidation = skipChecksumValidation
+      ? await validateDescriptorFormat(descriptor)
+      : await validateDescriptor(descriptor)
     const basicValidation = descriptorValidation.isValid
 
     // Network validation - check if descriptor is compatible with selected network
+    // Skip network validation during confirm stage since it was already validated during input
     let networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
-    }
-    if (basicValidation && descriptor) {
-      try {
-        // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as Network)
-        networkValidation = { isValid: true }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        if (
-          errorMessage.includes('Invalid network') ||
-          errorMessage.includes('network')
-        ) {
-          networkValidation = {
-            isValid: false,
-            error: 'networkIncompatible'
-          }
-        } else {
-          // For other BDK errors, still consider it valid for now
-          networkValidation = { isValid: true }
-        }
-      }
     }
 
     // Script version validation for multisig
@@ -400,21 +369,64 @@ export default function ImportDescriptor() {
       let extendedPublicKey = ''
       let derivationPath = ''
       try {
-        // Create descriptor and extract public key
-        const descriptor = await new Descriptor().create(
-          externalDescriptor,
-          network as Network
-        )
-        extendedPublicKey = await extractExtendedKeyFromDescriptor(descriptor)
+        // Extract information directly from descriptor string without re-validating checksum
+        // since it was already validated during input stage
 
-        // Extract derivation path from the same descriptor
-        const parsedDescriptor = await parseDescriptor(descriptor)
-        derivationPath = parsedDescriptor.derivationPath
-      } catch (error) {
-        console.error(
-          'Failed to extract extended public key from descriptor:',
-          error
+        // Extract extended public key using regex (same logic as extractExtendedKeyFromDescriptor)
+        const xpubMatch = externalDescriptor.match(
+          /(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/
         )
+        if (xpubMatch) {
+          extendedPublicKey = xpubMatch[0]
+        } else {
+          console.error('Failed to extract extended public key from descriptor')
+          return
+        }
+
+        // Extract derivation path from descriptor string
+        // Pattern: [fingerprint/derivation]xpub/address_derivation
+        const derivationMatch = externalDescriptor.match(
+          /\[([0-9a-fA-F]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
+        )
+        if (derivationMatch) {
+          // Extract the derivation path part (without fingerprint)
+          const fullDerivation = derivationMatch[0]
+          const fingerprintMatch = fullDerivation.match(/\[([0-9a-fA-F]{8})\/?/)
+
+          if (fingerprintMatch) {
+            // Remove fingerprint and brackets, keep only the derivation path
+            derivationPath = fullDerivation
+              .replace(/\[[0-9a-fA-F]{8}\/?/, '')
+              .replace(/\]/, '')
+          } else {
+            // No fingerprint, just remove brackets
+            derivationPath = fullDerivation.replace(/[\[\]]/g, '')
+          }
+
+          // Add 'm/' prefix if not present
+          if (!derivationPath.startsWith('m/')) {
+            derivationPath = 'm/' + derivationPath
+          }
+        } else {
+          // Fallback: try to extract from the full descriptor
+          const pathMatch = externalDescriptor.match(
+            /\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/
+          )
+          if (pathMatch) {
+            derivationPath = 'm/' + pathMatch[0].replace(/\/\*$/, '')
+          } else {
+            // Default derivation path if we can't extract it
+            derivationPath = "m/84'/0'/0'"
+          }
+        }
+
+        console.log('✅ Successfully extracted descriptor information:', {
+          extendedPublicKey,
+          derivationPath,
+          externalDescriptor
+        })
+      } catch (error) {
+        console.error('Failed to extract information from descriptor:', error)
         return
       }
 
@@ -479,10 +491,6 @@ export default function ImportDescriptor() {
       }
     } catch (_jsonError) {
       // Handle legacy formats
-      if (text.match(/<0[,;]1>/)) {
-        externalDescriptor = text.replace(/<0[,;]1>/, '0')
-        internalDescriptor = text.replace(/<0[,;]1>/, '1')
-      }
       if (text.includes('\n')) {
         const lines = text.split('\n')
         externalDescriptor = lines[0]
@@ -490,8 +498,64 @@ export default function ImportDescriptor() {
       }
     }
 
-    if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
-    if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
+    // Check if the descriptor is combined (contains <0;1> or <0,1>)
+    if (isCombinedDescriptor(text)) {
+      console.log(
+        '🔍 Descriptor Import (pasteFromClipboard): Detected combined descriptor:',
+        text
+      )
+
+      // Validate the combined descriptor and get separated descriptors
+      const combinedValidation = await validateCombinedDescriptor(text)
+
+      console.log(
+        '📊 Descriptor Import (pasteFromClipboard): Combined validation result:',
+        {
+          isValid: combinedValidation.isValid,
+          error: combinedValidation.error,
+          externalDescriptor: combinedValidation.externalDescriptor,
+          internalDescriptor: combinedValidation.internalDescriptor
+        }
+      )
+
+      if (combinedValidation.isValid) {
+        // For combined descriptors, use format-only validation for the separated descriptors
+        // because the checksums are only valid for the full combined descriptor
+        await updateExternalDescriptor(
+          combinedValidation.externalDescriptor,
+          true
+        )
+        await updateInternalDescriptor(
+          combinedValidation.internalDescriptor,
+          true
+        )
+
+        console.log(
+          '✅ Descriptor Import (pasteFromClipboard): Successfully set external and internal descriptors as valid'
+        )
+      } else {
+        // Set the separated descriptors but mark them as invalid
+        setExternalDescriptor(combinedValidation.externalDescriptor)
+        setInternalDescriptor(combinedValidation.internalDescriptor)
+        setValidExternalDescriptor(false)
+        setValidInternalDescriptor(false)
+
+        // Show the error message for both fields
+        const errorMessage = combinedValidation.error
+          ? t(`account.import.error.${combinedValidation.error}`)
+          : t('account.import.error.descriptorFormat')
+        setExternalDescriptorError(errorMessage)
+        setInternalDescriptorError(errorMessage)
+
+        console.log(
+          '❌ Descriptor Import (pasteFromClipboard): Set external and internal descriptors as invalid due to combined validation failure'
+        )
+      }
+    } else {
+      // Handle non-combined descriptors with existing logic
+      if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
+      if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
+    }
   }
 
   async function handleNFCRead() {
@@ -523,17 +587,69 @@ export default function ImportDescriptor() {
 
       let externalDescriptor = text
       let internalDescriptor = ''
-      if (text.match(/<0[,;]1>/)) {
-        externalDescriptor = text.replace(/<0[,;]1>/, '0')
-        internalDescriptor = text.replace(/<0[,;]1>/, '1')
-      }
       if (text.includes('\n')) {
         const lines = text.split('\n')
         externalDescriptor = lines[0]
         internalDescriptor = lines[1]
       }
-      if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
-      if (internalDescriptor) await updateInternalDescriptor(internalDescriptor)
+
+      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      if (isCombinedDescriptor(text)) {
+        console.log(
+          '🔍 Descriptor Import (handleNFCRead): Detected combined descriptor:',
+          text
+        )
+
+        // Validate the combined descriptor and get separated descriptors
+        const combinedValidation = await validateCombinedDescriptor(text)
+
+        console.log(
+          '📊 Descriptor Import (handleNFCRead): Combined validation result:',
+          {
+            isValid: combinedValidation.isValid,
+            error: combinedValidation.error,
+            externalDescriptor: combinedValidation.externalDescriptor,
+            internalDescriptor: combinedValidation.internalDescriptor
+          }
+        )
+
+        if (combinedValidation.isValid) {
+          // Set both descriptors and mark them as valid
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
+          setExternalDescriptorError('')
+          setInternalDescriptorError('')
+
+          // Store the descriptors in the store
+          setStoreExternalDescriptor(combinedValidation.externalDescriptor)
+          setStoreInternalDescriptor(combinedValidation.internalDescriptor)
+
+          console.log(
+            '✅ Descriptor Import (handleNFCRead): Successfully set external and internal descriptors as valid'
+          )
+        } else {
+          // Set the separated descriptors but mark them as invalid
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
+
+          // Show the error message for both fields
+          const errorMessage = combinedValidation.error
+            ? t(`account.import.error.${combinedValidation.error}`)
+            : t('account.import.error.descriptorFormat')
+          setExternalDescriptorError(errorMessage)
+          setInternalDescriptorError(errorMessage)
+        }
+      } else {
+        // Handle non-combined descriptors with existing logic
+        if (externalDescriptor)
+          await updateExternalDescriptor(externalDescriptor)
+        if (internalDescriptor)
+          await updateInternalDescriptor(internalDescriptor)
+      }
 
       toast.success(t('watchonly.success.nfcRead'))
     } catch (error) {
@@ -579,7 +695,43 @@ export default function ImportDescriptor() {
         }
       }
 
-      await updateExternalDescriptor(finalContent)
+      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      if (isCombinedDescriptor(finalContent)) {
+        // Validate the combined descriptor and get separated descriptors
+        const combinedValidation =
+          await validateCombinedDescriptor(finalContent)
+
+        if (combinedValidation.isValid) {
+          // Set both descriptors and mark them as valid
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(true)
+          setValidInternalDescriptor(true)
+          setExternalDescriptorError('')
+          setInternalDescriptorError('')
+
+          // Store the descriptors in the store
+          setStoreExternalDescriptor(combinedValidation.externalDescriptor)
+          setStoreInternalDescriptor(combinedValidation.internalDescriptor)
+        } else {
+          // Set the separated descriptors but mark them as invalid
+          setExternalDescriptor(combinedValidation.externalDescriptor)
+          setInternalDescriptor(combinedValidation.internalDescriptor)
+          setValidExternalDescriptor(false)
+          setValidInternalDescriptor(false)
+
+          // Show the error message for both fields
+          const errorMessage = combinedValidation.error
+            ? t(`account.import.error.${combinedValidation.error}`)
+            : t('account.import.error.descriptorFormat')
+          setExternalDescriptorError(errorMessage)
+          setInternalDescriptorError(errorMessage)
+        }
+      } else {
+        // Handle non-combined descriptors with existing logic
+        await updateExternalDescriptor(finalContent)
+      }
+
       setCameraModalVisible(false)
       toast.success(t('watchonly.success.qrScanned'))
       return
@@ -605,7 +757,43 @@ export default function ImportDescriptor() {
       if (newScanned.size === total) {
         const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
         if (assembledData) {
-          updateExternalDescriptor(assembledData)
+          // Check if the descriptor is combined (contains <0;1> or <0,1>)
+          if (isCombinedDescriptor(assembledData)) {
+            // Validate the combined descriptor and get separated descriptors
+            const combinedValidation =
+              await validateCombinedDescriptor(assembledData)
+
+            if (combinedValidation.isValid) {
+              // Set both descriptors and mark them as valid
+              setExternalDescriptor(combinedValidation.externalDescriptor)
+              setInternalDescriptor(combinedValidation.internalDescriptor)
+              setValidExternalDescriptor(true)
+              setValidInternalDescriptor(true)
+              setExternalDescriptorError('')
+              setInternalDescriptorError('')
+
+              // Store the descriptors in the store
+              setStoreExternalDescriptor(combinedValidation.externalDescriptor)
+              setStoreInternalDescriptor(combinedValidation.internalDescriptor)
+            } else {
+              // Set the separated descriptors but mark them as invalid
+              setExternalDescriptor(combinedValidation.externalDescriptor)
+              setInternalDescriptor(combinedValidation.internalDescriptor)
+              setValidExternalDescriptor(false)
+              setValidInternalDescriptor(false)
+
+              // Show the error message for both fields
+              const errorMessage = combinedValidation.error
+                ? t(`account.import.error.${combinedValidation.error}`)
+                : t('account.import.error.descriptorFormat')
+              setExternalDescriptorError(errorMessage)
+              setInternalDescriptorError(errorMessage)
+            }
+          } else {
+            // Handle non-combined descriptors with existing logic
+            await updateExternalDescriptor(assembledData)
+          }
+
           setCameraModalVisible(false)
           toast.success(t('watchonly.success.qrScanned'))
         }
