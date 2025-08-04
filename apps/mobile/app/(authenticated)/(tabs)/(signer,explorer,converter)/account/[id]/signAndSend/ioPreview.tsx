@@ -604,7 +604,6 @@ export default function IOPreview() {
           )}
         </View>
       ) : null}
-
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{

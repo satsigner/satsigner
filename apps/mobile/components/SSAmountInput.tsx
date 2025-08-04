@@ -60,7 +60,7 @@ function SSAmountInput({
         {remainingSats !== undefined && (
           <SSHStack style={{ justifyContent: 'center' }} gap="xs">
             <SSText color="muted">
-              Remining {Math.round(remainingSats - localValue)}
+              {t('common.remaining')} {Math.round(remainingSats - localValue)}
             </SSText>
             <SSText color="muted">{t('bitcoin.sats')}</SSText>
           </SSHStack>

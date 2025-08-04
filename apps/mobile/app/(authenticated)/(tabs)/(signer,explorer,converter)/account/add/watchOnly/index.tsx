@@ -2294,13 +2294,15 @@ export default function WatchOnly() {
               {scanProgress.type && scanProgress.total > 1 && (
                 <SSVStack gap="sm">
                   <SSText center size="sm" color="muted">
-                    {scanProgress.type.toUpperCase()} QR Code Scan Progress
+                    {scanProgress.type.toUpperCase()}{' '}
+                    {t('qrcode.scan.progress')}
                   </SSText>
                   <SSText center size="md">
-                    {scanProgress.scanned.size} / {scanProgress.total} parts
+                    {scanProgress.scanned.size} / {scanProgress.total}{' '}
+                    {t('common.parts')}
                   </SSText>
                   <SSButton
-                    label="Reset Scan"
+                    label={t('qrcode.scan.reset')}
                     variant="ghost"
                     onPress={resetScanProgress}
                   />
@@ -2338,7 +2340,6 @@ export default function WatchOnly() {
               ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
               : t('camera.scanQRCode')}
           </SSText>
-
           <CameraView
             onBarcodeScanned={(res) => {
               handleQRCodeScanned(res.raw)
@@ -2346,7 +2347,6 @@ export default function WatchOnly() {
             barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
             style={{ width: 340, height: 340 }}
           />
-
           {/* Show progress if scanning multi-part QR */}
           {scanProgress.type && scanProgress.total > 1 && (
             <SSVStack itemsCenter gap="xs" style={{ marginBottom: 10 }}>
@@ -2430,7 +2430,6 @@ export default function WatchOnly() {
               )}
             </SSVStack>
           )}
-
           <SSHStack>
             {!permission?.granted && (
               <SSButton
@@ -2439,7 +2438,6 @@ export default function WatchOnly() {
               />
             )}
           </SSHStack>
-
           {/* Reset button for multi-part scans */}
           {scanProgress.type && (
             <SSHStack>

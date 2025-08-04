@@ -23,9 +23,11 @@
       "scriptVersion": "Script Version: %{version}",
       "title": "Descriptor"
     },
+    "descriptors.noAvailable": "No descriptors available",
     "duplicate": {
       "title": "Duplicate Account"
     },
+    "duplicate.title": "Duplicate account",
     "enter.pin": "Enter pin",
     "entropy.coin.desc.12": "To achieve 128 bits of entropy, you need to flip a fair coin about 128 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.15": "To achieve 160 bits of entropy, you need to flip a fair coin about 160 times, as each flip provides 1 bit of randomness.",
@@ -370,6 +372,7 @@
     "label": "Label",
     "less": "Less",
     "loading": "Loading",
+    "loadingX": "Loading %{x}...",
     "max": "Max",
     "more": "More",
     "name": "Name",
@@ -380,15 +383,19 @@
     "off": "Off",
     "on": "On",
     "optional": "Optional",
+    "parts": "Parts",
     "paste": "Paste",
     "pasteFromClipboard": "Paste from clipboard",
+    "progress": "Progress",
     "publicKeys": "PUBLIC KEYS",
+    "remaining": "Remaining",
     "remove": "Remove",
     "save": "Save",
     "select": "Select",
     "selectAll": "Select All",
     "selected": "Selected",
     "skip": "Skip",
+    "speed": "Speed",
     "tags": "Tags",
     "to": "To",
     "total": "Total",
@@ -795,6 +802,10 @@
     "selectFormat": "Select Format",
     "title": "Public Key"
   },
+  "qrcode": {
+    "scan.progress": "QR Code Scan Progress",
+    "scan.reset": "Reset Scan"
+  },
   "receive": {
     "address": "Address",
     "customAmount": "Custom amount",
@@ -1188,12 +1199,6 @@
     "title": "This is an experimental app, use responsibly."
   },
   "watchonly": {
-    "error": {
-      "clipboardPaste": "Failed to paste from clipboard",
-      "emptyClipboard": "Clipboard is empty",
-      "invalidInput": "Invalid input data",
-      "nfcRead": "Failed to read NFC data"
-    },
     "fingerprint.label": "Master Fingerprint",
     "fingerprint.text": "Fingerprint",
     "importAddress.label": "Address",
