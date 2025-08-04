@@ -1,0 +1,60 @@
+{
+  "scrollview": {
+    "scope": "typescriptreact",
+    "prefix": "scrollview",
+    "body": ["<ScrollView>", "\t$0", "</ScrollView>"],
+    "description": "Scroll View React Native"
+  },
+  "touchableopacity": {
+    "scope": "typescriptreact",
+    "prefix": "touchable",
+    "body": ["<TouchableOpacity onPress={$1}>", "\t$0", "</TouchableOpacity>"],
+    "description": "TouchableOpacity React Native"
+  },
+  "ssbutton": {
+    "scope": "typescriptreact",
+    "prefix": "button",
+    "body": ["<SSButton onPress={$1}>", "\t$0", "</SSButton>"],
+    "description": "SSButton component"
+  },
+  "ssinput": {
+    "scope": "typescriptreact",
+    "prefix": "input",
+    "body": [
+      "<SSTextInput value={$1} onChangeText={$2}>",
+      "\t$0",
+      "</SSTextInput>"
+    ],
+    "description": "SSTextInput component"
+  },
+  "ssmodal": {
+    "scope": "typescriptreact",
+    "prefix": "modal",
+    "body": ["<SSModal visible={$1} onClose={$2}>", "\t$0", "</SSModal>"],
+    "description": "SSModal component"
+  },
+  "ssseparator": {
+    "scope": "typescriptreact",
+    "prefix": "sep",
+    "body": ["<SSSeparator>", "\t$0", "</SSSeparator>"],
+    "description": "SSSeparator component"
+  },
+  "sstext": {
+    "scope": "typescriptreact",
+    "prefix": "text",
+    "body": ["<SSText>", "\t$0", "</SSText>"],
+    "description": "SSText component"
+  },
+  "sshstack": {
+    "scope": "typescriptreact",
+    "prefix": "hstack",
+    "body": ["<SSHStack>", "\t$0", "</SSHStack>"],
+    "description": "SSHStack component"
+  },
+  "ssvstack": {
+    "scope": "typescriptreact",
+    "prefix": "vstack",
+    "body": ["<SSVStack>", "\t$0", "</SSVStack>"],
+    "description": "SSVStack component"
+  }
+}

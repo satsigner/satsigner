@@ -163,9 +163,10 @@ export default function AccountList() {
 
       if (connectionMode === 'auto' && account.syncStatus !== 'syncing') {
         const updatedAccount =
-          account.policyType !== 'watchonly'
-            ? await syncAccountWithWallet(account, wallets[account.id]!)
-            : await syncAccountWithAddress(account)
+          account.policyType === 'watchonly' &&
+          account.keys[0].creationType === 'importAddress'
+            ? await syncAccountWithAddress(account)
+            : await syncAccountWithWallet(account, wallets[account.id]!)
         updateAccount(updatedAccount)
       }
     }
