@@ -30,6 +30,7 @@ import {
   isCombinedDescriptor,
   validateCombinedDescriptor
 } from '@/utils/validation'
+import { convertKeyFormat } from '@/utils/bitcoin'
 
 type UnifiedImportSearchParams = {
   index: string
@@ -104,7 +105,7 @@ export default function UnifiedImport() {
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub)
+    const validXpub = validateExtendedKey(xpub, network)
     setValidXpub(!xpub || validXpub)
     if (importType === 'extendedPub') {
       setDisabled(!validXpub || !localFingerprint)

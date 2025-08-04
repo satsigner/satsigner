@@ -23,6 +23,7 @@ import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
+import { convertKeyFormat } from '@/utils/bitcoin'
 
 type PublicKeyFormat = 'xpub' | 'ypub' | 'zpub' | 'vpub'
 
@@ -96,53 +97,8 @@ export default function PublicKeyPage() {
       return publicKey
     }
 
-    try {
-      const decoded = bs58check.decode(publicKey)
-      let version: Uint8Array
-
-      // Define version bytes for different formats
-      const versionBytes = {
-        xpub: new Uint8Array([0x04, 0x88, 0xb2, 0x1e]), // xpub (mainnet)
-        ypub: new Uint8Array([0x04, 0x9d, 0x7c, 0xb2]), // ypub (mainnet)
-        zpub: new Uint8Array([0x04, 0xb2, 0x47, 0x46]), // zpub (mainnet)
-        vpub_mainnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]), // vpub (mainnet)
-        tpub: new Uint8Array([0x04, 0x35, 0x87, 0xcf]), // tpub (testnet)
-        upub: new Uint8Array([0x04, 0x4a, 0x52, 0x62]), // upub (testnet)
-        vpub_testnet: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]), // vpub (testnet)
-        wpub: new Uint8Array([0x04, 0x5f, 0x1c, 0xf6]) // wpub (testnet)
-      }
-
-      // Determine if we're dealing with mainnet or testnet
-      const isMainnet =
-        publicKey.startsWith('xpub') ||
-        publicKey.startsWith('ypub') ||
-        publicKey.startsWith('zpub') ||
-        publicKey.startsWith('vpub')
-
-      switch (targetFormat) {
-        case 'xpub':
-          version = isMainnet ? versionBytes.xpub : versionBytes.tpub
-          break
-        case 'ypub':
-          version = isMainnet ? versionBytes.ypub : versionBytes.upub
-          break
-        case 'zpub':
-          version = isMainnet ? versionBytes.zpub : versionBytes.vpub_testnet
-          break
-        case 'vpub':
-          version = isMainnet ? versionBytes.vpub_mainnet : versionBytes.wpub
-          break
-        default:
-          return publicKey
-      }
-
-      // Create new decoded data with the target version
-      const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
-      return bs58check.encode(newDecoded)
-    } catch (error) {
-      console.error('Failed to convert public key format:', error)
-      return publicKey
-    }
+    // Use the network-aware conversion utility
+    return convertKeyFormat(publicKey, targetFormat, network)
   }
 
   useEffect(() => {

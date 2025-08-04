@@ -353,82 +353,35 @@ export default function ImportDescriptor() {
     urDecoderRef.current = new URDecoder()
   }
 
+  /**
+   * Extract information from descriptor string without re-validating checksum
+   * since it was already validated during input stage
+   */
   async function handleConfirm() {
     try {
+      console.log('🔍 Starting descriptor information extraction...')
+
       // Extract fingerprint from the descriptor if possible
-      let fingerprint = ''
+      const fingerprint = extractFingerprintFromDescriptor(externalDescriptor)
 
-      // Try to extract fingerprint from descriptor string using regex
-      // Pattern: [fingerprint/derivation]xpub or [fingerprint]xpub
-      const fingerprintMatch = externalDescriptor.match(/\[([0-9a-fA-F]{8})\/?/)
-      if (fingerprintMatch) {
-        fingerprint = fingerprintMatch[1]
-      }
+      // Extract extended public key and derivation path
+      const { extendedPublicKey, derivationPath } =
+        extractDescriptorInfo(externalDescriptor)
 
-      // Extract extended public key from descriptor
-      let extendedPublicKey = ''
-      let derivationPath = ''
-      try {
-        // Extract information directly from descriptor string without re-validating checksum
-        // since it was already validated during input stage
-
-        // Extract extended public key using regex (same logic as extractExtendedKeyFromDescriptor)
-        const xpubMatch = externalDescriptor.match(
-          /(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/
+      if (!extendedPublicKey) {
+        console.error(
+          '❌ Failed to extract extended public key from descriptor'
         )
-        if (xpubMatch) {
-          extendedPublicKey = xpubMatch[0]
-        } else {
-          console.error('Failed to extract extended public key from descriptor')
-          return
-        }
-
-        // Extract derivation path from descriptor string
-        // Pattern: [fingerprint/derivation]xpub/address_derivation
-        const derivationMatch = externalDescriptor.match(
-          /\[([0-9a-fA-F]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
-        )
-        if (derivationMatch) {
-          // Extract the derivation path part (without fingerprint)
-          const fullDerivation = derivationMatch[0]
-          const fingerprintMatch = fullDerivation.match(/\[([0-9a-fA-F]{8})\/?/)
-
-          if (fingerprintMatch) {
-            // Remove fingerprint and brackets, keep only the derivation path
-            derivationPath = fullDerivation
-              .replace(/\[[0-9a-fA-F]{8}\/?/, '')
-              .replace(/\]/, '')
-          } else {
-            // No fingerprint, just remove brackets
-            derivationPath = fullDerivation.replace(/[\[\]]/g, '')
-          }
-
-          // Add 'm/' prefix if not present
-          if (!derivationPath.startsWith('m/')) {
-            derivationPath = 'm/' + derivationPath
-          }
-        } else {
-          // Fallback: try to extract from the full descriptor
-          const pathMatch = externalDescriptor.match(
-            /\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/
-          )
-          if (pathMatch) {
-            derivationPath = 'm/' + pathMatch[0].replace(/\/\*$/, '')
-          } else {
-            // Default derivation path if we can't extract it
-            derivationPath = "m/84'/0'/0'"
-          }
-        }
-
-        console.log('✅ Successfully extracted descriptor information:', {
-          extendedPublicKey,
-          derivationPath,
-          externalDescriptor
-        })
-      } catch (error) {
-        console.error('Failed to extract information from descriptor:', error)
+        toast.error(t('account.import.error.descriptorFormat'))
         return
       }
+
+      console.log('✅ Successfully extracted descriptor information:', {
+        extendedPublicKey: `${extendedPublicKey.slice(0, 8)}...`,
+        derivationPath,
+        fingerprint,
+        descriptorLength: externalDescriptor.length
+      })
 
       // Set the descriptors in the store
       setStoreExternalDescriptor(externalDescriptor)
@@ -436,25 +389,152 @@ export default function ImportDescriptor() {
         setStoreInternalDescriptor(internalDescriptor)
       }
 
-      // Set the extended public key in the store
+      // Set the extracted information in the store
       setExtendedPublicKey(extendedPublicKey)
-
-      // Set the fingerprint if we extracted it
       if (fingerprint) {
         setFingerprint(fingerprint)
       }
 
       // Set the key data
       const key = setKey(Number(keyIndex))
-
-      // Set the derivation path for this key
       setKeyDerivationPath(Number(keyIndex), derivationPath)
 
       clearKeyState()
-
       router.dismiss(1)
+
+      console.log('✅ Descriptor import completed successfully')
     } catch (error) {
-      console.error('Error in handleConfirm:', error)
+      console.error('❌ Error in handleConfirm:', error)
+      toast.error(t('account.import.error'))
+    }
+  }
+
+  /**
+   * Extract fingerprint from descriptor string
+   */
+  function extractFingerprintFromDescriptor(descriptor: string): string {
+    const fingerprintMatch = descriptor.match(/\[([0-9a-fA-F]{8})\/?/)
+    return fingerprintMatch ? fingerprintMatch[1] : ''
+  }
+
+  /**
+   * Extract extended public key and derivation path from descriptor string
+   */
+  function extractDescriptorInfo(descriptor: string): {
+    extendedPublicKey: string
+    derivationPath: string
+  } {
+    // Extract extended public key using regex
+    const xpubMatch = descriptor.match(/(tpub|xpub|vpub|zpub)[A-Za-z0-9]+/)
+    const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
+
+    // Extract derivation path with improved logic
+    let derivationPath = extractDerivationPathFromDescriptor(descriptor)
+
+    return { extendedPublicKey, derivationPath }
+  }
+
+  /**
+   * Extract derivation path from descriptor string with smart fallbacks
+   */
+  function extractDerivationPathFromDescriptor(descriptor: string): string {
+    // Primary method: Extract from [fingerprint/derivation] pattern
+    // Look for the pattern: [fingerprint/derivation] where derivation contains slashes
+    const bracketMatch = descriptor.match(
+      /\[([0-9a-fA-F]{8})\/([0-9]+[h']?\/)*[0-9]+[h']?\]/
+    )
+
+    if (bracketMatch) {
+      // Extract the full derivation path by removing fingerprint and brackets
+      const fullBracket = bracketMatch[0]
+      const derivationPath = fullBracket
+        .replace(/^\[[0-9a-fA-F]{8}\//, '') // Remove [fingerprint/
+        .replace(/\]$/, '') // Remove closing ]
+
+      // Add 'm/' prefix if not present
+      if (!derivationPath.startsWith('m/')) {
+        return 'm/' + derivationPath
+      }
+
+      return derivationPath
+    }
+
+    // Secondary method: Extract from /derivation/* pattern
+    const pathMatch = descriptor.match(/\/([0-9]+[h']?\/)*[0-9]+[h']?\/\*/)
+    if (pathMatch) {
+      return 'm/' + pathMatch[0].replace(/\/\*$/, '')
+    }
+
+    // Fallback: Use default derivation path
+    console.warn('⚠️ Could not extract derivation path, using default')
+    return "m/84'/0'/0'"
+  }
+
+  /**
+   * Handle combined descriptor import with smart validation and error handling
+   */
+  async function handleCombinedDescriptorImport(
+    combinedDescriptor: string,
+    source: 'pasteFromClipboard' | 'handleNFCRead' | 'handleQRCodeScanned'
+  ) {
+    console.log(
+      `🔍 Descriptor Import (${source}): Detected combined descriptor`
+    )
+
+    try {
+      // Validate the combined descriptor and get separated descriptors
+      const combinedValidation =
+        await validateCombinedDescriptor(combinedDescriptor)
+
+      console.log(
+        `📊 Descriptor Import (${source}): Combined validation result:`,
+        {
+          isValid: combinedValidation.isValid,
+          error: combinedValidation.error,
+          externalDescriptor: `${combinedValidation.externalDescriptor.slice(0, 50)}...`,
+          internalDescriptor: `${combinedValidation.internalDescriptor.slice(0, 50)}...`
+        }
+      )
+
+      if (combinedValidation.isValid) {
+        // For combined descriptors, use format-only validation for the separated descriptors
+        // because the checksums are only valid for the full combined descriptor
+        await updateExternalDescriptor(
+          combinedValidation.externalDescriptor,
+          true
+        )
+        await updateInternalDescriptor(
+          combinedValidation.internalDescriptor,
+          true
+        )
+
+        console.log(
+          `✅ Descriptor Import (${source}): Successfully set external and internal descriptors as valid`
+        )
+      } else {
+        // Set the separated descriptors but mark them as invalid
+        setExternalDescriptor(combinedValidation.externalDescriptor)
+        setInternalDescriptor(combinedValidation.internalDescriptor)
+        setValidExternalDescriptor(false)
+        setValidInternalDescriptor(false)
+
+        // Show the error message for both fields
+        const errorMessage = combinedValidation.error
+          ? t(`account.import.error.${combinedValidation.error}`)
+          : t('account.import.error.descriptorFormat')
+        setExternalDescriptorError(errorMessage)
+        setInternalDescriptorError(errorMessage)
+
+        console.log(
+          `❌ Descriptor Import (${source}): Set descriptors as invalid due to combined validation failure`
+        )
+      }
+    } catch (error) {
+      console.error(
+        `❌ Error in handleCombinedDescriptorImport (${source}):`,
+        error
+      )
+      toast.error(t('account.import.error'))
     }
   }
 
@@ -498,59 +578,9 @@ export default function ImportDescriptor() {
       }
     }
 
-    // Check if the descriptor is combined (contains <0;1> or <0,1>)
+    // Handle combined descriptors with smart validation
     if (isCombinedDescriptor(text)) {
-      console.log(
-        '🔍 Descriptor Import (pasteFromClipboard): Detected combined descriptor:',
-        text
-      )
-
-      // Validate the combined descriptor and get separated descriptors
-      const combinedValidation = await validateCombinedDescriptor(text)
-
-      console.log(
-        '📊 Descriptor Import (pasteFromClipboard): Combined validation result:',
-        {
-          isValid: combinedValidation.isValid,
-          error: combinedValidation.error,
-          externalDescriptor: combinedValidation.externalDescriptor,
-          internalDescriptor: combinedValidation.internalDescriptor
-        }
-      )
-
-      if (combinedValidation.isValid) {
-        // For combined descriptors, use format-only validation for the separated descriptors
-        // because the checksums are only valid for the full combined descriptor
-        await updateExternalDescriptor(
-          combinedValidation.externalDescriptor,
-          true
-        )
-        await updateInternalDescriptor(
-          combinedValidation.internalDescriptor,
-          true
-        )
-
-        console.log(
-          '✅ Descriptor Import (pasteFromClipboard): Successfully set external and internal descriptors as valid'
-        )
-      } else {
-        // Set the separated descriptors but mark them as invalid
-        setExternalDescriptor(combinedValidation.externalDescriptor)
-        setInternalDescriptor(combinedValidation.internalDescriptor)
-        setValidExternalDescriptor(false)
-        setValidInternalDescriptor(false)
-
-        // Show the error message for both fields
-        const errorMessage = combinedValidation.error
-          ? t(`account.import.error.${combinedValidation.error}`)
-          : t('account.import.error.descriptorFormat')
-        setExternalDescriptorError(errorMessage)
-        setInternalDescriptorError(errorMessage)
-
-        console.log(
-          '❌ Descriptor Import (pasteFromClipboard): Set external and internal descriptors as invalid due to combined validation failure'
-        )
-      }
+      await handleCombinedDescriptorImport(text, 'pasteFromClipboard')
     } else {
       // Handle non-combined descriptors with existing logic
       if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
@@ -593,56 +623,9 @@ export default function ImportDescriptor() {
         internalDescriptor = lines[1]
       }
 
-      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(text)) {
-        console.log(
-          '🔍 Descriptor Import (handleNFCRead): Detected combined descriptor:',
-          text
-        )
-
-        // Validate the combined descriptor and get separated descriptors
-        const combinedValidation = await validateCombinedDescriptor(text)
-
-        console.log(
-          '📊 Descriptor Import (handleNFCRead): Combined validation result:',
-          {
-            isValid: combinedValidation.isValid,
-            error: combinedValidation.error,
-            externalDescriptor: combinedValidation.externalDescriptor,
-            internalDescriptor: combinedValidation.internalDescriptor
-          }
-        )
-
-        if (combinedValidation.isValid) {
-          // Set both descriptors and mark them as valid
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(true)
-          setValidInternalDescriptor(true)
-          setExternalDescriptorError('')
-          setInternalDescriptorError('')
-
-          // Store the descriptors in the store
-          setStoreExternalDescriptor(combinedValidation.externalDescriptor)
-          setStoreInternalDescriptor(combinedValidation.internalDescriptor)
-
-          console.log(
-            '✅ Descriptor Import (handleNFCRead): Successfully set external and internal descriptors as valid'
-          )
-        } else {
-          // Set the separated descriptors but mark them as invalid
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(false)
-          setValidInternalDescriptor(false)
-
-          // Show the error message for both fields
-          const errorMessage = combinedValidation.error
-            ? t(`account.import.error.${combinedValidation.error}`)
-            : t('account.import.error.descriptorFormat')
-          setExternalDescriptorError(errorMessage)
-          setInternalDescriptorError(errorMessage)
-        }
+        await handleCombinedDescriptorImport(text, 'handleNFCRead')
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor)
@@ -695,38 +678,12 @@ export default function ImportDescriptor() {
         }
       }
 
-      // Check if the descriptor is combined (contains <0;1> or <0,1>)
+      // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(finalContent)) {
-        // Validate the combined descriptor and get separated descriptors
-        const combinedValidation =
-          await validateCombinedDescriptor(finalContent)
-
-        if (combinedValidation.isValid) {
-          // Set both descriptors and mark them as valid
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(true)
-          setValidInternalDescriptor(true)
-          setExternalDescriptorError('')
-          setInternalDescriptorError('')
-
-          // Store the descriptors in the store
-          setStoreExternalDescriptor(combinedValidation.externalDescriptor)
-          setStoreInternalDescriptor(combinedValidation.internalDescriptor)
-        } else {
-          // Set the separated descriptors but mark them as invalid
-          setExternalDescriptor(combinedValidation.externalDescriptor)
-          setInternalDescriptor(combinedValidation.internalDescriptor)
-          setValidExternalDescriptor(false)
-          setValidInternalDescriptor(false)
-
-          // Show the error message for both fields
-          const errorMessage = combinedValidation.error
-            ? t(`account.import.error.${combinedValidation.error}`)
-            : t('account.import.error.descriptorFormat')
-          setExternalDescriptorError(errorMessage)
-          setInternalDescriptorError(errorMessage)
-        }
+        await handleCombinedDescriptorImport(
+          finalContent,
+          'handleQRCodeScanned'
+        )
       } else {
         // Handle non-combined descriptors with existing logic
         await updateExternalDescriptor(finalContent)
@@ -757,38 +714,12 @@ export default function ImportDescriptor() {
       if (newScanned.size === total) {
         const assembledData = assembleMultiPartQR(qrInfo.type, newChunks)
         if (assembledData) {
-          // Check if the descriptor is combined (contains <0;1> or <0,1>)
+          // Handle combined descriptors with smart validation
           if (isCombinedDescriptor(assembledData)) {
-            // Validate the combined descriptor and get separated descriptors
-            const combinedValidation =
-              await validateCombinedDescriptor(assembledData)
-
-            if (combinedValidation.isValid) {
-              // Set both descriptors and mark them as valid
-              setExternalDescriptor(combinedValidation.externalDescriptor)
-              setInternalDescriptor(combinedValidation.internalDescriptor)
-              setValidExternalDescriptor(true)
-              setValidInternalDescriptor(true)
-              setExternalDescriptorError('')
-              setInternalDescriptorError('')
-
-              // Store the descriptors in the store
-              setStoreExternalDescriptor(combinedValidation.externalDescriptor)
-              setStoreInternalDescriptor(combinedValidation.internalDescriptor)
-            } else {
-              // Set the separated descriptors but mark them as invalid
-              setExternalDescriptor(combinedValidation.externalDescriptor)
-              setInternalDescriptor(combinedValidation.internalDescriptor)
-              setValidExternalDescriptor(false)
-              setValidInternalDescriptor(false)
-
-              // Show the error message for both fields
-              const errorMessage = combinedValidation.error
-                ? t(`account.import.error.${combinedValidation.error}`)
-                : t('account.import.error.descriptorFormat')
-              setExternalDescriptorError(errorMessage)
-              setInternalDescriptorError(errorMessage)
-            }
+            await handleCombinedDescriptorImport(
+              assembledData,
+              'handleQRCodeScanned'
+            )
           } else {
             // Handle non-combined descriptors with existing logic
             await updateExternalDescriptor(assembledData)

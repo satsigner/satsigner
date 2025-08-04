@@ -29,6 +29,7 @@ import {
   validateFingerprint,
   validateDescriptorScriptVersion
 } from '@/utils/validation'
+import { convertKeyFormat } from '@/utils/bitcoin'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
@@ -146,7 +147,7 @@ export default function ImportExtendedPub() {
   }
 
   function updateXpub(xpub: string) {
-    const validXpub = validateExtendedKey(xpub)
+    const validXpub = validateExtendedKey(xpub, network)
     setValidXpub(!xpub || validXpub)
     setXpub(xpub)
 
@@ -212,23 +213,8 @@ export default function ImportExtendedPub() {
     // If it's not a vpub, return as is
     if (!vpub.startsWith('vpub')) return vpub
 
-    try {
-      // Decode the base58check string (includes checksum)
-      const decoded = bs58check.decode(vpub)
-
-      // The first 4 bytes are the version
-      // For vpub: 0x045f1cf6 (testnet segwit)
-      // For tpub: 0x043587cf (testnet)
-      const version = new Uint8Array([0x04, 0x35, 0x87, 0xcf])
-
-      // Create new buffer with tpub version
-      const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
-
-      // Convert back to base58check (will add checksum)
-      return bs58check.encode(newDecoded)
-    } catch (_error) {
-      return vpub // Return original if conversion fails
-    }
+    // Use the network-aware conversion utility
+    return convertKeyFormat(vpub, 'tpub', network)
   }
 
   // Helper functions for QR code detection and parsing

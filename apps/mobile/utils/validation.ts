@@ -3,12 +3,30 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { Descriptor } from 'bdk-rn'
 import { Network } from 'bdk-rn/lib/lib/enums'
 
+import { type Network as AppNetwork } from '@/types/settings/blockchain'
+
 bitcoinjs.initEccLib(ecc)
 
-export function validateExtendedKey(key: string) {
+// Define valid key prefixes for each network
+const NETWORK_KEY_PREFIXES: Record<AppNetwork, string[]> = {
+  bitcoin: ['xpub', 'ypub', 'zpub', 'vpub'],
+  testnet: ['tpub', 'upub', 'vpub'],
+  signet: ['tpub', 'upub', 'vpub']
+}
+
+export function validateExtendedKey(key: string, network?: AppNetwork) {
   // TODO: validate string length: 111 characters?
   // TODO: validate checksum
-  return key.match(new RegExp('^[tvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
+
+  // If network is provided, validate against that network's prefixes
+  if (network) {
+    const validPrefixes = NETWORK_KEY_PREFIXES[network]
+    const keyPrefix = key.match(/^[tuvxyz](pub|prv)/)?.[0]
+    return keyPrefix ? validPrefixes.includes(keyPrefix) : false
+  }
+
+  // Fallback to original validation (accepts all prefixes)
+  return key.match(new RegExp('^[tuvxyz](pub|prv)[a-zA-Z0-9]+$')) !== null
 }
 
 export function validateDerivationPath(path: string) {
