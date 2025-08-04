@@ -213,4 +213,28 @@ export function convertKeyForNetwork(
   return convertKeyFormat(key, targetFormat, targetNetwork)
 }
 
+/**
+ * Get the appropriate derivation path for a given script version and network
+ */
+export function getDerivationPathFromScriptVersion(
+  scriptVersion: string,
+  network: Network
+): string {
+  // Determine coin type based on network
+  const coinType = network === 'bitcoin' ? '0' : '1'
+
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return `44'/${coinType}'/0'`
+    case 'P2SH-P2WPKH':
+      return `49'/${coinType}'/0'`
+    case 'P2WPKH':
+      return `84'/${coinType}'/0'`
+    case 'P2TR':
+      return `86'/${coinType}'/0'`
+    default:
+      return `84'/${coinType}'/0'`
+  }
+}
+
 export { bip21decode, bitcoinjsNetwork, isBip21, isBitcoinAddress }

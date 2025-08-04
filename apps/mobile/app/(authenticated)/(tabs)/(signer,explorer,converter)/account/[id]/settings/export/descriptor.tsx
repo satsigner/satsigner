@@ -22,6 +22,7 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { Mnemonic, DescriptorSecretKey } from 'bdk-rn'
 
 export default function DescriptorPage() {
@@ -89,22 +90,6 @@ export default function DescriptorPage() {
     } catch (error) {
       console.error('Failed to parse descriptor components:', error)
       return null
-    }
-  }
-
-  // Get derivation path based on script version
-  function getDerivationPathFromScriptVersion(scriptVersion: string): string {
-    switch (scriptVersion) {
-      case 'P2PKH':
-        return "44'/0'/0'"
-      case 'P2SH-P2WPKH':
-        return "49'/0'/0'"
-      case 'P2WPKH':
-        return "84'/0'/0'"
-      case 'P2TR':
-        return "86'/0'/0'"
-      default:
-        return "84'/0'/0'"
     }
   }
 
@@ -225,7 +210,8 @@ export default function DescriptorPage() {
           if (!descriptorString && decryptedSecret.extendedPublicKey) {
             const fingerprint = decryptedSecret.fingerprint || ''
             const derivationPath = getDerivationPathFromScriptVersion(
-              key.scriptVersion || 'P2WPKH'
+              key.scriptVersion || 'P2WPKH',
+              network
             )
 
             let keyPart = ''
@@ -276,7 +262,8 @@ export default function DescriptorPage() {
 
             // Get derivation path from script version
             const derivationPath = getDerivationPathFromScriptVersion(
-              key.scriptVersion || 'P2WPKH'
+              key.scriptVersion || 'P2WPKH',
+              network
             )
 
             // Create proper descriptor with script function and checksum

@@ -2,7 +2,8 @@ import {
   convertKeyFormat,
   getKeyFormatForScriptVersion,
   detectNetworkFromKey,
-  convertKeyForNetwork
+  convertKeyForNetwork,
+  getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
 import { validateExtendedKey } from '@/utils/validation'
 
@@ -171,5 +172,64 @@ describe('Button Label Generation', () => {
     expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'testnet')).toBe('upub')
     expect(getKeyFormatForScriptVersion('P2WPKH', 'testnet')).toBe('vpub')
     expect(getKeyFormatForScriptVersion('P2TR', 'testnet')).toBe('vpub')
+  })
+})
+
+describe('getDerivationPathFromScriptVersion', () => {
+  test('should return correct derivation paths for mainnet', () => {
+    expect(getDerivationPathFromScriptVersion('P2PKH', 'bitcoin')).toBe(
+      "44'/0'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2SH-P2WPKH', 'bitcoin')).toBe(
+      "49'/0'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2WPKH', 'bitcoin')).toBe(
+      "84'/0'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2TR', 'bitcoin')).toBe(
+      "86'/0'/0'"
+    )
+  })
+
+  test('should return correct derivation paths for testnet', () => {
+    expect(getDerivationPathFromScriptVersion('P2PKH', 'testnet')).toBe(
+      "44'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2SH-P2WPKH', 'testnet')).toBe(
+      "49'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2WPKH', 'testnet')).toBe(
+      "84'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2TR', 'testnet')).toBe(
+      "86'/1'/0'"
+    )
+  })
+
+  test('should return correct derivation paths for signet', () => {
+    expect(getDerivationPathFromScriptVersion('P2PKH', 'signet')).toBe(
+      "44'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2SH-P2WPKH', 'signet')).toBe(
+      "49'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2WPKH', 'signet')).toBe(
+      "84'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('P2TR', 'signet')).toBe(
+      "86'/1'/0'"
+    )
+  })
+
+  test('should return default derivation path for unknown script version', () => {
+    expect(getDerivationPathFromScriptVersion('UNKNOWN', 'bitcoin')).toBe(
+      "84'/0'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('UNKNOWN', 'testnet')).toBe(
+      "84'/1'/0'"
+    )
+    expect(getDerivationPathFromScriptVersion('UNKNOWN', 'signet')).toBe(
+      "84'/1'/0'"
+    )
   })
 })

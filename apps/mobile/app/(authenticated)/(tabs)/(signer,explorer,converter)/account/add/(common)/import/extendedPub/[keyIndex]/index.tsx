@@ -29,7 +29,10 @@ import {
   validateFingerprint,
   validateDescriptorScriptVersion
 } from '@/utils/validation'
-import { convertKeyFormat } from '@/utils/bitcoin'
+import {
+  convertKeyFormat,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
@@ -371,7 +374,7 @@ export default function ImportExtendedPub() {
       } catch (error) {
         console.error('Failed to extract derivation path:', error)
         // Use default derivation path if extraction fails
-        derivationPath = "m/44'/0'/0'"
+        derivationPath = `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
       }
 
       // Set the data in the store

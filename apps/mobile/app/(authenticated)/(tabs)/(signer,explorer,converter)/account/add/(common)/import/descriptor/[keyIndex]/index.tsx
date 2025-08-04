@@ -33,6 +33,7 @@ import {
   isCombinedDescriptor,
   validateCombinedDescriptor
 } from '@/utils/validation'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 export default function ImportDescriptor() {
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
@@ -467,7 +468,7 @@ export default function ImportDescriptor() {
 
     // Fallback: Use default derivation path
     console.warn('⚠️ Could not extract derivation path, using default')
-    return "m/84'/0'/0'"
+    return `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
   }
 
   /**

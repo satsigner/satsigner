@@ -26,6 +26,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 export default function GenerateMnemonic() {
   const { index } = useLocalSearchParams<GenerateMnemonicSearchParams>()
@@ -98,7 +99,7 @@ export default function GenerateMnemonic() {
       } catch (error) {
         console.error('Failed to extract derivation path from mnemonic:', error)
         // Use default derivation path if extraction fails
-        derivationPath = "m/84'/0'/0'"
+        derivationPath = `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
       }
 
       // Create the key

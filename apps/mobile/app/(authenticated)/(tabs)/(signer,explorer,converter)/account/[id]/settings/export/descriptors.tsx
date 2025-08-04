@@ -25,6 +25,7 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { Descriptor } from 'bdk-rn'
 
 // Function to calculate checksum for descriptor using a simpler approach
@@ -74,22 +75,6 @@ export default function ExportDescriptors() {
   const [showSeparate, setShowSeparate] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const qrRef = useRef<View>(null)
-
-  // Get derivation path based on script version
-  function getDerivationPathFromScriptVersion(scriptVersion: string): string {
-    switch (scriptVersion) {
-      case 'P2PKH':
-        return "44'/0'/0'"
-      case 'P2SH-P2WPKH':
-        return "49'/0'/0'"
-      case 'P2WPKH':
-        return "84'/0'/0'"
-      case 'P2TR':
-        return "86'/0'/0'"
-      default:
-        return "84'/0'/0'"
-    }
-  }
 
   useEffect(() => {
     async function getDescriptors() {
@@ -151,8 +136,10 @@ export default function ExportDescriptors() {
               // Get derivation path from script version or key
               let derivationPath = key.derivationPath || ''
               if (!derivationPath || key.creationType === 'importExtendedPub') {
-                derivationPath =
-                  getDerivationPathFromScriptVersion(scriptVersion)
+                derivationPath = getDerivationPathFromScriptVersion(
+                  scriptVersion,
+                  network
+                )
               }
 
               // Get extended public key
