@@ -6,6 +6,8 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -131,8 +133,37 @@ export default function UnifiedImport() {
 
   async function updateExternalDescriptor(descriptor: string) {
     const descriptorValidation = await validateDescriptor(descriptor)
-    const validExternalDescriptor =
+    const basicValidation =
       descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
+
+    // Network validation - check if descriptor is compatible with selected network
+    let networkValidation: { isValid: boolean; error?: string } = {
+      isValid: true
+    }
+    if (basicValidation && descriptor) {
+      try {
+        // Try to create descriptor with BDK to check network compatibility
+        await new Descriptor().create(descriptor, network as Network)
+        networkValidation = { isValid: true }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        if (
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
+        ) {
+          networkValidation = {
+            isValid: false,
+            error: 'networkIncompatible'
+          }
+        } else {
+          // For other BDK errors, still consider it valid for now
+          networkValidation = { isValid: true }
+        }
+      }
+    }
+
+    const validExternalDescriptor = basicValidation && networkValidation.isValid
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setLocalExternalDescriptor(descriptor)
@@ -146,7 +177,36 @@ export default function UnifiedImport() {
 
   async function updateInternalDescriptor(descriptor: string) {
     const descriptorValidation = await validateDescriptor(descriptor)
-    const validInternalDescriptor = descriptorValidation.isValid
+    const basicValidation = descriptorValidation.isValid
+
+    // Network validation - check if descriptor is compatible with selected network
+    let networkValidation: { isValid: boolean; error?: string } = {
+      isValid: true
+    }
+    if (basicValidation && descriptor) {
+      try {
+        // Try to create descriptor with BDK to check network compatibility
+        await new Descriptor().create(descriptor, network as Network)
+        networkValidation = { isValid: true }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        if (
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
+        ) {
+          networkValidation = {
+            isValid: false,
+            error: 'networkIncompatible'
+          }
+        } else {
+          // For other BDK errors, still consider it valid for now
+          networkValidation = { isValid: true }
+        }
+      }
+    }
+
+    const validInternalDescriptor = basicValidation && networkValidation.isValid
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setLocalInternalDescriptor(descriptor)
     if (validInternalDescriptor) {

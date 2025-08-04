@@ -71,6 +71,7 @@
         "descriptorIncompatible": "Descriptor is incompatible with multisig script version",
         "fingerprintFormat": "Invalid fingerprint format",
         "missingParenthesis": "Missing closing parenthesis",
+        "networkIncompatible": "Descriptor is not compatible with the selected network",
         "scriptFunctionInvalid": "Unknown or invalid script function",
         "scriptVersionMismatch": "Script type \"%{scriptType}\" is not compatible with multisig script version \"%{scriptVersion}\". Expected: %{expectedTypes}",
         "unexpectedBracket": "Unexpected closing bracket in derivation path",

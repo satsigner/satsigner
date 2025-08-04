@@ -150,6 +150,33 @@ export default function ImportDescriptor() {
     const basicValidation =
       descriptorValidation.isValid && !descriptor.match(/[txyz]priv/)
 
+    // Network validation - check if descriptor is compatible with selected network
+    let networkValidation: { isValid: boolean; error?: string } = {
+      isValid: true
+    }
+    if (basicValidation && descriptor) {
+      try {
+        // Try to create descriptor with BDK to check network compatibility
+        await new Descriptor().create(descriptor, network as Network)
+        networkValidation = { isValid: true }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        if (
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
+        ) {
+          networkValidation = {
+            isValid: false,
+            error: 'networkIncompatible'
+          }
+        } else {
+          // For other BDK errors, still consider it valid for now
+          networkValidation = { isValid: true }
+        }
+      }
+    }
+
     // Script version validation for multisig
     let scriptVersionValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -162,7 +189,9 @@ export default function ImportDescriptor() {
     }
 
     const validExternalDescriptor =
-      basicValidation && scriptVersionValidation.isValid
+      basicValidation &&
+      networkValidation.isValid &&
+      scriptVersionValidation.isValid
 
     setValidExternalDescriptor(!descriptor || validExternalDescriptor)
     setExternalDescriptor(descriptor)
@@ -177,6 +206,12 @@ export default function ImportDescriptor() {
         const errorMessage = descriptorValidation.error
           ? t(`account.import.error.${descriptorValidation.error}`)
           : t('account.import.error.descriptorFormat')
+        setExternalDescriptorError(errorMessage)
+      } else if (basicValidation && !networkValidation.isValid) {
+        // Show error for network validation failures
+        const errorMessage = networkValidation.error
+          ? t(`account.import.error.${networkValidation.error}`)
+          : t('account.import.error.networkIncompatible')
         setExternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation.isValid) {
         // Show error for script version validation failures
@@ -197,6 +232,33 @@ export default function ImportDescriptor() {
     const descriptorValidation = await validateDescriptor(descriptor)
     const basicValidation = descriptorValidation.isValid
 
+    // Network validation - check if descriptor is compatible with selected network
+    let networkValidation: { isValid: boolean; error?: string } = {
+      isValid: true
+    }
+    if (basicValidation && descriptor) {
+      try {
+        // Try to create descriptor with BDK to check network compatibility
+        await new Descriptor().create(descriptor, network as Network)
+        networkValidation = { isValid: true }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error)
+        if (
+          errorMessage.includes('Invalid network') ||
+          errorMessage.includes('network')
+        ) {
+          networkValidation = {
+            isValid: false,
+            error: 'networkIncompatible'
+          }
+        } else {
+          // For other BDK errors, still consider it valid for now
+          networkValidation = { isValid: true }
+        }
+      }
+    }
+
     // Script version validation for multisig
     let scriptVersionValidation: { isValid: boolean; error?: string } = {
       isValid: true
@@ -209,7 +271,9 @@ export default function ImportDescriptor() {
     }
 
     const validInternalDescriptor =
-      basicValidation && scriptVersionValidation.isValid
+      basicValidation &&
+      networkValidation.isValid &&
+      scriptVersionValidation.isValid
 
     setValidInternalDescriptor(!descriptor || validInternalDescriptor)
     setInternalDescriptor(descriptor)
@@ -224,6 +288,12 @@ export default function ImportDescriptor() {
         const errorMessage = descriptorValidation.error
           ? t(`account.import.error.${descriptorValidation.error}`)
           : t('account.import.error.descriptorFormat')
+        setInternalDescriptorError(errorMessage)
+      } else if (basicValidation && !networkValidation.isValid) {
+        // Show error for network validation failures
+        const errorMessage = networkValidation.error
+          ? t(`account.import.error.${networkValidation.error}`)
+          : t('account.import.error.networkIncompatible')
         setInternalDescriptorError(errorMessage)
       } else if (basicValidation && !scriptVersionValidation.isValid) {
         // Show error for script version validation failures
