@@ -305,9 +305,11 @@
     "off": "Off",
     "on": "On",
     "optional": "Optional",
+    "parts": "Parts",
     "paste": "Paste",
     "pasteFromClipboard": "Paste from clipboard",
     "progress": "Progress",
+    "remaining": "Remaining",
     "remove": "Remove",
     "save": "Save",
     "select": "Select",
@@ -696,6 +698,10 @@
     "vout": "Out",
     "vsize": "Virtual size",
     "weight": "Weight"
+  },
+  "qrcode": {
+    "scan.progress": "QR Code Scan Progress",
+    "scan.reset": "Reset Scan"
   },
   "receive": {
     "address": "Address",
