@@ -44,13 +44,15 @@ function SSMultisigKeyControl({
   onRefresh
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
-  const [setKeyName, setCreationType, setNetwork] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.setKeyName,
-      state.setCreationType,
-      state.setNetwork
-    ])
-  )
+  const [setKeyName, setCreationType, setNetwork, getAccountData] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.setKeyName,
+        state.setCreationType,
+        state.setNetwork,
+        state.getAccountData
+      ])
+    )
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const globalScriptVersion = useAccountBuilderStore(
     (state) => state.scriptVersion
@@ -296,18 +298,49 @@ function SSMultisigKeyControl({
   }
 
   function handleShareXpub() {
-    if (!accountId) return
-    router.navigate(
-      `/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
-    )
+    if (accountId) {
+      // In settings mode, use the existing account
+      router.navigate(
+        `/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
+      )
+    } else {
+      // In creation mode, use account builder store data
+      const accountData = getAccountData()
+      const key = accountData.keys[index]
+
+      if (!key) {
+        toast.error('Key not found')
+        return
+      }
+
+      // Navigate to a temporary export page that works with account builder data
+      router.navigate(
+        `/account/add/multiSig/export/publicKey?keyIndex=${index}`
+      )
+    }
   }
 
   function handleShareDescriptor() {
-    if (!accountId) return
+    if (accountId) {
+      // In settings mode, use the existing account
+      router.navigate(
+        `/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
+      )
+    } else {
+      // In creation mode, use account builder store data
+      const accountData = getAccountData()
+      const key = accountData.keys[index]
 
-    router.navigate(
-      `/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
-    )
+      if (!key) {
+        toast.error('Key not found')
+        return
+      }
+
+      // Navigate to a temporary export page that works with account builder data
+      router.navigate(
+        `/account/add/multiSig/export/descriptor?keyIndex=${index}`
+      )
+    }
   }
 
   // Check if the key is completed based on its data

@@ -524,9 +524,20 @@
     "mempool.title": "Mempool"
   },
   "export": {
+    "descriptor": {
+      "description": "Export the descriptor for this key",
+      "title": "Export Descriptor"
+    },
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",
-    "file.save": "Save file"
+    "file.save": "Save file",
+    "publicKey": {
+      "description": "Export the public key for this key in various formats",
+      "export": "Export Public Key",
+      "format": "Format",
+      "publicKey": "Public Key",
+      "title": "Export Public Key"
+    }
   },
   "files": {
     "csv": "CSV",
