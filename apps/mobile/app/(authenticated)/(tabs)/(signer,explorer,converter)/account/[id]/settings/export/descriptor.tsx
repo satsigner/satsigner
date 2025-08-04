@@ -1,29 +1,26 @@
-import { Descriptor } from 'bdk-rn'
-import { type Network, KeychainKind } from 'bdk-rn/lib/lib/enums'
+import { Descriptor, DescriptorSecretKey, Mnemonic } from 'bdk-rn'
+import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import { parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
 import SSText from '@/components/SSText'
 import { PIN_KEY } from '@/config/auth'
-import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Account, type Secret } from '@/types/models/Account'
+import { type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
-import { Mnemonic, DescriptorSecretKey } from 'bdk-rn'
 
 export default function DescriptorPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -40,7 +37,7 @@ export default function DescriptorPage() {
   const [keyName, setKeyName] = useState('')
   const [creationType, setCreationType] = useState('')
   const [scriptVersion, setScriptVersion] = useState<string>('P2PKH')
-  const [descriptorComponents, setDescriptorComponents] = useState<{
+  const [_descriptorComponents, setDescriptorComponents] = useState<{
     scriptFunction: string
     fingerprint: string
     derivationPath: string
@@ -87,8 +84,7 @@ export default function DescriptorPage() {
         publicKey,
         checksum
       }
-    } catch (error) {
-      console.error('Failed to parse descriptor components:', error)
+    } catch (_error) {
       return null
     }
   }
@@ -102,7 +98,7 @@ export default function DescriptorPage() {
       if (!pin) return
 
       try {
-        const keyIndexNum = parseInt(keyIndex)
+        const keyIndexNum = parseInt(keyIndex, 10)
         const key = account.keys[keyIndexNum]
 
         if (!key) {
@@ -197,11 +193,7 @@ export default function DescriptorPage() {
                 network as Network
               )
               descriptorString = await descriptor.asString()
-            } catch (error) {
-              console.error(
-                'Failed to add checksum to stored descriptor:',
-                error
-              )
+            } catch (_error) {
               // Keep the original descriptor if BDK fails
             }
           }
@@ -246,11 +238,7 @@ export default function DescriptorPage() {
                 network as Network
               )
               descriptorString = await descriptor.asString()
-            } catch (error) {
-              console.error(
-                'Failed to add checksum to reconstructed descriptor:',
-                error
-              )
+            } catch (_error) {
               // Keep the descriptor without checksum if BDK fails
             }
           }
@@ -299,8 +287,7 @@ export default function DescriptorPage() {
                 network as Network
               )
               descriptorString = await descriptor.asString()
-            } catch (error) {
-              console.error('Failed to add checksum to descriptor:', error)
+            } catch (_error) {
               // Keep the descriptor without checksum if BDK fails
             }
           }
@@ -316,8 +303,7 @@ export default function DescriptorPage() {
         // Parse descriptor components for display
         const components = parseDescriptorComponents(descriptorString)
         setDescriptorComponents(components)
-      } catch (error) {
-        console.error('Failed to get descriptor:', error)
+      } catch (_error) {
         toast.error('Failed to get descriptor')
       } finally {
         setIsLoading(false)

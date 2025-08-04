@@ -127,8 +127,7 @@ export function convertKeyFormat(
     // Create new decoded data with the target version
     const newDecoded = new Uint8Array([...version, ...decoded.slice(4)])
     return bs58check.encode(newDecoded)
-  } catch (error) {
-    console.error('Failed to convert key format:', error)
+  } catch (_error) {
     return key
   }
 }

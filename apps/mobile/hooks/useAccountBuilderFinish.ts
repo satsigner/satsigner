@@ -49,7 +49,6 @@ function useAccountBuilderFinish() {
         : undefined
 
       if (!isImportAddress && !walletData) {
-        console.error('Failed to create wallet data')
         setLoading(false)
         return
       }
@@ -58,7 +57,6 @@ function useAccountBuilderFinish() {
         const stringifiedSecret = JSON.stringify(key.secret)
         const pin = await getItem(PIN_KEY)
         if (!pin) {
-          console.error('Failed to get PIN')
           setLoading(false)
           return
         }
@@ -105,7 +103,6 @@ function useAccountBuilderFinish() {
       setLoading(false)
       return { wallet: walletData?.wallet, accountWithEncryptedSecret }
     } catch (error) {
-      console.error('Error in accountBuilderFinish:', error)
       setLoading(false)
       throw error
     }

@@ -1,3 +1,4 @@
+import { type Descriptor as _Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -23,10 +24,9 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
-import { Descriptor } from 'bdk-rn'
 
 // Function to calculate checksum for descriptor using a simpler approach
 function calculateDescriptorChecksum(descriptor: string): string {
@@ -57,8 +57,7 @@ function calculateDescriptorChecksum(descriptor: string): string {
     }
 
     return result
-  } catch (error) {
-    console.error('Failed to calculate checksum:', error)
+  } catch (_error) {
     return ''
   }
 }
@@ -109,7 +108,7 @@ export default function ExportDescriptors() {
           }
         }
 
-        const walletData = !isImportAddress
+        const _walletData = !isImportAddress
           ? await getWalletData(temporaryAccount, network as Network)
           : undefined
 
@@ -178,7 +177,6 @@ export default function ExportDescriptors() {
             !multisigDescriptor ||
             keySection.split(',').length !== keyCount
           ) {
-            console.error('Invalid multisig descriptor format')
             descriptorString = multisigDescriptor
           } else {
             // Always calculate checksum manually for multisig descriptors
@@ -191,8 +189,8 @@ export default function ExportDescriptors() {
           }
         } else {
           // For importAddress, fallback to single key descriptor
-          let singleKeyDescriptor = (typeof temporaryAccount.keys[0].secret ===
-            'object' &&
+          const singleKeyDescriptor = (typeof temporaryAccount.keys[0]
+            .secret === 'object' &&
             temporaryAccount.keys[0].secret.externalDescriptor!) as string
 
           // Add checksum if not present
@@ -200,15 +198,8 @@ export default function ExportDescriptors() {
             const checksum = calculateDescriptorChecksum(singleKeyDescriptor)
             if (checksum) {
               descriptorString = `${singleKeyDescriptor}#${checksum}`
-              console.log(
-                'Added checksum to single key descriptor:',
-                descriptorString
-              )
             } else {
               descriptorString = singleKeyDescriptor
-              console.warn(
-                'Failed to calculate checksum for single key descriptor'
-              )
             }
           } else {
             descriptorString = singleKeyDescriptor
@@ -232,7 +223,9 @@ export default function ExportDescriptors() {
     if (!account) return
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
-    const filename = `${t('export.file.name.descriptors')}_${accountId}_${date}.${ext}`
+    const filename = `${t(
+      'export.file.name.descriptors'
+    )}_${accountId}_${date}.${ext}`
     shareFile({
       filename,
       fileContent: exportContent,

@@ -86,13 +86,25 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
           if (hours >= 1) {
             color = Colors.gray[75]
-            text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.hour', { value: hours })}`
+            text = `${t('account.sync.status.synced')} ${t(
+              'account.sync.status.old.hour',
+              { value: hours }
+            )}`
             if (days >= 1)
-              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.day', { value: days })}`
+              text = `${t('account.sync.status.synced')} ${t(
+                'account.sync.status.old.day',
+                { value: days }
+              )}`
             if (months >= 1)
-              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.month', { value: months })}`
+              text = `${t('account.sync.status.synced')} ${t(
+                'account.sync.status.old.month',
+                { value: months }
+              )}`
             if (years >= 1)
-              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.year', { value: years })}`
+              text = `${t('account.sync.status.synced')} ${t(
+                'account.sync.status.old.year',
+                { value: years }
+              )}`
           }
         }
         break

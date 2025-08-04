@@ -162,8 +162,8 @@ export default function AccountSettings() {
         )
 
         setDecryptedKeys(decryptedKeysData)
-      } catch (error) {
-        console.error('Failed to decrypt keys:', error)
+      } catch (_error) {
+        // Handle error silently
       }
     }
     decryptKeys()
@@ -178,10 +178,12 @@ export default function AccountSettings() {
 
   // Update script version when account changes
   useEffect(() => {
-    if (account?.keys[0]?.scriptVersion) {
-      setScriptVersion(account.keys[0].scriptVersion)
+    const accountKeys = account?.keys
+    const scriptVersion = accountKeys?.[0]?.scriptVersion
+    if (scriptVersion) {
+      setScriptVersion(scriptVersion)
     }
-  }, [account?.keys[0]?.scriptVersion])
+  }, [account?.keys])
 
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
@@ -305,7 +307,9 @@ export default function AccountSettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
+                label={`${t(
+                  `script.${scriptVersion.toLocaleLowerCase()}.name`
+                )} (${scriptVersion})`}
                 onPress={() => setScriptVersionModalVisible(true)}
                 withSelect
               />
@@ -332,7 +336,7 @@ export default function AccountSettings() {
                     index={index}
                     keyCount={account.keyCount}
                     keyDetails={key}
-                    isSettingsMode={true}
+                    isSettingsMode
                     accountId={currentAccountId}
                     onRefresh={() => {
                       // Refresh the page to show updated data

@@ -1,9 +1,9 @@
 import {
   convertKeyFormat,
-  getKeyFormatForScriptVersion,
-  detectNetworkFromKey,
   convertKeyForNetwork,
-  getDerivationPathFromScriptVersion
+  detectNetworkFromKey,
+  getDerivationPathFromScriptVersion,
+  getKeyFormatForScriptVersion
 } from '@/utils/bitcoin'
 import { validateExtendedKey } from '@/utils/validation'
 

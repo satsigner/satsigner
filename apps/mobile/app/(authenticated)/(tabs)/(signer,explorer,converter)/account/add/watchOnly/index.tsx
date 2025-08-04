@@ -1,4 +1,6 @@
 import { URDecoder } from '@ngraveio/bc-ur'
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import bs58check from 'bs58check'
 import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
@@ -9,8 +11,6 @@ import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import SSButton from '@/components/SSButton'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSModal from '@/components/SSModal'
@@ -34,17 +34,17 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType, type Key } from '@/types/models/Account'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
+import { convertKeyFormat } from '@/utils/bitcoin'
 import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
 import {
+  isCombinedDescriptor,
   validateAddress,
+  validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint,
-  isCombinedDescriptor,
-  validateCombinedDescriptor
+  validateFingerprint
 } from '@/utils/validation'
-import { convertKeyFormat } from '@/utils/bitcoin'
 
 const watchOnlyOptions: CreationType[] = [
   'importExtendedPub',
@@ -703,7 +703,9 @@ export default function WatchOnly() {
       }
     } catch (error) {
       throw new Error(
-        `Failed to decode crypto account: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to decode crypto account: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       )
     }
   }
@@ -1292,23 +1294,8 @@ export default function WatchOnly() {
 
       // Check if the descriptor is combined (contains <0;1> or <0,1>)
       if (isCombinedDescriptor(text)) {
-        console.log(
-          '🔍 WatchOnly (pasteFromClipboard): Detected combined descriptor:',
-          text
-        )
-
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(text)
-
-        console.log(
-          '📊 WatchOnly (pasteFromClipboard): Combined validation result:',
-          {
-            isValid: combinedValidation.isValid,
-            error: combinedValidation.error,
-            externalDescriptor: combinedValidation.externalDescriptor,
-            internalDescriptor: combinedValidation.internalDescriptor
-          }
-        )
 
         if (combinedValidation.isValid) {
           // Set both descriptors and mark them as valid
@@ -1320,20 +1307,12 @@ export default function WatchOnly() {
           // Store the descriptors in the store
           setExternalDescriptor(combinedValidation.externalDescriptor)
           setInternalDescriptor(combinedValidation.internalDescriptor)
-
-          console.log(
-            '✅ WatchOnly (pasteFromClipboard): Successfully set external and internal descriptors as valid'
-          )
         } else {
           // Set the separated descriptors but mark them as invalid
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
           setValidExternalDescriptor(false)
           setValidInternalDescriptor(false)
-
-          console.log(
-            '❌ WatchOnly (pasteFromClipboard): Set external and internal descriptors as invalid due to combined validation failure'
-          )
         }
       } else {
         // Handle non-combined descriptors with existing logic
@@ -1389,23 +1368,8 @@ export default function WatchOnly() {
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(text)) {
-          console.log(
-            '🔍 WatchOnly (handleNFCRead): Detected combined descriptor:',
-            text
-          )
-
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(text)
-
-          console.log(
-            '📊 WatchOnly (handleNFCRead): Combined validation result:',
-            {
-              isValid: combinedValidation.isValid,
-              error: combinedValidation.error,
-              externalDescriptor: combinedValidation.externalDescriptor,
-              internalDescriptor: combinedValidation.internalDescriptor
-            }
-          )
 
           if (combinedValidation.isValid) {
             // Set both descriptors and mark them as valid
@@ -1417,20 +1381,12 @@ export default function WatchOnly() {
             // Store the descriptors in the store
             setExternalDescriptor(combinedValidation.externalDescriptor)
             setInternalDescriptor(combinedValidation.internalDescriptor)
-
-            console.log(
-              '✅ WatchOnly (handleNFCRead): Successfully set external and internal descriptors as valid'
-            )
           } else {
             // Set the separated descriptors but mark them as invalid
             setLocalExternalDescriptor(combinedValidation.externalDescriptor)
             setLocalInternalDescriptor(combinedValidation.internalDescriptor)
             setValidExternalDescriptor(false)
             setValidInternalDescriptor(false)
-
-            console.log(
-              '❌ WatchOnly (handleNFCRead): Set external and internal descriptors as invalid due to combined validation failure'
-            )
           }
         } else {
           // Handle non-combined descriptors with existing logic
@@ -1688,21 +1644,9 @@ export default function WatchOnly() {
 
           // Check if the descriptor is combined (contains <0;1> or <0,1>)
           if (isCombinedDescriptor(finalContent)) {
-            console.log(
-              '🔍 WatchOnly: Detected combined descriptor:',
-              finalContent
-            )
-
             // Validate the combined descriptor and get separated descriptors
             const combinedValidation =
               await validateCombinedDescriptor(finalContent)
-
-            console.log('📊 WatchOnly: Combined validation result:', {
-              isValid: combinedValidation.isValid,
-              error: combinedValidation.error,
-              externalDescriptor: combinedValidation.externalDescriptor,
-              internalDescriptor: combinedValidation.internalDescriptor
-            })
 
             if (combinedValidation.isValid) {
               // Set both descriptors and mark them as valid
@@ -1714,20 +1658,12 @@ export default function WatchOnly() {
               // Store the descriptors in the store
               setExternalDescriptor(combinedValidation.externalDescriptor)
               setInternalDescriptor(combinedValidation.internalDescriptor)
-
-              console.log(
-                '✅ WatchOnly: Successfully set external and internal descriptors as valid'
-              )
             } else {
               // Set the separated descriptors but mark them as invalid
               setLocalExternalDescriptor(combinedValidation.externalDescriptor)
               setLocalInternalDescriptor(combinedValidation.internalDescriptor)
               setValidExternalDescriptor(false)
               setValidInternalDescriptor(false)
-
-              console.log(
-                '❌ WatchOnly: Set external and internal descriptors as invalid due to combined validation failure'
-              )
             }
           } else {
             // Handle non-combined descriptors with existing logic
@@ -2284,7 +2220,9 @@ export default function WatchOnly() {
                         label={t('account.script').toUpperCase()}
                       />
                       <SSButton
-                        label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
+                        label={`${t(
+                          `script.${scriptVersion.toLocaleLowerCase()}.name`
+                        )} (${scriptVersion})`}
                         withSelect
                         onPress={() => setScriptVersionModalVisible(true)}
                       />

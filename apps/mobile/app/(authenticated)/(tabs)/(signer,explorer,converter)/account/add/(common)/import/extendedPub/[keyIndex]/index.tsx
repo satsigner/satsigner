@@ -1,10 +1,9 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import bs58check from 'bs58check'
 import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -14,8 +13,8 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNFCReader } from '@/hooks/useNFCReader'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
@@ -23,16 +22,15 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Key } from '@/types/models/Account'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
-import {
-  validateExtendedKey,
-  validateFingerprint,
-  validateDescriptorScriptVersion
-} from '@/utils/validation'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
+import {
+  validateDescriptorScriptVersion,
+  validateExtendedKey,
+  validateFingerprint
+} from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
@@ -300,8 +298,7 @@ export default function ImportExtendedPub() {
     try {
       const decoded = CBOR.decode(urData.buffer)
       return decoded
-    } catch (error) {
-      console.error('Failed to decode UR crypto account:', error)
+    } catch (_error) {
       return null
     }
   }
@@ -333,8 +330,7 @@ export default function ImportExtendedPub() {
         }
       }
       return null
-    } catch (error) {
-      console.error('Failed to assemble multi-part QR:', error)
+    } catch (_error) {
       return null
     }
   }
@@ -371,10 +367,12 @@ export default function ImportExtendedPub() {
         )
         const parsedDescriptor = await parseDescriptor(descriptor)
         derivationPath = parsedDescriptor.derivationPath
-      } catch (error) {
-        console.error('Failed to extract derivation path:', error)
+      } catch (_error) {
         // Use default derivation path if extraction fails
-        derivationPath = `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
+        derivationPath = `m/${getDerivationPathFromScriptVersion(
+          scriptVersion,
+          network
+        )}`
       }
 
       // Set the data in the store
@@ -384,7 +382,7 @@ export default function ImportExtendedPub() {
       }
 
       // Create the key
-      const key = setKey(Number(keyIndex))
+      const _key = setKey(Number(keyIndex))
 
       // Set the derivation path for this key
       setKeyDerivationPath(Number(keyIndex), derivationPath)
@@ -393,7 +391,7 @@ export default function ImportExtendedPub() {
 
       toast.success(t('account.import.success'))
       router.dismiss(1)
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('import.error'))
     }
   }
@@ -409,7 +407,7 @@ export default function ImportExtendedPub() {
       const finalContent = clipboardContent.trim()
       updateXpub(finalContent)
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -443,7 +441,7 @@ export default function ImportExtendedPub() {
 
       updateXpub(text)
       toast.success(t('watchonly.success.nfcRead'))
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('watchonly.error.nfcRead'))
     }
   }
@@ -577,7 +575,7 @@ export default function ImportExtendedPub() {
         updateXpub(finalContent)
         setCameraModalVisible(false)
         toast.success(t('watchonly.success.qrScanned'))
-      } catch (error) {
+      } catch (_error) {
         toast.error(t('watchonly.read.qrError'))
       }
     } else {
@@ -655,16 +653,13 @@ export default function ImportExtendedPub() {
                 toast.success('Crypto account imported successfully')
                 setCameraModalVisible(false)
                 resetScanProgress()
-                return
               } else {
                 toast.error('No extended public key found in crypto account')
-                return
               }
             }
           }
         } catch {
           toast.error('Failed to decode UR crypto account')
-          return
         }
       } else {
         // For RAW and BBQR, wait for all chunks
@@ -781,7 +776,9 @@ export default function ImportExtendedPub() {
                 >
                   <View
                     style={{
-                      width: `${(scanProgress.scanned.size / scanProgress.total) * 100}%`,
+                      width: `${
+                        (scanProgress.scanned.size / scanProgress.total) * 100
+                      }%`,
                       height: 4,
                       backgroundColor: Colors.white,
                       borderRadius: 2

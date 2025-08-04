@@ -550,7 +550,9 @@ function DerivedAddresses({
             renderItem={renderItem}
             estimatedItemSize={150}
             keyExtractor={(item) => {
-              return `${item.index || ''}:${item.address}:${item.keychain || ''}`
+              return `${item.index || ''}:${item.address}:${
+                item.keychain || ''
+              }`
             }}
             removeClippedSubviews
           />

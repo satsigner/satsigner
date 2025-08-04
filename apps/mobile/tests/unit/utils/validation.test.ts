@@ -2,9 +2,9 @@ import {
   validateAddress,
   validateDerivationPath,
   validateDescriptor,
+  validateDescriptorScriptVersion,
   validateExtendedKey,
-  validateFingerprint,
-  validateDescriptorScriptVersion
+  validateFingerprint
 } from '@/utils/validation'
 
 describe('Validates addresses', () => {

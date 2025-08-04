@@ -1,11 +1,10 @@
 import { Descriptor } from 'bdk-rn'
 import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
-import bs58check from 'bs58check'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { useShallow } from 'zustand/react/shallow'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
@@ -21,10 +20,9 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
-import { aesDecrypt } from '@/utils/crypto'
-import { shareFile } from '@/utils/filesystem'
-import { convertKeyFormat, getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 import { type Network } from '@/types/settings/blockchain'
+import { convertKeyFormat, getKeyFormatForScriptVersion } from '@/utils/bitcoin'
+import { shareFile } from '@/utils/filesystem'
 
 // Helper function to get the appropriate translation key for key format buttons
 function getKeyFormatTranslationKey(
@@ -137,32 +135,32 @@ export default function PublicKeyPage() {
     return formatButtons
   }
 
-  function convertPublicKeyFormat(
-    publicKey: string,
-    targetFormat: PublicKeyFormat
-  ): string {
-    // Check if the public key is in a valid format
-    const validPrefixes = [
-      'xpub',
-      'ypub',
-      'zpub',
-      'vpub',
-      'tpub',
-      'upub',
-      'vpub',
-      'wpub'
-    ]
-    const hasValidPrefix = validPrefixes.some((prefix) =>
-      publicKey.startsWith(prefix)
-    )
+  const convertPublicKeyFormat = useCallback(
+    (publicKey: string, targetFormat: PublicKeyFormat): string => {
+      // Check if the public key is in a valid format
+      const validPrefixes = [
+        'xpub',
+        'ypub',
+        'zpub',
+        'vpub',
+        'tpub',
+        'upub',
+        'vpub',
+        'wpub'
+      ]
+      const hasValidPrefix = validPrefixes.some((prefix) =>
+        publicKey.startsWith(prefix)
+      )
 
-    if (!hasValidPrefix) {
-      return publicKey
-    }
+      if (!hasValidPrefix) {
+        return publicKey
+      }
 
-    // Use the network-aware conversion utility
-    return convertKeyFormat(publicKey, targetFormat, network)
-  }
+      // Use the network-aware conversion utility
+      return convertKeyFormat(publicKey, targetFormat, network)
+    },
+    [network]
+  )
 
   useEffect(() => {
     async function getPublicKey() {
@@ -174,7 +172,7 @@ export default function PublicKeyPage() {
 
       try {
         const accountData = getAccountData()
-        const keyIndexNum = parseInt(keyIndex)
+        const keyIndexNum = parseInt(keyIndex, 10)
         const key = accountData.keys[keyIndexNum]
 
         if (!key) {
@@ -239,8 +237,7 @@ export default function PublicKeyPage() {
 
         setRawPublicKey(publicKeyString)
         setPublicKey(convertPublicKeyFormat(publicKeyString, selectedFormat))
-      } catch (error) {
-        console.error('Failed to get public key:', error)
+      } catch (_error) {
         toast.error('Failed to get public key')
       } finally {
         setIsLoading(false)
@@ -255,13 +252,15 @@ export default function PublicKeyPage() {
       const convertedKey = convertPublicKeyFormat(rawPublicKey, selectedFormat)
       setPublicKey(convertedKey)
     }
-  }, [selectedFormat, rawPublicKey])
+  }, [selectedFormat, rawPublicKey, convertPublicKeyFormat])
 
   async function exportPublicKey() {
     const accountData = getAccountData()
     const date = new Date().toISOString().slice(0, -5)
     const ext = 'txt'
-    const filename = `PublicKey_${accountData.name}_Key${parseInt(keyIndex || '0') + 1}_${selectedFormat.toUpperCase()}_${date}.${ext}`
+    const filename = `PublicKey_${accountData.name}_Key${
+      parseInt(keyIndex || '0', 10) + 1
+    }_${selectedFormat.toUpperCase()}_${date}.${ext}`
     shareFile({
       filename,
       fileContent: publicKey,

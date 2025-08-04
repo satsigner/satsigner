@@ -1,7 +1,5 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { Descriptor } from 'bdk-rn'
-import { Network } from 'bdk-rn/lib/lib/enums'
 
 import { type Network as AppNetwork } from '@/types/settings/blockchain'
 
@@ -77,7 +75,7 @@ async function validateDescriptorChecksum(
       try {
         await new Descriptor().create(descriptor, Network.Testnet)
         return { isValid: true }
-      } catch (testnetError) {
+      } catch (_testnetError) {
         // If both fail, check if it's a checksum error
         const errorMessage =
           bitcoinError instanceof Error
@@ -148,7 +146,7 @@ async function validateDescriptorInternal(
   const content = '[a-zA-Z0-9]+'
   // Updated to handle combined descriptor syntax: <0;1> or <0,1>
   const addressDerivationPath = '(/[0-9*]|<0[,;]1>)*'
-  const checksum = '#[a-z0-9]{8}'
+  const _checksum = '#[a-z0-9]{8}'
   const key = `(${fullFingerprint})?${content}${addressDerivationPath}`
   const singleKey = `^${kind}\\(${key}\\)$`
   const multiKey = `^${multiKind}\\([1-9][0-9]*,(${key},)+${key}\\)$`
@@ -270,7 +268,7 @@ async function validateDescriptorInternal(
     }
 
     // Check for invalid script function
-    const validScriptFunctions = [
+    const _validScriptFunctions = [
       'sh',
       'wsh',
       'pk',
@@ -379,26 +377,13 @@ export async function validateCombinedDescriptor(
   externalDescriptor: string
   internalDescriptor: string
 }> {
-  console.log('🔍 Validating combined descriptor:', combinedDescriptor)
-
   // Validate the full combined descriptor including checksum
   const combinedValidation = await validateDescriptor(combinedDescriptor)
-
-  console.log('📊 Combined descriptor validation result:', {
-    isValid: combinedValidation.isValid,
-    error: combinedValidation.error
-  })
 
   if (!combinedValidation.isValid) {
     // If combined descriptor is invalid, return the error
     const { external, internal } =
       separateCombinedDescriptor(combinedDescriptor)
-
-    console.log('❌ Combined descriptor validation failed:', {
-      error: combinedValidation.error,
-      externalDescriptor: external,
-      internalDescriptor: internal
-    })
 
     return {
       isValid: false,
@@ -413,15 +398,8 @@ export async function validateCombinedDescriptor(
 
   // For separated descriptors from combined descriptors, we only validate format, not checksum
   // because the checksum was calculated for the full combined descriptor
-  const externalValidation = await validateDescriptorFormat(external)
-  const internalValidation = await validateDescriptorFormat(internal)
-
-  console.log('✅ Combined descriptor validation successful:', {
-    externalDescriptor: external,
-    internalDescriptor: internal,
-    externalFormatValid: externalValidation.isValid,
-    internalFormatValid: internalValidation.isValid
-  })
+  await validateDescriptorFormat(external)
+  await validateDescriptorFormat(internal)
 
   return {
     isValid: true,

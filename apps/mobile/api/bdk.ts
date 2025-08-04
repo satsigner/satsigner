@@ -88,11 +88,7 @@ async function extractFingerprintFromExtendedPublicKey(
     const descriptor = await new Descriptor().create(descriptorString, network)
     const parsedDescriptor = await parseDescriptor(descriptor)
     return parsedDescriptor.fingerprint
-  } catch (error) {
-    console.error(
-      'Failed to extract fingerprint from extended public key:',
-      error
-    )
+  } catch (_error) {
     return ''
   }
 }
@@ -151,11 +147,7 @@ async function getWalletData(
                 const extendedKey =
                   await extractExtendedKeyFromDescriptor(descriptor)
                 return extendedKey
-              } catch (error) {
-                console.log(
-                  'Failed to extract extended key from descriptor:',
-                  error
-                )
+              } catch (_error) {
                 return null
               }
             }
@@ -182,7 +174,9 @@ async function getWalletData(
         })
       )
 
-      const multisigDescriptorString = `wsh(multi(${account.keysRequired},${validExtendedPublicKeys.join(',')}))`
+      const multisigDescriptorString = `wsh(multi(${
+        account.keysRequired
+      },${validExtendedPublicKeys.join(',')}))`
       const multisigDescriptor = await new Descriptor().create(
         multisigDescriptorString,
         network

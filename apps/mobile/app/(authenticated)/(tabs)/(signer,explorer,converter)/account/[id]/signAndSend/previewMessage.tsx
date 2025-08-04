@@ -992,7 +992,9 @@ function PreviewMessage() {
         }
       } else {
         toast.success(
-          `Scanned part ${current + 1} of ${total} (${newScanned.size}/${total} complete)`
+          `Scanned part ${current + 1} of ${total} (${
+            newScanned.size
+          }/${total} complete)`
         )
       }
     }

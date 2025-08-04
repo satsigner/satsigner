@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
@@ -14,12 +15,11 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
 import { shareFile } from '@/utils/filesystem'
-import { toast } from 'sonner-native'
 
 export default function DescriptorPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
   const router = useRouter()
-  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const _network = useBlockchainStore((state) => state.selectedNetwork)
   const [getAccountData] = useAccountBuilderStore(
     useShallow((state) => [state.getAccountData])
   )
@@ -38,7 +38,7 @@ export default function DescriptorPage() {
 
       try {
         const accountData = getAccountData()
-        const keyIndexNum = parseInt(keyIndex)
+        const keyIndexNum = parseInt(keyIndex, 10)
         const key = accountData.keys[keyIndexNum]
 
         if (!key) {
@@ -68,8 +68,7 @@ export default function DescriptorPage() {
         if (!foundDescriptor) {
           toast.error('No descriptors available for this key')
         }
-      } catch (error) {
-        console.error('Failed to get descriptor:', error)
+      } catch (_error) {
         toast.error('Failed to get descriptor')
       } finally {
         setIsLoading(false)

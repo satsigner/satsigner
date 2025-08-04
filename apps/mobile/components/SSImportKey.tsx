@@ -1,11 +1,10 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import bs58check from 'bs58check'
-import * as CBOR from 'cbor-js'
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
-import { router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
+import { Animated, Keyboard, ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -13,27 +12,24 @@ import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNFCReader } from '@/hooks/useNFCReader'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSHStack from '@/layouts/SSHStack'
+import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType } from '@/types/models/Account'
-import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
+import { isBBQRFragment } from '@/utils/bbqr'
+import { convertKeyFormat } from '@/utils/bitcoin'
 import {
+  isCombinedDescriptor,
   validateAddress,
+  validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint,
-  isCombinedDescriptor,
-  validateCombinedDescriptor
+  validateFingerprint
 } from '@/utils/validation'
-import { convertKeyFormat } from '@/utils/bitcoin'
 
 type ImportKeyProps = {
   importType: 'descriptor' | 'extendedPub' | 'importAddress'
@@ -52,15 +48,13 @@ type ImportKeyProps = {
 
 export default function SSImportKey({
   importType,
-  keyIndex,
-  scriptVersion,
   onConfirm,
   onCancel,
   showDescription = true,
   showFingerprint = true
 }: ImportKeyProps) {
   const network = useBlockchainStore((state) => state.selectedNetwork)
-  const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
+  const { isAvailable, isReading, readNFCTag } = useNFCReader()
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -304,7 +298,7 @@ export default function SSImportKey({
   }
 
   // Helper functions for QR code detection and parsing
-  const detectQRType = (data: string) => {
+  const _detectQRType = (data: string) => {
     // Check for RAW format (pXofY header)
     if (/^p\d+of\d+\s/.test(data)) {
       const match = data.match(/^p(\d+)of(\d+)\s/)
@@ -425,24 +419,9 @@ export default function SSImportKey({
 
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(finalContent)) {
-          console.log(
-            '🔍 SSImportKey (pasteFromClipboard): Detected combined descriptor:',
-            finalContent
-          )
-
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation =
             await validateCombinedDescriptor(finalContent)
-
-          console.log(
-            '📊 SSImportKey (pasteFromClipboard): Combined validation result:',
-            {
-              isValid: combinedValidation.isValid,
-              error: combinedValidation.error,
-              externalDescriptor: combinedValidation.externalDescriptor,
-              internalDescriptor: combinedValidation.internalDescriptor
-            }
-          )
 
           if (combinedValidation.isValid) {
             // For combined descriptors, use format-only validation for the separated descriptors
@@ -455,20 +434,12 @@ export default function SSImportKey({
               combinedValidation.internalDescriptor,
               true
             )
-
-            console.log(
-              '✅ SSImportKey (pasteFromClipboard): Successfully set external and internal descriptors as valid'
-            )
           } else {
             // Set the separated descriptors but mark them as invalid
             setLocalExternalDescriptor(combinedValidation.externalDescriptor)
             setLocalInternalDescriptor(combinedValidation.internalDescriptor)
             setValidExternalDescriptor(false)
             setValidInternalDescriptor(false)
-
-            console.log(
-              '❌ SSImportKey (pasteFromClipboard): Set external and internal descriptors as invalid due to combined validation failure'
-            )
           }
         } else {
           // Handle non-combined descriptors with existing logic
@@ -500,7 +471,7 @@ export default function SSImportKey({
       }
 
       toast.success(t('watchonly.success.clipboardPasted'))
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('watchonly.error.clipboardPaste'))
     }
   }
@@ -549,24 +520,9 @@ export default function SSImportKey({
 
           // Check if the descriptor is combined (contains <0;1> or <0,1>)
           if (isCombinedDescriptor(finalContent)) {
-            console.log(
-              '🔍 SSImportKey (handleNFCRead): Detected combined descriptor:',
-              finalContent
-            )
-
             // Validate the combined descriptor and get separated descriptors
             const combinedValidation =
               await validateCombinedDescriptor(finalContent)
-
-            console.log(
-              '📊 SSImportKey (handleNFCRead): Combined validation result:',
-              {
-                isValid: combinedValidation.isValid,
-                error: combinedValidation.error,
-                externalDescriptor: combinedValidation.externalDescriptor,
-                internalDescriptor: combinedValidation.internalDescriptor
-              }
-            )
 
             if (combinedValidation.isValid) {
               // For combined descriptors, use format-only validation for the separated descriptors
@@ -579,20 +535,12 @@ export default function SSImportKey({
                 combinedValidation.internalDescriptor,
                 true
               )
-
-              console.log(
-                '✅ SSImportKey (handleNFCRead): Successfully set external and internal descriptors as valid'
-              )
             } else {
               // Set the separated descriptors but mark them as invalid
               setLocalExternalDescriptor(combinedValidation.externalDescriptor)
               setLocalInternalDescriptor(combinedValidation.internalDescriptor)
               setValidExternalDescriptor(false)
               setValidInternalDescriptor(false)
-
-              console.log(
-                '❌ SSImportKey (handleNFCRead): Set external and internal descriptors as invalid due to combined validation failure'
-              )
             }
           } else {
             // Handle non-combined descriptors with existing logic
@@ -616,7 +564,7 @@ export default function SSImportKey({
 
         toast.success(t('watchonly.success.nfcRead'))
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error(t('watchonly.error.nfcRead'))
     }
   }
@@ -659,24 +607,9 @@ export default function SSImportKey({
 
       // Check if the descriptor is combined (contains <0;1> or <0,1>)
       if (isCombinedDescriptor(finalContent)) {
-        console.log(
-          '🔍 SSImportKey (handleQRCodeScanned): Detected combined descriptor:',
-          finalContent
-        )
-
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation =
           await validateCombinedDescriptor(finalContent)
-
-        console.log(
-          '📊 SSImportKey (handleQRCodeScanned): Combined validation result:',
-          {
-            isValid: combinedValidation.isValid,
-            error: combinedValidation.error,
-            externalDescriptor: combinedValidation.externalDescriptor,
-            internalDescriptor: combinedValidation.internalDescriptor
-          }
-        )
 
         if (combinedValidation.isValid) {
           // For combined descriptors, use format-only validation for the separated descriptors
@@ -689,20 +622,12 @@ export default function SSImportKey({
             combinedValidation.internalDescriptor,
             true
           )
-
-          console.log(
-            '✅ SSImportKey (handleQRCodeScanned): Successfully set external and internal descriptors as valid'
-          )
         } else {
           // Set the separated descriptors but mark them as invalid
           setLocalExternalDescriptor(combinedValidation.externalDescriptor)
           setLocalInternalDescriptor(combinedValidation.internalDescriptor)
           setValidExternalDescriptor(false)
           setValidInternalDescriptor(false)
-
-          console.log(
-            '❌ SSImportKey (handleQRCodeScanned): Set external and internal descriptors as invalid due to combined validation failure'
-          )
         }
       } else {
         // Handle non-combined descriptors with existing logic

@@ -1,3 +1,5 @@
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -6,8 +8,6 @@ import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -23,14 +23,13 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType, type Key } from '@/types/models/Account'
 import {
+  isCombinedDescriptor,
+  validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
   validateExtendedKey,
-  validateFingerprint,
-  isCombinedDescriptor,
-  validateCombinedDescriptor
+  validateFingerprint
 } from '@/utils/validation'
-import { convertKeyFormat } from '@/utils/bitcoin'
 
 type UnifiedImportSearchParams = {
   index: string
@@ -83,7 +82,7 @@ export default function UnifiedImport() {
   const [validExternalDescriptor, setValidExternalDescriptor] = useState(true)
   const [validInternalDescriptor, setValidInternalDescriptor] = useState(true)
   const [validXpub, setValidXpub] = useState(true)
-  const [validMasterFingerprint, setValidMasterFingerprint] = useState(true)
+  const [_validMasterFingerprint, setValidMasterFingerprint] = useState(true)
 
   const [loadingWallet, setLoadingWallet] = useState(false)
 

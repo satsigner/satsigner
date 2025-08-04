@@ -39,7 +39,6 @@ export default function ConfirmScreen() {
 
       const data = await accountBuilderFinish(account)
       if (!data) {
-        console.error('Failed to create account - no data returned')
         toast.error(t('account.multisig.createError'))
         return
       }
@@ -55,11 +54,9 @@ export default function ConfirmScreen() {
           updateAccount(updatedAccount)
         }
       } catch (error) {
-        console.error('Error syncing account:', error)
         toast.error((error as Error).message)
       }
-    } catch (error) {
-      console.error('Error creating multisig wallet:', error)
+    } catch (_error) {
       toast.error(t('account.multisig.createError'))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

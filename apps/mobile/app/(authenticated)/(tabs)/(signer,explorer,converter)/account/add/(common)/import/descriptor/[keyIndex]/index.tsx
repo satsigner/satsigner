@@ -1,21 +1,18 @@
 import { URDecoder } from '@ngraveio/bc-ur'
-import bs58check from 'bs58check'
-import * as CBOR from 'cbor-js'
+import { type Network as _Network } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
+import { Animated, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { useNFCReader } from '@/hooks/useNFCReader'
-import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -25,15 +22,15 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import { decodeURToPSBT } from '@/utils/ur'
 import {
+  isCombinedDescriptor,
+  validateCombinedDescriptor,
   validateDescriptor,
   validateDescriptorFormat,
-  validateDescriptorScriptVersion,
-  isCombinedDescriptor,
-  validateCombinedDescriptor
+  validateDescriptorScriptVersion
 } from '@/utils/validation'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 export default function ImportDescriptor() {
   const { keyIndex } = useLocalSearchParams<ImportDescriptorSearchParams>()
@@ -101,7 +98,6 @@ export default function ImportDescriptor() {
     setKey,
     setStoreExternalDescriptor,
     setStoreInternalDescriptor,
-    updateKeyFingerprint,
     setKeyDerivationPath,
     setExtendedPublicKey,
     setFingerprint,
@@ -112,7 +108,6 @@ export default function ImportDescriptor() {
       setKey: state.setKey,
       setStoreExternalDescriptor: state.setExternalDescriptor,
       setStoreInternalDescriptor: state.setInternalDescriptor,
-      updateKeyFingerprint: state.updateKeyFingerprint,
       setKeyDerivationPath: state.setKeyDerivationPath,
       setExtendedPublicKey: state.setExtendedPublicKey,
       setFingerprint: state.setFingerprint,
@@ -159,7 +154,7 @@ export default function ImportDescriptor() {
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
-    let networkValidation: { isValid: boolean; error?: string } = {
+    const networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
     }
 
@@ -225,7 +220,7 @@ export default function ImportDescriptor() {
 
     // Network validation - check if descriptor is compatible with selected network
     // Skip network validation during confirm stage since it was already validated during input
-    let networkValidation: { isValid: boolean; error?: string } = {
+    const networkValidation: { isValid: boolean; error?: string } = {
       isValid: true
     }
 
@@ -360,8 +355,6 @@ export default function ImportDescriptor() {
    */
   async function handleConfirm() {
     try {
-      console.log('🔍 Starting descriptor information extraction...')
-
       // Extract fingerprint from the descriptor if possible
       const fingerprint = extractFingerprintFromDescriptor(externalDescriptor)
 
@@ -370,19 +363,9 @@ export default function ImportDescriptor() {
         extractDescriptorInfo(externalDescriptor)
 
       if (!extendedPublicKey) {
-        console.error(
-          '❌ Failed to extract extended public key from descriptor'
-        )
         toast.error(t('account.import.error.descriptorFormat'))
         return
       }
-
-      console.log('✅ Successfully extracted descriptor information:', {
-        extendedPublicKey: `${extendedPublicKey.slice(0, 8)}...`,
-        derivationPath,
-        fingerprint,
-        descriptorLength: externalDescriptor.length
-      })
 
       // Set the descriptors in the store
       setStoreExternalDescriptor(externalDescriptor)
@@ -397,15 +380,12 @@ export default function ImportDescriptor() {
       }
 
       // Set the key data
-      const key = setKey(Number(keyIndex))
+      const _key = setKey(Number(keyIndex))
       setKeyDerivationPath(Number(keyIndex), derivationPath)
 
       clearKeyState()
       router.dismiss(1)
-
-      console.log('✅ Descriptor import completed successfully')
-    } catch (error) {
-      console.error('❌ Error in handleConfirm:', error)
+    } catch (_error) {
       toast.error(t('account.import.error'))
     }
   }
@@ -430,7 +410,7 @@ export default function ImportDescriptor() {
     const extendedPublicKey = xpubMatch ? xpubMatch[0] : ''
 
     // Extract derivation path with improved logic
-    let derivationPath = extractDerivationPathFromDescriptor(descriptor)
+    const derivationPath = extractDerivationPathFromDescriptor(descriptor)
 
     return { extendedPublicKey, derivationPath }
   }
@@ -467,35 +447,17 @@ export default function ImportDescriptor() {
     }
 
     // Fallback: Use default derivation path
-    console.warn('⚠️ Could not extract derivation path, using default')
     return `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
   }
 
   /**
    * Handle combined descriptor import with smart validation and error handling
    */
-  async function handleCombinedDescriptorImport(
-    combinedDescriptor: string,
-    source: 'pasteFromClipboard' | 'handleNFCRead' | 'handleQRCodeScanned'
-  ) {
-    console.log(
-      `🔍 Descriptor Import (${source}): Detected combined descriptor`
-    )
-
+  async function handleCombinedDescriptorImport(combinedDescriptor: string) {
     try {
       // Validate the combined descriptor and get separated descriptors
       const combinedValidation =
         await validateCombinedDescriptor(combinedDescriptor)
-
-      console.log(
-        `📊 Descriptor Import (${source}): Combined validation result:`,
-        {
-          isValid: combinedValidation.isValid,
-          error: combinedValidation.error,
-          externalDescriptor: `${combinedValidation.externalDescriptor.slice(0, 50)}...`,
-          internalDescriptor: `${combinedValidation.internalDescriptor.slice(0, 50)}...`
-        }
-      )
 
       if (combinedValidation.isValid) {
         // For combined descriptors, use format-only validation for the separated descriptors
@@ -507,10 +469,6 @@ export default function ImportDescriptor() {
         await updateInternalDescriptor(
           combinedValidation.internalDescriptor,
           true
-        )
-
-        console.log(
-          `✅ Descriptor Import (${source}): Successfully set external and internal descriptors as valid`
         )
       } else {
         // Set the separated descriptors but mark them as invalid
@@ -525,16 +483,8 @@ export default function ImportDescriptor() {
           : t('account.import.error.descriptorFormat')
         setExternalDescriptorError(errorMessage)
         setInternalDescriptorError(errorMessage)
-
-        console.log(
-          `❌ Descriptor Import (${source}): Set descriptors as invalid due to combined validation failure`
-        )
       }
-    } catch (error) {
-      console.error(
-        `❌ Error in handleCombinedDescriptorImport (${source}):`,
-        error
-      )
+    } catch (_error) {
       toast.error(t('account.import.error'))
     }
   }
@@ -581,7 +531,7 @@ export default function ImportDescriptor() {
 
     // Handle combined descriptors with smart validation
     if (isCombinedDescriptor(text)) {
-      await handleCombinedDescriptorImport(text, 'pasteFromClipboard')
+      await handleCombinedDescriptorImport(text)
     } else {
       // Handle non-combined descriptors with existing logic
       if (externalDescriptor) await updateExternalDescriptor(externalDescriptor)
@@ -626,7 +576,7 @@ export default function ImportDescriptor() {
 
       // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(text)) {
-        await handleCombinedDescriptorImport(text, 'handleNFCRead')
+        await handleCombinedDescriptorImport(text)
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor)
@@ -636,7 +586,7 @@ export default function ImportDescriptor() {
       }
 
       toast.success(t('watchonly.success.nfcRead'))
-    } catch (error) {
+    } catch {
       toast.error(t('watchonly.error.nfcRead'))
     }
   }
@@ -681,10 +631,7 @@ export default function ImportDescriptor() {
 
       // Handle combined descriptors with smart validation
       if (isCombinedDescriptor(finalContent)) {
-        await handleCombinedDescriptorImport(
-          finalContent,
-          'handleQRCodeScanned'
-        )
+        await handleCombinedDescriptorImport(finalContent)
       } else {
         // Handle non-combined descriptors with existing logic
         await updateExternalDescriptor(finalContent)
@@ -717,10 +664,7 @@ export default function ImportDescriptor() {
         if (assembledData) {
           // Handle combined descriptors with smart validation
           if (isCombinedDescriptor(assembledData)) {
-            await handleCombinedDescriptorImport(
-              assembledData,
-              'handleQRCodeScanned'
-            )
+            await handleCombinedDescriptorImport(assembledData)
           } else {
             // Handle non-combined descriptors with existing logic
             await updateExternalDescriptor(assembledData)
@@ -746,12 +690,14 @@ export default function ImportDescriptor() {
       const combinedData = sortedChunks.join('')
 
       switch (type) {
-        case 'ur':
+        case 'ur': {
           const urResult = decodeURToPSBT(combinedData)
           return urResult ? String(urResult) : combinedData
-        case 'bbqr':
+        }
+        case 'bbqr': {
           const bbqrResult = decodeBBQRChunks([combinedData])
           return bbqrResult ? String(bbqrResult) : combinedData
+        }
         case 'raw':
         default:
           return combinedData
@@ -761,7 +707,7 @@ export default function ImportDescriptor() {
     }
   }
 
-  const styles = StyleSheet.create({
+  const _styles = StyleSheet.create({
     invalid: {
       borderColor: Colors.error,
       borderWidth: 1,
@@ -789,7 +735,7 @@ export default function ImportDescriptor() {
                 <SSTextInput
                   value={externalDescriptor}
                   style={
-                    validExternalDescriptor ? styles.valid : styles.invalid
+                    validExternalDescriptor ? _styles.valid : _styles.invalid
                   }
                   onChangeText={updateExternalDescriptor}
                   multiline
@@ -814,7 +760,7 @@ export default function ImportDescriptor() {
                 <SSTextInput
                   value={internalDescriptor}
                   style={
-                    validInternalDescriptor ? styles.valid : styles.invalid
+                    validInternalDescriptor ? _styles.valid : _styles.invalid
                   }
                   multiline
                   onChangeText={updateInternalDescriptor}
@@ -1014,22 +960,3 @@ export default function ImportDescriptor() {
     </SSMainLayout>
   )
 }
-
-const styles = StyleSheet.create({
-  valid: {
-    height: 'auto',
-    paddingVertical: 8
-  },
-  invalid: {
-    borderColor: Colors.error,
-    borderWidth: 1,
-    height: 'auto',
-    paddingVertical: 8
-  },
-  errorMessage: {
-    color: Colors.error,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4
-  }
-})

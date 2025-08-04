@@ -1,6 +1,9 @@
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
-import { useState, useEffect } from 'react'
-import { TouchableOpacity, View, Alert } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Alert, TouchableOpacity, View } from 'react-native'
+import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
@@ -17,13 +20,13 @@ import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Key, type Secret } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Account'
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import {
+  type Key,
+  type ScriptVersionType,
+  type Secret
+} from '@/types/models/Account'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
-import { toast } from 'sonner-native'
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
@@ -97,8 +100,7 @@ function SSMultisigKeyControl({
           )
           const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
           setExtractedPublicKey(publicKey)
-        } catch (error) {
-          console.log('Failed to extract public key from descriptor:', error)
+        } catch (_error) {
           setExtractedPublicKey('')
         }
       } else {
@@ -143,7 +145,9 @@ function SSMultisigKeyControl({
     // Fallback to global script version
     const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
     return t(
-      `account.seed.share${keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)}`
+      `account.seed.share${
+        keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)
+      }`
     )
   }
 
@@ -250,8 +254,7 @@ function SSMultisigKeyControl({
 
               toast.success(t('account.seed.dropSeedSuccess'))
               onRefresh?.()
-            } catch (error) {
-              console.error('Failed to drop seed:', error)
+            } catch (_error) {
               toast.error(t('account.seed.dropSeedError'))
             }
           }
@@ -344,7 +347,10 @@ function SSMultisigKeyControl({
   // Format public key for display: first 7, last 4 chars
   let formattedPubKey = extendedPublicKey
   if (extendedPublicKey && extendedPublicKey.length > 12) {
-    formattedPubKey = `${extendedPublicKey.slice(0, 7)}...${extendedPublicKey.slice(-4)}`
+    formattedPubKey = `${extendedPublicKey.slice(
+      0,
+      7
+    )}...${extendedPublicKey.slice(-4)}`
   }
 
   return (

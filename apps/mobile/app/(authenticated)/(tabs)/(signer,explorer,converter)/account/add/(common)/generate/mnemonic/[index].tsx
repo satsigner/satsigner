@@ -6,10 +6,10 @@ import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  getFingerprint,
-  validateMnemonic,
   getDescriptor,
-  parseDescriptor
+  getFingerprint,
+  parseDescriptor,
+  validateMnemonic
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -96,21 +96,23 @@ export default function GenerateMnemonic() {
         )
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
         derivationPath = parsedDescriptor.derivationPath
-      } catch (error) {
-        console.error('Failed to extract derivation path from mnemonic:', error)
+      } catch (_error) {
         // Use default derivation path if extraction fails
-        derivationPath = `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
+        derivationPath = `m/${getDerivationPathFromScriptVersion(
+          scriptVersion,
+          network
+        )}`
       }
 
       // Create the key
-      const key = setKey(Number(index))
+      const _key = setKey(Number(index))
 
       // Set the derivation path for this key
       setKeyDerivationPath(Number(index), derivationPath)
 
       router.navigate(`/account/add/confirm/${index}/word/0`)
-    } catch (error) {
-      console.error('Error in handleOnPressConfirm:', error)
+    } catch (_error) {
+      // Handle error silently
     }
   }
 
