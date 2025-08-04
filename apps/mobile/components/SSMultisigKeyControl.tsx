@@ -152,7 +152,6 @@ function SSMultisigKeyControl({
 
   function getDropSeedLabel() {
     // Fallback to global script version
-    console.log('scriptVersion', scriptVersion)
     switch (scriptVersion) {
       case 'P2PKH':
         return t('account.seed.dropAndKeep.xpub')
@@ -312,7 +311,6 @@ function SSMultisigKeyControl({
   }
 
   // Check if the key is completed based on its data
-  console.log('keyDetails', keyDetails)
   const isKeyCompleted =
     keyDetails &&
     keyDetails.creationType &&

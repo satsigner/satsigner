@@ -198,15 +198,8 @@ export default function ExportDescriptors() {
             const checksum = calculateDescriptorChecksum(multisigDescriptor)
             if (checksum) {
               descriptorString = `${multisigDescriptor}#${checksum}`
-              console.log(
-                'Added checksum to multisig descriptor:',
-                descriptorString
-              )
             } else {
               descriptorString = multisigDescriptor
-              console.warn(
-                'Failed to calculate checksum for multisig descriptor'
-              )
             }
           }
         } else {

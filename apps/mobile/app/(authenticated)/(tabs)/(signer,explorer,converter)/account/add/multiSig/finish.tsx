@@ -35,7 +35,6 @@ export default function ConfirmScreen() {
   const createMultisigWallet = useCallback(async () => {
     try {
       const account = getAccountData()
-      console.log('account', account)
       setAccountId(account.id)
 
       const data = await accountBuilderFinish(account)
