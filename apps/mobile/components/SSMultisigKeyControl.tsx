@@ -20,6 +20,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { type Key, type Secret } from '@/types/models/Account'
 import { type ScriptVersionType } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { toast } from 'sonner-native'
@@ -120,68 +121,30 @@ function SSMultisigKeyControl({
     } else if (keyDetails.creationType === 'importDescriptor') {
       return t('account.seed.external')
     } else if (keyDetails.creationType === 'importExtendedPub') {
-      // Show the correct label according to the global script version
-      switch (scriptVersion) {
-        case 'P2PKH':
-          return t('account.import.xpub')
-        case 'P2SH-P2WPKH':
-          return t('account.import.ypub')
-        case 'P2WPKH':
-          return t('account.import.zpub')
-        case 'P2TR':
-          return t('account.import.vpub')
-        default:
-          return t('account.import.xpub')
-      }
+      // Show the correct label according to the script version and network
+      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+      return t(`account.import.${keyFormat}`)
     }
   }
 
   // Always use the global scriptVersion from the store
   function getImportExtendedLabel() {
-    switch (scriptVersion) {
-      case 'P2PKH':
-        return t('account.import.xpub')
-      case 'P2SH-P2WPKH':
-        return t('account.import.ypub')
-      case 'P2WPKH':
-        return t('account.import.zpub')
-      case 'P2TR':
-        return t('account.import.vpub')
-      default:
-        return t('account.import.xpub')
-    }
+    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+    return t(`account.import.${keyFormat}`)
   }
 
   function getDropSeedLabel() {
     // Fallback to global script version
-    switch (scriptVersion) {
-      case 'P2PKH':
-        return t('account.seed.dropAndKeep.xpub')
-      case 'P2SH-P2WPKH':
-        return t('account.seed.dropAndKeep.ypub')
-      case 'P2WPKH':
-        return t('account.seed.dropAndKeep.zpub')
-      case 'P2TR':
-        return t('account.seed.dropAndKeep.vpub')
-      default:
-        return t('account.seed.dropAndKeep.xpub')
-    }
+    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+    return t(`account.seed.dropAndKeep.${keyFormat}`)
   }
 
   function getShareXpubLabel() {
     // Fallback to global script version
-    switch (scriptVersion) {
-      case 'P2PKH':
-        return t('account.seed.shareXpub')
-      case 'P2SH-P2WPKH':
-        return t('account.seed.shareYpub')
-      case 'P2WPKH':
-        return t('account.seed.shareZpub')
-      case 'P2TR':
-        return t('account.seed.shareVpub')
-      default:
-        return t('account.seed.shareXpub')
-    }
+    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+    return t(
+      `account.seed.share${keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)}`
+    )
   }
 
   async function handleAction(type: NonNullable<Key['creationType']>) {

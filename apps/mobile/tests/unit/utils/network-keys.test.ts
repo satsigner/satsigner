@@ -137,3 +137,39 @@ describe('Network-aware key handling', () => {
     })
   })
 })
+
+describe('Button Label Generation', () => {
+  test('should generate correct button labels for mainnet', () => {
+    expect(getKeyFormatForScriptVersion('P2PKH', 'bitcoin')).toBe('xpub')
+    expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'bitcoin')).toBe('ypub')
+    expect(getKeyFormatForScriptVersion('P2WPKH', 'bitcoin')).toBe('zpub')
+    expect(getKeyFormatForScriptVersion('P2TR', 'bitcoin')).toBe('vpub')
+  })
+
+  test('should generate correct button labels for testnet', () => {
+    expect(getKeyFormatForScriptVersion('P2PKH', 'testnet')).toBe('tpub')
+    expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'testnet')).toBe('upub')
+    expect(getKeyFormatForScriptVersion('P2WPKH', 'testnet')).toBe('vpub')
+    expect(getKeyFormatForScriptVersion('P2TR', 'testnet')).toBe('vpub')
+  })
+
+  test('should generate correct button labels for signet', () => {
+    expect(getKeyFormatForScriptVersion('P2PKH', 'signet')).toBe('tpub')
+    expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'signet')).toBe('upub')
+    expect(getKeyFormatForScriptVersion('P2WPKH', 'signet')).toBe('vpub')
+    expect(getKeyFormatForScriptVersion('P2TR', 'signet')).toBe('vpub')
+  })
+
+  test('should generate correct translation keys for UI buttons', () => {
+    // Test that the function returns the correct format for translation keys
+    expect(getKeyFormatForScriptVersion('P2PKH', 'bitcoin')).toBe('xpub')
+    expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'bitcoin')).toBe('ypub')
+    expect(getKeyFormatForScriptVersion('P2WPKH', 'bitcoin')).toBe('zpub')
+    expect(getKeyFormatForScriptVersion('P2TR', 'bitcoin')).toBe('vpub')
+
+    expect(getKeyFormatForScriptVersion('P2PKH', 'testnet')).toBe('tpub')
+    expect(getKeyFormatForScriptVersion('P2SH-P2WPKH', 'testnet')).toBe('upub')
+    expect(getKeyFormatForScriptVersion('P2WPKH', 'testnet')).toBe('vpub')
+    expect(getKeyFormatForScriptVersion('P2TR', 'testnet')).toBe('vpub')
+  })
+})
