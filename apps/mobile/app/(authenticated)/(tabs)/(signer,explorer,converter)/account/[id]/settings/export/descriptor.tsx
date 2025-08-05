@@ -130,8 +130,24 @@ export default function DescriptorPage() {
           key.creationType === 'generateMnemonic' ||
           key.creationType === 'importMnemonic'
         ) {
-          // For seed-based keys, generate descriptor from mnemonic
-          if (decryptedSecret.mnemonic) {
+          // First check if we have a stored descriptor
+          if (decryptedSecret.externalDescriptor) {
+            descriptorString = decryptedSecret.externalDescriptor
+
+            // If the descriptor doesn't have a checksum, add one
+            if (descriptorString && !descriptorString.includes('#')) {
+              try {
+                const descriptor = await new Descriptor().create(
+                  descriptorString,
+                  network as Network
+                )
+                descriptorString = await descriptor.asString()
+              } catch (_error) {
+                // Keep the original descriptor if BDK fails
+              }
+            }
+          } else if (decryptedSecret.mnemonic) {
+            // For seed-based keys, generate descriptor from mnemonic if no stored descriptor
             const parsedMnemonic = await new Mnemonic().fromString(
               decryptedSecret.mnemonic
             )
