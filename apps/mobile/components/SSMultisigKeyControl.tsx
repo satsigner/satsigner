@@ -115,6 +115,7 @@ function SSMultisigKeyControl({
     if (!keyDetails) {
       return t('account.selectKeySource')
     } else if (keyDetails.creationType === 'generateMnemonic') {
+      console.log('keyDetails', keyDetails)
       return t('account.seed.newSeed', {
         name: keyDetails.scriptVersion
       })
@@ -189,7 +190,7 @@ function SSMultisigKeyControl({
   }
 
   async function handleDropSeed() {
-    if (!keyDetails || !accountId) return
+    if (!keyDetails) return
 
     // Show confirmation dialog
     Alert.alert(
@@ -205,55 +206,68 @@ function SSMultisigKeyControl({
           style: 'destructive',
           onPress: async () => {
             try {
-              // Get the current account
-              const accounts = useAccountsStore.getState().accounts
-              const account = accounts.find((acc) => acc.id === accountId)
-              if (!account) return
+              if (isSettingsMode && accountId) {
+                // Handle existing account (settings mode)
+                const accounts = useAccountsStore.getState().accounts
+                const account = accounts.find((acc) => acc.id === accountId)
+                if (!account) return
 
-              const pin = await getItem(PIN_KEY)
-              if (!pin) return
+                const pin = await getItem(PIN_KEY)
+                if (!pin) return
 
-              // Decrypt the key's secret
-              let decryptedSecret: Secret
-              if (typeof keyDetails.secret === 'string') {
-                const decryptedSecretString = await aesDecrypt(
-                  keyDetails.secret,
+                // Decrypt the key's secret
+                let decryptedSecret: Secret
+                if (typeof keyDetails.secret === 'string') {
+                  const decryptedSecretString = await aesDecrypt(
+                    keyDetails.secret,
+                    pin,
+                    keyDetails.iv
+                  )
+                  decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+                } else {
+                  decryptedSecret = keyDetails.secret as Secret
+                }
+
+                // Remove mnemonic and passphrase, keep only extended public key and metadata
+                const cleanedSecret: Secret = {
+                  extendedPublicKey: decryptedSecret.extendedPublicKey,
+                  externalDescriptor: decryptedSecret.externalDescriptor,
+                  internalDescriptor: decryptedSecret.internalDescriptor,
+                  fingerprint: decryptedSecret.fingerprint // Preserve fingerprint
+                }
+
+                // Re-encrypt the cleaned secret
+                const stringifiedSecret = JSON.stringify(cleanedSecret)
+                const encryptedSecret = await aesEncrypt(
+                  stringifiedSecret,
                   pin,
                   keyDetails.iv
                 )
-                decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+
+                // Update the account with the new encrypted secret
+                const updatedAccount = { ...account }
+                updatedAccount.keys[index] = {
+                  ...keyDetails,
+                  secret: encryptedSecret
+                }
+
+                // Update the account in the store
+                await updateAccount(updatedAccount)
+
+                toast.success(t('account.seed.dropSeedSuccess'))
+                onRefresh?.()
               } else {
-                decryptedSecret = keyDetails.secret as Secret
+                // Handle account creation mode
+                const { dropSeedFromKey } = useAccountBuilderStore.getState()
+                const result = await dropSeedFromKey(index)
+
+                if (result.success) {
+                  toast.success(result.message)
+                  onRefresh?.()
+                } else {
+                  toast.error(result.message)
+                }
               }
-
-              // Remove mnemonic and passphrase, keep only extended public key and metadata
-              const cleanedSecret: Secret = {
-                extendedPublicKey: decryptedSecret.extendedPublicKey,
-                externalDescriptor: decryptedSecret.externalDescriptor,
-                internalDescriptor: decryptedSecret.internalDescriptor,
-                fingerprint: decryptedSecret.fingerprint // Preserve fingerprint
-              }
-
-              // Re-encrypt the cleaned secret
-              const stringifiedSecret = JSON.stringify(cleanedSecret)
-              const encryptedSecret = await aesEncrypt(
-                stringifiedSecret,
-                pin,
-                keyDetails.iv
-              )
-
-              // Update the account with the new encrypted secret
-              const updatedAccount = { ...account }
-              updatedAccount.keys[index] = {
-                ...keyDetails,
-                secret: encryptedSecret
-              }
-
-              // Update the account in the store
-              await updateAccount(updatedAccount)
-
-              toast.success(t('account.seed.dropSeedSuccess'))
-              onRefresh?.()
             } catch (_error) {
               toast.error(t('account.seed.dropSeedError'))
             }
@@ -262,6 +276,44 @@ function SSMultisigKeyControl({
       ]
     )
   }
+
+  // Example of how to use the new dropSeedFromKey function from account builder store
+  // This would be used during account creation scenarios
+  /*
+  async function handleDropSeedFromBuilder() {
+    const { dropSeedFromKey } = useAccountBuilderStore()
+    
+    // Show confirmation dialog
+    Alert.alert(
+      t('account.seed.dropSeedConfirm.title'),
+      t('account.seed.dropSeedConfirm.message'),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('account.seed.dropSeedConfirm.confirm'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await dropSeedFromKey(index)
+              
+              if (result.success) {
+                toast.success(result.message)
+                onRefresh?.()
+              } else {
+                toast.error(result.message)
+              }
+            } catch (error) {
+              toast.error(t('account.seed.dropSeedError'))
+            }
+          }
+        }
+      ]
+    )
+  }
+  */
 
   function handleShareXpub() {
     if (accountId) {

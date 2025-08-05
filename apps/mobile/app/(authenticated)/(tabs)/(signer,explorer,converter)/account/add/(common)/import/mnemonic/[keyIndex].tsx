@@ -9,7 +9,8 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
-  validateMnemonic
+  validateMnemonic,
+  getDescriptorsFromKeyData
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -359,14 +360,39 @@ export default function ImportMnemonic() {
         setLoadingAccount(false)
       }
     } else if (policyType === 'multisig') {
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        currentKey,
-        network as Network
-      )
-      updateKeySecret(Number(keyIndex), {
-        ...(currentKey.secret as object),
-        extendedPublicKey
-      })
+      try {
+        const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+          currentKey,
+          network as Network
+        )
+
+        // Generate descriptors from the key data
+        if (extendedPublicKey && currentKey.fingerprint) {
+          const descriptors = await getDescriptorsFromKeyData(
+            extendedPublicKey,
+            currentKey.fingerprint,
+            scriptVersion,
+            network as Network
+          )
+
+          // Update the key with both descriptors and extended public key
+          updateKeySecret(Number(keyIndex), {
+            ...(currentKey.secret as object),
+            extendedPublicKey,
+            externalDescriptor: descriptors.externalDescriptor,
+            internalDescriptor: descriptors.internalDescriptor
+          })
+        } else {
+          // Fallback to just updating with extended public key
+          updateKeySecret(Number(keyIndex), {
+            ...(currentKey.secret as object),
+            extendedPublicKey
+          })
+        }
+      } catch (error) {
+        console.error('Failed to generate descriptors:', error)
+        // Continue without descriptors if generation fails
+      }
 
       setLoadingAccount(false)
       clearKeyState()

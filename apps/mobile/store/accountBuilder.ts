@@ -2,6 +2,9 @@ import { produce } from 'immer'
 import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import {
   type Account,
@@ -73,6 +76,9 @@ type AccountBuilderAction = {
   clearKeyState: () => void
   clearAccount: () => void
   clearAllKeys: () => void
+  dropSeedFromKey: (
+    index: Key['index']
+  ) => Promise<{ success: boolean; message: string }>
 }
 
 const initialState: AccountBuilderState = {
@@ -210,7 +216,7 @@ const useAccountBuilderStore = create<
           state.keys[index].secret &&
           typeof state.keys[index].secret === 'object'
         ) {
-          state.keys[index].secret.fingerprint = fingerprint
+          ;(state.keys[index].secret as any).fingerprint = fingerprint
         }
       })
     )
@@ -282,6 +288,17 @@ const useAccountBuilderStore = create<
         ? keys[0].secret.extendedPublicKey
         : undefined
 
+    // Preserve the descriptors from the first key if they exist
+    const externalDescriptor =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.externalDescriptor
+        : undefined
+
+    const internalDescriptor =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.internalDescriptor
+        : undefined
+
     set({
       keyName: '',
       creationType,
@@ -291,7 +308,8 @@ const useAccountBuilderStore = create<
       passphrase: undefined,
       fingerprint: undefined,
       scriptVersion, // Preserve the script version
-      externalDescriptor: undefined,
+      externalDescriptor, // Preserve the external descriptor
+      internalDescriptor, // Preserve the internal descriptor
       extendedPublicKey, // Preserve the extendedPublicKey
       policyType
     })
@@ -321,6 +339,71 @@ const useAccountBuilderStore = create<
       fingerprint: undefined,
       keys: []
     })
+  },
+  dropSeedFromKey: async (index) => {
+    const state = get()
+    if (state.keys[index] && state.keys[index].secret) {
+      if (typeof state.keys[index].secret === 'object') {
+        // Handle unencrypted secret (during account creation)
+        set(
+          produce((state: AccountBuilderState) => {
+            const secret = state.keys[index].secret as any
+            state.keys[index].secret = {
+              extendedPublicKey: secret.extendedPublicKey,
+              externalDescriptor: secret.externalDescriptor,
+              internalDescriptor: secret.internalDescriptor,
+              fingerprint: secret.fingerprint
+            }
+          })
+        )
+        return { success: true, message: 'Seed dropped successfully' }
+      } else if (typeof state.keys[index].secret === 'string') {
+        // Handle encrypted secret
+        try {
+          const pin = await getItem(PIN_KEY)
+          if (!pin) {
+            return { success: false, message: 'PIN not found for decryption' }
+          }
+
+          // Decrypt the secret
+          const decryptedSecretString = await aesDecrypt(
+            state.keys[index].secret as string,
+            pin,
+            state.keys[index].iv
+          )
+          const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+
+          // Remove mnemonic and passphrase, keep other fields
+          const cleanedSecret: Secret = {
+            extendedPublicKey: decryptedSecret.extendedPublicKey,
+            externalDescriptor: decryptedSecret.externalDescriptor,
+            internalDescriptor: decryptedSecret.internalDescriptor,
+            fingerprint: decryptedSecret.fingerprint
+          }
+
+          // Re-encrypt the cleaned secret
+          const stringifiedSecret = JSON.stringify(cleanedSecret)
+          const encryptedSecret = await aesEncrypt(
+            stringifiedSecret,
+            pin,
+            state.keys[index].iv
+          )
+
+          // Update the secret
+          set(
+            produce((state: AccountBuilderState) => {
+              state.keys[index].secret = encryptedSecret
+            })
+          )
+
+          return { success: true, message: 'Seed dropped successfully' }
+        } catch (error) {
+          console.error('Failed to drop seed from encrypted secret:', error)
+          return { success: false, message: 'Failed to drop seed' }
+        }
+      }
+    }
+    return { success: false, message: 'Key not found or invalid' }
   }
 }))
 

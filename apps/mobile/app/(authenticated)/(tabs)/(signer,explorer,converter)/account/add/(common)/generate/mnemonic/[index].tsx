@@ -9,7 +9,9 @@ import {
   getDescriptor,
   getFingerprint,
   parseDescriptor,
-  validateMnemonic
+  validateMnemonic,
+  getDescriptorsFromKeyData,
+  getExtendedPublicKeyFromAccountKey
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -38,10 +40,15 @@ export default function GenerateMnemonic() {
     fingerprint,
     policyType,
     scriptVersion,
+    passphrase,
     setPassphrase,
     setFingerprint,
     setKey,
-    setKeyDerivationPath
+    setKeyDerivationPath,
+    updateKeySecret,
+    setExtendedPublicKey,
+    setExternalDescriptor,
+    setInternalDescriptor
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -50,10 +57,15 @@ export default function GenerateMnemonic() {
       state.fingerprint,
       state.policyType,
       state.scriptVersion,
+      state.passphrase,
       state.setPassphrase,
       state.setFingerprint,
       state.setKey,
-      state.setKeyDerivationPath
+      state.setKeyDerivationPath,
+      state.updateKeySecret,
+      state.setExtendedPublicKey,
+      state.setExternalDescriptor,
+      state.setInternalDescriptor
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -91,7 +103,7 @@ export default function GenerateMnemonic() {
           mnemonic.join(' '),
           scriptVersion, // Use the script version from store
           KeychainKind.External,
-          '', // No passphrase for now
+          passphrase || '', // Use passphrase from store
           network as Network
         )
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
@@ -104,8 +116,48 @@ export default function GenerateMnemonic() {
         )}`
       }
 
-      // Create the key
-      const _key = setKey(Number(index))
+      // Generate extended public key first
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        {
+          index: Number(index),
+          name: '',
+          creationType: 'generateMnemonic',
+          mnemonicWordCount,
+          secret: {
+            mnemonic: mnemonic.join(' '),
+            passphrase,
+            fingerprint
+          },
+          iv: '',
+          scriptVersion,
+          fingerprint
+        },
+        network as Network
+      )
+
+      // Generate descriptors from the key data
+      if (extendedPublicKey && fingerprint) {
+        try {
+          const descriptors = await getDescriptorsFromKeyData(
+            extendedPublicKey,
+            fingerprint,
+            scriptVersion,
+            network as Network
+          )
+
+          // Set global state values so setKey includes them
+          setExtendedPublicKey(extendedPublicKey)
+          setExternalDescriptor(descriptors.externalDescriptor)
+          setInternalDescriptor(descriptors.internalDescriptor)
+        } catch (error) {
+          console.error('Failed to generate descriptors:', error)
+          // Continue without descriptors if generation fails
+          setExtendedPublicKey(extendedPublicKey)
+        }
+      }
+
+      // Create the key with all the data
+      const currentKey = setKey(Number(index))
 
       // Set the derivation path for this key
       setKeyDerivationPath(Number(index), derivationPath)
