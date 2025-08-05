@@ -2,6 +2,7 @@ import {
   validateAddress,
   validateDerivationPath,
   validateDescriptor,
+  validateDescriptorDerivationPath,
   validateDescriptorScriptVersion,
   validateExtendedKey,
   validateFingerprint
@@ -288,6 +289,79 @@ describe('validateDescriptorScriptVersion', () => {
     expect(validateDescriptorScriptVersion(pkhDescriptor, 'UNKNOWN')).toEqual({
       isValid: false,
       error: 'Unknown script version: UNKNOWN'
+    })
+  })
+})
+
+describe('validateDescriptorDerivationPath', () => {
+  it('should validate descriptors with valid derivation paths', () => {
+    const validDescriptors = [
+      'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)',
+      'wpkh([12345678/84h/0h/0h]xpub1234567890abcdef)',
+      'sh([12345678/49h/0h/0h]xpub1234567890abcdef)',
+      'tr([12345678/86h/0h/0h]xpub1234567890abcdef)',
+      'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)#abcd1234'
+    ]
+
+    for (const descriptor of validDescriptors) {
+      expect(validateDescriptorDerivationPath(descriptor)).toEqual({
+        isValid: true
+      })
+    }
+  })
+
+  it('should validate descriptors without fingerprint', () => {
+    const descriptorWithoutFingerprint = 'pkh([44h/0h/0h]xpub1234567890abcdef)'
+
+    expect(
+      validateDescriptorDerivationPath(descriptorWithoutFingerprint)
+    ).toEqual({
+      isValid: true
+    })
+  })
+
+  it('should reject descriptors without derivation path', () => {
+    const descriptorWithoutPath = 'pkh(xpub1234567890abcdef)'
+
+    expect(validateDescriptorDerivationPath(descriptorWithoutPath)).toEqual({
+      isValid: false,
+      error: 'missingDerivationPath'
+    })
+  })
+
+  it('should reject descriptors with invalid fingerprint', () => {
+    const descriptorWithInvalidFingerprint =
+      'pkh([1234567/44h/0h/0h]xpub1234567890abcdef)'
+
+    expect(
+      validateDescriptorDerivationPath(descriptorWithInvalidFingerprint)
+    ).toEqual({
+      isValid: false,
+      error: 'fingerprintFormat'
+    })
+  })
+
+  it('should reject descriptors with invalid derivation path components', () => {
+    const invalidDescriptors = [
+      'pkh([12345678/44/0h/0h]xpub1234567890abcdef)', // missing h
+      'pkh([12345678/44h/0/0h]xpub1234567890abcdef)', // missing h
+      'pkh([12345678/44h/0h/0]xpub1234567890abcdef)' // missing h
+    ]
+
+    for (const descriptor of invalidDescriptors) {
+      expect(validateDescriptorDerivationPath(descriptor)).toEqual({
+        isValid: false,
+        error: 'derivationPathComponent'
+      })
+    }
+  })
+
+  it('should handle descriptors with checksums', () => {
+    const descriptorWithChecksum =
+      'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)#abcd1234'
+
+    expect(validateDescriptorDerivationPath(descriptorWithChecksum)).toEqual({
+      isValid: true
     })
   })
 })

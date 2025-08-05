@@ -48,6 +48,7 @@ type ImportKeyProps = {
 
 export default function SSImportKey({
   importType,
+  scriptVersion,
   onConfirm,
   onCancel,
   showDescription = true,
@@ -420,8 +421,11 @@ export default function SSImportKey({
         // Check if the descriptor is combined (contains <0;1> or <0,1>)
         if (isCombinedDescriptor(finalContent)) {
           // Validate the combined descriptor and get separated descriptors
-          const combinedValidation =
-            await validateCombinedDescriptor(finalContent)
+          const combinedValidation = await validateCombinedDescriptor(
+            finalContent,
+            scriptVersion,
+            network
+          )
 
           if (combinedValidation.isValid) {
             // For combined descriptors, use format-only validation for the separated descriptors
@@ -521,8 +525,11 @@ export default function SSImportKey({
           // Check if the descriptor is combined (contains <0;1> or <0,1>)
           if (isCombinedDescriptor(finalContent)) {
             // Validate the combined descriptor and get separated descriptors
-            const combinedValidation =
-              await validateCombinedDescriptor(finalContent)
+            const combinedValidation = await validateCombinedDescriptor(
+              finalContent,
+              scriptVersion,
+              network
+            )
 
             if (combinedValidation.isValid) {
               // For combined descriptors, use format-only validation for the separated descriptors
@@ -608,8 +615,11 @@ export default function SSImportKey({
       // Check if the descriptor is combined (contains <0;1> or <0,1>)
       if (isCombinedDescriptor(finalContent)) {
         // Validate the combined descriptor and get separated descriptors
-        const combinedValidation =
-          await validateCombinedDescriptor(finalContent)
+        const combinedValidation = await validateCombinedDescriptor(
+          finalContent,
+          scriptVersion,
+          network
+        )
 
         if (combinedValidation.isValid) {
           // For combined descriptors, use format-only validation for the separated descriptors

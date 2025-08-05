@@ -2,7 +2,6 @@ import { produce } from 'immer'
 import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { PIN_KEY } from '@/config/auth'
 import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
@@ -12,6 +11,7 @@ import {
   type Key,
   type Secret
 } from '@/types/models/Account'
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -397,8 +397,7 @@ const useAccountBuilderStore = create<
           )
 
           return { success: true, message: 'Seed dropped successfully' }
-        } catch (error) {
-          console.error('Failed to drop seed from encrypted secret:', error)
+        } catch (_error) {
           return { success: false, message: 'Failed to drop seed' }
         }
       }

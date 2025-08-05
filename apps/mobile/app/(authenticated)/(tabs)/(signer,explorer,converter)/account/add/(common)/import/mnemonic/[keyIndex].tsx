@@ -7,10 +7,10 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
+  getDescriptorsFromKeyData,
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
-  validateMnemonic,
-  getDescriptorsFromKeyData
+  validateMnemonic
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -389,10 +389,7 @@ export default function ImportMnemonic() {
             extendedPublicKey
           })
         }
-      } catch (error) {
-        console.error('Failed to generate descriptors:', error)
-        // Continue without descriptors if generation fails
-      }
+      } catch (_error) {}
 
       setLoadingAccount(false)
       clearKeyState()

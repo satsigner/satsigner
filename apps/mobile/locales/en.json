@@ -72,6 +72,7 @@
         "descriptorFormat": "Invalid descriptor format",
         "descriptorIncompatible": "Descriptor is incompatible with multisig script version",
         "fingerprintFormat": "Invalid fingerprint format",
+        "missingDerivationPath": "Missing derivation path",
         "missingParenthesis": "Missing closing parenthesis",
         "networkIncompatible": "Descriptor is not compatible with the selected network",
         "scriptFunctionInvalid": "Unknown or invalid script function",

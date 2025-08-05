@@ -1,10 +1,10 @@
 // Mock BDK functions
+import { getDescriptorsFromKeyData } from '@/api/bdk'
+
 jest.mock('@/api/bdk', () => ({
   getDescriptor: jest.fn(),
   getDescriptorsFromKeyData: jest.fn()
 }))
-
-import { getDescriptorsFromKeyData } from '@/api/bdk'
 
 describe('BDK API - Descriptor Generation from Key Data', () => {
   const mockGetDescriptorsFromKeyData =
@@ -19,8 +19,7 @@ describe('BDK API - Descriptor Generation from Key Data', () => {
     const mockImplementation = async (
       extendedPublicKey: string,
       fingerprint: string,
-      scriptVersion: string,
-      network: any
+      scriptVersion: string
     ) => {
       const derivationPath =
         scriptVersion === 'P2WPKH' ? '84h/0h/0h' : '44h/0h/0h'
@@ -59,15 +58,13 @@ describe('BDK API - Descriptor Generation from Key Data', () => {
     const result = await (getDescriptorsFromKeyData as any)(
       testExtendedPublicKey,
       testFingerprint,
-      testScriptVersion,
-      'bitcoin'
+      testScriptVersion
     )
 
     expect(mockGetDescriptorsFromKeyData).toHaveBeenCalledWith(
       testExtendedPublicKey,
       testFingerprint,
-      testScriptVersion,
-      'bitcoin'
+      testScriptVersion
     )
 
     expect(result.externalDescriptor).toContain('wpkh')
@@ -81,9 +78,7 @@ describe('BDK API - Descriptor Generation from Key Data', () => {
   it('should handle different script versions', async () => {
     const mockImplementation = async (
       extendedPublicKey: string,
-      fingerprint: string,
-      scriptVersion: string,
-      network: any
+      fingerprint: string
     ) => {
       const keyPart = `[${fingerprint}/44h/0h/0h]${extendedPublicKey}`
 
@@ -98,8 +93,7 @@ describe('BDK API - Descriptor Generation from Key Data', () => {
     const result = await (getDescriptorsFromKeyData as any)(
       'xpub1234567890abcdef',
       '12345678',
-      'P2PKH',
-      'bitcoin'
+      'P2PKH'
     )
 
     expect(result.externalDescriptor).toContain('pkh')
@@ -111,8 +105,7 @@ describe('BDK API - Descriptor Generation from Key Data', () => {
     const mockImplementation = async (
       extendedPublicKey: string,
       fingerprint: string,
-      scriptVersion: string,
-      network: any
+      scriptVersion: string
     ) => {
       const derivationPath =
         scriptVersion === 'P2WPKH' ? '84h/0h/0h' : '44h/0h/0h'
@@ -160,8 +153,7 @@ describe('BDK API - Descriptor Generation from Key Data', () => {
     const result = await (getDescriptorsFromKeyData as any)(
       testExtendedPublicKey,
       testFingerprint,
-      testScriptVersion,
-      'bitcoin'
+      testScriptVersion
     )
 
     // Verify the descriptors are generated correctly

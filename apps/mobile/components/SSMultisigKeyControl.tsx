@@ -115,7 +115,6 @@ function SSMultisigKeyControl({
     if (!keyDetails) {
       return t('account.selectKeySource')
     } else if (keyDetails.creationType === 'generateMnemonic') {
-      console.log('keyDetails', keyDetails)
       return t('account.seed.newSeed', {
         name: keyDetails.scriptVersion
       })

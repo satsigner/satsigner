@@ -32,8 +32,8 @@ import {
   type Backend,
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
-import { parseAccountAddressesDetails } from '@/utils/parse'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import ElectrumClient from './electrum'
 import Esplora from './esplora'
@@ -967,6 +967,7 @@ export {
   generateMnemonicFromEntropy,
   getBlockchain,
   getDescriptor,
+  getDescriptorsFromKeyData,
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   getLastUnusedAddressFromWallet,
@@ -979,6 +980,5 @@ export {
   parseDescriptor,
   signTransaction,
   syncWallet,
-  validateMnemonic,
-  getDescriptorsFromKeyData
+  validateMnemonic
 }

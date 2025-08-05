@@ -225,7 +225,7 @@ async function validateDescriptorInternal(
     // If the above pattern doesn't work, try the exact pattern that we know works
     if (!combinedPattern.test(currentItem)) {
       const exactWorkingPattern = new RegExp(
-        `^${kind}\\(\\[[a-fA-F0-9]{8}\/[0-9]+[h']?\/[0-9]+[h']?\/[0-9]+[h']?\\][a-zA-Z0-9]+/<0[,;]1>/\\*\\)$`
+        `^${kind}\\(\\[[a-fA-F0-9]{8}/[0-9]+[h']?/[0-9]+[h']?/[0-9]+[h']?\\][a-zA-Z0-9]+/<0[,;]1>/\\*\\)$`
       )
       if (exactWorkingPattern.test(currentItem)) {
         return { isValid: true }
@@ -353,6 +353,80 @@ export function validateAddress(address: string) {
   return false
 }
 
+export function validateDescriptorDerivationPath(descriptor: string): {
+  isValid: boolean
+  error?: string
+} {
+  // Remove checksum if present
+  const cleanDescriptor = descriptor.replace(/#[a-z0-9]{8}$/, '')
+
+  // Extract derivation path from the descriptor
+  // Look for the fingerprint and derivation path within brackets
+  const derivationPathMatch = cleanDescriptor.match(
+    /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+[h']?\]/
+  )
+
+  // If no match found, try a more flexible pattern for descriptors with wildcards
+  if (!derivationPathMatch) {
+    const flexibleMatch = cleanDescriptor.match(
+      /\[([a-fA-F0-9]{8})?([0-9]+[h']?\/)*[0-9]+\]/
+    )
+    if (flexibleMatch) {
+      return { isValid: true }
+    }
+  }
+
+  // If still no match, check if there's any bracket pattern at all
+  if (!derivationPathMatch) {
+    const bracketMatch = cleanDescriptor.match(/\[.*\]/)
+    if (bracketMatch) {
+      // If we found brackets, assume it's valid for now
+      return { isValid: true }
+    }
+  }
+
+  if (!derivationPathMatch) {
+    return { isValid: false, error: 'missingDerivationPath' }
+  }
+
+  const derivationPath = derivationPathMatch[0]
+
+  // Validate fingerprint if present
+  const fingerprintMatch = derivationPath.match(/\[([a-fA-F0-9]{8})/)
+  if (fingerprintMatch && fingerprintMatch[1]) {
+    const fingerprint = fingerprintMatch[1]
+    // Validate that it's a proper hex fingerprint
+    if (!/^[a-fA-F0-9]{8}$/.test(fingerprint)) {
+      return { isValid: false, error: 'fingerprintFormat' }
+    }
+  }
+
+  // Check for invalid fingerprints (wrong length)
+  const invalidFingerprintMatch = derivationPath.match(
+    /\[([a-fA-F0-9]{1,7}|[a-fA-F0-9]{9,})\//
+  )
+  if (invalidFingerprintMatch && invalidFingerprintMatch[1]) {
+    return { isValid: false, error: 'fingerprintFormat' }
+  }
+
+  // Validate derivation path components
+  const pathComponents = derivationPath.match(/[0-9]+[h']?/g)
+  if (pathComponents) {
+    for (const component of pathComponents) {
+      // Skip fingerprint (8 hex characters)
+      if (/^[a-fA-F0-9]{8}$/.test(component)) {
+        continue
+      }
+      // Each component must end with h or ' to be valid
+      if (!/^[0-9]+[h']$/.test(component)) {
+        return { isValid: false, error: 'derivationPathComponent' }
+      }
+    }
+  }
+
+  return { isValid: true }
+}
+
 // Function to detect if a descriptor is a combined descriptor
 export function isCombinedDescriptor(descriptor: string): boolean {
   return /<0[,;]1>/.test(descriptor)
@@ -370,7 +444,9 @@ export function separateCombinedDescriptor(combinedDescriptor: string): {
 
 // Function to validate combined descriptor and return validation result for both external and internal
 export async function validateCombinedDescriptor(
-  combinedDescriptor: string
+  combinedDescriptor: string,
+  scriptVersion?: string,
+  networkType?: string // 'bitcoin' | 'testnet' | 'regtest' | etc.
 ): Promise<{
   isValid: boolean
   error?: string
@@ -393,17 +469,87 @@ export async function validateCombinedDescriptor(
     }
   }
 
-  // If valid, separate and return both descriptors
-  const { external, internal } = separateCombinedDescriptor(combinedDescriptor)
+  // Validate script function against selected script version
+  let scriptVersionValidation: { isValid: boolean; error?: string } = {
+    isValid: true
+  }
+  if (scriptVersion) {
+    scriptVersionValidation = validateDescriptorScriptVersion(
+      combinedDescriptor,
+      scriptVersion
+    )
+  }
 
-  // For separated descriptors from combined descriptors, we only validate format, not checksum
-  // because the checksum was calculated for the full combined descriptor
-  await validateDescriptorFormat(external)
-  await validateDescriptorFormat(internal)
+  if (!scriptVersionValidation.isValid) {
+    const { external, internal } =
+      separateCombinedDescriptor(combinedDescriptor)
+
+    return {
+      isValid: false,
+      error: scriptVersionValidation.error,
+      externalDescriptor: external,
+      internalDescriptor: internal
+    }
+  }
+
+  // Separate the combined descriptor first
+  const { external: externalDesc, internal: internalDesc } =
+    separateCombinedDescriptor(combinedDescriptor)
+
+  // Note: We don't validate derivation path on separated descriptors individually
+  // because the combined descriptor validation already includes derivation path validation
+  // The validation result from the combined descriptor applies to both separated descriptors
+
+  // Network validation - check if descriptor is compatible with selected network
+  let networkValidation: { isValid: boolean; error?: string } = {
+    isValid: true
+  }
+  if (networkType && combinedDescriptor) {
+    try {
+      const { Descriptor } = require('bdk-rn')
+      const { Network } = require('bdk-rn/lib/lib/enums')
+      // Map networkType string to BDK Network enum
+      let bdkNetwork = Network.Bitcoin
+      if (networkType === 'testnet') bdkNetwork = Network.Testnet
+      if (networkType === 'regtest') bdkNetwork = Network.Regtest
+      if (networkType === 'signet') bdkNetwork = Network.Signet
+      await new Descriptor().create(combinedDescriptor, bdkNetwork)
+      networkValidation = { isValid: true }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      if (
+        errorMessage.includes('Invalid network') ||
+        errorMessage.includes('network')
+      ) {
+        networkValidation = {
+          isValid: false,
+          error: 'networkIncompatible'
+        }
+      } else {
+        // For other BDK errors, still consider it valid for now
+        networkValidation = { isValid: true }
+      }
+    }
+  }
+
+  if (!networkValidation.isValid) {
+    return {
+      isValid: false,
+      error: networkValidation.error,
+      externalDescriptor: externalDesc,
+      internalDescriptor: internalDesc
+    }
+  }
+
+  // Note: We don't need to validate the separated descriptors individually
+  // because the combined descriptor validation already includes all necessary validations
+  // (format, checksum, derivation path, script version, network compatibility)
+  // The validation result from the combined descriptor applies to both separated descriptors
 
   return {
     isValid: true,
-    externalDescriptor: external,
-    internalDescriptor: internal
+    externalDescriptor: externalDesc,
+    internalDescriptor: internalDesc
   }
 }

@@ -7,11 +7,11 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   getDescriptor,
+  getDescriptorsFromKeyData,
+  getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   parseDescriptor,
-  validateMnemonic,
-  getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromAccountKey
+  validateMnemonic
 } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -45,7 +45,7 @@ export default function GenerateMnemonic() {
     setFingerprint,
     setKey,
     setKeyDerivationPath,
-    updateKeySecret,
+    _updateKeySecret,
     setExtendedPublicKey,
     setExternalDescriptor,
     setInternalDescriptor
@@ -145,19 +145,18 @@ export default function GenerateMnemonic() {
             network as Network
           )
 
-          // Set global state values so setKey includes them
+          // Set global state values so setKey includes s
           setExtendedPublicKey(extendedPublicKey)
           setExternalDescriptor(descriptors.externalDescriptor)
           setInternalDescriptor(descriptors.internalDescriptor)
-        } catch (error) {
-          console.error('Failed to generate descriptors:', error)
+        } catch (_error) {
           // Continue without descriptors if generation fails
           setExtendedPublicKey(extendedPublicKey)
         }
       }
 
       // Create the key with all the data
-      const currentKey = setKey(Number(index))
+      setKey(Number(index))
 
       // Set the derivation path for this key
       setKeyDerivationPath(Number(index), derivationPath)

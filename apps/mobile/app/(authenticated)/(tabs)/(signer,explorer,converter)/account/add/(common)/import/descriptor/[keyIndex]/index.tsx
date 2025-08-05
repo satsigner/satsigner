@@ -456,8 +456,11 @@ export default function ImportDescriptor() {
   async function handleCombinedDescriptorImport(combinedDescriptor: string) {
     try {
       // Validate the combined descriptor and get separated descriptors
-      const combinedValidation =
-        await validateCombinedDescriptor(combinedDescriptor)
+      const combinedValidation = await validateCombinedDescriptor(
+        combinedDescriptor,
+        scriptVersion,
+        network
+      )
 
       if (combinedValidation.isValid) {
         // For combined descriptors, use format-only validation for the separated descriptors
