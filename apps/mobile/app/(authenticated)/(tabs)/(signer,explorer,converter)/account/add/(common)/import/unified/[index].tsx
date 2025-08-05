@@ -30,6 +30,7 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 type UnifiedImportSearchParams = {
   index: string
@@ -113,26 +114,17 @@ export default function UnifiedImport() {
     }
     setXpub(xpub)
 
-    // Handle script version based on extended key prefix
-    // tpub -> P2PKH (testnet legacy)
-    // vpub -> P2WPKH (testnet SegWit)
-    // ypub -> P2SH-P2WPKH (mainnet)
-    // zpub -> P2WPKH (mainnet)
-    let scriptVersion: Key['scriptVersion'] | undefined
-    if (xpub.match(/^t(pub|priv)/)) scriptVersion = 'P2PKH'
-    if (xpub.match(/^v(pub|priv)/)) scriptVersion = 'P2WPKH'
-    if (xpub.match(/^y(pub|priv)/)) scriptVersion = 'P2SH-P2WPKH'
-    if (xpub.match(/^z(pub|priv)/)) scriptVersion = 'P2WPKH'
-
-    if (scriptVersion && validXpub && localFingerprint) {
-      // Format the extended public key with fingerprint and derivation path
-      // For testnet SegWit (vpub), use BIP84 derivation path
-      const derivationPath = xpub.match(/^v(pub|priv)/)
-        ? "84'/1'/0'"
-        : "44'/1'/0'"
+    // For multisig accounts, use the script version from the store instead of auto-detecting
+    // The script type should be determined by the multisig configuration, not the xpub prefix
+    if (validXpub && localFingerprint) {
+      // Use the script version from the store to determine the correct derivation path
+      const derivationPath = getDerivationPathFromScriptVersion(
+        scriptVersion,
+        network
+      )
       const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
       setExtendedPublicKey(formattedXpub)
-      setScriptVersion(scriptVersion)
+      // Don't change the script version - keep the one from the store
     }
   }
 

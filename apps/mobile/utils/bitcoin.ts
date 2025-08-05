@@ -67,13 +67,13 @@ const NETWORK_KEY_FORMATS: Record<Network, Record<string, string>> = {
     vpub: 'vpub' // P2TR
   },
   testnet: {
-    xpub: 'tpub', // Legacy P2PKH
+    xpub: 'tpub', // Can be used for P2PKH, P2WPKH, P2SH-P2WPKH depending on derivation path
     ypub: 'upub', // P2SH-P2WPKH
     zpub: 'vpub', // P2WPKH
     vpub: 'vpub' // P2TR
   },
   signet: {
-    xpub: 'tpub', // Legacy P2PKH
+    xpub: 'tpub', // Can be used for P2PKH, P2WPKH, P2SH-P2WPKH depending on derivation path
     ypub: 'upub', // P2SH-P2WPKH
     zpub: 'vpub', // P2WPKH
     vpub: 'vpub' // P2TR
@@ -187,13 +187,16 @@ export function convertKeyForNetwork(
   if (!sourceNetwork || sourceNetwork === targetNetwork) return key
 
   // Extract the script version from the key prefix
+  // Note: For testnet, tpub can be used for different script types
+  // The script type should be determined by the derivation path, not just the prefix
   const scriptVersionMap: Record<string, string> = {
     xpub: 'P2PKH',
-    tpub: 'P2PKH',
     ypub: 'P2SH-P2WPKH',
     upub: 'P2SH-P2WPKH',
     zpub: 'P2WPKH',
     vpub: 'P2WPKH'
+    // Note: tpub is not included here because it can be used for different script types
+    // The script type should be determined by the derivation path, not just the prefix
   }
 
   const prefix = key.match(/^[tuvxyz](pub|prv)/)?.[0]

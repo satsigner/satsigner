@@ -34,7 +34,10 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type CreationType, type Key } from '@/types/models/Account'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { convertKeyFormat } from '@/utils/bitcoin'
+import {
+  convertKeyFormat,
+  getDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { decodeMultiPartURToPSBT, decodeURToPSBT } from '@/utils/ur'
 import {
   isCombinedDescriptor,
@@ -251,26 +254,17 @@ export default function WatchOnly() {
     }
     setXpub(xpub)
 
-    // Handle script version based on extended key prefix
-    // tpub -> P2PKH (testnet legacy)
-    // vpub -> P2WPKH (testnet SegWit)
-    // ypub -> P2SH-P2WPKH (mainnet)
-    // zpub -> P2WPKH (mainnet)
-    let scriptVersion: Key['scriptVersion'] | undefined
-    if (xpub.match(/^t(pub|priv)/)) scriptVersion = 'P2PKH'
-    if (xpub.match(/^v(pub|priv)/)) scriptVersion = 'P2WPKH'
-    if (xpub.match(/^y(pub|priv)/)) scriptVersion = 'P2SH-P2WPKH'
-    if (xpub.match(/^z(pub|priv)/)) scriptVersion = 'P2WPKH'
-
-    if (scriptVersion && validXpub && localFingerprint) {
-      // Format the extended public key with fingerprint and derivation path
-      // For testnet SegWit (vpub), use BIP84 derivation path
-      const derivationPath = xpub.match(/^v(pub|priv)/)
-        ? "84'/1'/0'"
-        : "44'/1'/0'"
+    // For multisig accounts, use the script version from the store instead of auto-detecting
+    // The script type should be determined by the multisig configuration, not the xpub prefix
+    if (validXpub && localFingerprint) {
+      // Use the script version from the store to determine the correct derivation path
+      const derivationPath = getDerivationPathFromScriptVersion(
+        scriptVersion,
+        network
+      )
       const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
       setExtendedPublicKey(formattedXpub)
-      setScriptVersion(scriptVersion)
+      // Don't change the script version - keep the one from the store
     }
   }
 
@@ -711,10 +705,15 @@ export default function WatchOnly() {
   }
 
   function getScriptTypeFromXpub(xpub: string): string {
-    if (xpub.startsWith('xpub') || xpub.startsWith('tpub')) return 'P2PKH'
+    // For testnet, tpub can be used for different script types
+    // The script type should be determined by the derivation path, not just the prefix
+    // For now, return a default that matches the most common use case
+    if (xpub.startsWith('xpub')) return 'P2PKH'
     if (xpub.startsWith('ypub') || xpub.startsWith('upub')) return 'P2SH-P2WPKH'
     if (xpub.startsWith('zpub') || xpub.startsWith('vpub')) return 'P2WPKH'
-    return 'P2WPKH' // Default
+    // For tpub, we can't determine the script type from the prefix alone
+    // Return P2WPKH as default since it's the most common for modern wallets
+    return 'P2WPKH'
   }
 
   function getNetworkFromXpub(xpub: string): string {

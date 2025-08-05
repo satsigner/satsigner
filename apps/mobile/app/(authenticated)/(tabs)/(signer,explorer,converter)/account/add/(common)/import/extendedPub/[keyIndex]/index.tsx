@@ -152,61 +152,29 @@ export default function ImportExtendedPub() {
     setValidXpub(!xpub || validXpub)
     setXpub(xpub)
 
-    // Handle script version based on extended key prefix
-    // tpub -> P2PKH (testnet legacy)
-    // vpub -> P2WPKH (testnet SegWit)
-    // ypub -> P2SH-P2WPKH (mainnet)
-    // zpub -> P2WPKH (mainnet)
-    let detectedScriptVersion: Key['scriptVersion'] | undefined
-    if (xpub.match(/^t(pub|priv)/)) detectedScriptVersion = 'P2PKH'
-    if (xpub.match(/^v(pub|priv)/)) detectedScriptVersion = 'P2WPKH'
-    if (xpub.match(/^y(pub|priv)/)) detectedScriptVersion = 'P2SH-P2WPKH'
-    if (xpub.match(/^z(pub|priv)/)) detectedScriptVersion = 'P2WPKH'
-
-    // Validate script version compatibility for multisig
-    let scriptVersionValidation = { isValid: true }
-    if (validXpub && detectedScriptVersion && scriptVersion) {
-      // Create a descriptor from the xpub to validate against the multisig script version
-      const testDescriptor = `pkh(${xpub})` // Use pkh as a base for validation
-      scriptVersionValidation = validateDescriptorScriptVersion(
-        testDescriptor,
-        scriptVersion
+    // For multisig accounts, use the script version from the store instead of auto-detecting
+    // The script type should be determined by the multisig configuration, not the xpub prefix
+    if (validXpub && localFingerprint) {
+      // Use the script version from the store to determine the correct derivation path
+      const derivationPath = getDerivationPathFromScriptVersion(
+        scriptVersion,
+        network
       )
+      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
+      setExtendedPublicKey(formattedXpub)
+      // Don't change the script version - keep the one from the store
     }
 
-    const finalValidXpub = validXpub && scriptVersionValidation.isValid
-    setValidXpub(!xpub || finalValidXpub)
-    setDisabled(!finalValidXpub || !localFingerprint)
+    setDisabled(!validXpub || !localFingerprint)
 
     // Clear previous error first
     setXpubError('')
 
     // Show error message if validation fails
-    if (xpub) {
-      if (!validXpub) {
-        // Show error for basic validation failures
-        const errorMessage = t('account.import.error.descriptorFormat')
-        setXpubError(errorMessage)
-        toast.error(errorMessage)
-      } else if (validXpub && !scriptVersionValidation.isValid) {
-        // Show error for script version validation failures
-        const errorMessage =
-          scriptVersionValidation.error ||
-          t('account.import.error.xpubIncompatible')
-        setXpubError(errorMessage)
-        toast.error(errorMessage)
-      }
-    }
-
-    if (detectedScriptVersion && finalValidXpub && localFingerprint) {
-      // Format the extended public key with fingerprint and derivation path
-      // For testnet SegWit (vpub), use BIP84 derivation path
-      const derivationPath = xpub.match(/^v(pub|priv)/)
-        ? "84'/1'/0'"
-        : "44'/1'/0'"
-      const formattedXpub = `[${localFingerprint}/${derivationPath}]${xpub}/0/*`
-      setExtendedPublicKey(formattedXpub)
-      setScriptVersion(detectedScriptVersion)
+    if (xpub && !validXpub) {
+      const errorMessage = t('account.import.error.descriptorFormat')
+      setXpubError(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
