@@ -21,6 +21,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
+import { getDescriptorsFromKeyData } from '@/api/bdk'
 
 export default function DescriptorPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -264,47 +265,101 @@ export default function DescriptorPage() {
             // Get fingerprint from secret
             const fingerprint = decryptedSecret.fingerprint || ''
 
-            // Get derivation path from script version
-            const derivationPath = getDerivationPathFromScriptVersion(
-              key.scriptVersion || 'P2WPKH',
-              network
-            )
+            if (fingerprint) {
+              // Use the getDescriptorsFromKeyData function for better consistency
+              try {
+                const descriptors = await getDescriptorsFromKeyData(
+                  decryptedSecret.extendedPublicKey,
+                  fingerprint,
+                  key.scriptVersion || 'P2WPKH',
+                  network as Network
+                )
+                descriptorString = descriptors.externalDescriptor
+              } catch (error) {
+                console.error(
+                  'Failed to generate descriptor from key data:',
+                  error
+                )
+                // Fallback: try to construct descriptor manually
+                const derivationPath = getDerivationPathFromScriptVersion(
+                  key.scriptVersion || 'P2WPKH',
+                  network
+                )
 
-            // Create proper descriptor with script function and checksum
-            let keyPart = ''
-            if (fingerprint && derivationPath) {
-              keyPart = `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
+                // Create proper descriptor with script function and checksum
+                let keyPart = ''
+                if (fingerprint && derivationPath) {
+                  keyPart = `[${fingerprint}/${derivationPath}]${decryptedSecret.extendedPublicKey}/0/*`
+                } else {
+                  keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
+                }
+
+                // Add script function based on script version
+                switch (key.scriptVersion) {
+                  case 'P2PKH':
+                    descriptorString = `pkh(${keyPart})`
+                    break
+                  case 'P2SH-P2WPKH':
+                    descriptorString = `sh(wpkh(${keyPart}))`
+                    break
+                  case 'P2WPKH':
+                    descriptorString = `wpkh(${keyPart})`
+                    break
+                  case 'P2TR':
+                    descriptorString = `tr(${keyPart})`
+                    break
+                  default:
+                    descriptorString = `wpkh(${keyPart})`
+                }
+
+                // Add checksum using BDK
+                try {
+                  const descriptor = await new Descriptor().create(
+                    descriptorString,
+                    network as Network
+                  )
+                  descriptorString = await descriptor.asString()
+                } catch (_error) {
+                  // Keep the descriptor without checksum if BDK fails
+                }
+              }
             } else {
-              keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
-            }
-
-            // Add script function based on script version
-            switch (key.scriptVersion) {
-              case 'P2PKH':
-                descriptorString = `pkh(${keyPart})`
-                break
-              case 'P2SH-P2WPKH':
-                descriptorString = `sh(wpkh(${keyPart}))`
-                break
-              case 'P2WPKH':
-                descriptorString = `wpkh(${keyPart})`
-                break
-              case 'P2TR':
-                descriptorString = `tr(${keyPart})`
-                break
-              default:
-                descriptorString = `wpkh(${keyPart})`
-            }
-
-            // Add checksum using BDK
-            try {
-              const descriptor = await new Descriptor().create(
-                descriptorString,
-                network as Network
+              // If no fingerprint, try to construct descriptor without it
+              const derivationPath = getDerivationPathFromScriptVersion(
+                key.scriptVersion || 'P2WPKH',
+                network
               )
-              descriptorString = await descriptor.asString()
-            } catch (_error) {
-              // Keep the descriptor without checksum if BDK fails
+
+              let keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
+
+              // Add script function based on script version
+              switch (key.scriptVersion) {
+                case 'P2PKH':
+                  descriptorString = `pkh(${keyPart})`
+                  break
+                case 'P2SH-P2WPKH':
+                  descriptorString = `sh(wpkh(${keyPart}))`
+                  break
+                case 'P2WPKH':
+                  descriptorString = `wpkh(${keyPart})`
+                  break
+                case 'P2TR':
+                  descriptorString = `tr(${keyPart})`
+                  break
+                default:
+                  descriptorString = `wpkh(${keyPart})`
+              }
+
+              // Add checksum using BDK
+              try {
+                const descriptor = await new Descriptor().create(
+                  descriptorString,
+                  network as Network
+                )
+                descriptorString = await descriptor.asString()
+              } catch (_error) {
+                // Keep the descriptor without checksum if BDK fails
+              }
             }
           }
         }

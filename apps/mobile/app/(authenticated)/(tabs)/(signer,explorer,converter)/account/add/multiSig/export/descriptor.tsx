@@ -1,9 +1,12 @@
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { getDescriptorsFromKeyData } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -14,12 +17,13 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Secret } from '@/types/models/Account'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 export default function DescriptorPage() {
   const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
   const router = useRouter()
-  const _network = useBlockchainStore((state) => state.selectedNetwork)
+  const network = useBlockchainStore((state) => state.selectedNetwork)
   const [getAccountData] = useAccountBuilderStore(
     useShallow((state) => [state.getAccountData])
   )
@@ -61,6 +65,61 @@ export default function DescriptorPage() {
           } else if (secret.internalDescriptor) {
             foundDescriptor = secret.internalDescriptor
             setDescriptor(secret.internalDescriptor)
+          } else if (secret.extendedPublicKey && secret.fingerprint) {
+            // Generate descriptor from available data (fingerprint, script version, and public key)
+            try {
+              const descriptors = await getDescriptorsFromKeyData(
+                secret.extendedPublicKey,
+                secret.fingerprint,
+                key.scriptVersion || 'P2WPKH',
+                network as Network
+              )
+              foundDescriptor = descriptors.externalDescriptor
+              setDescriptor(descriptors.externalDescriptor)
+            } catch (error) {
+              console.error(
+                'Failed to generate descriptor from key data:',
+                error
+              )
+              // Fallback: try to construct descriptor manually
+              const derivationPath = getDerivationPathFromScriptVersion(
+                key.scriptVersion || 'P2WPKH',
+                network
+              )
+              const keyPart = `[${secret.fingerprint}/${derivationPath}]${secret.extendedPublicKey}/0/*`
+
+              let externalDescriptor = ''
+              switch (key.scriptVersion) {
+                case 'P2PKH':
+                  externalDescriptor = `pkh(${keyPart})`
+                  break
+                case 'P2SH-P2WPKH':
+                  externalDescriptor = `sh(wpkh(${keyPart}))`
+                  break
+                case 'P2WPKH':
+                  externalDescriptor = `wpkh(${keyPart})`
+                  break
+                case 'P2TR':
+                  externalDescriptor = `tr(${keyPart})`
+                  break
+                default:
+                  externalDescriptor = `wpkh(${keyPart})`
+              }
+
+              // Add checksum using BDK
+              try {
+                const descriptor = await new Descriptor().create(
+                  externalDescriptor,
+                  network as Network
+                )
+                foundDescriptor = await descriptor.asString()
+                setDescriptor(foundDescriptor)
+              } catch (_error) {
+                // Keep the descriptor without checksum if BDK fails
+                foundDescriptor = externalDescriptor
+                setDescriptor(externalDescriptor)
+              }
+            }
           }
         }
 
