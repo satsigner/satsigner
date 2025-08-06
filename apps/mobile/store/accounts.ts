@@ -3,8 +3,8 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { PIN_KEY } from '@/config/auth'
-import mmkvStorage from '@/storage/mmkv'
 import { getItem } from '@/storage/encrypted'
+import mmkvStorage from '@/storage/mmkv'
 import {
   type Account,
   type SyncProgress,

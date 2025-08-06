@@ -276,9 +276,12 @@ describe('validateDescriptorScriptVersion', () => {
   })
 
   it('should validate P2SH-P2WSH descriptors correctly', () => {
-    const shWshDescriptor = 'sh(wsh([12345678/48h/0h/0h/1h]xpub1234567890abcdef))'
+    const shWshDescriptor =
+      'sh(wsh([12345678/48h/0h/0h/1h]xpub1234567890abcdef))'
 
-    expect(validateDescriptorScriptVersion(shWshDescriptor, 'P2SH-P2WSH')).toEqual({
+    expect(
+      validateDescriptorScriptVersion(shWshDescriptor, 'P2SH-P2WSH')
+    ).toEqual({
       isValid: true
     })
 
@@ -292,7 +295,9 @@ describe('validateDescriptorScriptVersion', () => {
   it('should validate Legacy P2SH descriptors correctly', () => {
     const shDescriptor = 'sh([12345678/45h/0h/0h]xpub1234567890abcdef)'
 
-    expect(validateDescriptorScriptVersion(shDescriptor, 'Legacy P2SH')).toEqual({
+    expect(
+      validateDescriptorScriptVersion(shDescriptor, 'Legacy P2SH')
+    ).toEqual({
       isValid: true
     })
 

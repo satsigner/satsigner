@@ -394,12 +394,6 @@ async function getWalletFromMnemonic(
         passphrase
       )
 
-      // Get derivation path
-      const derivationPath = getDerivationPathFromScriptVersion(
-        scriptVersion,
-        network === Network.Bitcoin ? 'bitcoin' : 'testnet'
-      )
-
       // Create descriptors using the existing BDK methods for basic derivation
       // and then manually construct the multisig descriptors
       const baseExternalDescriptor = await new Descriptor().newBip84(

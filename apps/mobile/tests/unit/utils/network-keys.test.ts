@@ -63,7 +63,9 @@ describe('Network-aware key handling', () => {
       expect(getKeyFormatForScriptVersion('P2TR', 'bitcoin')).toBe('vpub')
       expect(getKeyFormatForScriptVersion('P2WSH', 'bitcoin')).toBe('xpub')
       expect(getKeyFormatForScriptVersion('P2SH-P2WSH', 'bitcoin')).toBe('xpub')
-      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'bitcoin')).toBe('xpub')
+      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'bitcoin')).toBe(
+        'xpub'
+      )
     })
 
     it('should return correct formats for testnet', () => {
@@ -75,7 +77,9 @@ describe('Network-aware key handling', () => {
       expect(getKeyFormatForScriptVersion('P2TR', 'testnet')).toBe('vpub')
       expect(getKeyFormatForScriptVersion('P2WSH', 'testnet')).toBe('tpub')
       expect(getKeyFormatForScriptVersion('P2SH-P2WSH', 'testnet')).toBe('tpub')
-      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'testnet')).toBe('tpub')
+      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'testnet')).toBe(
+        'tpub'
+      )
     })
 
     it('should return correct formats for signet', () => {

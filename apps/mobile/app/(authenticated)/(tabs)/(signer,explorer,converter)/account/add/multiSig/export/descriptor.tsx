@@ -76,11 +76,8 @@ export default function DescriptorPage() {
               )
               foundDescriptor = descriptors.externalDescriptor
               setDescriptor(descriptors.externalDescriptor)
-            } catch (error) {
-              console.error(
-                'Failed to generate descriptor from key data:',
-                error
-              )
+            } catch (_error) {
+              // Failed to generate descriptor from key data
               // Fallback: try to construct descriptor manually
               const derivationPath = getDerivationPathFromScriptVersion(
                 key.scriptVersion || 'P2WPKH',

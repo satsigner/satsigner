@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 
+import { getDescriptorsFromKeyData } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSQRCode from '@/components/SSQRCode'
@@ -21,7 +22,6 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
-import { getDescriptorsFromKeyData } from '@/api/bdk'
 
 export default function DescriptorPage() {
   const { id: accountId, keyIndex } = useLocalSearchParams<
@@ -192,7 +192,9 @@ export default function DescriptorPage() {
               case 'P2SH-P2WSH':
               case 'Legacy P2SH':
                 // For multisig script types, we need to create descriptors manually
-                throw new Error(`Manual descriptor creation required for ${key.scriptVersion}`)
+                throw new Error(
+                  `Manual descriptor creation required for ${key.scriptVersion}`
+                )
               default:
                 externalDescriptor = await new Descriptor().newBip84(
                   descriptorSecretKey,
@@ -289,11 +291,7 @@ export default function DescriptorPage() {
                   network as Network
                 )
                 descriptorString = descriptors.externalDescriptor
-              } catch (error) {
-                console.error(
-                  'Failed to generate descriptor from key data:',
-                  error
-                )
+              } catch (_error) {
                 // Fallback: try to construct descriptor manually
                 const derivationPath = getDerivationPathFromScriptVersion(
                   key.scriptVersion || 'P2WPKH',
@@ -347,13 +345,7 @@ export default function DescriptorPage() {
                 }
               }
             } else {
-              // If no fingerprint, try to construct descriptor without it
-              const derivationPath = getDerivationPathFromScriptVersion(
-                key.scriptVersion || 'P2WPKH',
-                network
-              )
-
-              let keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
+              const keyPart = `${decryptedSecret.extendedPublicKey}/0/*`
 
               // Add script function based on script version
               switch (key.scriptVersion) {

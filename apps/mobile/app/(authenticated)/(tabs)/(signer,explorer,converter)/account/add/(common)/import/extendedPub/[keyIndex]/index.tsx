@@ -1,4 +1,5 @@
 import { URDecoder } from '@ngraveio/bc-ur'
+import { Descriptor } from 'bdk-rn'
 import * as CBOR from 'cbor-js'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
@@ -8,6 +9,7 @@ import { Animated, Keyboard, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import { parseDescriptor } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
@@ -20,20 +22,30 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import {
-  validateDescriptorScriptVersion,
-  validateExtendedKey,
-  validateFingerprint
-} from '@/utils/validation'
+import { validateExtendedKey, validateFingerprint } from '@/utils/validation'
 
 type ImportExtendedPubSearchParams = {
   keyIndex: string
+}
+
+// Helper function to map local Network type to bdk-rn Network enum
+function mapNetworkToBdkNetwork(network: 'bitcoin' | 'testnet' | 'signet') {
+  const { Network } = require('bdk-rn/lib/lib/enums')
+  switch (network) {
+    case 'bitcoin':
+      return Network.Bitcoin
+    case 'testnet':
+      return Network.Testnet
+    case 'signet':
+      return Network.Signet
+    default:
+      return Network.Bitcoin
+  }
 }
 
 export default function ImportExtendedPub() {
@@ -45,7 +57,6 @@ export default function ImportExtendedPub() {
     setKey,
     setExtendedPublicKey,
     setFingerprint,
-    setScriptVersion,
     setKeyDerivationPath,
     scriptVersion,
     clearKeyState
@@ -264,7 +275,7 @@ export default function ImportExtendedPub() {
 
   function decodeURCryptoAccount(urData: Uint8Array): any {
     try {
-      const decoded = CBOR.decode(urData.buffer)
+      const decoded = CBOR.decode(new Uint8Array(urData.buffer))
       return decoded
     } catch (_error) {
       return null
@@ -287,13 +298,17 @@ export default function ImportExtendedPub() {
         const sortedChunks = Array.from(chunks.entries())
           .sort(([a], [b]) => a - b)
           .map(([, content]) => content)
-        return decodeBBQRChunks(sortedChunks)
+        const decoded = decodeBBQRChunks(sortedChunks)
+        if (decoded) {
+          return Buffer.from(decoded).toString('hex')
+        }
+        return null
       } else if (type === 'ur') {
         // For UR, the decoder should have assembled everything
         if (urDecoderRef.current.isComplete()) {
           const result = urDecoderRef.current.resultUR()
           if (result && result.cbor) {
-            return Buffer.from(result.cbor).toString('hex')
+            return result.cbor.toString('hex')
           }
         }
       }
@@ -326,12 +341,9 @@ export default function ImportExtendedPub() {
       try {
         // Create a descriptor from the extended public key to extract derivation path
         const descriptorString = `pkh(${convertedXpub})`
-        const { Descriptor } = await import('bdk-rn')
-        const { parseDescriptor } = await import('@/api/bdk')
-
         const descriptor = await new Descriptor().create(
           descriptorString,
-          network
+          mapNetworkToBdkNetwork(network)
         )
         const parsedDescriptor = await parseDescriptor(descriptor)
         derivationPath = parsedDescriptor.derivationPath

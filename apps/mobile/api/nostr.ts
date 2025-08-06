@@ -6,6 +6,8 @@ import { type Event, nip17, nip19, nip59 } from 'nostr-tools'
 import * as pako from 'pako'
 import crypto from 'react-native-aes-crypto'
 
+import type { NostrMessage } from '@/types/models/NostrMessage'
+
 const POOL_SIZE = 1024 // 1KB of random values
 
 // Create a pool of random values - initialize with empty array to avoid null
@@ -98,15 +100,6 @@ export interface NostrKeys {
   nsec: string
   npub: string
   secretNostrKey: Uint8Array
-}
-
-export interface NostrMessage {
-  id: string
-  content: any
-  created_at: number
-  decryptedContent?: string
-  isSender?: boolean
-  pubkey?: string
 }
 
 export class NostrAPI {
@@ -537,15 +530,16 @@ export function compressMessage(data: any): string {
   }
 }
 
-export function decompressMessage(compressedString: string): any {
+export function decompressMessage(compressedString: string): unknown {
   try {
     const compressedBytes = base85Decode(compressedString)
     const cborBytes = pako.inflate(new Uint8Array(compressedBytes))
-    const bufferSlice = cborBytes.buffer.slice(
+    const bufferSlice = new Uint8Array(
+      cborBytes.buffer,
       cborBytes.byteOffset,
-      cborBytes.byteOffset + cborBytes.byteLength
+      cborBytes.byteLength
     )
-    return CBOR.decode(bufferSlice as unknown as Uint8Array)
+    return CBOR.decode(bufferSlice)
   } catch (_error) {
     throw new Error(
       'Failed to decompress message: ' +

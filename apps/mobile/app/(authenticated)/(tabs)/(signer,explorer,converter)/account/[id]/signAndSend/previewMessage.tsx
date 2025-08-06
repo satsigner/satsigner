@@ -1746,7 +1746,9 @@ function PreviewMessage() {
                   // For RAW and BBQR, show normal progress
                   <>
                     <SSText color="white" center>
-                      {`${t('common.progress')}: ${scanProgress.scanned.size}/${scanProgress.total} chunks`}
+                      {`${t('common.progress')}: ${scanProgress.scanned.size}/${
+                        scanProgress.total
+                      } chunks`}
                     </SSText>
                     <View
                       style={{

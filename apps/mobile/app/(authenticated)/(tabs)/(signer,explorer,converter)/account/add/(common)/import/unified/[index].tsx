@@ -1,9 +1,9 @@
 import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
+import { type Network as BdkNetwork } from 'bdk-rn/lib/lib/enums'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
 import * as Clipboard from 'expo-clipboard'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -21,7 +21,8 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType, type Key } from '@/types/models/Account'
+import { type CreationType, type PolicyType } from '@/types/models/Account'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import {
   isCombinedDescriptor,
   validateCombinedDescriptor,
@@ -30,7 +31,6 @@ import {
   validateExtendedKey,
   validateFingerprint
 } from '@/utils/validation'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 type UnifiedImportSearchParams = {
   index: string
@@ -49,7 +49,6 @@ export default function UnifiedImport() {
     setExternalDescriptor,
     setInternalDescriptor,
     setExtendedPublicKey,
-    setScriptVersion,
     setKey,
     setNetwork,
     setPolicyType
@@ -63,7 +62,6 @@ export default function UnifiedImport() {
       state.setExternalDescriptor,
       state.setInternalDescriptor,
       state.setExtendedPublicKey,
-      state.setScriptVersion,
       state.setKey,
       state.setNetwork,
       state.setPolicyType
@@ -90,9 +88,9 @@ export default function UnifiedImport() {
   const [loadingWallet, setLoadingWallet] = useState(false)
 
   // Set policy type to multisig when component mounts
-  useState(() => {
-    setPolicyType('multisig')
-  })
+  useEffect(() => {
+    setPolicyType('multisig' as PolicyType)
+  }, [setPolicyType])
 
   function updateMasterFingerprint(fingerprint: string) {
     const validMasterFingerprint = validateFingerprint(fingerprint)
@@ -145,7 +143,7 @@ export default function UnifiedImport() {
     if (basicValidation && descriptor) {
       try {
         // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as Network)
+        await new Descriptor().create(descriptor, network as BdkNetwork)
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
@@ -194,7 +192,7 @@ export default function UnifiedImport() {
     if (basicValidation && descriptor) {
       try {
         // Try to create descriptor with BDK to check network compatibility
-        await new Descriptor().create(descriptor, network as Network)
+        await new Descriptor().create(descriptor, network as BdkNetwork)
         networkValidation = { isValid: true }
       } catch (error) {
         const errorMessage =
@@ -251,7 +249,8 @@ export default function UnifiedImport() {
       setNetwork(network)
 
       // Set the key data
-      setKey(Number(index))
+      const keyIndex = parseInt(index, 10)
+      setKey(keyIndex)
 
       toast.success(t('account.import.success'))
       router.back()

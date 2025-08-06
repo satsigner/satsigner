@@ -8,10 +8,10 @@ import { ScrollView, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import {
-  getWalletData,
   extractExtendedKeyFromDescriptor,
+  extractFingerprintFromExtendedPublicKey,
   getExtendedPublicKeyFromAccountKey,
-  extractFingerprintFromExtendedPublicKey
+  getWalletData
 } from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -30,7 +30,6 @@ import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
-  getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
@@ -158,10 +157,7 @@ export default function ExportDescriptors() {
                     extendedPublicKey =
                       await extractExtendedKeyFromDescriptor(descriptor)
                   } catch (_error) {
-                    console.error(
-                      `Failed to extract extended public key from descriptor for key ${index}:`,
-                      _error
-                    )
+                    // Failed to extract extended public key from descriptor for key ${index}
                   }
                 } else if (secret.mnemonic) {
                   // If we have a mnemonic, generate the extended public key
@@ -181,10 +177,7 @@ export default function ExportDescriptors() {
                       extendedPublicKey = extendedKey
                     }
                   } catch (_error) {
-                    console.error(
-                      `Failed to generate extended public key from mnemonic for key ${index}:`,
-                      _error
-                    )
+                    // Failed to generate extended public key from mnemonic for key ${index}
                   }
                 }
               }
@@ -197,10 +190,7 @@ export default function ExportDescriptors() {
                     network as Network
                   )
                 } catch (_error) {
-                  console.error(
-                    `Failed to extract fingerprint from extended public key for key ${index}:`,
-                    _error
-                  )
+                  // Failed to extract fingerprint from extended public key for key ${index}
                 }
               }
 
@@ -221,10 +211,7 @@ export default function ExportDescriptors() {
                     extendedPublicKey =
                       await extractExtendedKeyFromDescriptor(descriptor)
                   } catch (_error) {
-                    console.error(
-                      `Failed to extract extended public key from externalDescriptor for key ${index}:`,
-                      _error
-                    )
+                    // Failed to extract extended public key from externalDescriptor for key ${index}
                   }
                 }
               }
@@ -239,22 +226,7 @@ export default function ExportDescriptors() {
           )
 
           if (validKeyData.length !== keyCount) {
-            console.error(
-              'Missing fingerprint or extended public key for some keys:',
-              {
-                expected: keyCount,
-                found: validKeyData.length,
-                keyData: keyData.map((kd) => ({
-                  index: kd.index,
-                  hasFingerprint: !!kd.fingerprint,
-                  hasExtendedPublicKey: !!kd.extendedPublicKey,
-                  fingerprint: kd.fingerprint,
-                  extendedPublicKey: kd.extendedPublicKey
-                    ? `${kd.extendedPublicKey.slice(0, 10)}...`
-                    : 'none'
-                }))
-              }
-            )
+            // Missing fingerprint or extended public key for some keys
             // Set a fallback descriptor string to indicate the issue
             descriptorString =
               'No descriptors available - missing fingerprint or extended public key for some keys'

@@ -59,7 +59,6 @@ function SSMultisigKeyControl({
     (state) => state.scriptVersion
   ) as ScriptVersionType
   const updateAccountName = useAccountsStore((state) => state.updateAccountName)
-  const updateAccount = useAccountsStore((state) => state.updateAccount)
 
   // Use account's script version in settings mode, global script version in creation mode
   const scriptVersion =
