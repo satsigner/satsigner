@@ -106,7 +106,7 @@ export default function PublicKeyPage() {
     ) {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(getKeyFormatTranslationKey('P2PKH', network))
+        label: (network === 'bitcoin' ? 'xpub' : 'tpub').toUpperCase()
       })
     }
 
@@ -117,7 +117,7 @@ export default function PublicKeyPage() {
     ) {
       formatButtons.push({
         format: network === 'bitcoin' ? 'ypub' : 'upub',
-        label: t(getKeyFormatTranslationKey('P2SH-P2WPKH', network))
+        label: (network === 'bitcoin' ? 'ypub' : 'upub').toUpperCase()
       })
     }
 
@@ -129,7 +129,7 @@ export default function PublicKeyPage() {
     ) {
       formatButtons.push({
         format: network === 'bitcoin' ? 'zpub' : 'vpub',
-        label: t(getKeyFormatTranslationKey('P2WPKH', network))
+        label: (network === 'bitcoin' ? 'zpub' : 'vpub').toUpperCase()
       })
     }
 
@@ -137,7 +137,7 @@ export default function PublicKeyPage() {
     if (scriptVersion === 'P2TR' && availableFormats.includes('vpub')) {
       formatButtons.push({
         format: 'vpub',
-        label: t(getKeyFormatTranslationKey('P2TR', network))
+        label: 'VPUB'
       })
     }
 
@@ -148,7 +148,7 @@ export default function PublicKeyPage() {
     ) {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(getKeyFormatTranslationKey('P2WSH', network))
+        label: (network === 'bitcoin' ? 'xpub' : 'tpub').toUpperCase()
       })
     }
 
@@ -159,7 +159,7 @@ export default function PublicKeyPage() {
     ) {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(getKeyFormatTranslationKey('P2SH-P2WSH', network))
+        label: (network === 'bitcoin' ? 'xpub' : 'tpub').toUpperCase()
       })
     }
 
@@ -170,7 +170,7 @@ export default function PublicKeyPage() {
     ) {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
-        label: t(getKeyFormatTranslationKey('Legacy P2SH', network))
+        label: (network === 'bitcoin' ? 'xpub' : 'tpub').toUpperCase()
       })
     }
 

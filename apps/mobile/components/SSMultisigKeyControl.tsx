@@ -7,8 +7,9 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { SSIconAdd, SSIconGreen } from '@/components/icons'
+import { SSIconAdd, SSIconGreen, SSIconWarning } from '@/components/icons'
 import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -18,6 +19,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
 import {
   type Key,
   type ScriptVersionType,
@@ -70,6 +72,7 @@ function SSMultisigKeyControl({
   const [localKeyName, setLocalKeyName] = useState(keyDetails?.name || '')
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
+  const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -124,10 +127,28 @@ function SSMultisigKeyControl({
     if (!keyDetails) {
       return t('account.selectKeySource')
     } else if (keyDetails.creationType === 'generateMnemonic') {
+      // Check if seed has been dropped
+      if (
+        seedDropped ||
+        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
+      ) {
+        return t('account.seed.droppedSeed', {
+          name: keyDetails.scriptVersion
+        })
+      }
       return t('account.seed.newSeed', {
         name: keyDetails.scriptVersion
       })
     } else if (keyDetails.creationType === 'importMnemonic') {
+      // Check if seed has been dropped
+      if (
+        seedDropped ||
+        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
+      ) {
+        return t('account.seed.droppedSeed', {
+          name: keyDetails.scriptVersion
+        })
+      }
       return t('account.seed.importedSeed', { name: keyDetails.scriptVersion })
     } else if (keyDetails.creationType === 'importDescriptor') {
       return t('account.seed.external')
@@ -186,7 +207,7 @@ function SSMultisigKeyControl({
     // Handle actions for completed keys
     switch (action) {
       case 'dropSeed':
-        handleDropSeed()
+        setDropSeedModalVisible(true)
         break
       case 'shareXpub':
         handleShareXpub()
@@ -445,6 +466,82 @@ function SSMultisigKeyControl({
           </SSVStack>
         </SSVStack>
       )}
+
+      {/* Drop Seed Confirmation Modal */}
+      <SSModal
+        visible={dropSeedModalVisible}
+        onClose={() => setDropSeedModalVisible(false)}
+        label=""
+      >
+        <SSVStack
+          itemsCenter
+          gap="lg"
+          style={{
+            paddingVertical: 20,
+            paddingHorizontal: 16,
+            backgroundColor: Colors.white,
+            borderRadius: 8,
+            marginHorizontal: 40,
+            maxWidth: 300,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5
+          }}
+        >
+          {/* Title */}
+          <SSText
+            size="lg"
+            weight="bold"
+            center
+            style={{ color: Colors.black, marginBottom: 4 }}
+          >
+            {t('account.seed.dropSeedConfirm.title')}
+          </SSText>
+
+          {/* Message */}
+          <SSText
+            color="muted"
+            center
+            size="md"
+            style={{
+              maxWidth: 260,
+              lineHeight: 20,
+              marginBottom: 8
+            }}
+          >
+            {t('account.seed.dropSeedConfirm.message')}
+          </SSText>
+
+          {/* Action Buttons */}
+          <SSHStack gap="sm" style={{ width: '100%' }}>
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => setDropSeedModalVisible(false)}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.gray[100],
+                borderWidth: 0
+              }}
+              textStyle={{ color: Colors.black }}
+            />
+            <SSButton
+              label={t('account.seed.dropSeedConfirm.confirm')}
+              variant="danger"
+              onPress={() => {
+                setDropSeedModalVisible(false)
+                handleDropSeed()
+              }}
+              style={{ flex: 1 }}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
     </View>
   )
 }

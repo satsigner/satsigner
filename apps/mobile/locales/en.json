@@ -200,6 +200,7 @@
       },
       "dropSeedError": "Failed to drop seed",
       "dropSeedSuccess": "Seed dropped successfully",
+      "droppedSeed": "Dropped Seed (%{name})",
       "external": "External Descriptor",
       "importedSeed": "Imported Seed (%{name})",
       "newSeed": "New Seed (%{name})",
