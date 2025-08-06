@@ -138,6 +138,9 @@ function SSWalletTabView({
 
   const renderTab = () => {
     const tabWidth = `${100 / tabsEnabled.length}%` as DimensionValue
+    const actionButtonStyle = {
+      width: tabWidth
+    }
 
     if (!expand) return null
 
@@ -146,23 +149,25 @@ function SSWalletTabView({
         gap="none"
         style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
       >
-        <SSActionButton
-          style={{ width: tabWidth }}
-          onPress={() => setTabIndex(0)}
-        >
-          <SSVStack gap="none">
-            <SSText center size="lg">
-              {summary.numberOfTransactions}
-            </SSText>
-            <SSText center color="muted" style={{ lineHeight: 12 }}>
-              {t('accounts.totalTransactions')}
-            </SSText>
-            {tabIndex === 0 && <ButtonOutline />}
-          </SSVStack>
-        </SSActionButton>
-        {(!isImportAddress || account.keys.length > 1) && (
+        {tabsEnabled.includes('transactions') && (
           <SSActionButton
-            style={{ width: tabWidth }}
+            style={actionButtonStyle}
+            onPress={() => setTabIndex(0)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {summary.numberOfTransactions}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {t('accounts.totalTransactions')}
+              </SSText>
+              {tabIndex === 0 && <ButtonOutline />}
+            </SSVStack>
+          </SSActionButton>
+        )}
+        {tabsEnabled.includes('addresses') && (
+          <SSActionButton
+            style={actionButtonStyle}
             onPress={() => setTabIndex(1)}
           >
             <SSVStack gap="none">
@@ -178,34 +183,38 @@ function SSWalletTabView({
             </SSVStack>
           </SSActionButton>
         )}
-        <SSActionButton
-          style={{ width: tabWidth }}
-          onPress={() => setTabIndex(2)}
-        >
-          <SSVStack gap="none">
-            <SSText center size="lg">
-              {summary.numberOfUtxos}
-            </SSText>
-            <SSText center color="muted" style={{ lineHeight: 12 }}>
-              {t('accounts.spendableOutputs')}
-            </SSText>
-            {tabIndex === 2 && <ButtonOutline />}
-          </SSVStack>
-        </SSActionButton>
-        <SSActionButton
-          style={{ width: tabWidth }}
-          onPress={() => setTabIndex(3)}
-        >
-          <SSVStack gap="none">
-            <SSText center size="lg">
-              {summary.satsInMempool}
-            </SSText>
-            <SSText center color="muted" style={{ lineHeight: 12 }}>
-              {t('accounts.satsInMempool')}
-            </SSText>
-            {tabIndex === 3 && <ButtonOutline />}
-          </SSVStack>
-        </SSActionButton>
+        {tabsEnabled.includes('utxos') && (
+          <SSActionButton
+            style={actionButtonStyle}
+            onPress={() => setTabIndex(2)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {summary.numberOfUtxos}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {t('accounts.spendableOutputs')}
+              </SSText>
+              {tabIndex === 2 && <ButtonOutline />}
+            </SSVStack>
+          </SSActionButton>
+        )}
+        {tabsEnabled.includes('mempool') && (
+          <SSActionButton
+            style={actionButtonStyle}
+            onPress={() => setTabIndex(3)}
+          >
+            <SSVStack gap="none">
+              <SSText center size="lg">
+                {summary.satsInMempool}
+              </SSText>
+              <SSText center color="muted" style={{ lineHeight: 12 }}>
+                {t('accounts.satsInMempool')}
+              </SSText>
+              {tabIndex === 3 && <ButtonOutline />}
+            </SSVStack>
+          </SSActionButton>
+        )}
       </SSHStack>
     )
   }
