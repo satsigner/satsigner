@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import {
   Animated,
-  DimensionValue,
+  type DimensionValue,
   Easing,
   StyleSheet,
   useWindowDimensions,
@@ -15,16 +15,17 @@ import SSSatsInMempool from '@/components/SSSatsInMempool'
 import SpendableOutputs from '@/components/SSSpendableOutputs'
 import SSText from '@/components/SSText'
 import TotalTransactions from '@/components/SSTotalTransactions'
+import { type SSTransactionListItem } from '@/components/SSTransactionList'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
+import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { compareTimestamp } from '@/utils/sort'
-import { type SSTransactionListItem } from '@/components/SSTransactionList'
+
 import { type SSAddressListItem } from './SSAddressList'
-import { Account } from '@/types/models/Account'
 
 type TabItem = 'transactions' | 'utxos' | 'addresses' | 'mempool'
 
@@ -38,14 +39,12 @@ export type SSWalletTabViewProps = {
 
 function SSWalletTabView({
   transactions,
-  addresses,
   utxos,
   summary,
   tabsEnabled = ['transactions', 'utxos', 'addresses', 'mempool']
 }: SSWalletTabViewProps) {
   const { width } = useWindowDimensions()
 
-  const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
   const [change, setChange] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
@@ -63,7 +62,6 @@ function SSWalletTabView({
   ]
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
-
 
   const renderScene = ({
     route
@@ -134,6 +132,10 @@ function SSWalletTabView({
     animateTransition(state)
   }
 
+  function ButtonOutline() {
+    return <View style={styles.tabButtonOutline} />
+  }
+
   const renderTab = () => {
     const tabWidth = `${100 / tabsEnabled.length}%` as DimensionValue
 
@@ -155,7 +157,7 @@ function SSWalletTabView({
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.totalTransactions')}
             </SSText>
-            {tabIndex === 0 && <View style={styles.tabButtonOutline} />}
+            {tabIndex === 0 && <ButtonOutline />}
           </SSVStack>
         </SSActionButton>
         {(!isImportAddress || account.keys.length > 1) && (
@@ -172,7 +174,7 @@ function SSWalletTabView({
                   ? t('accounts.watchedAddresses')
                   : t('accounts.derivedAddresses')}
               </SSText>
-              {tabIndex === 1 && <View style={styles.tabButtonOutline} />}
+              {tabIndex === 1 && <ButtonOutline />}
             </SSVStack>
           </SSActionButton>
         )}
@@ -187,7 +189,7 @@ function SSWalletTabView({
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.spendableOutputs')}
             </SSText>
-            {tabIndex === 2 && <View style={styles.tabButtonOutline} />}
+            {tabIndex === 2 && <ButtonOutline />}
           </SSVStack>
         </SSActionButton>
         <SSActionButton
@@ -201,7 +203,7 @@ function SSWalletTabView({
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.satsInMempool')}
             </SSText>
-            {tabIndex === 3 && <View style={styles.tabButtonOutline} />}
+            {tabIndex === 3 && <ButtonOutline />}
           </SSVStack>
         </SSActionButton>
       </SSHStack>
