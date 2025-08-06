@@ -1,15 +1,13 @@
-import { useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Animated,
+  DimensionValue,
   Easing,
   StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
 import { type SceneRendererProps, TabView } from 'react-native-tab-view'
-import { toast } from 'sonner-native'
-import { useShallow } from 'zustand/react/shallow'
 
 import SSActionButton from '@/components/SSActionButton'
 import DerivedAddresses from '@/components/SSDerivedAddresses'
@@ -17,57 +15,35 @@ import SSSatsInMempool from '@/components/SSSatsInMempool'
 import SpendableOutputs from '@/components/SSSpendableOutputs'
 import SSText from '@/components/SSText'
 import TotalTransactions from '@/components/SSTotalTransactions'
-import useGetAccountAddress from '@/hooks/useGetAccountAddress'
-import useGetAccountWallet from '@/hooks/useGetAccountWallet'
-import useNostrSync from '@/hooks/useNostrSync'
-import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
-import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { useAccountsStore } from '@/store/accounts'
-import { useBlockchainStore } from '@/store/blockchain'
-import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { compareTimestamp } from '@/utils/sort'
+import { type SSTransactionListItem } from '@/components/SSTransactionList'
+import { type SSAddressListItem } from './SSAddressList'
+import { Account } from '@/types/models/Account'
 
-function SSWalletTabView() {
-  const { id } = useLocalSearchParams<AccountSearchParams>()
+type TabItem = 'transactions' | 'utxos' | 'addresses' | 'mempool'
+
+export type SSWalletTabViewProps = {
+  transactions: SSTransactionListItem[]
+  addresses: SSAddressListItem[]
+  utxos: Utxo[]
+  tabsEnabled?: TabItem[]
+  summary: Account['summary']
+}
+
+function SSWalletTabView({
+  transactions,
+  addresses,
+  utxos,
+  summary,
+  tabsEnabled = ['transactions', 'utxos', 'addresses', 'mempool']
+}: SSWalletTabViewProps) {
   const { width } = useWindowDimensions()
-
-  const [updateAccount, account] = useAccountsStore(
-    useShallow((state) => [
-      state.updateAccount,
-      state.accounts.find((a) => a.id === id)
-    ])
-  )
-
-  const wallet = useGetAccountWallet(id!)
-  const watchOnlyWalletAddress = useGetAccountAddress(id!)
-
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
-      account &&
-      account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
-
-  const [fetchPrices] = usePriceStore(
-    useShallow((state) => [state.fetchPrices])
-  )
-  const [getBlockchainHeight, mempoolUrl] = useBlockchainStore(
-    useShallow((state) => [
-      state.getBlockchainHeight,
-      state.configsMempool['bitcoin']
-    ])
-  )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
-  const { syncAccountWithAddress } = useSyncAccountWithAddress()
-  const { nostrSyncSubscriptions } = useNostrSync()
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
@@ -78,7 +54,6 @@ function SSWalletTabView() {
     useState<Direction>('desc')
   const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
-  const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
   const tabs = [
     { key: 'totalTransactions' },
@@ -89,11 +64,6 @@ function SSWalletTabView() {
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
 
-  useEffect(() => {
-    if (wallet) handleOnRefresh()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!account) return null
 
   const renderScene = ({
     route
@@ -102,9 +72,8 @@ function SSWalletTabView() {
       case 'totalTransactions':
         return (
           <TotalTransactions
-            transactions={account.transactions}
-            utxos={account.utxos}
-            accountId={account.id}
+            transactions={transactions}
+            utxos={utxos}
             handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}
@@ -117,7 +86,6 @@ function SSWalletTabView() {
       case 'derivedAddresses':
         return (
           <DerivedAddresses
-            account={account}
             handleOnExpand={handleOnExpand}
             setChange={setChange}
             expand={expand}
@@ -129,7 +97,6 @@ function SSWalletTabView() {
       case 'spendableOutputs':
         return (
           <SpendableOutputs
-            account={account}
             handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}
@@ -162,56 +129,13 @@ function SSWalletTabView() {
     )
   }
 
-  async function refreshBlockchainHeight() {
-    const height = await getBlockchainHeight()
-    setBlockchainHeight(height)
-  }
-
-  async function refreshAccount() {
-    if (!account) return
-
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
-
-    if (isImportAddress && !watchOnlyWalletAddress) return
-    if (!isImportAddress && !wallet) return
-
-    try {
-      const updatedAccount = !isImportAddress
-        ? await syncAccountWithWallet(account, wallet!)
-        : await syncAccountWithAddress(account)
-      updateAccount(updatedAccount)
-    } catch (error) {
-      toast.error((error as Error).message)
-    }
-  }
-
-  async function refreshAccountLabels() {
-    if (!account) return
-    if (account.nostr.autoSync) {
-      await nostrSyncSubscriptions(account)
-    }
-  }
-
-  async function handleOnRefresh() {
-    setRefreshing(true)
-    await fetchPrices(mempoolUrl)
-    await refreshBlockchainHeight()
-    await refreshAccount()
-    await refreshAccountLabels()
-    setRefreshing(false)
-  }
-
   async function handleOnExpand(state: boolean) {
     setExpand(state)
     animateTransition(state)
   }
 
-  if (!account) return null
-
   const renderTab = () => {
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
-    const tabWidth =
-      isImportAddress && account.keys.length === 1 ? '33.33%' : '25%'
+    const tabWidth = `${100 / tabsEnabled.length}%` as DimensionValue
 
     if (!expand) return null
 
@@ -226,7 +150,7 @@ function SSWalletTabView() {
         >
           <SSVStack gap="none">
             <SSText center size="lg">
-              {account.summary.numberOfTransactions}
+              {summary.numberOfTransactions}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.totalTransactions')}
@@ -241,7 +165,7 @@ function SSWalletTabView() {
           >
             <SSVStack gap="none">
               <SSText center size="lg">
-                {account.summary.numberOfAddresses}
+                {summary.numberOfAddresses}
               </SSText>
               <SSText center color="muted" style={{ lineHeight: 12 }}>
                 {isMultiAddressWatchOnly
@@ -258,7 +182,7 @@ function SSWalletTabView() {
         >
           <SSVStack gap="none">
             <SSText center size="lg">
-              {account.summary.numberOfUtxos}
+              {summary.numberOfUtxos}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.spendableOutputs')}
@@ -272,7 +196,7 @@ function SSWalletTabView() {
         >
           <SSVStack gap="none">
             <SSText center size="lg">
-              {account.summary.satsInMempool}
+              {summary.satsInMempool}
             </SSText>
             <SSText center color="muted" style={{ lineHeight: 12 }}>
               {t('accounts.satsInMempool')}
