@@ -2,7 +2,9 @@ import { produce } from 'immer'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { PIN_KEY } from '@/config/auth'
 import mmkvStorage from '@/storage/mmkv'
+import { getItem } from '@/storage/encrypted'
 import {
   type Account,
   type SyncProgress,
@@ -10,6 +12,7 @@ import {
 } from '@/types/models/Account'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Label } from '@/utils/bip329'
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type AccountsState = {
@@ -51,6 +54,10 @@ type AccountsAction = {
     label: string
   ) => Account | undefined
   importLabels: (accountId: Account['id'], labels: Label[]) => number
+  dropSeedFromKey: (
+    accountId: Account['id'],
+    keyIndex: number
+  ) => Promise<{ success: boolean; message: string }>
 }
 
 const useAccountsStore = create<AccountsState & AccountsAction>()(
@@ -321,6 +328,73 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
           })
         )
         return labelsAdded
+      },
+      dropSeedFromKey: async (accountId, keyIndex) => {
+        const state = get()
+        const account = state.accounts.find((acc) => acc.id === accountId)
+
+        if (!account || !account.keys[keyIndex]) {
+          return { success: false, message: 'Account or key not found' }
+        }
+
+        const key = account.keys[keyIndex]
+
+        if (!key.secret) {
+          return { success: false, message: 'Key secret not found' }
+        }
+
+        try {
+          const pin = await getItem(PIN_KEY)
+          if (!pin) {
+            return { success: false, message: 'PIN not found for decryption' }
+          }
+
+          // Decrypt the key's secret
+          let decryptedSecret: any
+          if (typeof key.secret === 'string') {
+            const decryptedSecretString = await aesDecrypt(
+              key.secret,
+              pin,
+              key.iv
+            )
+            decryptedSecret = JSON.parse(decryptedSecretString)
+          } else {
+            decryptedSecret = key.secret
+          }
+
+          // Remove mnemonic and passphrase, keep other fields
+          const cleanedSecret = {
+            extendedPublicKey: decryptedSecret.extendedPublicKey,
+            externalDescriptor: decryptedSecret.externalDescriptor,
+            internalDescriptor: decryptedSecret.internalDescriptor,
+            fingerprint: decryptedSecret.fingerprint
+          }
+
+          // Re-encrypt the cleaned secret
+          const stringifiedSecret = JSON.stringify(cleanedSecret)
+          const encryptedSecret = await aesEncrypt(
+            stringifiedSecret,
+            pin,
+            key.iv
+          )
+
+          // Update the account with the new encrypted secret
+          set(
+            produce((state) => {
+              const accountIndex = state.accounts.findIndex(
+                (acc: Account) => acc.id === accountId
+              )
+              if (accountIndex !== -1) {
+                state.accounts[accountIndex].keys[keyIndex].secret =
+                  encryptedSecret
+              }
+            })
+          )
+
+          return { success: true, message: 'Seed dropped successfully' }
+        } catch (_error) {
+          return { success: false, message: 'Failed to drop seed' }
+        }
       }
     }),
     {

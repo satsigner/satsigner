@@ -2,7 +2,7 @@ import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Alert, TouchableOpacity, View } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -11,12 +11,10 @@ import { SSIconAdd, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { PIN_KEY } from '@/config/auth'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
@@ -26,7 +24,6 @@ import {
   type Secret
 } from '@/types/models/Account'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
-import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
@@ -73,6 +70,7 @@ function SSMultisigKeyControl({
   const [isExpanded, setIsExpanded] = useState(false)
   const [localKeyName, setLocalKeyName] = useState(keyDetails?.name || '')
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
+  const [seedDropped, setSeedDropped] = useState(false)
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -109,6 +107,20 @@ function SSMultisigKeyControl({
     }
 
     extractPublicKey()
+  }, [keyDetails])
+
+  // Reset seedDropped when keyDetails changes (for settings mode)
+  useEffect(() => {
+    if (keyDetails && typeof keyDetails.secret === 'object') {
+      // If the key has a mnemonic, reset seedDropped to false
+      if (keyDetails.secret.mnemonic) {
+        console.log('Resetting seedDropped to false because key has mnemonic')
+        setSeedDropped(false)
+      } else {
+        console.log('Setting seedDropped to true because key has no mnemonic')
+        setSeedDropped(true)
+      }
+    }
   }, [keyDetails])
 
   function getSourceLabel() {
@@ -191,128 +203,36 @@ function SSMultisigKeyControl({
   async function handleDropSeed() {
     if (!keyDetails) return
 
-    // Show confirmation dialog
-    Alert.alert(
-      t('account.seed.dropSeedConfirm.title'),
-      t('account.seed.dropSeedConfirm.message'),
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('account.seed.dropSeedConfirm.confirm'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (isSettingsMode && accountId) {
-                // Handle existing account (settings mode)
-                const accounts = useAccountsStore.getState().accounts
-                const account = accounts.find((acc) => acc.id === accountId)
-                if (!account) return
+    try {
+      if (isSettingsMode && accountId) {
+        // Handle existing account (settings mode) using the new dropSeedFromKey function
+        const { dropSeedFromKey } = useAccountsStore.getState()
+        const result = await dropSeedFromKey(accountId, index)
 
-                const pin = await getItem(PIN_KEY)
-                if (!pin) return
-
-                // Decrypt the key's secret
-                let decryptedSecret: Secret
-                if (typeof keyDetails.secret === 'string') {
-                  const decryptedSecretString = await aesDecrypt(
-                    keyDetails.secret,
-                    pin,
-                    keyDetails.iv
-                  )
-                  decryptedSecret = JSON.parse(decryptedSecretString) as Secret
-                } else {
-                  decryptedSecret = keyDetails.secret as Secret
-                }
-
-                // Remove mnemonic and passphrase, keep only extended public key and metadata
-                const cleanedSecret: Secret = {
-                  extendedPublicKey: decryptedSecret.extendedPublicKey,
-                  externalDescriptor: decryptedSecret.externalDescriptor,
-                  internalDescriptor: decryptedSecret.internalDescriptor,
-                  fingerprint: decryptedSecret.fingerprint // Preserve fingerprint
-                }
-
-                // Re-encrypt the cleaned secret
-                const stringifiedSecret = JSON.stringify(cleanedSecret)
-                const encryptedSecret = await aesEncrypt(
-                  stringifiedSecret,
-                  pin,
-                  keyDetails.iv
-                )
-
-                // Update the account with the new encrypted secret
-                const updatedAccount = { ...account }
-                updatedAccount.keys[index] = {
-                  ...keyDetails,
-                  secret: encryptedSecret
-                }
-
-                // Update the account in the store
-                await updateAccount(updatedAccount)
-
-                toast.success(t('account.seed.dropSeedSuccess'))
-                onRefresh?.()
-              } else {
-                // Handle account creation mode
-                const { dropSeedFromKey } = useAccountBuilderStore.getState()
-                const result = await dropSeedFromKey(index)
-
-                if (result.success) {
-                  toast.success(result.message)
-                  onRefresh?.()
-                } else {
-                  toast.error(result.message)
-                }
-              }
-            } catch (_error) {
-              toast.error(t('account.seed.dropSeedError'))
-            }
-          }
+        if (result.success) {
+          // Set seedDropped to true to hide the button
+          setSeedDropped(true)
+          toast.success(result.message)
+          onRefresh?.()
+        } else {
+          toast.error(result.message)
         }
-      ]
-    )
-  }
+      } else {
+        // Handle account creation mode
+        const { dropSeedFromKey } = useAccountBuilderStore.getState()
+        const result = await dropSeedFromKey(index)
 
-  // Example of how to use the new dropSeedFromKey function from account builder store
-  // This would be used during account creation scenarios
-  /*
-  async function handleDropSeedFromBuilder() {
-    const { dropSeedFromKey } = useAccountBuilderStore()
-    
-    // Show confirmation dialog
-    Alert.alert(
-      t('account.seed.dropSeedConfirm.title'),
-      t('account.seed.dropSeedConfirm.message'),
-      [
-        {
-          text: t('common.cancel'),
-          style: 'cancel'
-        },
-        {
-          text: t('account.seed.dropSeedConfirm.confirm'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await dropSeedFromKey(index)
-              
-              if (result.success) {
-                toast.success(result.message)
-                onRefresh?.()
-              } else {
-                toast.error(result.message)
-              }
-            } catch (error) {
-              toast.error(t('account.seed.dropSeedError'))
-            }
-          }
+        if (result.success) {
+          toast.success(result.message)
+          onRefresh?.()
+        } else {
+          toast.error(result.message)
         }
-      ]
-    )
+      }
+    } catch (_error) {
+      toast.error(t('account.seed.dropSeedError'))
+    }
   }
-  */
 
   function handleShareXpub() {
     if (accountId) {
@@ -370,6 +290,24 @@ function SSMultisigKeyControl({
         keyDetails.secret.externalDescriptor ||
         keyDetails.secret.mnemonic)) ||
       (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
+
+  // Check if the key has a mnemonic (seed) that can be dropped
+  const hasSeed = Boolean(
+    !seedDropped &&
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      keyDetails.secret.mnemonic
+  )
+
+  // Debug: Log the hasSeed calculation
+  if (keyDetails && typeof keyDetails.secret === 'object') {
+    console.log('hasSeed calculation:', {
+      seedDropped,
+      hasMnemonic: !!keyDetails.secret.mnemonic,
+      hasSeed,
+      secretKeys: Object.keys(keyDetails.secret)
+    })
+  }
 
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
@@ -473,15 +411,17 @@ function SSMultisigKeyControl({
           <SSVStack gap="sm">
             {isKeyCompleted ? (
               <>
-                <SSButton
-                  label={getDropSeedLabel()}
-                  onPress={() => handleCompletedKeyAction('dropSeed')}
-                  style={{
-                    backgroundColor: 'black',
-                    borderWidth: 1,
-                    borderColor: 'white'
-                  }}
-                />
+                {hasSeed && (
+                  <SSButton
+                    label={getDropSeedLabel()}
+                    onPress={() => handleCompletedKeyAction('dropSeed')}
+                    style={{
+                      backgroundColor: 'black',
+                      borderWidth: 1,
+                      borderColor: 'white'
+                    }}
+                  />
+                )}
                 <SSButton
                   label={getShareXpubLabel()}
                   onPress={() => handleCompletedKeyAction('shareXpub')}

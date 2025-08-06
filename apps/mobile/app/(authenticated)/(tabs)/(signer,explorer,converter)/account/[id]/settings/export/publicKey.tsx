@@ -308,7 +308,7 @@ export default function PublicKeyPage() {
                 <SSButton
                   key={format}
                   label={label}
-                  variant={selectedFormat === format ? 'gradient' : 'secondary'}
+                  variant={selectedFormat === format ? 'secondary' : 'default'}
                   onPress={() => setSelectedFormat(format)}
                   style={{ flex: 1 }}
                 />
