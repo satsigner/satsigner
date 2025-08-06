@@ -317,13 +317,28 @@ export function validateDescriptorScriptVersion(
     P2PKH: ['pkh'],
     'P2SH-P2WPKH': ['sh'],
     P2WPKH: ['wpkh'],
-    P2TR: ['tr']
+    P2TR: ['tr'],
+    P2WSH: ['wsh'],
+    'P2SH-P2WSH': ['sh'],
+    'Legacy P2SH': ['sh']
   }
 
   // Check if the script type is compatible with the target script version
   const allowedScriptTypes = compatibilityMatrix[scriptVersion]
   if (!allowedScriptTypes) {
     return { isValid: false, error: `Unknown script version: ${scriptVersion}` }
+  }
+
+  // Special handling for nested descriptors
+  if (scriptVersion === 'P2SH-P2WSH') {
+    // For P2SH-P2WSH, we expect sh(wsh(...)) format
+    if (scriptType === 'sh' && cleanDescriptor.includes('wsh(')) {
+      return { isValid: true }
+    }
+    return {
+      isValid: false,
+      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: sh(wsh(...))`
+    }
   }
 
   if (!allowedScriptTypes.includes(scriptType)) {

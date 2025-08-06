@@ -1547,7 +1547,7 @@ export default function WatchOnly() {
                     // Fallback to script type from xpub prefix
                     if (
                       decodedAccount.scriptType &&
-                      ['P2PKH', 'P2SH-P2WPKH', 'P2WPKH'].includes(
+                      ['P2PKH', 'P2SH-P2WPKH', 'P2WPKH', 'P2TR', 'P2WSH', 'P2SH-P2WSH', 'Legacy P2SH'].includes(
                         decodedAccount.scriptType
                       )
                     ) {
@@ -1846,7 +1846,7 @@ export default function WatchOnly() {
                 // Fallback to script type from xpub prefix
                 if (
                   parsedData.scriptType &&
-                  ['P2PKH', 'P2SH-P2WPKH', 'P2WPKH'].includes(
+                  ['P2PKH', 'P2SH-P2WPKH', 'P2WPKH', 'P2TR', 'P2WSH', 'P2SH-P2WSH', 'Legacy P2SH'].includes(
                     parsedData.scriptType
                   )
                 ) {

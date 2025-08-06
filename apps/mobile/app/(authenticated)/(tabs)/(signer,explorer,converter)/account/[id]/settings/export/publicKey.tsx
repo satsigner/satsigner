@@ -64,6 +64,12 @@ export default function PublicKeyPage() {
           return ['xpub', 'zpub']
         case 'P2TR':
           return ['xpub', 'vpub']
+        case 'P2WSH':
+          return ['xpub']
+        case 'P2SH-P2WSH':
+          return ['xpub']
+        case 'Legacy P2SH':
+          return ['xpub']
         default:
           return ['xpub']
       }
@@ -132,6 +138,39 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: 'vpub',
         label: t(getKeyFormatTranslationKey('P2TR', network))
+      })
+    }
+
+    // Add P2WSH format (xpub/tpub)
+    if (
+      scriptVersion === 'P2WSH' &&
+      (availableFormats.includes('xpub') || availableFormats.includes('tpub'))
+    ) {
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(getKeyFormatTranslationKey('P2WSH', network))
+      })
+    }
+
+    // Add P2SH-P2WSH format (xpub/tpub)
+    if (
+      scriptVersion === 'P2SH-P2WSH' &&
+      (availableFormats.includes('xpub') || availableFormats.includes('tpub'))
+    ) {
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(getKeyFormatTranslationKey('P2SH-P2WSH', network))
+      })
+    }
+
+    // Add Legacy P2SH format (xpub/tpub)
+    if (
+      scriptVersion === 'Legacy P2SH' &&
+      (availableFormats.includes('xpub') || availableFormats.includes('tpub'))
+    ) {
+      formatButtons.push({
+        format: network === 'bitcoin' ? 'xpub' : 'tpub',
+        label: t(getKeyFormatTranslationKey('Legacy P2SH', network))
       })
     }
 
@@ -212,6 +251,14 @@ export default function PublicKeyPage() {
             availableFormats.includes('vpub')
           ) {
             defaultFormat = 'vpub'
+          } else if (
+            (keyScriptVersion === 'P2WSH' ||
+              keyScriptVersion === 'P2SH-P2WSH' ||
+              keyScriptVersion === 'Legacy P2SH') &&
+            (availableFormats.includes('xpub') ||
+              availableFormats.includes('tpub'))
+          ) {
+            defaultFormat = network === 'bitcoin' ? 'xpub' : 'tpub'
           }
           setSelectedFormat(defaultFormat)
         }

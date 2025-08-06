@@ -143,7 +143,10 @@ export function getKeyFormatForScriptVersion(
     P2PKH: 'xpub',
     'P2SH-P2WPKH': 'ypub',
     P2WPKH: 'zpub',
-    P2TR: 'vpub'
+    P2TR: 'vpub',
+    P2WSH: 'xpub', // P2WSH uses xpub format
+    'P2SH-P2WSH': 'xpub', // P2SH-P2WSH uses xpub format
+    'Legacy P2SH': 'xpub' // Legacy P2SH uses xpub format
   }
 
   const baseFormat = formatMappings[scriptVersion] || 'xpub'
@@ -234,8 +237,88 @@ export function getDerivationPathFromScriptVersion(
       return `84'/${coinType}'/0'`
     case 'P2TR':
       return `86'/${coinType}'/0'`
+    case 'P2WSH':
+      return `48'/${coinType}'/0'/2'`
+    case 'P2SH-P2WSH':
+      return `48'/${coinType}'/0'/1'`
+    case 'Legacy P2SH':
+      return `45'/${coinType}'/0'`
     default:
       return `84'/${coinType}'/0'`
+  }
+}
+
+/**
+ * Get the appropriate derivation path for multisig accounts based on script version and network
+ * This follows the multisig descriptor policy for different script types
+ */
+export function getMultisigDerivationPathFromScriptVersion(
+  scriptVersion: string,
+  network: Network
+): string {
+  // Determine coin type based on network
+  const coinType = network === 'bitcoin' ? '0' : '1'
+
+  switch (scriptVersion) {
+    case 'P2PKH':
+      // For multisig P2PKH, use Legacy P2SH derivation path (m/45'/0'/0')
+      return `45'/${coinType}'/0'`
+    case 'P2SH-P2WPKH':
+      // For multisig P2SH-P2WPKH, use P2SH-P2WSH derivation path (m/48'/0'/0'/1')
+      return `48'/${coinType}'/0'/1'`
+    case 'P2WPKH':
+      // For multisig P2WPKH, use P2WSH derivation path (m/48'/0'/0'/2')
+      return `48'/${coinType}'/0'/2'`
+    case 'P2TR':
+      // For multisig P2TR, use P2TR derivation path (m/86'/0'/0')
+      return `86'/${coinType}'/0'`
+    case 'P2WSH':
+      // Native SegWit multisig (m/48'/0'/0'/2')
+      return `48'/${coinType}'/0'/2'`
+    case 'P2SH-P2WSH':
+      // Wrapped SegWit multisig (m/48'/0'/0'/1')
+      return `48'/${coinType}'/0'/1'`
+    case 'Legacy P2SH':
+      // Legacy P2SH multisig (m/45'/0'/0')
+      return `45'/${coinType}'/0'`
+    default:
+      // Default to P2WSH for multisig (m/48'/0'/0'/2')
+      return `48'/${coinType}'/0'/2'`
+  }
+}
+
+/**
+ * Map script version to the corresponding multisig script type for descriptor generation
+ * This ensures that the correct multisig descriptor type is used based on the script version
+ */
+export function getMultisigScriptTypeFromScriptVersion(
+  scriptVersion: string
+): string {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      // For multisig P2PKH, use Legacy P2SH descriptor
+      return 'Legacy P2SH'
+    case 'P2SH-P2WPKH':
+      // For multisig P2SH-P2WPKH, use P2SH-P2WSH descriptor
+      return 'P2SH-P2WSH'
+    case 'P2WPKH':
+      // For multisig P2WPKH, use P2WSH descriptor
+      return 'P2WSH'
+    case 'P2TR':
+      // For multisig P2TR, use P2TR descriptor
+      return 'P2TR'
+    case 'P2WSH':
+      // Native SegWit multisig
+      return 'P2WSH'
+    case 'P2SH-P2WSH':
+      // Wrapped SegWit multisig
+      return 'P2SH-P2WSH'
+    case 'Legacy P2SH':
+      // Legacy P2SH multisig
+      return 'Legacy P2SH'
+    default:
+      // Default to P2WSH for multisig
+      return 'P2WSH'
   }
 }
 

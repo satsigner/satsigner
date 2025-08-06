@@ -114,10 +114,8 @@ function SSMultisigKeyControl({
     if (keyDetails && typeof keyDetails.secret === 'object') {
       // If the key has a mnemonic, reset seedDropped to false
       if (keyDetails.secret.mnemonic) {
-        console.log('Resetting seedDropped to false because key has mnemonic')
         setSeedDropped(false)
       } else {
-        console.log('Setting seedDropped to true because key has no mnemonic')
         setSeedDropped(true)
       }
     }
@@ -298,16 +296,6 @@ function SSMultisigKeyControl({
       typeof keyDetails.secret === 'object' &&
       keyDetails.secret.mnemonic
   )
-
-  // Debug: Log the hasSeed calculation
-  if (keyDetails && typeof keyDetails.secret === 'object') {
-    console.log('hasSeed calculation:', {
-      seedDropped,
-      hasMnemonic: !!keyDetails.secret.mnemonic,
-      hasSeed,
-      secretKeys: Object.keys(keyDetails.secret)
-    })
-  }
 
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)

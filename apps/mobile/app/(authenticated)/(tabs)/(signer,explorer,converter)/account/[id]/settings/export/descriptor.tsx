@@ -188,6 +188,11 @@ export default function DescriptorPage() {
                   network as Network
                 )
                 break
+              case 'P2WSH':
+              case 'P2SH-P2WSH':
+              case 'Legacy P2SH':
+                // For multisig script types, we need to create descriptors manually
+                throw new Error(`Manual descriptor creation required for ${key.scriptVersion}`)
               default:
                 externalDescriptor = await new Descriptor().newBip84(
                   descriptorSecretKey,
@@ -243,6 +248,15 @@ export default function DescriptorPage() {
                 break
               case 'P2TR':
                 descriptorString = `tr(${keyPart})`
+                break
+              case 'P2WSH':
+                descriptorString = `wsh(${keyPart})`
+                break
+              case 'P2SH-P2WSH':
+                descriptorString = `sh(wsh(${keyPart}))`
+                break
+              case 'Legacy P2SH':
+                descriptorString = `sh(${keyPart})`
                 break
               default:
                 descriptorString = `wpkh(${keyPart})`
@@ -308,6 +322,15 @@ export default function DescriptorPage() {
                   case 'P2TR':
                     descriptorString = `tr(${keyPart})`
                     break
+                  case 'P2WSH':
+                    descriptorString = `wsh(${keyPart})`
+                    break
+                  case 'P2SH-P2WSH':
+                    descriptorString = `sh(wsh(${keyPart}))`
+                    break
+                  case 'Legacy P2SH':
+                    descriptorString = `sh(${keyPart})`
+                    break
                   default:
                     descriptorString = `wpkh(${keyPart})`
                 }
@@ -345,6 +368,15 @@ export default function DescriptorPage() {
                   break
                 case 'P2TR':
                   descriptorString = `tr(${keyPart})`
+                  break
+                case 'P2WSH':
+                  descriptorString = `wsh(${keyPart})`
+                  break
+                case 'P2SH-P2WSH':
+                  descriptorString = `sh(wsh(${keyPart}))`
+                  break
+                case 'Legacy P2SH':
+                  descriptorString = `sh(${keyPart})`
                   break
                 default:
                   descriptorString = `wpkh(${keyPart})`

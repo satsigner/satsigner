@@ -261,6 +261,48 @@ describe('validateDescriptorScriptVersion', () => {
     })
   })
 
+  it('should validate P2WSH descriptors correctly', () => {
+    const wshDescriptor = 'wsh([12345678/48h/0h/0h/2h]xpub1234567890abcdef)'
+
+    expect(validateDescriptorScriptVersion(wshDescriptor, 'P2WSH')).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(wshDescriptor, 'P2WPKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "wsh" is not compatible with multisig script version "P2WPKH". Expected: wpkh'
+    })
+  })
+
+  it('should validate P2SH-P2WSH descriptors correctly', () => {
+    const shWshDescriptor = 'sh(wsh([12345678/48h/0h/0h/1h]xpub1234567890abcdef))'
+
+    expect(validateDescriptorScriptVersion(shWshDescriptor, 'P2SH-P2WSH')).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(shWshDescriptor, 'P2WPKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "sh" is not compatible with multisig script version "P2WPKH". Expected: wpkh'
+    })
+  })
+
+  it('should validate Legacy P2SH descriptors correctly', () => {
+    const shDescriptor = 'sh([12345678/45h/0h/0h]xpub1234567890abcdef)'
+
+    expect(validateDescriptorScriptVersion(shDescriptor, 'Legacy P2SH')).toEqual({
+      isValid: true
+    })
+
+    expect(validateDescriptorScriptVersion(shDescriptor, 'P2WPKH')).toEqual({
+      isValid: false,
+      error:
+        'Descriptor script type "sh" is not compatible with multisig script version "P2WPKH". Expected: wpkh'
+    })
+  })
+
   it('should handle descriptors with checksums', () => {
     const descriptorWithChecksum =
       'pkh([12345678/44h/0h/0h]xpub1234567890abcdef)#abcd1234'

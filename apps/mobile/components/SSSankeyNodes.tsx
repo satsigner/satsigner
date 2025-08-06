@@ -57,8 +57,6 @@ function SSSankeyNodes({
   }, [nodes])
 
   const renderNode = (node: Node, index: number) => {
-    // Add console.log for miner fee nodes with higherFee property
-
     const isHigherCurrentMinerFee =
       node.localId === 'current-minerFee' && node.ioData?.higherFee
 

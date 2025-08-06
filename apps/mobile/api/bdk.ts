@@ -309,6 +309,27 @@ async function getWalletData(
               network
             )
             break
+          case 'P2WSH':
+          case 'P2SH-P2WSH':
+          case 'Legacy P2SH':
+            // For multisig script types, we need to create descriptors manually
+            throw new Error(
+              `Manual descriptor creation required for ${key.scriptVersion}`
+            )
+          default:
+            externalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
         }
 
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
@@ -340,23 +361,111 @@ async function getWalletFromMnemonic(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const externalDescriptor = await getDescriptor(
-    mnemonic,
-    scriptVersion,
-    KeychainKind.External,
-    passphrase,
-    network
-  )
+  let externalDescriptor: Descriptor
+  let internalDescriptor: Descriptor
 
-  const internalDescriptor = await getDescriptor(
-    mnemonic,
-    scriptVersion,
-    KeychainKind.Internal,
-    passphrase,
-    network
-  )
+  try {
+    externalDescriptor = await getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.External,
+      passphrase,
+      network
+    )
+
+    internalDescriptor = await getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.Internal,
+      passphrase,
+      network
+    )
+  } catch (error) {
+    // Handle manual descriptor creation for multisig script types
+    if (
+      error instanceof Error &&
+      error.message.includes('Manual descriptor creation required')
+    ) {
+      // For multisig script types, we need to create descriptors manually
+      const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
+      const descriptorSecretKey = await new DescriptorSecretKey().create(
+        network,
+        parsedMnemonic,
+        passphrase
+      )
+
+      // Get derivation path
+      const derivationPath = getDerivationPathFromScriptVersion(
+        scriptVersion,
+        network === Network.Bitcoin ? 'bitcoin' : 'testnet'
+      )
+
+      // Create descriptors using the existing BDK methods for basic derivation
+      // and then manually construct the multisig descriptors
+      const baseExternalDescriptor = await new Descriptor().newBip84(
+        descriptorSecretKey,
+        KeychainKind.External,
+        network
+      )
+      const baseInternalDescriptor = await new Descriptor().newBip84(
+        descriptorSecretKey,
+        KeychainKind.Internal,
+        network
+      )
+
+      // Get the base descriptor strings
+      const baseExternalString = await baseExternalDescriptor.asString()
+      const baseInternalString = await baseInternalDescriptor.asString()
+
+      // Extract the key part (everything after the script function)
+      const externalKeyPart = baseExternalString
+        .replace(/^wpkh\(/, '')
+        .replace(/\)$/, '')
+      const internalKeyPart = baseInternalString
+        .replace(/^wpkh\(/, '')
+        .replace(/\)$/, '')
+
+      // Create multisig descriptor strings based on script version
+      let externalDescriptorString = ''
+      let internalDescriptorString = ''
+
+      switch (scriptVersion) {
+        case 'P2WSH':
+          externalDescriptorString = `wsh(${externalKeyPart})`
+          internalDescriptorString = `wsh(${internalKeyPart})`
+          break
+        case 'P2SH-P2WSH':
+          externalDescriptorString = `sh(wsh(${externalKeyPart}))`
+          internalDescriptorString = `sh(wsh(${internalKeyPart}))`
+          break
+        case 'Legacy P2SH':
+          externalDescriptorString = `sh(${externalKeyPart})`
+          internalDescriptorString = `sh(${internalKeyPart})`
+          break
+        default:
+          throw new Error(`Unsupported script version: ${scriptVersion}`)
+      }
+
+      // Create descriptors using BDK
+      externalDescriptor = await new Descriptor().create(
+        externalDescriptorString,
+        network
+      )
+      internalDescriptor = await new Descriptor().create(
+        internalDescriptorString,
+        network
+      )
+    } else {
+      throw error
+    }
+  }
+
+  // Ensure variables are assigned
+  if (!externalDescriptor || !internalDescriptor) {
+    throw new Error('Failed to create descriptors')
+  }
+
   // TO DO: Try Promise.all() method instead Sequential one.
-
   const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
     parseDescriptor(externalDescriptor),
     getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
@@ -393,6 +502,16 @@ async function getDescriptor(
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
     case 'P2TR':
       return new Descriptor().newBip86(descriptorSecretKey, kind, network)
+    case 'P2WSH':
+    case 'P2SH-P2WSH':
+    case 'Legacy P2SH':
+      // For multisig script types, we need to create descriptors manually
+      // since BDK doesn't have specific methods for these
+      throw new Error(
+        `Manual descriptor creation required for ${scriptVersion}`
+      )
+    default:
+      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
   }
 }
 
@@ -484,6 +603,18 @@ async function getDescriptorsFromKeyData(
     case 'P2TR':
       externalDescriptor = `tr(${keyPart}/0/*)`
       internalDescriptor = `tr(${keyPart}/1/*)`
+      break
+    case 'P2WSH':
+      externalDescriptor = `wsh(${keyPart}/0/*)`
+      internalDescriptor = `wsh(${keyPart}/1/*)`
+      break
+    case 'P2SH-P2WSH':
+      externalDescriptor = `sh(wsh(${keyPart}/0/*))`
+      internalDescriptor = `sh(wsh(${keyPart}/1/*))`
+      break
+    case 'Legacy P2SH':
+      externalDescriptor = `sh(${keyPart}/0/*)`
+      internalDescriptor = `sh(${keyPart}/1/*)`
       break
     default:
       externalDescriptor = `wpkh(${keyPart}/0/*)`

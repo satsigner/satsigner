@@ -1,4 +1,4 @@
-import { type Descriptor as _Descriptor } from 'bdk-rn'
+import { Descriptor } from 'bdk-rn'
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
-import { getWalletData } from '@/api/bdk'
+import {
+  getWalletData,
+  extractExtendedKeyFromDescriptor,
+  getExtendedPublicKeyFromAccountKey,
+  extractFingerprintFromExtendedPublicKey
+} from '@/api/bdk'
 import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -24,7 +29,11 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  getDerivationPathFromScriptVersion,
+  getMultisigDerivationPathFromScriptVersion,
+  getMultisigScriptTypeFromScriptVersion
+} from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { shareFile } from '@/utils/filesystem'
 
@@ -115,76 +124,201 @@ export default function ExportDescriptors() {
         // --- BEGIN: Multisig Key Details Formatting ---
         let descriptorString = ''
         if (!isImportAddress) {
-          // For multisig, create proper descriptor with derivation paths and checksum
+          // For multisig, create proper descriptor with policy-based derivation paths and checksum
           const scriptVersion =
-            temporaryAccount.keys[0]?.scriptVersion || 'P2WPKH'
+            temporaryAccount.keys[0]?.scriptVersion || 'P2WSH'
           const keyCount = temporaryAccount.keys.length
           const keysRequired = temporaryAccount.keysRequired || keyCount
 
-          // Build key section with proper derivation paths
-          const keySection = temporaryAccount.keys
-            .map((key) => {
+          // Extract fingerprints and extended public keys for each key
+          const keyData = await Promise.all(
+            temporaryAccount.keys.map(async (key, index) => {
               const secret = key.secret as Secret
+              let extendedPublicKey = ''
+              let fingerprint = ''
 
-              // Get fingerprint from secret or key
-              const fingerprint =
+              // Get fingerprint from secret or key (same pattern as SSMultisigKeyControl)
+              fingerprint =
                 (typeof secret === 'object' && secret.fingerprint) ||
                 key.fingerprint ||
                 ''
 
-              // Get derivation path from script version or key
-              let derivationPath = key.derivationPath || ''
-              if (!derivationPath || key.creationType === 'importExtendedPub') {
-                derivationPath = getDerivationPathFromScriptVersion(
-                  scriptVersion,
-                  network
-                )
+              // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
+              if (typeof secret === 'object') {
+                // First, try to get from extendedPublicKey directly
+                if (secret.extendedPublicKey) {
+                  extendedPublicKey = secret.extendedPublicKey
+                } else if (secret.externalDescriptor) {
+                  // If we have a descriptor, extract the extended public key from it
+                  try {
+                    const descriptor = await new Descriptor().create(
+                      secret.externalDescriptor,
+                      network as Network
+                    )
+                    extendedPublicKey =
+                      await extractExtendedKeyFromDescriptor(descriptor)
+                  } catch (_error) {
+                    console.error(
+                      `Failed to extract extended public key from descriptor for key ${index}:`,
+                      _error
+                    )
+                  }
+                } else if (secret.mnemonic) {
+                  // If we have a mnemonic, generate the extended public key
+                  try {
+                    const extendedKey =
+                      await getExtendedPublicKeyFromAccountKey(
+                        {
+                          ...key,
+                          secret: {
+                            mnemonic: secret.mnemonic,
+                            passphrase: secret.passphrase
+                          }
+                        },
+                        network as Network
+                      )
+                    if (extendedKey) {
+                      extendedPublicKey = extendedKey
+                    }
+                  } catch (_error) {
+                    console.error(
+                      `Failed to generate extended public key from mnemonic for key ${index}:`,
+                      _error
+                    )
+                  }
+                }
               }
 
-              // Get extended public key
-              const xpub =
-                (typeof secret === 'object' && secret.extendedPublicKey) || ''
+              // If we still don't have a fingerprint, try to extract it from the extended public key
+              if (!fingerprint && extendedPublicKey) {
+                try {
+                  fingerprint = await extractFingerprintFromExtendedPublicKey(
+                    extendedPublicKey,
+                    network as Network
+                  )
+                } catch (_error) {
+                  console.error(
+                    `Failed to extract fingerprint from extended public key for key ${index}:`,
+                    _error
+                  )
+                }
+              }
 
-              // Remove leading 'm' or 'M' from derivationPath if present
-              const cleanPath = derivationPath.replace(/^m\/?/i, '')
+              // If we still don't have a fingerprint, try to get it from the key's fingerprint property
+              if (!fingerprint && key.fingerprint) {
+                fingerprint = key.fingerprint
+              }
 
-              // Format: [FINGERPRINT/DERIVATION_PATH]XPUB
-              return `[${fingerprint}/${cleanPath}]${xpub}`
+              // If we still don't have an extended public key, try to get it from the key's secret
+              if (!extendedPublicKey && typeof secret === 'object') {
+                // Try to extract from externalDescriptor if available
+                if (secret.externalDescriptor) {
+                  try {
+                    const descriptor = await new Descriptor().create(
+                      secret.externalDescriptor,
+                      network as Network
+                    )
+                    extendedPublicKey =
+                      await extractExtendedKeyFromDescriptor(descriptor)
+                  } catch (_error) {
+                    console.error(
+                      `Failed to extract extended public key from externalDescriptor for key ${index}:`,
+                      _error
+                    )
+                  }
+                }
+              }
+
+              return { fingerprint, extendedPublicKey, index }
             })
-            .join(',')
+          )
 
-          // Create multisig descriptor based on script version
-          let multisigDescriptor = ''
-          switch (scriptVersion) {
-            case 'P2PKH':
-              multisigDescriptor = `pkh(multi(${keysRequired},${keySection}))`
-              break
-            case 'P2SH-P2WPKH':
-              multisigDescriptor = `sh(wpkh(multi(${keysRequired},${keySection})))`
-              break
-            case 'P2WPKH':
-              multisigDescriptor = `wpkh(multi(${keysRequired},${keySection}))`
-              break
-            case 'P2TR':
-              multisigDescriptor = `tr(multi(${keysRequired},${keySection}))`
-              break
-            default:
-              multisigDescriptor = `wpkh(multi(${keysRequired},${keySection}))`
-          }
+          // Filter out keys that don't have both fingerprint and extended public key
+          const validKeyData = keyData.filter(
+            (kd) => kd.fingerprint && kd.extendedPublicKey
+          )
 
-          // Validate descriptor format before adding checksum
-          if (
-            !multisigDescriptor ||
-            keySection.split(',').length !== keyCount
-          ) {
-            descriptorString = multisigDescriptor
+          if (validKeyData.length !== keyCount) {
+            console.error(
+              'Missing fingerprint or extended public key for some keys:',
+              {
+                expected: keyCount,
+                found: validKeyData.length,
+                keyData: keyData.map((kd) => ({
+                  index: kd.index,
+                  hasFingerprint: !!kd.fingerprint,
+                  hasExtendedPublicKey: !!kd.extendedPublicKey,
+                  fingerprint: kd.fingerprint,
+                  extendedPublicKey: kd.extendedPublicKey
+                    ? `${kd.extendedPublicKey.slice(0, 10)}...`
+                    : 'none'
+                }))
+              }
+            )
+            // Set a fallback descriptor string to indicate the issue
+            descriptorString =
+              'No descriptors available - missing fingerprint or extended public key for some keys'
           } else {
-            // Always calculate checksum manually for multisig descriptors
-            const checksum = calculateDescriptorChecksum(multisigDescriptor)
-            if (checksum) {
-              descriptorString = `${multisigDescriptor}#${checksum}`
-            } else {
+            // Get the correct multisig script type for descriptor generation
+            const multisigScriptType =
+              getMultisigScriptTypeFromScriptVersion(scriptVersion)
+
+            // Get the policy-based derivation path according to the multisig script type
+            const policyDerivationPath =
+              getMultisigDerivationPathFromScriptVersion(
+                multisigScriptType,
+                network
+              )
+
+            // Remove leading 'm' or 'M' from derivationPath if present
+            const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
+
+            // Build key section with policy-based derivation paths
+            const keySection = validKeyData
+              .map(({ fingerprint, extendedPublicKey }) => {
+                // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
+                return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+              })
+              .join(',')
+
+            // Create multisig descriptor based on multisig script type using sortedmulti for consistency
+            let multisigDescriptor = ''
+            switch (multisigScriptType) {
+              case 'Legacy P2SH':
+                // For multisig P2PKH, use Legacy P2SH descriptor
+                multisigDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
+                break
+              case 'P2SH-P2WSH':
+                // For multisig P2SH-P2WPKH, use P2SH-P2WSH descriptor
+                multisigDescriptor = `sh(wsh(sortedmulti(${keysRequired},${keySection})))`
+                break
+              case 'P2WSH':
+                // For multisig P2WPKH, use P2WSH descriptor
+                multisigDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+                break
+              case 'P2TR':
+                // For multisig P2TR, use P2TR descriptor
+                multisigDescriptor = `tr(sortedmulti(${keysRequired},${keySection}))`
+                break
+              default:
+                // Default to P2WSH for multisig
+                multisigDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+            }
+
+            // Validate descriptor format before adding checksum
+            if (
+              !multisigDescriptor ||
+              keySection.split(',').length !== keyCount
+            ) {
               descriptorString = multisigDescriptor
+            } else {
+              // Always calculate checksum manually for multisig descriptors
+              const checksum = calculateDescriptorChecksum(multisigDescriptor)
+              if (checksum) {
+                descriptorString = `${multisigDescriptor}#${checksum}`
+              } else {
+                descriptorString = multisigDescriptor
+              }
             }
           }
         } else {
