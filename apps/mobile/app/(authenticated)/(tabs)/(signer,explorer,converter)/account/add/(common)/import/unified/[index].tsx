@@ -306,8 +306,8 @@ export default function UnifiedImport() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           text,
-          scriptVersion,
-          network
+          scriptVersion as string,
+          network as string
         )
 
         if (combinedValidation.isValid) {
@@ -396,8 +396,8 @@ export default function UnifiedImport() {
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(
             text,
-            scriptVersion,
-            network
+            scriptVersion as string,
+            network as string
           )
 
           if (combinedValidation.isValid) {
@@ -483,8 +483,8 @@ export default function UnifiedImport() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           data,
-          scriptVersion,
-          network
+          scriptVersion as string,
+          network as string
         )
 
         if (combinedValidation.isValid) {

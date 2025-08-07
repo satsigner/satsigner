@@ -458,8 +458,8 @@ export default function ImportDescriptor() {
       // Validate the combined descriptor and get separated descriptors
       const combinedValidation = await validateCombinedDescriptor(
         combinedDescriptor,
-        scriptVersion,
-        network
+        scriptVersion as string,
+        network as string
       )
 
       if (combinedValidation.isValid) {

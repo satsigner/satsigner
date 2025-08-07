@@ -423,8 +423,8 @@ export default function SSImportKey({
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(
             finalContent,
-            scriptVersion,
-            network
+            scriptVersion as string,
+            network as string
           )
 
           if (combinedValidation.isValid) {
@@ -527,8 +527,8 @@ export default function SSImportKey({
             // Validate the combined descriptor and get separated descriptors
             const combinedValidation = await validateCombinedDescriptor(
               finalContent,
-              scriptVersion,
-              network
+              scriptVersion as string,
+              network as string
             )
 
             if (combinedValidation.isValid) {
@@ -617,8 +617,8 @@ export default function SSImportKey({
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           finalContent,
-          scriptVersion,
-          network
+          scriptVersion as string,
+          network as string
         )
 
         if (combinedValidation.isValid) {
