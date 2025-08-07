@@ -168,11 +168,56 @@ avdmanager create avd -n myemulator -k 'system-images;android-34;default;x86_64'
 Replace `myemulator` with the desired name for the emulator device and replace
 `system-images;android-34;default;x86_64` with the image donwloaded earlier.
 
-Once the device has been created, switch your Java environment to Java
-JDK 17 in order to run and build this application. Lastly, if you get
-the error `[CXX5304]` while building, try running `unset _JAVA_OPTIONS`
-because this variable is source automatically and may pass options that
-intefere with the building.
+Once the device has been created, switch your Java environment to **JDK 17** in
+order to run and build this application. If you choose not use a device emulator
+but use a physical one, then you would skip the previous steps (and not downlaod
+Java 8) but you still have to install Java 17 and set it as the default version.
+
+Lastly, if you get the error `[CXX5304]` while building, try running `unset
+_JAVA_OPTIONS` because this variable is source automatically and may pass
+options that intefere with the building.
+
+### Path issues
+
+You need to make sure the binaries
+
+#### Windows users
+
+Use `gitb<Select>ash` as your shell instead of `powershell`. Then, create the
+file `.bash_profile` in your home directory. It will be located in
+`C:\Users\user\.bash_profile`, where `user` is your username. You can
+create this file via the file explorer, via some IDE, or via the bash shell:
+
+```bash
+touch /c/Users/user/.bash_profile
+```
+
+Once created, open it in your editor or IDE and append the following lines:
+
+```bash
+export PATH="/c/Users/<user/AppData/Local/Android/Sdk/platform-tools:$PATH"
+export PATH="/c/Program Files/Java/jdk-17/bin:$PATH"
+export ANDROID_HOME="/c/Users/user/AppData/Local/Android/Sdk"
+```
+
+This will update your environment variables to include the binaries from Android
+SDK and Java JDK 17, which you must have installed to develop satsigner.
+
+#### Linux users
+
+Update your `PATH` to include the directories `/opt/android-sdk/tools`,
+`/opt/android-sdk/platform-tools`, and `/opt/android-sdk/tools/bin`. If you
+want to use the emulator, also add the directory `/opt/android-sdk/emulator`
+into your `PATH`.
+
+```bash
+export PATH=$PATH:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator
+```
+
+**Tip**: use the tool `direnv` which loads environment variables dinamically
+from a file called `.envrc` in the current directory (if it exists). To do
+that, install and enable `direnv`, then create the file `apps/mobile/.envrc`
+and place the content of the previous code block there.
 
 ### Set up Expo environment
 
