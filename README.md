@@ -7,7 +7,7 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 
 - Help build a powerful native mobile Bitcoin signer management application
 - Contribute towards the integration, development and enhancement of Bitcoin UX design
-- Unlock coin insights via integrated onchain (privacy/provenance/economic) analyses and corresponding data visualisation to help inform, encourage and automate better Bitcoin usage best-pratices
+- Unlock coin insights via integrated onchain (privacy/provenance/economic) analyses and corresponding data visualization to help inform, encourage and automate better Bitcoin usage best-pratices
 - Advance Bitcoin understanding
 - Test market demand for bitcoin centric applications
 - Propagate open-source ethos
@@ -21,8 +21,8 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 - Initial focus on on-chain bitcoin (coin-control/controlling sats)
 - Emphasis on privacy
 - Emphasis on personal labeling, tagging, and bookmarking
-- Application of visualisation/visual-native UI aiming to build upon and develop new Bitcoin design primitives to help make more advanced/poower-user Bitcoin UX/UI more intuitive and accessible
-- Take advantage of appropriate charts and graphic layouts for all data vizualisation
+- Application of visualization/visual-native UI aiming to build upon and develop new Bitcoin design primitives to help make more advanced/power-user Bitcoin UX/UI more intuitive and accessible
+- Take advantage of appropriate charts and graphic layouts for all data visualization
 - Security - targetting optimal hot-signer-level security initially (future support for watch-only cold, multisig, vaults etc)
 - Visually crafted and UX builds upon powerful feattures and improvements introoduced by the many existing brilliant open-soouurce FullyNoded, or Sparrow
 - An intuitive and powerful mobile bitcoin app
@@ -72,8 +72,8 @@ https://twitter.com/pedromvpg/status/1553123963139756032
 
 - [Sparrow](https://github.com/sparrowwallet/sparrow) - very powerful and clean native Bitcoin signer management desktop app
 - [FullyNoded](https://github.com/Fonta1n3/FullyNoded) - very powerful iOS app focused on remote full node management
-- [BitFeed](https://github.com/bitfeed-project/bitfeed) - beautiful, psychedelic block/transaction/timechain visualisation
-- [Mempool.space](https://github.com/mempool/mempool) - beautiful block explorer and Bitcoin data visualisations
+- [BitFeed](https://github.com/bitfeed-project/bitfeed) - beautiful, psychedelic block/transaction/timechain visualization
+- [Mempool.space](https://github.com/mempool/mempool) - beautiful block explorer and Bitcoin data visualizations
 - [Zeus](https://github.com/ZeusLN/zeus) - pretty, increasingly powerful remote LN node management app
 
 ## UI
@@ -166,16 +166,16 @@ avdmanager create avd -n myemulator -k 'system-images;android-34;default;x86_64'
 ```
 
 Replace `myemulator` with the desired name for the emulator device and replace
-`system-images;android-34;default;x86_64` with the image donwloaded earlier.
+`system-images;android-34;default;x86_64` with the image downloaded earlier.
 
 Once the device has been created, switch your Java environment to **JDK 17** in
 order to run and build this application. If you choose not use a device emulator
-but use a physical one, then you would skip the previous steps (and not downlaod
+but use a physical one, then you would skip the previous steps (and not download
 Java 8) but you still have to install Java 17 and set it as the default version.
 
 Lastly, if you get the error `[CXX5304]` while building, try running `unset
-_JAVA_OPTIONS` because this variable is source automatically and may pass
-options that intefere with the building.
+_JAVA_OPTIONS` because this variable is sourced automatically and may pass
+options that interfere with the building.
 
 ### Path issues
 
@@ -214,7 +214,7 @@ into your `PATH`.
 export PATH=$PATH:${ANDROID_HOME}/tools:${ANDROID_HOME}/tools/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator
 ```
 
-**Tip**: use the tool `direnv` which loads environment variables dinamically
+**Tip**: use the tool `direnv` which loads environment variables dynamically
 from a file called `.envrc` in the current directory (if it exists). To do
 that, install and enable `direnv`, then create the file `apps/mobile/.envrc`
 and place the content of the previous code block there.
