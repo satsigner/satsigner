@@ -17,10 +17,7 @@ const scriptVersions: ScriptVersion[] = [
   'P2PKH',
   'P2SH-P2WPKH',
   'P2WPKH',
-  'P2TR',
-  'P2WSH',
-  'P2SH-P2WSH',
-  'Legacy P2SH'
+  'P2TR'
 ]
 
 type SSScriptVersionModalProps = {
