@@ -183,7 +183,7 @@ You need to make sure the binaries
 
 #### Windows users
 
-Use `gitb<Select>ash` as your shell instead of `powershell`. Then, create the
+Use `gitbash` as your shell instead of `powershell`. Then, create the
 file `.bash_profile` in your home directory. It will be located in
 `C:\Users\user\.bash_profile`, where `user` is your username. You can
 create this file via the file explorer, via some IDE, or via the bash shell:
@@ -195,10 +195,12 @@ touch /c/Users/user/.bash_profile
 Once created, open it in your editor or IDE and append the following lines:
 
 ```bash
-export PATH="/c/Users/<user/AppData/Local/Android/Sdk/platform-tools:$PATH"
+export PATH="/c/Users/user/AppData/Local/Android/Sdk/platform-tools:$PATH"
 export PATH="/c/Program Files/Java/jdk-17/bin:$PATH"
 export ANDROID_HOME="/c/Users/user/AppData/Local/Android/Sdk"
 ```
+
+Of course. Change `user` to your username.
 
 This will update your environment variables to include the binaries from Android
 SDK and Java JDK 17, which you must have installed to develop satsigner.
