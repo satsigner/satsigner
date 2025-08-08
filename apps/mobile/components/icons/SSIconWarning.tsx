@@ -10,7 +10,7 @@ type IconProps = Pick<
   strokeWidthExclamation?: SvgProps['strokeWidth']
 }
 
-export default function SSIconAbout({
+export default function SSIconWarning({
   width,
   height,
   fill = 'yellow',

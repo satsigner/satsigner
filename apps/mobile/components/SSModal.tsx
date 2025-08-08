@@ -30,11 +30,13 @@ function SSModal({
       >
         <SSVStack justifyBetween itemsCenter style={styles.innerContainer}>
           {children}
-          <SSButton
-            label={label}
-            variant={closeButtonVariant}
-            onPress={onClose}
-          />
+          {label && (
+            <SSButton
+              label={label}
+              variant={closeButtonVariant}
+              onPress={onClose}
+            />
+          )}
         </SSVStack>
       </SSMainLayout>
     </Modal>

@@ -21,7 +21,7 @@ import {
   type BlockchainEsploraConfig,
   BlockChainNames,
   KeychainKind,
-  type Network
+  Network
 } from 'bdk-rn/lib/lib/enums'
 
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -32,10 +32,20 @@ import {
   type Backend,
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 import ElectrumClient from './electrum'
 import Esplora from './esplora'
+
+type WalletData = {
+  fingerprint: string
+  derivationPath: string
+  externalDescriptor: string
+  internalDescriptor: string
+  wallet: Wallet
+  keyFingerprints?: string[] // Optional for multisig accounts
+}
 
 async function generateMnemonic(
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
@@ -69,7 +79,25 @@ async function validateMnemonic(mnemonic: NonNullable<Secret['mnemonic']>) {
   return true
 }
 
-async function getWalletData(account: Account, network: Network) {
+async function extractFingerprintFromExtendedPublicKey(
+  extendedPublicKey: string,
+  network: Network
+): Promise<string> {
+  try {
+    // Create a descriptor from the extended public key to extract fingerprint
+    const descriptorString = `pkh(${extendedPublicKey})`
+    const descriptor = await new Descriptor().create(descriptorString, network)
+    const parsedDescriptor = await parseDescriptor(descriptor)
+    return parsedDescriptor.fingerprint
+  } catch (_error) {
+    return ''
+  }
+}
+
+async function getWalletData(
+  account: Account,
+  network: Network
+): Promise<WalletData | undefined> {
   switch (account.policyType) {
     case 'singlesig': {
       if (account.keys.length !== 1)
@@ -102,16 +130,54 @@ async function getWalletData(account: Account, network: Network) {
       break
     }
     case 'multisig': {
-      const extendedPublicKeys = account.keys
-        .map((key) => {
-          if (typeof key.secret === 'object' && key.secret?.extendedPublicKey) {
-            return key.secret.extendedPublicKey
+      const extendedPublicKeys = await Promise.all(
+        account.keys.map(async (key) => {
+          if (typeof key.secret === 'object') {
+            // If we have an extended public key directly, use it
+            if (key.secret.extendedPublicKey) {
+              return key.secret.extendedPublicKey
+            }
+
+            // If we have a descriptor, extract the extended public key from it
+            if (key.secret.externalDescriptor) {
+              try {
+                const descriptor = await new Descriptor().create(
+                  key.secret.externalDescriptor,
+                  network
+                )
+                const extendedKey =
+                  await extractExtendedKeyFromDescriptor(descriptor)
+                return extendedKey
+              } catch (_error) {
+                return null
+              }
+            }
           }
           return null
         })
-        .filter((x): x is string => x !== null)
+      )
 
-      const multisigDescriptorString = `wsh(multi(${account.keysRequired},${extendedPublicKeys.join(',')}))`
+      const validExtendedPublicKeys = extendedPublicKeys.filter(
+        (x): x is string => x !== null
+      )
+
+      if (validExtendedPublicKeys.length !== account.keys.length) {
+        throw new Error('Failed to extract extended public keys from all keys')
+      }
+
+      // Extract fingerprints for each individual key
+      const keyFingerprints = await Promise.all(
+        validExtendedPublicKeys.map(async (extendedPublicKey) => {
+          return await extractFingerprintFromExtendedPublicKey(
+            extendedPublicKey,
+            network
+          )
+        })
+      )
+
+      const multisigDescriptorString = `wsh(multi(${
+        account.keysRequired
+      },${validExtendedPublicKeys.join(',')}))`
       const multisigDescriptor = await new Descriptor().create(
         multisigDescriptorString,
         network
@@ -129,7 +195,8 @@ async function getWalletData(account: Account, network: Network) {
         derivationPath: parsedDescriptor.derivationPath,
         externalDescriptor: multisigDescriptorString,
         internalDescriptor: '',
-        wallet
+        wallet,
+        keyFingerprints // Add individual key fingerprints
       }
     }
     case 'watchonly': {
@@ -242,6 +309,27 @@ async function getWalletData(account: Account, network: Network) {
               network
             )
             break
+          case 'P2WSH':
+          case 'P2SH-P2WSH':
+          case 'Legacy P2SH':
+            // For multisig script types, we need to create descriptors manually
+            throw new Error(
+              `Manual descriptor creation required for ${key.scriptVersion}`
+            )
+          default:
+            externalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.External,
+              network
+            )
+            internalDescriptor = await new Descriptor().newBip84Public(
+              extendedPublicKey,
+              key.fingerprint,
+              KeychainKind.Internal,
+              network
+            )
+            break
         }
 
         const parsedDescriptor = await parseDescriptor(externalDescriptor)
@@ -273,23 +361,105 @@ async function getWalletFromMnemonic(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
-  const externalDescriptor = await getDescriptor(
-    mnemonic,
-    scriptVersion,
-    KeychainKind.External,
-    passphrase,
-    network
-  )
+  let externalDescriptor: Descriptor
+  let internalDescriptor: Descriptor
 
-  const internalDescriptor = await getDescriptor(
-    mnemonic,
-    scriptVersion,
-    KeychainKind.Internal,
-    passphrase,
-    network
-  )
+  try {
+    externalDescriptor = await getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.External,
+      passphrase,
+      network
+    )
+
+    internalDescriptor = await getDescriptor(
+      mnemonic,
+      scriptVersion,
+      KeychainKind.Internal,
+      passphrase,
+      network
+    )
+  } catch (error) {
+    // Handle manual descriptor creation for multisig script types
+    if (
+      error instanceof Error &&
+      error.message.includes('Manual descriptor creation required')
+    ) {
+      // For multisig script types, we need to create descriptors manually
+      const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
+      const descriptorSecretKey = await new DescriptorSecretKey().create(
+        network,
+        parsedMnemonic,
+        passphrase
+      )
+
+      // Create descriptors using the existing BDK methods for basic derivation
+      // and then manually construct the multisig descriptors
+      const baseExternalDescriptor = await new Descriptor().newBip84(
+        descriptorSecretKey,
+        KeychainKind.External,
+        network
+      )
+      const baseInternalDescriptor = await new Descriptor().newBip84(
+        descriptorSecretKey,
+        KeychainKind.Internal,
+        network
+      )
+
+      // Get the base descriptor strings
+      const baseExternalString = await baseExternalDescriptor.asString()
+      const baseInternalString = await baseInternalDescriptor.asString()
+
+      // Extract the key part (everything after the script function)
+      const externalKeyPart = baseExternalString
+        .replace(/^wpkh\(/, '')
+        .replace(/\)$/, '')
+      const internalKeyPart = baseInternalString
+        .replace(/^wpkh\(/, '')
+        .replace(/\)$/, '')
+
+      // Create multisig descriptor strings based on script version
+      let externalDescriptorString = ''
+      let internalDescriptorString = ''
+
+      switch (scriptVersion) {
+        case 'P2WSH':
+          externalDescriptorString = `wsh(${externalKeyPart})`
+          internalDescriptorString = `wsh(${internalKeyPart})`
+          break
+        case 'P2SH-P2WSH':
+          externalDescriptorString = `sh(wsh(${externalKeyPart}))`
+          internalDescriptorString = `sh(wsh(${internalKeyPart}))`
+          break
+        case 'Legacy P2SH':
+          externalDescriptorString = `sh(${externalKeyPart})`
+          internalDescriptorString = `sh(${internalKeyPart})`
+          break
+        default:
+          throw new Error(`Unsupported script version: ${scriptVersion}`)
+      }
+
+      // Create descriptors using BDK
+      externalDescriptor = await new Descriptor().create(
+        externalDescriptorString,
+        network
+      )
+      internalDescriptor = await new Descriptor().create(
+        internalDescriptorString,
+        network
+      )
+    } else {
+      throw error
+    }
+  }
+
+  // Ensure variables are assigned
+  if (!externalDescriptor || !internalDescriptor) {
+    throw new Error('Failed to create descriptors')
+  }
+
   // TO DO: Try Promise.all() method instead Sequential one.
-
   const [{ fingerprint, derivationPath }, wallet] = await Promise.all([
     parseDescriptor(externalDescriptor),
     getWalletFromDescriptor(externalDescriptor, internalDescriptor, network)
@@ -326,6 +496,16 @@ async function getDescriptor(
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
     case 'P2TR':
       return new Descriptor().newBip86(descriptorSecretKey, kind, network)
+    case 'P2WSH':
+    case 'P2SH-P2WSH':
+    case 'Legacy P2SH':
+      // For multisig script types, we need to create descriptors manually
+      // since BDK doesn't have specific methods for these
+      throw new Error(
+        `Manual descriptor creation required for ${scriptVersion}`
+      )
+    default:
+      return new Descriptor().newBip84(descriptorSecretKey, kind, network)
   }
 }
 
@@ -373,6 +553,90 @@ async function getExtendedPublicKeyFromAccountKey(key: Key, network: Network) {
   const extendedKey = await extractExtendedKeyFromDescriptor(externalDescriptor)
 
   return extendedKey
+}
+
+async function getDescriptorsFromKeyData(
+  extendedPublicKey: string,
+  fingerprint: string,
+  scriptVersion: NonNullable<Key['scriptVersion']>,
+  network: Network
+) {
+  // Convert BDK Network to blockchain Network type
+  const blockchainNetwork =
+    network === Network.Bitcoin
+      ? 'bitcoin'
+      : network === Network.Testnet
+        ? 'testnet'
+        : 'signet'
+
+  const derivationPath = getDerivationPathFromScriptVersion(
+    scriptVersion,
+    blockchainNetwork
+  )
+
+  // Construct the key part with fingerprint and derivation path
+  const keyPart = `[${fingerprint}/${derivationPath}]${extendedPublicKey}`
+
+  let externalDescriptor = ''
+  let internalDescriptor = ''
+
+  // Generate descriptors based on script version
+  switch (scriptVersion) {
+    case 'P2PKH':
+      externalDescriptor = `pkh(${keyPart}/0/*)`
+      internalDescriptor = `pkh(${keyPart}/1/*)`
+      break
+    case 'P2SH-P2WPKH':
+      externalDescriptor = `sh(wpkh(${keyPart}/0/*))`
+      internalDescriptor = `sh(wpkh(${keyPart}/1/*))`
+      break
+    case 'P2WPKH':
+      externalDescriptor = `wpkh(${keyPart}/0/*)`
+      internalDescriptor = `wpkh(${keyPart}/1/*)`
+      break
+    case 'P2TR':
+      externalDescriptor = `tr(${keyPart}/0/*)`
+      internalDescriptor = `tr(${keyPart}/1/*)`
+      break
+    case 'P2WSH':
+      externalDescriptor = `wsh(${keyPart}/0/*)`
+      internalDescriptor = `wsh(${keyPart}/1/*)`
+      break
+    case 'P2SH-P2WSH':
+      externalDescriptor = `sh(wsh(${keyPart}/0/*))`
+      internalDescriptor = `sh(wsh(${keyPart}/1/*))`
+      break
+    case 'Legacy P2SH':
+      externalDescriptor = `sh(${keyPart}/0/*)`
+      internalDescriptor = `sh(${keyPart}/1/*)`
+      break
+    default:
+      externalDescriptor = `wpkh(${keyPart}/0/*)`
+      internalDescriptor = `wpkh(${keyPart}/1/*)`
+  }
+
+  // Add checksum using BDK
+  try {
+    const externalDesc = await new Descriptor().create(
+      externalDescriptor,
+      network
+    )
+    const internalDesc = await new Descriptor().create(
+      internalDescriptor,
+      network
+    )
+
+    return {
+      externalDescriptor: await externalDesc.asString(),
+      internalDescriptor: await internalDesc.asString()
+    }
+  } catch (_error) {
+    // Return descriptors without checksum if BDK fails
+    return {
+      externalDescriptor,
+      internalDescriptor
+    }
+  }
 }
 
 async function syncWallet(
@@ -823,10 +1087,12 @@ export {
   broadcastTransaction,
   buildTransaction,
   extractExtendedKeyFromDescriptor,
+  extractFingerprintFromExtendedPublicKey,
   generateMnemonic,
   generateMnemonicFromEntropy,
   getBlockchain,
   getDescriptor,
+  getDescriptorsFromKeyData,
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   getLastUnusedAddressFromWallet,

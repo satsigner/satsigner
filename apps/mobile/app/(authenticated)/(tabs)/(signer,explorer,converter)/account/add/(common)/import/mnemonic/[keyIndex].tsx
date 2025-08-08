@@ -7,6 +7,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
+  getDescriptorsFromKeyData,
   getExtendedPublicKeyFromAccountKey,
   getFingerprint,
   validateMnemonic
@@ -359,14 +360,36 @@ export default function ImportMnemonic() {
         setLoadingAccount(false)
       }
     } else if (policyType === 'multisig') {
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        currentKey,
-        network as Network
-      )
-      updateKeySecret(Number(keyIndex), {
-        ...(currentKey.secret as object),
-        extendedPublicKey
-      })
+      try {
+        const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+          currentKey,
+          network as Network
+        )
+
+        // Generate descriptors from the key data
+        if (extendedPublicKey && currentKey.fingerprint) {
+          const descriptors = await getDescriptorsFromKeyData(
+            extendedPublicKey,
+            currentKey.fingerprint,
+            scriptVersion,
+            network as Network
+          )
+
+          // Update the key with both descriptors and extended public key
+          updateKeySecret(Number(keyIndex), {
+            ...(currentKey.secret as object),
+            extendedPublicKey,
+            externalDescriptor: descriptors.externalDescriptor,
+            internalDescriptor: descriptors.internalDescriptor
+          })
+        } else {
+          // Fallback to just updating with extended public key
+          updateKeySecret(Number(keyIndex), {
+            ...(currentKey.secret as object),
+            extendedPublicKey
+          })
+        }
+      } catch (_error) {}
 
       setLoadingAccount(false)
       clearKeyState()

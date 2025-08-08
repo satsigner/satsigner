@@ -552,7 +552,10 @@ function useNostrSync() {
       }
 
       const [, , purpose, coinType, accountIndex] = match
-      const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace("'", 'h')}/${accountIndex.replace("'", 'h')}`
+      const hardenedPath = `m/${purpose.replace("'", 'h')}/${coinType.replace(
+        "'",
+        'h'
+      )}/${accountIndex.replace("'", 'h')}`
 
       const xpubRegex = /(tpub|vpub|upub|zpub)[a-zA-Z0-9]+/g
       const xpubs = (descriptor.match(xpubRegex) || []).sort()

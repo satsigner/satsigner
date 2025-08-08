@@ -86,13 +86,25 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
 
           if (hours >= 1) {
             color = Colors.gray[75]
-            text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.hour', { value: hours })}`
+            text = `${t('account.sync.status.synced')} ${t(
+              'account.sync.status.old.hour',
+              { value: hours }
+            )}`
             if (days >= 1)
-              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.day', { value: days })}`
+              text = `${t('account.sync.status.synced')} ${t(
+                'account.sync.status.old.day',
+                { value: days }
+              )}`
             if (months >= 1)
-              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.month', { value: months })}`
+              text = `${t('account.sync.status.synced')} ${t(
+                'account.sync.status.old.month',
+                { value: months }
+              )}`
             if (years >= 1)
-              text = `${t('account.sync.status.synced')} ${t('account.sync.status.old.year', { value: years })}`
+              text = `${t('account.sync.status.synced')} ${t(
+                'account.sync.status.old.year',
+                { value: years }
+              )}`
           }
         }
         break
@@ -139,12 +151,15 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     <TouchableOpacity activeOpacity={0.5} onPress={() => onPress()}>
       <SSHStack justifyBetween style={{ position: 'relative' }}>
         <SSVStack gap={platform === 'android' ? 'none' : 'xxs'}>
-          {account.policyType === 'watchonly' ? null : (
+          {account.keys[0].creationType === 'importAddress' ? null : (
             <SSText
               size="xs"
               style={{ color: Colors.gray[500], lineHeight: 10 }}
             >
-              {account.keys[0].fingerprint}
+              {typeof account.keys[0].secret === 'object' &&
+              account.keys[0].secret.fingerprint
+                ? account.keys[0].secret.fingerprint
+                : account.keys[0].fingerprint || '-'}
             </SSText>
           )}
           <SSHStack gap="sm">

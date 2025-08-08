@@ -1,10 +1,18 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import { KeychainKind } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getFingerprint, validateMnemonic } from '@/api/bdk'
+import {
+  getDescriptor,
+  getDescriptorsFromKeyData,
+  getExtendedPublicKeyFromAccountKey,
+  getFingerprint,
+  parseDescriptor,
+  validateMnemonic
+} from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSFingerprint from '@/components/SSFingerprint'
@@ -20,6 +28,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 export default function GenerateMnemonic() {
   const { index } = useLocalSearchParams<GenerateMnemonicSearchParams>()
@@ -30,9 +39,16 @@ export default function GenerateMnemonic() {
     mnemonic,
     fingerprint,
     policyType,
+    scriptVersion,
+    passphrase,
     setPassphrase,
     setFingerprint,
-    setKey
+    setKey,
+    setKeyDerivationPath,
+    _updateKeySecret,
+    setExtendedPublicKey,
+    setExternalDescriptor,
+    setInternalDescriptor
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
@@ -40,9 +56,16 @@ export default function GenerateMnemonic() {
       state.mnemonic.split(' '),
       state.fingerprint,
       state.policyType,
+      state.scriptVersion,
+      state.passphrase,
       state.setPassphrase,
       state.setFingerprint,
-      state.setKey
+      state.setKey,
+      state.setKeyDerivationPath,
+      state.updateKeySecret,
+      state.setExtendedPublicKey,
+      state.setExternalDescriptor,
+      state.setInternalDescriptor
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
@@ -71,9 +94,77 @@ export default function GenerateMnemonic() {
     else if (policyType === 'singlesig') router.dismissAll()
   }
 
-  function handleOnPressConfirm() {
-    setKey(Number(index))
-    router.navigate(`/account/add/confirm/${index}/word/0`)
+  async function handleOnPressConfirm() {
+    try {
+      // Extract derivation path from mnemonic
+      let derivationPath = ''
+      try {
+        const externalDescriptor = await getDescriptor(
+          mnemonic.join(' '),
+          scriptVersion, // Use the script version from store
+          KeychainKind.External,
+          passphrase || '', // Use passphrase from store
+          network as Network
+        )
+        const parsedDescriptor = await parseDescriptor(externalDescriptor)
+        derivationPath = parsedDescriptor.derivationPath
+      } catch (_error) {
+        // Use default derivation path if extraction fails
+        derivationPath = `m/${getDerivationPathFromScriptVersion(
+          scriptVersion,
+          network
+        )}`
+      }
+
+      // Generate extended public key first
+      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
+        {
+          index: Number(index),
+          name: '',
+          creationType: 'generateMnemonic',
+          mnemonicWordCount,
+          secret: {
+            mnemonic: mnemonic.join(' '),
+            passphrase,
+            fingerprint
+          },
+          iv: '',
+          scriptVersion,
+          fingerprint
+        },
+        network as Network
+      )
+
+      // Generate descriptors from the key data
+      if (extendedPublicKey && fingerprint) {
+        try {
+          const descriptors = await getDescriptorsFromKeyData(
+            extendedPublicKey,
+            fingerprint,
+            scriptVersion,
+            network as Network
+          )
+
+          // Set global state values so setKey includes s
+          setExtendedPublicKey(extendedPublicKey)
+          setExternalDescriptor(descriptors.externalDescriptor)
+          setInternalDescriptor(descriptors.internalDescriptor)
+        } catch (_error) {
+          // Continue without descriptors if generation fails
+          setExtendedPublicKey(extendedPublicKey)
+        }
+      }
+
+      // Create the key with all the data
+      setKey(Number(index))
+
+      // Set the derivation path for this key
+      setKeyDerivationPath(Number(index), derivationPath)
+
+      router.navigate(`/account/add/confirm/${index}/word/0`)
+    } catch (_error) {
+      // Handle error silently
+    }
   }
 
   if (mnemonic.length !== mnemonicWordCount) return <Redirect href="/" />

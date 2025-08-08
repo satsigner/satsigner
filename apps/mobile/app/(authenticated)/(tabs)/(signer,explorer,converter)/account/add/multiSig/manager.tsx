@@ -16,19 +16,40 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 export default function MultiSigManager() {
   const router = useRouter()
 
-  const [name, keys, keyCount, keysRequired] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.name,
-      state.keys,
-      state.keyCount,
-      state.keysRequired
-    ])
-  )
+  const [name, keys, keyCount, keysRequired, clearAllKeys] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.name,
+        state.keys,
+        state.keyCount,
+        state.keysRequired,
+        state.clearAllKeys
+      ])
+    )
 
-  const allKeysFilled = useMemo(
-    () => keys?.length === keyCount,
-    [keys, keyCount]
-  )
+  const allKeysFilled = useMemo(() => {
+    if (!keys || keys.length !== keyCount) return false
+
+    // Check that each key has both fingerprint and public key/descriptor
+    return keys.every((key) => {
+      if (!key) return false
+
+      // Check for fingerprint in secret or key property
+      const hasFingerprint =
+        (typeof key.secret === 'object' && key.secret.fingerprint) ||
+        key.fingerprint
+
+      if (!hasFingerprint) return false
+
+      // Check if key has either public key, descriptor, or mnemonic
+      const hasPublicKey =
+        (typeof key.secret === 'object' && key.secret.extendedPublicKey) ||
+        (typeof key.secret === 'object' && key.secret.externalDescriptor) ||
+        (typeof key.secret === 'object' && key.secret.mnemonic)
+
+      return hasPublicKey
+    })
+  }, [keys, keyCount])
 
   if (!keyCount || !keysRequired) return <Redirect href="/" />
 
@@ -74,7 +95,10 @@ export default function MultiSigManager() {
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => router.back()}
+              onPress={() => {
+                clearAllKeys()
+                router.back()
+              }}
             />
           </SSVStack>
         </ScrollView>

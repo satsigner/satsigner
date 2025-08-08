@@ -522,6 +522,11 @@ class ElectrumClient extends BaseElectrumClient {
 
     return transactions
   }
+
+  async broadcastTransactionHex(rawTxHex: string): Promise<string> {
+    // This uses the standard Electrum protocol method
+    return await this.client.blockchainTransaction_broadcast(rawTxHex)
+  }
 }
 
 export default ElectrumClient
