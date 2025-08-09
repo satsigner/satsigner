@@ -41,7 +41,7 @@ function DerivedAddresses({
   ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
-  const [_sortDirection, setSortDirection] = useState<Direction>('desc')
+  const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [change, setChange] = useState(false)
   const [addressPath, setAddressPath] = useState('')
   const [loadingAddresses, setLoadingAddresses] = useState(false)
@@ -56,6 +56,14 @@ function DerivedAddresses({
       account.keys[0].creationType === 'importAddress'
     )
   }, [account])
+
+  function sortAddresses(addresses: Address[]) {
+    return addresses.sort((addr1, addr2) => {
+      return sortDirection === 'asc'
+        ? (addr1.index || 0) - (addr2.index || 0)
+        : (addr2.index || 0) - (addr1.index || 0)
+    })
+  }
 
   function updateDerivationPath() {
     if (isMultiAddressWatchOnly) return
@@ -189,7 +197,7 @@ function DerivedAddresses({
         </SSHStack>
       )}
       <SSAddressList
-        addresses={addresses.map((address: Address) => {
+        addresses={sortAddresses(addresses).map((address: Address) => {
           return {
             ...address,
             accountId: account.id
