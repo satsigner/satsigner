@@ -24,22 +24,15 @@ import { parseAccountAddressesDetails } from '@/utils/parse'
 
 type DerivedAddressesProps = {
   account: Account
-  setSortDirection: Function
-  sortDirection: Direction
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
-  setChange: Function
-  change: boolean
   perPage?: number
 }
 
 function DerivedAddresses({
   account,
   handleOnExpand,
-  setChange,
-  change,
   expand,
-  setSortDirection,
   perPage = 10
 }: DerivedAddressesProps) {
   const wallet = useGetAccountWallet(account.id!)
@@ -48,6 +41,8 @@ function DerivedAddresses({
   ) as Network
   const updateAccount = useAccountsStore((state) => state.updateAccount)
 
+  const [_sortDirection, setSortDirection] = useState<Direction>('desc')
+  const [change, setChange] = useState(false)
   const [addressPath, setAddressPath] = useState('')
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [addressCount, setAddressCount] = useState(
@@ -173,9 +168,7 @@ function DerivedAddresses({
           </SSHStack>
         )}
         <SSHStack gap="sm" style={{ width: 40, justifyContent: 'flex-end' }}>
-          <SSSortDirectionToggle
-            onDirectionChanged={() => setSortDirection()}
-          />
+          <SSSortDirectionToggle onDirectionChanged={setSortDirection} />
         </SSHStack>
       </SSHStack>
       {!isMultiAddressWatchOnly && (

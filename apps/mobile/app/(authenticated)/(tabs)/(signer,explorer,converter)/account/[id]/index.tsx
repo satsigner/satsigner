@@ -25,6 +25,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import DerivedAddresses from '@/components/SSDerivedAddresses'
 import SSIconButton from '@/components/SSIconButton'
+import SSSatsInMempool from '@/components/SSSatsInMempool'
 import SpendableOutputs from '@/components/SSSpendableOutputs'
 import SSStyledSatText from '@/components/SSStyledSatText'
 import SSText from '@/components/SSText'
@@ -36,7 +37,6 @@ import useSyncAccountWithAddress from '@/hooks/useSyncAccountWithAddress'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
-import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
@@ -50,7 +50,6 @@ import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 import { compareTimestamp } from '@/utils/sort'
-import SSSatsInMempool from '@/components/SSSatsInMempool'
 
 export default function AccountView() {
   const router = useRouter()
@@ -103,12 +102,9 @@ export default function AccountView() {
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
-  const [change, setChange] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
     useState<Direction>('desc')
   const [sortDirectionUtxos, setSortDirectionUtxos] =
-    useState<Direction>('desc')
-  const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
@@ -158,11 +154,7 @@ export default function AccountView() {
           <DerivedAddresses
             account={account}
             handleOnExpand={handleOnExpand}
-            setChange={setChange}
             expand={expand}
-            change={change}
-            setSortDirection={setSortDirectionDerivedAddresses}
-            sortDirection={sortDirectionDerivedAddresses}
           />
         )
       case 'spendableOutputs':
