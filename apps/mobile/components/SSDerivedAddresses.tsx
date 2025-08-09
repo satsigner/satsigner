@@ -58,11 +58,11 @@ function DerivedAddresses({
   }, [account])
 
   function sortAddresses(addresses: Address[]) {
-    return addresses.sort((addr1, addr2) => {
-      return sortDirection === 'asc'
-        ? (addr1.index || 0) - (addr2.index || 0)
-        : (addr2.index || 0) - (addr1.index || 0)
-    })
+    // we reverse the array instead of sorting is because we ASSUME the array is
+    // originally sorted by index
+    if (sortDirection === 'desc')
+      return addresses.toReversed()
+    return addresses
   }
 
   function updateDerivationPath() {
