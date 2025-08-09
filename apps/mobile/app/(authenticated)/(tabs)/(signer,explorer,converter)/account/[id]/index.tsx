@@ -46,10 +46,8 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
-import { type Utxo } from '@/types/models/Utxo'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
-import { compareTimestamp } from '@/utils/sort'
 
 export default function AccountView() {
   const router = useRouter()
@@ -103,8 +101,6 @@ export default function AccountView() {
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
   const [sortDirectionTransactions, setSortDirectionTransactions] =
-    useState<Direction>('desc')
-  const [sortDirectionUtxos, setSortDirectionUtxos] =
     useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
@@ -164,9 +160,7 @@ export default function AccountView() {
             handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}
-            setSortDirection={setSortDirectionUtxos}
             refreshing={refreshing}
-            sortUtxos={sortUtxos}
           />
         )
       case 'satsInMempool':
@@ -183,14 +177,6 @@ export default function AccountView() {
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: false
     }).start()
-  }
-
-  function sortUtxos(utxos: Utxo[]) {
-    return utxos.sort((utxo1, utxo2) =>
-      sortDirectionUtxos === 'asc'
-        ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
-        : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
-    )
   }
 
   async function refreshBlockchainHeight() {

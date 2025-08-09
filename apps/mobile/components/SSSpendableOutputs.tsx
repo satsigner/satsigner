@@ -28,6 +28,7 @@ import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
 import { type Account } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
+import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SpendableOutputsProps = {
@@ -35,29 +36,34 @@ type SpendableOutputsProps = {
   handleOnRefresh: () => Promise<void>
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
-  sortUtxos: (utxos: Utxo[]) => Utxo[]
 }
 
 function SpendableOutputs({
   account,
   handleOnRefresh,
-  setSortDirection,
   handleOnExpand,
   expand,
-  refreshing,
-  sortUtxos
+  refreshing
 }: SpendableOutputsProps) {
   const router = useRouter()
   const { width, height } = useWindowDimensions()
 
+  const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const [view, setView] = useState('list')
 
   const halfHeight = height / 2
   const horizontalPadding = 48
   const GRAPH_HEIGHT = halfHeight
   const GRAPH_WIDTH = width - horizontalPadding
+
+  function sortUtxos(utxos: Utxo[]) {
+    return utxos.sort((utxo1, utxo2) =>
+      sortDirection === 'asc'
+        ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
+        : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
+    )
+  }
 
   return (
     <SSMainLayout style={{ paddingTop: 0 }}>
