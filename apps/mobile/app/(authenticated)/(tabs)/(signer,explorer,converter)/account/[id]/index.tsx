@@ -45,7 +45,6 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { formatNumber } from '@/utils/format'
 
@@ -100,8 +99,6 @@ export default function AccountView() {
 
   const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
-  const [sortDirectionTransactions, setSortDirectionTransactions] =
-    useState<Direction>('desc')
   const [blockchainHeight, setBlockchainHeight] = useState<number>(0)
 
   const tabs = [
@@ -139,9 +136,7 @@ export default function AccountView() {
             handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}
-            setSortDirection={setSortDirectionTransactions}
             refreshing={refreshing}
-            sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
           />
         )

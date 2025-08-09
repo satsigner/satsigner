@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { type Dispatch, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { View } from 'react-native'
 
 import {
@@ -32,9 +32,7 @@ type SSTotalTransactionsProps = {
   handleOnRefresh: () => Promise<void>
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
-  setSortDirection: Dispatch<React.SetStateAction<Direction>>
   refreshing: boolean
-  sortDirection: Direction
   blockchainHeight: number
 }
 
@@ -45,13 +43,12 @@ function SSTotalTransactions({
   handleOnRefresh,
   handleOnExpand,
   expand,
-  setSortDirection,
   refreshing,
-  blockchainHeight,
-  sortDirection
+  blockchainHeight
 }: SSTotalTransactionsProps) {
   const router = useRouter()
 
+  const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const sortedTransactions = useMemo(() => {
     return sortTransactions([...transactions], sortDirection)
   }, [transactions, sortDirection])
