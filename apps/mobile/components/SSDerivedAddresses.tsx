@@ -1,5 +1,5 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
@@ -16,19 +16,22 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Direction } from '@/types/logic/sort'
-import { type Account, type AccountAddress } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
+import { type AccountAddress } from '@/types/models/Account'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
 type DerivedAddressesProps = {
-  account: Account
+  addresses: AccountAddress[]
+  derivationPath?: string
+  isMultiAddressWatchOnly?: boolean
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
   perPage?: number
 }
 
 function DerivedAddresses({
-  account,
+  addresses: accountAddresses,
+  derivationPath,
+  isMultiAddressWatchOnly = false,
   handleOnExpand,
   expand,
   perPage = 10
@@ -44,18 +47,12 @@ function DerivedAddresses({
   const [addressPath, setAddressPath] = useState('')
   const [loadingAddresses, setLoadingAddresses] = useState(false)
   const [addressCount, setAddressCount] = useState(
-    Math.max(1, Math.ceil(account.addresses.length / perPage)) * perPage
+    Math.max(1, Math.ceil(accountAddresses.length / perPage)) * perPage
   )
-  const [addresses, setAddresses] = useState([...account.addresses])
+  const [addresses, setAddresses] = useState([...accountAddresses])
   const [_hasLoadMoreAddresses, setHasLoadMoreAddresses] = useState(false)
-  const isMultiAddressWatchOnly = useMemo(() => {
-    return (
-      account.keys.length > 1 &&
-      account.keys[0].creationType === 'importAddress'
-    )
-  }, [account])
 
-  function sortAddresses(addresses: Address[]) {
+  function sortAddresses(addresses: AccountAddress[]) {
     // we reverse the array instead of sorting is because we ASSUME the array is
     // originally sorted by index
     if (sortDirection === 'desc') return addresses.toReversed()
@@ -64,13 +61,12 @@ function DerivedAddresses({
 
   function updateDerivationPath() {
     if (isMultiAddressWatchOnly) return
-    if (account.keys[0].derivationPath)
-      setAddressPath(`${account.keys[0].derivationPath}/${change ? 1 : 0}`)
+    if (derivationPath) setAddressPath(`${derivationPath}/${change ? 1 : 0}`)
   }
 
   function loadExactAccountAddresses() {
-    setAddresses([...account.addresses])
-    setAddressCount(account.addresses.length)
+    setAddresses([...accountAddresses])
+    setAddressCount(accountAddresses.length)
   }
 
   async function refreshAddresses() {
@@ -145,10 +141,6 @@ function DerivedAddresses({
     updateDerivationPath()
   }, [change]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    updateAddresses()
-  }, [account]) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <SSMainLayout style={styles.container}>
       <SSHStack justifyBetween style={styles.header}>
@@ -194,12 +186,7 @@ function DerivedAddresses({
         </SSHStack>
       )}
       <SSAddressList
-        addresses={sortAddresses(addresses).map((address: Address) => {
-          return {
-            ...address,
-            accountId: account.id
-          } as AccountAddress
-        })}
+        addresses={sortAddresses(addresses)}
         change={change}
         showDerivationPath={!isMultiAddressWatchOnly}
       />
