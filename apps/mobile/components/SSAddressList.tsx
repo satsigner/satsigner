@@ -12,16 +12,11 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
+import type { AccountAddress } from '@/types/models/Account'
 import { formatAddress } from '@/utils/format'
 
-export type SSAddressListItem = {
-  accountId: Account['id']
-} & Address
-
 export type SSAddressListProps = {
-  addresses: SSAddressListItem[]
+  addresses: AccountAddress[]
   change: boolean
   showDerivationPath?: boolean
 }
@@ -36,7 +31,7 @@ function SSAddressList({
 }: SSAddressListProps) {
   //
   const renderItem = useCallback(
-    ({ item }: { item: SSAddressListItem }) => (
+    ({ item }: { item: AccountAddress }) => (
       <TouchableOpacity
         onPress={() =>
           router.navigate(`/account/${item.accountId}/address/${item.address}`)

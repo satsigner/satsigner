@@ -4,9 +4,7 @@ import { StyleSheet } from 'react-native'
 
 import { getLastUnusedAddressFromWallet, getWalletAddresses } from '@/api/bdk'
 import { SSIconCollapse, SSIconExpand, SSIconRefresh } from '@/components/icons'
-import SSAddressList, {
-  type SSAddressListItem
-} from '@/components/SSAddressList'
+import SSAddressList from '@/components/SSAddressList'
 import SSButton from '@/components/SSButton'
 import SSIconButton from '@/components/SSIconButton'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
@@ -18,7 +16,7 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
+import { type Account, type AccountAddress } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
@@ -60,8 +58,7 @@ function DerivedAddresses({
   function sortAddresses(addresses: Address[]) {
     // we reverse the array instead of sorting is because we ASSUME the array is
     // originally sorted by index
-    if (sortDirection === 'desc')
-      return addresses.toReversed()
+    if (sortDirection === 'desc') return addresses.toReversed()
     return addresses
   }
 
@@ -201,7 +198,7 @@ function DerivedAddresses({
           return {
             ...address,
             accountId: account.id
-          } as SSAddressListItem
+          } as AccountAddress
         })}
         change={change}
         showDerivationPath={!isMultiAddressWatchOnly}

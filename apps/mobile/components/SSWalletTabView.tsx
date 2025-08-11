@@ -15,23 +15,24 @@ import SSSatsInMempool from '@/components/SSSatsInMempool'
 import SpendableOutputs from '@/components/SSSpendableOutputs'
 import SSText from '@/components/SSText'
 import TotalTransactions from '@/components/SSTotalTransactions'
-import { type SSTransactionListItem } from '@/components/SSTransactionList'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
+import type {
+  Account,
+  AccountAddress,
+  AccountTransaction
+} from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { compareTimestamp } from '@/utils/sort'
-
-import { type SSAddressListItem } from './SSAddressList'
 
 type TabItem = 'transactions' | 'utxos' | 'addresses' | 'mempool'
 
 export type SSWalletTabViewProps = {
-  transactions: SSTransactionListItem[]
-  addresses: SSAddressListItem[]
+  transactions: AccountTransaction[]
+  addresses: AccountAddress[]
   utxos: Utxo[]
   tabsEnabled?: TabItem[]
   summary: Account['summary']
@@ -72,12 +73,8 @@ function SSWalletTabView({
           <TotalTransactions
             transactions={transactions}
             utxos={utxos}
-            handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}
-            setSortDirection={setSortDirectionTransactions}
-            refreshing={refreshing}
-            sortDirection={sortDirectionTransactions}
             blockchainHeight={blockchainHeight}
           />
         )
@@ -88,8 +85,6 @@ function SSWalletTabView({
             setChange={setChange}
             expand={expand}
             change={change}
-            setSortDirection={setSortDirectionDerivedAddresses}
-            sortDirection={sortDirectionDerivedAddresses}
           />
         )
       case 'spendableOutputs':

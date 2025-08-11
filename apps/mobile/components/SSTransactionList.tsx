@@ -8,17 +8,12 @@ import SSTransactionCard from '@/components/SSTransactionCard'
 import SSVStack from '@/layouts/SSVStack'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
+import { type AccountTransaction } from '@/types/models/Account'
 
 import SSText from './SSText'
 
-export type SSTransactionListItem = {
-  accountId: Account['id']
-} & Transaction
-
 export type SSTransactionListProps = {
-  transactions: SSTransactionListItem[]
+  transactions: AccountTransaction[]
   expand: boolean
   blockchainHeight: number
   // TODO: move out this props to the parent, refreshing should not be handled here
