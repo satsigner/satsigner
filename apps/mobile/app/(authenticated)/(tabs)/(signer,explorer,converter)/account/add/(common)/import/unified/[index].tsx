@@ -249,7 +249,7 @@ export default function UnifiedImport() {
       setNetwork(network)
 
       // Set the key data
-      const keyIndex = parseInt(index, 10)
+      const keyIndex = parseInt(index!, 10)
       setKey(keyIndex)
 
       toast.success(t('account.import.success'))
