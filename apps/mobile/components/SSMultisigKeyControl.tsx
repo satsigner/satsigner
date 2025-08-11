@@ -7,7 +7,7 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { SSIconAdd, SSIconGreen, SSIconWarning } from '@/components/icons'
+import { SSIconAdd, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'

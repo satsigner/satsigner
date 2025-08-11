@@ -25,7 +25,7 @@ import { convertKeyFormat, getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 import { shareFile } from '@/utils/filesystem'
 
 // Helper function to get the appropriate translation key for key format buttons
-function getKeyFormatTranslationKey(
+function _getKeyFormatTranslationKey(
   scriptVersion: string,
   network: Network
 ): string {

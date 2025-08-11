@@ -1296,7 +1296,7 @@ export default function WatchOnly() {
         // Validate the combined descriptor and get separated descriptors
         const combinedValidation = await validateCombinedDescriptor(
           text,
-          scriptVersion
+          scriptVersion as string
         )
 
         if (combinedValidation.isValid) {
@@ -1373,7 +1373,7 @@ export default function WatchOnly() {
           // Validate the combined descriptor and get separated descriptors
           const combinedValidation = await validateCombinedDescriptor(
             text,
-            scriptVersion
+            scriptVersion as string
           )
 
           if (combinedValidation.isValid) {

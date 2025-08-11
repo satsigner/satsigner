@@ -416,25 +416,6 @@ export default function AccountSettings() {
           selected={scriptVersion === 'P2TR'}
           onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2TR')}
         />
-        <SSRadioButton
-          label={`${t('script.p2wsh.name')} (P2WSH)`}
-          selected={scriptVersion === 'P2WSH'}
-          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2WSH')}
-        />
-        <SSRadioButton
-          label={`${t('script.p2sh-p2wsh.name')} (P2SH-P2WSH)`}
-          selected={scriptVersion === 'P2SH-P2WSH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WSH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.legacy-p2sh.name')} (Legacy P2SH)`}
-          selected={scriptVersion === 'Legacy P2SH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'Legacy P2SH')
-          }
-        />
       </SSSelectModal>
       <SSSelectModal
         visible={networkModalVisible}
