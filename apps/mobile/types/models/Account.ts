@@ -106,6 +106,14 @@ export type Account = {
   }
 }
 
+type WithAccountId<T> = T & { accountId: Account['id'] }
+
+export type AccountTransaction = WithAccountId<Transaction>
+
+export type AccountUtxo = WithAccountId<Utxo>
+
+export type AccountAddress = WithAccountId<Address>
+
 export type NostrAccount = {
   commonNpub: string
   commonNsec: string
