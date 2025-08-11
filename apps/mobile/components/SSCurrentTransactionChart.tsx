@@ -10,15 +10,17 @@ import {
 } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
+import { useShallow } from 'zustand/react/shallow'
 
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import type { Output } from '@/types/models/Output'
 import type { Utxo } from '@/types/models/Utxo'
 import { BLOCK_WIDTH } from '@/types/ui/sankey'
-import { formatAddress } from '@/utils/format'
+import { formatAddress, formatNumber } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 import SSSankeyLinks from './SSSankeyLinks'
@@ -46,6 +48,7 @@ type SSCurrentTransactionChartProps = {
   feeRate: number
   onPressOutput?: (localId?: string) => void
   currentOutputLocalId?: string
+  ownAddresses?: Set<string> // NEW: prop for own addresses
 }
 
 function SSCurrentTransactionChart({
@@ -53,19 +56,40 @@ function SSCurrentTransactionChart({
   outputs: outputArray,
   feeRate: feeRateProp,
   onPressOutput,
-  currentOutputLocalId
+  currentOutputLocalId,
+  ownAddresses = new Set()
 }: SSCurrentTransactionChartProps) {
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
+  const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
+  const totalInputValue = useMemo(
+    () => inputArray.reduce((sum, input) => sum + input.value, 0),
+    [inputArray]
+  )
+  const totalOutputValue = useMemo(
+    () => outputArray.reduce((sum, output) => sum + output.amount, 0),
+    [outputArray]
+  )
+
+  // First calculate without change output
+  const baseSize = estimateTransactionSize(inputMap.size, outputArray.length)
+  const baseFee = Math.round(feeRateProp * baseSize.vsize)
+
+  // Check if we'll have change
+  const hasChange = totalInputValue > totalOutputValue + baseFee
+
+  // Now calculate final size including change if needed
   const { size: txSize, vsize: txVsize } = estimateTransactionSize(
     inputMap.size,
-    outputArray.length
+    outputArray.length + (hasChange ? 1 : 0)
   )
 
   const minerFee = useMemo(
     () => Math.round(feeRateProp * txVsize),
     [feeRateProp, txVsize]
   )
-
-  const inputArray = useMemo(() => Array.from(inputMap.values()), [inputMap])
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
 
@@ -96,7 +120,8 @@ function SSCurrentTransactionChart({
           width,
           height *
             0.7 *
-            (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+            // (Math.max(inputMap.size, outputArray.length + 1) * 0.237) // + 1 for the miner output
+            (Math.max(inputMap.size, outputArray.length + 1) * 0.23)
         ]
       ])
       .nodeId((node: SankeyNodeMinimal<object, object>) => (node as Node).id)
@@ -115,9 +140,11 @@ function SSCurrentTransactionChart({
       type: 'text',
       depthH: 0,
       ioData: {
-        address: formatAddress(input.txid, 3),
+        address: formatAddress(input.txid, 4),
         label: input.label ?? t('common.noLabel'),
         value: input.value,
+        fiatValue: formatNumber(satsToFiat(input.value), 2),
+        fiatCurrency,
         text: t('common.from')
       },
       value: input.value
@@ -132,7 +159,8 @@ function SSCurrentTransactionChart({
           txSize,
           vSize: txVsize,
           value: 0
-        }
+        },
+        value: 0
       }
     ]
 
@@ -144,23 +172,45 @@ function SSCurrentTransactionChart({
       ioData: {
         isUnspent: true,
         value: output.amount,
+        fiatValue: formatNumber(satsToFiat(output.amount), 2),
+        fiatCurrency,
         address: output?.to ? formatAddress(output?.to, 4) : '',
         label: output.label,
-        text: t('transaction.build.unspent')
+        text: t('transaction.build.unspent'),
+        isSelfSend: !!(output.to && ownAddresses.has(output.to))
       },
       value: output.amount
     }))
 
     if (minerFee !== undefined && minerFee > 0) {
+      // Calculate total output value with addresses for fee analysis
+      const totalOutputValueWithAddresses = outputArray
+        .filter((output) => output.to && output.to.trim() !== '')
+        .reduce((sum, output) => sum + output.amount, 0)
+
+      const higherFee =
+        totalOutputValueWithAddresses > 0
+          ? minerFee >= totalOutputValueWithAddresses * 0.1
+          : false
+
+      const feePercentage =
+        totalOutputValueWithAddresses > 0
+          ? (minerFee / totalOutputValueWithAddresses) * 100
+          : 0
+
       outputNodes.push({
         id: String(inputArray.length + outputArray.length + 2),
         type: 'text',
         depthH: 2,
         ioData: {
           value: minerFee,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          fiatCurrency,
           feeRate:
             feeRateProp !== undefined ? Math.round(feeRateProp) : undefined,
-          text: t('transaction.build.minerFee')
+          text: t('transaction.build.minerFee'),
+          higherFee,
+          feePercentage: Math.round(feePercentage * 100) / 100 // round to 2 decimals
         },
         value: minerFee,
         localId: 'current-minerFee'
@@ -168,7 +218,17 @@ function SSCurrentTransactionChart({
     }
 
     return [...inputNodes, ...blockNode, ...outputNodes] as Node[]
-  }, [inputArray, outputArray, txSize, txVsize, minerFee, feeRateProp])
+  }, [
+    inputArray,
+    outputArray,
+    txSize,
+    txVsize,
+    minerFee,
+    feeRateProp,
+    satsToFiat,
+    fiatCurrency,
+    ownAddresses
+  ])
 
   const sankeyLinks = useMemo(() => {
     if (inputArray.length === 0 || outputArray.length === 0) return []

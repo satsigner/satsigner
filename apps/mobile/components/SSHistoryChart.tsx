@@ -567,7 +567,9 @@ function SSHistoryChart({ transactions, utxos }: SSHistoryChartProps) {
         x: xScale(new Date(t.timestamp ?? new Date())),
         index: t.index,
         textColor: '',
-        amountString: `${amount >= 0 ? '+' : ''}${numberCommaFormatter(amount)}`,
+        amountString: `${amount >= 0 ? '+' : ''}${numberCommaFormatter(
+          amount
+        )}`,
         type: t.type,
         numberOfOutput,
         numberOfInput

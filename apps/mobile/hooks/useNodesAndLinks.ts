@@ -1,39 +1,46 @@
 import { useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
 import { t } from '@/locales'
+import { usePriceStore } from '@/store/price'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
-import { formatAddress, formatTxId } from '@/utils/format'
+import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 import type { ExtendedTransaction } from './useInputTransactions'
 
-export interface TxNode {
-  localId?: string
+export type TxNode = {
   id: string
   type: string
   depthH: number
-  value?: number
+  value: number
   txId?: string
   nextTx?: string
   indexV?: number
   vout?: number
   prevout?: any
+  localId?: string
   ioData: {
-    label?: string
-    feeRate?: number
     address?: string
-    minerFee?: number
+    label?: string
+    value: number
+    fiatValue?: string
+    fiatCurrency?: string
     text?: string
+    isUnspent?: boolean
+    feeRate?: number
+    minerFee?: number
     blockTime?: string
     blockHeight?: string
     blockRelativeTime?: string
     txSize?: number
     txId?: number
     vSize?: number
-    isUnspent?: boolean
-    value: number
+    higherFee?: boolean // miner fee is 10% or higher of the total transaction value
+    feePercentage?: number // miner fee is 10% or higher of the total transaction value
+    isSelfSend?: boolean // NEW: flag for self-send
   }
 }
 
@@ -72,14 +79,20 @@ type UseNodesAndLinksProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  ownAddresses?: Set<string>
 }
 
 export const useNodesAndLinks = ({
   transactions,
   inputs,
   outputs,
-  feeRate
+  feeRate,
+  ownAddresses = new Set()
 }: UseNodesAndLinksProps) => {
+  const [fiatCurrency, satsToFiat] = usePriceStore(
+    useShallow((state) => [state.fiatCurrency, state.satsToFiat])
+  )
+
   const maxExistingDepth =
     transactions.size > 0
       ? Math.max(...Array.from(transactions.values()).map((tx) => tx.depthH))
@@ -119,7 +132,10 @@ export const useNodesAndLinks = ({
           label: output.label,
           address: formatAddress(output.to, 4),
           text: t('transaction.build.unspent'),
-          value: output.amount
+          value: output.amount,
+          fiatValue: formatNumber(satsToFiat(output.amount), 2),
+          fiatCurrency,
+          isSelfSend: ownAddresses.has(output.to)
         },
         value: output.amount,
         indexV: index,
@@ -135,6 +151,8 @@ export const useNodesAndLinks = ({
           depthH: blockDepth + 1,
           ioData: {
             value: remainingBalance,
+            fiatValue: formatNumber(satsToFiat(remainingBalance), 2),
+            fiatCurrency,
             text: t('transaction.build.unspent'),
             isUnspent: true
           },
@@ -146,6 +164,21 @@ export const useNodesAndLinks = ({
       }
 
       // Add mining fee node
+      // Calculate total output value for outputs with addresses configured
+      const totalOutputValueWithAddresses = outputs
+        .filter((output) => output.to && output.to.trim() !== '')
+        .reduce((sum, output) => sum + output.amount, 0)
+
+      const higherFeeForCurrentTx =
+        totalOutputValueWithAddresses > 0
+          ? minerFee >= totalOutputValueWithAddresses * 0.1
+          : false
+
+      const feePercentageForCurrentTx =
+        totalOutputValueWithAddresses > 0
+          ? (minerFee / totalOutputValueWithAddresses) * 100
+          : 0
+
       outputNodes.push({
         id: `vout-${blockDepth + 1}-0`,
         type: 'text',
@@ -154,8 +187,12 @@ export const useNodesAndLinks = ({
         ioData: {
           feeRate: Math.round(feeRate),
           minerFee,
+          fiatValue: formatNumber(satsToFiat(minerFee), 2),
+          fiatCurrency,
           text: t('transaction.build.minerFee'),
-          value: minerFee
+          value: minerFee,
+          higherFee: higherFeeForCurrentTx,
+          feePercentage: Math.round(feePercentageForCurrentTx * 100) / 100
         },
         indexV: outputs.length + (remainingBalance > 0 ? 1 : 0),
         vout: outputs.length + (remainingBalance > 0 ? 1 : 0),
@@ -184,7 +221,16 @@ export const useNodesAndLinks = ({
     } else {
       return []
     }
-  }, [inputs, transactions.size, maxExistingDepth, outputs, feeRate])
+  }, [
+    inputs,
+    transactions.size,
+    maxExistingDepth,
+    outputs,
+    feeRate,
+    satsToFiat,
+    fiatCurrency,
+    ownAddresses
+  ])
 
   const outputAddresses = useMemo(() => {
     if (transactions.size === 0) return []
@@ -230,6 +276,12 @@ export const useNodesAndLinks = ({
             (sum, output) => sum + (output.value ?? 0),
             0
           )
+
+          // Calculate total output value for outputs with addresses configured
+          const totalOutputValueWithAddresses = tx.vout
+            .filter((output) => output.address && output.address.trim() !== '')
+            .reduce((sum, output) => sum + (output.value ?? 0), 0)
+
           const minerFee = totalInputValue - totalOutputValue
 
           const allInputNodes = tx.vin.reduce((nodes, input) => {
@@ -256,10 +308,13 @@ export const useNodesAndLinks = ({
               depthH,
               ioData: {
                 value: input.value,
+                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
+                fiatCurrency,
                 address: `${formatAddress(input.address, 4)}`,
                 label: `${input.label ?? ''}`,
                 txId: tx.id,
-                text: t('common.from')
+                text: t('common.from'),
+                isSelfSend: ownAddresses.has(input.address)
               },
               value: input.value,
               txId: tx.id,
@@ -328,7 +383,10 @@ export const useNodesAndLinks = ({
                 label,
                 address: formatAddress(output.address, 4),
                 value: output.value,
-                text: t('common.from')
+                fiatValue: formatNumber(satsToFiat(output.value ?? 0), 2),
+                fiatCurrency,
+                text: t('common.from'),
+                isSelfSend: ownAddresses.has(output.address)
               },
               value: output.value,
               txId: tx.id,
@@ -345,6 +403,17 @@ export const useNodesAndLinks = ({
             // Use vout length as index, similar to outputNodesCurrentTransaction fee calculation
             const feeVoutIndex = tx.vout.length
             const minerFeeRate = vsize > 0 ? Math.round(minerFee / vsize) : 0
+            const higherFeeForPastTx =
+              totalOutputValueWithAddresses > 0
+                ? minerFee >= totalOutputValueWithAddresses * 0.1
+                : false
+
+            // Calculate fee percentage for past transaction
+            const feePercentageForPastTx =
+              totalOutputValueWithAddresses > 0
+                ? (minerFee / totalOutputValueWithAddresses) * 100
+                : 0
+
             feeNode.push({
               id: `vout-${feeOutputDepth}-fee-${tx.id}`, // Unique ID including txId
               type: 'text',
@@ -356,7 +425,11 @@ export const useNodesAndLinks = ({
                 feeRate: minerFeeRate,
                 value: minerFee,
                 minerFee,
-                text: t('transaction.build.minerFee')
+                fiatValue: formatNumber(satsToFiat(minerFee), 2),
+                fiatCurrency,
+                text: t('transaction.build.minerFee'),
+                higherFee: higherFeeForPastTx,
+                feePercentage: Math.round(feePercentageForPastTx * 100) / 100
               },
               localId: 'past-minerFee'
             })
@@ -379,7 +452,10 @@ export const useNodesAndLinks = ({
     inputs,
     outputAddresses,
     outputValues,
-    transactions
+    transactions,
+    satsToFiat,
+    fiatCurrency,
+    ownAddresses
   ])
 
   const nodes = [

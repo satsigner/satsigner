@@ -1,63 +1,373 @@
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
-import { TouchableOpacity } from 'react-native'
+import { useEffect, useState } from 'react'
+import { TouchableOpacity, View } from 'react-native'
+import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
+import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
+import SSButton from '@/components/SSButton'
+import SSModal from '@/components/SSModal'
 import SSText from '@/components/SSText'
+import SSTextInput from '@/components/SSTextInput'
+import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type Key } from '@/types/models/Account'
-import { formatAddress } from '@/utils/format'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { useAccountsStore } from '@/store/accounts'
+import { useBlockchainStore } from '@/store/blockchain'
+import { Colors } from '@/styles'
+import {
+  type Key,
+  type ScriptVersionType,
+  type Secret
+} from '@/types/models/Account'
+import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 
 type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
   index: number
   keyCount: number
   keyDetails?: Key
+  isSettingsMode?: boolean
+  accountId?: string
+  onRefresh?: () => void
 }
 
 function SSMultisigKeyControl({
   isBlackBackground,
   index,
   keyCount,
-  keyDetails
+  keyDetails,
+  isSettingsMode = false,
+  accountId,
+  onRefresh
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
+  const [setKeyName, setCreationType, setNetwork, getAccountData] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.setKeyName,
+        state.setCreationType,
+        state.setNetwork,
+        state.getAccountData
+      ])
+    )
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const globalScriptVersion = useAccountBuilderStore(
+    (state) => state.scriptVersion
+  ) as ScriptVersionType
+  const updateAccountName = useAccountsStore((state) => state.updateAccountName)
+
+  // Use account's script version in settings mode, global script version in creation mode
+  const scriptVersion =
+    isSettingsMode && keyDetails?.scriptVersion
+      ? keyDetails.scriptVersion
+      : globalScriptVersion
+
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [localKeyName, setLocalKeyName] = useState(keyDetails?.name || '')
+  const [extractedPublicKey, setExtractedPublicKey] = useState('')
+  const [seedDropped, setSeedDropped] = useState(false)
+  const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
+
+  // Extract public key from descriptor when key details change
+  useEffect(() => {
+    async function extractPublicKey() {
+      if (!keyDetails || typeof keyDetails.secret !== 'object') {
+        setExtractedPublicKey('')
+        return
+      }
+
+      const secret = keyDetails.secret as Secret
+
+      // If we already have an extended public key, use it
+      if (secret.extendedPublicKey) {
+        setExtractedPublicKey(secret.extendedPublicKey)
+        return
+      }
+
+      // If we have a descriptor, extract the public key from it
+      if (secret.externalDescriptor) {
+        try {
+          const network = useBlockchainStore.getState().selectedNetwork
+          const descriptor = await new Descriptor().create(
+            secret.externalDescriptor,
+            network as Network
+          )
+          const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
+          setExtractedPublicKey(publicKey)
+        } catch (_error) {
+          setExtractedPublicKey('')
+        }
+      } else {
+        setExtractedPublicKey('')
+      }
+    }
+
+    extractPublicKey()
+  }, [keyDetails])
+
+  // Reset seedDropped when keyDetails changes (for settings mode)
+  useEffect(() => {
+    if (keyDetails && typeof keyDetails.secret === 'object') {
+      // If the key has a mnemonic, reset seedDropped to false
+      if (keyDetails.secret.mnemonic) {
+        setSeedDropped(false)
+      } else {
+        setSeedDropped(true)
+      }
+    }
+  }, [keyDetails])
 
   function getSourceLabel() {
     if (!keyDetails) {
       return t('account.selectKeySource')
     } else if (keyDetails.creationType === 'generateMnemonic') {
+      // Check if seed has been dropped
+      if (
+        seedDropped ||
+        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
+      ) {
+        return t('account.seed.droppedSeed', {
+          name: keyDetails.scriptVersion
+        })
+      }
       return t('account.seed.newSeed', {
         name: keyDetails.scriptVersion
       })
     } else if (keyDetails.creationType === 'importMnemonic') {
+      // Check if seed has been dropped
+      if (
+        seedDropped ||
+        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
+      ) {
+        return t('account.seed.droppedSeed', {
+          name: keyDetails.scriptVersion
+        })
+      }
       return t('account.seed.importedSeed', { name: keyDetails.scriptVersion })
     } else if (keyDetails.creationType === 'importDescriptor') {
       return t('account.seed.external')
+    } else if (keyDetails.creationType === 'importExtendedPub') {
+      // Show the correct label according to the script version and network
+      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+      return t(`account.import.${keyFormat}`)
     }
   }
 
-  if (typeof keyDetails?.secret === 'string') return null
+  // Always use the global scriptVersion from the store
+  function getImportExtendedLabel() {
+    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+    return t(`account.import.${keyFormat}`)
+  }
+
+  function getDropSeedLabel() {
+    // Fallback to global script version
+    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+    return t(`account.seed.dropAndKeep.${keyFormat}`)
+  }
+
+  function getShareXpubLabel() {
+    // Fallback to global script version
+    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+    return t(
+      `account.seed.share${
+        keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)
+      }`
+    )
+  }
+
+  async function handleAction(type: NonNullable<Key['creationType']>) {
+    if (!localKeyName.trim()) return
+
+    setCreationType(type)
+    setKeyName(localKeyName)
+    // scriptVersion is set only in the initial policy selection and never changed here
+    setNetwork(network)
+
+    if (type === 'generateMnemonic') {
+      // Navigate to each key policy type component
+      router.navigate(`/account/add/multiSig/keySettings/${index}`)
+    } else if (type === 'importMnemonic') {
+      router.navigate(`/account/add/import/mnemonic/${index}`)
+    } else if (type === 'importDescriptor') {
+      router.navigate(`/account/add/(common)/import/descriptor/${index}`)
+    } else if (type === 'importExtendedPub') {
+      router.navigate(`/account/add/(common)/import/extendedPub/${index}`)
+    }
+  }
+
+  function handleCompletedKeyAction(
+    action: 'dropSeed' | 'shareXpub' | 'shareDescriptor'
+  ) {
+    // Handle actions for completed keys
+    switch (action) {
+      case 'dropSeed':
+        setDropSeedModalVisible(true)
+        break
+      case 'shareXpub':
+        handleShareXpub()
+        break
+      case 'shareDescriptor':
+        handleShareDescriptor()
+        break
+    }
+  }
+
+  async function handleDropSeed() {
+    if (!keyDetails) return
+
+    try {
+      if (isSettingsMode && accountId) {
+        // Handle existing account (settings mode) using the new dropSeedFromKey function
+        const { dropSeedFromKey } = useAccountsStore.getState()
+        const result = await dropSeedFromKey(accountId, index)
+
+        if (result.success) {
+          // Set seedDropped to true to hide the button
+          setSeedDropped(true)
+          toast.success(result.message)
+          onRefresh?.()
+        } else {
+          toast.error(result.message)
+        }
+      } else {
+        // Handle account creation mode
+        const { dropSeedFromKey } = useAccountBuilderStore.getState()
+        const result = await dropSeedFromKey(index)
+
+        if (result.success) {
+          toast.success(result.message)
+          onRefresh?.()
+        } else {
+          toast.error(result.message)
+        }
+      }
+    } catch (_error) {
+      toast.error(t('account.seed.dropSeedError'))
+    }
+  }
+
+  function handleShareXpub() {
+    if (accountId) {
+      // In settings mode, use the existing account
+      router.navigate(
+        `/account/${accountId}/settings/export/publicKey?keyIndex=${index}`
+      )
+    } else {
+      // In creation mode, use account builder store data
+      const accountData = getAccountData()
+      const key = accountData.keys[index]
+
+      if (!key) {
+        toast.error('Key not found')
+        return
+      }
+
+      // Navigate to a temporary export page that works with account builder data
+      router.navigate(
+        `/account/add/multiSig/export/publicKey?keyIndex=${index}`
+      )
+    }
+  }
+
+  function handleShareDescriptor() {
+    if (accountId) {
+      // In settings mode, use the existing account
+      router.navigate(
+        `/account/${accountId}/settings/export/descriptor?keyIndex=${index}`
+      )
+    } else {
+      // In creation mode, use account builder store data
+      const accountData = getAccountData()
+      const key = accountData.keys[index]
+
+      if (!key) {
+        toast.error('Key not found')
+        return
+      }
+
+      // Navigate to a temporary export page that works with account builder data
+      router.navigate(
+        `/account/add/multiSig/export/descriptor?keyIndex=${index}`
+      )
+    }
+  }
+
+  // Check if the key is completed based on its data
+  const isKeyCompleted =
+    keyDetails &&
+    keyDetails.creationType &&
+    ((typeof keyDetails.secret === 'object' &&
+      keyDetails.secret.fingerprint &&
+      (keyDetails.secret.extendedPublicKey ||
+        keyDetails.secret.externalDescriptor ||
+        keyDetails.secret.mnemonic)) ||
+      (typeof keyDetails.secret === 'string' && keyDetails.secret.length > 0))
+
+  // Check if the key has a mnemonic (seed) that can be dropped
+  const hasSeed = Boolean(
+    !seedDropped &&
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      keyDetails.secret.mnemonic
+  )
+
+  function handleKeyNameChange(newName: string) {
+    setLocalKeyName(newName)
+
+    // Save to store if in settings mode and we have an account ID
+    if (isSettingsMode && accountId && newName.trim()) {
+      updateAccountName(accountId, newName.trim())
+    }
+  }
+
+  if (typeof keyDetails?.secret === 'string' && !isSettingsMode) return null
+
+  // Extract fingerprint and extendedPublicKey for display, with null checks
+  const fingerprint =
+    (typeof keyDetails?.secret === 'object' && keyDetails.secret.fingerprint) ||
+    keyDetails?.fingerprint ||
+    ''
+
+  // Use the extracted public key from state, or fall back to direct access
+  const extendedPublicKey =
+    extractedPublicKey ||
+    (typeof keyDetails?.secret === 'object' &&
+      keyDetails.secret.extendedPublicKey) ||
+    ''
+
+  // Format public key for display: first 7, last 4 chars
+  let formattedPubKey = extendedPublicKey
+  if (extendedPublicKey && extendedPublicKey.length > 12) {
+    formattedPubKey = `${extendedPublicKey.slice(
+      0,
+      7
+    )}...${extendedPublicKey.slice(-4)}`
+  }
 
   return (
-    <TouchableOpacity
-      onPress={() =>
-        router.navigate(`/account/add/multiSig/keySettings/${index}`)
-      }
+    <View
+      style={[
+        {
+          borderColor: '#6A6A6A',
+          borderTopWidth: 2,
+          backgroundColor: isBlackBackground ? 'black' : '#1E1E1E'
+        },
+        index === keyCount - 1 && { borderBottomWidth: 2 }
+      ]}
     >
-      <SSVStack
-        style={[
-          {
-            borderColor: '#6A6A6A',
-            borderTopWidth: 2,
-            backgroundColor: isBlackBackground ? 'black' : '#1E1E1E',
-            paddingHorizontal: 16,
-            paddingBottom: 32,
-            paddingTop: 16
-          },
-          index === keyCount - 1 && { borderBottomWidth: 2 }
-        ]}
+      <TouchableOpacity
+        onPress={() => setIsExpanded(!isExpanded)}
+        style={{
+          paddingHorizontal: 8,
+          paddingBottom: 8,
+          paddingTop: 8
+        }}
       >
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }}>
@@ -67,7 +377,7 @@ function SSMultisigKeyControl({
               <SSIconAdd width={24} height={24} />
             )}
             <SSText color="muted" size="lg">
-              {t('common.key')} {index}
+              {t('common.key')} {index + 1}
             </SSText>
             <SSVStack gap="none">
               <SSText>{getSourceLabel()}</SSText>
@@ -77,20 +387,162 @@ function SSMultisigKeyControl({
             </SSVStack>
           </SSHStack>
           <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
-            <SSText color={keyDetails?.fingerprint ? 'white' : 'muted'}>
-              {keyDetails?.fingerprint ?? t('account.fingerprint')}
+            <SSText color={fingerprint ? 'white' : 'muted'}>
+              {fingerprint || t('account.fingerprint')}
             </SSText>
             <SSText
-              color={keyDetails?.secret.extendedPublicKey ? 'white' : 'muted'}
+              color={extendedPublicKey ? 'white' : 'muted'}
+              selectable
+              numberOfLines={1}
+              ellipsizeMode="middle"
             >
-              {keyDetails?.secret.extendedPublicKey
-                ? formatAddress(keyDetails.secret.extendedPublicKey, 6)
-                : t('account.seed.publicKey')}
+              {formattedPubKey || t('account.seed.publicKey')}
             </SSText>
           </SSVStack>
         </SSHStack>
-      </SSVStack>
-    </TouchableOpacity>
+      </TouchableOpacity>
+
+      {isExpanded && (
+        <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="lg">
+          {(!isKeyCompleted || isSettingsMode) && (
+            <SSFormLayout>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.participant.keyName')} />
+                <SSTextInput
+                  value={localKeyName}
+                  onChangeText={handleKeyNameChange}
+                />
+              </SSFormLayout.Item>
+            </SSFormLayout>
+          )}
+
+          <SSVStack gap="sm">
+            {isKeyCompleted ? (
+              <>
+                {hasSeed && (
+                  <SSButton
+                    label={getDropSeedLabel()}
+                    onPress={() => handleCompletedKeyAction('dropSeed')}
+                    style={{
+                      backgroundColor: 'black',
+                      borderWidth: 1,
+                      borderColor: 'white'
+                    }}
+                  />
+                )}
+                <SSButton
+                  label={getShareXpubLabel()}
+                  onPress={() => handleCompletedKeyAction('shareXpub')}
+                />
+                <SSButton
+                  label={t('account.seed.shareDescriptor')}
+                  onPress={() => handleCompletedKeyAction('shareDescriptor')}
+                />
+              </>
+            ) : (
+              <>
+                <SSButton
+                  label={t('account.generate.newSecretSeed')}
+                  disabled={!localKeyName.trim()}
+                  onPress={() => handleAction('generateMnemonic')}
+                />
+                <SSButton
+                  label={t('account.import.title2')}
+                  disabled={!localKeyName.trim()}
+                  onPress={() => handleAction('importMnemonic')}
+                />
+                <SSButton
+                  label={t('account.import.descriptor')}
+                  disabled={!localKeyName.trim()}
+                  onPress={() => handleAction('importDescriptor')}
+                />
+                <SSButton
+                  label={getImportExtendedLabel()}
+                  disabled={!localKeyName.trim()}
+                  onPress={() => handleAction('importExtendedPub')}
+                />
+              </>
+            )}
+          </SSVStack>
+        </SSVStack>
+      )}
+
+      {/* Drop Seed Confirmation Modal */}
+      <SSModal
+        visible={dropSeedModalVisible}
+        onClose={() => setDropSeedModalVisible(false)}
+        label=""
+      >
+        <SSVStack
+          itemsCenter
+          gap="lg"
+          style={{
+            paddingVertical: 20,
+            paddingHorizontal: 16,
+            backgroundColor: Colors.white,
+            borderRadius: 8,
+            marginHorizontal: 40,
+            maxWidth: 300,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5
+          }}
+        >
+          {/* Title */}
+          <SSText
+            size="lg"
+            weight="bold"
+            center
+            style={{ color: Colors.black, marginBottom: 4 }}
+          >
+            {t('account.seed.dropSeedConfirm.title')}
+          </SSText>
+
+          {/* Message */}
+          <SSText
+            color="muted"
+            center
+            size="md"
+            style={{
+              maxWidth: 260,
+              lineHeight: 20,
+              marginBottom: 8
+            }}
+          >
+            {t('account.seed.dropSeedConfirm.message')}
+          </SSText>
+
+          {/* Action Buttons */}
+          <SSHStack gap="sm" style={{ width: '100%' }}>
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => setDropSeedModalVisible(false)}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.gray[100],
+                borderWidth: 0
+              }}
+              textStyle={{ color: Colors.black }}
+            />
+            <SSButton
+              label={t('account.seed.dropSeedConfirm.confirm')}
+              variant="danger"
+              onPress={() => {
+                setDropSeedModalVisible(false)
+                handleDropSeed()
+              }}
+              style={{ flex: 1 }}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
+    </View>
   )
 }
 

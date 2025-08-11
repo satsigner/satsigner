@@ -184,7 +184,9 @@ export default function SelectUtxoList() {
             selectedAllUtxos
               ? t('common.deselectAll').toUpperCase()
               : t('common.selectAll').toUpperCase()
-          } ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${t('bitcoin.sats').toLowerCase()}`}
+          } ${formatNumber(utxosTotalValue, 0, useZeroPadding)} ${t(
+            'bitcoin.sats'
+          ).toLowerCase()}`}
           style={{ width: 'auto' }}
           textStyle={{
             color: Colors.gray[75],

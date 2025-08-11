@@ -7,7 +7,14 @@ export type PolicyType = 'singlesig' | 'multisig' | 'watchonly'
 
 export type MnemonicCount = 12 | 15 | 18 | 21 | 24
 
-export type ScriptVersionType = 'P2PKH' | 'P2SH-P2WPKH' | 'P2WPKH' | 'P2TR'
+export type ScriptVersionType =
+  | 'P2PKH'
+  | 'P2SH-P2WPKH'
+  | 'P2WPKH'
+  | 'P2TR'
+  | 'P2WSH'
+  | 'P2SH-P2WSH'
+  | 'Legacy P2SH'
 
 export type SyncStatus = 'unsynced' | 'synced' | 'syncing' | 'error' | 'timeout'
 
@@ -34,6 +41,8 @@ export type Secret = {
   internalDescriptor?: string
   /** Only for watch-only */
   extendedPublicKey?: string
+  /** Fingerprint of the key */
+  fingerprint?: string
 }
 
 export type Key = {

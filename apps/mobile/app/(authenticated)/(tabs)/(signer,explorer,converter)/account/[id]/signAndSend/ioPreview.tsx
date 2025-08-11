@@ -2,12 +2,14 @@ import type BottomSheet from '@gorhom/bottom-sheet'
 import { useIsFocused } from '@react-navigation/native'
 import { useQuery } from '@tanstack/react-query'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
+import * as Clipboard from 'expo-clipboard'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   type LayoutChangeEvent,
+  ScrollView,
   TouchableOpacity,
   View
 } from 'react-native'
@@ -15,7 +17,8 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { MempoolOracle } from '@/api/blockchain'
-import { SSIconChevronLeft, SSIconScan } from '@/components/icons'
+import { SSIconChevronLeft } from '@/components/icons'
+import SSAmountInput from '@/components/SSAmountInput'
 import SSBottomSheet from '@/components/SSBottomSheet'
 import SSButton from '@/components/SSButton'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
@@ -23,12 +26,9 @@ import SSFeeInput from '@/components/SSFeeInput'
 import SSFeeRateChart, {
   type SSFeeRateChartProps
 } from '@/components/SSFeeRateChart'
-import SSIconButton from '@/components/SSIconButton'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
-import SSNumberGhostInput from '@/components/SSNumberGhostInput'
 import SSRadioButton from '@/components/SSRadioButton'
-import SSSlider from '@/components/SSSlider'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
@@ -41,7 +41,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { Colors, Layout } from '@/styles'
+import { Colors, Layout, Typography } from '@/styles'
 import { type MempoolStatistics } from '@/types/models/Blockchain'
 import { type Output } from '@/types/models/Output'
 import { type Utxo } from '@/types/models/Utxo'
@@ -144,9 +144,10 @@ export default function IOPreview() {
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [topGradientHeight, setTopGradientHeight] = useState(0)
 
-  const [localFeeRate, setLocalFeeRate] = useState(1)
+  const [localFeeRate, setLocalFeeRate] = useState(feeRate)
+  const [outputsCount, setOutputsCount] = useState(0)
+  const [addOutputModalVisible, setAddOutputModalVisible] = useState(false)
 
-  const addOutputBottomSheetRef = useRef<BottomSheet>(null)
   const optionsBottomSheetRef = useRef<BottomSheet>(null)
   const changeFeeBottomSheetRef = useRef<BottomSheet>(null)
 
@@ -159,15 +160,32 @@ export default function IOPreview() {
   )
   const utxosSelectedValue = utxosValue(getInputs())
 
-  // const outputsValue = (outputs: Output[]): number =>
-  //   outputs.reduce((acc, output) => acc + output.amount, 0)
+  // First calculate without change output
+  const baseTransactionSize = useMemo(() => {
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+    return { size, vsize }
+  }, [inputs.size, outputs.length])
 
-  // const outputsTotalAmount = useMemo(() => outputsValue(outputs), [outputs])
+  const baseMinerFee = useMemo(
+    () => Math.round(feeRate * baseTransactionSize.vsize),
+    [feeRate, baseTransactionSize.vsize]
+  )
+
+  // Calculate if we'll have change
+  const totalOutputValue = useMemo(
+    () => outputs.reduce((sum, output) => sum + output.amount, 0),
+    [outputs]
+  )
+  const hasChange = useMemo(
+    () => utxosSelectedValue > totalOutputValue + baseMinerFee,
+    [utxosSelectedValue, totalOutputValue, baseMinerFee]
+  )
 
   const [currentOutputLocalId, setCurrentOutputLocalId] = useState<string>()
   const [currentOutputNumber, setCurrentOutputNumber] = useState(1)
   const [outputTo, setOutputTo] = useState('')
   const [outputAmount, setOutputAmount] = useState(DUST_LIMIT)
+  const [originalOutputAmount, setOriginalOutputAmount] = useState(0)
   const [outputLabel, setOutputLabel] = useState('')
 
   const remainingSats = useMemo(
@@ -176,9 +194,19 @@ export default function IOPreview() {
       outputs.reduce((acc, output) => acc + output.amount, 0),
     [utxosSelectedValue, outputs]
   )
-  const transactionSize = useMemo(
-    () => estimateTransactionSize(inputs.size, outputs.length + 1),
-    [inputs.size, outputs.length]
+
+  // Now calculate final size including change if needed
+  const transactionSize = useMemo(() => {
+    const { size, vsize } = estimateTransactionSize(
+      inputs.size,
+      outputs.length + (hasChange ? 1 : 0)
+    )
+    return { size, vsize }
+  }, [inputs.size, outputs.length, hasChange])
+
+  const minerFee = useMemo(
+    () => Math.round(feeRate * transactionSize.vsize),
+    [feeRate, transactionSize.vsize]
   )
 
   const [selectedPeriod] = useState<SSFeeRateChartProps['timeRange']>('2hours')
@@ -197,26 +225,28 @@ export default function IOPreview() {
     staleTime: time.minutes(5)
   })
 
-  const boxPosition = new Animated.Value(localFeeRate)
+  const boxPosition = useMemo(
+    () => new Animated.Value(localFeeRate),
+    [localFeeRate]
+  )
 
   const remainingBalance = useMemo(() => {
-    const { vsize } = transactionSize
-    const minerFee = Math.round(feeRate * vsize)
     const totalInputValue = utxosSelectedValue
     const totalOutputValue = outputs.reduce(
       (sum, output) => sum + output.amount,
       0
     )
     return totalInputValue - totalOutputValue - minerFee
-  }, [feeRate, outputs, transactionSize, utxosSelectedValue])
+  }, [minerFee, outputs, utxosSelectedValue])
 
   // Calculate outputs for chart including remaining balance
   const singleTxOutputs = useMemo(() => {
     const chartOutputs: Output[] = [...outputs]
 
-    if (remainingBalance > DUST_LIMIT) {
+    // Always include remaining balance if there is any
+    if (remainingBalance > 0) {
       chartOutputs.push({
-        localId: 'remainingBalance', // WARN: do not chnage it!
+        localId: 'remainingBalance', // WARN: do not change it!
         amount: remainingBalance,
         label: '',
         to: changeAddress
@@ -242,6 +272,18 @@ export default function IOPreview() {
   useEffect(() => {
     setFee(localFeeRate * transactionSize.vsize)
   }, [localFeeRate, transactionSize, setFee])
+
+  useEffect(() => {
+    setLocalFeeRate(feeRate)
+  }, [feeRate])
+
+  useEffect(() => {
+    Animated.timing(boxPosition, {
+      toValue: localFeeRate,
+      duration: 100,
+      useNativeDriver: true
+    }).start()
+  }, [localFeeRate, boxPosition])
 
   function handleQRCodeScanned(address: string | undefined) {
     if (!address) return
@@ -274,9 +316,19 @@ export default function IOPreview() {
     setCameraModalVisible(false)
   }
 
+  function resetLocalOutput() {
+    setCurrentOutputLocalId(undefined)
+    setCurrentOutputNumber(outputs.length + 1)
+    setOutputTo('')
+    setOutputAmount(DUST_LIMIT)
+    setOriginalOutputAmount(0)
+    setOutputLabel('')
+  }
+
   function handleOnPressAddOutput() {
     resetLocalOutput()
-    addOutputBottomSheetRef.current?.expand()
+    setOutputAmount(DUST_LIMIT)
+    setAddOutputModalVisible(true)
   }
 
   function handleAddOutput() {
@@ -289,23 +341,16 @@ export default function IOPreview() {
     if (outputIndex === -1) addOutput(output)
     else updateOutput(outputs[outputIndex].localId, output)
 
-    addOutputBottomSheetRef.current?.close()
+    setOutputsCount((prev: number) => prev + 1)
+    setAddOutputModalVisible(false)
     resetLocalOutput()
   }
 
   function handleRemoveOutput() {
     if (!currentOutputLocalId) return
     removeOutput(currentOutputLocalId)
-    addOutputBottomSheetRef.current?.close()
+    setAddOutputModalVisible(false)
     resetLocalOutput()
-  }
-
-  function resetLocalOutput() {
-    setCurrentOutputLocalId(undefined)
-    setCurrentOutputNumber(outputs.length + 1)
-    setOutputTo('')
-    setOutputAmount(DUST_LIMIT)
-    setOutputLabel('')
   }
 
   function handleSetFeeRate() {
@@ -320,7 +365,7 @@ export default function IOPreview() {
       changeFeeBottomSheetRef.current?.expand()
       return
     } else if (localId === 'remainingBalance') {
-      addOutputBottomSheetRef.current?.expand()
+      setAddOutputModalVisible(true)
       return
     }
 
@@ -331,10 +376,11 @@ export default function IOPreview() {
 
     setOutputTo(outputs[outputIndex].to)
     setOutputAmount(outputs[outputIndex].amount)
+    setOriginalOutputAmount(outputs[outputIndex].amount)
     setOutputLabel(outputs[outputIndex].label)
     setCurrentOutputNumber(outputIndex + 1)
 
-    addOutputBottomSheetRef.current?.expand()
+    setAddOutputModalVisible(true)
   }
 
   function handleOnChangeUtxoSelection(type: AutoSelectUtxosAlgorithms) {
@@ -370,13 +416,26 @@ export default function IOPreview() {
   }
 
   function handleGoToPreview() {
-    // first, we add the change as an output
-    setShouldRemoveChange(false)
-    addOutput({
-      to: changeAddress,
-      amount: remainingBalance,
-      label: 'Change'
-    })
+    const totalOutputAmount = outputs.reduce(
+      (acc, output) => acc + output.amount,
+      0
+    )
+    const totalRequired = totalOutputAmount + minerFee
+
+    if (totalRequired > utxosSelectedValue) {
+      toast.error(t('transaction.error.insufficientInputs'))
+      return
+    }
+
+    // Add change output if there's any remaining amount
+    if (remainingBalance > 0) {
+      setShouldRemoveChange(false)
+      addOutput({
+        to: changeAddress,
+        amount: remainingBalance,
+        label: 'Change'
+      })
+    }
 
     // Account not synced. Go to warning page to sync it.
     if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
@@ -422,6 +481,12 @@ export default function IOPreview() {
   }
   // if (!nodes.length || !links.length) return <Redirect href="/" />
 
+  // Memoized set of own addresses for efficient lookup
+  const ownAddressesSet = useMemo<Set<string>>(() => {
+    if (!account) return new Set<string>()
+    return new Set<string>(account.addresses.map((a) => a.address))
+  }, [account])
+
   return (
     <View
       style={{
@@ -440,7 +505,7 @@ export default function IOPreview() {
           position: 'absolute',
           paddingHorizontal: Layout.mainContainer.paddingHorizontal,
           paddingTop: Layout.mainContainer.paddingTop,
-          zIndex: 10,
+          zIndex: 0,
           pointerEvents: 'none'
         }}
         onLayout={handleTopLayout}
@@ -517,7 +582,7 @@ export default function IOPreview() {
         colors={['#131313FF', '#13131385', '#13131368', '#13131300']}
       />
       {inputs.size > 0 ? (
-        <View style={{ position: 'absolute' }}>
+        <View style={{ position: 'absolute', zIndex: -1 }}>
           {loadHistory ? (
             <SSMultipleSankeyDiagram
               onPressOutput={handleOnPressOutput}
@@ -525,19 +590,20 @@ export default function IOPreview() {
               inputs={inputs}
               outputs={singleTxOutputs}
               feeRate={feeRate}
+              ownAddresses={ownAddressesSet}
             />
           ) : (
             <SSCurrentTransactionChart
               inputs={inputs}
               outputs={singleTxOutputs}
-              feeRate={feeRate}
+              feeRate={localFeeRate}
               onPressOutput={handleOnPressOutput}
               currentOutputLocalId={currentOutputLocalId}
+              ownAddresses={ownAddressesSet}
             />
           )}
         </View>
       ) : null}
-
       <LinearGradient
         locations={[0, 0.1255, 0.2678, 1]}
         style={{
@@ -623,91 +689,112 @@ export default function IOPreview() {
           />
         </SSVStack>
       </LinearGradient>
-      <SSBottomSheet
-        ref={addOutputBottomSheetRef}
-        title={t('transaction.build.add.output.number', {
-          number: currentOutputNumber
-        })}
+      <SSModal
+        visible={addOutputModalVisible}
+        onClose={() => setAddOutputModalVisible(false)}
+        fullOpacity
       >
-        <SSVStack style={{ paddingBottom: 24 }}>
-          <SSNumberGhostInput
-            min={DUST_LIMIT}
-            max={remainingSats}
-            suffix={t('bitcoin.sats')}
-            value={String(outputAmount)}
-            onChangeText={(text) => setOutputAmount(Number(text))}
-          />
-          <SSVStack gap="none">
-            <SSHStack justifyBetween>
-              <SSHStack
-                gap="xs"
-                style={{ alignItems: 'baseline', justifyContent: 'center' }}
-              >
-                <SSText weight="medium">{DUST_LIMIT}</SSText>
-                <SSText color="muted" size="sm">
-                  {t('bitcoin.sats')}
+        <View style={{ width: '100%', maxWidth: 1000, alignSelf: 'center' }}>
+          <ScrollView style={{ width: '100%' }}>
+            <SSVStack gap="lg" style={{ paddingHorizontal: 16 }}>
+              <SSVStack itemsCenter>
+                <SSText uppercase>
+                  {t('transaction.build.add.output.number', {
+                    number: currentOutputNumber
+                  })}
                 </SSText>
-              </SSHStack>
-              <SSHStack
-                gap="xs"
-                style={{ alignItems: 'baseline', justifyContent: 'center' }}
-              >
-                <SSText weight="medium">{formatNumber(remainingSats)}</SSText>
-                <SSText color="muted" size="sm">
-                  {t('bitcoin.sats')}
-                </SSText>
-              </SSHStack>
-            </SSHStack>
-            <SSSlider
-              min={DUST_LIMIT}
-              max={Math.max(remainingSats, DUST_LIMIT)}
-              value={Math.min(
-                outputAmount,
-                Math.max(remainingSats, DUST_LIMIT)
-              )}
-              step={100}
-              onValueChange={(value) => setOutputAmount(value)}
-            />
-          </SSVStack>
-          <SSTextInput
-            value={outputTo}
-            placeholder={t('transaction.address')}
-            align="left"
-            actionRight={
-              <SSIconButton onPress={() => setCameraModalVisible(true)}>
-                <SSIconScan />
-              </SSIconButton>
-            }
-            onChangeText={(text) => setOutputTo(text)}
-          />
-          <SSTextInput
-            placeholder={t('transaction.build.add.label.title')}
-            align="left"
-            value={outputLabel}
-            onChangeText={(text) => setOutputLabel(text)}
-          />
-          <SSHStack>
-            <SSButton
-              label={t('transaction.build.remove.output.title')}
-              variant="danger"
-              style={{ flex: 1 }}
-              onPress={handleRemoveOutput}
-            />
-            <SSButton
-              label={t('transaction.build.save.output.title')}
-              variant="secondary"
-              style={{ flex: 1 }}
-              disabled={!outputTo || !outputAmount || !outputLabel}
-              onPress={handleAddOutput}
-            />
-          </SSHStack>
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => addOutputBottomSheetRef.current?.close()}
-          />
-        </SSVStack>
-      </SSBottomSheet>
+              </SSVStack>
+              <SSVStack gap="md">
+                <SSVStack gap="none">
+                  <SSAmountInput
+                    key={`amount-input-${outputsCount}`}
+                    min={DUST_LIMIT}
+                    max={
+                      currentOutputLocalId
+                        ? Math.max(
+                            remainingSats + originalOutputAmount - minerFee,
+                            DUST_LIMIT
+                          )
+                        : Math.max(remainingSats - minerFee, DUST_LIMIT)
+                    }
+                    value={currentOutputLocalId ? outputAmount : DUST_LIMIT}
+                    remainingSats={
+                      currentOutputLocalId
+                        ? remainingSats + originalOutputAmount - minerFee
+                        : remainingSats - minerFee
+                    }
+                    onValueChange={(value) => setOutputAmount(value)}
+                  />
+                </SSVStack>
+                <SSVStack>
+                  <SSTextInput
+                    value={outputTo}
+                    placeholder={t('transaction.address')}
+                    align="left"
+                    multiline
+                    numberOfLines={4}
+                    style={{
+                      fontFamily: Typography.sfProMono,
+                      fontSize: 22,
+                      letterSpacing: 0.5,
+                      height: 100,
+                      textAlignVertical: 'top',
+                      paddingTop: 12
+                    }}
+                    onChangeText={(text) => setOutputTo(text)}
+                  />
+                  <SSHStack gap="md">
+                    <SSButton
+                      variant="outline"
+                      label={t('common.paste')}
+                      style={{ flex: 1 }}
+                      onPress={async () => {
+                        try {
+                          const text = await Clipboard.getStringAsync()
+                          if (text && text.trim()) {
+                            setOutputTo(text.trim())
+                          } else {
+                            toast.error(t('common.invalid'))
+                          }
+                        } catch (_error) {
+                          toast.error(t('common.invalid'))
+                        }
+                      }}
+                    />
+                    <SSButton
+                      variant="outline"
+                      label={t('camera.scanQRCode')}
+                      style={{ flex: 1 }}
+                      onPress={() => setCameraModalVisible(true)}
+                    />
+                  </SSHStack>
+                </SSVStack>
+                <SSTextInput
+                  placeholder={t('transaction.build.add.label.title')}
+                  align="left"
+                  value={outputLabel}
+                  onChangeText={(text) => setOutputLabel(text)}
+                />
+                <SSHStack>
+                  <SSButton
+                    label={t('transaction.build.remove.output.title')}
+                    variant="danger"
+                    style={{ flex: 1 }}
+                    onPress={handleRemoveOutput}
+                  />
+                  <SSButton
+                    label={t('transaction.build.save.output.title')}
+                    variant="secondary"
+                    style={{ flex: 1 }}
+                    disabled={!outputTo || !outputAmount || !outputLabel}
+                    onPress={handleAddOutput}
+                  />
+                </SSHStack>
+              </SSVStack>
+            </SSVStack>
+          </ScrollView>
+        </View>
+      </SSModal>
       <SSBottomSheet
         ref={optionsBottomSheetRef}
         title={t('transaction.build.options.title')}

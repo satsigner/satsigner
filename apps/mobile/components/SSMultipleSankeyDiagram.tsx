@@ -32,6 +32,7 @@ type SSMultipleSankeyDiagramProps = {
   inputs: Map<string, Utxo>
   outputs: Output[]
   feeRate: number
+  ownAddresses?: Set<string> // NEW: prop for own addresses
 }
 
 function SSMultipleSankeyDiagram({
@@ -39,7 +40,8 @@ function SSMultipleSankeyDiagram({
   currentOutputLocalId,
   inputs,
   outputs,
-  feeRate
+  feeRate,
+  ownAddresses = new Set()
 }: SSMultipleSankeyDiagramProps) {
   const DEEP_LEVEL = 2 // how deep the tx history
   const { transactions } = useInputTransactions(inputs, DEEP_LEVEL)
@@ -48,7 +50,8 @@ function SSMultipleSankeyDiagram({
     transactions,
     inputs,
     outputs,
-    feeRate
+    feeRate,
+    ownAddresses // pass to hook for future use
   })
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()

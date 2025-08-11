@@ -39,47 +39,73 @@ function useAccountBuilderFinish() {
   async function accountBuilderFinish(account: Account) {
     setLoading(true)
 
-    const isImportAddress = account.keys[0].creationType === 'importAddress'
+    try {
+      const isImportAddress = account.keys[0].creationType === 'importAddress'
+      const { policyType } = account
+      const { creationType } = account.keys[0]
 
-    const walletData = !isImportAddress
-      ? await getWalletData(account, network as Network)
-      : undefined
-    if (!isImportAddress && !walletData) return // TODO: handle error
+      const walletData = !isImportAddress
+        ? await getWalletData(account, network as Network)
+        : undefined
 
-    for (const key of account.keys) {
-      const stringifiedSecret = JSON.stringify(key.secret)
-      const pin = await getItem(PIN_KEY)
-      if (!pin) return // TODO: handle error
-
-      const encryptedSecret = await aesEncrypt(
-        stringifiedSecret,
-        pin,
-        account.keys[key.index].iv
-      )
-
-      if (walletData) {
-        updateKeyFingerprint(key.index, walletData.fingerprint)
-        setKeyDerivationPath(key.index, walletData.derivationPath)
+      if (!isImportAddress && !walletData) {
+        setLoading(false)
+        return
       }
-      updateKeySecret(key.index, encryptedSecret)
-    }
 
-    const accountWithEncryptedSecret = getAccountData()
+      for (const key of account.keys) {
+        const stringifiedSecret = JSON.stringify(key.secret)
+        const pin = await getItem(PIN_KEY)
+        if (!pin) {
+          setLoading(false)
+          return
+        }
 
-    addAccount(accountWithEncryptedSecret)
-    if (walletData)
-      addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
-    if (isImportAddress && typeof account.keys[0].secret === 'object')
-      addAccountAddress(
-        accountWithEncryptedSecret.id,
-        parseAddressDescriptorToAddress(
-          account.keys[0].secret.externalDescriptor!
+        const encryptedSecret = await aesEncrypt(
+          stringifiedSecret,
+          pin,
+          account.keys[key.index].iv
         )
-      )
 
-    setLoading(false)
+        if (walletData) {
+          if (account.policyType === 'multisig' && walletData.keyFingerprints) {
+            // For multisig, use individual key fingerprints
+            walletData.keyFingerprints.forEach(
+              (fingerprint: string, index: number) => {
+                updateKeyFingerprint(index, fingerprint)
+              }
+            )
+          } else {
+            // For singlesig, use the single fingerprint
+            updateKeyFingerprint(key.index, walletData.fingerprint)
+          }
+          setKeyDerivationPath(key.index, walletData.derivationPath)
+        }
+        updateKeySecret(key.index, encryptedSecret)
+      }
 
-    return { wallet: walletData?.wallet, accountWithEncryptedSecret }
+      const accountWithEncryptedSecret = getAccountData()
+      // Ensure policy type and creation type are preserved
+      accountWithEncryptedSecret.policyType = policyType
+      accountWithEncryptedSecret.keys[0].creationType = creationType
+
+      addAccount(accountWithEncryptedSecret)
+      if (walletData)
+        addAccountWallet(accountWithEncryptedSecret.id, walletData.wallet)
+      if (isImportAddress && typeof account.keys[0].secret === 'object')
+        addAccountAddress(
+          accountWithEncryptedSecret.id,
+          parseAddressDescriptorToAddress(
+            account.keys[0].secret.externalDescriptor!
+          )
+        )
+
+      setLoading(false)
+      return { wallet: walletData?.wallet, accountWithEncryptedSecret }
+    } catch (error) {
+      setLoading(false)
+      throw error
+    }
   }
 
   return { accountBuilderFinish, loading }

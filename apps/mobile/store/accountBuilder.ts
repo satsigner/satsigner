@@ -2,6 +2,8 @@ import { produce } from 'immer'
 import uuid from 'react-native-uuid'
 import { create } from 'zustand'
 
+import { PIN_KEY } from '@/config/auth'
+import { getItem } from '@/storage/encrypted'
 import { type EntropyType } from '@/types/logic/entropy'
 import {
   type Account,
@@ -9,6 +11,7 @@ import {
   type Key,
   type Secret
 } from '@/types/models/Account'
+import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
 type AccountBuilderState = {
   name: Account['name']
@@ -72,6 +75,10 @@ type AccountBuilderAction = {
   getAccountData: () => Account
   clearKeyState: () => void
   clearAccount: () => void
+  clearAllKeys: () => void
+  dropSeedFromKey: (
+    index: Key['index']
+  ) => Promise<{ success: boolean; message: string }>
 }
 
 const initialState: AccountBuilderState = {
@@ -153,6 +160,20 @@ const useAccountBuilderStore = create<
       internalDescriptor,
       extendedPublicKey
     } = get()
+
+    // Validate that the key has both fingerprint and public key/descriptor
+    if (!fingerprint) {
+      throw new Error('Fingerprint is required for all keys')
+    }
+
+    // Check if we have either a public key or descriptor
+    const hasPublicKey = extendedPublicKey || externalDescriptor || mnemonic
+    if (!hasPublicKey) {
+      throw new Error(
+        'Each key must have either a public key, descriptor, or mnemonic'
+      )
+    }
+
     const key: Key = {
       index,
       name: keyName,
@@ -163,10 +184,10 @@ const useAccountBuilderStore = create<
         ...(passphrase && { passphrase }),
         ...(externalDescriptor && { externalDescriptor }),
         ...(internalDescriptor && { internalDescriptor }),
-        ...(extendedPublicKey && { extendedPublicKey })
+        ...(extendedPublicKey && { extendedPublicKey }),
+        ...(fingerprint && { fingerprint })
       },
       iv: uuid.v4().replace(/-/g, ''),
-      fingerprint,
       scriptVersion
     }
 
@@ -190,8 +211,12 @@ const useAccountBuilderStore = create<
   updateKeyFingerprint: (index, fingerprint) => {
     set(
       produce((state: AccountBuilderState) => {
-        if (state.keys[index]) {
-          state.keys[index].fingerprint = fingerprint
+        if (
+          state.keys[index] &&
+          state.keys[index].secret &&
+          typeof state.keys[index].secret === 'object'
+        ) {
+          ;(state.keys[index].secret as any).fingerprint = fingerprint
         }
       })
     )
@@ -256,21 +281,128 @@ const useAccountBuilderStore = create<
     return account
   },
   clearKeyState: () => {
+    const { policyType, creationType, keys, scriptVersion } = get()
+    // Preserve the extendedPublicKey from the first key if it exists
+    const extendedPublicKey =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.extendedPublicKey
+        : undefined
+
+    // Preserve the descriptors from the first key if they exist
+    const externalDescriptor =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.externalDescriptor
+        : undefined
+
+    const internalDescriptor =
+      keys[0]?.secret && typeof keys[0].secret === 'object'
+        ? keys[0].secret.internalDescriptor
+        : undefined
+
     set({
+      keyName: '',
+      creationType,
+      entropy: 'none',
+      mnemonicWordCount: 24,
+      mnemonic: '',
+      passphrase: undefined,
+      fingerprint: undefined,
+      scriptVersion, // Preserve the script version
+      externalDescriptor, // Preserve the external descriptor
+      internalDescriptor, // Preserve the internal descriptor
+      extendedPublicKey, // Preserve the extendedPublicKey
+      policyType
+    })
+  },
+  clearAccount: () => {
+    set({ ...initialState })
+  },
+  clearAllKeys: () => {
+    const { name, network, policyType, scriptVersion, keyCount, keysRequired } =
+      get()
+    set({
+      name,
+      network,
+      policyType,
+      scriptVersion,
+      keyCount,
+      keysRequired,
       keyName: '',
       creationType: 'importMnemonic',
       entropy: 'none',
       mnemonicWordCount: 24,
       mnemonic: '',
       passphrase: undefined,
-      fingerprint: undefined,
-      scriptVersion: 'P2WPKH',
       externalDescriptor: undefined,
-      extendedPublicKey: undefined
+      internalDescriptor: undefined,
+      extendedPublicKey: undefined,
+      fingerprint: undefined,
+      keys: []
     })
   },
-  clearAccount: () => {
-    set({ ...initialState })
+  dropSeedFromKey: async (index) => {
+    const state = get()
+    if (state.keys[index] && state.keys[index].secret) {
+      if (typeof state.keys[index].secret === 'object') {
+        // Handle unencrypted secret (during account creation)
+        set(
+          produce((state: AccountBuilderState) => {
+            const secret = state.keys[index].secret as any
+            state.keys[index].secret = {
+              extendedPublicKey: secret.extendedPublicKey,
+              externalDescriptor: secret.externalDescriptor,
+              internalDescriptor: secret.internalDescriptor,
+              fingerprint: secret.fingerprint
+            }
+          })
+        )
+        return { success: true, message: 'Seed dropped successfully' }
+      } else if (typeof state.keys[index].secret === 'string') {
+        // Handle encrypted secret
+        try {
+          const pin = await getItem(PIN_KEY)
+          if (!pin) {
+            return { success: false, message: 'PIN not found for decryption' }
+          }
+
+          // Decrypt the secret
+          const decryptedSecretString = await aesDecrypt(
+            state.keys[index].secret as string,
+            pin,
+            state.keys[index].iv
+          )
+          const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
+
+          // Remove mnemonic and passphrase, keep other fields
+          const cleanedSecret: Secret = {
+            extendedPublicKey: decryptedSecret.extendedPublicKey,
+            externalDescriptor: decryptedSecret.externalDescriptor,
+            internalDescriptor: decryptedSecret.internalDescriptor,
+            fingerprint: decryptedSecret.fingerprint
+          }
+
+          // Re-encrypt the cleaned secret
+          const stringifiedSecret = JSON.stringify(cleanedSecret)
+          const encryptedSecret = await aesEncrypt(
+            stringifiedSecret,
+            pin,
+            state.keys[index].iv
+          )
+
+          // Update the secret
+          set(
+            produce((state: AccountBuilderState) => {
+              state.keys[index].secret = encryptedSecret
+            })
+          )
+
+          return { success: true, message: 'Seed dropped successfully' }
+        } catch (_error) {
+          return { success: false, message: 'Failed to drop seed' }
+        }
+      }
+    }
+    return { success: false, message: 'Key not found or invalid' }
   }
 }))
 

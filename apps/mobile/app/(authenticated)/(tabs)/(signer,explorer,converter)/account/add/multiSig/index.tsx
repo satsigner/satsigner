@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSText from '@/components/SSText'
 import {
   DEFAULT_MULTISIG_KEY_COUNT,
@@ -15,25 +16,34 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
+import { type Key } from '@/types/models/Account'
 
 export default function MultiSig() {
   const router = useRouter()
-  const [name, setKeyCount, setKeysRequired] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.name,
-      state.setKeyCount,
-      state.setKeysRequired
-    ])
-  )
+  const [name, setKeyCount, setKeysRequired, setScriptVersion, clearAllKeys] =
+    useAccountBuilderStore(
+      useShallow((state) => [
+        state.name,
+        state.setKeyCount,
+        state.setKeysRequired,
+        state.setScriptVersion,
+        state.clearAllKeys
+      ])
+    )
 
   const [localKeyCount, setLocalKeyCount] = useState(DEFAULT_MULTISIG_KEY_COUNT)
   const [localKeysRequired, setLocalKeysRequired] = useState(
     DEFAULT_MULTISIG_KEYS_REQUIRED
   )
+  const [localScriptVersion, setLocalScriptVersion] =
+    useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
+  const [scriptVersionModalVisible, setScriptVersionModalVisible] =
+    useState(false)
 
   function handleOnPressContinue() {
     setKeyCount(localKeyCount)
     setKeysRequired(localKeysRequired)
+    setScriptVersion(localScriptVersion)
     router.navigate('/account/add/multiSig/manager')
   }
 
@@ -65,6 +75,16 @@ export default function MultiSig() {
                 viewOnly={false}
               />
             </SSFormLayout.Item>
+            <SSFormLayout.Item>
+              <SSFormLayout.Label label={t('account.script')} />
+              <SSButton
+                label={`${t(
+                  `script.${localScriptVersion.toLocaleLowerCase()}.name`
+                )} (${localScriptVersion})`}
+                withSelect
+                onPress={() => setScriptVersionModalVisible(true)}
+              />
+            </SSFormLayout.Item>
           </SSFormLayout>
         </SSVStack>
         <SSVStack>
@@ -76,10 +96,22 @@ export default function MultiSig() {
           <SSButton
             label={t('common.cancel')}
             variant="ghost"
-            onPress={() => router.navigate('/')}
+            onPress={() => {
+              clearAllKeys()
+              router.navigate('/')
+            }}
           />
         </SSVStack>
       </SSVStack>
+      <SSScriptVersionModal
+        visible={scriptVersionModalVisible}
+        scriptVersion={localScriptVersion}
+        onSelect={(scriptVersion) => {
+          setLocalScriptVersion(scriptVersion)
+          setScriptVersionModalVisible(false)
+        }}
+        onCancel={() => setScriptVersionModalVisible(false)}
+      />
     </SSMainLayout>
   )
 }

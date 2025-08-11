@@ -256,7 +256,10 @@ function AddressDetails() {
                     {t('address.details.derivation.fingerprint')}
                   </SSText>
                   <SSText uppercase>
-                    {account.keys[0].fingerprint || '-'}
+                    {typeof account.keys[0].secret === 'object' &&
+                    account.keys[0].secret.fingerprint
+                      ? account.keys[0].secret.fingerprint
+                      : account.keys[0].fingerprint || '-'}
                   </SSText>
                 </SSVStack>
                 <SSVStack gap="xs" style={{ width: '45%', flexGrow: 1 }}>
