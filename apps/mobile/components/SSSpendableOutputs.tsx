@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { type Dispatch, useState } from 'react'
+import { useState } from 'react'
 import {
   RefreshControl,
   ScrollView,
@@ -26,13 +26,13 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
+import { type AccountUtxo } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
 import { compareTimestamp } from '@/utils/sort'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SpendableOutputsProps = {
-  account: Account
+  utxos: AccountUtxo[]
   handleOnRefresh: () => Promise<void>
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
@@ -40,7 +40,7 @@ type SpendableOutputsProps = {
 }
 
 function SpendableOutputs({
-  account,
+  utxos,
   handleOnRefresh,
   handleOnExpand,
   expand,
@@ -109,7 +109,7 @@ function SpendableOutputs({
           }
         >
           <SSVStack style={{ marginBottom: 16 }}>
-            {sortUtxos([...account.utxos]).map((utxo) => (
+            {sortUtxos([...utxos]).map((utxo) => (
               <SSVStack gap="xs" key={getUtxoOutpoint(utxo)}>
                 <SSSeparator color="grayDark" />
                 <SSUtxoCard utxo={utxo} />
@@ -121,12 +121,12 @@ function SpendableOutputs({
       <View style={{ flex: 1 }}>
         {view === 'bubbles' && (
           <SSBubbleChart
-            utxos={[...account.utxos]}
+            utxos={[...utxos]}
             canvasSize={{ width: GRAPH_WIDTH, height: GRAPH_HEIGHT }}
             inputs={[]}
-            onPress={({ txid, vout }: Utxo) =>
+            onPress={({ txid, vout }: AccountUtxo) =>
               router.navigate(
-                `/account/${account.id}/transaction/${txid}/utxo/${vout}`
+                `/account/${utxo.accountId}/transaction/${txid}/utxo/${vout}`
               )
             }
           />
