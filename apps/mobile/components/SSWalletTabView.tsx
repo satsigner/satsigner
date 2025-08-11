@@ -19,14 +19,12 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
 import type {
   Account,
   AccountAddress,
   AccountTransaction
 } from '@/types/models/Account'
 import { type Utxo } from '@/types/models/Utxo'
-import { compareTimestamp } from '@/utils/sort'
 
 type TabItem = 'transactions' | 'utxos' | 'addresses' | 'mempool'
 
@@ -48,12 +46,6 @@ function SSWalletTabView({
 
   const [expand, setExpand] = useState(false)
   const [change, setChange] = useState(false)
-  const [sortDirectionTransactions, setSortDirectionTransactions] =
-    useState<Direction>('desc')
-  const [sortDirectionUtxos, setSortDirectionUtxos] =
-    useState<Direction>('desc')
-  const [sortDirectionDerivedAddresses, setSortDirectionDerivedAddresses] =
-    useState<Direction>('desc')
 
   const tabs = [
     { key: 'totalTransactions' },
@@ -81,6 +73,7 @@ function SSWalletTabView({
       case 'derivedAddresses':
         return (
           <DerivedAddresses
+            addresses={addresses}
             handleOnExpand={handleOnExpand}
             setChange={setChange}
             expand={expand}
@@ -90,12 +83,11 @@ function SSWalletTabView({
       case 'spendableOutputs':
         return (
           <SpendableOutputs
+            utxos={utxos}
             handleOnRefresh={handleOnRefresh}
             handleOnExpand={handleOnExpand}
             expand={expand}
-            setSortDirection={setSortDirectionUtxos}
             refreshing={refreshing}
-            sortUtxos={sortUtxos}
           />
         )
       case 'satsInMempool':
@@ -112,14 +104,6 @@ function SSWalletTabView({
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: false
     }).start()
-  }
-
-  function sortUtxos(utxos: Utxo[]) {
-    return utxos.sort((utxo1, utxo2) =>
-      sortDirectionUtxos === 'asc'
-        ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
-        : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
-    )
   }
 
   async function handleOnExpand(state: boolean) {
