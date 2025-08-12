@@ -13,16 +13,43 @@ import SSText from './SSText'
 
 type ScriptVersion = NonNullable<Key['scriptVersion']>
 
-const scriptVersions: ScriptVersion[] = [
+// Single-sig script versions
+const singleSigScriptVersions: ScriptVersion[] = [
   'P2PKH',
   'P2SH-P2WPKH',
   'P2WPKH',
   'P2TR'
 ]
 
+// Multisig script versions
+const multiSigScriptVersions: ScriptVersion[] = ['P2SH', 'P2SH-P2WSH', 'P2WSH']
+
+// Function to get user-friendly display names for script versions
+function getScriptVersionDisplayName(scriptVersion: ScriptVersion): string {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return 'Legacy (P2PKH)'
+    case 'P2SH-P2WPKH':
+      return 'Nested Segwit (P2SH-P2WPKH)'
+    case 'P2WPKH':
+      return 'Native Segwit (P2WPKH)'
+    case 'P2TR':
+      return 'Taproot (P2TR)'
+    case 'P2SH':
+      return 'Legacy (P2SH)'
+    case 'P2SH-P2WSH':
+      return 'Nested Segwit (P2SH-P2WSH)'
+    case 'P2WSH':
+      return 'Native Segwit (P2WSH)'
+    default:
+      return scriptVersion
+  }
+}
+
 type SSScriptVersionModalProps = {
   visible: boolean
   scriptVersion: ScriptVersion
+  policyType?: 'singlesig' | 'multisig'
   onSelect: (scriptVersion: ScriptVersion) => void
   onCancel: () => void
 }
@@ -30,10 +57,15 @@ type SSScriptVersionModalProps = {
 function SSScriptVersionModal({
   visible,
   scriptVersion,
+  policyType = 'singlesig',
   onSelect,
   onCancel
 }: SSScriptVersionModalProps) {
   const [localScriptVersion, setLocalScriptVersion] = useState(scriptVersion)
+
+  // Choose script versions based on policy type
+  const scriptVersions =
+    policyType === 'multisig' ? multiSigScriptVersions : singleSigScriptVersions
 
   function handleOnSelectScriptVersion() {
     setLocalScriptVersion(localScriptVersion)
@@ -67,7 +99,7 @@ function SSScriptVersionModal({
       {scriptVersions.map((script) => (
         <SSRadioButton
           key={script}
-          label={t(`script.${script.toLowerCase()}.name`) + ` (${script})`}
+          label={getScriptVersionDisplayName(script)}
           selected={localScriptVersion === script}
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, script)

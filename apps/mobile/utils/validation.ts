@@ -320,7 +320,7 @@ export function validateDescriptorScriptVersion(
     P2TR: ['tr'],
     P2WSH: ['wsh'],
     'P2SH-P2WSH': ['sh'],
-    'Legacy P2SH': ['sh']
+    P2SH: ['sh']
   }
 
   // Check if the script type is compatible with the target script version

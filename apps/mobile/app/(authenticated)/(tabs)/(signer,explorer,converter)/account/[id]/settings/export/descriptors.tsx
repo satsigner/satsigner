@@ -256,8 +256,8 @@ export default function ExportDescriptors() {
             // Create multisig descriptor based on multisig script type using sortedmulti for consistency
             let multisigDescriptor = ''
             switch (multisigScriptType) {
-              case 'Legacy P2SH':
-                // For multisig P2PKH, use Legacy P2SH descriptor
+              case 'P2SH':
+                // For multisig P2PKH, use P2SH descriptor
                 multisigDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
                 break
               case 'P2SH-P2WSH':

@@ -10,6 +10,8 @@ import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSRadioButton from '@/components/SSRadioButton'
+import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSFormLayout from '@/layouts/SSFormLayout'
@@ -73,6 +75,8 @@ function SSMultisigKeyControl({
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
+  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
+  const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -181,6 +185,15 @@ function SSMultisigKeyControl({
     )
   }
 
+  function handleWordCountSelection() {
+    setWordCountModalVisible(false)
+    // Set the word count in the account builder store
+    const { setMnemonicWordCount } = useAccountBuilderStore.getState()
+    setMnemonicWordCount(localMnemonicWordCount)
+    // Navigate to import page with the selected word count
+    router.navigate(`/account/add/import/mnemonic/${index}`)
+  }
+
   async function handleAction(type: NonNullable<Key['creationType']>) {
     if (!localKeyName.trim()) return
 
@@ -193,7 +206,8 @@ function SSMultisigKeyControl({
       // Navigate to each key policy type component
       router.navigate(`/account/add/multiSig/keySettings/${index}`)
     } else if (type === 'importMnemonic') {
-      router.navigate(`/account/add/import/mnemonic/${index}`)
+      // For import, first show the word count selection modal
+      setWordCountModalVisible(true)
     } else if (type === 'importDescriptor') {
       router.navigate(`/account/add/(common)/import/descriptor/${index}`)
     } else if (type === 'importExtendedPub') {
@@ -542,6 +556,25 @@ function SSMultisigKeyControl({
           </SSHStack>
         </SSVStack>
       </SSModal>
+
+      {/* Word Count Selection Modal */}
+      <SSSelectModal
+        visible={wordCountModalVisible}
+        title={t('account.mnemonic.title')}
+        selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
+        selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
+        onSelect={handleWordCountSelection}
+        onCancel={() => setWordCountModalVisible(false)}
+      >
+        {([24, 21, 18, 15, 12] as const).map((count) => (
+          <SSRadioButton
+            key={count}
+            label={`${count} ${t('bitcoin.words').toLowerCase()}`}
+            selected={localMnemonicWordCount === count}
+            onPress={() => setLocalMnemonicWordCount(count)}
+          />
+        ))}
+      </SSSelectModal>
     </View>
   )
 }

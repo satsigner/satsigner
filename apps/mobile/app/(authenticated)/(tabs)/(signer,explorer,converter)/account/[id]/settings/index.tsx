@@ -15,6 +15,7 @@ import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSelectModal from '@/components/SSSelectModal'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { PIN_KEY, SALT_KEY } from '@/config/auth'
@@ -32,6 +33,28 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
+
+// Function to get user-friendly display names for script versions
+function getScriptVersionDisplayName(scriptVersion: string): string {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return 'Legacy (P2PKH)'
+    case 'P2SH-P2WPKH':
+      return 'Nested Segwit (P2SH-P2WPKH)'
+    case 'P2WPKH':
+      return 'Native Segwit (P2WPKH)'
+    case 'P2TR':
+      return 'Taproot (P2TR)'
+    case 'P2SH':
+      return 'Legacy (P2SH)'
+    case 'P2SH-P2WSH':
+      return 'Nested Segwit (P2SH-P2WSH)'
+    case 'P2WSH':
+      return 'Native Segwit (P2WSH)'
+    default:
+      return scriptVersion
+  }
+}
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -307,9 +330,7 @@ export default function AccountSettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(
-                  `script.${scriptVersion.toLocaleLowerCase()}.name`
-                )} (${scriptVersion})`}
+                label={getScriptVersionDisplayName(scriptVersion)}
                 onPress={() => setScriptVersionModalVisible(true)}
                 withSelect
               />
@@ -369,54 +390,16 @@ export default function AccountSettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
+      <SSScriptVersionModal
         visible={scriptVersionModalVisible}
-        title={t('account.script')}
-        selectedText={`${scriptVersion} - ${t(
-          `script.${scriptVersion.toLowerCase()}.name`
-        )}`}
-        selectedDescription={
-          <SSCollapsible>
-            <SSText color="muted" size="md">
-              {t(`script.${scriptVersion?.toLowerCase()}.description.1`)}
-              <SSLink
-                size="md"
-                text={t(`script.${scriptVersion.toLowerCase()}.link.name`)}
-                url={t(`script.${scriptVersion.toLowerCase()}.link.url`)}
-              />
-              {t(`script.${scriptVersion.toLowerCase()}.description.2`)}
-            </SSText>
-            <SSIconScriptsP2pkh height={80} width="100%" />
-          </SSCollapsible>
-        }
-        onSelect={() => handleOnSelectScriptVersion()}
+        scriptVersion={scriptVersion}
+        policyType={account?.policyType}
+        onSelect={(scriptVersion) => {
+          setScriptVersion(scriptVersion)
+          setScriptVersionModalVisible(false)
+        }}
         onCancel={() => setScriptVersionModalVisible(false)}
-      >
-        <SSRadioButton
-          label={`${t('script.p2pkh.name')} (P2PKH)`}
-          selected={scriptVersion === 'P2PKH'}
-          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')}
-        />
-        <SSRadioButton
-          label={`${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`}
-          selected={scriptVersion === 'P2SH-P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2wpkh.name')} (P2WPKH)`}
-          selected={scriptVersion === 'P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2tr.name')} (P2TR)`}
-          selected={scriptVersion === 'P2TR'}
-          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2TR')}
-        />
-      </SSSelectModal>
+      />
       <SSSelectModal
         visible={networkModalVisible}
         title={t('account.network.title')}

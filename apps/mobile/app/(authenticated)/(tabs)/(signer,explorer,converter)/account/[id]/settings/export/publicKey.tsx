@@ -68,7 +68,7 @@ export default function PublicKeyPage() {
           return ['xpub']
         case 'P2SH-P2WSH':
           return ['xpub']
-        case 'Legacy P2SH':
+        case 'P2SH':
           return ['xpub']
         default:
           return ['xpub']
@@ -163,9 +163,9 @@ export default function PublicKeyPage() {
       })
     }
 
-    // Add Legacy P2SH format (xpub/tpub)
+    // Add P2SH format (xpub/tpub)
     if (
-      scriptVersion === 'Legacy P2SH' &&
+      scriptVersion === 'P2SH' &&
       (availableFormats.includes('xpub') || availableFormats.includes('tpub'))
     ) {
       formatButtons.push({
@@ -254,7 +254,7 @@ export default function PublicKeyPage() {
           } else if (
             (keyScriptVersion === 'P2WSH' ||
               keyScriptVersion === 'P2SH-P2WSH' ||
-              keyScriptVersion === 'Legacy P2SH') &&
+              keyScriptVersion === 'P2SH') &&
             (availableFormats.includes('xpub') ||
               availableFormats.includes('tpub'))
           ) {

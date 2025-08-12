@@ -10,6 +10,10 @@ import {
   TxBuilder,
   Wallet
 } from 'bdk-rn'
+import * as bip39 from 'bip39'
+
+import * as bitcoin from 'bitcoinjs-lib'
+import { Buffer } from 'buffer'
 import {
   type LocalUtxo,
   type TransactionDetails,
@@ -311,7 +315,7 @@ async function getWalletData(
             break
           case 'P2WSH':
           case 'P2SH-P2WSH':
-          case 'Legacy P2SH':
+          case 'P2SH':
             // For multisig script types, we need to create descriptors manually
             throw new Error(
               `Manual descriptor creation required for ${key.scriptVersion}`
@@ -432,7 +436,7 @@ async function getWalletFromMnemonic(
           externalDescriptorString = `sh(wsh(${externalKeyPart}))`
           internalDescriptorString = `sh(wsh(${internalKeyPart}))`
           break
-        case 'Legacy P2SH':
+        case 'P2SH':
           externalDescriptorString = `sh(${externalKeyPart})`
           internalDescriptorString = `sh(${internalKeyPart})`
           break
@@ -473,6 +477,7 @@ async function getWalletFromMnemonic(
     wallet
   }
 }
+global.Buffer = global.Buffer || Buffer
 
 async function getDescriptor(
   mnemonic: NonNullable<Secret['mnemonic']>,
@@ -481,6 +486,7 @@ async function getDescriptor(
   passphrase: Secret['passphrase'],
   network: Network
 ) {
+  console.log('mnemonic: ', mnemonic)
   const parsedMnemonic = await new Mnemonic().fromString(mnemonic)
   const descriptorSecretKey = await new DescriptorSecretKey().create(
     network,
@@ -496,9 +502,29 @@ async function getDescriptor(
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
     case 'P2TR':
       return new Descriptor().newBip86(descriptorSecretKey, kind, network)
+    case 'P2SH':
+      // For multisig script types, we need to create descriptors manually
+      // since BDK doesn't have specific methods for these
+      // For now, we'll use a placeholder approach that can be enhanced later
+      const seed = await bip39.mnemonicToSeed(mnemonic)
+
+      // 2. Get master node and derive basic info
+      // For now, we'll create a placeholder descriptor structure
+      // In a real implementation, you would use bip32 to derive the actual xpub
+      const seedHex = seed.toString('hex')
+      const fingerprint = seedHex.slice(0, 8) // Use first 8 chars as placeholder fingerprint
+
+      // Create a placeholder descriptor that shows the structure
+      const descriptor = `sh(multi(2,[${fingerprint}/45h/0h/0h]xpub.../0/*,<xpub2>/0/*,<xpub3>/0/*))`
+
+      // For now, throw an error indicating manual creation is needed
+      // but show that we can derive the seed successfully
+      throw new Error(
+        `Manual descriptor creation required for ${scriptVersion}. Seed derived: ${seedHex.slice(0, 16)}...`
+      )
+
     case 'P2WSH':
     case 'P2SH-P2WSH':
-    case 'Legacy P2SH':
       // For multisig script types, we need to create descriptors manually
       // since BDK doesn't have specific methods for these
       throw new Error(
@@ -606,7 +632,7 @@ async function getDescriptorsFromKeyData(
       externalDescriptor = `sh(wsh(${keyPart}/0/*))`
       internalDescriptor = `sh(wsh(${keyPart}/1/*))`
       break
-    case 'Legacy P2SH':
+    case 'P2SH':
       externalDescriptor = `sh(${keyPart}/0/*)`
       internalDescriptor = `sh(${keyPart}/1/*)`
       break

@@ -827,6 +827,16 @@
     "p2sh-p2wpkh.link.name": "ScriptPubKey",
     "p2sh-p2wpkh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
     "p2sh-p2wpkh.name": "Nested Segwit",
+    "p2sh-p2wsh.description.1": "P2SH-P2WSH",
+    "p2sh-p2wsh.description.2": "which locks bitcoin to a SegWit witness script wrapped inside a P2SH address. It enables SegWit multisig compatibility with wallets that don't fully support SegWit.",
+    "p2sh-p2wsh.link.name": "ScriptPubKey",
+    "p2sh-p2wsh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
+    "p2sh-p2wsh.name": "P2SH-P2WSH",
+    "p2sh.description.1": "P2SH",
+    "p2sh.description.2": "which locks bitcoin to the hash of a script. It enables complex spending conditions like multisig.",
+    "p2sh.link.name": "ScriptPubKey",
+    "p2sh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
+    "p2sh.name": "P2SH",
     "p2tr.description.1": "Taproot",
     "p2tr.description.2": "which locks bitcoin to a Schnorr public key or a Merkle root of multiple conditions. It enhances privacy and efficiency by combining spending conditions into a single structure.",
     "p2tr.link.name": "ScriptPubKey",
@@ -836,7 +846,12 @@
     "p2wpkh.description.2": "which locks bitcoin to a SegWit witness program. It offers reduced transaction fees and improved malleability resistance.",
     "p2wpkh.link.name": "ScriptPubKey",
     "p2wpkh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
-    "p2wpkh.name": "Native Segwit"
+    "p2wpkh.name": "Native Segwit",
+    "p2wsh.description.1": "P2WSH",
+    "p2wsh.description.2": "which locks bitcoin to a SegWit witness script. It enables native SegWit multisig with improved efficiency and security.",
+    "p2wsh.link.name": "ScriptPubKey",
+    "p2wsh.link.url": "https://river.com/learn/terms/s/scriptpubkey/",
+    "p2wsh.name": "P2WSH"
   },
   "send": {
     "broadcast": "Broadcast transaction"
