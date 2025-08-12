@@ -1,8 +1,17 @@
+import { HDKey } from '@scure/bip32'
+import * as bip39 from '@scure/bip39'
 import { decode } from 'bip21'
 import { networks } from 'bitcoinjs-lib'
 import bs58check from 'bs58check'
 
+import { type ScriptVersionType } from '@/types/models/Account'
 import { type Network } from '@/types/settings/blockchain'
+
+// HD key versions for different networks
+const VERSIONS = {
+  mainnet: { public: 0x0488b21e, private: 0x0488ade4 },
+  testnet: { public: 0x043587cf, private: 0x04358394 }
+}
 
 // from https://stackoverflow.com/questions/21683680/regex-to-match-bitcoin-addresses + slightly modified to support testnet addresses
 function isBitcoinAddress(address: string): boolean {
@@ -319,6 +328,154 @@ export function getMultisigScriptTypeFromScriptVersion(
     default:
       // Default to P2WSH for multisig
       return 'P2WSH'
+  }
+}
+
+/**
+ * Get P2SH extended public key from seed
+ */
+function getP2SHXpub(seed: Uint8Array, network: 'mainnet' | 'testnet'): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/45' for P2SH
+  const node = master.deriveChild(0x80000000 + 45)
+
+  return node.publicExtendedKey
+}
+
+/**
+ * Get P2SH-P2WSH extended public key from seed
+ */
+function getP2SHP2WSHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/48'/0'/0'/1' for mainnet, m/48'/1'/0'/1' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+    .deriveChild(0x80000000 + 1)
+
+  return node.publicExtendedKey
+}
+
+/**
+ * Get P2WSH extended public key from seed
+ */
+function getP2WSHXpub(
+  seed: Uint8Array,
+  network: 'mainnet' | 'testnet'
+): string {
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive m/48'/0'/0'/2' for mainnet, m/48'/1'/0'/2' for testnet
+  const coinType = network === 'mainnet' ? 0 : 1
+  const node = master
+    .deriveChild(0x80000000 + 48)
+    .deriveChild(0x80000000 + coinType)
+    .deriveChild(0x80000000)
+    .deriveChild(0x80000000 + 2)
+
+  return node.publicExtendedKey
+}
+
+/**
+ * Convert a Uint8Array to hex string
+ */
+export function toHex(u8: Uint8Array | undefined): string {
+  return Array.from(u8 || [])
+    .map((b: number) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/**
+ * Convert a number to a zero-padded 4-byte hex string
+ */
+export function fingerprintToHex(fpNum: number): string {
+  const buf = new Uint8Array(4)
+  const dv = new DataView(buf.buffer)
+  dv.setUint32(0, fpNum >>> 0) // ensure unsigned
+  return toHex(buf)
+}
+
+/**
+ * Get HD key versions for the specified network
+ */
+export function getVersionsForNetwork(network: 'mainnet' | 'testnet') {
+  return VERSIONS[network]
+}
+
+/**
+ * Get extended public key for specific script version
+ */
+export function getXpubForScriptVersion(
+  mnemonic: string,
+  passphrase: string = '',
+  scriptVersion: ScriptVersionType,
+  network: 'mainnet' | 'testnet'
+): string {
+  // Validate that the script version is supported for multisig
+  const supportedMultisigVersions: ScriptVersionType[] = [
+    'P2SH',
+    'P2SH-P2WSH',
+    'P2WSH'
+  ]
+
+  if (!supportedMultisigVersions.includes(scriptVersion)) {
+    throw new Error(
+      `Script version "${scriptVersion}" is not supported for multisig accounts. ` +
+        `Supported versions: ${supportedMultisigVersions.join(', ')}`
+    )
+  }
+
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+
+  // Map script versions to their corresponding xpub functions
+  const xpubFunctions: Record<
+    ScriptVersionType,
+    (seed: Uint8Array, network: 'mainnet' | 'testnet') => string
+  > = {
+    P2SH: getP2SHXpub,
+    'P2SH-P2WSH': getP2SHP2WSHXpub,
+    P2WSH: getP2WSHXpub,
+    P2PKH: () => {
+      throw new Error('P2PKH not supported for multisig')
+    },
+    'P2SH-P2WPKH': () => {
+      throw new Error('P2SH-P2WPKH not supported for multisig')
+    },
+    P2WPKH: () => {
+      throw new Error('P2WPKH not supported for multisig')
+    },
+    P2TR: () => {
+      throw new Error('P2TR not supported for multisig')
+    }
+  }
+
+  return xpubFunctions[scriptVersion](seed, network)
+}
+
+/**
+ * Get all three extended public keys from mnemonic
+ */
+export function getAllXpubs(
+  mnemonic: string,
+  passphrase: string = '',
+  network: 'mainnet' | 'testnet'
+) {
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+
+  return {
+    p2sh: getP2SHXpub(seed, network),
+    p2sh_p2wsh: getP2SHP2WSHXpub(seed, network),
+    p2wsh: getP2WSHXpub(seed, network)
   }
 }
 

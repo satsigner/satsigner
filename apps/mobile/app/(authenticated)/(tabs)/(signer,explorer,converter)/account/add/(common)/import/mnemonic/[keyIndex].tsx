@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import {
   getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromAccountKey,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprint,
   validateMnemonic
 } from '@/api/bdk'
@@ -383,10 +383,25 @@ export default function ImportMnemonic() {
       }
     } else if (policyType === 'multisig') {
       try {
-        const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-          currentKey,
-          network as Network
+        // Get the mnemonic from the current key
+        // const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
+
+        if (!mnemonic || mnemonic.trim() === '') {
+          throw new Error('Mnemonic is required for multisig accounts')
+        }
+
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+          mnemonic,
+          passphrase,
+          network as Network,
+          scriptVersion
         )
+
+        if (!extendedPublicKey) {
+          throw new Error(
+            'Failed to generate extended public key from mnemonic'
+          )
+        }
 
         // Generate descriptors from the key data
         if (extendedPublicKey && currentKey.fingerprint) {
@@ -411,11 +426,17 @@ export default function ImportMnemonic() {
             extendedPublicKey
           })
         }
-      } catch (_error) {}
+      } catch (error) {
+        toast.error(
+          (error as Error).message || 'Failed to import multisig account'
+        )
+        setLoadingAccount(false)
+        return
+      }
 
       setLoadingAccount(false)
       clearKeyState()
-      router.dismiss(2)
+      router.dismiss(1)
     }
   }
 
