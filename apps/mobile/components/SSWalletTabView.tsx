@@ -22,30 +22,37 @@ import { Colors } from '@/styles'
 import type {
   Account,
   AccountAddress,
-  AccountTransaction
+  AccountTransaction,
+  AccountUtxo
 } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
 
 type TabItem = 'transactions' | 'utxos' | 'addresses' | 'mempool'
 
 export type SSWalletTabViewProps = {
   transactions: AccountTransaction[]
   addresses: AccountAddress[]
-  utxos: Utxo[]
-  tabsEnabled?: TabItem[]
+  utxos: AccountUtxo[]
+  tabs?: TabItem[]
   summary: Account['summary']
+  blockchainHeight: number
+  onRefresh: () => Promise<void>
+  onLoadMoreAddresses: () => Promise<void>
 }
 
 function SSWalletTabView({
+  addresses,
   transactions,
   utxos,
   summary,
-  tabsEnabled = ['transactions', 'utxos', 'addresses', 'mempool']
+  tabs: tabsVisible = ['transactions', 'utxos', 'addresses', 'mempool'],
+  blockchainHeight,
+  onRefresh,
+  onLoadMoreAddresses
 }: SSWalletTabViewProps) {
   const { width } = useWindowDimensions()
 
+  const [refreshing, setRefreshing] = useState(false)
   const [expand, setExpand] = useState(false)
-  const [change, setChange] = useState(false)
 
   const tabs = [
     { key: 'totalTransactions' },
@@ -56,6 +63,11 @@ function SSWalletTabView({
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
 
+  async function handleOnRefresh() {
+    setRefreshing(true)
+    onRefresh().finally(() => setRefreshing(false))
+  }
+
   const renderScene = ({
     route
   }: SceneRendererProps & { route: { key: string } }) => {
@@ -65,28 +77,31 @@ function SSWalletTabView({
           <TotalTransactions
             transactions={transactions}
             utxos={utxos}
-            handleOnExpand={handleOnExpand}
-            expand={expand}
             blockchainHeight={blockchainHeight}
+            expand={expand}
+            onExpand={handleOnExpand}
+            onRefresh={handleOnRefresh}
+            refreshing={refreshing}
           />
         )
       case 'derivedAddresses':
         return (
           <DerivedAddresses
             addresses={addresses}
-            handleOnExpand={handleOnExpand}
-            setChange={setChange}
             expand={expand}
-            change={change}
+            onExpand={handleOnExpand}
+            onRefresh={handleOnRefresh}
+            refreshing={refreshing}
+            onLoadMore={onLoadMoreAddresses}
           />
         )
       case 'spendableOutputs':
         return (
           <SpendableOutputs
             utxos={utxos}
-            handleOnRefresh={handleOnRefresh}
-            handleOnExpand={handleOnExpand}
             expand={expand}
+            onExpand={handleOnExpand}
+            onRefresh={handleOnRefresh}
             refreshing={refreshing}
           />
         )
@@ -116,7 +131,7 @@ function SSWalletTabView({
   }
 
   const renderTab = () => {
-    const tabWidth = `${100 / tabsEnabled.length}%` as DimensionValue
+    const tabWidth = `${100 / tabs.length}%` as DimensionValue
     const actionButtonStyle = {
       width: tabWidth
     }
@@ -128,7 +143,7 @@ function SSWalletTabView({
         gap="none"
         style={{ paddingVertical: 8, paddingHorizontal: '5%' }}
       >
-        {tabsEnabled.includes('transactions') && (
+        {tabsVisible.includes('transactions') && (
           <SSActionButton
             style={actionButtonStyle}
             onPress={() => setTabIndex(0)}
@@ -144,7 +159,7 @@ function SSWalletTabView({
             </SSVStack>
           </SSActionButton>
         )}
-        {tabsEnabled.includes('addresses') && (
+        {tabsVisible.includes('addresses') && (
           <SSActionButton
             style={actionButtonStyle}
             onPress={() => setTabIndex(1)}
@@ -162,7 +177,7 @@ function SSWalletTabView({
             </SSVStack>
           </SSActionButton>
         )}
-        {tabsEnabled.includes('utxos') && (
+        {tabsVisible.includes('utxos') && (
           <SSActionButton
             style={actionButtonStyle}
             onPress={() => setTabIndex(2)}
@@ -178,7 +193,7 @@ function SSWalletTabView({
             </SSVStack>
           </SSActionButton>
         )}
-        {tabsEnabled.includes('mempool') && (
+        {tabsVisible.includes('mempool') && (
           <SSActionButton
             style={actionButtonStyle}
             onPress={() => setTabIndex(3)}

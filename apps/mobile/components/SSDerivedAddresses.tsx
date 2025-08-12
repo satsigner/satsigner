@@ -19,10 +19,11 @@ type DerivedAddressesProps = {
   isMultiAddressWatchOnly?: boolean
   showLoadMoreButton?: boolean
   loading?: boolean
-  onLoadMore: () => void
-  onRefresh: () => void
-  handleOnExpand: (state: boolean) => Promise<void>
+  onLoadMore: () => Promise<void>
   expand: boolean
+  onExpand: (state: boolean) => Promise<void>
+  onRefresh: () => Promise<void>
+  refreshing: boolean
 }
 
 function DerivedAddresses({
@@ -33,7 +34,7 @@ function DerivedAddresses({
   loading = false,
   onLoadMore,
   onRefresh,
-  handleOnExpand,
+  onExpand,
   expand
 }: DerivedAddressesProps) {
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
@@ -63,7 +64,7 @@ function DerivedAddresses({
           <SSIconButton onPress={onRefresh}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+          <SSIconButton onPress={() => onExpand(!expand)}>
             {expand ? (
               <SSIconCollapse height={15} width={15} />
             ) : (

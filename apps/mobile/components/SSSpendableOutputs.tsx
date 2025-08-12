@@ -33,16 +33,16 @@ import { getUtxoOutpoint } from '@/utils/utxo'
 
 type SpendableOutputsProps = {
   utxos: AccountUtxo[]
-  handleOnRefresh: () => Promise<void>
-  handleOnExpand: (state: boolean) => Promise<void>
+  onRefresh: () => Promise<void>
+  onExpand: (state: boolean) => Promise<void>
   expand: boolean
   refreshing: boolean
 }
 
 function SpendableOutputs({
   utxos,
-  handleOnRefresh,
-  handleOnExpand,
+  onRefresh,
+  onExpand,
   expand,
   refreshing
 }: SpendableOutputsProps) {
@@ -72,7 +72,7 @@ function SpendableOutputs({
           <SSIconButton onPress={() => {}}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+          <SSIconButton onPress={() => onExpand(!expand)}>
             {expand ? (
               <SSIconCollapse height={15} width={15} />
             ) : (
@@ -102,7 +102,7 @@ function SpendableOutputs({
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleOnRefresh}
+              onRefresh={onRefresh}
               colors={[Colors.gray[950]]}
               progressBackgroundColor={Colors.white}
             />

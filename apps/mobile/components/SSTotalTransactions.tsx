@@ -26,8 +26,8 @@ import SSTransactionList from './SSTransactionList'
 type SSTotalTransactionsProps = {
   transactions: AccountTransaction[]
   utxos: AccountUtxo[]
-  handleOnRefresh: () => Promise<void>
-  handleOnExpand: (state: boolean) => Promise<void>
+  onRefresh: () => Promise<void>
+  onExpand: (state: boolean) => Promise<void>
   expand: boolean
   refreshing: boolean
   blockchainHeight: number
@@ -36,8 +36,8 @@ type SSTotalTransactionsProps = {
 function SSTotalTransactions({
   transactions,
   utxos,
-  handleOnRefresh,
-  handleOnExpand,
+  onRefresh,
+  onExpand,
   expand,
   refreshing,
   blockchainHeight
@@ -65,10 +65,10 @@ function SSTotalTransactions({
         style={{ paddingVertical: 16, paddingHorizontal: 16 }}
       >
         <SSHStack>
-          <SSIconButton onPress={() => handleOnRefresh()}>
+          <SSIconButton onPress={() => onRefresh()}>
             <SSIconRefresh height={18} width={22} />
           </SSIconButton>
-          <SSIconButton onPress={() => handleOnExpand(!expand)}>
+          <SSIconButton onPress={() => onExpand(!expand)}>
             {expand ? (
               <SSIconCollapse height={15} width={15} />
             ) : (
@@ -105,7 +105,7 @@ function SSTotalTransactions({
         <SSTransactionList
           transactions={sortedTransactions}
           expand={expand}
-          handleOnRefresh={handleOnRefresh}
+          onRefresh={onRefresh}
           refreshing={refreshing}
           blockchainHeight={blockchainHeight}
         />

@@ -16,14 +16,13 @@ export type SSTransactionListProps = {
   transactions: AccountTransaction[]
   expand: boolean
   blockchainHeight: number
-  // TODO: move out this props to the parent, refreshing should not be handled here
-  handleOnRefresh: () => Promise<void>
+  onRefresh: () => Promise<void>
   refreshing: boolean
 }
 
 function SSTransactionList({
   transactions,
-  handleOnRefresh,
+  onRefresh,
   expand,
   refreshing,
   blockchainHeight
@@ -91,7 +90,7 @@ function SSTransactionList({
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={handleOnRefresh}
+            onRefresh={onRefresh}
             colors={[Colors.gray[950]]}
             progressBackgroundColor={Colors.white}
           />
