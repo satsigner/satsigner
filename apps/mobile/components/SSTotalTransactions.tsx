@@ -15,9 +15,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import { t } from '@/locales'
 import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { AccountTransaction, AccountUtxo } from '@/types/models/Account'
 import { sortTransactions } from '@/utils/sort'
 
 import SSIconButton from './SSIconButton'
@@ -26,9 +24,8 @@ import SSText from './SSText'
 import SSTransactionList from './SSTransactionList'
 
 type SSTotalTransactionsProps = {
-  transactions: Transaction[]
-  utxos: Utxo[]
-  accountId: Account['id']
+  transactions: AccountTransaction[]
+  utxos: AccountUtxo[]
   handleOnRefresh: () => Promise<void>
   handleOnExpand: (state: boolean) => Promise<void>
   expand: boolean
@@ -39,7 +36,6 @@ type SSTotalTransactionsProps = {
 function SSTotalTransactions({
   transactions,
   utxos,
-  accountId,
   handleOnRefresh,
   handleOnExpand,
   expand,
@@ -50,7 +46,10 @@ function SSTotalTransactions({
 
   const [sortDirection, setSortDirection] = useState<Direction>('desc')
   const sortedTransactions = useMemo(() => {
-    return sortTransactions([...transactions], sortDirection)
+    return sortTransactions(
+      [...transactions],
+      sortDirection
+    ) as AccountTransaction[]
   }, [transactions, sortDirection])
 
   const chartTransactions = useMemo(() => {
@@ -104,12 +103,7 @@ function SSTotalTransactions({
         </View>
       ) : (
         <SSTransactionList
-          transactions={sortedTransactions.map((transaction) => {
-            return {
-              ...transaction,
-              accountId
-            }
-          })}
+          transactions={sortedTransactions}
           expand={expand}
           handleOnRefresh={handleOnRefresh}
           refreshing={refreshing}
