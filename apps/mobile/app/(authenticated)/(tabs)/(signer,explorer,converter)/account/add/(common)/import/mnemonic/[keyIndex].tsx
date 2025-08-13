@@ -351,6 +351,7 @@ export default function ImportMnemonic() {
 
   async function handleOnPressImportSeed() {
     setLoadingAccount(true)
+    console.log('policyType', policyType)
 
     const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
     setMnemonic(mnemonic)
@@ -359,9 +360,10 @@ export default function ImportMnemonic() {
 
     if (policyType === 'singlesig') {
       const account = getAccountData()
-
+      console.log('account', account)
       const data = await accountBuilderFinish(account)
       if (!data || !data.wallet) return
+      console.log('data', data)
 
       setAccountAddedModalVisible(true)
 
