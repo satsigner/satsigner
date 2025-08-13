@@ -36,7 +36,6 @@ type SSMultisigKeyControlProps = {
   keyDetails?: Key
   isSettingsMode?: boolean
   accountId?: string
-  onRefresh?: () => void
 }
 
 function SSMultisigKeyControl({
@@ -45,8 +44,7 @@ function SSMultisigKeyControl({
   keyCount,
   keyDetails,
   isSettingsMode = false,
-  accountId,
-  onRefresh
+  accountId
 }: SSMultisigKeyControlProps) {
   const router = useRouter()
   const [setKeyName, setCreationType, setNetwork, getAccountData] =
@@ -62,7 +60,7 @@ function SSMultisigKeyControl({
   const globalScriptVersion = useAccountBuilderStore(
     (state) => state.scriptVersion
   ) as ScriptVersionType
-  const updateAccountName = useAccountsStore((state) => state.updateAccountName)
+  const updateKeyName = useAccountsStore((state) => state.updateKeyName)
 
   // Use account's script version in settings mode, global script version in creation mode
   const scriptVersion =
@@ -77,6 +75,7 @@ function SSMultisigKeyControl({
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   // Extract public key from descriptor when key details change
   useEffect(() => {
@@ -127,6 +126,14 @@ function SSMultisigKeyControl({
     }
   }, [keyDetails])
 
+  // Reset localKeyName and hasUnsavedChanges when keyDetails change
+  useEffect(() => {
+    if (keyDetails?.name !== undefined) {
+      setLocalKeyName(keyDetails.name)
+      setHasUnsavedChanges(false)
+    }
+  }, [keyDetails?.name])
+
   function getSourceLabel() {
     if (!keyDetails) {
       return t('account.selectKeySource')
@@ -170,26 +177,94 @@ function SSMultisigKeyControl({
   }
 
   function getDropSeedLabel() {
-    // Fallback to global script version
-    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-    return t(`account.seed.dropAndKeep.${keyFormat}`)
+    // For multisig, generate dynamic labels based on script type and network
+    if (scriptVersion === 'P2SH') {
+      return network === 'bitcoin'
+        ? t('account.seed.dropAndKeep.xpub')
+        : t('account.seed.dropAndKeep.tpub')
+    } else if (scriptVersion === 'P2SH-P2WSH') {
+      return network === 'bitcoin'
+        ? t('account.seed.dropAndKeep.ypub')
+        : t('account.seed.dropAndKeep.upub')
+    } else if (scriptVersion === 'P2WSH') {
+      return network === 'bitcoin'
+        ? t('account.seed.dropAndKeep.zpub')
+        : t('account.seed.dropAndKeep.vpub')
+    } else if (scriptVersion === 'P2PKH') {
+      // P2PKH: Only xpub/tpub
+      return network === 'bitcoin'
+        ? t('account.seed.dropAndKeep.xpub')
+        : t('account.seed.dropAndKeep.tpub')
+    } else if (scriptVersion === 'P2SH-P2WPKH') {
+      // P2SH-P2WPKH: xpub/ypub or tpub/upub
+      return network === 'bitcoin'
+        ? t('account.seed.dropAndKeep.ypub')
+        : t('account.seed.dropAndKeep.upub')
+    } else if (scriptVersion === 'P2WPKH') {
+      // P2WPKH: xpub/zpub or tpub/vpub
+      return network === 'bitcoin'
+        ? t('account.seed.dropAndKeep.zpub')
+        : t('account.seed.dropAndKeep.vpub')
+    } else if (scriptVersion === 'P2TR') {
+      // P2TR: Only vpub (same for all networks)
+      return t('account.seed.dropAndKeep.vpub')
+    } else {
+      // Fallback for other script types
+      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+      return t(`account.seed.dropAndKeep.${keyFormat}`)
+    }
   }
 
   function getShareXpubLabel() {
-    // Fallback to global script version
-    const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
-    return t(
-      `account.seed.share${
-        keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)
-      }`
-    )
+    // For multisig, generate dynamic labels based on script type and network
+    if (scriptVersion === 'P2SH') {
+      return network === 'bitcoin'
+        ? t('account.seed.shareXpub')
+        : t('account.seed.shareTpub')
+    } else if (scriptVersion === 'P2SH-P2WSH') {
+      return network === 'bitcoin'
+        ? t('account.seed.shareYpub')
+        : t('account.seed.shareUpub')
+    } else if (scriptVersion === 'P2WSH') {
+      return network === 'bitcoin'
+        ? t('account.seed.shareZpub')
+        : t('account.seed.shareVpub')
+    } else if (scriptVersion === 'P2PKH') {
+      // P2PKH: Only xpub/tpub
+      return network === 'bitcoin'
+        ? t('account.seed.shareXpub')
+        : t('account.seed.shareTpub')
+    } else if (scriptVersion === 'P2SH-P2WPKH') {
+      // P2SH-P2WPKH: xpub/ypub or tpub/upub
+      return network === 'bitcoin'
+        ? t('account.seed.shareYpub')
+        : t('account.seed.shareUpub')
+    } else if (scriptVersion === 'P2WPKH') {
+      // P2WPKH: xpub/zpub or tpub/vpub
+      return network === 'bitcoin'
+        ? t('account.seed.shareZpub')
+        : t('account.seed.shareVpub')
+    } else if (scriptVersion === 'P2TR') {
+      // P2TR: Only vpub
+      return t('account.seed.shareVpub')
+    } else {
+      // Fallback for other script types
+      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+      return t(
+        `account.seed.share${
+          keyFormat.charAt(0).toUpperCase() + keyFormat.slice(1)
+        }`
+      )
+    }
   }
 
   function handleWordCountSelection() {
     setWordCountModalVisible(false)
     // Set the word count in the account builder store
     const { setMnemonicWordCount } = useAccountBuilderStore.getState()
-    setMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordCount(
+      localMnemonicWordCount as NonNullable<Key['mnemonicWordCount']>
+    )
     // Navigate to import page with the selected word count
     router.navigate(`/account/add/import/mnemonic/${index}`)
   }
@@ -245,7 +320,7 @@ function SSMultisigKeyControl({
           // Set seedDropped to true to hide the button
           setSeedDropped(true)
           toast.success(result.message)
-          onRefresh?.()
+          // Don't call onRefresh to keep the interface focused
         } else {
           toast.error(result.message)
         }
@@ -256,7 +331,7 @@ function SSMultisigKeyControl({
 
         if (result.success) {
           toast.success(result.message)
-          onRefresh?.()
+          // Don't call onRefresh to keep the interface focused
         } else {
           toast.error(result.message)
         }
@@ -333,10 +408,14 @@ function SSMultisigKeyControl({
 
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
+    setHasUnsavedChanges(true)
+  }
 
-    // Save to store if in settings mode and we have an account ID
-    if (isSettingsMode && accountId && newName.trim()) {
-      updateAccountName(accountId, newName.trim())
+  function handleSaveKeyName() {
+    if (isSettingsMode && accountId && localKeyName.trim()) {
+      updateKeyName(accountId, index, localKeyName.trim())
+      setHasUnsavedChanges(false)
+      toast.success('Key name saved')
     }
   }
 
@@ -426,6 +505,14 @@ function SSMultisigKeyControl({
                   value={localKeyName}
                   onChangeText={handleKeyNameChange}
                 />
+                {isSettingsMode && hasUnsavedChanges && (
+                  <SSButton
+                    label={t('common.save')}
+                    variant="secondary"
+                    onPress={handleSaveKeyName}
+                    style={{ marginTop: 8 }}
+                  />
+                )}
               </SSFormLayout.Item>
             </SSFormLayout>
           )}

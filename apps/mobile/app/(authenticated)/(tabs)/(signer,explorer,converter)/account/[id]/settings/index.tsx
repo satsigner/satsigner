@@ -263,15 +263,16 @@ export default function AccountSettings() {
         </SSVStack>
         <SSVStack>
           {(account.keys[0].creationType === 'generateMnemonic' ||
-            account.keys[0].creationType === 'importMnemonic') && (
-            <SSHStack>
-              <SSButton
-                style={styles.button}
-                label={t('account.viewMnemonic')}
-                onPress={() => handleOnViewMnemonic()}
-              />
-            </SSHStack>
-          )}
+            account.keys[0].creationType === 'importMnemonic') &&
+            account.policyType !== 'multisig' && (
+              <SSHStack>
+                <SSButton
+                  style={styles.button}
+                  label={t('account.viewMnemonic')}
+                  onPress={() => handleOnViewMnemonic()}
+                />
+              </SSHStack>
+            )}
           <SSHStack>
             <SSButton
               style={styles.button}

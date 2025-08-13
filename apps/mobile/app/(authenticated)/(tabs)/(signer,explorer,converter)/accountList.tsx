@@ -152,6 +152,10 @@ export default function AccountList() {
     router.navigate('/account/add')
   }
 
+  function handleGoToAccount(accountId: string) {
+    router.navigate(`/account/${accountId}`)
+  }
+
   async function syncAccounts() {
     for (const account of accounts) {
       if (account.network !== tabs[tabIndex].key) continue
@@ -470,7 +474,7 @@ export default function AccountList() {
                   <SSVStack>
                     <SSAccountCard
                       account={item}
-                      onPress={() => router.navigate(`/account/${item.id}`)}
+                      onPress={() => handleGoToAccount(item.id)}
                     />
                   </SSVStack>
                 )}

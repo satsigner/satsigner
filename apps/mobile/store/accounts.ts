@@ -24,6 +24,7 @@ type AccountsAction = {
   addAccount: (account: Account) => void
   updateAccount: (account: Account) => Promise<void>
   updateAccountName: (id: Account['id'], newName: string) => void
+  updateKeyName: (id: Account['id'], keyIndex: number, newName: string) => void
   updateAccountNostr: (
     id: Account['id'],
     nostr: Partial<Account['nostr']>
@@ -91,6 +92,17 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
               (account) => account.id === id
             )
             if (index !== -1) state.accounts[index].name = newName
+          })
+        )
+      },
+      updateKeyName: (id, keyIndex, newName) => {
+        set(
+          produce((state: AccountsState) => {
+            const index = state.accounts.findIndex(
+              (account) => account.id === id
+            )
+            if (index === -1) return
+            state.accounts[index].keys[keyIndex].name = newName
           })
         )
       },

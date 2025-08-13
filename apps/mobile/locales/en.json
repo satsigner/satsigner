@@ -202,6 +202,14 @@
       "dropSeedSuccess": "Seed dropped successfully",
       "droppedSeed": "Dropped Seed (%{name})",
       "external": "External Descriptor",
+      "formatButtons": {
+        "tpub": "TPUB",
+        "upub": "UPUB",
+        "vpub": "VPUB",
+        "xpub": "XPUB",
+        "ypub": "YPUB",
+        "zpub": "ZPUB"
+      },
       "importedSeed": "Imported Seed (%{name})",
       "newSeed": "New Seed (%{name})",
       "noLabel": "No Label",
