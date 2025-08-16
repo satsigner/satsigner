@@ -491,7 +491,7 @@ export default function AccountSettings() {
               </SSText>
               <SSHStack style={{ justifyContent: 'center' }}>
                 <SSText uppercase color="muted">
-                  {t('account.seed.keepItSecret')}
+                  {t('account.seed.keepInSecret')}
                 </SSText>
               </SSHStack>
               <View style={styles.mnemonicWordsContainer}>
@@ -568,7 +568,7 @@ export default function AccountSettings() {
                   />
                 </SSClipboardCopy>
                 <SSButton
-                  label={t('account.seedqr.title')}
+                  label={t('account.seed.showQR')}
                   style={styles.copyButton}
                   variant="outline"
                   onPress={() => {
