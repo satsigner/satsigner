@@ -43,6 +43,67 @@ export default function ConfirmScreen() {
         return
       }
 
+      // Console log the created account and wallet information
+      console.log('🎯 [MultiSigFinish] Account created successfully:', {
+        accountId: account.id,
+        accountName: account.name,
+        policyType: account.policyType,
+        keyCount: account.keyCount,
+        keysRequired: account.keysRequired,
+        network: account.network
+      })
+
+      console.log(
+        '🔑 [MultiSigFinish] Account keys info:',
+        account.keys.map((key, index) => ({
+          index,
+          name: key.name,
+          creationType: key.creationType,
+          scriptVersion: key.scriptVersion,
+          fingerprint: key.fingerprint,
+          derivationPath: key.derivationPath,
+          hasExtendedPublicKey:
+            typeof key.secret === 'object' &&
+            Boolean(key.secret.extendedPublicKey),
+          hasExternalDescriptor:
+            typeof key.secret === 'object' &&
+            Boolean(key.secret.externalDescriptor),
+          hasMnemonic:
+            typeof key.secret === 'object' && Boolean(key.secret.mnemonic)
+        }))
+      )
+
+      if (data.wallet) {
+        console.log('💰 [MultiSigFinish] Wallet created:', {
+          walletExists: Boolean(data.wallet),
+          walletType: 'BDK Wallet object'
+        })
+
+        // Try to get some wallet information
+        try {
+          const walletAddressInfo = await data.wallet.getAddress(0)
+          const walletAddress = await walletAddressInfo.address.asString()
+          console.log(
+            '🏠 [MultiSigFinish] First wallet address:',
+            walletAddress
+          )
+        } catch (error) {
+          console.log(
+            '❌ [MultiSigFinish] Error getting wallet address:',
+            error
+          )
+        }
+      }
+
+      if (data.accountWithEncryptedSecret) {
+        console.log('🔐 [MultiSigFinish] Account with encrypted secret:', {
+          accountId: data.accountWithEncryptedSecret.id,
+          policyType: data.accountWithEncryptedSecret.policyType,
+          keyCount: data.accountWithEncryptedSecret.keys.length,
+          keysRequired: data.accountWithEncryptedSecret.keysRequired
+        })
+      }
+
       setCompleted(true)
 
       try {

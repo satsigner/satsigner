@@ -1,5 +1,5 @@
 import { Redirect, Stack, useRouter } from 'expo-router'
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -28,18 +28,24 @@ export default function MultiSigManager() {
     )
 
   const allKeysFilled = useMemo(() => {
-    if (!keys || keys.length !== keyCount) return false
+    if (!keys || keys.length !== keyCount) {
+      return false
+    }
 
     // Check that each key has both fingerprint and public key/descriptor
-    return keys.every((key) => {
-      if (!key) return false
+    const keyValidation = keys.map((key, index) => {
+      if (!key) {
+        return false
+      }
 
       // Check for fingerprint in secret or key property
       const hasFingerprint =
         (typeof key.secret === 'object' && key.secret.fingerprint) ||
         key.fingerprint
 
-      if (!hasFingerprint) return false
+      if (!hasFingerprint) {
+        return false
+      }
 
       // Check if key has either public key, descriptor, or mnemonic
       const hasPublicKey =
@@ -47,11 +53,29 @@ export default function MultiSigManager() {
         (typeof key.secret === 'object' && key.secret.externalDescriptor) ||
         (typeof key.secret === 'object' && key.secret.mnemonic)
 
-      return hasPublicKey
+      if (!hasPublicKey) {
+        return false
+      }
+
+      return true
     })
+
+    const allValid = keyValidation.every((valid) => valid)
+    return allValid
   }, [keys, keyCount])
 
-  if (!keyCount || !keysRequired) return <Redirect href="/" />
+  function handleConfirm() {
+    router.navigate('/account/add/multiSig/finish')
+  }
+
+  function handleCancel() {
+    clearAllKeys()
+    router.back()
+  }
+
+  if (!keyCount || !keysRequired) {
+    return <Redirect href="/" />
+  }
 
   return (
     <SSMainLayout style={{ paddingHorizontal: 0 }}>
@@ -75,30 +99,29 @@ export default function MultiSigManager() {
         </SSVStack>
         <ScrollView>
           <SSVStack gap="none">
-            {Array.from({ length: keyCount }, (_, i) => i).map((index) => (
-              <SSMultisigKeyControl
-                key={index}
-                isBlackBackground={index % 2 === 0}
-                index={index}
-                keyCount={keyCount}
-                keyDetails={keys[index]}
-              />
-            ))}
+            {Array.from({ length: keyCount }, (_, i) => i).map((index) => {
+              return (
+                <SSMultisigKeyControl
+                  key={index}
+                  isBlackBackground={index % 2 === 0}
+                  index={index}
+                  keyCount={keyCount}
+                  keyDetails={keys[index]}
+                />
+              )
+            })}
           </SSVStack>
           <SSVStack style={{ padding: 16 }}>
             <SSButton
               label={t('common.confirm')}
               variant="secondary"
               disabled={!allKeysFilled}
-              onPress={() => router.navigate('/account/add/multiSig/finish')}
+              onPress={handleConfirm}
             />
             <SSButton
               label={t('common.cancel')}
               variant="ghost"
-              onPress={() => {
-                clearAllKeys()
-                router.back()
-              }}
+              onPress={handleCancel}
             />
           </SSVStack>
         </ScrollView>
