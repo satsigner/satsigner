@@ -109,7 +109,8 @@ export default function Confirm() {
       const currentKey = setKey(Number(keyIndex))
       const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
         currentKey,
-        network as Network
+        network as Network,
+        policyType === 'multisig' // Pass multisig flag
       )
       updateKeySecret(Number(keyIndex), {
         ...(currentKey.secret as object),

@@ -30,6 +30,7 @@ import { Colors } from '@/styles'
 import { type Account, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import {
+  getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
   getMultisigScriptTypeFromScriptVersion
 } from '@/utils/bitcoin'
@@ -343,12 +344,14 @@ export default function ExportDescriptors() {
               const multisigScriptType =
                 getMultisigScriptTypeFromScriptVersion(scriptVersion)
 
-              // Get the policy-based derivation path according to the multisig script type
+              // Get the policy-based derivation path according to the account type
               const policyDerivationPath =
-                getMultisigDerivationPathFromScriptVersion(
-                  multisigScriptType,
-                  network
-                )
+                temporaryAccount.policyType === 'multisig'
+                  ? getMultisigDerivationPathFromScriptVersion(
+                      multisigScriptType,
+                      network
+                    )
+                  : getDerivationPathFromScriptVersion(scriptVersion, network)
 
               // Remove leading 'm' or 'M' from derivationPath if present
               const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
@@ -361,43 +364,60 @@ export default function ExportDescriptors() {
                 })
                 .join(',')
 
-              // Create multisig descriptor based on multisig script type using sortedmulti for consistency
-              let multisigDescriptor = ''
-              switch (multisigScriptType) {
-                case 'P2SH':
-                  // For multisig P2PKH, use P2SH descriptor
-                  multisigDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
-                  break
-                case 'P2SH-P2WSH':
-                  // For multisig P2SH-P2WPKH, use P2SH-P2WSH descriptor
-                  multisigDescriptor = `sh(wsh(sortedmulti(${keysRequired},${keySection})))`
-                  break
-                case 'P2WSH':
-                  // For multisig P2WPKH, use P2WSH descriptor
-                  multisigDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
-                  break
-                case 'P2TR':
-                  // For multisig P2TR, use P2TR descriptor
-                  multisigDescriptor = `tr(sortedmulti(${keysRequired},${keySection}))`
-                  break
-                default:
-                  // Default to P2WSH for multisig
-                  multisigDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+              // Create descriptor based on account type
+              let finalDescriptor = ''
+              if (temporaryAccount.policyType === 'multisig') {
+                // Create multisig descriptor using sortedmulti
+                switch (multisigScriptType) {
+                  case 'Legacy P2SH':
+                    finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
+                    break
+                  case 'P2SH-P2WSH':
+                    finalDescriptor = `sh(wsh(sortedmulti(${keysRequired},${keySection})))`
+                    break
+                  case 'P2WSH':
+                    finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+                    break
+                  case 'P2TR':
+                    finalDescriptor = `tr(sortedmulti(${keysRequired},${keySection}))`
+                    break
+                  default:
+                    finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+                }
+              } else {
+                // For single-sig accounts, create simple descriptor
+                const singleKey = keySection.split(',')[0] // Use first (and only) key
+                switch (scriptVersion) {
+                  case 'P2PKH':
+                    finalDescriptor = `pkh(${singleKey.replace('/<0;1>/*', '/0/*')})`
+                    break
+                  case 'P2SH-P2WPKH':
+                    finalDescriptor = `sh(wpkh(${singleKey.replace('/<0;1>/*', '/0/*')}))`
+                    break
+                  case 'P2WPKH':
+                    finalDescriptor = `wpkh(${singleKey.replace('/<0;1>/*', '/0/*')})`
+                    break
+                  case 'P2TR':
+                    finalDescriptor = `tr(${singleKey.replace('/<0;1>/*', '/0/*')})`
+                    break
+                  default:
+                    finalDescriptor = `wpkh(${singleKey.replace('/<0;1>/*', '/0/*')})`
+                }
               }
 
               // Validate descriptor format before adding checksum
               if (
-                !multisigDescriptor ||
+                !finalDescriptor ||
                 keySection.split(',').length !== keyCount
               ) {
-                descriptorString = multisigDescriptor
+                descriptorString = finalDescriptor
               } else {
                 // Always calculate checksum manually for multisig descriptors
-                const checksum = calculateDescriptorChecksum(multisigDescriptor)
+                const checksum = calculateDescriptorChecksum(finalDescriptor)
                 if (checksum) {
-                  descriptorString = `${multisigDescriptor}#${checksum}`
+                  descriptorString = `${finalDescriptor}#${checksum}`
                 } else {
-                  descriptorString = multisigDescriptor
+                  descriptorString = finalDescriptor
                 }
               }
             }

@@ -411,7 +411,8 @@ export default function ImportMnemonic() {
             extendedPublicKey,
             currentKey.fingerprint,
             scriptVersion,
-            network as Network
+            network as Network,
+            policyType === 'multisig' // Pass multisig flag
           )
 
           // Update the key with both descriptors and extended public key

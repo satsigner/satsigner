@@ -22,7 +22,10 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
 import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { decodeBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
-import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
+import {
+  getDerivationPathFromScriptVersion,
+  getMultisigDerivationPathFromScriptVersion
+} from '@/utils/bitcoin'
 import { decodeURToPSBT } from '@/utils/ur'
 import {
   isCombinedDescriptor,
@@ -94,26 +97,30 @@ export default function ImportDescriptor() {
     }
   }, [isReading, pulseAnim])
 
-  const {
-    setKey,
+  const [
+    setExtendedPublicKey,
     setStoreExternalDescriptor,
     setStoreInternalDescriptor,
-    setKeyDerivationPath,
-    setExtendedPublicKey,
     setFingerprint,
+    clearKeyState,
+    setKey,
+    setKeyDerivationPath,
+    policyType,
     scriptVersion,
-    clearKeyState
-  } = useAccountBuilderStore(
-    useShallow((state) => ({
-      setKey: state.setKey,
-      setStoreExternalDescriptor: state.setExternalDescriptor,
-      setStoreInternalDescriptor: state.setInternalDescriptor,
-      setKeyDerivationPath: state.setKeyDerivationPath,
-      setExtendedPublicKey: state.setExtendedPublicKey,
-      setFingerprint: state.setFingerprint,
-      scriptVersion: state.scriptVersion,
-      clearKeyState: state.clearKeyState
-    }))
+    builderNetwork
+  ] = useAccountBuilderStore(
+    useShallow((state) => [
+      state.setExtendedPublicKey,
+      state.setExternalDescriptor,
+      state.setInternalDescriptor,
+      state.setFingerprint,
+      state.clearKeyState,
+      state.setKey,
+      state.setKeyDerivationPath,
+      state.policyType,
+      state.scriptVersion,
+      state.network
+    ])
   )
 
   const updateDescriptorValidationState = useCallback(() => {
@@ -447,7 +454,7 @@ export default function ImportDescriptor() {
     }
 
     // Fallback: Use default derivation path
-    return `m/${getDerivationPathFromScriptVersion(scriptVersion, network)}`
+    return getDefaultDerivationPath()
   }
 
   /**
@@ -719,6 +726,19 @@ export default function ImportDescriptor() {
     },
     valid: { height: 'auto', paddingVertical: 10 }
   })
+
+  function getDefaultDerivationPath(): string {
+    // Check if we're in multisig mode to use the correct derivation path function
+    const rawDerivationPath =
+      policyType === 'multisig'
+        ? getMultisigDerivationPathFromScriptVersion(
+            scriptVersion,
+            builderNetwork
+          )
+        : getDerivationPathFromScriptVersion(scriptVersion, builderNetwork)
+
+    return `m/${rawDerivationPath}`
+  }
 
   return (
     <SSMainLayout>
