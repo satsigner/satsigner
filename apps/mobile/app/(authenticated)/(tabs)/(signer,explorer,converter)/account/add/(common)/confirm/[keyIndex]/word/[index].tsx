@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
@@ -106,16 +105,9 @@ export default function Confirm() {
       setLoadingAccount(false)
       setWarningModalVisible(true)
     } else if (policyType === 'multisig') {
-      const currentKey = setKey(Number(keyIndex))
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        currentKey,
-        network as Network,
-        policyType === 'multisig' // Pass multisig flag
-      )
-      updateKeySecret(Number(keyIndex), {
-        ...(currentKey.secret as object),
-        extendedPublicKey
-      })
+      // Extended public key is already generated in the mnemonic step
+      // Just set the key and continue
+      setKey(Number(keyIndex))
 
       setLoadingAccount(false)
       router.dismiss(Number(index) + 3)

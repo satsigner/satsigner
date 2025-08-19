@@ -351,7 +351,6 @@ export default function ImportMnemonic() {
 
   async function handleOnPressImportSeed() {
     setLoadingAccount(true)
-    console.log('policyType', policyType)
 
     const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
     setMnemonic(mnemonic)
@@ -360,10 +359,8 @@ export default function ImportMnemonic() {
 
     if (policyType === 'singlesig') {
       const account = getAccountData()
-      console.log('account', account)
       const data = await accountBuilderFinish(account)
       if (!data || !data.wallet) return
-      console.log('data', data)
 
       setAccountAddedModalVisible(true)
 
@@ -429,6 +426,11 @@ export default function ImportMnemonic() {
             extendedPublicKey
           })
         }
+
+        // Keep loading state active until the user is dismissed
+        // The loading will be cleared when the screen is dismissed
+        clearKeyState()
+        router.dismiss(1)
       } catch (error) {
         toast.error(
           (error as Error).message || 'Failed to import multisig account'
@@ -436,10 +438,6 @@ export default function ImportMnemonic() {
         setLoadingAccount(false)
         return
       }
-
-      setLoadingAccount(false)
-      clearKeyState()
-      router.dismiss(1)
     }
   }
 
