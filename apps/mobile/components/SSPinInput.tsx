@@ -113,9 +113,9 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   }
 
   function handleLastPin() {
-      setIsBackspace(false)
-      onFillEnded?.([...pin].join(''))
-      Keyboard.dismiss()
+    setIsBackspace(false)
+    onFillEnded?.([...pin].join(''))
+    Keyboard.dismiss()
   }
 
   function handleKeyPress(key: string, index: number) {
