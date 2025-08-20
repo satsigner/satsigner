@@ -12,6 +12,7 @@ import {
   TextInput,
   type TextInputKeyPressEventData
 } from 'react-native'
+import KeyEvent from 'react-native-keyevent'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -24,9 +25,20 @@ type SSPinInputProps = {
   onFillEnded?: (pin: string) => void
 }
 
+interface KeyEventData {
+  keyCode: number
+  pressedKey: string
+}
+
+const ALLOWED_KEYS: string[] = '0123456789'.split('')
+const KEY_CODE_DELETE = 0
+const KEY_CODE_BACKSPACE = 67
+const KEY_CODE_RIGHT = 22
+
 function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
     function resetFocusOnClear() {
@@ -38,46 +50,85 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     resetFocusOnClear()
   }, [pin])
 
+  useEffect(() => {
+    KeyEvent.onKeyUpListener((keyEvent: KeyEventData) => {
+      const { keyCode, pressedKey } = keyEvent
+
+      if (keyCode === KEY_CODE_DELETE || keyCode === KEY_CODE_BACKSPACE) {
+        handleKeyPress('Backspace')
+      } else {
+        handleKeyPress(pressedKey)
+      }
+    })
+
+    return () => {
+      // Clean up listener on component unmount
+      KeyEvent.removeKeyUpListener()
+    }
+  }, [currentIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleOnChangeText(text: string, index: number) {
+    // validate input from physical keyboard
+    if (text !== '' && !ALLOWED_KEYS.includes(text)) {
+      return
+    }
+
     const newPin = [...pin]
     newPin[index] = text
     setPin(newPin)
+
+    if (text !== '') setCurrentIndex(index + 1)
 
     if (text === '') return
 
     if (index + 1 < PIN_SIZE) inputRefs.current[index + 1]?.focus()
   }
 
+  function handleBackspace(index: number) {
+    const newPin = [...pin]
+    setIsBackspace(true)
+    const previousPinIndex = index - 1
+    const currentPinNotEmpty = pin[index] !== ''
+
+    if (currentPinNotEmpty) {
+      newPin[index] = ''
+      setPin(newPin)
+      return
+    }
+
+    if (previousPinIndex >= 0) {
+      newPin[previousPinIndex] = ''
+      setPin(newPin)
+      inputRefs.current[previousPinIndex]?.focus()
+      setCurrentIndex(currentIndex - 1)
+    }
+  }
+
+  function handleKeyPress(key: string) {
+    const newPin = [...pin]
+    const isLastPin = currentIndex === PIN_SIZE
+
+    if (key === 'Backspace') {
+      handleBackspace(currentIndex)
+      return
+    }
+
+    if (isLastPin && ALLOWED_KEYS.includes(key)) {
+      setIsBackspace(false)
+      onFillEnded?.(newPin.join(''))
+      Keyboard.dismiss()
+    }
+  }
+
+  // The KeyEvent handler does not detect the backspace from virtual keyboard,
+  // therefore we need to handle this special case here.
   function handleOnKeyPress(
     event: NativeSyntheticEvent<TextInputKeyPressEventData>,
     index: number
   ) {
-    const key = event.nativeEvent.key
-    const newPin = [...pin]
-    const isLastPin = index + 1 === PIN_SIZE
+    const { key } = event.nativeEvent
     if (key === 'Backspace') {
-      setIsBackspace(true)
-      const previousPinIndex = index - 1
-      const currentPinNotEmpty = pin[index] !== ''
-
-      if (currentPinNotEmpty) {
-        newPin[index] = ''
-        setPin(newPin)
-        return
-      }
-
-      if (previousPinIndex >= 0) {
-        newPin[previousPinIndex] = ''
-        setPin(newPin)
-        inputRefs.current[previousPinIndex]?.focus()
-        return
-      }
-    }
-
-    if (isLastPin) {
-      newPin[index] = key
-      onFillEnded?.(newPin.join(''))
-      Keyboard.dismiss()
+      handleBackspace(index)
     }
   }
 
@@ -94,7 +145,11 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
       return
     }
 
-    const finalIndex = lastFilledIndex === -1 ? PIN_SIZE - 1 : lastFilledIndex
+    const finalIndex =
+      lastFilledIndex === -1 || currentIndex === PIN_SIZE
+        ? PIN_SIZE - 1
+        : lastFilledIndex
+
     inputRefs.current[finalIndex]?.focus()
   }
 
