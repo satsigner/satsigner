@@ -369,7 +369,7 @@ export default function ExportDescriptors() {
               if (temporaryAccount.policyType === 'multisig') {
                 // Create multisig descriptor using sortedmulti
                 switch (multisigScriptType) {
-                  case 'Legacy P2SH':
+                  case 'P2SH':
                     finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
                     break
                   case 'P2SH-P2WSH':

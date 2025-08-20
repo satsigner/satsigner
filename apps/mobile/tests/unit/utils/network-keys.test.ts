@@ -291,9 +291,9 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('P2SH-P2WSH', 'bitcoin')
     ).toBe("48'/0'/0'/1'")
-    expect(
-      getMultisigDerivationPathFromScriptVersion('Legacy P2SH', 'bitcoin')
-    ).toBe("45'/0'/0'")
+    expect(getMultisigDerivationPathFromScriptVersion('P2SH', 'bitcoin')).toBe(
+      "45'/0'/0'"
+    )
   })
 
   test('should return correct multisig derivation paths for testnet', () => {
@@ -315,9 +315,9 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('P2SH-P2WSH', 'testnet')
     ).toBe("48'/1'/0'/1'")
-    expect(
-      getMultisigDerivationPathFromScriptVersion('Legacy P2SH', 'testnet')
-    ).toBe("45'/1'/0'")
+    expect(getMultisigDerivationPathFromScriptVersion('P2SH', 'testnet')).toBe(
+      "45'/1'/0'"
+    )
   })
 
   test('should return correct multisig derivation paths for signet', () => {
@@ -339,9 +339,9 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('P2SH-P2WSH', 'signet')
     ).toBe("48'/1'/0'/1'")
-    expect(
-      getMultisigDerivationPathFromScriptVersion('Legacy P2SH', 'signet')
-    ).toBe("45'/1'/0'")
+    expect(getMultisigDerivationPathFromScriptVersion('P2SH', 'signet')).toBe(
+      "45'/1'/0'"
+    )
   })
 
   test('should return default multisig derivation path for unknown script version', () => {

@@ -213,8 +213,9 @@ async function getWalletData(
       }
 
       // Get the policy-based derivation path according to the account type
+      // Use the original scriptVersion for derivation path, not the mapped multisig script type
       const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
-        multisigScriptType,
+        scriptVersion, // Use original scriptVersion instead of multisigScriptType
         network as BlockchainNetwork
       )
 
@@ -232,7 +233,7 @@ async function getWalletData(
       // Create descriptor based on script type using sortedmulti
       let finalDescriptor = ''
       switch (multisigScriptType) {
-        case 'Legacy P2SH':
+        case 'P2SH':
           finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
           break
         case 'P2SH-P2WSH':

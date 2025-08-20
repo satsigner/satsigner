@@ -426,11 +426,6 @@ export default function ImportMnemonic() {
             extendedPublicKey
           })
         }
-
-        // Keep loading state active until the user is dismissed
-        // The loading will be cleared when the screen is dismissed
-        clearKeyState()
-        router.dismiss(1)
       } catch (error) {
         toast.error(
           (error as Error).message || 'Failed to import multisig account'
@@ -438,6 +433,10 @@ export default function ImportMnemonic() {
         setLoadingAccount(false)
         return
       }
+
+      setLoadingAccount(false)
+      clearKeyState()
+      router.dismiss(1)
     }
   }
 
