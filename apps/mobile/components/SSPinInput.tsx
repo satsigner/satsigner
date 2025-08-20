@@ -5,13 +5,7 @@ import {
   useRef,
   useState
 } from 'react'
-import {
-  Keyboard,
-  type NativeSyntheticEvent,
-  StyleSheet,
-  TextInput,
-  type TextInputKeyPressEventData
-} from 'react-native'
+import { Keyboard, StyleSheet, TextInput } from 'react-native'
 import KeyEvent from 'react-native-keyevent'
 
 import { PIN_SIZE } from '@/config/auth'
