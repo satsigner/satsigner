@@ -108,19 +108,18 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     }
   }
 
-  function handleKeyPress(key: string) {
-    const newPin = [...pin]
-    const isLastPin = currentIndex === PIN_SIZE
+  function handleLastPin() {
+      setIsBackspace(false)
+      onFillEnded?.([...pin].join(''))
+      Keyboard.dismiss()
+  }
 
+  function handleKeyPress(key: string) {
     if (key === 'Backspace') {
       handleBackspace(currentIndex)
-      return
     }
-
-    if (isLastPin && ALLOWED_KEYS.includes(key)) {
-      setIsBackspace(false)
-      onFillEnded?.(newPin.join(''))
-      Keyboard.dismiss()
+    if (currentIndex === PIN_SIZE && ALLOWED_KEYS.includes(key)) {
+      handleLastPin()
     }
   }
 
@@ -133,6 +132,9 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     const { key } = event.nativeEvent
     if (key === 'Backspace') {
       handleBackspace(index)
+    }
+    if (index === PIN_SIZE - 1 && ALLOWED_KEYS.includes(key)) {
+      handleLastPin()
     }
   }
 
