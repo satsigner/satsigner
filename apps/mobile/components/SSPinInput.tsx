@@ -52,17 +52,21 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
 
   useEffect(() => {
     KeyEvent.onKeyUpListener((keyEvent: KeyEventData) => {
-      const { keyCode, pressedKey } = keyEvent
+      const keyCode = keyEvent.keyCode
+      let pressedKey = keyEvent.pressedKey
 
       if (
         keyCode === KEY_CODE_DELETE ||
         keyCode === KEY_CODE_BACKSPACE ||
         (keyCode === KEY_CODE_LEFT && pin[currentIndex] === '')
       ) {
-        handleKeyPress('Backspace')
-      } else {
-        handleKeyPress(pressedKey)
+        pressedKey = 'Backspace'
       }
+
+      // The value of currentIndex has just been updated to the next PIN, which
+      // is empty. Therefore, we subtract 1 to get the index of the PIN input
+      // which has changed.
+      handleKeyPress(pressedKey, currentIndex - 1)
     })
 
     return () => {
@@ -114,24 +118,9 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
       Keyboard.dismiss()
   }
 
-  function handleKeyPress(key: string) {
+  function handleKeyPress(key: string, index: number) {
     if (key === 'Backspace') {
       handleBackspace(currentIndex)
-    }
-    if (currentIndex === PIN_SIZE && ALLOWED_KEYS.includes(key)) {
-      handleLastPin()
-    }
-  }
-
-  // The KeyEvent handler does not detect the backspace from virtual keyboard,
-  // therefore we need to handle this special case here.
-  function handleOnKeyPress(
-    event: NativeSyntheticEvent<TextInputKeyPressEventData>,
-    index: number
-  ) {
-    const { key } = event.nativeEvent
-    if (key === 'Backspace') {
-      handleBackspace(index)
     }
     if (index === PIN_SIZE - 1 && ALLOWED_KEYS.includes(key)) {
       handleLastPin()
@@ -172,7 +161,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
           maxLength={1}
           secureTextEntry
           onChangeText={(text) => handleOnChangeText(text, index)}
-          onKeyPress={(event) => handleOnKeyPress(event, index)}
+          onKeyPress={(event) => handleKeyPress(event.nativeEvent.key, index)}
           onFocus={() => handleOnFocus()}
         />
       ))}
