@@ -6,7 +6,7 @@ import {
   useState
 } from 'react'
 import { Keyboard, StyleSheet, TextInput } from 'react-native'
-import KeyEvent from 'react-native-keyevent'
+import KeyEvent, { type KeyEventProps } from 'react-native-keyevent'
 
 import { PIN_SIZE } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
@@ -17,11 +17,6 @@ type SSPinInputProps = {
   setPin: Dispatch<SetStateAction<string[]>>
   autoFocus?: boolean
   onFillEnded?: (pin: string) => void
-}
-
-interface KeyEventData {
-  keyCode: number
-  pressedKey: string
 }
 
 const ALLOWED_KEYS: string[] = '0123456789'.split('')
@@ -45,7 +40,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   }, [pin])
 
   useEffect(() => {
-    KeyEvent.onKeyUpListener((keyEvent: KeyEventData) => {
+    KeyEvent.onKeyUpListener((keyEvent: KeyEventProps) => {
       const keyCode = keyEvent.keyCode
       let pressedKey = keyEvent.pressedKey
 
