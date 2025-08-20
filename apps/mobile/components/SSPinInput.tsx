@@ -33,7 +33,7 @@ interface KeyEventData {
 const ALLOWED_KEYS: string[] = '0123456789'.split('')
 const KEY_CODE_DELETE = 0
 const KEY_CODE_BACKSPACE = 67
-const KEY_CODE_RIGHT = 22
+const KEY_CODE_LEFT = 21
 
 function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
@@ -54,7 +54,11 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     KeyEvent.onKeyUpListener((keyEvent: KeyEventData) => {
       const { keyCode, pressedKey } = keyEvent
 
-      if (keyCode === KEY_CODE_DELETE || keyCode === KEY_CODE_BACKSPACE) {
+      if (
+        keyCode === KEY_CODE_DELETE ||
+        keyCode === KEY_CODE_BACKSPACE ||
+        (keyCode === KEY_CODE_LEFT && pin[currentIndex] === '')
+      ) {
         handleKeyPress('Backspace')
       } else {
         handleKeyPress(pressedKey)
@@ -65,7 +69,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
       // Clean up listener on component unmount
       KeyEvent.removeKeyUpListener()
     }
-  }, [currentIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentIndex, pin]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleOnChangeText(text: string, index: number) {
     // validate input from physical keyboard
