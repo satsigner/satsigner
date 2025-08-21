@@ -334,8 +334,8 @@ export function SSTxDetailsHeader({ tx }: SSTxDetailsHeaderProps) {
               confirmations < 1
                 ? Colors.error
                 : confirmations < 6
-                  ? Colors.warning
-                  : Colors.success
+                ? Colors.warning
+                : Colors.success
           }}
         >
           {formatConfirmations(confirmations)}

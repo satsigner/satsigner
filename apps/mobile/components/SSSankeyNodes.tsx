@@ -105,8 +105,8 @@ function SSSankeyNodes({
                 isTransactionChart
                   ? Skia.Color('#818181')
                   : isCurrentTxBlockNode
-                    ? 'white'
-                    : gray[400]
+                  ? 'white'
+                  : gray[400]
               }
               paint={isTransactionChart ? gradientPaint : undefined}
             />

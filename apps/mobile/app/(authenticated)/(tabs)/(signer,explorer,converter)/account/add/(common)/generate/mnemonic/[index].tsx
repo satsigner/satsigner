@@ -1,4 +1,3 @@
-import { Descriptor } from 'bdk-rn'
 import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -159,13 +158,6 @@ export default function GenerateMnemonic() {
           derivationPath = `m/${rawDerivationPath}`
         }
       }
-
-      console.log(`🔑 [GenerateMnemonic] Final derivation path:`, {
-        derivationPath,
-        policyType,
-        scriptVersion,
-        network
-      })
 
       // Create the key with all the data
       setKey(Number(index))

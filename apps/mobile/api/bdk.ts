@@ -39,16 +39,15 @@ import {
   type Backend,
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
-
 import {
   fingerprintToHex,
   getAllXpubs,
-  getVersionsForNetwork,
-  getXpubForScriptVersion,
-  toHex,
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
-  getMultisigScriptTypeFromScriptVersion
+  getMultisigScriptTypeFromScriptVersion,
+  getVersionsForNetwork,
+  getXpubForScriptVersion,
+  toHex
 } from '@/utils/bitcoin'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
@@ -174,12 +173,13 @@ async function getWalletData(
                   key.secret.externalDescriptor,
                   network
                 )
-                const extractedKey =
-                  await extractExtendedKeyFromDescriptor(descriptor)
+                const extractedKey = await extractExtendedKeyFromDescriptor(
+                  descriptor
+                )
                 if (extractedKey) {
                   extendedPublicKey = extractedKey
                 }
-              } catch (error) {
+              } catch (_error) {
                 // Failed to extract extended public key
               }
             }
@@ -192,7 +192,7 @@ async function getWalletData(
                 extendedPublicKey,
                 network
               )
-            } catch (error) {
+            } catch (_error) {
               // Failed to extract fingerprint
             }
           }
@@ -323,8 +323,8 @@ async function getWalletData(
       } else if (key.creationType === 'importExtendedPub') {
         if (
           !key.scriptVersion ||
-          !key.fingerprint ||
           typeof key.secret === 'string' ||
+          !key.secret.fingerprint ||
           !key.secret.extendedPublicKey
         )
           throw new Error('Invalid account information')
@@ -340,13 +340,13 @@ async function getWalletData(
           case 'P2PKH':
             externalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -354,13 +354,13 @@ async function getWalletData(
           case 'P2SH-P2WPKH':
             externalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -368,13 +368,13 @@ async function getWalletData(
           case 'P2WPKH':
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -382,13 +382,13 @@ async function getWalletData(
           case 'P2TR':
             externalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -403,13 +403,13 @@ async function getWalletData(
           default:
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -736,8 +736,9 @@ async function getExtendedPublicKeyFromAccountKey(
       key.secret.passphrase,
       network
     )
-    const standardExtendedKey =
-      await extractExtendedKeyFromDescriptor(externalDescriptor)
+    const standardExtendedKey = await extractExtendedKeyFromDescriptor(
+      externalDescriptor
+    )
 
     // The standardExtendedKey contains the wrong derivation path, but the actual key data is correct
     // We need to return it as-is for now, and handle the derivation path correction in descriptor creation
@@ -752,8 +753,9 @@ async function getExtendedPublicKeyFromAccountKey(
       key.secret.passphrase,
       network
     )
-    const extendedKey =
-      await extractExtendedKeyFromDescriptor(externalDescriptor)
+    const extendedKey = await extractExtendedKeyFromDescriptor(
+      externalDescriptor
+    )
 
     return extendedKey
   }
@@ -771,8 +773,8 @@ async function getDescriptorsFromKeyData(
     network === Network.Bitcoin
       ? 'bitcoin'
       : network === Network.Testnet
-        ? 'testnet'
-        : 'signet'
+      ? 'testnet'
+      : 'signet'
 
   // Use the correct derivation path based on account type
   const derivationPath = isMultisig

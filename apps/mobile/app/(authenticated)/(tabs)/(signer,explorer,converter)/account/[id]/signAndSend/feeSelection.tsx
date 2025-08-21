@@ -56,8 +56,7 @@ export default function FeeSelection() {
 
   function handleOnPressPreviewTxMessage() {
     setFeeRate(feeSelected)
-    if (feeSelected > 5000)
-      setInsufficientSatsModalVisible(true) // to remove
+    if (feeSelected > 5000) setInsufficientSatsModalVisible(true) // to remove
     else router.navigate(`/account/${id}/signAndSend/previewMessage`)
   }
 
@@ -114,8 +113,8 @@ export default function FeeSelection() {
                 selectedPeriod === '1w'
                   ? 'week'
                   : selectedPeriod === '24h'
-                    ? 'day'
-                    : '2hours'
+                  ? 'day'
+                  : '2hours'
               }
               boxPosition={boxPosition}
             />

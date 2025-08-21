@@ -211,8 +211,9 @@ class BaseElectrumClient {
     address: string
   ): Promise<IElectrumClient['addressBalance']> {
     const scriptHash = this.addressToScriptHash(address)
-    const balance =
-      await this.client.blockchainScripthash_getBalance(scriptHash)
+    const balance = await this.client.blockchainScripthash_getBalance(
+      scriptHash
+    )
     return balance
   }
 
@@ -220,8 +221,9 @@ class BaseElectrumClient {
     address: string
   ): Promise<IElectrumClient['addressUtxos']> {
     const scriptHash = this.addressToScriptHash(address)
-    const result =
-      await this.client.blockchainScripthash_listunspent(scriptHash)
+    const result = await this.client.blockchainScripthash_listunspent(
+      scriptHash
+    )
     return result
   }
 

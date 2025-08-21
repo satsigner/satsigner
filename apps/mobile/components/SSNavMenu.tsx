@@ -18,23 +18,19 @@ type SSNavMenuProps = DrawerContentComponentProps
 
 function SSNavMenu(props: SSNavMenuProps) {
   const currentPlatform: PLATFORM = Platform.OS as PLATFORM
-  const filteredNavMenuGroups = navMenuGroups.reduce(
-    (acc, group) => {
-      if (group.items && Array.isArray(group.items)) {
-        const filteredItems = group.items.filter((item) => {
-          return (
-            item.platform === PLATFORM.HYBRID ||
-            item.platform === currentPlatform
-          )
-        })
-        if (filteredItems.length > 0) {
-          acc.push({ ...group, items: filteredItems })
-        }
+  const filteredNavMenuGroups = navMenuGroups.reduce((acc, group) => {
+    if (group.items && Array.isArray(group.items)) {
+      const filteredItems = group.items.filter((item) => {
+        return (
+          item.platform === PLATFORM.HYBRID || item.platform === currentPlatform
+        )
+      })
+      if (filteredItems.length > 0) {
+        acc.push({ ...group, items: filteredItems })
       }
-      return acc
-    },
-    [] as typeof navMenuGroups
-  )
+    }
+    return acc
+  }, [] as typeof navMenuGroups)
 
   return (
     <View style={styles.container}>

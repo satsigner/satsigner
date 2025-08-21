@@ -90,7 +90,8 @@ export default function ExportDescriptors() {
       const pin = await getItem(PIN_KEY)
       if (!pin) return
       try {
-        const isImportAddress = account.keys[0].creationType === 'importAddress'
+        const isImportAddress =
+          account.keys?.[0]?.creationType === 'importAddress'
 
         const temporaryAccount = JSON.parse(JSON.stringify(account)) as Account
 
@@ -118,352 +119,479 @@ export default function ExportDescriptors() {
         }
 
         const _walletData = !isImportAddress
-          ? await getWalletData(temporaryAccount, network as Network)
+          ? await getWalletData(temporaryAccount, network as Network).catch(
+              () => undefined
+            )
           : undefined
 
         // --- BEGIN: Descriptor Generation Logic ---
         let descriptorString = ''
-        if (!isImportAddress) {
+
+        // Safety check: ensure account has keys
+        if (!temporaryAccount.keys || temporaryAccount.keys.length === 0) {
+          descriptorString = 'No keys available for account'
+        } else if (!isImportAddress) {
           if (temporaryAccount.policyType === 'singlesig') {
             // For single signature accounts, generate single key descriptor
             const key = temporaryAccount.keys[0]
-            const secret = key.secret as Secret
-            let extendedPublicKey = ''
-            let fingerprint = ''
-
-            // Get fingerprint from secret or key
-            fingerprint =
-              (typeof secret === 'object' && secret.fingerprint) ||
-              key.fingerprint ||
-              ''
-
-            // Get extended public key from various possible sources
-            if (typeof secret === 'object') {
-              if (secret.extendedPublicKey) {
-                extendedPublicKey = secret.extendedPublicKey
-              } else if (secret.externalDescriptor) {
-                try {
-                  const descriptor = await new Descriptor().create(
-                    secret.externalDescriptor,
-                    network as Network
-                  )
-                  extendedPublicKey =
-                    await extractExtendedKeyFromDescriptor(descriptor)
-                } catch (_error) {
-                  // Failed to extract extended public key from descriptor
-                }
-              } else if (secret.mnemonic) {
-                try {
-                  const extendedKey = await getExtendedPublicKeyFromAccountKey(
-                    {
-                      ...key,
-                      secret: {
-                        mnemonic: secret.mnemonic,
-                        passphrase: secret.passphrase
-                      }
-                    },
-                    network as Network
-                  )
-                  if (extendedKey) {
-                    extendedPublicKey = extendedKey
-                  }
-                } catch (_error) {
-                  // Failed to generate extended public key from mnemonic
-                }
-              }
-            }
-
-            // If we still don't have a fingerprint, try to extract it from the extended public key
-            if (!fingerprint && extendedPublicKey) {
-              try {
-                fingerprint = await extractFingerprintFromExtendedPublicKey(
-                  extendedPublicKey,
-                  network as Network
-                )
-              } catch (_error) {
-                // Failed to extract fingerprint from extended public key
-              }
-            }
-
-            // If we still don't have a fingerprint, try to get it from the key's fingerprint property
-            if (!fingerprint && key.fingerprint) {
-              fingerprint = key.fingerprint
-            }
-
-            if (fingerprint && extendedPublicKey) {
-              // Get the correct derivation path for the script version
-              const scriptVersion = key.scriptVersion || 'P2WPKH'
-              const derivationPath = key.derivationPath || ''
-
-              // Remove leading 'm' or 'M' from derivationPath if present
-              const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
-
-              // Build the key part with fingerprint and derivation path
-              const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}`
-
-              // Create single signature descriptor based on script version
-              let singleSigDescriptor = ''
-              switch (scriptVersion) {
-                case 'P2PKH':
-                  singleSigDescriptor = `pkh(${keyPart}/0/*)`
-                  break
-                case 'P2SH-P2WPKH':
-                  singleSigDescriptor = `sh(wpkh(${keyPart}/0/*))`
-                  break
-                case 'P2WPKH':
-                  singleSigDescriptor = `wpkh(${keyPart}/0/*)`
-                  break
-                case 'P2TR':
-                  singleSigDescriptor = `tr(${keyPart}/0/*)`
-                  break
-                default:
-                  singleSigDescriptor = `wpkh(${keyPart}/0/*)`
-              }
-
-              // Add checksum
-              const checksum = calculateDescriptorChecksum(singleSigDescriptor)
-              if (checksum) {
-                descriptorString = `${singleSigDescriptor}#${checksum}`
-              } else {
-                descriptorString = singleSigDescriptor
-              }
-            } else {
+            if (!key) {
               descriptorString =
-                'No descriptor available - missing fingerprint or extended public key'
+                'No key data available for single signature account'
+            } else {
+              const secret = key.secret as Secret
+              let extendedPublicKey = ''
+              let fingerprint = ''
+
+              // Get fingerprint from secret or key
+              fingerprint =
+                (typeof secret === 'object' && secret.fingerprint) ||
+                key.fingerprint ||
+                ''
+
+              // Get extended public key from various possible sources
+              if (typeof secret === 'object') {
+                if (secret.extendedPublicKey) {
+                  extendedPublicKey = secret.extendedPublicKey
+                } else if (secret.externalDescriptor) {
+                  try {
+                    const descriptor = await new Descriptor().create(
+                      secret.externalDescriptor,
+                      network as Network
+                    )
+                    extendedPublicKey = await extractExtendedKeyFromDescriptor(
+                      descriptor
+                    )
+                  } catch (_error) {
+                    // Failed to extract extended public key from descriptor
+                  }
+                } else if (secret.mnemonic) {
+                  try {
+                    const extendedKey =
+                      await getExtendedPublicKeyFromAccountKey(
+                        {
+                          ...key,
+                          secret: {
+                            mnemonic: secret.mnemonic,
+                            passphrase: secret.passphrase
+                          }
+                        },
+                        network as Network
+                      )
+                    if (extendedKey) {
+                      extendedPublicKey = extendedKey
+                    }
+                  } catch (_error) {
+                    // Failed to generate extended public key from mnemonic
+                  }
+                }
+              }
+
+              // If we still don't have a fingerprint, try to extract it from the extended public key
+              if (!fingerprint && extendedPublicKey) {
+                try {
+                  fingerprint = await extractFingerprintFromExtendedPublicKey(
+                    extendedPublicKey,
+                    network as Network
+                  )
+                } catch (_error) {
+                  // Failed to extract fingerprint from extended public key
+                }
+              }
+
+              // If we still don't have a fingerprint, try to get it from the key's fingerprint property
+              if (!fingerprint && key.fingerprint) {
+                fingerprint = key.fingerprint
+              }
+
+              if (fingerprint && extendedPublicKey) {
+                // Get the correct derivation path for the script version
+                const scriptVersion = key.scriptVersion || 'P2WPKH'
+                const derivationPath = key.derivationPath || ''
+
+                // Remove leading 'm' or 'M' from derivationPath if present
+                const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
+
+                // Build the key part with fingerprint and derivation path
+                const keyPart = `[${fingerprint}/${cleanDerivationPath}]${extendedPublicKey}`
+
+                // Create single signature descriptor based on script version
+                let singleSigDescriptor = ''
+                switch (scriptVersion) {
+                  case 'P2PKH':
+                    singleSigDescriptor = `pkh(${keyPart}/0/*)`
+                    break
+                  case 'P2SH-P2WPKH':
+                    singleSigDescriptor = `sh(wpkh(${keyPart}/0/*))`
+                    break
+                  case 'P2WPKH':
+                    singleSigDescriptor = `wpkh(${keyPart}/0/*)`
+                    break
+                  case 'P2TR':
+                    singleSigDescriptor = `tr(${keyPart}/0/*)`
+                    break
+                  default:
+                    singleSigDescriptor = `wpkh(${keyPart}/0/*)`
+                }
+
+                // Add checksum
+                const checksum =
+                  calculateDescriptorChecksum(singleSigDescriptor)
+                if (checksum) {
+                  descriptorString = `${singleSigDescriptor}#${checksum}`
+                } else {
+                  descriptorString = singleSigDescriptor
+                }
+              } else {
+                descriptorString =
+                  'No descriptor available - missing fingerprint or extended public key'
+              }
             }
           } else if (temporaryAccount.policyType === 'multisig') {
             // For multisig accounts, create proper descriptor with policy-based derivation paths and checksum
-            const scriptVersion =
-              temporaryAccount.keys[0]?.scriptVersion || 'P2WSH'
-            const keyCount = temporaryAccount.keys.length
-            const keysRequired = temporaryAccount.keysRequired || keyCount
+            if (!temporaryAccount.keys || temporaryAccount.keys.length === 0) {
+              descriptorString = 'No keys available for multisig account'
+            } else {
+              const scriptVersion =
+                temporaryAccount.keys[0]?.scriptVersion || 'P2WSH'
+              const keyCount = temporaryAccount.keys.length
+              const keysRequired = temporaryAccount.keysRequired || keyCount
 
-            // Extract fingerprints and extended public keys for each key
-            const keyData = await Promise.all(
-              temporaryAccount.keys.map(async (key, index) => {
-                const secret = key.secret as Secret
-                let extendedPublicKey = ''
-                let fingerprint = ''
+              // Extract fingerprints and extended public keys for each key
+              const keyData = await Promise.all(
+                temporaryAccount.keys.map(async (key, index) => {
+                  if (!key)
+                    return { fingerprint: '', extendedPublicKey: '', index }
 
-                // Get fingerprint from secret or key (same pattern as SSMultisigKeyControl)
-                fingerprint =
-                  (typeof secret === 'object' && secret.fingerprint) ||
-                  key.fingerprint ||
-                  ''
+                  const secret = key.secret as Secret
+                  let extendedPublicKey = ''
+                  let fingerprint = ''
 
-                // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
-                if (typeof secret === 'object') {
-                  // First, try to get from extendedPublicKey directly
-                  if (secret.extendedPublicKey) {
-                    extendedPublicKey = secret.extendedPublicKey
-                  } else if (secret.externalDescriptor) {
-                    // If we have a descriptor, extract the extended public key from it
-                    try {
-                      const descriptor = await new Descriptor().create(
-                        secret.externalDescriptor,
-                        network as Network
-                      )
-                      extendedPublicKey =
-                        await extractExtendedKeyFromDescriptor(descriptor)
-                    } catch (_error) {
-                      // Failed to extract extended public key from descriptor for key ${index}
-                    }
-                  } else if (secret.mnemonic) {
-                    // If we have a mnemonic, generate the extended public key
-                    try {
-                      const extendedKey =
-                        await getExtendedPublicKeyFromAccountKey(
-                          {
-                            ...key,
-                            secret: {
-                              mnemonic: secret.mnemonic,
-                              passphrase: secret.passphrase
-                            }
-                          },
+                  // Get fingerprint from secret or key (same pattern as SSMultisigKeyControl)
+                  fingerprint =
+                    (typeof secret === 'object' && secret.fingerprint) ||
+                    key.fingerprint ||
+                    ''
+
+                  // Get extended public key from various possible sources (same pattern as SSMultisigKeyControl)
+                  if (typeof secret === 'object') {
+                    // First, try to get from extendedPublicKey directly
+                    if (secret.extendedPublicKey) {
+                      extendedPublicKey = secret.extendedPublicKey
+                    } else if (secret.externalDescriptor) {
+                      // If we have a descriptor, extract the extended public key from it
+                      try {
+                        const descriptor = await new Descriptor().create(
+                          secret.externalDescriptor,
                           network as Network
                         )
-                      if (extendedKey) {
-                        extendedPublicKey = extendedKey
+                        extendedPublicKey =
+                          await extractExtendedKeyFromDescriptor(descriptor)
+                      } catch (_error) {
+                        // Failed to extract extended public key from descriptor for key ${index}
                       }
-                    } catch (_error) {
-                      // Failed to generate extended public key from mnemonic for key ${index}
+                    } else if (secret.mnemonic) {
+                      // If we have a mnemonic, generate the extended public key
+                      try {
+                        const extendedKey =
+                          await getExtendedPublicKeyFromAccountKey(
+                            {
+                              ...key,
+                              secret: {
+                                mnemonic: secret.mnemonic,
+                                passphrase: secret.passphrase
+                              }
+                            },
+                            network as Network
+                          )
+                        if (extendedKey) {
+                          extendedPublicKey = extendedKey
+                        }
+                      } catch (_error) {
+                        // Failed to generate extended public key from mnemonic for key ${index}
+                      }
                     }
                   }
-                }
 
-                // If we still don't have a fingerprint, try to extract it from the extended public key
-                if (!fingerprint && extendedPublicKey) {
-                  try {
-                    fingerprint = await extractFingerprintFromExtendedPublicKey(
-                      extendedPublicKey,
-                      network as Network
-                    )
-                  } catch (_error) {
-                    // Failed to extract fingerprint from extended public key for key ${index}
-                  }
-                }
-
-                // If we still don't have a fingerprint, try to get it from the key's fingerprint property
-                if (!fingerprint && key.fingerprint) {
-                  fingerprint = key.fingerprint
-                }
-
-                // If we still don't have an extended public key, try to get it from the key's secret
-                if (!extendedPublicKey && typeof secret === 'object') {
-                  // Try to extract from externalDescriptor if available
-                  if (secret.externalDescriptor) {
+                  // If we still don't have a fingerprint, try to extract it from the extended public key
+                  if (!fingerprint && extendedPublicKey) {
                     try {
-                      const descriptor = await new Descriptor().create(
-                        secret.externalDescriptor,
-                        network as Network
-                      )
-                      extendedPublicKey =
-                        await extractExtendedKeyFromDescriptor(descriptor)
+                      fingerprint =
+                        await extractFingerprintFromExtendedPublicKey(
+                          extendedPublicKey,
+                          network as Network
+                        )
                     } catch (_error) {
-                      // Failed to extract extended public key from externalDescriptor for key ${index}
+                      // Failed to extract fingerprint from extended public key for key ${index}
                     }
+                  }
+
+                  // If we still don't have a fingerprint, try to get it from the key's fingerprint property
+                  if (!fingerprint && key.fingerprint) {
+                    fingerprint = key.fingerprint
+                  }
+
+                  // If we still don't have an extended public key, try to get it from the key's secret
+                  if (!extendedPublicKey && typeof secret === 'object') {
+                    // Try to extract from externalDescriptor if available
+                    if (secret.externalDescriptor) {
+                      try {
+                        const descriptor = await new Descriptor().create(
+                          secret.externalDescriptor,
+                          network as Network
+                        )
+                        extendedPublicKey =
+                          await extractExtendedKeyFromDescriptor(descriptor)
+                      } catch (_error) {
+                        // Failed to extract extended public key from externalDescriptor for key ${index}
+                      }
+                    }
+                  }
+
+                  return { fingerprint, extendedPublicKey, index }
+                })
+              )
+
+              // Filter out keys that don't have both fingerprint and extended public key
+              const validKeyData = keyData.filter(
+                (kd) => kd.fingerprint && kd.extendedPublicKey
+              )
+
+              if (validKeyData.length !== keyCount) {
+                // Missing fingerprint or extended public key for some keys
+                // Set a fallback descriptor string to indicate the issue
+                descriptorString =
+                  'No descriptors available - missing fingerprint or extended public key for some keys'
+              } else {
+                // Get the correct multisig script type for descriptor generation
+                const multisigScriptType =
+                  getMultisigScriptTypeFromScriptVersion(scriptVersion)
+
+                // Get the policy-based derivation path according to the account type
+                const policyDerivationPath =
+                  temporaryAccount.policyType === 'multisig'
+                    ? getMultisigDerivationPathFromScriptVersion(
+                        multisigScriptType,
+                        network
+                      )
+                    : getDerivationPathFromScriptVersion(scriptVersion, network)
+
+                // Remove leading 'm' or 'M' from derivationPath if present
+                const cleanPolicyPath = policyDerivationPath.replace(
+                  /^m\/?/i,
+                  ''
+                )
+
+                // Build key section with policy-based derivation paths
+                const keySection = validKeyData
+                  .map(({ fingerprint, extendedPublicKey }) => {
+                    // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
+                    return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
+                  })
+                  .join(',')
+
+                // Create descriptor based on account type
+                let finalDescriptor = ''
+                if (temporaryAccount.policyType === 'multisig') {
+                  // Create multisig descriptor using sortedmulti
+                  switch (multisigScriptType) {
+                    case 'P2SH':
+                      finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
+                      break
+                    case 'P2SH-P2WSH':
+                      finalDescriptor = `sh(wsh(sortedmulti(${keysRequired},${keySection})))`
+                      break
+                    case 'P2WSH':
+                      finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+                      break
+                    case 'P2TR':
+                      finalDescriptor = `tr(sortedmulti(${keysRequired},${keySection}))`
+                      break
+                    default:
+                      finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
+                  }
+                } else {
+                  // For single-sig accounts, create simple descriptor
+                  const singleKey = keySection.split(',')[0] // Use first (and only) key
+                  switch (scriptVersion) {
+                    case 'P2PKH':
+                      finalDescriptor = `pkh(${singleKey.replace(
+                        '/<0;1>/*',
+                        '/0/*'
+                      )})`
+                      break
+                    case 'P2SH-P2WPKH':
+                      finalDescriptor = `sh(wpkh(${singleKey.replace(
+                        '/<0;1>/*',
+                        '/0/*'
+                      )}))`
+                      break
+                    case 'P2WPKH':
+                      finalDescriptor = `wpkh(${singleKey.replace(
+                        '/<0;1>/*',
+                        '/0/*'
+                      )})`
+                      break
+                    case 'P2TR':
+                      finalDescriptor = `tr(${singleKey.replace(
+                        '/<0;1>/*',
+                        '/0/*'
+                      )})`
+                      break
+                    default:
+                      finalDescriptor = `wpkh(${singleKey.replace(
+                        '/<0;1>/*',
+                        '/0/*'
+                      )})`
                   }
                 }
 
-                return { fingerprint, extendedPublicKey, index }
-              })
-            )
-
-            // Filter out keys that don't have both fingerprint and extended public key
-            const validKeyData = keyData.filter(
-              (kd) => kd.fingerprint && kd.extendedPublicKey
-            )
-
-            if (validKeyData.length !== keyCount) {
-              // Missing fingerprint or extended public key for some keys
-              // Set a fallback descriptor string to indicate the issue
-              descriptorString =
-                'No descriptors available - missing fingerprint or extended public key for some keys'
-            } else {
-              // Get the correct multisig script type for descriptor generation
-              const multisigScriptType =
-                getMultisigScriptTypeFromScriptVersion(scriptVersion)
-
-              // Get the policy-based derivation path according to the account type
-              const policyDerivationPath =
-                temporaryAccount.policyType === 'multisig'
-                  ? getMultisigDerivationPathFromScriptVersion(
-                      multisigScriptType,
-                      network
-                    )
-                  : getDerivationPathFromScriptVersion(scriptVersion, network)
-
-              // Remove leading 'm' or 'M' from derivationPath if present
-              const cleanPolicyPath = policyDerivationPath.replace(/^m\/?/i, '')
-
-              // Build key section with policy-based derivation paths
-              const keySection = validKeyData
-                .map(({ fingerprint, extendedPublicKey }) => {
-                  // Format: [FINGERPRINT/POLICY_DERIVATION_PATH]XPUB/<0;1>/*
-                  return `[${fingerprint}/${cleanPolicyPath}]${extendedPublicKey}/<0;1>/*`
-                })
-                .join(',')
-
-              // Create descriptor based on account type
-              let finalDescriptor = ''
-              if (temporaryAccount.policyType === 'multisig') {
-                // Create multisig descriptor using sortedmulti
-                switch (multisigScriptType) {
-                  case 'P2SH':
-                    finalDescriptor = `sh(sortedmulti(${keysRequired},${keySection}))`
-                    break
-                  case 'P2SH-P2WSH':
-                    finalDescriptor = `sh(wsh(sortedmulti(${keysRequired},${keySection})))`
-                    break
-                  case 'P2WSH':
-                    finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
-                    break
-                  case 'P2TR':
-                    finalDescriptor = `tr(sortedmulti(${keysRequired},${keySection}))`
-                    break
-                  default:
-                    finalDescriptor = `wsh(sortedmulti(${keysRequired},${keySection}))`
-                }
-              } else {
-                // For single-sig accounts, create simple descriptor
-                const singleKey = keySection.split(',')[0] // Use first (and only) key
-                switch (scriptVersion) {
-                  case 'P2PKH':
-                    finalDescriptor = `pkh(${singleKey.replace('/<0;1>/*', '/0/*')})`
-                    break
-                  case 'P2SH-P2WPKH':
-                    finalDescriptor = `sh(wpkh(${singleKey.replace('/<0;1>/*', '/0/*')}))`
-                    break
-                  case 'P2WPKH':
-                    finalDescriptor = `wpkh(${singleKey.replace('/<0;1>/*', '/0/*')})`
-                    break
-                  case 'P2TR':
-                    finalDescriptor = `tr(${singleKey.replace('/<0;1>/*', '/0/*')})`
-                    break
-                  default:
-                    finalDescriptor = `wpkh(${singleKey.replace('/<0;1>/*', '/0/*')})`
-                }
-              }
-
-              // Validate descriptor format before adding checksum
-              if (
-                !finalDescriptor ||
-                keySection.split(',').length !== keyCount
-              ) {
-                descriptorString = finalDescriptor
-              } else {
-                // Always calculate checksum manually for multisig descriptors
-                const checksum = calculateDescriptorChecksum(finalDescriptor)
-                if (checksum) {
-                  descriptorString = `${finalDescriptor}#${checksum}`
-                } else {
+                // Validate descriptor format before adding checksum
+                if (
+                  !finalDescriptor ||
+                  keySection.split(',').length !== keyCount
+                ) {
                   descriptorString = finalDescriptor
+                } else {
+                  // Always calculate checksum manually for multisig descriptors
+                  const checksum = calculateDescriptorChecksum(finalDescriptor)
+                  if (checksum) {
+                    descriptorString = `${finalDescriptor}#${checksum}`
+                  } else {
+                    descriptorString = finalDescriptor
+                  }
                 }
               }
             }
           } else {
-            // For watchonly accounts, fallback to single key descriptor
-            const singleKeyDescriptor = (typeof temporaryAccount.keys[0]
-              .secret === 'object' &&
-              temporaryAccount.keys[0].secret.externalDescriptor!) as string
-
-            // Add checksum if not present
-            if (singleKeyDescriptor && !singleKeyDescriptor.includes('#')) {
-              const checksum = calculateDescriptorChecksum(singleKeyDescriptor)
-              if (checksum) {
-                descriptorString = `${singleKeyDescriptor}#${checksum}`
-              } else {
-                descriptorString = singleKeyDescriptor
-              }
+            // For watchonly accounts, handle different creation types
+            const key = temporaryAccount.keys[0]
+            if (!key) {
+              descriptorString = 'No key data available for watch-only account'
             } else {
-              descriptorString = singleKeyDescriptor
+              const secret = key.secret as Secret
+
+              if (
+                key.creationType === 'importDescriptor' &&
+                secret.externalDescriptor
+              ) {
+                // For watch-only accounts with imported descriptors, use the existing descriptor
+                const descriptor = secret.externalDescriptor
+
+                // Add checksum if not present
+                if (!descriptor.includes('#')) {
+                  const checksum = calculateDescriptorChecksum(descriptor)
+                  if (checksum) {
+                    descriptorString = `${descriptor}#${checksum}`
+                  } else {
+                    descriptorString = descriptor
+                  }
+                } else {
+                  descriptorString = descriptor
+                }
+              } else if (
+                key.creationType === 'importExtendedPub' &&
+                secret.extendedPublicKey &&
+                secret.fingerprint
+              ) {
+                // For watch-only accounts with imported extended public keys, generate descriptor
+                const scriptVersion = key.scriptVersion || 'P2WPKH'
+                const derivationPath = key.derivationPath || ''
+
+                // Remove leading 'm' or 'M' from derivationPath if present
+                const cleanDerivationPath = derivationPath.replace(/^m\/?/i, '')
+
+                // Build the key part with fingerprint and derivation path
+                const keyPart = `[${secret.fingerprint}/${cleanDerivationPath}]${secret.extendedPublicKey}`
+
+                // Create descriptor based on script version
+                let descriptor = ''
+                switch (scriptVersion) {
+                  case 'P2PKH':
+                    descriptor = `pkh(${keyPart}/0/*)`
+                    break
+                  case 'P2SH-P2WPKH':
+                    descriptor = `sh(wpkh(${keyPart}/0/*))`
+                    break
+                  case 'P2WPKH':
+                    descriptor = `wpkh(${keyPart}/0/*)`
+                    break
+                  case 'P2TR':
+                    descriptor = `tr(${keyPart}/0/*)`
+                    break
+                  default:
+                    descriptor = `wpkh(${keyPart}/0/*)`
+                }
+
+                // Add checksum
+                const checksum = calculateDescriptorChecksum(descriptor)
+                if (checksum) {
+                  descriptorString = `${descriptor}#${checksum}`
+                } else {
+                  descriptorString = descriptor
+                }
+              } else if (
+                key.creationType === 'importAddress' &&
+                secret.externalDescriptor
+              ) {
+                // For watch-only accounts with imported addresses, use the address descriptor
+                const descriptor = secret.externalDescriptor
+
+                // Add checksum if not present
+                if (!descriptor.includes('#')) {
+                  const checksum = calculateDescriptorChecksum(descriptor)
+                  if (checksum) {
+                    descriptorString = `${descriptor}#${checksum}`
+                  } else {
+                    descriptorString = descriptor
+                  }
+                } else {
+                  descriptorString = descriptor
+                }
+              } else {
+                descriptorString =
+                  'No descriptor available for watch-only account - missing required data'
+              }
             }
           }
         } else {
-          // For importAddress, fallback to single key descriptor
-          const singleKeyDescriptor = (typeof temporaryAccount.keys[0]
-            .secret === 'object' &&
-            temporaryAccount.keys[0].secret.externalDescriptor!) as string
-
-          // Add checksum if not present
-          if (singleKeyDescriptor && !singleKeyDescriptor.includes('#')) {
-            const checksum = calculateDescriptorChecksum(singleKeyDescriptor)
-            if (checksum) {
-              descriptorString = `${singleKeyDescriptor}#${checksum}`
-            } else {
-              descriptorString = singleKeyDescriptor
-            }
+          // For importAddress, handle address-based accounts
+          const key = temporaryAccount.keys[0]
+          if (!key) {
+            descriptorString = 'No key data available for imported address'
           } else {
-            descriptorString = singleKeyDescriptor
+            const secret = key.secret as Secret
+
+            if (secret.externalDescriptor) {
+              // Use the existing address descriptor
+              const descriptor = secret.externalDescriptor
+
+              // Add checksum if not present
+              if (!descriptor.includes('#')) {
+                const checksum = calculateDescriptorChecksum(descriptor)
+                if (checksum) {
+                  descriptorString = `${descriptor}#${checksum}`
+                } else {
+                  descriptorString = descriptor
+                }
+              } else {
+                descriptorString = descriptor
+              }
+            } else {
+              descriptorString =
+                'No descriptor available for imported address - missing address data'
+            }
           }
         }
         // --- END: Descriptor Generation Logic ---
 
-        // Compose export content
-        const exportString = descriptorString
+        // Compose export content - ensure it's always a string
+        const exportString = descriptorString || 'No descriptor available'
         setExportContent(exportString)
-      } catch {
-        // TODO
+      } catch (_error) {
+        // Error generating descriptors
+        setExportContent(
+          'Error generating descriptors. Please check your account configuration.'
+        )
       } finally {
         setIsLoading(false)
       }
@@ -615,7 +743,7 @@ export default function ExportDescriptors() {
 
   if (!account) return <Redirect href="/" />
 
-  const descriptors = exportContent.split('\n').filter(Boolean)
+  const descriptors = (exportContent || '').split('\n').filter(Boolean)
 
   return (
     <ScrollView style={{ width: '100%' }}>

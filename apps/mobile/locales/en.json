@@ -1224,6 +1224,10 @@
     "title": "This is an experimental app, use responsibly."
   },
   "watchonly": {
+    "error": {
+      "creationFailed": "Failed to create watch-only account",
+      "missingFields": "Please fill in all required fields"
+    },
     "fingerprint.label": "Master Fingerprint",
     "fingerprint.text": "Fingerprint",
     "importAddress.label": "Address",

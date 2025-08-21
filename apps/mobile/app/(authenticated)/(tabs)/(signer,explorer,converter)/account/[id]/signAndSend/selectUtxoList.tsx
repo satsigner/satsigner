@@ -90,8 +90,8 @@ export default function SelectUtxoList() {
           ? compareTimestamp(utxo1.timestamp, utxo2.timestamp)
           : compareTimestamp(utxo2.timestamp, utxo1.timestamp)
         : sortField === 'date'
-          ? compareAmount(utxo1.value, utxo2.value)
-          : compareAmount(utxo2.value, utxo1.value)
+        ? compareAmount(utxo1.value, utxo2.value)
+        : compareAmount(utxo2.value, utxo1.value)
     )
   }
 

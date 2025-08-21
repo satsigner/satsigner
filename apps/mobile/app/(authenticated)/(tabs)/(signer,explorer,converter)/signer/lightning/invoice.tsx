@@ -470,8 +470,8 @@ export default function InvoicePage() {
                       {invoiceStatus === 'settled'
                         ? 'Paid'
                         : invoiceStatus === 'canceled'
-                          ? 'Canceled'
-                          : 'Waiting for payment...'}
+                        ? 'Canceled'
+                        : 'Waiting for payment...'}
                     </SSText>
                   </SSHStack>
                 </View>

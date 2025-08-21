@@ -88,6 +88,7 @@ function PreviewMessage() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
+
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
@@ -499,8 +500,25 @@ function PreviewMessage() {
     }
 
     for (const output of outputs) {
-      const outputScript = bitcoinjs.address.toOutputScript(output.to, network)
-      transaction.addOutput(outputScript, output.amount)
+      // Validate address format before creating output script
+
+      try {
+        const outputScript = bitcoinjs.address.toOutputScript(
+          output.to,
+          network
+        )
+        transaction.addOutput(outputScript, output.amount)
+      } catch (error) {
+        const _errorMessage =
+          error instanceof Error ? error.message : String(error)
+        // Invalid address for network
+
+        // Show user-friendly error
+        toast.error(
+          `Invalid address format: ${output.to}. Please check your transaction configuration.`
+        )
+        return ''
+      }
     }
 
     const hex = transaction.toHex()

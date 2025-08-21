@@ -218,8 +218,8 @@ export default function IOPreview() {
         selectedPeriod === '2hours'
           ? '2h'
           : selectedPeriod === 'day'
-            ? '24h'
-            : '1w'
+          ? '24h'
+          : '1w'
       ),
     enabled: isFocused,
     staleTime: time.minutes(5)
@@ -420,6 +420,7 @@ export default function IOPreview() {
       (acc, output) => acc + output.amount,
       0
     )
+
     const totalRequired = totalOutputAmount + minerFee
 
     if (totalRequired > utxosSelectedValue) {
@@ -443,7 +444,28 @@ export default function IOPreview() {
       return
     }
 
-    const lastSync = new Date(account.lastSyncedAt as Date)
+    // Safely convert lastSyncedAt to Date object
+    let lastSync: Date
+    try {
+      // If it's already a Date object, use it
+      if (account.lastSyncedAt instanceof Date) {
+        lastSync = account.lastSyncedAt
+      } else {
+        // If it's a string or number, try to create a Date
+        lastSync = new Date(account.lastSyncedAt)
+
+        // Check if the date is valid
+        if (isNaN(lastSync.getTime())) {
+          // Invalid lastSyncedAt value
+          router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+          return
+        }
+      }
+    } catch (_error) {
+      // Error parsing lastSyncedAt
+      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
+      return
+    }
     const now = new Date()
 
     // Discard the time and time-zone information.
@@ -452,11 +474,13 @@ export default function IOPreview() {
       now.getMonth(),
       now.getDate()
     )
+
     const lastSyncedUtc = Date.UTC(
       lastSync.getFullYear(),
       lastSync.getMonth(),
       lastSync.getDate()
     )
+
     const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
     const daysSinceLastSync = Math.floor(
       (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
@@ -469,6 +493,7 @@ export default function IOPreview() {
     }
 
     // Ok, go to the preview page.
+
     router.navigate(`/account/${id}/signAndSend/previewMessage`)
   }
 

@@ -411,7 +411,36 @@ const useAccountsStore = create<AccountsState & AccountsAction>()(
     }),
     {
       name: 'satsigner-accounts',
-      storage: createJSONStorage(() => mmkvStorage)
+      storage: createJSONStorage(() => mmkvStorage),
+      partialize: (state) => state,
+      onRehydrateStorage: () => (state) => {
+        // Convert string dates back to Date objects after rehydration
+        if (state?.accounts) {
+          state.accounts.forEach((account) => {
+            if (account.createdAt && typeof account.createdAt === 'string') {
+              account.createdAt = new Date(account.createdAt)
+            }
+            if (
+              account.lastSyncedAt &&
+              typeof account.lastSyncedAt === 'string'
+            ) {
+              account.lastSyncedAt = new Date(account.lastSyncedAt)
+            }
+            if (
+              account.nostr?.lastUpdated &&
+              typeof account.nostr.lastUpdated === 'string'
+            ) {
+              account.nostr.lastUpdated = new Date(account.nostr.lastUpdated)
+            }
+            if (
+              account.nostr?.syncStart &&
+              typeof account.nostr.syncStart === 'string'
+            ) {
+              account.nostr.syncStart = new Date(account.nostr.syncStart)
+            }
+          })
+        }
+      }
     }
   )
 )

@@ -42,7 +42,7 @@ function useGetFirstUnusedAddress(wallet: Wallet, account: Account) {
         if (seenAddresses[newAddress] !== undefined) {
           // Address already used, continue searching
         }
-      } catch (error) {
+      } catch (_error) {
         break
       }
     } while (seenAddresses[newAddress] !== undefined)

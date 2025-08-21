@@ -41,7 +41,7 @@ function bip21decode(uri: string) {
 }
 
 // Convert network notation used by our app (and by BDK enum too)
-// too the network interface used by bitcoinjs-lib
+// to the network interface used by bitcoinjs-lib
 function bitcoinjsNetwork(network: Network): networks.Network {
   switch (network) {
     case 'bitcoin':
@@ -49,7 +49,7 @@ function bitcoinjsNetwork(network: Network): networks.Network {
     case 'signet':
       return networks['testnet']
     case 'testnet':
-      return networks['regtest']
+      return networks['testnet']
   }
 }
 

@@ -56,12 +56,12 @@ function SSStyledSatText({
                   ? Colors.softWhite
                   : Colors.white
                 : type === 'send'
-                  ? isBeforeFirstNonZero
-                    ? Colors.softRed
-                    : Colors.mainRed
-                  : isBeforeFirstNonZero
-                    ? Colors.softGreen
-                    : Colors.mainGreen
+                ? isBeforeFirstNonZero
+                  ? Colors.softRed
+                  : Colors.mainRed
+                : isBeforeFirstNonZero
+                ? Colors.softGreen
+                : Colors.mainGreen
             }}
           >
             {char}

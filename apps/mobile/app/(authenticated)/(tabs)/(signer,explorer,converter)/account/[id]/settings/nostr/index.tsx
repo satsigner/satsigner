@@ -50,15 +50,12 @@ function NostrSync() {
             ? { npub: member, color: '#404040' }
             : member
         )
-        .reduce(
-          (acc, member) => {
-            if (!acc.some((m) => m.npub === member.npub)) {
-              acc.push(member)
-            }
-            return acc
-          },
-          [] as { npub: string; color: string }[]
-        )
+        .reduce((acc, member) => {
+          if (!acc.some((m) => m.npub === member.npub)) {
+            acc.push(member)
+          }
+          return acc
+        }, [] as { npub: string; color: string }[])
     })
   )
 

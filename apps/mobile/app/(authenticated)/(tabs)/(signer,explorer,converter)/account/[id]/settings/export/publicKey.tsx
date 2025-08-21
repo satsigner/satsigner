@@ -87,7 +87,9 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'xpub' : 'tpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
         )
       })
     } else if (scriptVersion === 'P2SH-P2WSH') {
@@ -95,13 +97,17 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'xpub' : 'tpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
         )
       })
       formatButtons.push({
         format: network === 'bitcoin' ? 'ypub' : 'upub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'ypub' : 'upub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'ypub' : 'upub'
+          }`
         )
       })
     } else if (scriptVersion === 'P2WSH') {
@@ -109,13 +115,17 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'xpub' : 'tpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
         )
       })
       formatButtons.push({
         format: network === 'bitcoin' ? 'zpub' : 'vpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'zpub' : 'vpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'zpub' : 'vpub'
+          }`
         )
       })
     } else if (scriptVersion === 'P2PKH') {
@@ -123,7 +133,9 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'xpub' : 'tpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
         )
       })
     } else if (scriptVersion === 'P2SH-P2WPKH') {
@@ -131,13 +143,17 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'xpub' : 'tpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
         )
       })
       formatButtons.push({
         format: network === 'bitcoin' ? 'ypub' : 'upub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'ypub' : 'upub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'ypub' : 'upub'
+          }`
         )
       })
     } else if (scriptVersion === 'P2WPKH') {
@@ -145,13 +161,17 @@ export default function PublicKeyPage() {
       formatButtons.push({
         format: network === 'bitcoin' ? 'xpub' : 'tpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'xpub' : 'tpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'xpub' : 'tpub'
+          }`
         )
       })
       formatButtons.push({
         format: network === 'bitcoin' ? 'zpub' : 'vpub',
         label: t(
-          `account.seed.formatButtons.${network === 'bitcoin' ? 'zpub' : 'vpub'}`
+          `account.seed.formatButtons.${
+            network === 'bitcoin' ? 'zpub' : 'vpub'
+          }`
         )
       })
     } else if (scriptVersion === 'P2TR') {

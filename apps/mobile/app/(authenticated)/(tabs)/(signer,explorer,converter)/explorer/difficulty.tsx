@@ -117,7 +117,7 @@ function ExplorerDifficulty() {
             weight: value[6].weight,
             cycleHeight: value[7].block_in_cycle,
             timeDifference: value[8].time_difference
-          }) as BlockDifficulty
+          } as BlockDifficulty)
       )
 
       const firstBlock = data[0]

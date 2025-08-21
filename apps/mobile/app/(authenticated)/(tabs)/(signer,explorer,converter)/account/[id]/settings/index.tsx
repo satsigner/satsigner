@@ -235,7 +235,25 @@ export default function AccountSettings() {
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
-              <SSText>{formatDate(account.createdAt)}</SSText>
+              <SSText>
+                {(() => {
+                  try {
+                    if (account.createdAt instanceof Date) {
+                      return formatDate(account.createdAt)
+                    } else {
+                      const date = new Date(account.createdAt)
+                      if (isNaN(date.getTime())) {
+                        // Invalid createdAt value in settings
+                        return 'Invalid date'
+                      }
+                      return formatDate(date)
+                    }
+                  } catch (_error) {
+                    // Error formatting createdAt in settings
+                    return 'Invalid date'
+                  }
+                })()}
+              </SSText>
             )}
           </SSHStack>
         </SSVStack>

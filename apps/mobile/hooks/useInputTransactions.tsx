@@ -274,8 +274,9 @@ export function useInputTransactions(
                     ...new Set(prevTxOutputs.map((p) => p.txid))
                   ]
 
-                  const rawPrevTxs =
-                    await electrumClient.getTransactions(uniquePrevTxids)
+                  const rawPrevTxs = await electrumClient.getTransactions(
+                    uniquePrevTxids
+                  )
 
                   // Parse previous transactions and store in a map
                   const prevTxsMap = new Map<string, TxDecoded>()

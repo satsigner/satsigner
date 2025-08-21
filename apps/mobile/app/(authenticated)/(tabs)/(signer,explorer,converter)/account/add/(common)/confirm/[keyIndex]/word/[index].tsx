@@ -1,4 +1,3 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { StyleSheet } from 'react-native'
@@ -22,7 +21,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
@@ -38,7 +36,7 @@ export default function Confirm() {
     clearAccount,
     getAccountData,
     setKey,
-    updateKeySecret,
+
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -53,7 +51,7 @@ export default function Confirm() {
       state.clearKeyState
     ])
   )
-  const network = useBlockchainStore((state) => state.selectedNetwork)
+
   const skipSeedConfirmation = useSettingsStore(
     (state) => state.skipSeedConfirmation
   )

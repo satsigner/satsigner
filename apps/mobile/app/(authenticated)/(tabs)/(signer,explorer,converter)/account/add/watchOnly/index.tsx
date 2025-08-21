@@ -1678,8 +1678,9 @@ export default function WatchOnly() {
           // Check if the descriptor is combined (contains <0;1> or <0,1>)
           if (isCombinedDescriptor(finalContent)) {
             // Validate the combined descriptor and get separated descriptors
-            const combinedValidation =
-              await validateCombinedDescriptor(finalContent)
+            const combinedValidation = await validateCombinedDescriptor(
+              finalContent
+            )
 
             if (combinedValidation.isValid) {
               // Set both descriptors and mark them as valid
