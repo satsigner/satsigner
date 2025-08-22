@@ -50,8 +50,13 @@ export default function SetPin() {
     setFirstTime(false)
     await setPin(DEFAULT_PIN)
 
-    if (showWarning) router.push('./warning')
-    else router.replace('/')
+    // Let us clear the history to prevent the user from going back to Set Pin
+    // screen by pressing 'back' button. Otherwise, pressing 'back' will show
+    // the Set Pin and this is not desirable UX.
+    router.dismissAll()
+
+    if (showWarning) router.navigate('./warning')
+    else router.navigate('/')
   }
 
   async function handleConfirmPin() {
