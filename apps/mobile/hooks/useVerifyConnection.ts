@@ -47,7 +47,7 @@ function useVerifyConnection() {
           : await Esplora.test(server.url, config.timeout * 1000)
 
       setConnectionState(result)
-    } catch (error) {
+    } catch (_error) {
       setConnectionState(false)
     }
   }, [

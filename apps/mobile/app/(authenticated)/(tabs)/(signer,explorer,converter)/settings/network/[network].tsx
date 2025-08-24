@@ -145,7 +145,7 @@ export default function CustomNetwork() {
               return sum + (Array.isArray(item) && item[1] ? item[1] : 0)
             }, 0)
           }
-        } catch (e) {
+        } catch (_e) {
           // Mempool info not available
         }
 
@@ -175,14 +175,14 @@ export default function CustomNetwork() {
         try {
           const mempoolInfo = await client._call('/mempool')
           mempoolSize = mempoolInfo?.count || undefined
-        } catch (e) {
+        } catch (_e) {
           // Esplora mempool info not available
         }
 
         try {
           const feeEstimates = await client.getFeeEstimates()
           medianFee = feeEstimates['6'] || feeEstimates['3'] || undefined
-        } catch (e) {
+        } catch (_e) {
           // Esplora fee estimates not available
         }
 
@@ -195,7 +195,7 @@ export default function CustomNetwork() {
           medianFee
         })
       }
-    } catch (error) {
+    } catch (_error) {
       // Failed to get node info
       // Still set basic info even if enhanced info fails
       const responseTime = Date.now() - startTime
