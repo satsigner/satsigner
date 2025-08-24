@@ -49,7 +49,7 @@ function getScriptVersionDisplayName(scriptVersion: ScriptVersion): string {
 type SSScriptVersionModalProps = {
   visible: boolean
   scriptVersion: ScriptVersion
-  policyType?: 'singlesig' | 'multisig'
+  policyType?: 'singlesig' | 'multisig' | 'watchonly'
   onSelect: (scriptVersion: ScriptVersion) => void
   onCancel: () => void
 }

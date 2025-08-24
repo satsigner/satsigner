@@ -229,8 +229,8 @@ function SSDevicesGroupChat() {
               {typeof msg.content === 'object' && 'description' in msg.content
                 ? msg.content.description
                 : typeof msg.content === 'string'
-                ? msg.content
-                : 'Invalid message format'}
+                  ? msg.content
+                  : 'Invalid message format'}
             </SSText>
           </SSVStack>
         )

@@ -146,12 +146,12 @@ function SSNumberInput(
           {localValue === ''
             ? t('validation.required')
             : !localValue.match(/^[0-9]+$/)
-            ? t('validation.invalid')
-            : Number(localValue) < min
-            ? t('validation.number.greater', { value: min })
-            : Number(localValue) > max
-            ? t('validation.number.smaller', { value: max })
-            : t('validation.invalid')}
+              ? t('validation.invalid')
+              : Number(localValue) < min
+                ? t('validation.number.greater', { value: min })
+                : Number(localValue) > max
+                  ? t('validation.number.smaller', { value: max })
+                  : t('validation.invalid')}
         </SSText>
       )}
     </View>

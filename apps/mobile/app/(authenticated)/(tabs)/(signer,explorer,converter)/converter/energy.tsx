@@ -1484,20 +1484,20 @@ export default function Energy() {
                   miningIntensity > 500
                     ? Colors.error
                     : miningIntensity > 300
-                    ? Colors.warning
-                    : miningIntensity > 200
-                    ? Colors.success
-                    : Colors.white
+                      ? Colors.warning
+                      : miningIntensity > 200
+                        ? Colors.success
+                        : Colors.white
                 }
                 maximumTrackTintColor={Colors.gray[500]}
                 thumbTintColor={
                   miningIntensity > 500
                     ? Colors.error
                     : miningIntensity > 300
-                    ? Colors.warning
-                    : miningIntensity > 200
-                    ? Colors.success
-                    : Colors.white
+                      ? Colors.warning
+                      : miningIntensity > 200
+                        ? Colors.success
+                        : Colors.white
                 }
               />
             </SSVStack>

@@ -97,9 +97,8 @@ function ImportDescriptorFromAccount() {
     if (!externalDescriptorString) return
 
     setExternalDescriptor(externalDescriptorString)
-    const extendedPublicKey = await extractExtendedKeyFromDescriptor(
-      externalDescriptor
-    )
+    const extendedPublicKey =
+      await extractExtendedKeyFromDescriptor(externalDescriptor)
     setExtendedPublicKey(extendedPublicKey)
     setKey(Number(keyIndex))
     updateKeyFingerprint(

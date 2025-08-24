@@ -173,9 +173,8 @@ async function getWalletData(
                   key.secret.externalDescriptor,
                   network
                 )
-                const extractedKey = await extractExtendedKeyFromDescriptor(
-                  descriptor
-                )
+                const extractedKey =
+                  await extractExtendedKeyFromDescriptor(descriptor)
                 if (extractedKey) {
                   extendedPublicKey = extractedKey
                 }
@@ -736,9 +735,8 @@ async function getExtendedPublicKeyFromAccountKey(
       key.secret.passphrase,
       network
     )
-    const standardExtendedKey = await extractExtendedKeyFromDescriptor(
-      externalDescriptor
-    )
+    const standardExtendedKey =
+      await extractExtendedKeyFromDescriptor(externalDescriptor)
 
     // The standardExtendedKey contains the wrong derivation path, but the actual key data is correct
     // We need to return it as-is for now, and handle the derivation path correction in descriptor creation
@@ -753,9 +751,8 @@ async function getExtendedPublicKeyFromAccountKey(
       key.secret.passphrase,
       network
     )
-    const extendedKey = await extractExtendedKeyFromDescriptor(
-      externalDescriptor
-    )
+    const extendedKey =
+      await extractExtendedKeyFromDescriptor(externalDescriptor)
 
     return extendedKey
   }
@@ -773,8 +770,8 @@ async function getDescriptorsFromKeyData(
     network === Network.Bitcoin
       ? 'bitcoin'
       : network === Network.Testnet
-      ? 'testnet'
-      : 'signet'
+        ? 'testnet'
+        : 'signet'
 
   // Use the correct derivation path based on account type
   const derivationPath = isMultisig

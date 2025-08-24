@@ -25,8 +25,8 @@ function SSRadioButton({
         ? styles.selectedDefault
         : styles.selectedOutline
       : variant === 'default'
-      ? styles.unselectedDefault
-      : styles.unselectedOutline
+        ? styles.unselectedDefault
+        : styles.unselectedOutline
 
     return StyleSheet.compose(
       {

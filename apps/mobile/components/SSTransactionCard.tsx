@@ -58,8 +58,8 @@ function SSTransactionCard({
     confirmations < 0
       ? styles.unconfirmed
       : confirmations < 6
-      ? styles.confirmedFew
-      : styles.confirmedEnough
+        ? styles.confirmedFew
+        : styles.confirmedEnough
 
   const [priceDisplay, setPriceDisplay] = useState('')
   const [percentChange, setPercentChange] = useState('')

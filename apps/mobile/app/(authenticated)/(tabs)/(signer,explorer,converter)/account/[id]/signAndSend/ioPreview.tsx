@@ -218,8 +218,8 @@ export default function IOPreview() {
         selectedPeriod === '2hours'
           ? '2h'
           : selectedPeriod === 'day'
-          ? '24h'
-          : '1w'
+            ? '24h'
+            : '1w'
       ),
     enabled: isFocused,
     staleTime: time.minutes(5)

@@ -101,9 +101,8 @@ export default function ExportPubkeys() {
                 walletData.externalDescriptor,
                 network as Network
               )
-              const extendedKey = await extractExtendedKeyFromDescriptor(
-                descriptor
-              )
+              const extendedKey =
+                await extractExtendedKeyFromDescriptor(descriptor)
               return extendedKey || 'N/A'
             }
           })

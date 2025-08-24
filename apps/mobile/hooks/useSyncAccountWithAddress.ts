@@ -362,9 +362,8 @@ function useSyncAccountWithAddress() {
 
       // fetch timestamp
       if (!timestampByHeight[height]) {
-        timestampByHeight[height] = await electrumClient.getBlockTimestamp(
-          height
-        )
+        timestampByHeight[height] =
+          await electrumClient.getBlockTimestamp(height)
       }
       const timestamp = timestampByHeight[height]
       txTimestamps.push(timestamp)
@@ -451,9 +450,8 @@ function useSyncAccountWithAddress() {
       const height = electrumUtxo.height
 
       if (!timestampByHeight[height]) {
-        timestampByHeight[height] = await electrumClient.getBlockTimestamp(
-          height
-        )
+        timestampByHeight[height] =
+          await electrumClient.getBlockTimestamp(height)
       }
 
       const timestamp = timestampByHeight[height]

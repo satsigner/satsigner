@@ -140,10 +140,10 @@ function SSMultisigCountSelector({
                       count + 1 > totalNumber
                         ? '#FFFFFF17'
                         : count + 1 === totalNumber
-                        ? 'white'
-                        : count + 1 === requiredNumber
-                        ? 'white'
-                        : '#FFFFFF33'
+                          ? 'white'
+                          : count + 1 === requiredNumber
+                            ? 'white'
+                            : '#FFFFFF33'
                     }
                     fontSize={12}
                     textAnchor="middle"
@@ -230,10 +230,10 @@ function SSMultisigCountSelector({
                       count + 1 > totalNumber
                         ? '#242424'
                         : count + 1 === totalNumber
-                        ? 'white'
-                        : count + 1 === requiredNumber
-                        ? 'white'
-                        : 'transparent'
+                          ? 'white'
+                          : count + 1 === requiredNumber
+                            ? 'white'
+                            : 'transparent'
                     }
                   />
                 ))}

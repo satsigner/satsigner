@@ -370,12 +370,6 @@ export default function AccountSettings() {
                     keyDetails={key}
                     isSettingsMode
                     accountId={currentAccountId}
-                    onRefresh={() => {
-                      // Refresh the page to show updated data
-                      router.replace(
-                        `/account/${currentAccountId}/settings/` as any
-                      )
-                    }}
                   />
                 ))
               ) : (

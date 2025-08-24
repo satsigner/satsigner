@@ -94,8 +94,8 @@ function SSCurrencyInput(
       size === 'default'
         ? styles.sizeDefault
         : size === 'small'
-        ? styles.sizeSmall
-        : styles.sizeLarge
+          ? styles.sizeSmall
+          : styles.sizeLarge
     const alignStyle =
       align === 'center' ? styles.alignCenter : styles.alignLeft
     const newStyle = StyleSheet.compose(

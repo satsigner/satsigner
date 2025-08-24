@@ -158,9 +158,8 @@ export default function ExportDescriptors() {
                       secret.externalDescriptor,
                       network as Network
                     )
-                    extendedPublicKey = await extractExtendedKeyFromDescriptor(
-                      descriptor
-                    )
+                    extendedPublicKey =
+                      await extractExtendedKeyFromDescriptor(descriptor)
                   } catch (_error) {
                     // Failed to extract extended public key from descriptor
                   }
