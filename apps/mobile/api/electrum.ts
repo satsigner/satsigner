@@ -136,8 +136,15 @@ class BaseElectrumClient {
     const protocol = url.replace(/:\/\/.*/, '')
     const host = url.replace(`${protocol}://`, '').replace(`:${port}`, '')
 
+    // Validate host: allow domain names (starting with letter) or IP addresses
+    const isDomainName = /^[a-z][a-z0-9.-]*[a-z0-9]$/i.test(host)
+    const isIPAddress =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(
+        host
+      )
+
     if (
-      !host.match(/^[a-z][a-z.]+$/i) ||
+      !(isDomainName || isIPAddress) ||
       !port.match(/^[0-9]+$/) ||
       (protocol !== 'ssl' && protocol !== 'tls' && protocol !== 'tcp')
     ) {
@@ -163,23 +170,54 @@ class BaseElectrumClient {
   }
 
   static async test(url: string, network: Network, timeout: number) {
-    const client = ElectrumClient.fromUrl(url, network)
-    const pingPromise = client.client.initElectrum({
-      client: 'satsigner',
-      version: '1.4'
-    })
-    const timeoutPromise = new Promise((_resolve, reject) =>
-      setTimeout(() => {
-        reject(new Error('timeout'))
-      }, timeout)
-    )
+    let client: ElectrumClient | null = null
+    let timeoutId: NodeJS.Timeout | null = null
+
     try {
+      client = ElectrumClient.fromUrl(url, network)
+
+      // Disable reconnection for the test
+      // @ts-ignore
+      client.client.reconnect = () => {}
+
+      const pingPromise = client.client.initElectrum({
+        client: 'satsigner',
+        version: '1.4'
+      })
+
+      const timeoutPromise = new Promise((_resolve, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('timeout'))
+        }, timeout)
+      })
+
       await Promise.race([pingPromise, timeoutPromise])
+
+      // Clear timeout if successful
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+
       return true
-    } catch {
+    } catch (error) {
       return false
     } finally {
-      client.close()
+      // Clean up resources
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      if (client) {
+        try {
+          client.close()
+          // @ts-ignore - Force close the underlying socket
+          if (client.client && client.client.socket) {
+            client.client.socket.destroy()
+          }
+        } catch (closeError) {
+          // Ignore cleanup errors
+        }
+      }
     }
   }
 
