@@ -280,7 +280,7 @@ export default function CustomNetwork() {
                     {t('settings.network.server.protocol')}
                   </SSText>
                   <SSHStack gap="sm" style={{ flex: 1 }}>
-                    {(['tcp', 'tls', 'ssl'] as const).map((protocolOption) => (
+                    {(['tcp', 'ssl'] as const).map((protocolOption) => (
                       <SSButton
                         key={protocolOption}
                         label={`${protocolOption}://`}
