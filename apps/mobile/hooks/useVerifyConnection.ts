@@ -35,6 +35,7 @@ function useVerifyConnection() {
       setConnectionState(false)
       return
     }
+
     try {
       const result =
         server.backend === 'electrum'
@@ -44,8 +45,9 @@ function useVerifyConnection() {
               config.timeout * 1000
             )
           : await Esplora.test(server.url, config.timeout * 1000)
+
       setConnectionState(result)
-    } catch {
+    } catch (error) {
       setConnectionState(false)
     }
   }, [

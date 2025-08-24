@@ -73,7 +73,12 @@ export default function CustomNetwork() {
       return false
     }
 
-    if (backend === 'electrum' && !url.startsWith('ssl://')) {
+    if (
+      backend === 'electrum' &&
+      !url.startsWith('ssl://') &&
+      !url.startsWith('tls://') &&
+      !url.startsWith('tcp://')
+    ) {
       toast.warning(t('error.invalid.url'))
       return false
     }
