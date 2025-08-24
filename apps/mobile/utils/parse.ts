@@ -104,8 +104,19 @@ function parseAccountAddressesDetails({
 }
 
 function parseAddressDescriptorToAddress(descriptor: string) {
+  if (!descriptor || typeof descriptor !== 'string') {
+    throw new Error(
+      `Invalid address descriptor: expected string, got ${typeof descriptor}`
+    )
+  }
+
   const match = descriptor.match(/^addr\(([a-z0-9]+)\)$/i)
-  if (!match) throw new Error('invalid address descriptor')
+  if (!match) {
+    throw new Error(
+      `Invalid address descriptor format: "${descriptor}". Expected format: addr(address)`
+    )
+  }
+
   return match[1]
 }
 

@@ -13,6 +13,7 @@ import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSSeedQR from '@/components/SSSeedQR'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
@@ -24,6 +25,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -46,19 +48,26 @@ export default function AccountSettings() {
     (state) => state.removeAccountWallet
   )
 
-  const [scriptVersion, setScriptVersion] =
-    useState<Key['scriptVersion']>('P2WPKH') // TODO: use current account script
-  const [network, setNetwork] = useState<NonNullable<string>>('signet')
+  const skipPin = useAuthStore((state) => state.skipPin)
+
+  const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
+    account?.keys[0]?.scriptVersion || 'P2WPKH'
+  )
+  const [network, setNetwork] = useState<NonNullable<string>>(
+    account?.network || 'signet'
+  )
   const [accountName, setAccountName] = useState<Account['name']>(
     account?.name || ''
   )
   const [localMnemonic, setLocalMnemonic] = useState('')
+  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [networkModalVisible, setNetworkModalVisible] = useState(false)
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [mnemonicModalVisible, setMnemonicModalVisible] = useState(false)
+  const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
 
@@ -76,8 +85,12 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
-    setPin(Array(4).fill(''))
-    setShowPinEntry(true)
+    if (skipPin) {
+      setMnemonicModalVisible(true)
+    } else {
+      setPin(Array(4).fill(''))
+      setShowPinEntry(true)
+    }
   }
 
   function handleOnSelectScriptVersion() {
@@ -126,6 +139,59 @@ export default function AccountSettings() {
     getMnemonic()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    async function decryptKeys() {
+      const pin = await getItem(PIN_KEY)
+      if (!account || !pin) return
+
+      try {
+        const decryptedKeysData = await Promise.all(
+          account.keys.map(async (key) => {
+            if (typeof key.secret === 'string') {
+              // Decrypt the key's secret
+              const decryptedSecretString = await aesDecrypt(
+                key.secret,
+                pin,
+                key.iv
+              )
+              const decryptedSecret = JSON.parse(
+                decryptedSecretString
+              ) as Secret
+
+              return {
+                ...key,
+                secret: decryptedSecret
+              }
+            } else {
+              return key
+            }
+          })
+        )
+
+        setDecryptedKeys(decryptedKeysData)
+      } catch (_error) {
+        // Handle error silently
+      }
+    }
+    decryptKeys()
+  }, [account])
+
+  // Update network when account changes
+  useEffect(() => {
+    if (account?.network) {
+      setNetwork(account.network)
+    }
+  }, [account?.network])
+
+  // Update script version when account changes
+  useEffect(() => {
+    const accountKeys = account?.keys
+    const scriptVersion = accountKeys?.[0]?.scriptVersion
+    if (scriptVersion) {
+      setScriptVersion(scriptVersion)
+    }
+  }, [account?.keys])
+
   if (!currentAccountId || !account || !scriptVersion)
     return <Redirect href="/" />
 
@@ -151,8 +217,11 @@ export default function AccountSettings() {
         <SSVStack itemsCenter gap="none">
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText style={styles.fingerprintText}>
-              {account.keys[0].fingerprint}
+            <SSText>
+              {typeof account.keys[0].secret === 'object' &&
+              account.keys[0].secret.fingerprint
+                ? account.keys[0].secret.fingerprint
+                : account.keys[0].fingerprint || '-'}
             </SSText>
           </SSHStack>
           <SSHStack gap="sm">
@@ -161,27 +230,6 @@ export default function AccountSettings() {
               <SSText>{formatDate(account.createdAt)}</SSText>
             )}
           </SSHStack>
-        </SSVStack>
-        <SSVStack>
-          {(account.keys[0].creationType === 'generateMnemonic' ||
-            account.keys[0].creationType === 'importMnemonic') && (
-            <SSHStack>
-              <SSButton
-                style={styles.button}
-                label={t('account.viewMnemonic')}
-                onPress={() => handleOnViewMnemonic()}
-              />
-            </SSHStack>
-          )}
-          <SSButton
-            style={styles.button}
-            label={t('account.export.descriptors')}
-            onPress={() =>
-              router.navigate(
-                `/account/${currentAccountId}/settings/export/descriptors`
-              )
-            }
-          />
         </SSVStack>
         <SSVStack>
           <SSHStack>
@@ -204,6 +252,38 @@ export default function AccountSettings() {
               }
             />
           </SSHStack>
+        </SSVStack>
+        <SSVStack>
+          {(account.keys[0].creationType === 'generateMnemonic' ||
+            account.keys[0].creationType === 'importMnemonic') && (
+            <SSHStack>
+              <SSButton
+                style={styles.button}
+                label={t('account.viewMnemonic')}
+                onPress={() => handleOnViewMnemonic()}
+              />
+            </SSHStack>
+          )}
+          <SSHStack>
+            <SSButton
+              style={styles.button}
+              label={t('account.export.descriptors')}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/export/descriptors`
+                )
+              }
+            />
+            <SSButton
+              style={styles.button}
+              label={t('account.export.pubkeys')}
+              onPress={() =>
+                router.navigate(
+                  `/account/${currentAccountId}/settings/export/pubkeys`
+                )
+              }
+            />
+          </SSHStack>
           <SSButton
             style={styles.button}
             label={t('account.nostrSync.sync')}
@@ -212,6 +292,7 @@ export default function AccountSettings() {
             }
           />
         </SSVStack>
+
         <SSFormLayout>
           <SSFormLayout.Item>
             <SSFormLayout.Label label={t('account.name')} />
@@ -221,7 +302,7 @@ export default function AccountSettings() {
             <SSFormLayout.Label label={t('account.network.title')} />
             <SSButton
               label={network}
-              onPress={() => setNetworkModalVisible(true)}
+              // onPress={() => setNetworkModalVisible(true)}
               withSelect
             />
           </SSFormLayout.Item>
@@ -233,7 +314,9 @@ export default function AccountSettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(`script.${scriptVersion.toLocaleLowerCase()}.name`)} (${scriptVersion})`}
+                label={`${t(
+                  `script.${scriptVersion.toLocaleLowerCase()}.name`
+                )} (${scriptVersion})`}
                 onPress={() => setScriptVersionModalVisible(true)}
                 withSelect
               />
@@ -252,15 +335,30 @@ export default function AccountSettings() {
               <SSText center>{t('account.addOrGenerateKeys')}</SSText>
             </SSVStack>
             <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
-              {account.keys.map((key, index) => (
-                <SSMultisigKeyControl
-                  key={index}
-                  isBlackBackground={index % 2 === 1}
-                  index={index}
-                  keyCount={account.keyCount}
-                  keyDetails={key}
-                />
-              ))}
+              {decryptedKeys.length > 0 ? (
+                decryptedKeys.map((key, index) => (
+                  <SSMultisigKeyControl
+                    key={index}
+                    isBlackBackground={index % 2 === 1}
+                    index={index}
+                    keyCount={account.keyCount}
+                    keyDetails={key}
+                    isSettingsMode
+                    accountId={currentAccountId}
+                    onRefresh={() => {
+                      // Refresh the page to show updated data
+                      router.replace(
+                        `/account/${currentAccountId}/settings/` as any
+                      )
+                    }}
+                  />
+                ))
+              ) : (
+                // Show loading state while decrypting
+                <SSText center color="muted">
+                  Loading keys...
+                </SSText>
+              )}
             </SSVStack>
           </>
         )}
@@ -355,9 +453,7 @@ export default function AccountSettings() {
         onClose={() => setDeleteModalVisible(false)}
       >
         <SSVStack style={styles.deleteModalOuterContainer}>
-          <SSText size="xl" weight="bold">
-            {t('common.areYouSure')}
-          </SSText>
+          <SSText uppercase>{t('common.areYouSure')}</SSText>
           <SSHStack style={styles.deleteModalInnerContainer}>
             <SSButton
               label={t('common.yes')}
@@ -387,12 +483,15 @@ export default function AccountSettings() {
           <View style={styles.mnemonicModalOuterContainer}>
             <SSVStack gap="lg" style={styles.mnemonicModalContainer}>
               <SSText center uppercase>
+                {account.name}
+              </SSText>
+              <SSText center uppercase>
                 {account.keys[0].mnemonicWordCount}{' '}
                 {t('account.mnemonic.title')}
               </SSText>
               <SSHStack style={{ justifyContent: 'center' }}>
                 <SSText uppercase color="muted">
-                  {t('account.seed.keepItSecret')}
+                  {t('account.seed.keepInSecret')}
                 </SSText>
               </SSHStack>
               <View style={styles.mnemonicWordsContainer}>
@@ -460,18 +559,38 @@ export default function AccountSettings() {
               </View>
             </SSVStack>
             <View style={styles.copyButtonContainer}>
-              <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+              <SSVStack gap="sm">
+                <SSClipboardCopy text={localMnemonic.replaceAll(',', ' ')}>
+                  <SSButton
+                    label={t('common.copy')}
+                    style={styles.copyButton}
+                    variant="outline"
+                  />
+                </SSClipboardCopy>
                 <SSButton
-                  label={t('common.copy')}
+                  label={t('account.seed.showQR')}
                   style={styles.copyButton}
                   variant="outline"
+                  onPress={() => {
+                    setMnemonicModalVisible(false)
+                    setSeedQRModalVisible(true)
+                  }}
                 />
-              </SSClipboardCopy>
+              </SSVStack>
             </View>
           </View>
         )}
         {!localMnemonic && <SSText>{t('account.seed.unableToDecrypt')}</SSText>}
       </SSModal>
+      <SSSeedQR
+        mnemonic={localMnemonic}
+        visible={seedQRModalVisible}
+        title={account.name}
+        onClose={() => {
+          setSeedQRModalVisible(false)
+          setMnemonicModalVisible(true)
+        }}
+      />
       <SSModal visible={showPinEntry} onClose={() => setShowPinEntry(false)}>
         <SSPinEntry
           title={t('account.enter.pin')}
@@ -504,18 +623,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center'
   },
-  fingerprintText: {
-    color: Colors.success
-  },
   mainLayout: {
     padding: 20
   },
   multiSigContainer: {
     backgroundColor: '#131313',
-    paddingHorizontal: 16
+    paddingHorizontal: 0
   },
   multiSigKeyControlCOntainer: {
-    marginHorizontal: 20
+    marginHorizontal: 0
   },
   mnemonicGrid: {
     flexDirection: 'row',

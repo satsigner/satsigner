@@ -550,7 +550,9 @@ function DerivedAddresses({
             renderItem={renderItem}
             estimatedItemSize={150}
             keyExtractor={(item) => {
-              return `${item.index || ''}:${item.address}:${item.keychain || ''}`
+              return `${item.index || ''}:${item.address}:${
+                item.keychain || ''
+              }`
             }}
             removeClippedSubviews
           />
@@ -746,10 +748,6 @@ export default function AccountView() {
   ]
   const [tabIndex, setTabIndex] = useState(0)
   const animationValue = useRef(new Animated.Value(0)).current
-  const gradientHeight = animationValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [isMultiAddressWatchOnly ? 100 : 190, 0]
-  })
 
   const [connectionState, connectionString, isPrivateConnection] =
     useVerifyConnection()
@@ -1061,7 +1059,7 @@ export default function AccountView() {
         </SSHStack>
       </TouchableOpacity>
       {!expand && (
-        <Animated.View style={{ height: gradientHeight }}>
+        <Animated.View>
           <SSVStack itemsCenter gap="none">
             <SSVStack itemsCenter gap="none" style={{ paddingBottom: 12 }}>
               <SSHStack gap="xs" style={{ alignItems: 'baseline' }}>
@@ -1091,10 +1089,10 @@ export default function AccountView() {
             <SSVStack gap="none">
               <SSHStack
                 justifyEvenly
-                gap="xxs"
+                gap="none"
                 style={{ paddingHorizontal: '5%' }}
               >
-                {account.policyType !== 'watchonly' && (
+                {account.keys[0].creationType !== 'importAddress' && (
                   <>
                     <SSActionButton
                       onPress={() => navigateToSignAndSend()}
@@ -1124,17 +1122,6 @@ export default function AccountView() {
                       <SSText uppercase>{t('account.receive')}</SSText>
                     </SSActionButton>
                   </>
-                )}
-                {account.keys[0].creationType === 'importExtendedPub' && (
-                  <SSActionButton
-                    onPress={() => router.navigate(`/account/${id}/receive`)}
-                    style={{
-                      ...styles.actionButton,
-                      width: '100%'
-                    }}
-                  >
-                    <SSText uppercase>{t('account.receive')}</SSText>
-                  </SSActionButton>
                 )}
                 {account.keys[0].creationType === 'importAddress' &&
                   account.keys.length === 1 && (
