@@ -241,9 +241,15 @@ const useAccountBuilderStore = create<
       extendedPublicKey
     } = get()
 
-    // Validate that the key has both fingerprint and public key/descriptor
-    if (!fingerprint) {
-      throw new Error('Fingerprint is required for all keys')
+    // For watch-only accounts with addresses, skip fingerprint requirement
+    const isWatchOnlyAddress =
+      creationType === 'importAddress' && externalDescriptor
+
+    // Validate that the key has either a fingerprint or is a watch-only address
+    if (!fingerprint && !isWatchOnlyAddress) {
+      throw new Error(
+        'Fingerprint is required for all keys except watch-only addresses'
+      )
     }
 
     // Check if we have either a public key or descriptor
