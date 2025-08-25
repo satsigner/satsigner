@@ -23,11 +23,13 @@ const ALLOWED_KEYS: string[] = '0123456789'.split('')
 const KEY_CODE_DELETE = 0
 const KEY_CODE_BACKSPACE = 67
 const KEY_CODE_LEFT = 21
+const DELETE_DELAY = 200 // delay in miliseconds between consecutive deletions
 
 function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
   const [isBackspace, setIsBackspace] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [hasJustDeletedChar, setHasJustDeletedChar] = useState(false)
 
   useEffect(() => {
     function resetFocusOnClear() {
@@ -41,6 +43,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
 
   useEffect(() => {
     KeyEvent.onKeyUpListener((keyEvent: KeyEventProps) => {
+      // key code is from ASCII TABLE
       const keyCode = keyEvent.keyCode
       let pressedKey = keyEvent.pressedKey
 
@@ -62,7 +65,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
       // Clean up listener on component unmount
       KeyEvent.removeKeyUpListener()
     }
-  }, [currentIndex, pin]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentIndex, pin, hasJustDeletedChar]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleOnChangeText(text: string, index: number) {
     // validate input from physical keyboard
@@ -82,6 +85,7 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   }
 
   function handleBackspace(index: number) {
+    if (hasJustDeletedChar) return
     const newPin = [...pin]
     setIsBackspace(true)
     const previousPinIndex = index - 1
@@ -90,15 +94,27 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
     if (currentPinNotEmpty) {
       newPin[index] = ''
       setPin(newPin)
-      return
-    }
-
-    if (previousPinIndex >= 0) {
+    } else if (previousPinIndex >= 0) {
       newPin[previousPinIndex] = ''
       setPin(newPin)
       inputRefs.current[previousPinIndex]?.focus()
       setCurrentIndex(currentIndex - 1)
     }
+
+    // INFO: we have two keystroke  event  listeners.  React  Native  onKeyPress
+    // handler does NOT work with physical keyboards while onKeyUpListener  from
+    // react-native-keyevent does work with both virtual and physical keyboards.
+    // However, onKeyUpListener does NOT detect the BACKSPACE from  the  virtual
+    // keyboard on emulator (it does detect other keys), thus we need to  listen
+    // to events from both React Native  and  the  keyevent  library.  But  this
+    // introduces a  bug:  BACKSPACE  is  triggered  twice  when  using  virtual
+    // keyboard on physical devices (virtual keyboard on emulator  works  fine).
+    // Thus, we need to add a  delay  to  prevent  BACKSPACE  getting  triggered
+    // multiple times in a row.
+    setHasJustDeletedChar(true)
+    setTimeout(() => {
+      setHasJustDeletedChar(false)
+    }, DELETE_DELAY)
   }
 
   function handleLastPin() {
