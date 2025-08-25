@@ -391,6 +391,7 @@ export default function UnifiedImport() {
       if (importType === 'descriptor') {
         let externalDescriptor = text
         let internalDescriptor = ''
+        const originalDescriptor = ''
         if (text.includes('\n')) {
           const lines = text.split('\n')
           externalDescriptor = lines[0]

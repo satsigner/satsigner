@@ -36,7 +36,6 @@ export default function Confirm() {
     clearAccount,
     getAccountData,
     setKey,
-
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -47,7 +46,6 @@ export default function Confirm() {
       state.clearAccount,
       state.getAccountData,
       state.setKey,
-      state.updateKeySecret,
       state.clearKeyState
     ])
   )

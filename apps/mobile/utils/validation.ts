@@ -344,7 +344,9 @@ export function validateDescriptorScriptVersion(
   if (!allowedScriptTypes.includes(scriptType)) {
     return {
       isValid: false,
-      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(', ')}`
+      error: `Descriptor script type "${scriptType}" is not compatible with multisig script version "${scriptVersion}". Expected: ${allowedScriptTypes.join(
+        ', '
+      )}`
     }
   }
 
