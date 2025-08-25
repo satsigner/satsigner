@@ -9,6 +9,7 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
+import { extractAccountFingerprint } from '@/utils/account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
@@ -174,10 +175,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               size="xs"
               style={{ color: Colors.gray[500], lineHeight: 10 }}
             >
-              {typeof account.keys[0].secret === 'object' &&
-              account.keys[0].secret.fingerprint
-                ? account.keys[0].secret.fingerprint
-                : account.keys[0].fingerprint || '-'}
+              {extractAccountFingerprint(account) || '-'}
             </SSText>
           )}
           <SSHStack gap="sm">
