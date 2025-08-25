@@ -10,6 +10,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -37,6 +38,8 @@ export default function NetworkSettings() {
       state.removeCustomServer
     ])
   )
+
+  const [connectionState] = useVerifyConnection()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -115,7 +118,12 @@ export default function NetworkSettings() {
                               {selectedServers[network].url === server.url &&
                                 selectedServers[network].network ===
                                   server.network &&
-                                server.network === selectedNetwork && (
+                                server.network === selectedNetwork &&
+                                configs[selectedNetwork].server.url ===
+                                  server.url &&
+                                configs[selectedNetwork].server.network ===
+                                  server.network &&
+                                connectionState && (
                                   <SSText
                                     style={{
                                       lineHeight: 14,
