@@ -446,11 +446,14 @@ export default function ImportMnemonic() {
     clearAccount()
 
     // Navigate to the newly created account page if available and synced
+    // Use replace to clear navigation stack, then navigate to account
+    router.replace('/')
+
     if (syncedAccount?.id) {
-      router.navigate(`/account/${syncedAccount.id}`)
-    } else {
-      // Fallback to account list if no synced account available
-      router.navigate('/')
+      // Navigate to account after clearing stack
+      setTimeout(() => {
+        router.navigate(`/account/${syncedAccount.id}`)
+      }, 10)
     }
   }
 
