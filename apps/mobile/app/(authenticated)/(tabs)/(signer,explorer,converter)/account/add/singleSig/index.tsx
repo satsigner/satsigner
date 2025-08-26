@@ -132,20 +132,15 @@ export default function SingleSig() {
         }
       }
     } else if (type === 'importMnemonic') {
-      // For import, first show the word count selection modal
-      setMnemonicWordCountModalVisibile(true)
+      // For import, navigate to mnemonic input
+      router.navigate('/account/add/import/mnemonic/0')
     }
   }
 
   function handleOnSelectMnemonicWordCount() {
     setMnemonicWordCount(localMnemonicWordCount)
     setMnemonicWordCountModalVisibile(false)
-
-    // Navigate based on the creation type that was set
-    const creationType = useAccountBuilderStore.getState().creationType
-    if (creationType === 'importMnemonic') {
-      router.navigate('/account/add/import/mnemonic/0')
-    }
+    // Modal closes and user returns to options screen to select import/generate
   }
 
   function handleOnSelectEntropy() {
