@@ -297,12 +297,16 @@ const useAccountBuilderStore = create<
   updateKeyFingerprint: (index, fingerprint) => {
     set(
       produce((state: AccountBuilderState) => {
-        if (
-          state.keys[index] &&
-          state.keys[index].secret &&
-          typeof state.keys[index].secret === 'object'
-        ) {
-          ;(state.keys[index].secret as any).fingerprint = fingerprint
+        if (state.keys[index]) {
+          // Set fingerprint at key level for easy access
+          state.keys[index].fingerprint = fingerprint
+          // Also set in secret for consistency
+          if (
+            state.keys[index].secret &&
+            typeof state.keys[index].secret === 'object'
+          ) {
+            ;(state.keys[index].secret as any).fingerprint = fingerprint
+          }
         }
       })
     )

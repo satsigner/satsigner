@@ -444,7 +444,17 @@ export default function ImportMnemonic() {
     setAccountAddedModalVisible(false)
     clearKeyState()
     clearAccount()
-    router.navigate('/')
+
+    // Navigate to the newly created account page if available and synced
+    // Use replace to clear navigation stack, then navigate to account
+    router.replace('/')
+
+    if (syncedAccount?.id) {
+      // Navigate to account after clearing stack
+      setTimeout(() => {
+        router.navigate(`/account/${syncedAccount.id}`)
+      }, 10)
+    }
   }
 
   function handleOnPressCancel() {
@@ -533,6 +543,11 @@ export default function ImportMnemonic() {
       </ScrollView>
       <SSGradientModal
         visible={accountAddedModalVisible}
+        closeText={
+          syncedAccount && !loadingAccount
+            ? t('account.gotoWallet')
+            : t('common.close')
+        }
         onClose={() => handleOnCloseAccountAddedModal()}
       >
         <SSVStack style={{ marginVertical: 32, width: '100%' }}>
@@ -559,7 +574,7 @@ export default function ImportMnemonic() {
                 {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {keys[Number(keyIndex)]?.fingerprint}
+                {fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
@@ -570,7 +585,9 @@ export default function ImportMnemonic() {
                 {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
-                {syncedAccount?.keys[Number(keyIndex)].derivationPath}
+                {syncedAccount?.keys[Number(keyIndex)].derivationPath ||
+                  keys[Number(keyIndex)]?.derivationPath ||
+                  '-'}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>

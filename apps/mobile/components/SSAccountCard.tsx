@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Animated, Easing, Platform, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
+import useAccountFingerprint from '@/hooks/useAccountFingerprint'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -9,7 +10,6 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import { type Account } from '@/types/models/Account'
-import { extractAccountFingerprint } from '@/utils/account'
 import { formatNumber } from '@/utils/format'
 
 import { SSIconChevronRight, SSIconEyeOn } from './icons'
@@ -28,6 +28,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
     useShallow((state) => [state.fiatCurrency, state.satsToFiat])
   )
   const useZeroPadding = useSettingsStore((state) => state.useZeroPadding)
+  const fingerprint = useAccountFingerprint(account)
 
   const rotateAnim = useRef(new Animated.Value(0)).current
   const animationRef = useRef<Animated.CompositeAnimation | null>(null)
@@ -175,7 +176,7 @@ function SSAccountCard({ account, onPress }: SSAccountCardProps) {
               size="xs"
               style={{ color: Colors.gray[500], lineHeight: 10 }}
             >
-              {extractAccountFingerprint(account) || '-'}
+              {fingerprint || '-'}
             </SSText>
           )}
           <SSHStack gap="sm">

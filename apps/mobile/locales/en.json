@@ -63,6 +63,7 @@
     "generate.newSecretSeed": "Generate new secret seed",
     "generate.title": "Generate seed",
     "generate.warning": "Keep this information secret and backed up.",
+    "gotoWallet": "Go to Wallet",
     "import": {
       "error": {
         "checksumFormat": "Invalid checksum format",

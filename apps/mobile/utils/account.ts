@@ -1,4 +1,7 @@
 import { type Account, type Key } from '@/types/models/Account'
+import { useAuthStore } from '@/store/auth'
+
+import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
 
 /**
  * Extract the fingerprint from an account's first key
@@ -44,6 +47,66 @@ export function extractAccountFingerprint(
   // Check if the key has a fingerprint
   if (firstKey.fingerprint) {
     return firstKey.fingerprint
+  }
+
+  return ''
+}
+
+/**
+ * Extract the fingerprint from an account's first key with decryption support
+ * This function can decrypt the account data if needed and supports skipPin scenarios
+ * @param account The account to extract the fingerprint from
+ * @returns Promise that resolves to the fingerprint string or empty string if not found
+ */
+export async function extractAccountFingerprintWithDecryption(
+  account: Account
+): Promise<string> {
+  if (!account?.keys?.length) {
+    return ''
+  }
+
+  const firstKey = account.keys[0]
+
+  // First, check if fingerprint is available at key level (no decryption needed)
+  if (firstKey.fingerprint) {
+    return firstKey.fingerprint
+  }
+
+  // Check if the secret is already decrypted and has a fingerprint
+  if (typeof firstKey.secret === 'object' && firstKey.secret.fingerprint) {
+    return firstKey.secret.fingerprint
+  }
+
+  // If secret is encrypted and we need to decrypt it
+  if (typeof firstKey.secret === 'string') {
+    try {
+      const skipPin = useAuthStore.getState().skipPin
+      const pin = await getPinForDecryption(skipPin)
+      if (!pin) {
+        console.warn(
+          '[extractAccountFingerprintWithDecryption] No PIN available for decryption'
+        )
+        return ''
+      }
+
+      const decryptedSecretString = await aesDecrypt(
+        firstKey.secret,
+        pin,
+        firstKey.iv
+      )
+      const decryptedSecret = JSON.parse(decryptedSecretString)
+
+      if (decryptedSecret.fingerprint) {
+        return decryptedSecret.fingerprint
+      }
+    } catch (error) {
+      // Decryption failed, log the error for debugging
+      console.warn(
+        '[extractAccountFingerprintWithDecryption] Decryption failed:',
+        error
+      )
+      return ''
+    }
   }
 
   return ''
