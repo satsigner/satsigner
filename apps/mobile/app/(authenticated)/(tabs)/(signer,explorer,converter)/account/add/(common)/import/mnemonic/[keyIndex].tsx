@@ -559,7 +559,7 @@ export default function ImportMnemonic() {
                 {t('account.fingerprint')}
               </SSText>
               <SSText size="md" color="muted">
-                {keys[Number(keyIndex)]?.fingerprint}
+                {fingerprint}
               </SSText>
             </SSVStack>
           </SSHStack>
