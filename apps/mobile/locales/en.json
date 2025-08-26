@@ -732,6 +732,7 @@
     "error": "Unable to decode the script",
     "errorAddressInvalid": "Invalid address",
     "errorBip21InsufficientSats": "Insufficient sats for amount in address",
+    "errorChangeAddressNotAvailable": "Change address not available. Please try again.",
     "errorInsufficientInputs": "Amount exceed max with selected inputs. Add more inputs.",
     "exportingNFC": "Exporting via NFC",
     "fee": "Fee",

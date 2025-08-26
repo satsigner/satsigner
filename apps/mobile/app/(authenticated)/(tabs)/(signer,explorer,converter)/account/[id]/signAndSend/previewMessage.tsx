@@ -501,22 +501,15 @@ function PreviewMessage() {
 
     for (const output of outputs) {
       // Validate address format before creating output script
-
       try {
         const outputScript = bitcoinjs.address.toOutputScript(
           output.to,
           network
         )
         transaction.addOutput(outputScript, output.amount)
-      } catch (error) {
-        const _errorMessage =
-          error instanceof Error ? error.message : String(error)
-        // Invalid address for network
-
-        // Show user-friendly error
-        toast.error(
-          `Invalid address format: ${output.to}. Please check your transaction configuration.`
-        )
+      } catch (_error) {
+        // Don't call toast during render - this will be handled by validation elsewhere
+        // Just return empty string to indicate invalid transaction
         return ''
       }
     }
@@ -579,7 +572,34 @@ function PreviewMessage() {
     }
 
     getTransactionMessage()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [wallet, inputs, outputs, fee, rbf, network, setTxBuilderResult])
+
+  // Separate effect to validate addresses and show errors
+  useEffect(() => {
+    if (!account || !outputs.length) return
+
+    const network = bitcoinjsNetwork(account.network)
+
+    for (const output of outputs) {
+      // Check if address is empty or invalid
+      if (!output.to || output.to.trim() === '') {
+        toast.error(
+          'Invalid address format: Empty address. Please check your transaction configuration.'
+        )
+        break // Only show one error at a time
+      }
+
+      try {
+        bitcoinjs.address.toOutputScript(output.to, network)
+      } catch (_error) {
+        // Show error toast for invalid address
+        toast.error(
+          `Invalid address format: ${output.to}. Please check your transaction configuration.`
+        )
+        break // Only show one error at a time
+      }
+    }
+  }, [account, outputs])
 
   const getPsbtString = useCallback(async () => {
     if (!txBuilderResult?.psbt) {
