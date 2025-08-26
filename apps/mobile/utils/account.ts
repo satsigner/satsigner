@@ -1,4 +1,5 @@
 import { type Account, type Key } from '@/types/models/Account'
+import { useAuthStore } from '@/store/auth'
 
 import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
 
@@ -79,7 +80,8 @@ export async function extractAccountFingerprintWithDecryption(
   // If secret is encrypted and we need to decrypt it
   if (typeof firstKey.secret === 'string') {
     try {
-      const pin = await getPinForDecryption()
+      const skipPin = useAuthStore.getState().skipPin
+      const pin = await getPinForDecryption(skipPin)
       if (!pin) {
         console.warn(
           '[extractAccountFingerprintWithDecryption] No PIN available for decryption'
