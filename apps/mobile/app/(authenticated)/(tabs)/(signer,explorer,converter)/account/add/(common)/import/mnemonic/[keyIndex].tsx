@@ -444,7 +444,14 @@ export default function ImportMnemonic() {
     setAccountAddedModalVisible(false)
     clearKeyState()
     clearAccount()
-    router.navigate('/')
+
+    // Navigate to the newly created account page if available and synced
+    if (syncedAccount?.id) {
+      router.navigate(`/account/${syncedAccount.id}`)
+    } else {
+      // Fallback to account list if no synced account available
+      router.navigate('/')
+    }
   }
 
   function handleOnPressCancel() {
@@ -533,6 +540,11 @@ export default function ImportMnemonic() {
       </ScrollView>
       <SSGradientModal
         visible={accountAddedModalVisible}
+        closeText={
+          syncedAccount && !loadingAccount
+            ? t('account.gotoWallet')
+            : t('common.close')
+        }
         onClose={() => handleOnCloseAccountAddedModal()}
       >
         <SSVStack style={{ marginVertical: 32, width: '100%' }}>
