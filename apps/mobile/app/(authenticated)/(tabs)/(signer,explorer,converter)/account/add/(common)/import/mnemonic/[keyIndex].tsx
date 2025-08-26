@@ -570,7 +570,9 @@ export default function ImportMnemonic() {
                 {t('account.derivationPath')}
               </SSText>
               <SSText size="md" color="muted">
-                {syncedAccount?.keys[Number(keyIndex)].derivationPath}
+                {syncedAccount?.keys[Number(keyIndex)].derivationPath ||
+                  keys[Number(keyIndex)]?.derivationPath ||
+                  '-'}
               </SSText>
             </SSVStack>
             <SSHStack justifyEvenly>
