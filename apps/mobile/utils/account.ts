@@ -80,7 +80,12 @@ export async function extractAccountFingerprintWithDecryption(
   if (typeof firstKey.secret === 'string') {
     try {
       const pin = await getPinForDecryption()
-      if (!pin) return ''
+      if (!pin) {
+        console.warn(
+          '[extractAccountFingerprintWithDecryption] No PIN available for decryption'
+        )
+        return ''
+      }
 
       const decryptedSecretString = await aesDecrypt(
         firstKey.secret,
@@ -92,8 +97,12 @@ export async function extractAccountFingerprintWithDecryption(
       if (decryptedSecret.fingerprint) {
         return decryptedSecret.fingerprint
       }
-    } catch (_error) {
-      // Decryption failed, return empty string
+    } catch (error) {
+      // Decryption failed, log the error for debugging
+      console.warn(
+        '[extractAccountFingerprintWithDecryption] Decryption failed:',
+        error
+      )
       return ''
     }
   }
