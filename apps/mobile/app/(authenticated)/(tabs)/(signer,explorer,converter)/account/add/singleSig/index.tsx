@@ -138,7 +138,7 @@ export default function SingleSig() {
   }
 
   function handleOnSelectMnemonicWordCount() {
-    setLocalMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordCount(localMnemonicWordCount)
     setMnemonicWordCountModalVisibile(false)
 
     // Navigate based on the creation type that was set
