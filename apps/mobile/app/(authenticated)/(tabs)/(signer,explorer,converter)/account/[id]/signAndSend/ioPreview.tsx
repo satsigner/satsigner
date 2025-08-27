@@ -432,7 +432,7 @@ export default function IOPreview() {
     if (remainingBalance > 0) {
       // Validate that changeAddress is available before adding change output
       if (!changeAddress) {
-        toast.error(t('transaction.errorChangeAddressNotAvailable'))
+        toast.error(t('transaction.error.ChangeAddressNotAvailable'))
         return
       }
 
