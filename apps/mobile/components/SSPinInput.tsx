@@ -23,7 +23,7 @@ const ALLOWED_KEYS: string[] = '0123456789'.split('')
 const KEY_CODE_DELETE = 0
 const KEY_CODE_BACKSPACE = 67
 const KEY_CODE_LEFT = 21
-const DELETE_DELAY = 200 // delay in miliseconds between consecutive deletions
+const DELETE_DELAY = 50 // delay in miliseconds between consecutive deletions
 
 function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   const inputRefs = useRef<TextInput[]>([])
