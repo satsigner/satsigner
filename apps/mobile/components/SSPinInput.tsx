@@ -118,8 +118,10 @@ function SSPinInput({ pin, setPin, autoFocus, onFillEnded }: SSPinInputProps) {
   }
 
   function handleLastPin() {
+    const finalPin = pin.slice(0, PIN_SIZE)
     setIsBackspace(false)
-    onFillEnded?.([...pin].join(''))
+    onFillEnded?.(finalPin.join(''))
+    setPin(finalPin)
     Keyboard.dismiss()
   }
 
