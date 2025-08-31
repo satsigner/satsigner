@@ -465,9 +465,12 @@
   },
   "error": {
     "invalid.backend": "Invalid Backend",
+    "invalid.port": "Invalid port number",
     "invalid.url": "Invalid URL",
     "notFound.wallet": "Wallet not found",
+    "require.host": "Host is required",
     "require.name": "Name is required",
+    "require.port": "Port is required",
     "require.url": "URL is required"
   },
   "explorer": {
@@ -884,7 +887,10 @@
     "network.server.backend": "Backend",
     "network.server.custom.add": "Add custom",
     "network.server.description": "Select backend to connect to the network",
+    "network.server.host": "Host",
     "network.server.network": "Network",
+    "network.server.port": "Port",
+    "network.server.protocol": "Protocol",
     "network.server.server.modal.title": "Select server",
     "network.server.server.warning.text": "Your data requests relating to wallet addresses, transactions, and utxos will go out to potentially untrusted server.",
     "network.server.server.warning.title": "Warning",
