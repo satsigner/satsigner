@@ -13,11 +13,11 @@ import {
   type ViewStyle
 } from 'react-native'
 
+import { useGetWordList } from '@/hooks/useGetWordList'
 import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { getWordList } from '@/utils/bip39'
 
 type WordInfo = {
   index: number
@@ -35,11 +35,11 @@ function wordStartMispells(haystack: string, needle: string) {
   return mismatches
 }
 
-function getMatchingWords(wordStart: string): WordInfo[] {
+function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const maxMisspells = 2
   let index = 0
 
-  const result = getWordList()
+  const result = wordList
     .map((w) => ({
       index: index++,
       word: w,
@@ -77,7 +77,8 @@ function SSKeyboardWordSelector({
 
   const opacityAnimated = useRef(new Animated.Value(0)).current
 
-  const data = getMatchingWords(wordStart)
+  const wordList = useGetWordList()
+  const data = getMatchingWords(wordStart, wordList)
 
   if (data.length > 0 && previousWordStart !== wordStart) {
     flashList.current?.scrollToOffset({ animated: false, offset: 0 })

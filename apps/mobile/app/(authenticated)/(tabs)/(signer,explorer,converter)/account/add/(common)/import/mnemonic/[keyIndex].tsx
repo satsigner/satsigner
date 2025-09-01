@@ -23,6 +23,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
+import { useGetWordList } from '@/hooks/useGetWordList'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -37,14 +38,13 @@ import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
-import { getWordList } from '@/utils/bip39'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
-const wordList = getWordList()
 
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
+  const wordList = useGetWordList()
   const router = useRouter()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
