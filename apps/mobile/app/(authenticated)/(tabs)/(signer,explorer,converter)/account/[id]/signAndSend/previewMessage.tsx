@@ -59,6 +59,7 @@ import {
   decodeURToPSBT,
   getURFragmentsFromPSBT
 } from '@/utils/ur'
+import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 
 const tn = _tn('transaction.build.preview')
 
@@ -117,9 +118,6 @@ function PreviewMessage() {
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
   const [nfcError, setNfcError] = useState<string | null>(null)
-  const [expandedSignatureIndex, setExpandedSignatureIndex] = useState<
-    number | null
-  >(null)
   const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
   // Animation for NFC pulsating effect
@@ -1187,9 +1185,9 @@ function PreviewMessage() {
     }
   }, [])
 
-  // Close expanded signature when navigating away
+  // Close expanded signatures when navigating away
   useEffect(() => {
-    setExpandedSignatureIndex(null)
+    // No longer needed - each dropdown manages its own state
   }, [messageId])
 
   // Decrypt keys to check for seed existence
@@ -1431,260 +1429,31 @@ function PreviewMessage() {
                     {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
                     <SSVStack gap="sm">
                       {account.keys?.map((key, index) => (
-                        <View
+                        <SSSignatureDropdown
                           key={index}
-                          style={[
-                            {
-                              borderColor: '#6A6A6A',
-                              borderTopWidth: 2,
-                              backgroundColor:
-                                index % 2 === 1 ? 'black' : '#1E1E1E'
-                            },
-                            index === (account.keys?.length || 0) - 1 && {
-                              borderBottomWidth: 2
-                            }
-                          ]}
-                        >
-                          <TouchableOpacity
-                            onPress={() => {
-                              if (messageId) {
-                                setExpandedSignatureIndex(
-                                  expandedSignatureIndex === index
-                                    ? null
-                                    : index
-                                )
-                              }
-                            }}
-                            disabled={!messageId}
-                            style={{
-                              paddingHorizontal: 8,
-                              paddingVertical: 8,
-                              opacity: messageId ? 1 : 0.5
-                            }}
-                          >
-                            <SSHStack
-                              justifyBetween
-                              style={{ alignItems: 'center' }}
-                            >
-                              <SSHStack style={{ alignItems: 'center' }}>
-                                <View
-                                  style={{
-                                    width: 24,
-                                    height: 24,
-                                    borderRadius: 12,
-                                    backgroundColor: '#4A4A4A',
-                                    marginRight: 8
-                                  }}
-                                />
-                                <SSText color="muted" size="lg">
-                                  {t('transaction.preview.signature')}{' '}
-                                  {index + 1}
-                                </SSText>
-                              </SSHStack>
-                            </SSHStack>
-                          </TouchableOpacity>
-
-                          {/* Expanded Content */}
-                          {expandedSignatureIndex === index && (
-                            <SSVStack
-                              style={{ paddingHorizontal: 8, paddingBottom: 8 }}
-                              gap="sm"
-                            >
-                              {/* Export for external signing */}
-                              <SSText
-                                center
-                                color="muted"
-                                size="sm"
-                                uppercase
-                                style={{ marginTop: 16 }}
-                              >
-                                {t('transaction.preview.exportUnsigned')}
-                              </SSText>
-                              <SSHStack gap="xxs" justifyBetween>
-                                <SSButton
-                                  variant="outline"
-                                  disabled={!messageId}
-                                  label={t('common.copy')}
-                                  style={{ width: '48%' }}
-                                  onPress={() => {
-                                    if (txBuilderResult?.psbt?.base64) {
-                                      Clipboard.setStringAsync(
-                                        txBuilderResult.psbt.base64
-                                      )
-                                      toast(t('common.copiedToClipboard'))
-                                    }
-                                  }}
-                                />
-                                <SSButton
-                                  variant="outline"
-                                  disabled={!messageId}
-                                  label="Show QR"
-                                  style={{ width: '48%' }}
-                                  onPress={() => {
-                                    setExpandedSignatureIndex(null)
-                                    setNoKeyModalVisible(true)
-                                  }}
-                                />
-                              </SSHStack>
-                              <SSHStack gap="xxs" justifyBetween>
-                                <SSButton
-                                  label="USB"
-                                  style={{ width: '48%' }}
-                                  variant="outline"
-                                  disabled
-                                />
-                                <SSButton
-                                  label={
-                                    isEmitting
-                                      ? t('watchonly.read.scanning')
-                                      : 'Export NFC'
-                                  }
-                                  style={{ width: '48%' }}
-                                  variant="outline"
-                                  disabled={!isAvailable || !serializedPsbt}
-                                  onPress={() => {
-                                    setExpandedSignatureIndex(null)
-                                    handleNFCExport()
-                                  }}
-                                />
-                              </SSHStack>
-
-                              {/* NIP-17 GROUP Export */}
-                              <SSButton
-                                label="NIP-17 GROUP"
-                                variant="outline"
-                                disabled={!messageId}
-                                onPress={() => {
-                                  // TODO: Implement NIP-17 GROUP export
-                                  toast.info('NIP-17 GROUP export coming soon')
-                                }}
-                              />
-
-                              {/* Import signed PSBT */}
-                              <SSText
-                                center
-                                color="muted"
-                                size="sm"
-                                uppercase
-                                style={{ marginTop: 16 }}
-                              >
-                                {t('transaction.preview.importSigned')}
-                              </SSText>
-
-                              {/* Imported PSBT Display Area - Placed BEFORE import buttons like watch-only wallet */}
-                              <View
-                                style={{
-                                  minHeight: 100,
-                                  maxHeight: 300,
-                                  paddingTop: 12,
-                                  paddingBottom: 12,
-                                  paddingHorizontal: 12,
-                                  backgroundColor: Colors.gray[900],
-                                  borderRadius: 8,
-                                  borderWidth: 1,
-                                  borderColor: Colors.gray[700]
-                                }}
-                              >
-                                <ScrollView
-                                  style={{ flex: 1 }}
-                                  showsVerticalScrollIndicator
-                                  nestedScrollEnabled
-                                >
-                                  <SSText
-                                    style={{
-                                      fontFamily: Typography.sfProMono,
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                      lineHeight: 18
-                                    }}
-                                  >
-                                    {signedPsbt ||
-                                      t('transaction.preview.signedPsbt')}
-                                  </SSText>
-                                </ScrollView>
-                              </View>
-
-                              <SSHStack gap="xxs" justifyBetween>
-                                <SSButton
-                                  label="Paste"
-                                  style={{ width: '48%' }}
-                                  variant="outline"
-                                  onPress={() => {
-                                    setExpandedSignatureIndex(null)
-                                    handlePasteFromClipboard()
-                                  }}
-                                />
-                                <SSButton
-                                  label="Scan QR"
-                                  style={{ width: '48%' }}
-                                  variant="outline"
-                                  onPress={() => {
-                                    setExpandedSignatureIndex(null)
-                                    setCameraModalVisible(true)
-                                  }}
-                                />
-                              </SSHStack>
-                              <SSHStack gap="xxs" justifyBetween>
-                                <SSButton
-                                  label="USB"
-                                  style={{ width: '48%' }}
-                                  variant="outline"
-                                  disabled
-                                />
-                                <SSButton
-                                  label={
-                                    isReading
-                                      ? t('watchonly.read.scanning')
-                                      : t('watchonly.read.nfc')
-                                  }
-                                  style={{ width: '48%' }}
-                                  variant="outline"
-                                  disabled={!isAvailable}
-                                  onPress={() => {
-                                    setExpandedSignatureIndex(null)
-                                    handleNFCScan()
-                                  }}
-                                />
-                              </SSHStack>
-
-                              {/* NIP-17 GROUP Import */}
-                              <SSButton
-                                label="FETCH FROM NIP-17 GROUP"
-                                variant="outline"
-                                onPress={() => {
-                                  // TODO: Implement NIP-17 GROUP import
-                                  toast.info('NIP-17 GROUP import coming soon')
-                                }}
-                              />
-
-                              {/* Check if this cosigner has a seed - show Sign with Local Key button at the end */}
-                              {/* Use decrypted keys to check if the secret contains a mnemonic */}
-                              {(() => {
-                                const decryptedKey = decryptedKeys[index]
-                                return (
-                                  decryptedKey?.secret &&
-                                  typeof decryptedKey.secret === 'object' &&
-                                  'mnemonic' in decryptedKey.secret &&
-                                  decryptedKey.secret.mnemonic
-                                )
-                              })() && (
-                                <SSButton
-                                  label={t(
-                                    'transaction.preview.signWithLocalKey'
-                                  )}
-                                  onPress={() => {
-                                    setExpandedSignatureIndex(null)
-                                    router.navigate(
-                                      `/account/${id}/signAndSend/signMessage`
-                                    )
-                                  }}
-                                  variant="secondary"
-                                  style={{ marginTop: 16 }}
-                                />
-                              )}
-                            </SSVStack>
-                          )}
-                        </View>
+                          index={index}
+                          totalKeys={account.keys?.length || 0}
+                          keyDetails={key}
+                          messageId={messageId}
+                          txBuilderResult={txBuilderResult}
+                          serializedPsbt={serializedPsbt}
+                          signedPsbt={signedPsbt}
+                          setSignedPsbt={setSignedPsbt}
+                          isAvailable={isAvailable}
+                          isEmitting={isEmitting}
+                          isReading={isReading}
+                          decryptedKey={decryptedKeys[index]}
+                          onShowQR={() => setNoKeyModalVisible(true)}
+                          onNFCExport={handleNFCExport}
+                          onPasteFromClipboard={handlePasteFromClipboard}
+                          onCameraScan={() => setCameraModalVisible(true)}
+                          onNFCScan={handleNFCScan}
+                          onSignWithLocalKey={() =>
+                            router.navigate(
+                              `/account/${id}/signAndSend/signMessage`
+                            )
+                          }
+                        />
                       ))}
                     </SSVStack>
                   </SSVStack>
@@ -1702,7 +1471,6 @@ function PreviewMessage() {
                       : t('sign.transaction')
                   }
                   onPress={() => {
-                    setExpandedSignatureIndex(null)
                     router.navigate(`/account/${id}/signAndSend/signMessage`)
                   }}
                 />
@@ -1864,7 +1632,6 @@ function PreviewMessage() {
           fullOpacity
           onClose={() => {
             setNoKeyModalVisible(false)
-            setExpandedSignatureIndex(null)
           }}
         >
           <SSVStack
@@ -2062,7 +1829,6 @@ function PreviewMessage() {
           onClose={() => {
             setCameraModalVisible(false)
             resetScanProgress()
-            setExpandedSignatureIndex(null)
           }}
         >
           <SSVStack itemsCenter gap="md">
