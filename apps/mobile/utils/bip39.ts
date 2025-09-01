@@ -31,4 +31,33 @@ function getWordList(name: WordList = DEFAULT_WORD_LIST) {
   return wordlists[name]
 }
 
-export { DEFAULT_WORD_LIST, getWordList, type WordList, WORDLIST_LIST }
+function convertMnemonic(
+  mnemonic: string,
+  target: WordList,
+  source: WordList = 'english'
+) {
+  const words = mnemonic.split('')
+  const sourceWordList = wordlists[source]
+  const targetWordList = wordlists[target]
+  const indexes = words.map((word) =>
+    sourceWordList.findIndex((w) => w === word)
+  )
+
+  if (indexes.includes(-1)) {
+    throw new Error(
+      `Mnemonic "${mnemonic}" contains words not found in the ${source} word list.`
+    )
+  }
+
+  const convertedWords = indexes.map((index) => targetWordList[index])
+  const convertedMnemonic = convertedWords.join(' ')
+  return convertedMnemonic
+}
+
+export {
+  convertMnemonic,
+  DEFAULT_WORD_LIST,
+  getWordList,
+  type WordList,
+  WORDLIST_LIST
+}
