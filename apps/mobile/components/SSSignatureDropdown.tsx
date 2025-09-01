@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
@@ -10,7 +10,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { type Key } from '@/types/models/Account'
+import { type Key, type Account } from '@/types/models/Account'
+import { validateSignedPSBT } from '@/utils/psbtValidator'
 
 type SSSignatureDropdownProps = {
   index: number
@@ -25,6 +26,7 @@ type SSSignatureDropdownProps = {
   isEmitting: boolean
   isReading: boolean
   decryptedKey?: Key
+  account: Account
   onShowQR: () => void
   onNFCExport: () => void
   onPasteFromClipboard: (index: number, psbt: string) => void
@@ -46,6 +48,7 @@ function SSSignatureDropdown({
   isEmitting,
   isReading,
   decryptedKey,
+  account,
   onShowQR,
   onNFCExport,
   onPasteFromClipboard,
@@ -55,6 +58,7 @@ function SSSignatureDropdown({
 }: SSSignatureDropdownProps) {
   const router = useRouter()
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
 
   // Check if this cosigner has a seed - show Sign with Local Key button at the end
   const hasLocalSeed = Boolean(
@@ -68,6 +72,21 @@ function SSSignatureDropdown({
   const isSignatureCompleted = Boolean(
     signedPsbt && signedPsbt.trim().length > 0
   )
+
+  // Validate PSBT when signedPsbt changes
+  useEffect(() => {
+    if (signedPsbt && signedPsbt.trim().length > 0) {
+      try {
+        const isValid = validateSignedPSBT(signedPsbt, account)
+        setIsPsbtValid(isValid)
+      } catch (error) {
+        console.error('PSBT validation error:', error)
+        setIsPsbtValid(false)
+      }
+    } else {
+      setIsPsbtValid(null)
+    }
+  }, [signedPsbt, account])
 
   return (
     <View
@@ -202,7 +221,11 @@ function SSSignatureDropdown({
               backgroundColor: Colors.gray[900],
               borderRadius: 8,
               borderWidth: 1,
-              borderColor: Colors.gray[700]
+              borderColor: signedPsbt
+                ? isPsbtValid
+                  ? Colors.mainGreen
+                  : Colors.mainRed
+                : Colors.gray[700]
             }}
           >
             <ScrollView
@@ -289,5 +312,4 @@ function SSSignatureDropdown({
     </View>
   )
 }
-
 export default SSSignatureDropdown

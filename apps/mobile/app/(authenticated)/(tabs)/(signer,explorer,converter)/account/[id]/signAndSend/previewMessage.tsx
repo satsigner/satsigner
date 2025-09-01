@@ -11,7 +11,6 @@ import {
   Dimensions,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View
 } from 'react-native'
 import { toast } from 'sonner-native'
@@ -21,11 +20,13 @@ import { useShallow } from 'zustand/react/shallow'
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSQRCode from '@/components/SSQRCode'
+import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
+import { PIN_KEY } from '@/config/auth'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
@@ -33,14 +34,12 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
-import { getItem } from '@/storage/encrypted'
-import { aesDecrypt } from '@/utils/crypto'
 import { type Key, type Secret } from '@/types/models/Account'
-import { PIN_KEY } from '@/config/auth'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -52,6 +51,7 @@ import {
   isBBQRFragment
 } from '@/utils/bbqr'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
@@ -59,7 +59,6 @@ import {
   decodeURToPSBT,
   getURFragmentsFromPSBT
 } from '@/utils/ur'
-import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 
 const tn = _tn('transaction.build.preview')
 
@@ -1113,7 +1112,7 @@ function PreviewMessage() {
     }
   }
 
-  async function handlePasteFromClipboard(index: number, psbt: string) {
+  async function handlePasteFromClipboard(index: number) {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
@@ -1210,7 +1209,7 @@ function PreviewMessage() {
 
   // Wrapper functions for cosigner-specific actions
   const handleCosignerPasteFromClipboard = (index: number) => {
-    handlePasteFromClipboard(index, '')
+    handlePasteFromClipboard(index)
   }
 
   const handleCosignerCameraScan = (index: number) => {
@@ -1225,11 +1224,28 @@ function PreviewMessage() {
 
   // Wrapper functions for watch-only section (no parameters needed)
   const handleWatchOnlyPasteFromClipboard = () => {
-    handlePasteFromClipboard(-1, '') // Use -1 to indicate watch-only
+    handlePasteFromClipboard(-1) // Use -1 to indicate watch-only
   }
 
   const handleWatchOnlyNFCScan = () => {
     handleNFCScan(-1) // Use -1 to indicate watch-only
+  }
+
+  // Check if all required signatures have been collected
+  const hasAllRequiredSignatures = () => {
+    if (!account || account.policyType !== 'multisig' || !account.keys) {
+      return false
+    }
+
+    // Get the required number of signatures from the account
+    const requiredSignatures = account.keysRequired || account.keys.length
+
+    // Count how many signed PSBTs we have
+    const collectedSignatures = Array.from(signedPsbts.values()).filter(
+      (psbt) => psbt && psbt.trim().length > 0
+    ).length
+
+    return collectedSignatures >= requiredSignatures
   }
 
   useEffect(() => {
@@ -1538,6 +1554,7 @@ function PreviewMessage() {
                           isEmitting={isEmitting}
                           isReading={isReading}
                           decryptedKey={decryptedKeys[index]}
+                          account={account}
                           onShowQR={() => setNoKeyModalVisible(true)}
                           onNFCExport={handleNFCExport}
                           onPasteFromClipboard={
@@ -1559,18 +1576,40 @@ function PreviewMessage() {
               {account.policyType !== 'watchonly' &&
               account.keys &&
               account.keys.length > 0 ? (
-                <SSButton
-                  variant="secondary"
-                  disabled={!messageId}
-                  label={
-                    account.policyType === 'multisig'
-                      ? t('transaction.preview.checkAllSignatures')
-                      : t('sign.transaction')
-                  }
-                  onPress={() => {
-                    router.navigate(`/account/${id}/signAndSend/signMessage`)
-                  }}
-                />
+                <>
+                  {account.policyType === 'multisig' && (
+                    <SSText
+                      center
+                      color="muted"
+                      size="sm"
+                      style={{ marginBottom: 8 }}
+                    >
+                      {t('transaction.preview.signaturesCollected')}:{' '}
+                      {
+                        Array.from(signedPsbts.values()).filter(
+                          (psbt) => psbt && psbt.trim().length > 0
+                        ).length
+                      }{' '}
+                      / {account.keysRequired || account.keys.length}
+                    </SSText>
+                  )}
+                  <SSButton
+                    variant="secondary"
+                    disabled={
+                      !messageId ||
+                      (account.policyType === 'multisig' &&
+                        !hasAllRequiredSignatures())
+                    }
+                    label={
+                      account.policyType === 'multisig'
+                        ? t('transaction.preview.checkAllSignatures')
+                        : t('sign.transaction')
+                    }
+                    onPress={() => {
+                      router.navigate(`/account/${id}/signAndSend/signMessage`)
+                    }}
+                  />
+                </>
               ) : (
                 account.keys &&
                 account.keys.length > 0 &&
