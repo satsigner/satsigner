@@ -1,16 +1,15 @@
-import { useRouter } from 'expo-router'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
-import SSButton from '@/components/SSButton'
 import { SSIconGreen } from '@/components/icons'
+import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { type Key, type Account } from '@/types/models/Account'
+import { type Account, type Key } from '@/types/models/Account'
 import { validateSignedPSBT } from '@/utils/psbtValidator'
 
 type SSSignatureDropdownProps = {
@@ -38,12 +37,10 @@ type SSSignatureDropdownProps = {
 function SSSignatureDropdown({
   index,
   totalKeys,
-  keyDetails,
   messageId,
   txBuilderResult,
   serializedPsbt,
   signedPsbt,
-  setSignedPsbt,
   isAvailable,
   isEmitting,
   isReading,
@@ -56,7 +53,6 @@ function SSSignatureDropdown({
   onNFCScan,
   onSignWithLocalKey
 }: SSSignatureDropdownProps) {
-  const router = useRouter()
   const [isExpanded, setIsExpanded] = useState(false)
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
 
@@ -79,8 +75,7 @@ function SSSignatureDropdown({
       try {
         const isValid = validateSignedPSBT(signedPsbt, account)
         setIsPsbtValid(isValid)
-      } catch (error) {
-        console.error('PSBT validation error:', error)
+      } catch (_error) {
         setIsPsbtValid(false)
       }
     } else {

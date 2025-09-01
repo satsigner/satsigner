@@ -1248,6 +1248,108 @@ function PreviewMessage() {
     return collectedSignatures >= requiredSignatures
   }
 
+  // Combine and finalize all signed PSBTs for multisig
+  const combineAndFinalizeMultisigPSBTs = async () => {
+    try {
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return null
+      }
+
+      // Get all collected signed PSBTs
+      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
+        (psbt) => psbt && psbt.trim().length > 0
+      )
+
+      if (collectedSignedPsbts.length === 0) {
+        toast.error('No signed PSBTs collected')
+        return null
+      }
+
+      // Step 1: Parse the original PSBT
+      const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+
+      // Step 2: Combine all signed PSBTs with the original
+      const combinedPsbt = originalPsbt
+
+      for (let i = 0; i < collectedSignedPsbts.length; i++) {
+        const signedPsbtBase64 = collectedSignedPsbts[i]
+
+        try {
+          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
+          // Combine this signed PSBT with the accumulated result
+          combinedPsbt.combine(signedPsbt)
+        } catch (_error) {
+          toast.error(`Error combining signed PSBT ${i + 1}`)
+          return null
+        }
+      }
+
+      // Step 3: Analyze the combined PSBT
+      for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+        const input = combinedPsbt.data.inputs[i]
+
+        // Check if this is a multisig input
+        if (input.witnessScript) {
+          try {
+            const script = bitcoinjs.script.decompile(input.witnessScript)
+            if (script && script.length >= 3) {
+              const op = script[0]
+              if (typeof op === 'number' && op >= 1 && op <= 16) {
+                const threshold = op
+                // Check if we have enough signatures to finalize
+                if (input.partialSig && input.partialSig.length >= threshold) {
+                  // Can finalize
+                }
+              }
+            }
+          } catch (_error) {
+            // Could not parse witness script - continue
+          }
+        }
+      }
+
+      // Step 4: Finalize the combined PSBT
+      try {
+        combinedPsbt.finalizeAllInputs()
+      } catch (_finalizeError) {
+        // Try to finalize inputs individually to get more detailed error info
+        for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+          try {
+            combinedPsbt.finalizeInput(i)
+          } catch (_inputError) {
+            // Show detailed input info for debugging
+            const _input = combinedPsbt.data.inputs[i]
+            // Log input details for debugging if needed
+          }
+        }
+
+        toast.error('Failed to finalize transaction - insufficient signatures')
+        return null
+      }
+
+      // Step 5: Extract the final transaction
+      try {
+        const finalTransaction = combinedPsbt.extractTransaction()
+        const transactionHex = finalTransaction.toHex()
+
+        // Update the signed transaction in the store
+        setSignedTx(transactionHex)
+
+        toast.success('Multisig transaction finalized successfully!')
+        return transactionHex
+      } catch (_extractError) {
+        toast.error('Failed to extract final transaction')
+        return null
+      }
+    } catch (_error) {
+      toast.error('Failed to combine and finalize PSBTs')
+      return null
+    }
+  }
+
   useEffect(() => {
     if (signedPsbt) {
       setSignedTx(signedPsbt)
@@ -1605,8 +1707,25 @@ function PreviewMessage() {
                         ? t('transaction.preview.checkAllSignatures')
                         : t('sign.transaction')
                     }
-                    onPress={() => {
-                      router.navigate(`/account/${id}/signAndSend/signMessage`)
+                    onPress={async () => {
+                      // For multisig accounts, combine and finalize PSBTs first
+                      if (account?.policyType === 'multisig') {
+                        const finalTransactionHex =
+                          await combineAndFinalizeMultisigPSBTs()
+
+                        if (finalTransactionHex) {
+                          router.navigate(
+                            `/account/${id}/signAndSend/signMessage`
+                          )
+                        } else {
+                          // Don't navigate if finalization failed
+                        }
+                      } else {
+                        // For non-multisig accounts, navigate directly
+                        router.navigate(
+                          `/account/${id}/signAndSend/signMessage`
+                        )
+                      }
                     }}
                   />
                 </>

@@ -74,15 +74,51 @@ export default function SignMessage() {
     try {
       let broadcasted = false
       if (signedTx) {
-        // Broadcast raw hex directly to Electrum
-        const electrumClient = await ElectrumClient.initClientFromUrl(
-          currentConfig.server.url,
-          selectedNetwork
-        )
-        await electrumClient.broadcastTransactionHex(signedTx)
-        electrumClient.close()
-        broadcasted = true
+        // For multisig wallets, broadcast the finalized transaction hex directly
+
+        // Validate signedTx format
+        if (
+          !signedTx ||
+          typeof signedTx !== 'string' ||
+          signedTx.length === 0
+        ) {
+          throw new Error('Invalid signedTx: empty or invalid format')
+        }
+
+        // Basic hex validation
+        if (!/^[a-fA-F0-9]+$/.test(signedTx)) {
+          throw new Error('Invalid signedTx: not a valid hex string')
+        }
+
+        // Check minimum length for a valid Bitcoin transaction
+        if (signedTx.length < 100) {
+          throw new Error(
+            'Invalid signedTx: too short to be a valid transaction'
+          )
+        }
+
+        if (currentConfig.server.backend === 'electrum') {
+          // Use Electrum client for electrum backends
+          const electrumClient = await ElectrumClient.initClientFromUrl(
+            currentConfig.server.url,
+            selectedNetwork
+          )
+          await electrumClient.broadcastTransactionHex(signedTx)
+          electrumClient.close()
+          broadcasted = true
+        } else if (currentConfig.server.backend === 'esplora') {
+          // Use Esplora client for esplora backends
+          const { default: Esplora } = await import('@/api/esplora')
+          const esploraClient = new Esplora(currentConfig.server.url)
+          await esploraClient.broadcastTransaction(signedTx)
+          broadcasted = true
+        } else {
+          throw new Error(
+            `Unsupported backend: ${currentConfig.server.backend}`
+          )
+        }
       } else if (psbt) {
+        // For singlesig wallets, broadcast the PSBT
         broadcasted = await broadcastTransaction(psbt, blockchain)
       }
 
@@ -107,12 +143,14 @@ export default function SignMessage() {
 
   useEffect(() => {
     async function signTransactionMessage() {
+      // For multisig wallets, if we already have a finalized transaction, use it directly
       if (signedTx) {
         setSigned(true)
         setRawTx(signedTx)
         return
       }
 
+      // For singlesig wallets, sign the transaction
       if (!wallet || !txBuilderResult) return
 
       const partiallySignedTransaction = await signTransaction(
@@ -140,7 +178,9 @@ export default function SignMessage() {
           <SSVStack itemsCenter justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
               <SSText size="lg" weight="bold">
-                {tn(signed ? 'signed' : 'signing')}
+                {account?.policyType === 'multisig' && signedTx
+                  ? tn('readyToBroadcast')
+                  : tn(signed ? 'signed' : 'signing')}
               </SSText>
               <SSText color="muted" size="sm" weight="bold" uppercase>
                 {tn('messageId')}
