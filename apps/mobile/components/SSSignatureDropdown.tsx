@@ -4,6 +4,7 @@ import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
+import { SSIconGreen } from '@/components/icons'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -63,6 +64,11 @@ function SSSignatureDropdown({
       decryptedKey.secret.mnemonic
   )
 
+  // Check if this cosigner has completed their signature
+  const isSignatureCompleted = Boolean(
+    signedPsbt && signedPsbt.trim().length > 0
+  )
+
   return (
     <View
       style={[
@@ -87,15 +93,19 @@ function SSSignatureDropdown({
       >
         <SSHStack justifyBetween style={{ alignItems: 'center' }}>
           <SSHStack style={{ alignItems: 'center' }}>
-            <View
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: '#4A4A4A',
-                marginRight: 8
-              }}
-            />
+            {isSignatureCompleted ? (
+              <SSIconGreen width={24} height={24} />
+            ) : (
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: '#4A4A4A',
+                  marginRight: 8
+                }}
+              />
+            )}
             <SSText color="muted" size="lg">
               {t('transaction.preview.signature')} {index + 1}
             </SSText>
