@@ -1,6 +1,6 @@
 import { getDefaultWordlist, wordlists } from 'bip39'
 
-type WordListName =
+type WordList =
   | 'chinese_simplified'
   | 'chinese_traditional'
   | 'czech'
@@ -12,10 +12,23 @@ type WordListName =
   | 'portuguese'
   | 'spanish'
 
-const defaultWorldList = getDefaultWordlist() as WordListName
+const WORDLIST_LIST: WordList[] = [
+  'chinese_simplified',
+  'chinese_traditional',
+  'czech',
+  'english',
+  'french',
+  'italian',
+  'japanese',
+  'korean',
+  'portuguese',
+  'spanish'
+]
 
-function getWordList(name: WordListName = defaultWorldList) {
+const DEFAULT_WORD_LIST = getDefaultWordlist() as WordList
+
+function getWordList(name: WordList = DEFAULT_WORD_LIST) {
   return wordlists[name]
 }
 
-export { getWordList }
+export { DEFAULT_WORD_LIST, getWordList, type WordList, WORDLIST_LIST }

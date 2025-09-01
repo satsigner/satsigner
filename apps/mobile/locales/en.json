@@ -827,6 +827,7 @@
     "developer.title": "Developer",
     "features.bip39.title": "Mnemonic seed",
     "features.bip39.description": "Language used in mnemonic from BIP39 word list",
+    "features.bip39.longDescription": "Select the language used for the word list used in mnemonic seed from BIP39.",
     "features.charts.historyChart.description": "Control the visible layers and navigation of the transaction history chart",
     "features.charts.historyChart.layers.showAmounts": "Show Amounts",
     "features.charts.historyChart.layers.showLabels": "Show Labels",
