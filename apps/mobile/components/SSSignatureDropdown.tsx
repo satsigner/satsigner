@@ -26,9 +26,9 @@ type SSSignatureDropdownProps = {
   decryptedKey?: Key
   onShowQR: () => void
   onNFCExport: () => void
-  onPasteFromClipboard: () => void
-  onCameraScan: () => void
-  onNFCScan: () => void
+  onPasteFromClipboard: (index: number, psbt: string) => void
+  onCameraScan: (index: number) => void
+  onNFCScan: (index: number) => void
   onSignWithLocalKey: () => void
 }
 
@@ -219,7 +219,7 @@ function SSSignatureDropdown({
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {
-                onPasteFromClipboard()
+                onPasteFromClipboard(index, '')
               }}
             />
             <SSButton
@@ -227,7 +227,7 @@ function SSSignatureDropdown({
               style={{ width: '48%' }}
               variant="outline"
               onPress={() => {
-                onCameraScan()
+                onCameraScan(index)
               }}
             />
           </SSHStack>
@@ -248,7 +248,7 @@ function SSSignatureDropdown({
               variant="outline"
               disabled={!isAvailable}
               onPress={() => {
-                onNFCScan()
+                onNFCScan(index)
               }}
             />
           </SSHStack>

@@ -107,6 +107,10 @@ function PreviewMessage() {
   )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [signedPsbt, setSignedPsbt] = useState('')
+  const [signedPsbts, setSignedPsbts] = useState<Map<number, string>>(new Map())
+  const [currentCosignerIndex, setCurrentCosignerIndex] = useState<
+    number | null
+  >(null)
   const [permission, requestPermission] = useCameraPermissions()
 
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
@@ -534,7 +538,7 @@ function PreviewMessage() {
   const transaction = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
-    const vin = [...inputs.values()].map((input: Utxo) => ({
+    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
       value: input.value,
       label: input.label || ''
@@ -854,7 +858,7 @@ function PreviewMessage() {
     animationSpeed
   ])
 
-  const handleQRCodeScanned = (data: string | undefined) => {
+  const handleQRCodeScanned = (data: string | undefined, index?: number) => {
     if (!data) {
       toast.error('Failed to scan QR code')
       return
@@ -903,8 +907,19 @@ function PreviewMessage() {
         // Keep original content if conversion fails
       }
 
+      if (index !== undefined) {
+        // Update the specific cosigner's signed PSBT
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, finalContent)
+          return newMap
+        })
+      } else {
+        // Fallback to old behavior for non-cosigner scans
+        setSignedPsbt(finalContent)
+      }
+
       setCameraModalVisible(false)
-      setSignedPsbt(finalContent)
       resetScanProgress()
       toast.success('QR code scanned successfully')
       return
@@ -953,7 +968,7 @@ function PreviewMessage() {
     // For UR format, use fountain encoding logic
     if (type === 'ur') {
       // For fountain encoding, we need to find the highest fragment number to determine the actual range
-      const maxFragmentNumber = Math.max(...newScanned)
+      const maxFragmentNumber = Math.max(...Array.from(newScanned))
       const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
 
       // For fountain encoding, try assembly after collecting enough fragments
@@ -975,7 +990,17 @@ function PreviewMessage() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
-          setSignedPsbt(finalData)
+          if (index !== undefined) {
+            // Update the specific cosigner's signed PSBT
+            setSignedPsbts((prev) => {
+              const newMap = new Map(prev)
+              newMap.set(index, finalData)
+              return newMap
+            })
+          } else {
+            // Fallback to old behavior for non-cosigner scans
+            setSignedPsbt(finalData)
+          }
 
           setCameraModalVisible(false)
           resetScanProgress()
@@ -1015,8 +1040,19 @@ function PreviewMessage() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
+          if (index !== undefined) {
+            // Update the specific cosigner's signed PSBT
+            setSignedPsbts((prev) => {
+              const newMap = new Map(prev)
+              newMap.set(index, finalData)
+              return newMap
+            })
+          } else {
+            // Fallback to old behavior for non-cosigner scans
+            setSignedPsbt(finalData)
+          }
+
           setCameraModalVisible(false)
-          setSignedPsbt(finalData)
           resetScanProgress()
 
           // Check if the result is still a PSBT (not finalized)
@@ -1077,7 +1113,7 @@ function PreviewMessage() {
     }
   }
 
-  async function handlePasteFromClipboard() {
+  async function handlePasteFromClipboard(index: number, psbt: string) {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
@@ -1087,7 +1123,19 @@ function PreviewMessage() {
 
       // Process the pasted data similar to scanned data
       const processedData = processScannedData(text)
-      setSignedPsbt(processedData)
+
+      if (index === -1) {
+        // Watch-only mode - use the old behavior
+        setSignedPsbt(processedData)
+      } else {
+        // Update the specific cosigner's signed PSBT
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, processedData)
+          return newMap
+        })
+      }
+
       toast.success('Data pasted successfully')
     } catch (error) {
       const errorMessage = (error as Error).message
@@ -1099,7 +1147,7 @@ function PreviewMessage() {
     }
   }
 
-  async function handleNFCScan() {
+  async function handleNFCScan(index: number) {
     if (isReading) {
       await cancelNFCScan()
       setNfcScanModalVisible(false)
@@ -1119,10 +1167,33 @@ function PreviewMessage() {
         const txHex = Array.from(result.txData)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
-        setSignedPsbt(txHex)
+
+        if (index === -1) {
+          // Watch-only mode - use the old behavior
+          setSignedPsbt(txHex)
+        } else {
+          // Update the specific cosigner's signed PSBT
+          setSignedPsbts((prev) => {
+            const newMap = new Map(prev)
+            newMap.set(index, txHex)
+            return newMap
+          })
+        }
+
         toast.success(t('transaction.preview.nfcImported'))
       } else if (result.txId) {
-        setSignedPsbt(result.txId)
+        if (index === -1) {
+          // Watch-only mode - use the old behavior
+          setSignedPsbt(result.txId || '')
+        } else {
+          // Update the specific cosigner's signed PSBT
+          setSignedPsbts((prev) => {
+            const newMap = new Map(prev)
+            newMap.set(index, result.txId || '')
+            return newMap
+          })
+        }
+
         toast.success(t('transaction.preview.nfcImported'))
       } else {
         toast.error(t('watchonly.read.nfcErrorNoData'))
@@ -1135,6 +1206,30 @@ function PreviewMessage() {
     } finally {
       setNfcScanModalVisible(false)
     }
+  }
+
+  // Wrapper functions for cosigner-specific actions
+  const handleCosignerPasteFromClipboard = (index: number) => {
+    handlePasteFromClipboard(index, '')
+  }
+
+  const handleCosignerCameraScan = (index: number) => {
+    setCameraModalVisible(true)
+    // Store the current cosigner index for QR scanning
+    setCurrentCosignerIndex(index)
+  }
+
+  const handleCosignerNFCScan = (index: number) => {
+    handleNFCScan(index)
+  }
+
+  // Wrapper functions for watch-only section (no parameters needed)
+  const handleWatchOnlyPasteFromClipboard = () => {
+    handlePasteFromClipboard(-1, '') // Use -1 to indicate watch-only
+  }
+
+  const handleWatchOnlyNFCScan = () => {
+    handleNFCScan(-1) // Use -1 to indicate watch-only
   }
 
   useEffect(() => {
@@ -1437,7 +1532,7 @@ function PreviewMessage() {
                           messageId={messageId}
                           txBuilderResult={txBuilderResult}
                           serializedPsbt={serializedPsbt}
-                          signedPsbt={signedPsbt}
+                          signedPsbt={signedPsbts.get(index) || ''}
                           setSignedPsbt={setSignedPsbt}
                           isAvailable={isAvailable}
                           isEmitting={isEmitting}
@@ -1445,9 +1540,11 @@ function PreviewMessage() {
                           decryptedKey={decryptedKeys[index]}
                           onShowQR={() => setNoKeyModalVisible(true)}
                           onNFCExport={handleNFCExport}
-                          onPasteFromClipboard={handlePasteFromClipboard}
-                          onCameraScan={() => setCameraModalVisible(true)}
-                          onNFCScan={handleNFCScan}
+                          onPasteFromClipboard={
+                            handleCosignerPasteFromClipboard
+                          }
+                          onCameraScan={handleCosignerCameraScan}
+                          onNFCScan={handleCosignerNFCScan}
                           onSignWithLocalKey={() =>
                             router.navigate(
                               `/account/${id}/signAndSend/signMessage`
@@ -1582,7 +1679,7 @@ function PreviewMessage() {
                         label="Paste"
                         style={{ width: '48%' }}
                         variant="outline"
-                        onPress={handlePasteFromClipboard}
+                        onPress={handleWatchOnlyPasteFromClipboard}
                       />
                       <SSButton
                         label="Scan QR"
@@ -1607,7 +1704,7 @@ function PreviewMessage() {
                         style={{ width: '48%' }}
                         variant="outline"
                         disabled={!isAvailable}
-                        onPress={handleNFCScan}
+                        onPress={handleWatchOnlyNFCScan}
                       />
                     </SSHStack>
                     <SSButton
@@ -1829,6 +1926,7 @@ function PreviewMessage() {
           onClose={() => {
             setCameraModalVisible(false)
             resetScanProgress()
+            setCurrentCosignerIndex(null)
           }}
         >
           <SSVStack itemsCenter gap="md">
@@ -1840,7 +1938,7 @@ function PreviewMessage() {
 
             <CameraView
               onBarcodeScanned={(res) => {
-                handleQRCodeScanned(res.raw)
+                handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
               }}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               style={{ width: 340, height: 340 }}
@@ -1853,7 +1951,9 @@ function PreviewMessage() {
                   // For UR fountain encoding, show the actual target
                   <>
                     {(() => {
-                      const maxFragment = Math.max(...scanProgress.scanned)
+                      const maxFragment = Math.max(
+                        ...Array.from(scanProgress.scanned)
+                      )
                       const actualTotal = maxFragment + 1
                       const conservativeTarget = Math.ceil(actualTotal * 1.1)
                       const theoreticalTarget = Math.ceil(
