@@ -825,6 +825,8 @@
     "developer.setPinFirstTime": "Set PIN first time",
     "developer.skipPin": "Skip PIN",
     "developer.title": "Developer",
+    "features.bip39.title": "Mnemonic seed",
+    "features.bip39.description": "Language used in mnemonic from BIP39 word list",
     "features.charts.historyChart.description": "Control the visible layers and navigation of the transaction history chart",
     "features.charts.historyChart.layers.showAmounts": "Show Amounts",
     "features.charts.historyChart.layers.showLabels": "Show Labels",
