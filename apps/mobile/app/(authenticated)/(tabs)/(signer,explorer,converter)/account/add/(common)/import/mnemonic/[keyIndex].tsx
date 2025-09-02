@@ -367,7 +367,9 @@ export default function ImportMnemonic() {
   async function handleOnPressImportSeed() {
     setLoadingAccount(true)
 
-    const mnemonicSeedWords = mnemonicWordsInfo.map((word) => word.value).join(' ')
+    const mnemonicSeedWords = mnemonicWordsInfo
+      .map((word) => word.value)
+      .join(' ')
 
     const mnemonic = convertMnemonic(
       mnemonicSeedWords,
