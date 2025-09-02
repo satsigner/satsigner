@@ -12,6 +12,10 @@ import { extractAccountFingerprintWithDecryption } from '@/utils/account'
 function useAccountFingerprint(account: Account): string {
   const [fingerprint, setFingerprint] = useState<string>('')
 
+  // Extract complex dependencies to separate variables for static checking
+  const accountId = account?.id
+  const firstKeyFingerprint = account?.keys?.[0]?.fingerprint
+
   useEffect(() => {
     async function loadFingerprint() {
       if (!account) {
@@ -28,7 +32,7 @@ function useAccountFingerprint(account: Account): string {
     }
 
     loadFingerprint()
-  }, [account, account?.id, account?.keys?.[0]?.fingerprint])
+  }, [account, accountId, firstKeyFingerprint])
 
   return fingerprint
 }

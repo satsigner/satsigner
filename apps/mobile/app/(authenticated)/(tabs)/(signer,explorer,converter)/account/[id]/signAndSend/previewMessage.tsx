@@ -50,9 +50,13 @@ import {
   FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import {
+  bitcoinjsNetwork,
+  getMultisigScriptTypeFromScriptVersion
+} from '@/utils/bitcoin'
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
+import { signPSBTWithSeed } from '@/utils/psbtSigner'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
@@ -1222,6 +1226,61 @@ function PreviewMessage() {
     handleNFCScan(index)
   }
 
+  // Handle signing with local key for a specific cosigner
+  const handleSignWithLocalKey = async (index: number) => {
+    try {
+      // Get the cosigner's decrypted key
+      const cosignerKey = decryptedKeys[index]
+      if (!cosignerKey?.secret) {
+        toast.error('No decrypted key found for this cosigner')
+        return
+      }
+
+      // Check if the key has a mnemonic
+      const secret = cosignerKey.secret as Secret
+      if (!secret.mnemonic) {
+        toast.error('No mnemonic found for this cosigner')
+        return
+      }
+
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return
+      }
+
+      // Get the script type from the cosigner's key
+      const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(
+        scriptVersion
+      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+
+      // Sign the PSBT with the cosigner's seed
+      const signingResult = signPSBTWithSeed(
+        originalPsbtBase64,
+        secret.mnemonic,
+        scriptType
+      )
+
+      if (signingResult.success && signingResult.signedPSBT) {
+        // Update the signed PSBT for this cosigner
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, signingResult.signedPSBT!)
+          return newMap
+        })
+
+        toast.success(`PSBT signed successfully for cosigner ${index + 1}`)
+      } else {
+        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      toast.error(`Error signing with local key: ${errorMessage}`)
+    }
+  }
+
   // Wrapper functions for watch-only section (no parameters needed)
   const handleWatchOnlyPasteFromClipboard = () => {
     handlePasteFromClipboard(-1) // Use -1 to indicate watch-only
@@ -1665,9 +1724,7 @@ function PreviewMessage() {
                           onCameraScan={handleCosignerCameraScan}
                           onNFCScan={handleCosignerNFCScan}
                           onSignWithLocalKey={() =>
-                            router.navigate(
-                              `/account/${id}/signAndSend/signMessage`
-                            )
+                            handleSignWithLocalKey(index)
                           }
                         />
                       ))}

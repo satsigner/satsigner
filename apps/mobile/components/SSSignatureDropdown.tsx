@@ -298,7 +298,7 @@ function SSSignatureDropdown({
               onPress={() => {
                 onSignWithLocalKey()
               }}
-              variant="secondary"
+              variant="outline"
               style={{ marginTop: 16 }}
             />
           )}
