@@ -65,7 +65,7 @@ export default function SingleSig() {
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
-  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
+  const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisible] =
     useState(false)
   const [mnemonicWordListModalVisible, setMnemonicWordListModalVisible] =
     useState(false)
@@ -124,7 +124,7 @@ export default function SingleSig() {
 
   function handleOnSelectMnemonicWordCount() {
     setMnemonicWordCount(localMnemonicWordCount)
-    setMnemonicWordCountModalVisibile(false)
+    setMnemonicWordCountModalVisible(false)
   }
 
   function handleOnSelectMnemonicWordList() {
@@ -173,7 +173,7 @@ export default function SingleSig() {
                     'bitcoin.words'
                   ).toLowerCase()}`}
                   withSelect
-                  onPress={() => setMnemonicWordCountModalVisibile(true)}
+                  onPress={() => setMnemonicWordCountModalVisible(true)}
                 />
               </SSFormLayout.Item>
               <SSFormLayout.Item>
@@ -228,7 +228,7 @@ export default function SingleSig() {
         selectedText={`${localMnemonicWordCount} ${t('bitcoin.words')}`}
         selectedDescription={t(`account.mnemonic.${localMnemonicWordCount}`)}
         onSelect={handleOnSelectMnemonicWordCount}
-        onCancel={() => setMnemonicWordCountModalVisibile(false)}
+        onCancel={() => setMnemonicWordCountModalVisible(false)}
       >
         {([24, 21, 18, 15, 12] as const).map((count) => (
           <SSRadioButton
