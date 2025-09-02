@@ -85,7 +85,7 @@ export default function SingleSig() {
       switch (localEntropyType) {
         case 'none': {
           setLoading(true)
-
+          setMnemonicWordList(localMnemonicWordList)
           const mnemonic = await generateMnemonic(localMnemonicWordCount)
           setMnemonic(mnemonic)
 

@@ -28,6 +28,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { convertMnemonic } from '@/utils/bip39'
 import { getDerivationPathFromScriptVersion } from '@/utils/bitcoin'
 
 export default function GenerateMnemonic() {
@@ -35,8 +36,8 @@ export default function GenerateMnemonic() {
   const router = useRouter()
   const [
     name,
+    originalMnemonic,
     mnemonicWordCount,
-    mnemonicWordList,
     mnemonic,
     fingerprint,
     policyType,
@@ -53,9 +54,9 @@ export default function GenerateMnemonic() {
   ] = useAccountBuilderStore(
     useShallow((state) => [
       state.name,
+      state.mnemonic,
       state.mnemonicWordCount,
-      state.mnemonicWordList,
-      state.mnemonic.split(' '),
+      convertMnemonic(state.mnemonic, state.mnemonicWordList).split(' '),
       state.fingerprint,
       state.policyType,
       state.scriptVersion,
@@ -78,12 +79,12 @@ export default function GenerateMnemonic() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const validMnemonic = await validateMnemonic(mnemonic.join(' '))
+    const validMnemonic = await validateMnemonic(originalMnemonic)
     setChecksumValid(validMnemonic)
 
     if (checksumValid) {
       const fingerprint = await getFingerprint(
-        mnemonic.join(' '),
+        originalMnemonic,
         passphrase,
         network as Network
       )
@@ -102,7 +103,7 @@ export default function GenerateMnemonic() {
       let derivationPath = ''
       try {
         const externalDescriptor = await getDescriptor(
-          mnemonic.join(' '),
+          originalMnemonic,
           scriptVersion, // Use the script version from store
           KeychainKind.External,
           passphrase || '', // Use passphrase from store
@@ -126,7 +127,7 @@ export default function GenerateMnemonic() {
           creationType: 'generateMnemonic',
           mnemonicWordCount,
           secret: {
-            mnemonic: mnemonic.join(' '),
+            mnemonic: originalMnemonic,
             passphrase,
             fingerprint
           },
