@@ -58,6 +58,7 @@ function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
 type SSKeyboardWordSelectorProps = {
   visible: boolean
   wordStart: string
+  wordList: string[]
   onWordSelected(word: string): void
   style: StyleProp<ViewStyle>
 }
@@ -65,6 +66,7 @@ type SSKeyboardWordSelectorProps = {
 function SSKeyboardWordSelector({
   visible,
   wordStart,
+  wordList,
   onWordSelected,
   style
 }: SSKeyboardWordSelectorProps) {
@@ -77,7 +79,6 @@ function SSKeyboardWordSelector({
 
   const opacityAnimated = useRef(new Animated.Value(0)).current
 
-  const wordList = useGetWordList()
   const data = getMatchingWords(wordStart, wordList)
 
   if (data.length > 0 && previousWordStart !== wordStart) {

@@ -23,7 +23,6 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSWordInput from '@/components/SSWordInput'
 import useAccountBuilderFinish from '@/hooks/useAccountBuilderFinish'
-import { useGetWordList } from '@/hooks/useGetWordList'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
@@ -38,13 +37,13 @@ import { Colors } from '@/styles'
 import { type SeedWordInfo } from '@/types/logic/seedWord'
 import { type Account } from '@/types/models/Account'
 import { type ImportMnemonicSearchParams } from '@/types/navigation/searchParams'
+import { convertMnemonic, getWordList } from '@/utils/bip39'
 import { seedWordsPrefixOfAnother } from '@/utils/seed'
 
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 
 export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
-  const wordList = useGetWordList()
   const router = useRouter()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
@@ -52,6 +51,7 @@ export default function ImportMnemonic() {
     keys,
     scriptVersion,
     mnemonicWordCount,
+    mnemonicWordList,
     fingerprint,
     policyType,
     clearAccount,
@@ -69,6 +69,7 @@ export default function ImportMnemonic() {
       state.keys,
       state.scriptVersion,
       state.mnemonicWordCount,
+      state.mnemonicWordList,
       state.fingerprint,
       state.policyType,
       state.clearAccount,
@@ -90,6 +91,8 @@ export default function ImportMnemonic() {
   )
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
+
+  const wordList = getWordList(mnemonicWordList)
 
   const [mnemonicWordsInfo, setMnemonicWordsInfo] = useState<SeedWordInfo[]>(
     [...Array(mnemonicWordCount)].map((_, index) => ({
@@ -119,20 +122,37 @@ export default function ImportMnemonic() {
   async function checkTextHasSeed(text: string): Promise<string[]> {
     if (text === null || text === '') return []
     const delimiters = [' ', '\n']
+
     for (const delimiter of delimiters) {
       const seedCandidate = text.split(delimiter)
+
+      // validate seed length
       if (seedCandidate.length !== mnemonicWordCount) continue
+
+      // validate words from word list
       const validWords = seedCandidate.every((x) => wordList.includes(x))
       if (!validWords) continue
-      const checksum = await validateMnemonic(seedCandidate.join(' '))
+
+      // convert mnemonic into english before validating its checksum
+      const convertedSeed = convertMnemonic(
+        seedCandidate.join(' '),
+        'english',
+        mnemonicWordList
+      )
+
+      // validate checksum
+      const checksum = await validateMnemonic(convertedSeed)
       if (!checksum) continue
+
       return seedCandidate
     }
     return []
   }
 
   async function fillOutSeedWords(seed: string[]) {
-    const mnemonic = seed.join(' ')
+    const localMnemonic = seed.join(' ')
+
+    const mnemonic = convertMnemonic(localMnemonic, 'english', mnemonicWordList)
 
     setMnemonicWordsInfo(
       seed.map((value, index) => {
@@ -220,9 +240,12 @@ export default function ImportMnemonic() {
     setCurrentWordText(word)
     setMnemonicWordsInfo(seedWords)
 
-    const mnemonic = mnemonicWordsInfo
+    const localMnemonic = mnemonicWordsInfo
       .map((mnemonicWord) => mnemonicWord.value)
       .join(' ')
+
+    // convert mnemonic to english
+    const mnemonic = convertMnemonic(localMnemonic, 'english', mnemonicWordList)
 
     const checksumValid = await validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
@@ -291,13 +314,19 @@ export default function ImportMnemonic() {
       .map((seedWord) => seedWord.value)
       .join(' ')
 
-    const checksumValid = await validateMnemonic(mnemonicSeedWords)
+    const mnemonic = convertMnemonic(
+      mnemonicSeedWords,
+      'english',
+      mnemonicWordList
+    )
+
+    const checksumValid = await validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
 
     if (checksumValid) {
-      setMnemonic(mnemonicSeedWords)
+      setMnemonic(mnemonic)
       const fingerprint = await getFingerprint(
-        mnemonicSeedWords,
+        mnemonic,
         passphrase,
         network as Network
       )
@@ -310,7 +339,15 @@ export default function ImportMnemonic() {
   async function handleUpdatePassphrase(passphrase: string) {
     setPassphrase(passphrase)
 
-    const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
+    const mnemonicSeedWords = mnemonicWordsInfo
+      .map((word) => word.value)
+      .join(' ')
+
+    const mnemonic = convertMnemonic(
+      mnemonicSeedWords,
+      'english',
+      mnemonicWordList
+    )
 
     const checksumValid = await validateMnemonic(mnemonic)
     setChecksumValid(checksumValid)
@@ -330,7 +367,14 @@ export default function ImportMnemonic() {
   async function handleOnPressImportSeed() {
     setLoadingAccount(true)
 
-    const mnemonic = mnemonicWordsInfo.map((word) => word.value).join(' ')
+    const mnemonicSeedWords = mnemonicWordsInfo.map((word) => word.value).join(' ')
+
+    const mnemonic = convertMnemonic(
+      mnemonicSeedWords,
+      'english',
+      mnemonicWordList
+    )
+
     setMnemonic(mnemonic)
 
     const currentKey = setKey(Number(keyIndex))
@@ -422,6 +466,7 @@ export default function ImportMnemonic() {
       <SSKeyboardWordSelector
         visible={keyboardWordSelectorVisible}
         wordStart={currentWordText}
+        wordList={wordList}
         onWordSelected={handleOnWordSelected}
         style={{ height: 60 }}
       />
