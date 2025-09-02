@@ -17,9 +17,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
+import { useSettingsStore } from '@/store/settings'
 import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { WORDLIST_LIST } from '@/utils/bip39'
 
 export default function SingleSig() {
   const router = useRouter()
@@ -28,6 +30,7 @@ export default function SingleSig() {
     setScriptVersion,
     setEntropy,
     setMnemonicWordCount,
+    setMnemonicWordList,
     setMnemonic,
     setFingerprint,
     setKeyCount,
@@ -40,6 +43,7 @@ export default function SingleSig() {
       state.setScriptVersion,
       state.setEntropy,
       state.setMnemonicWordCount,
+      state.setMnemonicWordList,
       state.setMnemonic,
       state.setFingerprint,
       state.setKeyCount,
@@ -49,17 +53,21 @@ export default function SingleSig() {
     ])
   )
   const network = useBlockchainStore((state) => state.selectedNetwork)
+  const wordList = useSettingsStore((state) => state.mnemonicWordList)
 
   const [localEntropyType, setLocalEntropyType] = useState<EntropyType>('none')
   const [localScriptVersion, setLocalScriptVersion] =
     useState<NonNullable<Key['scriptVersion']>>('P2WPKH')
   const [localMnemonicWordCount, setLocalMnemonicWordCount] =
     useState<NonNullable<Key['mnemonicWordCount']>>(24)
+  const [localMnemonicWordList, setLocalMnemonicWordList] = useState(wordList)
 
   const [entropyModalVisible, setEntropyModalVisible] = useState(false)
   const [scriptVersionModalVisible, setScriptVersionModalVisible] =
     useState(false)
   const [mnemonicWordCountModalVisible, setMnemonicWordCountModalVisibile] =
+    useState(false)
+  const [mnemonicWordListModalVisible, setMnemonicWordListModalVisible] =
     useState(false)
 
   const [loading, setLoading] = useState(false)
@@ -115,8 +123,13 @@ export default function SingleSig() {
   }
 
   function handleOnSelectMnemonicWordCount() {
-    setLocalMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordCount(localMnemonicWordCount)
     setMnemonicWordCountModalVisibile(false)
+  }
+
+  function handleOnSelectMnemonicWordList() {
+    setMnemonicWordList(localMnemonicWordList)
+    setMnemonicWordListModalVisible(false)
   }
 
   function handleOnSelectEntropy() {
@@ -161,6 +174,14 @@ export default function SingleSig() {
                   ).toLowerCase()}`}
                   withSelect
                   onPress={() => setMnemonicWordCountModalVisibile(true)}
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.mnemonic.wordList')} />
+                <SSButton
+                  label={localMnemonicWordList}
+                  withSelect
+                  onPress={() => setMnemonicWordListModalVisible(true)}
                 />
               </SSFormLayout.Item>
               <SSFormLayout.Item>
@@ -216,6 +237,29 @@ export default function SingleSig() {
             selected={localMnemonicWordCount === count}
             onPress={() =>
               setStateWithLayoutAnimation(setLocalMnemonicWordCount, count)
+            }
+          />
+        ))}
+      </SSSelectModal>
+      <SSSelectModal
+        visible={mnemonicWordListModalVisible}
+        title={t('account.mnemonic.wordList')}
+        selectedText={t('account.mnemonic.wordListText', {
+          wordList: localMnemonicWordList.replaceAll('_', ' ')
+        })}
+        selectedDescription={t('account.mnemonic.wordListDescription', {
+          wordList: localMnemonicWordList.replaceAll('_', ' ')
+        })}
+        onSelect={handleOnSelectMnemonicWordList}
+        onCancel={() => setMnemonicWordListModalVisible(false)}
+      >
+        {WORDLIST_LIST.map((wordList) => (
+          <SSRadioButton
+            key={wordList}
+            label={wordList.replaceAll('_', ' ')}
+            selected={localMnemonicWordList === wordList}
+            onPress={() =>
+              setStateWithLayoutAnimation(setLocalMnemonicWordList, wordList)
             }
           />
         ))}

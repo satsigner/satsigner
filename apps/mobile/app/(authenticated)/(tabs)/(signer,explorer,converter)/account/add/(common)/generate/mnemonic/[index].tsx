@@ -36,6 +36,7 @@ export default function GenerateMnemonic() {
   const [
     name,
     mnemonicWordCount,
+    mnemonicWordList,
     mnemonic,
     fingerprint,
     policyType,
@@ -53,6 +54,7 @@ export default function GenerateMnemonic() {
     useShallow((state) => [
       state.name,
       state.mnemonicWordCount,
+      state.mnemonicWordList,
       state.mnemonic.split(' '),
       state.fingerprint,
       state.policyType,
