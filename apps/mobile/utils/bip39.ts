@@ -36,12 +36,23 @@ function convertMnemonic(
   target: WordList,
   source: WordList = 'english'
 ) {
-  const words = mnemonic.split('')
+  const words = mnemonic.split(' ')
   const sourceWordList = wordlists[source]
   const targetWordList = wordlists[target]
-  const indexes = words.map((word) =>
-    sourceWordList.findIndex((w) => w === word)
+
+  // build a lookup table for faster index lookup
+  const indexLookupTable: Record<string, number> = sourceWordList.reduce(
+    (previousValue, word, index) => {
+      return {
+        ...previousValue,
+        [word]: index
+      }
+    },
+    {}
   )
+
+  // collect the word indexes
+  const indexes = words.map((word) => indexLookupTable[word])
 
   if (indexes.includes(-1)) {
     throw new Error(
