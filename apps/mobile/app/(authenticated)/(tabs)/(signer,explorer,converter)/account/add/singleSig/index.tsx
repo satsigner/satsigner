@@ -1,6 +1,7 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
+import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { generateMnemonic, getFingerprint } from '@/api/bdk'
@@ -132,63 +133,65 @@ export default function SingleSig() {
           headerTitle: () => <SSText uppercase>{name}</SSText>
         }}
       />
-      <SSVStack justifyBetween>
-        <SSVStack>
-          <SSFormLayout>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.policy.title')} />
-              <SSText center weight="bold">
-                {t('account.policy.singleSignature.title').toUpperCase()}
-              </SSText>
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.script')} />
-              <SSButton
-                label={`${t(
-                  `script.${localScriptVersion.toLocaleLowerCase()}.name`
-                )} (${localScriptVersion})`}
-                withSelect
-                onPress={() => setScriptVersionModalVisible(true)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.mnemonic.title')} />
-              <SSButton
-                label={`${localMnemonicWordCount} ${t(
-                  'bitcoin.words'
-                ).toLowerCase()}`}
-                withSelect
-                onPress={() => setMnemonicWordCountModalVisibile(true)}
-              />
-            </SSFormLayout.Item>
-            <SSFormLayout.Item>
-              <SSFormLayout.Label label={t('account.entropy.title')} />
-              <SSButton
-                label={t(`account.entropy.${localEntropyType}.label`)}
-                withSelect
-                onPress={() => setEntropyModalVisible(true)}
-              />
-            </SSFormLayout.Item>
-          </SSFormLayout>
+      <ScrollView>
+        <SSVStack justifyBetween>
+          <SSVStack>
+            <SSFormLayout>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.policy.title')} />
+                <SSText center weight="bold">
+                  {t('account.policy.singleSignature.title').toUpperCase()}
+                </SSText>
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.script')} />
+                <SSButton
+                  label={`${t(
+                    `script.${localScriptVersion.toLocaleLowerCase()}.name`
+                  )} (${localScriptVersion})`}
+                  withSelect
+                  onPress={() => setScriptVersionModalVisible(true)}
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.mnemonic.title')} />
+                <SSButton
+                  label={`${localMnemonicWordCount} ${t(
+                    'bitcoin.words'
+                  ).toLowerCase()}`}
+                  withSelect
+                  onPress={() => setMnemonicWordCountModalVisibile(true)}
+                />
+              </SSFormLayout.Item>
+              <SSFormLayout.Item>
+                <SSFormLayout.Label label={t('account.entropy.title')} />
+                <SSButton
+                  label={t(`account.entropy.${localEntropyType}.label`)}
+                  withSelect
+                  onPress={() => setEntropyModalVisible(true)}
+                />
+              </SSFormLayout.Item>
+            </SSFormLayout>
+          </SSVStack>
+          <SSVStack gap="sm">
+            <SSButton
+              label={t('account.import.title2')}
+              onPress={() => handleOnPress('importMnemonic')}
+            />
+            <SSButton
+              label={t('account.generate.title')}
+              variant="secondary"
+              loading={loading}
+              onPress={() => handleOnPress('generateMnemonic')}
+            />
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => router.navigate('/')}
+            />
+          </SSVStack>
         </SSVStack>
-        <SSVStack>
-          <SSButton
-            label={t('account.import.title2')}
-            onPress={() => handleOnPress('importMnemonic')}
-          />
-          <SSButton
-            label={t('account.generate.title')}
-            variant="secondary"
-            loading={loading}
-            onPress={() => handleOnPress('generateMnemonic')}
-          />
-          <SSButton
-            label={t('common.cancel')}
-            variant="ghost"
-            onPress={() => router.navigate('/')}
-          />
-        </SSVStack>
-      </SSVStack>
+      </ScrollView>
       <SSScriptVersionModal
         visible={scriptVersionModalVisible}
         scriptVersion={localScriptVersion}
