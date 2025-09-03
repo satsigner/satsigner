@@ -36,6 +36,11 @@ function convertMnemonic(
   target: WordList,
   source: WordList = 'english'
 ) {
+  // we can expect app users to use english as the default word list, and not
+  // other languages, in which case the target and source lists will often be
+  // the same, not needing conversion.
+  if (target === source) return mnemonic
+
   const words = mnemonic.split(' ')
   const sourceWordList = wordlists[source]
   const targetWordList = wordlists[target]
