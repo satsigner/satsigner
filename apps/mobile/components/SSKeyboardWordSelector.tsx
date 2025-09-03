@@ -13,12 +13,6 @@ import {
   type ViewStyle
 } from 'react-native'
 
-import { useGetWordList } from '@/hooks/useGetWordList'
-import useKeyboardHeight from '@/hooks/useKeyboardHeight'
-import usePrevious from '@/hooks/usePrevious'
-import { t } from '@/locales'
-import { Colors, Sizes } from '@/styles'
-
 type WordInfo = {
   index: number
   word: string
