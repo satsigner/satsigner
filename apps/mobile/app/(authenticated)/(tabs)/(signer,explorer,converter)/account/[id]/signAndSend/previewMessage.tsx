@@ -20,7 +20,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
-import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSQRCode from '@/components/SSQRCode'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSText from '@/components/SSText'
@@ -1691,11 +1691,9 @@ function PreviewMessage() {
                     <SSText center color="muted" size="sm" uppercase>
                       {t('transaction.preview.multisigSignatureRequired')}
                     </SSText>
-                    <SSMultisigCountSelector
-                      maxCount={Math.max(12, account.keyCount)}
+                    <SSSignatureRequiredDisplay
                       requiredNumber={account.keysRequired || 1}
                       totalNumber={account.keyCount || 1}
-                      viewOnly
                     />
 
                     {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
