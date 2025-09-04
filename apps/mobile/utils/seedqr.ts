@@ -1,11 +1,11 @@
-import { getWordList } from './bip39'
-
 /**
  * Converts a mnemonic phrase to a standard SeedQR format
  * Each word is represented by its index (from the BIP39 word list), zero-padded to four digits
  */
-export function encodeStandardSeedQR(mnemonic: string): string {
-  const wordList = getWordList()
+export function encodeStandardSeedQR(
+  mnemonic: string,
+  wordList: string[]
+): string {
   const words = mnemonic.split(' ')
   return words
     .map((word) => {
@@ -20,8 +20,10 @@ export function encodeStandardSeedQR(mnemonic: string): string {
  * Converts a mnemonic phrase to a compact SeedQR format
  * Each word is represented in binary (11 bits per word)
  */
-export function encodeCompactSeedQR(mnemonic: string): string {
-  const wordList = getWordList()
+export function encodeCompactSeedQR(
+  mnemonic: string,
+  wordList: string[]
+): string {
   const words = mnemonic.split(' ')
   const binaryString = words
     .map((word) => {
