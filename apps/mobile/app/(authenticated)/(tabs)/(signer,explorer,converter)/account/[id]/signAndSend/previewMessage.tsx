@@ -1694,6 +1694,9 @@ function PreviewMessage() {
                     <SSSignatureRequiredDisplay
                       requiredNumber={account.keysRequired || 1}
                       totalNumber={account.keyCount || 1}
+                      collectedSignatures={Array.from(signedPsbts.entries())
+                        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
+                        .map(([index]) => index)}
                     />
 
                     {/* Individual Signature Buttons - Dynamic based on number of cosigners */}

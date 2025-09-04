@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { type LayoutChangeEvent, View } from 'react-native'
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
+import { Colors } from '@/styles'
+
 const RADIUS_INDICATOR = 8
 const RADIUS_OUTER_RECT = 16
 const MIN_CONTAINER_WIDTH = 80 // Reduced minimum width
@@ -10,11 +12,13 @@ const MAX_CONTAINER_WIDTH = 140 // Reduced maximum width
 type SSSignatureRequiredDisplayProps = {
   requiredNumber: number
   totalNumber: number
+  collectedSignatures?: number[] // Array of signature indices that have been collected (0-based)
 }
 
 function SSSignatureRequiredDisplay({
   requiredNumber,
-  totalNumber
+  totalNumber,
+  collectedSignatures = []
 }: SSSignatureRequiredDisplayProps) {
   const [containerSize, setContainersize] = useState({ width: 0, height: 0 })
 
@@ -79,13 +83,14 @@ function SSSignatureRequiredDisplay({
           pointerEvents="none"
           style={{ height: 100 }}
         >
+          {/* Number labels - always white */}
           <G>
             {Array.from({ length: totalNumber }, (_, i) => i).map((count) => (
               <SvgText
                 key={count}
                 x={centerPoints[count]}
                 y={10}
-                fill={count + 1 <= requiredNumber ? 'white' : '#FFFFFF17'}
+                fill="white"
                 fontSize={12}
                 textAnchor="middle"
               >
@@ -93,6 +98,8 @@ function SSSignatureRequiredDisplay({
               </SvgText>
             ))}
           </G>
+
+          {/* Black pill background */}
           <G>
             <Circle
               cx={RADIUS_OUTER_RECT}
@@ -114,18 +121,27 @@ function SSSignatureRequiredDisplay({
               fill="black"
             />
           </G>
+
+          {/* Circle indicators - only circles change color */}
           <G>
-            {Array.from({ length: totalNumber }, (_, i) => i).map((count) => (
-              <Circle
-                key={count}
-                cx={centerPoints[count]}
-                cy={35}
-                r={RADIUS_INDICATOR}
-                strokeWidth={1}
-                stroke={count + 1 <= requiredNumber ? 'white' : '#FFFFFF17'}
-                fill="transparent"
-              />
-            ))}
+            {Array.from({ length: totalNumber }, (_, i) => i).map((count) => {
+              const isCollected = collectedSignatures.includes(count)
+              const isRequired = count + 1 <= requiredNumber
+
+              return (
+                <Circle
+                  key={count}
+                  cx={centerPoints[count]}
+                  cy={35}
+                  r={RADIUS_INDICATOR}
+                  strokeWidth={1}
+                  stroke={
+                    isCollected ? '#A7FFAF' : isRequired ? 'white' : '#4F4F4F'
+                  }
+                  fill={isCollected ? '#A7FFAF' : 'transparent'}
+                />
+              )
+            })}
           </G>
         </Svg>
       </View>

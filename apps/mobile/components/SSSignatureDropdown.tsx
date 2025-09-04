@@ -88,11 +88,12 @@ function SSSignatureDropdown({
       style={[
         {
           borderColor: '#6A6A6A',
-          borderTopWidth: 2,
-          backgroundColor: index % 2 === 1 ? 'black' : '#1E1E1E'
+          borderTopWidth: 1, // Only add top border for non-first items
+          backgroundColor: index % 2 === 1 ? 'black' : '#1E1E1E',
+          minHeight: 60 // Increased height for each signature dropdown button
         },
         index === totalKeys - 1 && {
-          borderBottomWidth: 2
+          borderBottomWidth: 0 // Remove bottom border to eliminate gap
         }
       ]}
     >
@@ -100,13 +101,26 @@ function SSSignatureDropdown({
         onPress={() => setIsExpanded(!isExpanded)}
         disabled={!messageId}
         style={{
-          paddingHorizontal: 8,
-          paddingVertical: 8,
-          opacity: messageId ? 1 : 0.5
+          paddingHorizontal: 16,
+          paddingVertical: 16, // Increased vertical padding
+          opacity: messageId ? 1 : 0.5,
+          flex: 1,
+          justifyContent: 'center' // Center content vertically
         }}
       >
-        <SSHStack justifyBetween style={{ alignItems: 'center' }}>
-          <SSHStack style={{ alignItems: 'center' }}>
+        <SSHStack
+          justifyBetween
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center' // Center content horizontally
+          }}
+        >
+          <SSHStack
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center' // Center the circle and text
+            }}
+          >
             {isSignatureCompleted ? (
               <SSIconGreen width={24} height={24} />
             ) : (
@@ -116,7 +130,7 @@ function SSSignatureDropdown({
                   height: 24,
                   borderRadius: 12,
                   backgroundColor: '#4A4A4A',
-                  marginRight: 8
+                  marginRight: 12
                 }}
               />
             )}
