@@ -4,8 +4,8 @@ import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
 const RADIUS_INDICATOR = 8
 const RADIUS_OUTER_RECT = 16
-const MIN_CONTAINER_WIDTH = 60 // Reduced minimum width
-const MAX_CONTAINER_WIDTH = 120 // Reduced maximum width
+const MIN_CONTAINER_WIDTH = 80 // Reduced minimum width
+const MAX_CONTAINER_WIDTH = 140 // Reduced maximum width
 
 type SSSignatureRequiredDisplayProps = {
   requiredNumber: number
