@@ -208,8 +208,8 @@ function SSSignatureDropdown({
           {/* Imported PSBT Display Area - Placed BEFORE import buttons like watch-only wallet */}
           <View
             style={{
-              minHeight: 100,
-              maxHeight: 300,
+              minHeight: 200,
+              maxHeight: 600,
               paddingTop: 12,
               paddingBottom: 12,
               paddingHorizontal: 12,
