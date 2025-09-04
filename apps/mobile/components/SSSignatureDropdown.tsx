@@ -88,12 +88,12 @@ function SSSignatureDropdown({
       style={[
         {
           borderColor: '#6A6A6A',
-          borderTopWidth: 1, // Only add top border for non-first items
+          borderTopWidth: 2,
           backgroundColor: index % 2 === 1 ? 'black' : '#1E1E1E',
           minHeight: 60 // Increased height for each signature dropdown button
         },
         index === totalKeys - 1 && {
-          borderBottomWidth: 0 // Remove bottom border to eliminate gap
+          borderBottomWidth: 2 // Remove bottom border to eliminate gap
         }
       ]}
     >
@@ -102,7 +102,8 @@ function SSSignatureDropdown({
         disabled={!messageId}
         style={{
           paddingHorizontal: 16,
-          paddingVertical: 16, // Increased vertical padding
+          paddingBottom: 8,
+          paddingTop: 8,
           opacity: messageId ? 1 : 0.5,
           flex: 1,
           justifyContent: 'center' // Center content vertically
@@ -129,13 +130,13 @@ function SSSignatureDropdown({
                   width: 24,
                   height: 24,
                   borderRadius: 12,
-                  backgroundColor: '#4A4A4A',
-                  marginRight: 12
+                  backgroundColor: '#4A4A4A'
                 }}
               />
             )}
-            <SSText color="muted" size="lg">
+            <SSText color="muted" size="lg" style={{ marginLeft: 12 }}>
               {t('transaction.preview.signature')} {index + 1}
+              {account.keys[index]?.name && ` - ${account.keys[index].name}`}
             </SSText>
           </SSHStack>
         </SSHStack>

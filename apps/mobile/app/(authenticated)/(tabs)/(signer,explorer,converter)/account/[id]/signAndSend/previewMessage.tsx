@@ -20,9 +20,9 @@ import { useShallow } from 'zustand/react/shallow'
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
-import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSQRCode from '@/components/SSQRCode'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
@@ -1691,6 +1691,19 @@ function PreviewMessage() {
                     <SSText center color="muted" size="sm" uppercase>
                       {t('transaction.preview.multisigSignatureRequired')}
                     </SSText>
+
+                    {/* N of M Component */}
+                    <SSText
+                      style={{
+                        alignSelf: 'center',
+                        fontSize: 55,
+                        textTransform: 'lowercase'
+                      }}
+                    >
+                      {account.keysRequired || 1} {t('common.of')}{' '}
+                      {account.keyCount || 1}
+                    </SSText>
+
                     <SSSignatureRequiredDisplay
                       requiredNumber={account.keysRequired || 1}
                       totalNumber={account.keyCount || 1}
@@ -1700,7 +1713,7 @@ function PreviewMessage() {
                     />
 
                     {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
-                    <SSVStack gap="sm">
+                    <SSVStack gap="none">
                       {account.keys?.map((key, index) => (
                         <SSSignatureDropdown
                           key={index}

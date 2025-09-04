@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react'
 import { type LayoutChangeEvent, View } from 'react-native'
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 
-import { Colors } from '@/styles'
-
 const RADIUS_INDICATOR = 8
 const RADIUS_OUTER_RECT = 16
 const MIN_CONTAINER_WIDTH = 80 // Reduced minimum width
@@ -134,10 +132,9 @@ function SSSignatureRequiredDisplay({
                   cx={centerPoints[count]}
                   cy={35}
                   r={RADIUS_INDICATOR}
-                  strokeWidth={1}
-                  stroke={
-                    isCollected ? '#A7FFAF' : isRequired ? 'white' : '#4F4F4F'
-                  }
+                  strokeWidth={2}
+                  stroke={isRequired ? 'white' : '#4F4F4F'}
+                  opacity={0.9}
                   fill={isCollected ? '#A7FFAF' : 'transparent'}
                 />
               )
