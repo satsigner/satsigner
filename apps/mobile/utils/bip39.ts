@@ -1,18 +1,6 @@
 import { getDefaultWordlist, wordlists } from 'bip39'
 
-type WordList =
-  | 'chinese_simplified'
-  | 'chinese_traditional'
-  | 'czech'
-  | 'english'
-  | 'french'
-  | 'italian'
-  | 'japanese'
-  | 'korean'
-  | 'portuguese'
-  | 'spanish'
-
-const WORDLIST_LIST: WordList[] = [
+const WORDLIST_LIST = [
   'chinese_simplified',
   'chinese_traditional',
   'czech',
@@ -23,7 +11,9 @@ const WORDLIST_LIST: WordList[] = [
   'korean',
   'portuguese',
   'spanish'
-]
+] as const
+
+type WordList = (typeof WORDLIST_LIST)[number]
 
 const DEFAULT_WORD_LIST = getDefaultWordlist() as WordList
 
