@@ -140,7 +140,7 @@ export default function ImportMnemonic() {
 
   async function checkTextHasSeed(text: string): Promise<string[]> {
     if (text === null || text === '') return []
-    const delimiters = [' ', '\n']
+    const delimiters = [' ', '\n', ',', ', ']
     for (const delimiter of delimiters) {
       const seedCandidate = text.split(delimiter)
       if (seedCandidate.length !== mnemonicWordCount) continue
@@ -174,7 +174,6 @@ export default function ImportMnemonic() {
         passphrase,
         network as Network
       )
-
       setFingerprint(fingerprint)
     }
   }
