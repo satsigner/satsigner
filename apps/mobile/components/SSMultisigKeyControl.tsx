@@ -447,33 +447,35 @@ function SSMultisigKeyControl({
     <View
       style={[
         {
-          borderColor: '#6A6A6A',
-          borderTopWidth: 2,
-          backgroundColor: isBlackBackground ? 'black' : '#1E1E1E'
+          borderColor: '#444444',
+          paddingBottom: 16,
+          paddingTop: 16,
+          borderTopWidth: 1
+          //backgroundColor: isBlackBackground ? 'black' : '#111111'
         },
-        index === keyCount - 1 && { borderBottomWidth: 2 }
+        index === keyCount - 1 && { borderBottomWidth: 1 }
       ]}
     >
       <TouchableOpacity
         onPress={() => setIsExpanded(!isExpanded)}
         style={{
-          paddingHorizontal: 8,
+          //paddingHorizontal: 8,
           paddingBottom: 8,
           paddingTop: 8
         }}
       >
         <SSHStack justifyBetween>
-          <SSHStack style={{ alignItems: 'center' }}>
+          <SSHStack style={{ alignItems: 'center' }} gap="sm">
             {keyDetails ? (
               <SSIconGreen width={24} height={24} />
             ) : (
               <SSIconAdd width={24} height={24} />
             )}
-            <SSText color="muted" size="lg">
+            <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
               {t('common.key')} {index + 1}
             </SSText>
             <SSVStack gap="none">
-              <SSText>{getSourceLabel()}</SSText>
+              <SSText color="muted">{getSourceLabel()}</SSText>
               <SSText color={keyDetails?.name ? 'white' : 'muted'}>
                 {keyDetails?.name ?? t('account.seed.noLabel')}
               </SSText>
