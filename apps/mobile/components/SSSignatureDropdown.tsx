@@ -87,41 +87,25 @@ function SSSignatureDropdown({
     <View
       style={[
         {
-          borderColor: '#6A6A6A',
-          borderTopWidth: 2,
-          backgroundColor: index % 2 === 1 ? 'black' : '#1E1E1E',
-          minHeight: 60 // Increased height for each signature dropdown button
+          borderColor: '#444444',
+          paddingBottom: 16,
+          paddingTop: 16,
+          borderTopWidth: 1
         },
-        index === totalKeys - 1 && {
-          borderBottomWidth: 2 // Remove bottom border to eliminate gap
-        }
+        index === totalKeys - 1 && { borderBottomWidth: 1 }
       ]}
     >
       <TouchableOpacity
         onPress={() => setIsExpanded(!isExpanded)}
         disabled={!messageId}
         style={{
-          paddingHorizontal: 16,
           paddingBottom: 8,
           paddingTop: 8,
-          opacity: messageId ? 1 : 0.5,
-          flex: 1,
-          justifyContent: 'center' // Center content vertically
+          opacity: messageId ? 1 : 0.5
         }}
       >
-        <SSHStack
-          justifyBetween
-          style={{
-            alignItems: 'center',
-            justifyContent: 'center' // Center content horizontally
-          }}
-        >
-          <SSHStack
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center' // Center the circle and text
-            }}
-          >
+        <SSHStack justifyBetween>
+          <SSHStack style={{ alignItems: 'center' }} gap="sm">
             {isSignatureCompleted ? (
               <SSIconGreen width={24} height={24} />
             ) : (
@@ -136,7 +120,9 @@ function SSSignatureDropdown({
             )}
             <SSText color="muted" size="lg" style={{ marginLeft: 12 }}>
               {t('transaction.preview.signature')} {index + 1}
-              {account.keys[index]?.name && ` - ${account.keys[index].name}`}
+            </SSText>
+            <SSText size="lg" style={{ marginLeft: 12 }}>
+              {account.keys[index]?.name && `${account.keys[index].name}`}
             </SSText>
           </SSHStack>
         </SSHStack>
