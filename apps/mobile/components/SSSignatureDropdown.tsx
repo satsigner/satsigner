@@ -8,9 +8,14 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
+import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
 import { validateSignedPSBT } from '@/utils/psbtValidator'
+import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
+import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 
 type SSSignatureDropdownProps = {
   index: number
@@ -58,6 +63,8 @@ function SSSignatureDropdown({
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
+  const [extractedPublicKey, setExtractedPublicKey] = useState('')
+  const [seedDropped, setSeedDropped] = useState(false)
 
   // Check if this cosigner has a seed - show Sign with Local Key button at the end
   const hasLocalSeed = Boolean(
@@ -71,6 +78,165 @@ function SSSignatureDropdown({
   const isSignatureCompleted = Boolean(
     signedPsbt && signedPsbt.trim().length > 0
   )
+
+  // Extract public key from descriptor when key details change
+  useEffect(() => {
+    async function extractPublicKey() {
+      if (!keyDetails) {
+        setExtractedPublicKey('')
+        return
+      }
+
+      // In signing context, secret is encrypted (string), so we can't extract public key directly
+      // We need to use the decryptedKey prop instead
+      if (typeof keyDetails.secret === 'string') {
+        // Use decryptedKey if available
+        if (decryptedKey && typeof decryptedKey.secret === 'object') {
+          const secret = decryptedKey.secret
+          if (secret.extendedPublicKey) {
+            setExtractedPublicKey(secret.extendedPublicKey)
+            return
+          }
+          if (secret.externalDescriptor) {
+            try {
+              const network = useBlockchainStore.getState().selectedNetwork
+              const descriptor = await new Descriptor().create(
+                secret.externalDescriptor,
+                network as Network
+              )
+              const publicKey =
+                await extractExtendedKeyFromDescriptor(descriptor)
+              setExtractedPublicKey(publicKey)
+            } catch (_error) {
+              setExtractedPublicKey('')
+            }
+          }
+        }
+        setExtractedPublicKey('')
+        return
+      }
+
+      // Handle object secret (shouldn't happen in signing context, but just in case)
+      if (typeof keyDetails.secret === 'object') {
+        const secret = keyDetails.secret
+
+        // If we already have an extended public key, use it
+        if (secret.extendedPublicKey) {
+          setExtractedPublicKey(secret.extendedPublicKey)
+          return
+        }
+
+        // If we have a descriptor, extract the public key from it
+        if (secret.externalDescriptor) {
+          try {
+            const network = useBlockchainStore.getState().selectedNetwork
+            const descriptor = await new Descriptor().create(
+              secret.externalDescriptor,
+              network as Network
+            )
+            const publicKey = await extractExtendedKeyFromDescriptor(descriptor)
+            setExtractedPublicKey(publicKey)
+          } catch (_error) {
+            setExtractedPublicKey('')
+          }
+        } else {
+          setExtractedPublicKey('')
+        }
+      }
+    }
+
+    extractPublicKey()
+  }, [keyDetails])
+
+  // Reset seedDropped when keyDetails changes
+  useEffect(() => {
+    if (keyDetails) {
+      // In signing context, use decryptedKey to check for mnemonic
+      if (decryptedKey && typeof decryptedKey.secret === 'object') {
+        // If the key has a mnemonic, reset seedDropped to false
+        if (decryptedKey.secret.mnemonic) {
+          setSeedDropped(false)
+        } else {
+          setSeedDropped(true)
+        }
+      } else if (typeof keyDetails.secret === 'object') {
+        // Fallback for object secret (shouldn't happen in signing context)
+        if (keyDetails.secret.mnemonic) {
+          setSeedDropped(false)
+        } else {
+          setSeedDropped(true)
+        }
+      } else {
+        // For encrypted secrets, we can't determine if mnemonic exists
+        setSeedDropped(false)
+      }
+    }
+  }, [keyDetails, decryptedKey])
+
+  // Use the extracted public key from state, or fall back to direct access
+  const extendedPublicKey =
+    extractedPublicKey ||
+    (decryptedKey &&
+      typeof decryptedKey.secret === 'object' &&
+      decryptedKey.secret.extendedPublicKey) ||
+    (typeof keyDetails?.secret === 'object' &&
+      keyDetails.secret.extendedPublicKey) ||
+    ''
+
+  // Format public key for display: first 7, last 4 chars
+  let formattedPubKey = extendedPublicKey
+  if (extendedPublicKey && extendedPublicKey.length > 12) {
+    formattedPubKey = `${extendedPublicKey.slice(
+      0,
+      7
+    )}...${extendedPublicKey.slice(-4)}`
+  }
+
+  // Get network and script version for source label
+  const network = useBlockchainStore((state) => state.selectedNetwork)
+  const scriptVersion = keyDetails?.scriptVersion || 'P2WSH'
+
+  function getSourceLabel() {
+    if (!keyDetails) {
+      return t('account.selectKeySource')
+    } else if (keyDetails.creationType === 'generateMnemonic') {
+      // Check if seed has been dropped
+      if (
+        seedDropped ||
+        (decryptedKey &&
+          typeof decryptedKey.secret === 'object' &&
+          !decryptedKey.secret.mnemonic) ||
+        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
+      ) {
+        return t('account.seed.droppedSeed', {
+          name: keyDetails.scriptVersion
+        })
+      }
+      return t('account.seed.newSeed', {
+        name: keyDetails.scriptVersion
+      })
+    } else if (keyDetails.creationType === 'importMnemonic') {
+      // Check if seed has been dropped
+      if (
+        seedDropped ||
+        (decryptedKey &&
+          typeof decryptedKey.secret === 'object' &&
+          !decryptedKey.secret.mnemonic) ||
+        (typeof keyDetails.secret === 'object' && !keyDetails.secret.mnemonic)
+      ) {
+        return t('account.seed.droppedSeed', {
+          name: keyDetails.scriptVersion
+        })
+      }
+      return t('account.seed.importedSeed', { name: keyDetails.scriptVersion })
+    } else if (keyDetails.creationType === 'importDescriptor') {
+      return t('account.seed.external')
+    } else if (keyDetails.creationType === 'importExtendedPub') {
+      // Show the correct label according to the script version and network
+      const keyFormat = getKeyFormatForScriptVersion(scriptVersion, network)
+      return t(`account.import.${keyFormat}`)
+    }
+  }
 
   // Validate PSBT when signedPsbt changes
   useEffect(() => {
@@ -121,16 +287,27 @@ function SSSignatureDropdown({
                 }}
               />
             )}
-            <SSText color="muted" size="lg" style={{ marginLeft: 12 }}>
-              {t('transaction.preview.signature')} {index + 1}
+            <SSText color="muted" size="lg" style={{ paddingHorizontal: 10 }}>
+              {t('common.key')} {index + 1}
             </SSText>
-            <SSText size="lg" style={{ marginLeft: 12 }}>
-              {account.keys[index]?.name && `${account.keys[index].name}`}
-            </SSText>
+            <SSVStack gap="none">
+              <SSText color="muted">{getSourceLabel()}</SSText>
+              <SSText color={keyDetails?.name ? 'white' : 'muted'}>
+                {keyDetails?.name ?? t('account.seed.noLabel')}
+              </SSText>
+            </SSVStack>
           </SSHStack>
           <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
             <SSText color={keyDetails?.fingerprint ? 'white' : 'muted'}>
               {keyDetails?.fingerprint || t('account.fingerprint')}
+            </SSText>
+            <SSText
+              color={extendedPublicKey ? 'white' : 'muted'}
+              selectable
+              numberOfLines={1}
+              ellipsizeMode="middle"
+            >
+              {formattedPubKey || t('account.seed.publicKey')}
             </SSText>
           </SSVStack>
         </SSHStack>
