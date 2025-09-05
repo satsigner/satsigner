@@ -226,12 +226,14 @@ export default function AccountSettings() {
           {t('account.settings.title')}
         </SSText>
         <SSVStack itemsCenter gap="none">
-          <SSHStack gap="sm">
-            <SSText color="muted">{t('account.fingerprint')}</SSText>
-            <SSText>
-              {extractAccountFingerprint(account, decryptedKeys) || '-'}
-            </SSText>
-          </SSHStack>
+          {account.policyType !== 'multisig' && (
+            <SSHStack gap="sm">
+              <SSText color="muted">{t('account.fingerprint')}</SSText>
+              <SSText>
+                {extractAccountFingerprint(account, decryptedKeys) || '-'}
+              </SSText>
+            </SSHStack>
+          )}
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
