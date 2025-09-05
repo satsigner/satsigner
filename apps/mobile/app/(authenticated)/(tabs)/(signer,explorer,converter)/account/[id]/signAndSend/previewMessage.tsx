@@ -57,6 +57,7 @@ import {
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import { signPSBTWithSeed } from '@/utils/psbtSigner'
+import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
@@ -867,6 +868,14 @@ function PreviewMessage() {
       return
     }
 
+    // Check if this is a seed QR code first
+    const seedMnemonic = detectAndDecodeSeedQR(data)
+    if (seedMnemonic && index !== undefined) {
+      // Handle seed QR scanning for signing
+      handleSeedQRScanned(seedMnemonic, index)
+      return
+    }
+
     // Detect QR code type and format
     const qrInfo = detectQRType(data)
 
@@ -1224,6 +1233,69 @@ function PreviewMessage() {
 
   const handleCosignerNFCScan = (index: number) => {
     handleNFCScan(index)
+  }
+
+  // Handle signing with seed QR for a specific cosigner
+  const handleSignWithSeedQR = async (index: number) => {
+    try {
+      // Set the current cosigner index and open camera modal for seed QR scanning
+      setCurrentCosignerIndex(index)
+      setCameraModalVisible(true)
+
+      // We'll handle the actual signing in the QR scan handler
+      // by detecting if we're scanning a seed QR vs a signed PSBT
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      toast.error(`Failed to initiate seed QR scan: ${errorMessage}`)
+    }
+  }
+
+  // Handle seed QR code scanned for signing
+  const handleSeedQRScanned = async (mnemonic: string, index: number) => {
+    try {
+      // Close the camera modal
+      setCameraModalVisible(false)
+      setCurrentCosignerIndex(null)
+
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return
+      }
+
+      // Get the script type from the cosigner's key
+      const cosignerKey = account?.keys?.[index]
+      const scriptVersion = cosignerKey?.scriptVersion || 'P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(
+        scriptVersion
+      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+
+      // Sign the PSBT with the scanned seed
+      const signingResult = signPSBTWithSeed(
+        originalPsbtBase64,
+        mnemonic,
+        scriptType
+      )
+
+      if (signingResult.success && signingResult.signedPSBT) {
+        // Update the signed PSBT for this cosigner
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, signingResult.signedPSBT!)
+          return newMap
+        })
+
+        toast.success(
+          `PSBT signed successfully with seed QR for cosigner ${index + 1}`
+        )
+      } else {
+        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      toast.error(`Failed to sign with seed QR: ${errorMessage}`)
+    }
   }
 
   // Handle signing with local key for a specific cosigner
@@ -1740,6 +1812,7 @@ function PreviewMessage() {
                           onSignWithLocalKey={() =>
                             handleSignWithLocalKey(index)
                           }
+                          onSignWithSeedQR={() => handleSignWithSeedQR(index)}
                         />
                       ))}
                     </SSVStack>

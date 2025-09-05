@@ -32,6 +32,7 @@ type SSSignatureDropdownProps = {
   onCameraScan: (index: number) => void
   onNFCScan: (index: number) => void
   onSignWithLocalKey: () => void
+  onSignWithSeedQR: () => void
 }
 
 function SSSignatureDropdown({
@@ -52,7 +53,8 @@ function SSSignatureDropdown({
   onPasteFromClipboard,
   onCameraScan,
   onNFCScan,
-  onSignWithLocalKey
+  onSignWithLocalKey,
+  onSignWithSeedQR
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
@@ -138,11 +140,20 @@ function SSSignatureDropdown({
       {isExpanded && (
         <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
           {/* Check if this cosigner has a seed - show Sign with Local Key button at the top */}
-          {hasLocalSeed && (
+          {hasLocalSeed ? (
             <SSButton
               label={t('transaction.preview.signWithLocalKey')}
               onPress={() => {
                 onSignWithLocalKey()
+              }}
+              variant="secondary"
+              style={{ marginTop: 16 }}
+            />
+          ) : (
+            <SSButton
+              label={t('transaction.preview.SignWithSeedQR')}
+              onPress={() => {
+                onSignWithSeedQR()
               }}
               variant="secondary"
               style={{ marginTop: 16 }}

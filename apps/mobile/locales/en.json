@@ -1145,6 +1145,7 @@
     "output.count": "Number of outputs",
     "output.title": "Output",
     "preview.PSBT": "PSBT",
+    "preview.SignWithSeedQR": "Sign with Seed QR",
     "preview.checkAllSignatures": "CHECK ALL SIGNATURES",
     "preview.cosignerActions": "Cosigner Actions",
     "preview.exportForExternalSigning": "Export for External Signing",
