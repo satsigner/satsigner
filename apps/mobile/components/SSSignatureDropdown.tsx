@@ -37,6 +37,7 @@ type SSSignatureDropdownProps = {
 function SSSignatureDropdown({
   index,
   totalKeys,
+  keyDetails,
   messageId,
   txBuilderResult,
   serializedPsbt,
@@ -125,12 +126,29 @@ function SSSignatureDropdown({
               {account.keys[index]?.name && `${account.keys[index].name}`}
             </SSText>
           </SSHStack>
+          <SSVStack gap="none" style={{ alignItems: 'flex-end' }}>
+            <SSText color={keyDetails?.fingerprint ? 'white' : 'muted'}>
+              {keyDetails?.fingerprint || t('account.fingerprint')}
+            </SSText>
+          </SSVStack>
         </SSHStack>
       </TouchableOpacity>
 
       {/* Expanded Content */}
       {isExpanded && (
         <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="sm">
+          {/* Check if this cosigner has a seed - show Sign with Local Key button at the top */}
+          {hasLocalSeed && (
+            <SSButton
+              label={t('transaction.preview.signWithLocalKey')}
+              onPress={() => {
+                onSignWithLocalKey()
+              }}
+              variant="secondary"
+              style={{ marginTop: 16 }}
+            />
+          )}
+
           {/* Export for external signing */}
           <SSText
             center
@@ -291,18 +309,6 @@ function SSSignatureDropdown({
               toast.info('NIP-17 GROUP import coming soon')
             }}
           />
-
-          {/* Check if this cosigner has a seed - show Sign with Local Key button at the end */}
-          {hasLocalSeed && (
-            <SSButton
-              label={t('transaction.preview.signWithLocalKey')}
-              onPress={() => {
-                onSignWithLocalKey()
-              }}
-              variant="outline"
-              style={{ marginTop: 16 }}
-            />
-          )}
         </SSVStack>
       )}
     </View>
