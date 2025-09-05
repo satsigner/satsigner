@@ -220,6 +220,7 @@ export default function AccountSettings() {
           headerRight: () => null
         }}
       />
+
       <SSVStack gap="lg" style={styles.mainLayout}>
         <SSText center uppercase color="muted">
           {t('account.settings.title')}
@@ -256,6 +257,55 @@ export default function AccountSettings() {
             )}
           </SSHStack>
         </SSVStack>
+
+        {account.policyType === 'multisig' && (
+          <>
+            <SSVStack gap="md" style={styles.multiSigContainer}>
+              {/* N of M Component */}
+              <SSText
+                weight="light"
+                style={{
+                  alignSelf: 'center',
+                  fontSize: 55,
+                  textTransform: 'lowercase'
+                }}
+              >
+                {account.keysRequired || 1} {t('common.of')}{' '}
+                {account.keyCount || 1}
+              </SSText>
+
+              <SSSignatureRequiredDisplay
+                requiredNumber={account.keysRequired || 1}
+                totalNumber={account.keyCount || 1}
+                collectedSignatures={[]}
+              />
+              <SSText center uppercase>
+                {t('account.accountKeys')}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
+              {decryptedKeys.length > 0 ? (
+                decryptedKeys.map((key, index) => (
+                  <SSMultisigKeyControl
+                    key={index}
+                    isBlackBackground={index % 2 === 1}
+                    index={index}
+                    keyCount={account.keyCount}
+                    keyDetails={key}
+                    isSettingsMode
+                    accountId={currentAccountId}
+                  />
+                ))
+              ) : (
+                // Show loading state while decrypting
+                <SSText center color="muted">
+                  Loading keys...
+                </SSText>
+              )}
+            </SSVStack>
+          </>
+        )}
+
         <SSVStack>
           <SSHStack>
             <SSButton
@@ -278,6 +328,7 @@ export default function AccountSettings() {
             />
           </SSHStack>
         </SSVStack>
+
         <SSVStack>
           {(account.keys[0].creationType === 'generateMnemonic' ||
             account.keys[0].creationType === 'importMnemonic') &&
@@ -347,52 +398,7 @@ export default function AccountSettings() {
             </SSFormLayout.Item>
           )}
         </SSFormLayout>
-        {account.policyType === 'multisig' && (
-          <>
-            <SSVStack gap="md" style={styles.multiSigContainer}>
-              {/* N of M Component */}
-              <SSText
-                style={{
-                  alignSelf: 'center',
-                  fontSize: 55,
-                  textTransform: 'lowercase'
-                }}
-              >
-                {account.keysRequired || 1} {t('common.of')}{' '}
-                {account.keyCount || 1}
-              </SSText>
 
-              <SSSignatureRequiredDisplay
-                requiredNumber={account.keysRequired || 1}
-                totalNumber={account.keyCount || 1}
-                collectedSignatures={[]}
-              />
-              <SSText center uppercase>
-                {t('account.accountKeys')}
-              </SSText>
-            </SSVStack>
-            <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
-              {decryptedKeys.length > 0 ? (
-                decryptedKeys.map((key, index) => (
-                  <SSMultisigKeyControl
-                    key={index}
-                    isBlackBackground={index % 2 === 1}
-                    index={index}
-                    keyCount={account.keyCount}
-                    keyDetails={key}
-                    isSettingsMode
-                    accountId={currentAccountId}
-                  />
-                ))
-              ) : (
-                // Show loading state while decrypting
-                <SSText center color="muted">
-                  Loading keys...
-                </SSText>
-              )}
-            </SSVStack>
-          </>
-        )}
         <SSVStack style={styles.actionsContainer}>
           <SSButton label={t('account.duplicate.title')} />
           <SSButton
@@ -561,7 +567,7 @@ export default function AccountSettings() {
                   />
                 </SSClipboardCopy>
                 <SSButton
-                  label={t('account.seedqr.title')}
+                  label={t('account.seed.seedqr.title')}
                   style={styles.copyButton}
                   variant="outline"
                   onPress={() => {
