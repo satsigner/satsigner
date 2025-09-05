@@ -31,6 +31,7 @@ import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { extractAccountFingerprint } from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 
 // Function to get user-friendly display names for script versions
 function getScriptVersionDisplayName(scriptVersion: string): string {
@@ -349,11 +350,22 @@ export default function AccountSettings() {
         {account.policyType === 'multisig' && (
           <>
             <SSVStack gap="md" style={styles.multiSigContainer}>
-              <SSMultisigCountSelector
-                maxCount={12}
-                requiredNumber={account.keysRequired!}
-                totalNumber={account.keyCount!}
-                viewOnly
+              {/* N of M Component */}
+              <SSText
+                style={{
+                  alignSelf: 'center',
+                  fontSize: 55,
+                  textTransform: 'lowercase'
+                }}
+              >
+                {account.keysRequired || 1} {t('common.of')}{' '}
+                {account.keyCount || 1}
+              </SSText>
+
+              <SSSignatureRequiredDisplay
+                requiredNumber={account.keysRequired || 1}
+                totalNumber={account.keyCount || 1}
+                collectedSignatures={[]}
               />
               <SSText center uppercase>
                 {t('account.accountKeys')}
