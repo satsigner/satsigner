@@ -355,7 +355,9 @@ export default function AccountSettings() {
                 totalNumber={account.keyCount!}
                 viewOnly
               />
-              <SSText center>{t('account.addOrGenerateKeys')}</SSText>
+              <SSText center uppercase>
+                {t('account.accountKeys')}
+              </SSText>
             </SSVStack>
             <SSVStack gap="none" style={styles.multiSigKeyControlCOntainer}>
               {decryptedKeys.length > 0 ? (
