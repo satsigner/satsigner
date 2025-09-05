@@ -387,6 +387,29 @@ function SSMultisigKeyControl({
     }
   }
 
+  function handleViewSeedWords() {
+    if (accountId) {
+      // In settings mode, use the existing account
+      router.navigate(
+        `/account/${accountId}/settings/export/seedWords?keyIndex=${index}`
+      )
+    } else {
+      // In creation mode, use account builder store data
+      const accountData = getAccountData()
+      const key = accountData.keys[index]
+
+      if (!key) {
+        toast.error('Key not found')
+        return
+      }
+
+      // Navigate to a temporary export page that works with account builder data
+      router.navigate(
+        `/account/add/multiSig/export/seedWords?keyIndex=${index}`
+      )
+    }
+  }
+
   // Check if the key is completed based on its data
   const isKeyCompleted =
     keyDetails &&
@@ -531,6 +554,13 @@ function SSMultisigKeyControl({
                       borderWidth: 1,
                       borderColor: 'white'
                     }}
+                  />
+                )}
+                {isSettingsMode && hasSeed && (
+                  <SSButton
+                    label={t('account.seed.viewSeedWords')}
+                    onPress={handleViewSeedWords}
+                    variant="secondary"
                   />
                 )}
                 <SSButton

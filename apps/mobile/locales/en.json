@@ -203,6 +203,7 @@
       "dropSeedError": "Failed to drop seed",
       "dropSeedSuccess": "Seed dropped successfully",
       "droppedSeed": "Dropped Seed (%{name})",
+      "enterPinToView": "Enter PIN to view seed words",
       "external": "External Descriptor",
       "formatButtons": {
         "tpub": "TPUB",
@@ -213,16 +214,25 @@
         "zpub": "ZPUB"
       },
       "importedSeed": "Imported Seed (%{name})",
+      "keepItSecret": "Keep it secret",
       "newSeed": "New Seed (%{name})",
       "noLabel": "No Label",
+      "noSeedAvailable": "No seed available for this key",
       "publicKey": "Public Key",
+
+      "seedqr": {
+        "standardDescription": "Standard QR code for seed words",
+        "title": "Seed QR"
+      },
       "shareDescriptor": "Share Descriptor",
       "shareTpub": "Share TPub",
       "shareUpub": "Share TPub/UPub",
       "shareVpub": "Share TPub/VPub",
       "shareXpub": "Share XPub",
       "shareYpub": "Share XPub/YPub",
-      "shareZpub": "Share XPub/ZPub"
+      "shareZpub": "Share XPub/ZPub",
+      "unableToDecrypt": "Unable to decrypt seed",
+      "viewSeedWords": "View Seed Words"
     },
     "selectKeySource": "Select Key Source",
     "settings.title": "Account Settings and Tools",
