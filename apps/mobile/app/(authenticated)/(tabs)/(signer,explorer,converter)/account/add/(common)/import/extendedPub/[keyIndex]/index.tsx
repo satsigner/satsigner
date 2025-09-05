@@ -713,14 +713,6 @@ export default function ImportExtendedPub() {
                   </SSText>
                 )}
               </SSVStack>
-              <SSVStack gap="xxs">
-                <SSText center>{t('common.fingerprint')}</SSText>
-                <SSTextInput
-                  value={localFingerprint}
-                  onChangeText={updateMasterFingerprint}
-                  style={validMasterFingerprint ? styles.valid : styles.invalid}
-                />
-              </SSVStack>
             </SSVStack>
             <SSVStack>
               <SSButton
@@ -796,6 +788,14 @@ export default function ImportExtendedPub() {
             )}
           </SSVStack>
           <SSVStack>
+            <SSVStack gap="xxs">
+              <SSText center>{t('common.fingerprint')}</SSText>
+              <SSTextInput
+                value={localFingerprint}
+                onChangeText={updateMasterFingerprint}
+                style={validMasterFingerprint ? styles.valid : styles.invalid}
+              />
+            </SSVStack>
             <SSButton
               label={t('common.confirm')}
               variant="secondary"

@@ -1323,16 +1323,6 @@ export default function WatchOnly() {
                         onPress={() => setScriptVersionModalVisible(true)}
                       />
                     </SSVStack>
-                    <SSVStack gap="xxs">
-                      <SSText center>{t('watchonly.fingerprint.label')}</SSText>
-                      <SSTextInput
-                        value={localFingerprint}
-                        onChangeText={updateMasterFingerprint}
-                        style={
-                          validMasterFingerprint ? styles.valid : styles.invalid
-                        }
-                      />
-                    </SSVStack>
                   </>
                 )}
                 {selectedOption === 'importDescriptor' && (
@@ -1406,6 +1396,18 @@ export default function WatchOnly() {
               )}
             </SSVStack>
             <SSVStack gap="sm">
+              {selectedOption === 'importExtendedPub' && (
+                <SSVStack gap="xxs">
+                  <SSText center>{t('watchonly.fingerprint.label')}</SSText>
+                  <SSTextInput
+                    value={localFingerprint}
+                    onChangeText={updateMasterFingerprint}
+                    style={
+                      validMasterFingerprint ? styles.valid : styles.invalid
+                    }
+                  />
+                </SSVStack>
+              )}
               <SSButton
                 label={t('common.confirm')}
                 variant="secondary"
