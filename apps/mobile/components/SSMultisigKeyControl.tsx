@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
+import Svg, { Ellipse } from 'react-native-svg'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -28,6 +29,29 @@ import {
   type Secret
 } from '@/types/models/Account'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
+
+// Custom green icon with different color for keys with no secret
+function SSIconGreenNoSecret({
+  width,
+  height
+}: {
+  width: number
+  height: number
+}) {
+  return (
+    <Svg width={width} height={height} viewBox="0 0 20 21" fill="none">
+      <Ellipse cx="10" cy="10.5078" rx="10" ry="10" fill="#4F4F4F" />
+      <Ellipse
+        cx="10"
+        cy="10.3842"
+        rx="5.73313"
+        ry="5.73313"
+        transform="rotate(45 10 10.3842)"
+        fill="#cccccc"
+      />
+    </Svg>
+  )
+}
 
 type SSMultisigKeyControlProps = {
   isBlackBackground: boolean
@@ -429,6 +453,14 @@ function SSMultisigKeyControl({
       keyDetails.secret.mnemonic
   )
 
+  // Check if the key is completed but has no mnemonic (extended pub key or descriptor only)
+  const hasNoSecret = Boolean(
+    isKeyCompleted &&
+      keyDetails &&
+      typeof keyDetails.secret === 'object' &&
+      !keyDetails.secret.mnemonic
+  )
+
   function handleKeyNameChange(newName: string) {
     setLocalKeyName(newName)
     setHasUnsavedChanges(true)
@@ -490,7 +522,11 @@ function SSMultisigKeyControl({
         <SSHStack justifyBetween>
           <SSHStack style={{ alignItems: 'center' }} gap="sm">
             {keyDetails ? (
-              <SSIconGreen width={24} height={24} />
+              hasNoSecret ? (
+                <SSIconGreenNoSecret width={24} height={24} />
+              ) : (
+                <SSIconGreen width={24} height={24} />
+              )
             ) : (
               <SSIconAdd width={24} height={24} />
             )}
@@ -545,6 +581,13 @@ function SSMultisigKeyControl({
           <SSVStack gap="sm">
             {isKeyCompleted ? (
               <>
+                {isSettingsMode && hasSeed && (
+                  <SSButton
+                    label={t('account.seed.viewSeedWords')}
+                    onPress={handleViewSeedWords}
+                    variant="secondary"
+                  />
+                )}
                 {hasSeed && (
                   <SSButton
                     label={getDropSeedLabel()}
@@ -554,13 +597,6 @@ function SSMultisigKeyControl({
                       borderWidth: 1,
                       borderColor: 'white'
                     }}
-                  />
-                )}
-                {isSettingsMode && hasSeed && (
-                  <SSButton
-                    label={t('account.seed.viewSeedWords')}
-                    onPress={handleViewSeedWords}
-                    variant="secondary"
                   />
                 )}
                 <SSButton
