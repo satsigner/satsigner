@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { Buffer } from 'buffer'
 
 import { SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
@@ -242,7 +243,28 @@ function SSSignatureDropdown({
   useEffect(() => {
     if (signedPsbt && signedPsbt.trim().length > 0) {
       try {
-        const isValid = validateSignedPSBT(signedPsbt, account)
+        // Convert hex PSBT to base64 if needed
+        let psbtToValidate = signedPsbt
+        if (signedPsbt.toLowerCase().startsWith('70736274ff')) {
+          // This is a hex PSBT, convert to base64
+          psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
+        } else if (signedPsbt.startsWith('cHNidP')) {
+          // This is already base64 PSBT, use as-is
+          psbtToValidate = signedPsbt
+        } else {
+          // Try to detect if it's a valid hex string
+          if (/^[a-fA-F0-9]+$/.test(signedPsbt) && signedPsbt.length > 100) {
+            // Likely a hex PSBT, try to convert
+            try {
+              psbtToValidate = Buffer.from(signedPsbt, 'hex').toString('base64')
+            } catch (_error) {
+              // If conversion fails, use original
+              psbtToValidate = signedPsbt
+            }
+          }
+        }
+
+        const isValid = validateSignedPSBT(psbtToValidate, account)
         setIsPsbtValid(isValid)
       } catch (_error) {
         setIsPsbtValid(false)
