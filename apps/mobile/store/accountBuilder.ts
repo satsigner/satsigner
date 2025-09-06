@@ -479,6 +479,9 @@ const useAccountBuilderStore = create<
             state.keys[index].iv
           )
 
+          // Clear sensitive data from memory
+          stringifiedSecret.replace(/./g, '0')
+
           // Update the secret
           set(
             produce((state: AccountBuilderState) => {

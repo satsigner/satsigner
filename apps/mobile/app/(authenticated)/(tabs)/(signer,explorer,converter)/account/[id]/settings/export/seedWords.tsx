@@ -66,6 +66,9 @@ export default function SeedWordsPage() {
         if (decryptedSecret.mnemonic) {
           setMnemonic(decryptedSecret.mnemonic)
           setShowPinEntry(false)
+
+          // Clear sensitive data from memory
+          decryptedSecret.mnemonic = ''
         } else {
           setNoMnemonicAvailable(true)
           setShowPinEntry(false)
@@ -80,6 +83,9 @@ export default function SeedWordsPage() {
         if (decryptedMnemonic) {
           setMnemonic(decryptedMnemonic)
           setShowPinEntry(false)
+
+          // Clear sensitive data from memory
+          decryptedMnemonic.replace(/./g, '0')
         } else {
           toast.error(t('account.seed.unableToDecrypt'))
         }

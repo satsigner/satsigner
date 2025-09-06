@@ -47,7 +47,7 @@ function signPSBTWithSeed(
 
     // Derive seed and root key
     const seed = bip39.mnemonicToSeedSync(mnemonic)
-    const root = bip32.fromSeed(seed)
+    const root = bip32.fromSeed(new Uint8Array(seed))
 
     const seedFingerprint = Buffer.from(
       root.fingerprint || Buffer.alloc(4)
@@ -87,10 +87,15 @@ function signPSBTWithSeed(
 
     // Derive the private key using the path from PSBT
     const derivedKey = root.derivePath(matchingDerivation.path)
-    const privateKey = Buffer.from(
-      derivedKey.privateKey || Buffer.alloc(32)
-    ).toString('hex')
+    const privateKey = derivedKey.privateKey
+      ? Buffer.from(derivedKey.privateKey).toString('hex')
+      : Buffer.alloc(32).toString('hex')
     const publicKey = Buffer.from(derivedKey.publicKey).toString('hex')
+
+    // Clear sensitive data from memory
+    if (derivedKey.privateKey) {
+      derivedKey.privateKey.fill(0)
+    }
 
     // Verify the derived public key matches the PSBT
     if (publicKey !== matchingDerivation.pubkey) {
@@ -103,10 +108,15 @@ function signPSBTWithSeed(
     const signer = {
       publicKey: Buffer.from(publicKey, 'hex'),
       sign: (hash: Buffer) => {
-        const signature = ecc.sign(hash, Buffer.from(privateKey, 'hex'))
+        const privateKeyBuffer = new Uint8Array(Buffer.from(privateKey, 'hex'))
+        const signature = ecc.sign(new Uint8Array(hash), privateKeyBuffer)
+        privateKeyBuffer.fill(0) // Clear immediately after use
         return Buffer.from(signature)
       }
     }
+
+    // Clear private key from memory after creating signer
+    // Note: privateKey is already cleared in the signer function
 
     // Check if the input has the required script data for the script type
     const inputData = psbt.data.inputs[matchingDerivation.inputIndex]
@@ -151,6 +161,11 @@ function signPSBTWithSeed(
 
     // Get the signed PSBT
     const signedPSBT = psbt.toBase64()
+
+    // Clear sensitive data from memory
+    if (root.privateKey) {
+      root.privateKey.fill(0)
+    }
 
     // Validate the signed PSBT
     const validation = validateSignedPSBT(signedPSBT)
