@@ -57,6 +57,7 @@ import {
 import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
 import { signPSBTWithSeed } from '@/utils/psbtSigner'
+import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
@@ -861,7 +862,10 @@ function PreviewMessage() {
     animationSpeed
   ])
 
-  const handleQRCodeScanned = (data: string | undefined, index?: number) => {
+  const handleQRCodeScanned = async (
+    data: string | undefined,
+    index?: number
+  ) => {
     if (!data) {
       toast.error('Failed to scan QR code')
       return
@@ -900,6 +904,17 @@ function PreviewMessage() {
             finalContent = decoded
           } else {
             toast.error('Failed to decode UR QR code')
+            return
+          }
+        }
+        // Check if it's a seed QR code (for dropped seeds)
+        else if (index !== undefined) {
+          const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
+          if (decodedMnemonic) {
+            // Sign the PSBT with the scanned seed
+            await handleSignWithSeedQR(index, decodedMnemonic)
+            setCameraModalVisible(false)
+            resetScanProgress()
             return
           }
         }
@@ -1226,6 +1241,12 @@ function PreviewMessage() {
     handleNFCScan(index)
   }
 
+  // Handle seed QR scanning for dropped seeds
+  const handleSeedQRScanned = async (index: number) => {
+    setCameraModalVisible(true)
+    setCurrentCosignerIndex(index)
+  }
+
   // Handle signing with local key for a specific cosigner
   const handleSignWithLocalKey = async (index: number) => {
     try {
@@ -1278,6 +1299,56 @@ function PreviewMessage() {
     } catch (error) {
       const errorMessage = (error as Error).message
       toast.error(`Error signing with local key: ${errorMessage}`)
+    }
+  }
+
+  // Handle signing with scanned seed QR for dropped seeds
+  const handleSignWithSeedQR = async (index: number, mnemonic: string) => {
+    try {
+      // Get the cosigner's key details
+      const cosignerKey = account?.keys?.[index]
+      if (!cosignerKey) {
+        toast.error('No key found for this cosigner')
+        return
+      }
+
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return
+      }
+
+      // Get the script type from the cosigner's key
+      const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(
+        scriptVersion
+      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+
+      // Sign the PSBT with the scanned seed
+      const signingResult = signPSBTWithSeed(
+        originalPsbtBase64,
+        mnemonic,
+        scriptType
+      )
+
+      if (signingResult.success && signingResult.signedPSBT) {
+        // Update the signed PSBT for this cosigner
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, signingResult.signedPSBT!)
+          return newMap
+        })
+
+        toast.success(
+          `PSBT signed successfully with scanned seed for cosigner ${index + 1}`
+        )
+      } else {
+        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      toast.error(`Error signing with scanned seed: ${errorMessage}`)
     }
   }
 
@@ -1740,10 +1811,7 @@ function PreviewMessage() {
                           onSignWithLocalKey={() =>
                             handleSignWithLocalKey(index)
                           }
-                          onSignWithSeedQR={() => {
-                            // Seed QR functionality removed
-                            toast.info('Seed QR signing not available')
-                          }}
+                          onSignWithSeedQR={() => handleSeedQRScanned(index)}
                         />
                       ))}
                     </SSVStack>
@@ -2166,7 +2234,17 @@ function PreviewMessage() {
             <SSText color="muted" uppercase>
               {scanProgress.type
                 ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-                : t('camera.scanQRCode')}
+                : currentCosignerIndex !== null &&
+                    !(
+                      decryptedKeys[currentCosignerIndex]?.secret &&
+                      typeof decryptedKeys[currentCosignerIndex]?.secret ===
+                        'object' &&
+                      'mnemonic' in
+                        decryptedKeys[currentCosignerIndex]?.secret &&
+                      decryptedKeys[currentCosignerIndex]?.secret?.mnemonic
+                    )
+                  ? 'Scan Seed QR Code'
+                  : t('camera.scanQRCode')}
             </SSText>
 
             <CameraView
