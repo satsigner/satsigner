@@ -211,6 +211,24 @@ async function getWalletData(
         )
       }
 
+      // Check for duplicate fingerprints (same seed used for multiple keys)
+      const fingerprints = validKeyData.map((kd) => kd.fingerprint)
+      const uniqueFingerprints = [...new Set(fingerprints)]
+      if (uniqueFingerprints.length !== fingerprints.length) {
+        throw new Error(
+          'Multisig wallets require unique keys. Using the same seed for multiple keys is not allowed. Each key must be derived from a different seed.'
+        )
+      }
+
+      // Check for duplicate extended public keys
+      const extendedPublicKeys = validKeyData.map((kd) => kd.extendedPublicKey)
+      const uniqueExtendedPublicKeys = [...new Set(extendedPublicKeys)]
+      if (uniqueExtendedPublicKeys.length !== extendedPublicKeys.length) {
+        throw new Error(
+          'Multisig wallets require unique keys. Using the same extended public key for multiple keys is not allowed.'
+        )
+      }
+
       // Get the policy-based derivation path according to the account type
       // Use the original scriptVersion for derivation path, not the mapped multisig script type
       const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(

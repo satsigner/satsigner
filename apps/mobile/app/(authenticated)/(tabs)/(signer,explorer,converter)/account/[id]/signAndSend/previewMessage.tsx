@@ -26,6 +26,7 @@ import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import { PIN_KEY } from '@/config/auth'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -59,6 +60,7 @@ import { parseHexToBytes } from '@/utils/parse'
 import { signPSBTWithSeed } from '@/utils/psbtSigner'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
+import { type MnemonicCount } from '@/types/models/Account'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -115,6 +117,14 @@ function PreviewMessage() {
   const [currentCosignerIndex, setCurrentCosignerIndex] = useState<
     number | null
   >(null)
+
+  // Seed words modal state
+  const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
+  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
+  const [selectedWordCount, setSelectedWordCount] = useState<MnemonicCount>(24)
+  const [currentMnemonic, setCurrentMnemonic] = useState('')
+  const [currentFingerprint, setCurrentFingerprint] = useState('')
+
   const [permission, requestPermission] = useCameraPermissions()
 
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
@@ -1247,6 +1257,12 @@ function PreviewMessage() {
     setCurrentCosignerIndex(index)
   }
 
+  // Handle seed words modal for dropped seeds
+  const handleSeedWordsScanned = async (index: number) => {
+    setCurrentCosignerIndex(index)
+    setWordCountModalVisible(true)
+  }
+
   // Handle signing with local key for a specific cosigner
   const handleSignWithLocalKey = async (index: number) => {
     try {
@@ -1350,6 +1366,40 @@ function PreviewMessage() {
       const errorMessage = (error as Error).message
       toast.error(`Error signing with scanned seed: ${errorMessage}`)
     }
+  }
+
+  // Handle word count selection
+  const handleWordCountSelect = (wordCount: MnemonicCount) => {
+    setSelectedWordCount(wordCount)
+    setWordCountModalVisible(false)
+    setSeedWordsModalVisible(true)
+  }
+
+  // Handle mnemonic validation from the component
+  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+    setCurrentMnemonic(mnemonic)
+    setCurrentFingerprint(fingerprint)
+  }
+
+  const handleMnemonicInvalid = () => {
+    setCurrentMnemonic('')
+    setCurrentFingerprint('')
+  }
+
+  // Handle seed words form submission
+  const handleSeedWordsSubmit = async () => {
+    if (!currentMnemonic || currentCosignerIndex === null) {
+      toast.error('Please enter a valid mnemonic')
+      return
+    }
+
+    await handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
+
+    // Clear the form and close modals
+    setSeedWordsModalVisible(false)
+    setCurrentMnemonic('')
+    setCurrentFingerprint('')
+    setCurrentCosignerIndex(null)
   }
 
   // Wrapper functions for watch-only section (no parameters needed)
@@ -1812,6 +1862,9 @@ function PreviewMessage() {
                             handleSignWithLocalKey(index)
                           }
                           onSignWithSeedQR={() => handleSeedQRScanned(index)}
+                          onSignWithSeedWords={() =>
+                            handleSeedWordsScanned(index)
+                          }
                         />
                       ))}
                     </SSVStack>
@@ -2428,6 +2481,87 @@ function PreviewMessage() {
             >
               <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
             </Animated.View>
+          </SSVStack>
+        </SSModal>
+
+        {/* Word Count Selection Modal */}
+        <SSModal
+          visible={wordCountModalVisible}
+          fullOpacity
+          onClose={() => {
+            setWordCountModalVisible(false)
+            setCurrentCosignerIndex(null)
+          }}
+        >
+          <SSVStack gap="lg">
+            <SSText center uppercase>
+              Select Seed Word Count
+            </SSText>
+            <SSText center color="muted" size="sm">
+              Choose the number of words in your mnemonic seed
+            </SSText>
+
+            <SSVStack gap="sm">
+              {[12, 15, 18, 21, 24].map((wordCount) => (
+                <SSButton
+                  key={wordCount}
+                  label={`${wordCount} words`}
+                  variant={
+                    selectedWordCount === wordCount ? 'outline' : 'ghost'
+                  }
+                  onPress={() =>
+                    setSelectedWordCount(wordCount as MnemonicCount)
+                  }
+                />
+              ))}
+            </SSVStack>
+          </SSVStack>
+          <SSHStack gap="sm">
+            <SSButton
+              label="Continue"
+              variant="secondary"
+              onPress={() => handleWordCountSelect(selectedWordCount)}
+            />
+          </SSHStack>
+        </SSModal>
+
+        {/* Seed Words Input Modal */}
+        <SSModal
+          visible={seedWordsModalVisible}
+          fullOpacity
+          onClose={() => {
+            setSeedWordsModalVisible(false)
+            setCurrentMnemonic('')
+            setCurrentFingerprint('')
+            setCurrentCosignerIndex(null)
+          }}
+        >
+          <SSVStack gap="lg" style={{ width: '100%', maxWidth: 400 }}>
+            <SSText center uppercase>
+              Enter Seed Words
+            </SSText>
+            <SSText center color="muted" size="sm">
+              Enter your {selectedWordCount}-word mnemonic seed phrase
+            </SSText>
+
+            <SSSeedWordsInput
+              wordCount={selectedWordCount}
+              network={network as Network}
+              onMnemonicValid={handleMnemonicValid}
+              onMnemonicInvalid={handleMnemonicInvalid}
+              showPassphrase={true}
+              showChecksum={true}
+              showFingerprint={true}
+              showPasteButton={true}
+              showActionButton={true}
+              actionButtonLabel="Sign with Seed Words"
+              actionButtonVariant="secondary"
+              onActionButtonPress={handleSeedWordsSubmit}
+              actionButtonDisabled={!currentMnemonic}
+              actionButtonLoading={false}
+              showCancelButton={false}
+              autoCheckClipboard={true}
+            />
           </SSVStack>
         </SSModal>
       </SSMainLayout>

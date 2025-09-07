@@ -39,6 +39,7 @@ type SSSignatureDropdownProps = {
   onNFCScan: (index: number) => void
   onSignWithLocalKey: () => void
   onSignWithSeedQR: () => void
+  onSignWithSeedWords: () => void
 }
 
 function SSSignatureDropdown({
@@ -60,7 +61,8 @@ function SSSignatureDropdown({
   onCameraScan,
   onNFCScan,
   onSignWithLocalKey,
-  onSignWithSeedQR
+  onSignWithSeedQR,
+  onSignWithSeedWords
 }: SSSignatureDropdownProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isPsbtValid, setIsPsbtValid] = useState<boolean | null>(null)
@@ -349,14 +351,22 @@ function SSSignatureDropdown({
               style={{ marginTop: 16 }}
             />
           ) : (
-            <SSButton
-              label={t('transaction.preview.SignWithSeedQR')}
-              onPress={() => {
-                onSignWithSeedQR()
-              }}
-              variant="secondary"
-              style={{ marginTop: 16 }}
-            />
+            <SSVStack gap="sm" style={{ marginTop: 16 }}>
+              <SSButton
+                label={t('transaction.preview.SignWithSeedQR')}
+                onPress={() => {
+                  onSignWithSeedQR()
+                }}
+                variant="secondary"
+              />
+              <SSButton
+                label="Sign with Seed Words"
+                onPress={() => {
+                  onSignWithSeedWords()
+                }}
+                variant="secondary"
+              />
+            </SSVStack>
           )}
 
           {/* Export for external signing */}

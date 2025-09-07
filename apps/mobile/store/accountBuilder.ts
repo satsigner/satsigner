@@ -107,6 +107,9 @@ type AccountBuilderAction = {
   dropSeedFromKey: (
     index: Key['index']
   ) => Promise<{ success: boolean; message: string }>
+  resetKey: (
+    index: Key['index']
+  ) => Promise<{ success: boolean; message: string }>
 }
 
 // =============================================================================
@@ -496,6 +499,28 @@ const useAccountBuilderStore = create<
       }
     }
     return { success: false, message: 'Key not found or invalid' }
+  },
+  resetKey: async (index) => {
+    const state = get()
+    if (state.keys[index]) {
+      // Reset the key to its initial state
+      set(
+        produce((state: AccountBuilderState) => {
+          state.keys[index] = {
+            index,
+            name: '',
+            creationType: undefined as any,
+            secret: undefined as any,
+            iv: undefined as any,
+            fingerprint: undefined as any,
+            scriptVersion: undefined as any,
+            mnemonicWordCount: undefined as any
+          }
+        })
+      )
+      return { success: true, message: 'Key reset successfully' }
+    }
+    return { success: false, message: 'Key not found' }
   }
 }))
 

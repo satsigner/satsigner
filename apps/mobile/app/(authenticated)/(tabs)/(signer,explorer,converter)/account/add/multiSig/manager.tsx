@@ -98,7 +98,10 @@ export default function MultiSigManager() {
           <SSText center>{t('account.addOrGenerateKeys')}</SSText>
         </SSVStack>
         <ScrollView>
-          <SSVStack gap="none">
+          <SSVStack
+            gap="none"
+            style={{ paddingHorizontal: 16, paddingTop: 16 }}
+          >
             {Array.from({ length: keyCount }, (_, i) => i).map((index) => {
               return (
                 <SSMultisigKeyControl

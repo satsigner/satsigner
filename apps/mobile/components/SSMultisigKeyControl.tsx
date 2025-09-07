@@ -97,6 +97,7 @@ function SSMultisigKeyControl({
   const [extractedPublicKey, setExtractedPublicKey] = useState('')
   const [seedDropped, setSeedDropped] = useState(false)
   const [dropSeedModalVisible, setDropSeedModalVisible] = useState(false)
+  const [resetKeyModalVisible, setResetKeyModalVisible] = useState(false)
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [localMnemonicWordCount, setLocalMnemonicWordCount] = useState(24)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -315,7 +316,7 @@ function SSMultisigKeyControl({
   }
 
   function handleCompletedKeyAction(
-    action: 'dropSeed' | 'shareXpub' | 'shareDescriptor'
+    action: 'dropSeed' | 'shareXpub' | 'shareDescriptor' | 'resetKey'
   ) {
     // Handle actions for completed keys
     switch (action) {
@@ -327,6 +328,9 @@ function SSMultisigKeyControl({
         break
       case 'shareDescriptor':
         handleShareDescriptor()
+        break
+      case 'resetKey':
+        setResetKeyModalVisible(true)
         break
     }
   }
@@ -362,6 +366,44 @@ function SSMultisigKeyControl({
       }
     } catch (_error) {
       toast.error(t('account.seed.dropSeedError'))
+    }
+  }
+
+  async function handleResetKey() {
+    if (!keyDetails) return
+
+    try {
+      if (isSettingsMode && accountId) {
+        // Handle existing account (settings mode) - reset the key
+        const { resetKey } = useAccountsStore.getState()
+        const result = await resetKey(accountId, index)
+
+        if (result.success) {
+          // Reset local state
+          setLocalKeyName('')
+          setExtractedPublicKey('')
+          setSeedDropped(false)
+          toast.success(result.message)
+        } else {
+          toast.error(result.message)
+        }
+      } else {
+        // Handle account creation mode
+        const { resetKey } = useAccountBuilderStore.getState()
+        const result = await resetKey(index)
+
+        if (result.success) {
+          // Reset local state
+          setLocalKeyName('')
+          setExtractedPublicKey('')
+          setSeedDropped(false)
+          toast.success(result.message)
+        } else {
+          toast.error(result.message)
+        }
+      }
+    } catch (_error) {
+      toast.error('Failed to reset key')
     }
   }
 
@@ -557,7 +599,7 @@ function SSMultisigKeyControl({
       </TouchableOpacity>
 
       {isExpanded && (
-        <SSVStack style={{ paddingHorizontal: 8, paddingBottom: 8 }} gap="lg">
+        <SSVStack style={{ paddingBottom: 24, paddingTop: 16 }} gap="lg">
           {(!isKeyCompleted || isSettingsMode) && (
             <SSFormLayout>
               <SSFormLayout.Item>
@@ -581,7 +623,7 @@ function SSMultisigKeyControl({
           <SSVStack gap="sm">
             {isKeyCompleted ? (
               <>
-                {isSettingsMode && hasSeed && (
+                {hasSeed && (
                   <SSButton
                     label={t('account.seed.viewSeedWords')}
                     onPress={handleViewSeedWords}
@@ -606,6 +648,16 @@ function SSMultisigKeyControl({
                 <SSButton
                   label={t('account.seed.shareDescriptor')}
                   onPress={() => handleCompletedKeyAction('shareDescriptor')}
+                />
+                <SSButton
+                  label="Reset Key"
+                  onPress={() => handleCompletedKeyAction('resetKey')}
+                  variant="ghost"
+                  style={{
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderColor: '#666666'
+                  }}
                 />
               </>
             ) : (
@@ -705,6 +757,84 @@ function SSMultisigKeyControl({
               onPress={() => {
                 setDropSeedModalVisible(false)
                 handleDropSeed()
+              }}
+              style={{ flex: 1 }}
+            />
+          </SSHStack>
+        </SSVStack>
+      </SSModal>
+
+      {/* Reset Key Confirmation Modal */}
+      <SSModal
+        visible={resetKeyModalVisible}
+        onClose={() => setResetKeyModalVisible(false)}
+        label=""
+      >
+        <SSVStack
+          itemsCenter
+          gap="lg"
+          style={{
+            paddingVertical: 20,
+            paddingHorizontal: 16,
+            backgroundColor: Colors.white,
+            borderRadius: 8,
+            marginHorizontal: 40,
+            maxWidth: 300,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5
+          }}
+        >
+          {/* Title */}
+          <SSText
+            size="lg"
+            weight="bold"
+            center
+            style={{ color: Colors.black, marginBottom: 4 }}
+          >
+            Reset Key
+          </SSText>
+
+          {/* Message */}
+          <SSText
+            color="muted"
+            center
+            size="md"
+            style={{
+              maxWidth: 260,
+              lineHeight: 20,
+              marginBottom: 8
+            }}
+          >
+            Are you sure you want to reset this key? This will clear all key
+            data including the seed, name, and settings. This action cannot be
+            undone.
+          </SSText>
+
+          {/* Action Buttons */}
+          <SSHStack gap="sm" style={{ width: '100%' }}>
+            <SSButton
+              label={t('common.cancel')}
+              variant="ghost"
+              onPress={() => setResetKeyModalVisible(false)}
+              style={{
+                flex: 1,
+                backgroundColor: Colors.gray[100],
+                borderWidth: 0
+              }}
+              textStyle={{ color: Colors.black }}
+            />
+            <SSButton
+              label="Reset Key"
+              variant="danger"
+              onPress={() => {
+                setResetKeyModalVisible(false)
+                handleResetKey()
               }}
               style={{ flex: 1 }}
             />

@@ -2,6 +2,7 @@ import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
+import { useShallow } from 'zustand/react/shallow'
 
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -16,19 +17,16 @@ import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
-import { useAccountsStore } from '@/store/accounts'
+import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
 import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
 
 export default function SeedWordsPage() {
-  const { id: accountId, keyIndex } = useLocalSearchParams<
-    AccountSearchParams & { keyIndex: string }
-  >()
+  const { keyIndex } = useLocalSearchParams<{ keyIndex: string }>()
 
-  const account = useAccountsStore((state) =>
-    state.accounts.find((_account) => _account.id === accountId)
+  const [getAccountData] = useAccountBuilderStore(
+    useShallow((state) => [state.getAccountData])
   )
   const skipPin = useAuthStore((state) => state.skipPin)
 
@@ -41,19 +39,30 @@ export default function SeedWordsPage() {
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
 
   const keyIndexNum = parseInt(keyIndex || '0', 10)
-  const key = account?.keys[keyIndexNum]
+  const accountData = getAccountData()
+  const key = accountData?.keys[keyIndexNum]
 
   const decryptMnemonic = useCallback(async () => {
-    if (!account || !key) return
+    if (!accountData || !key) return
 
     try {
+      // During multisig creation, the secret is stored in plain text
+      // Check if the secret is an object with mnemonic (creation mode)
+      if (typeof key.secret === 'object' && key.secret.mnemonic) {
+        // In creation mode, mnemonic is stored in plain text
+        setMnemonic(key.secret.mnemonic)
+        setShowPinEntry(false)
+        return
+      }
+
+      // For encrypted secrets (settings mode), we need PIN
       const pinHash = await getPinForDecryption(skipPin)
       if (!pinHash) {
         toast.error(t('account.seed.unableToDecrypt'))
         return
       }
 
-      // Check if the secret is encrypted (string) or already decrypted (object)
+      // Check if the secret is encrypted (string)
       if (typeof key.secret === 'string') {
         // Decrypt the key's secret
         const decryptedSecretString = await aesDecrypt(
@@ -73,22 +82,6 @@ export default function SeedWordsPage() {
           setNoMnemonicAvailable(true)
           setShowPinEntry(false)
         }
-      } else if (typeof key.secret === 'object' && key.secret.mnemonic) {
-        // Secret is already decrypted
-        const decryptedMnemonic = await aesDecrypt(
-          key.secret.mnemonic,
-          pinHash,
-          key.iv
-        )
-        if (decryptedMnemonic) {
-          setMnemonic(decryptedMnemonic)
-          setShowPinEntry(false)
-
-          // Clear sensitive data from memory
-          decryptedMnemonic.replace(/./g, '0')
-        } else {
-          toast.error(t('account.seed.unableToDecrypt'))
-        }
       } else {
         setNoMnemonicAvailable(true)
         setShowPinEntry(false)
@@ -96,26 +89,32 @@ export default function SeedWordsPage() {
     } catch (_error) {
       toast.error(t('account.seed.unableToDecrypt'))
     }
-  }, [account, key, skipPin])
+  }, [accountData, key, skipPin])
 
   async function handlePinEntry(pinString: string) {
     await decryptMnemonic()
   }
 
   useEffect(() => {
-    if (account && key) {
+    if (accountData && key) {
       setIsLoading(false)
-      if (skipPin) {
-        // Automatically decrypt when skip PIN is enabled
+
+      // Check if we're in creation mode (plain text mnemonic)
+      if (typeof key.secret === 'object' && key.secret.mnemonic) {
+        // In creation mode, no PIN needed - directly show mnemonic
+        setMnemonic(key.secret.mnemonic)
+        setShowPinEntry(false)
+      } else if (skipPin) {
+        // Automatically decrypt when skip PIN is enabled (settings mode)
         decryptMnemonic()
       } else {
-        // Show PIN entry when skip PIN is disabled
+        // Show PIN entry when skip PIN is disabled (settings mode)
         setShowPinEntry(true)
       }
     } else {
       setIsLoading(false)
     }
-  }, [account, key, skipPin, decryptMnemonic])
+  }, [accountData, key, skipPin, decryptMnemonic])
 
   if (isLoading) {
     return (
@@ -127,11 +126,9 @@ export default function SeedWordsPage() {
     )
   }
 
-  if (!account || !key) {
+  if (!accountData || !key) {
     return <Redirect href="/" />
   }
-
-  // Always show PIN entry first - let the PIN entry function determine if there's a mnemonic
 
   return (
     <SSMainLayout>
@@ -164,9 +161,6 @@ export default function SeedWordsPage() {
           ) : mnemonic ? (
             <>
               <SSVStack gap="md">
-                <SSText center uppercase>
-                  {key.name || `Key ${keyIndexNum + 1}`}
-                </SSText>
                 <SSText center uppercase>
                   {key.mnemonicWordCount} {t('account.mnemonic.title')}
                 </SSText>
@@ -241,18 +235,18 @@ export default function SeedWordsPage() {
 
               <SSVStack gap="sm" style={{ paddingTop: 32 }}>
                 <SSHStack gap="sm">
-                  <SSButton
-                    label={t('account.seed.seedqr.title')}
-                    variant="outline"
-                    style={{ flex: 0.5 }}
-                    onPress={() => setSeedQRModalVisible(true)}
-                  />
                   <SSClipboardCopy
                     text={mnemonic.replaceAll(',', ' ')}
                     style={{ flex: 0.5 }}
                   >
                     <SSButton label={t('common.copy')} variant="outline" />
                   </SSClipboardCopy>
+                  <SSButton
+                    label={t('account.seed.seedqr.title')}
+                    variant="outline"
+                    style={{ flex: 0.5 }}
+                    onPress={() => setSeedQRModalVisible(true)}
+                  />
                 </SSHStack>
                 <SSButton
                   label={t('common.back')}
