@@ -281,3 +281,158 @@ export function validateSignatureThreshold(
     return false
   }
 }
+
+/**
+ * Validate that a signed PSBT contains signatures from the specific cosigner's public key
+ * @param psbtBase64 - Base64 encoded PSBT
+ * @param cosignerPublicKey - The public key of the specific cosigner (hex string)
+ * @returns true if the PSBT contains signatures from the specified cosigner
+ */
+export function validateCosignerSignature(
+  psbtBase64: string,
+  cosignerPublicKey: string
+): boolean {
+  try {
+    // Parse PSBT
+    const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+    // Check if PSBT has any signatures
+    let hasAnySignatures = false
+    let hasCosignerSignature = false
+
+    // Check each input for signatures from the specific cosigner
+    for (let i = 0; i < psbt.data.inputs.length; i++) {
+      const input = psbt.data.inputs[i]
+
+      if (input.partialSig && input.partialSig.length > 0) {
+        hasAnySignatures = true
+
+        // Check if any signature is from the specific cosigner
+        const signatures = Array.isArray(input.partialSig)
+          ? input.partialSig
+          : [input.partialSig]
+
+        for (const sig of signatures) {
+          if (sig.pubkey && sig.pubkey.toString('hex') === cosignerPublicKey) {
+            hasCosignerSignature = true
+            break
+          }
+        }
+      }
+    }
+
+    // Return true only if we have signatures AND at least one is from the cosigner
+    return hasAnySignatures && hasCosignerSignature
+  } catch (_error) {
+    return false
+  }
+}
+
+/**
+ * Validate signed PSBT for a specific cosigner in multisig
+ * @param psbtBase64 - Base64 encoded PSBT
+ * @param account - Account with keys for validation
+ * @param cosignerIndex - Index of the specific cosigner to validate for
+ * @returns true if validation passes for the specific cosigner
+ */
+export function validateSignedPSBTForCosigner(
+  psbtBase64: string,
+  account: Account,
+  cosignerIndex: number
+): boolean {
+  try {
+    // First do basic PSBT validation
+    if (!validateSignedPSBT(psbtBase64, account)) {
+      return false
+    }
+
+    // For multisig accounts, check if the signature belongs to the specific cosigner
+    if (
+      account.policyType === 'multisig' &&
+      account.keys &&
+      account.keys[cosignerIndex]
+    ) {
+      const cosignerKey = account.keys[cosignerIndex]
+
+      // Parse PSBT to get BIP32 derivations
+      const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
+
+      // Extract the public key from the cosigner's key details
+      let cosignerPublicKey = ''
+
+      if (
+        typeof cosignerKey.secret === 'object' &&
+        cosignerKey.secret.extendedPublicKey
+      ) {
+        // For extended public keys, we need to find the specific derivation used in the PSBT
+        // Look for BIP32 derivations that match this cosigner's fingerprint
+        const cosignerFingerprint = cosignerKey.fingerprint
+
+        if (cosignerFingerprint) {
+          // Find derivations in PSBT that match this cosigner's fingerprint
+          for (let i = 0; i < psbt.data.inputs.length; i++) {
+            const input = psbt.data.inputs[i]
+
+            if (input.bip32Derivation) {
+              for (const derivation of input.bip32Derivation) {
+                const derivationFingerprint =
+                  derivation.masterFingerprint.toString('hex')
+
+                if (derivationFingerprint === cosignerFingerprint) {
+                  // Found a derivation for this cosigner, use its public key
+                  cosignerPublicKey = derivation.pubkey.toString('hex')
+                  break
+                }
+              }
+            }
+
+            if (cosignerPublicKey) break
+          }
+        }
+
+        // Fallback: if we couldn't find the specific derivation, use the extended public key
+        if (!cosignerPublicKey) {
+          cosignerPublicKey = cosignerKey.secret.extendedPublicKey
+        }
+      } else if (cosignerKey.fingerprint) {
+        // If we only have fingerprint, try to find the public key from PSBT derivations
+        const cosignerFingerprint = cosignerKey.fingerprint
+
+        for (let i = 0; i < psbt.data.inputs.length; i++) {
+          const input = psbt.data.inputs[i]
+
+          if (input.bip32Derivation) {
+            for (const derivation of input.bip32Derivation) {
+              const derivationFingerprint =
+                derivation.masterFingerprint.toString('hex')
+
+              if (derivationFingerprint === cosignerFingerprint) {
+                cosignerPublicKey = derivation.pubkey.toString('hex')
+                break
+              }
+            }
+          }
+
+          if (cosignerPublicKey) break
+        }
+      }
+
+      // If we have a public key, validate that the PSBT contains signatures from this cosigner
+      if (cosignerPublicKey) {
+        return validateCosignerSignature(psbtBase64, cosignerPublicKey)
+      } else {
+        // If we can't determine the public key, we can't validate cosigner-specific signatures
+        // In this case, we'll fall back to basic validation but show a warning
+        console.warn(
+          `Could not determine public key for cosigner ${cosignerIndex}`
+        )
+        return true
+      }
+    }
+
+    // For non-multisig or if we can't determine the public key, use basic validation
+    return true
+  } catch (_error) {
+    return false
+  }
+}

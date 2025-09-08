@@ -12,7 +12,10 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
-import { validateSignedPSBT } from '@/utils/psbtValidator'
+import {
+  validateSignedPSBT,
+  validateSignedPSBTForCosigner
+} from '@/utils/psbtValidator'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { Descriptor } from 'bdk-rn'
@@ -266,7 +269,11 @@ function SSSignatureDropdown({
           }
         }
 
-        const isValid = validateSignedPSBT(psbtToValidate, account)
+        // Use cosigner-specific validation for multisig accounts
+        const isValid =
+          account.policyType === 'multisig'
+            ? validateSignedPSBTForCosigner(psbtToValidate, account, index)
+            : validateSignedPSBT(psbtToValidate, account)
         setIsPsbtValid(isValid)
       } catch (_error) {
         setIsPsbtValid(false)
