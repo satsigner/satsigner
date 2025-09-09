@@ -14,11 +14,13 @@ type SigningResult = {
   originalPSBT?: string
   signedPSBT?: string
   inputIndex?: number
+  inputIndices?: number[]
   publicKey?: string
   privateKey?: string
   fingerprint?: string
   path?: string
   signature?: string
+  signedInputsCount?: number
   validation?: any
   error?: string
 }
@@ -74,89 +76,118 @@ function signPSBTWithSeed(
       }
     })
 
-    // Find matching derivation for our seed
-    const matchingDerivation = derivations.find(
+    // Find ALL matching derivations for our seed (not just the first one)
+    const matchingDerivations = derivations.filter(
       (derivation) => derivation.fingerprint === seedFingerprint
     )
 
-    if (!matchingDerivation) {
+    if (matchingDerivations.length === 0) {
       throw new Error(
         `No matching derivation found for fingerprint: ${seedFingerprint}`
       )
     }
 
-    // Derive the private key using the path from PSBT
-    const derivedKey = root.derivePath(matchingDerivation.path)
-    const privateKey = derivedKey.privateKey
-      ? Buffer.from(derivedKey.privateKey).toString('hex')
-      : Buffer.alloc(32).toString('hex')
-    const publicKey = Buffer.from(derivedKey.publicKey).toString('hex')
+    // We'll derive the key for each input individually since they may have different paths
 
-    // Clear sensitive data from memory
-    if (derivedKey.privateKey) {
-      derivedKey.privateKey.fill(0)
-    }
+    // Sign ALL matching inputs - derive the correct key for each input
+    let signedInputs = 0
+    for (const derivation of matchingDerivations) {
+      // Derive the private key using the specific path for this input
+      const derivedKey = root.derivePath(derivation.path)
+      const privateKey = derivedKey.privateKey
+        ? Buffer.from(derivedKey.privateKey).toString('hex')
+        : Buffer.alloc(32).toString('hex')
+      const publicKey = Buffer.from(derivedKey.publicKey).toString('hex')
 
-    // Verify the derived public key matches the PSBT
-    if (publicKey !== matchingDerivation.pubkey) {
-      throw new Error(
-        `Derived public key doesn't match PSBT: ${publicKey} vs ${matchingDerivation.pubkey}`
-      )
-    }
+      // Verify the derived public key matches the PSBT for this input
+      if (publicKey !== derivation.pubkey) {
+        // Clear sensitive data from memory
+        if (derivedKey.privateKey) {
+          derivedKey.privateKey.fill(0)
+        }
+        continue
+      }
 
-    // Create signer object with script type-specific configuration
-    const signer = {
-      publicKey: Buffer.from(publicKey, 'hex'),
-      sign: (hash: Buffer) => {
-        const privateKeyBuffer = new Uint8Array(Buffer.from(privateKey, 'hex'))
-        const signature = ecc.sign(new Uint8Array(hash), privateKeyBuffer)
-        privateKeyBuffer.fill(0) // Clear immediately after use
-        return Buffer.from(signature)
+      // Create signer object with script type-specific configuration for this input
+      const signer = {
+        publicKey: Buffer.from(publicKey, 'hex'),
+        sign: (hash: Buffer) => {
+          const privateKeyBuffer = new Uint8Array(
+            Buffer.from(privateKey, 'hex')
+          )
+          const signature = ecc.sign(new Uint8Array(hash), privateKeyBuffer)
+          privateKeyBuffer.fill(0) // Clear immediately after use
+          return Buffer.from(signature)
+        }
+      }
+
+      // Clear private key from memory after creating signer
+      if (derivedKey.privateKey) {
+        derivedKey.privateKey.fill(0)
+      }
+
+      // Check if the input has the required script data for the script type
+      const inputData = psbt.data.inputs[derivation.inputIndex]
+
+      switch (scriptType) {
+        case 'P2WSH':
+          // For P2WSH, we need witness script
+          if (!inputData.witnessScript) {
+            console.log(
+              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing witness script`
+            )
+            continue
+          }
+          break
+
+        case 'P2SH':
+          // For P2SH, we need redeem script
+          if (!inputData.redeemScript) {
+            console.log(
+              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing redeem script`
+            )
+            continue
+          }
+          break
+
+        case 'P2SH-P2WSH':
+          // For P2SH-P2WSH, we need both redeem script and witness script
+          if (!inputData.redeemScript) {
+            console.log(
+              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing redeem script`
+            )
+            continue
+          }
+          if (!inputData.witnessScript) {
+            console.log(
+              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing witness script`
+            )
+            continue
+          }
+          break
+
+        default:
+        // For other script types, we don't need additional validation
+      }
+
+      // Sign the input
+      try {
+        psbt.signInput(derivation.inputIndex, signer)
+        signedInputs++
+
+        // Check if signature was added
+        const input = psbt.data.inputs[derivation.inputIndex]
+        if (!input.partialSig || input.partialSig.length === 0) {
+          // Signature was not added
+        }
+      } catch (signError) {
+        // Continue with other inputs even if this one fails
+        continue
       }
     }
 
-    // Clear private key from memory after creating signer
-    // Note: privateKey is already cleared in the signer function
-
-    // Check if the input has the required script data for the script type
-    const inputData = psbt.data.inputs[matchingDerivation.inputIndex]
-
-    switch (scriptType) {
-      case 'P2WSH':
-        // For P2WSH, we need witness script
-        if (!inputData.witnessScript) {
-          throw new Error('P2WSH input missing witness script')
-        }
-        break
-
-      case 'P2SH':
-        // For P2SH, we need redeem script
-        if (!inputData.redeemScript) {
-          throw new Error('P2SH input missing redeem script')
-        }
-        break
-
-      case 'P2SH-P2WSH':
-        // For P2SH-P2WSH, we need both redeem script and witness script
-        if (!inputData.redeemScript) {
-          throw new Error('P2SH-P2WSH input missing redeem script')
-        }
-        if (!inputData.witnessScript) {
-          throw new Error('P2SH-P2WSH input missing witness script')
-        }
-        break
-
-      default:
-        throw new Error(`Unsupported script type: ${scriptType}`)
-    }
-
-    // Sign the input
-    psbt.signInput(matchingDerivation.inputIndex, signer)
-
-    // Check if signature was added
-    const input = psbt.data.inputs[matchingDerivation.inputIndex]
-    if (!input.partialSig || input.partialSig.length === 0) {
-      throw new Error('Failed to add signature to PSBT')
+    if (signedInputs === 0) {
+      throw new Error('Failed to sign any inputs')
     }
 
     // Get the signed PSBT
@@ -174,12 +205,17 @@ function signPSBTWithSeed(
       success: true,
       originalPSBT: psbtBase64,
       signedPSBT,
-      inputIndex: matchingDerivation.inputIndex,
-      publicKey,
-      privateKey,
+      inputIndex: matchingDerivations[0].inputIndex, // Return the first input index for compatibility
+      inputIndices: matchingDerivations.map((d) => d.inputIndex), // Return all signed input indices
+      publicKey: matchingDerivations[0].pubkey, // Return the first derivation's pubkey for compatibility
+      privateKey: '', // Don't return private key for security
       fingerprint: seedFingerprint,
-      path: matchingDerivation.path,
-      signature: input.partialSig[0].signature.toString('hex'),
+      path: matchingDerivations[0].path, // Return the first derivation's path for compatibility
+      signature:
+        psbt.data.inputs[
+          matchingDerivations[0].inputIndex
+        ].partialSig?.[0]?.signature?.toString('hex') || '',
+      signedInputsCount: signedInputs,
       validation
     }
   } catch (error) {

@@ -63,6 +63,7 @@ export default function ImportMnemonic() {
     passphrase,
     setPassphrase,
     setFingerprint,
+    setExtendedPublicKey,
     setKey,
     getAccountData,
     updateKeySecret,
@@ -80,6 +81,7 @@ export default function ImportMnemonic() {
       state.passphrase,
       state.setPassphrase,
       state.setFingerprint,
+      state.setExtendedPublicKey,
       state.setKey,
       state.getAccountData,
       state.updateKeySecret,
@@ -168,12 +170,26 @@ export default function ImportMnemonic() {
   async function handleOnPressImportSeedMultisig() {
     setLoadingAccount(true)
 
-    // Use the current mnemonic and fingerprint from the component
-    setMnemonic(currentMnemonic)
-    setFingerprint(currentFingerprint)
-
-    // Set the key with the current data
     try {
+      // Use the current mnemonic and fingerprint from the component
+      setMnemonic(currentMnemonic)
+      setFingerprint(currentFingerprint)
+
+      // For multisig, we need to generate the extended public key from the mnemonic
+      if (currentMnemonic && currentFingerprint) {
+        // Generate the extended public key
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+          currentMnemonic,
+          passphrase || '',
+          network as Network,
+          scriptVersion
+        )
+
+        // Set the extended public key
+        setExtendedPublicKey(extendedPublicKey)
+      }
+
+      // Set the key with the current data
       const currentKey = setKey(Number(keyIndex))
       setLoadingAccount(false)
       toast.success('Key imported successfully')
