@@ -63,7 +63,7 @@ type SSMultisigKeyControlProps = {
 }
 
 function SSMultisigKeyControl({
-  isBlackBackground,
+  isBlackBackground: _isBlackBackground,
   index,
   keyCount,
   keyDetails,
