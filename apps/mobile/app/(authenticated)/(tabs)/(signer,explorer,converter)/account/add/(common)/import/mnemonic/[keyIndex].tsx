@@ -47,7 +47,7 @@ export default function ImportMnemonic() {
   const { keyIndex } = useLocalSearchParams<ImportMnemonicSearchParams>()
   const router = useRouter()
   const updateAccount = useAccountsStore((state) => state.updateAccount)
-  const [
+  const {
     name,
     keys,
     scriptVersion,
@@ -64,25 +64,25 @@ export default function ImportMnemonic() {
     getAccountData,
     updateKeySecret: _updateKeySecret,
     clearKeyState
-  ] = useAccountBuilderStore(
-    useShallow((state) => [
-      state.name,
-      state.keys,
-      state.scriptVersion,
-      state.mnemonicWordCount,
-      state.fingerprint,
-      state.policyType,
-      state.clearAccount,
-      state.setMnemonic,
-      state.passphrase,
-      state.setPassphrase,
-      state.setFingerprint,
-      state.setExtendedPublicKey,
-      state.setKey,
-      state.getAccountData,
-      state.updateKeySecret,
-      state.clearKeyState
-    ])
+  } = useAccountBuilderStore(
+    useShallow((state) => ({
+      name: state.name,
+      keys: state.keys,
+      scriptVersion: state.scriptVersion,
+      mnemonicWordCount: state.mnemonicWordCount,
+      fingerprint: state.fingerprint,
+      policyType: state.policyType,
+      clearAccount: state.clearAccount,
+      setMnemonic: state.setMnemonic,
+      passphrase: state.passphrase,
+      setPassphrase: state.setPassphrase,
+      setFingerprint: state.setFingerprint,
+      setExtendedPublicKey: state.setExtendedPublicKey,
+      setKey: state.setKey,
+      getAccountData: state.getAccountData,
+      updateKeySecret: state.updateKeySecret,
+      clearKeyState: state.clearKeyState
+    }))
   )
   const [network, connectionMode] = useBlockchainStore(
     useShallow((state) => [
