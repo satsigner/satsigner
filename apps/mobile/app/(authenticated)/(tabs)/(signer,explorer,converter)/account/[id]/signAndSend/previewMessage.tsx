@@ -1,5 +1,3 @@
-// React and React Native imports
-// External dependencies
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
@@ -16,17 +14,16 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-// Internal imports
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import SSSignatureDropdown from '@/components/SSSignatureDropdown'
 import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
-import SSSeedWordsInput from '@/components/SSSeedWordsInput'
 import { PIN_KEY } from '@/config/auth'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
@@ -40,7 +37,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
-import { type Key, type Secret } from '@/types/models/Account'
+import { type Key, type MnemonicCount, type Secret } from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -60,7 +57,6 @@ import { parseHexToBytes } from '@/utils/parse'
 import { signPSBTWithSeed } from '@/utils/psbtSigner'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
-import { type MnemonicCount } from '@/types/models/Account'
 import {
   decodeMultiPartURToPSBT,
   decodeURToPSBT,
@@ -123,7 +119,7 @@ function PreviewMessage() {
   const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
   const [selectedWordCount, setSelectedWordCount] = useState<MnemonicCount>(24)
   const [currentMnemonic, setCurrentMnemonic] = useState('')
-  const [currentFingerprint, setCurrentFingerprint] = useState('')
+  const [_currentFingerprint, _setCurrentFingerprint] = useState('')
 
   const [permission, requestPermission] = useCameraPermissions()
 
@@ -1463,7 +1459,7 @@ function PreviewMessage() {
 
           // Combine this signed PSBT with the accumulated result
           combinedPsbt.combine(signedPsbt)
-        } catch (error) {
+        } catch (_error) {
           toast.error(`Error combining signed PSBT ${i + 1}`)
           return null
         }
@@ -1481,7 +1477,7 @@ function PreviewMessage() {
               const op = script[0]
               if (typeof op === 'number' && op >= 81 && op <= 96) {
                 const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
-                const signatureCount = input.partialSig
+                const _signatureCount = input.partialSig
                   ? input.partialSig.length
                   : 0
                 // Check if we have enough signatures to finalize
@@ -1496,7 +1492,7 @@ function PreviewMessage() {
             } else {
               // Script too short
             }
-          } catch (error) {
+          } catch (_error) {
             // Could not parse witness script - continue
           }
         } else {
@@ -2592,18 +2588,18 @@ function PreviewMessage() {
                 network={network as Network}
                 onMnemonicValid={handleMnemonicValid}
                 onMnemonicInvalid={handleMnemonicInvalid}
-                showPassphrase={true}
-                showChecksum={true}
-                showFingerprint={true}
-                showPasteButton={true}
-                showActionButton={true}
+                showPassphrase
+                showChecksum
+                showFingerprint
+                showPasteButton
+                showActionButton
                 actionButtonLabel="Sign with Seed Words"
                 actionButtonVariant="secondary"
                 onActionButtonPress={handleSeedWordsSubmit}
                 actionButtonDisabled={false}
                 actionButtonLoading={false}
                 showCancelButton={false}
-                autoCheckClipboard={true}
+                autoCheckClipboard
               />
             </View>
           </ScrollView>

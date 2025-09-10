@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { View } from 'react-native'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner-native'
 import * as Clipboard from 'expo-clipboard'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 
 import { getFingerprint, validateMnemonic } from '@/api/bdk'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
@@ -17,7 +17,6 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { type MnemonicCount } from '@/types/models/Account'
 import { getWordList } from '@/utils/bip39'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 
 type SeedWordInfo = {
   value: string
@@ -102,7 +101,7 @@ export default function SSSeedWordsInput({
   }, [wordCount])
 
   // Handle paste from clipboard
-  const readSeedFromClipboard = async () => {
+  const readSeedFromClipboard = useCallback(async () => {
     try {
       const text = (await Clipboard.getStringAsync()).trim()
       const seed = await checkClipboardForSeed(text)
@@ -115,7 +114,7 @@ export default function SSSeedWordsInput({
     } catch (_error) {
       toast.error('Failed to read clipboard')
     }
-  }
+  }, [])
 
   // Check clipboard when component mounts if autoCheckClipboard is enabled
   useEffect(() => {

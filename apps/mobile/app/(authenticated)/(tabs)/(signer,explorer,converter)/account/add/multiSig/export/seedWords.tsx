@@ -91,7 +91,7 @@ export default function SeedWordsPage() {
     }
   }, [accountData, key, skipPin])
 
-  async function handlePinEntry(_pinString: string) {
+  async function handlePinEntry() {
     await decryptMnemonic()
   }
 

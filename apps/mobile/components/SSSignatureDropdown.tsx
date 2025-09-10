@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
-import { toast } from 'sonner-native'
 import { Buffer } from 'buffer'
+import { toast } from 'sonner-native'
+import { Descriptor } from 'bdk-rn'
+import { type Network } from 'bdk-rn/lib/lib/enums'
 
+import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconGreen } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -12,14 +15,11 @@ import { t } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Typography } from '@/styles'
 import { type Account, type Key } from '@/types/models/Account'
+import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 import {
   validateSignedPSBT,
   validateSignedPSBTForCosigner
 } from '@/utils/psbtValidator'
-import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
-import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
-import { Descriptor } from 'bdk-rn'
-import { type Network } from 'bdk-rn/lib/lib/enums'
 
 type SSSignatureDropdownProps = {
   index: number

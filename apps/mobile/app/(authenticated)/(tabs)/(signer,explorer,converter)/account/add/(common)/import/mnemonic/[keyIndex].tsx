@@ -6,12 +6,8 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromMnemonic,
-  getFingerprint,
-  validateMnemonic
+  getExtendedPublicKeyFromMnemonic
 } from '@/api/bdk'
-import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -61,12 +57,12 @@ export default function ImportMnemonic() {
     clearAccount,
     setMnemonic,
     passphrase,
-    setPassphrase,
+    setPassphrase: _setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     setKey,
     getAccountData,
-    updateKeySecret,
+    updateKeySecret: _updateKeySecret,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -237,11 +233,11 @@ export default function ImportMnemonic() {
           network={network as Network}
           onMnemonicValid={handleMnemonicValid}
           onMnemonicInvalid={handleMnemonicInvalid}
-          showPassphrase={true}
-          showChecksum={true}
-          showFingerprint={true}
-          showPasteButton={true}
-          showActionButton={true}
+          showPassphrase
+          showChecksum
+          showFingerprint
+          showPasteButton
+          showActionButton
           actionButtonLabel={t('account.import.title2')}
           actionButtonVariant="secondary"
           onActionButtonPress={() =>
@@ -253,8 +249,8 @@ export default function ImportMnemonic() {
           actionButtonLoading={loadingAccount}
           cancelButtonLabel={t('common.cancel')}
           onCancelButtonPress={handleOnPressCancel}
-          showCancelButton={true}
-          autoCheckClipboard={true}
+          showCancelButton
+          autoCheckClipboard
         />
       </ScrollView>
       <SSGradientModal

@@ -3,12 +3,12 @@ import { type Network } from 'bdk-rn/lib/lib/enums'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { TouchableOpacity, View } from 'react-native'
+import Svg, { Ellipse } from 'react-native-svg'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor } from '@/api/bdk'
 import { SSIconAdd, SSIconGreen } from '@/components/icons'
-import Svg, { Ellipse } from 'react-native-svg'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSRadioButton from '@/components/SSRadioButton'
@@ -63,7 +63,7 @@ type SSMultisigKeyControlProps = {
 }
 
 function SSMultisigKeyControl({
-  isBlackBackground: _isBlackBackground,
+  isBlackBackground,
   index,
   keyCount,
   keyDetails,
