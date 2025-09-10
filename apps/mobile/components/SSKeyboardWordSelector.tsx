@@ -17,7 +17,6 @@ import useKeyboardHeight from '@/hooks/useKeyboardHeight'
 import usePrevious from '@/hooks/usePrevious'
 import { t } from '@/locales'
 import { Colors, Sizes } from '@/styles'
-import { getWordList } from '@/utils/bip39'
 
 type WordInfo = {
   index: number
@@ -35,11 +34,11 @@ function wordStartMispells(haystack: string, needle: string) {
   return mismatches
 }
 
-function getMatchingWords(wordStart: string): WordInfo[] {
+function getMatchingWords(wordStart: string, wordList: string[]): WordInfo[] {
   const maxMisspells = 2
   let index = 0
 
-  const result = getWordList()
+  const result = wordList
     .map((w) => ({
       index: index++,
       word: w,
@@ -58,6 +57,7 @@ function getMatchingWords(wordStart: string): WordInfo[] {
 type SSKeyboardWordSelectorProps = {
   visible: boolean
   wordStart: string
+  wordList: string[]
   onWordSelected(word: string): void
   style: StyleProp<ViewStyle>
 }
@@ -65,6 +65,7 @@ type SSKeyboardWordSelectorProps = {
 function SSKeyboardWordSelector({
   visible,
   wordStart,
+  wordList,
   onWordSelected,
   style
 }: SSKeyboardWordSelectorProps) {
@@ -77,7 +78,7 @@ function SSKeyboardWordSelector({
 
   const opacityAnimated = useRef(new Animated.Value(0)).current
 
-  const data = getMatchingWords(wordStart)
+  const data = getMatchingWords(wordStart, wordList)
 
   if (data.length > 0 && previousWordStart !== wordStart) {
     flashList.current?.scrollToOffset({ animated: false, offset: 0 })
