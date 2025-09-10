@@ -1,4 +1,9 @@
-import { getDefaultWordlist, wordlists } from 'bip39'
+import {
+  entropyToMnemonic,
+  getDefaultWordlist,
+  mnemonicToEntropy,
+  wordlists
+} from 'bip39'
 
 const WORDLIST_LIST = [
   'chinese_simplified',
@@ -21,7 +26,7 @@ function getWordList(name: WordList = DEFAULT_WORD_LIST) {
   return wordlists[name]
 }
 
-function convertMnemonic(
+function convertMnemonicUsingIndexes(
   mnemonic: string,
   target: WordList,
   source: WordList = 'english'
@@ -60,8 +65,25 @@ function convertMnemonic(
   return convertedMnemonic
 }
 
+function convertMnemonicUsingEntropy(
+  mnemonic: string,
+  target: WordList,
+  source: WordList = 'english'
+) {
+  if (target === source) return mnemonic
+  const sourceWordList = wordlists[source]
+  const targetWordList = wordlists[target]
+  const entropy = mnemonicToEntropy(mnemonic, sourceWordList)
+  const targetMnemonic = entropyToMnemonic(entropy, targetWordList)
+  return targetMnemonic
+}
+
+const convertMnemonic = convertMnemonicUsingEntropy
+
 export {
   convertMnemonic,
+  convertMnemonicUsingEntropy,
+  convertMnemonicUsingIndexes,
   DEFAULT_WORD_LIST,
   getWordList,
   type WordList,
