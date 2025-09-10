@@ -1,5 +1,5 @@
-import { type Account, type Key } from '@/types/models/Account'
 import { useAuthStore } from '@/store/auth'
+import { type Account, type Key } from '@/types/models/Account'
 
 import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
 
@@ -83,9 +83,6 @@ export async function extractAccountFingerprintWithDecryption(
       const skipPin = useAuthStore.getState().skipPin
       const pin = await getPinForDecryption(skipPin)
       if (!pin) {
-        console.warn(
-          '[extractAccountFingerprintWithDecryption] No PIN available for decryption'
-        )
         return ''
       }
 
@@ -99,12 +96,8 @@ export async function extractAccountFingerprintWithDecryption(
       if (decryptedSecret.fingerprint) {
         return decryptedSecret.fingerprint
       }
-    } catch (error) {
-      // Decryption failed, log the error for debugging
-      console.warn(
-        '[extractAccountFingerprintWithDecryption] Decryption failed:',
-        error
-      )
+    } catch (_error) {
+      // Decryption failed
       return ''
     }
   }
