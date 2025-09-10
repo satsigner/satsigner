@@ -200,7 +200,7 @@ class BaseElectrumClient {
       }
 
       return true
-    } catch (error) {
+    } catch (_error) {
       return false
     } finally {
       // Clean up resources
@@ -214,7 +214,7 @@ class BaseElectrumClient {
           if (client.client && client.client.socket) {
             client.client.socket.destroy()
           }
-        } catch (closeError) {
+        } catch (_closeError) {
           // Ignore cleanup errors
         }
       }
