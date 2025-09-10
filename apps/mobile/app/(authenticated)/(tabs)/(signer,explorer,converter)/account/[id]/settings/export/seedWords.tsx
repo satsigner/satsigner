@@ -9,13 +9,13 @@ import SSModal from '@/components/SSModal'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSText from '@/components/SSText'
-import { PIN_KEY } from '@/config/auth'
+import { PIN_KEY as _PIN_KEY } from '@/config/auth'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSSeedLayout from '@/layouts/SSSeedLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { getItem } from '@/storage/encrypted'
+import { getItem as _getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useAuthStore } from '@/store/auth'
 import { Colors } from '@/styles'
@@ -37,7 +37,7 @@ export default function SeedWordsPage() {
   const [pin, setPin] = useState<string[]>(Array(4).fill(''))
   const [showPinEntry, setShowPinEntry] = useState(false)
   const [seedQRModalVisible, setSeedQRModalVisible] = useState(false)
-  const [hasMnemonic, setHasMnemonic] = useState(false)
+  const [_hasMnemonic, _setHasMnemonic] = useState(false)
   const [noMnemonicAvailable, setNoMnemonicAvailable] = useState(false)
 
   const keyIndexNum = parseInt(keyIndex || '0', 10)
@@ -98,7 +98,7 @@ export default function SeedWordsPage() {
     }
   }, [account, key, skipPin])
 
-  async function handlePinEntry(pinString: string) {
+  async function handlePinEntry(_pinString: string) {
     await decryptMnemonic()
   }
 

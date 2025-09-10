@@ -152,7 +152,7 @@ function SSSignatureDropdown({
     }
 
     extractPublicKey()
-  }, [keyDetails])
+  }, [keyDetails, decryptedKey])
 
   // Reset seedDropped when keyDetails changes
   useEffect(() => {
@@ -281,7 +281,7 @@ function SSSignatureDropdown({
     } else {
       setIsPsbtValid(null)
     }
-  }, [signedPsbt, account])
+  }, [signedPsbt, account, index])
 
   return (
     <View

@@ -1414,68 +1414,37 @@ function PreviewMessage() {
   // Check if all required signatures have been collected
   const hasAllRequiredSignatures = () => {
     if (!account || account.policyType !== 'multisig' || !account.keys) {
-      console.log(
-        '🔍 hasAllRequiredSignatures: Not a multisig account or missing keys'
-      )
       return false
     }
 
     // Get the required number of signatures from the account
     const requiredSignatures = account.keysRequired || account.keys.length
-    console.log(
-      '🔍 hasAllRequiredSignatures: Required signatures:',
-      requiredSignatures,
-      'Total keys:',
-      account.keys.length
-    )
 
     // Count how many signed PSBTs we have
     const collectedSignatures = Array.from(signedPsbts.values()).filter(
       (psbt) => psbt && psbt.trim().length > 0
     ).length
-    console.log(
-      '🔍 hasAllRequiredSignatures: Collected signatures:',
-      collectedSignatures
-    )
 
     const hasEnough = collectedSignatures >= requiredSignatures
-    console.log(
-      '🔍 hasAllRequiredSignatures: Has enough signatures:',
-      hasEnough
-    )
     return hasEnough
   }
 
   // Combine and finalize all signed PSBTs for multisig
   const combineAndFinalizeMultisigPSBTs = async () => {
     try {
-      console.log(
-        '🔍 combineAndFinalizeMultisigPSBTs: Starting PSBT combination'
-      )
       // Get the original PSBT from transaction builder result
       const originalPsbtBase64 = txBuilderResult?.psbt?.base64
       if (!originalPsbtBase64) {
-        console.log(
-          '❌ combineAndFinalizeMultisigPSBTs: No original PSBT found'
-        )
         toast.error('No original PSBT found')
         return null
       }
-      console.log('🔍 combineAndFinalizeMultisigPSBTs: Original PSBT found')
 
       // Get all collected signed PSBTs
       const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
         (psbt) => psbt && psbt.trim().length > 0
       )
-      console.log(
-        '🔍 combineAndFinalizeMultisigPSBTs: Collected signed PSBTs:',
-        collectedSignedPsbts.length
-      )
 
       if (collectedSignedPsbts.length === 0) {
-        console.log(
-          '❌ combineAndFinalizeMultisigPSBTs: No signed PSBTs collected'
-        )
         toast.error('No signed PSBTs collected')
         return null
       }
@@ -1485,122 +1454,53 @@ function PreviewMessage() {
 
       // Step 2: Combine all signed PSBTs with the original
       const combinedPsbt = originalPsbt
-      console.log(
-        '🔍 combineAndFinalizeMultisigPSBTs: Starting with original PSBT'
-      )
 
       for (let i = 0; i < collectedSignedPsbts.length; i++) {
         const signedPsbtBase64 = collectedSignedPsbts[i]
-        console.log(
-          `🔍 combineAndFinalizeMultisigPSBTs: Combining signed PSBT ${i + 1}`
-        )
 
         try {
           const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
 
-          // Log signatures before combination
-          console.log(
-            `🔍 combineAndFinalizeMultisigPSBTs: Signed PSBT ${i + 1} before combination:`
-          )
-          for (let j = 0; j < signedPsbt.data.inputs.length; j++) {
-            const input = signedPsbt.data.inputs[j]
-            const sigCount = input.partialSig ? input.partialSig.length : 0
-            console.log(`  Input ${j}: ${sigCount} signatures`)
-          }
-
           // Combine this signed PSBT with the accumulated result
           combinedPsbt.combine(signedPsbt)
-
-          // Log signatures after combination
-          console.log(
-            `🔍 combineAndFinalizeMultisigPSBTs: After combining signed PSBT ${i + 1}:`
-          )
-          for (let j = 0; j < combinedPsbt.data.inputs.length; j++) {
-            const input = combinedPsbt.data.inputs[j]
-            const sigCount = input.partialSig ? input.partialSig.length : 0
-            console.log(`  Input ${j}: ${sigCount} signatures`)
-          }
         } catch (error) {
-          console.log(
-            `❌ combineAndFinalizeMultisigPSBTs: Error combining signed PSBT ${i + 1}:`,
-            error
-          )
           toast.error(`Error combining signed PSBT ${i + 1}`)
           return null
         }
       }
 
       // Step 3: Analyze the combined PSBT
-      console.log(
-        '🔍 combineAndFinalizeMultisigPSBTs: Analyzing combined PSBT, inputs:',
-        combinedPsbt.data.inputs.length
-      )
       for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
         const input = combinedPsbt.data.inputs[i]
-        console.log(`🔍 combineAndFinalizeMultisigPSBTs: Analyzing input ${i}`)
 
         // Check if this is a multisig input
         if (input.witnessScript) {
           try {
             const script = bitcoinjs.script.decompile(input.witnessScript)
-            console.log(
-              `🔍 combineAndFinalizeMultisigPSBTs: Input ${i} script:`,
-              script
-            )
             if (script && script.length >= 3) {
               const op = script[0]
-              console.log(
-                `🔍 combineAndFinalizeMultisigPSBTs: Input ${i} first op:`,
-                op,
-                'type:',
-                typeof op
-              )
               if (typeof op === 'number' && op >= 81 && op <= 96) {
                 const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
-                console.log(
-                  `🔍 combineAndFinalizeMultisigPSBTs: Input ${i} threshold:`,
-                  threshold
-                )
                 const signatureCount = input.partialSig
                   ? input.partialSig.length
                   : 0
-                console.log(
-                  `🔍 combineAndFinalizeMultisigPSBTs: Input ${i} signature count:`,
-                  signatureCount
-                )
                 // Check if we have enough signatures to finalize
                 if (input.partialSig && input.partialSig.length >= threshold) {
-                  console.log(
-                    `✅ combineAndFinalizeMultisigPSBTs: Input ${i} has enough signatures (${signatureCount} >= ${threshold})`
-                  )
+                  // Input has enough signatures
                 } else {
-                  console.log(
-                    `❌ combineAndFinalizeMultisigPSBTs: Input ${i} insufficient signatures (${signatureCount} < ${threshold})`
-                  )
+                  // Input needs more signatures
                 }
               } else {
-                console.log(
-                  `❌ combineAndFinalizeMultisigPSBTs: Input ${i} invalid op:`,
-                  op
-                )
+                // Invalid op code
               }
             } else {
-              console.log(
-                `❌ combineAndFinalizeMultisigPSBTs: Input ${i} script too short:`,
-                script?.length
-              )
+              // Script too short
             }
           } catch (error) {
-            console.log(
-              `❌ combineAndFinalizeMultisigPSBTs: Input ${i} script parsing error:`,
-              error
-            )
             // Could not parse witness script - continue
           }
         } else {
-          console.log(
-            `🔍 combineAndFinalizeMultisigPSBTs: Input ${i} no witness script (not multisig)`
-          )
+          // No witness script (not multisig)
         }
       }
 
@@ -1635,12 +1535,12 @@ function PreviewMessage() {
       }
       try {
         combinedPsbt.finalizeAllInputs()
-      } catch (finalizeError) {
+      } catch (_finalizeError) {
         // Try to finalize inputs individually to get more detailed error info
         for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
           try {
             combinedPsbt.finalizeInput(i)
-          } catch (inputError) {
+          } catch (_inputError) {
             // Input failed to finalize
           }
         }

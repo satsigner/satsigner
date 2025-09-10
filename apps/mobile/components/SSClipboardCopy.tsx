@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard'
 import { useState } from 'react'
-import { TouchableWithoutFeedback, View, ViewStyle } from 'react-native'
+import { TouchableWithoutFeedback, View, type ViewStyle } from 'react-native'
 
 import { t } from '@/locales'
 

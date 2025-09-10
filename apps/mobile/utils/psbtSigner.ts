@@ -133,9 +133,6 @@ function signPSBTWithSeed(
         case 'P2WSH':
           // For P2WSH, we need witness script
           if (!inputData.witnessScript) {
-            console.log(
-              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing witness script`
-            )
             continue
           }
           break
@@ -143,9 +140,6 @@ function signPSBTWithSeed(
         case 'P2SH':
           // For P2SH, we need redeem script
           if (!inputData.redeemScript) {
-            console.log(
-              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing redeem script`
-            )
             continue
           }
           break
@@ -153,15 +147,9 @@ function signPSBTWithSeed(
         case 'P2SH-P2WSH':
           // For P2SH-P2WSH, we need both redeem script and witness script
           if (!inputData.redeemScript) {
-            console.log(
-              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing redeem script`
-            )
             continue
           }
           if (!inputData.witnessScript) {
-            console.log(
-              `❌ signPSBTWithSeed: Input ${derivation.inputIndex} missing witness script`
-            )
             continue
           }
           break
@@ -180,7 +168,7 @@ function signPSBTWithSeed(
         if (!input.partialSig || input.partialSig.length === 0) {
           // Signature was not added
         }
-      } catch (signError) {
+      } catch (_signError) {
         // Continue with other inputs even if this one fails
         continue
       }

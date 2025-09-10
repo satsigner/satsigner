@@ -13,50 +13,33 @@ export function validateSignedPSBT(
   account: Account
 ): boolean {
   try {
-    console.log(
-      '🔍 validateSignedPSBT: Starting validation for',
-      account.policyType,
-      'account'
-    )
     // Parse PSBT
     const psbt = bitcoinjs.Psbt.fromBase64(psbtBase64)
-    console.log(
-      '🔍 validateSignedPSBT: PSBT parsed successfully, inputs:',
-      psbt.data.inputs.length,
-      'outputs:',
-      psbt.data.outputs.length
-    )
 
     // Basic PSBT structure validation
     if (!psbt.data.inputs || psbt.data.inputs.length === 0) {
-      console.log('❌ validateSignedPSBT: No inputs found')
       return false
     }
 
     if (!psbt.data.outputs || psbt.data.outputs.length === 0) {
-      console.log('❌ validateSignedPSBT: No outputs found')
       return false
     }
 
     // Validate inputs and outputs
     if (!validateInputsAndOutputs(psbt)) {
-      console.log('❌ validateSignedPSBT: Input/output validation failed')
       return false
     }
 
     // Check if this is a multisig account
     if (account.policyType === 'multisig') {
       const result = validateMultisigPSBT(psbt)
-      console.log('🔍 validateSignedPSBT: Multisig validation result:', result)
       return result
     } else {
       // For single-sig accounts, just check basic structure
       const result = validateSinglesigPSBT(psbt)
-      console.log('🔍 validateSignedPSBT: Singlesig validation result:', result)
       return result
     }
-  } catch (error) {
-    console.log('❌ validateSignedPSBT: Error during validation:', error)
+  } catch (_error) {
     return false
   }
 }
@@ -66,26 +49,17 @@ export function validateSignedPSBT(
  */
 function validateMultisigPSBT(psbt: bitcoinjs.Psbt): boolean {
   try {
-    console.log(
-      '🔍 validateMultisigPSBT: Starting multisig validation, inputs:',
-      psbt.data.inputs.length
-    )
     // Check each input for proper multisig structure
     for (let i = 0; i < psbt.data.inputs.length; i++) {
       const input = psbt.data.inputs[i]
-      console.log(`🔍 validateMultisigPSBT: Checking input ${i}`)
 
       // Check if input has witness script (required for multisig)
       if (!input.witnessScript) {
-        console.log(
-          `❌ validateMultisigPSBT: Input ${i} missing witness script`
-        )
         return false
       }
 
       // Check if input has UTXO data
       if (!input.witnessUtxo && !input.nonWitnessUtxo) {
-        console.log(`❌ validateMultisigPSBT: Input ${i} missing UTXO data`)
         return false
       }
 
@@ -95,21 +69,10 @@ function validateMultisigPSBT(psbt: bitcoinjs.Psbt): boolean {
 
       try {
         const script = bitcoinjs.script.decompile(input.witnessScript)
-        console.log(`🔍 validateMultisigPSBT: Input ${i} script:`, script)
         if (script && script.length >= 3) {
           const op = script[0]
-          console.log(
-            `🔍 validateMultisigPSBT: Input ${i} first op:`,
-            op,
-            'type:',
-            typeof op
-          )
           if (typeof op === 'number' && op >= 81 && op <= 96) {
             threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
-            console.log(
-              `🔍 validateMultisigPSBT: Input ${i} threshold:`,
-              threshold
-            )
             // Count only the Buffer elements (public keys) in the script
             // Script format: [OP_M, pubkey1, pubkey2, ..., pubkeyN, OP_N, OP_CHECKMULTISIG]
             const publicKeyCount = script.filter(
@@ -119,32 +82,18 @@ function validateMultisigPSBT(psbt: bitcoinjs.Psbt): boolean {
                 (Buffer.isBuffer(item) || (item as any).type === 'Buffer')
             ).length
             totalKeys = publicKeyCount
-            console.log(
-              `🔍 validateMultisigPSBT: Input ${i} total keys:`,
-              totalKeys
-            )
           } else {
-            console.log(`❌ validateMultisigPSBT: Input ${i} invalid op:`, op)
+            // Invalid op code
           }
         } else {
-          console.log(
-            `❌ validateMultisigPSBT: Input ${i} script too short:`,
-            script?.length
-          )
+          // Script too short
         }
-      } catch (error) {
-        console.log(
-          `❌ validateMultisigPSBT: Input ${i} script parsing error:`,
-          error
-        )
+      } catch (_error) {
         return false
       }
 
       // Validate threshold and key count
       if (threshold === 0 || totalKeys === 0 || threshold > totalKeys) {
-        console.log(
-          `❌ validateMultisigPSBT: Input ${i} invalid threshold/key count: threshold=${threshold}, totalKeys=${totalKeys}`
-        )
         return false
       }
 
@@ -154,25 +103,17 @@ function validateMultisigPSBT(psbt: bitcoinjs.Psbt): boolean {
         signatureCount = Array.isArray(input.partialSig)
           ? input.partialSig.length
           : 1
-        console.log(
-          `🔍 validateMultisigPSBT: Input ${i} signature count:`,
-          signatureCount
-        )
       } else {
-        console.log(`🔍 validateMultisigPSBT: Input ${i} no partial signatures`)
+        // No partial signatures
       }
 
       // For multisig, we should have at least some signatures
       if (signatureCount === 0) {
-        console.log(`❌ validateMultisigPSBT: Input ${i} no signatures found`)
         return false
       }
 
       // Validate that we don't have more signatures than total keys
       if (signatureCount > totalKeys) {
-        console.log(
-          `❌ validateMultisigPSBT: Input ${i} too many signatures: ${signatureCount} > ${totalKeys}`
-        )
         return false
       }
 
@@ -490,9 +431,6 @@ export function validateSignedPSBTForCosigner(
       } else {
         // If we can't determine the public key, we can't validate cosigner-specific signatures
         // In this case, we'll fall back to basic validation but show a warning
-        console.warn(
-          `Could not determine public key for cosigner ${cosignerIndex}`
-        )
         return true
       }
     }

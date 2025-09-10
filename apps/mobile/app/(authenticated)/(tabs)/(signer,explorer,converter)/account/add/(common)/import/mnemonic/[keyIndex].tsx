@@ -1,17 +1,17 @@
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  getDescriptorsFromKeyData,
+  getDescriptorsFromKeyData as _getDescriptorsFromKeyData,
   getExtendedPublicKeyFromMnemonic,
-  getFingerprint,
-  validateMnemonic
+  getFingerprint as _getFingerprint,
+  validateMnemonic as _validateMnemonic
 } from '@/api/bdk'
-import SSButton from '@/components/SSButton'
+import SSButton as _SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -61,12 +61,12 @@ export default function ImportMnemonic() {
     clearAccount,
     setMnemonic,
     passphrase,
-    setPassphrase,
+    setPassphrase: _setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     setKey,
     getAccountData,
-    updateKeySecret,
+    updateKeySecret: _updateKeySecret,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -130,7 +130,7 @@ export default function ImportMnemonic() {
 
     // Set the key with the current data
     try {
-      const currentKey = setKey(Number(keyIndex))
+      const _currentKey = setKey(Number(keyIndex))
     } catch (error) {
       setLoadingAccount(false)
       toast.error(`Failed to set key: ${(error as Error).message}`)
@@ -190,7 +190,7 @@ export default function ImportMnemonic() {
       }
 
       // Set the key with the current data
-      const currentKey = setKey(Number(keyIndex))
+      const _currentKey = setKey(Number(keyIndex))
       setLoadingAccount(false)
       toast.success('Key imported successfully')
       // Navigate back to multisig setup (just one screen back)

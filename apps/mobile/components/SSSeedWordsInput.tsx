@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
+import { View } from 'react-native'
 import { toast } from 'sonner-native'
 import * as Clipboard from 'expo-clipboard'
 
@@ -106,7 +106,7 @@ export default function SSSeedWordsInput({
     if (autoCheckClipboard) {
       readSeedFromClipboard()
     }
-  }, [autoCheckClipboard])
+  }, [autoCheckClipboard, readSeedFromClipboard])
 
   // Check if clipboard contains valid seed
   const checkClipboardForSeed = async (text: string): Promise<string[]> => {
@@ -162,7 +162,7 @@ export default function SSSeedWordsInput({
       } else {
         toast.error('No valid seed found in clipboard')
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to read clipboard')
     }
   }
@@ -265,7 +265,7 @@ export default function SSSeedWordsInput({
   }
 
   // Get current mnemonic
-  const getCurrentMnemonic = () => {
+  const _getCurrentMnemonic = () => {
     return seedWordsInfo.map((info) => info.value).join(' ')
   }
 
