@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { SSIconCloseThin } from '@/components/icons'
@@ -10,6 +10,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -37,6 +38,8 @@ export default function NetworkSettings() {
       state.removeCustomServer
     ])
   )
+
+  const [connectionState] = useVerifyConnection()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>
@@ -101,36 +104,43 @@ export default function NetworkSettings() {
                                 server.network
                             }
                           />
-                          <SSVStack gap="none" style={{ flexGrow: 1 }}>
-                            <SSText
-                              style={{
-                                lineHeight: 16,
-                                textTransform: 'capitalize'
-                              }}
-                              size="md"
-                            >
-                              {`${server.name} (${server.backend})`}
-                            </SSText>
-                            <SSHStack gap="xs">
-                              {selectedServers[network].url === server.url &&
-                                selectedServers[network].network ===
-                                  server.network &&
-                                server.network === selectedNetwork && (
-                                  <SSText
-                                    style={{
-                                      lineHeight: 14,
-                                      color: Colors.mainGreen,
-                                      opacity: 0.6
-                                    }}
-                                  >
-                                    {t('common.connected')}
-                                  </SSText>
-                                )}
-                              <SSText style={{ lineHeight: 14 }} color="muted">
-                                {server.url}
+                          <TouchableOpacity
+                            onPress={() => handleSelectServer(network, server)}
+                          >
+                            <SSVStack gap="none" style={{ flexGrow: 1 }}>
+                              <SSText
+                                style={{
+                                  lineHeight: 16,
+                                  textTransform: 'capitalize'
+                                }}
+                                size="md"
+                              >
+                                {`${server.name} (${server.backend})`}
                               </SSText>
-                            </SSHStack>
-                          </SSVStack>
+                              <SSHStack gap="xs">
+                                {selectedServers[network].url === server.url &&
+                                  selectedServers[network].network ===
+                                    server.network &&
+                                  server.network === selectedNetwork && (
+                                    <SSText
+                                      style={{
+                                        lineHeight: 14,
+                                        color: Colors.mainGreen,
+                                        opacity: 0.6
+                                      }}
+                                    >
+                                      {t('common.connected')}
+                                    </SSText>
+                                  )}
+                                <SSText
+                                  style={{ lineHeight: 14 }}
+                                  color="muted"
+                                >
+                                  {server.url}
+                                </SSText>
+                              </SSHStack>
+                            </SSVStack>
+                          </TouchableOpacity>
                           {customServers.includes(server) && (
                             <SSIconButton
                               style={{

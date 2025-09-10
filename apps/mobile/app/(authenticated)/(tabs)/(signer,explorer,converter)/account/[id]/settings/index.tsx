@@ -24,6 +24,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
+import { useAuthStore } from '@/store/auth'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
@@ -69,6 +70,8 @@ export default function AccountSettings() {
     (state) => state.removeAccountWallet
   )
 
+  const skipPin = useAuthStore((state) => state.skipPin)
+
   const [scriptVersion, setScriptVersion] = useState<Key['scriptVersion']>(
     account?.keys[0]?.scriptVersion || 'P2WPKH'
   )
@@ -104,8 +107,12 @@ export default function AccountSettings() {
   }
 
   function handleOnViewMnemonic() {
-    setPin(Array(4).fill(''))
-    setShowPinEntry(true)
+    if (skipPin) {
+      setMnemonicModalVisible(true)
+    } else {
+      setPin(Array(4).fill(''))
+      setShowPinEntry(true)
+    }
   }
 
   async function handlePinEntry(pinString: string) {
@@ -492,7 +499,7 @@ export default function AccountSettings() {
               </SSText>
               <SSHStack style={{ justifyContent: 'center' }}>
                 <SSText uppercase color="muted">
-                  {t('account.seed.keepItSecret')}
+                  {t('account.seed.keepInSecret')}
                 </SSText>
               </SSHStack>
               <View style={styles.mnemonicWordsContainer}>
@@ -569,7 +576,7 @@ export default function AccountSettings() {
                   />
                 </SSClipboardCopy>
                 <SSButton
-                  label={t('account.seed.seedqr.title')}
+                  label={t('account.seed.showQR')}
                   style={styles.copyButton}
                   variant="outline"
                   onPress={() => {

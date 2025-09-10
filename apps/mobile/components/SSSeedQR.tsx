@@ -56,7 +56,7 @@ export default function SSSeedQR({
           </SSText>
         )}
         <SSText center uppercase>
-          {t('account.seed.seedqr.title')}
+          {t('account.seed.qr.title')}
         </SSText>
         {formattedMnemonic ? (
           <>
@@ -76,12 +76,12 @@ export default function SSSeedQR({
               </Pressable>
             </View>
             <SSText center color="muted" size="sm">
-              {t('account.seedqr.standardDescription')}
+              {t('account.seed.qr.description')}
             </SSText>
           </>
         ) : (
           <SSText center color="muted">
-            {t('account.seed.seedqr.title')}
+            {t('account.seed.qr.title')}
           </SSText>
         )}
       </SSVStack>
