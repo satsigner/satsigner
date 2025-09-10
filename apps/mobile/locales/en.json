@@ -8,26 +8,19 @@
     "confirmSeed.tryAgain": "Selected word doesn't match the original seed",
     "confirmSeed.warning": "Review and try again",
     "createdOn": "Created on",
-    "delete": {
-      "title": "Delete Account"
-    },
+    "delete.title": "Delete Account",
     "derivationPath": "Derivation path",
-    "descriptor": {
-      "checksum": "Checksum",
-      "components": "Descriptor Components",
-      "creationType": "Creation Type: %{type}",
-      "derivationPath": "Derivation Path",
-      "fingerprint": "Fingerprint",
-      "publicKey": "Public Key",
-      "scriptFunction": "Script Function",
-      "scriptVersion": "Script Version: %{version}",
-      "title": "Descriptor"
-    },
+    "descriptor.checksum": "Checksum",
+    "descriptor.components": "Descriptor Components",
+    "descriptor.creationType": "Creation Type: %{type}",
+    "descriptor.derivationPath": "Derivation Path",
+    "descriptor.fingerprint": "Fingerprint",
+    "descriptor.publicKey": "Public Key",
+    "descriptor.scriptFunction": "Script Function",
+    "descriptor.scriptVersion": "Script Version: %{version}",
+    "descriptor.title": "Descriptor",
     "descriptors.noAvailable": "No descriptors available",
-    "duplicate": {
-      "title": "Duplicate Account"
-    },
-    "duplicate.title": "Duplicate account",
+    "duplicate.title": "Duplicate Account",
     "enter.pin": "Enter pin",
     "entropy.coin.desc.12": "To achieve 128 bits of entropy, you need to flip a fair coin about 128 times, as each flip provides 1 bit of randomness.",
     "entropy.coin.desc.15": "To achieve 160 bits of entropy, you need to flip a fair coin about 160 times, as each flip provides 1 bit of randomness.",
@@ -85,6 +78,20 @@
     },
     "import.descriptor": "Import Descriptor",
     "import.error": "Failed to import key",
+    "import.error.checksumFormat": "Invalid checksum format",
+    "import.error.checksumInvalid": "Invalid checksum",
+    "import.error.derivationPathBracket": "Unclosed derivation path bracket",
+    "import.error.derivationPathComponent": "Invalid derivation path component",
+    "import.error.descriptorFormat": "Invalid descriptor format",
+    "import.error.descriptorIncompatible": "Descriptor is incompatible with multisig script version",
+    "import.error.fingerprintFormat": "Invalid fingerprint format",
+    "import.error.missingDerivationPath": "Missing derivation path",
+    "import.error.missingParenthesis": "Missing closing parenthesis",
+    "import.error.networkIncompatible": "Descriptor is not compatible with the selected network",
+    "import.error.scriptFunctionInvalid": "Unknown or invalid script function",
+    "import.error.scriptVersionMismatch": "Script type \"%{scriptType}\" is not compatible with multisig script version \"%{scriptVersion}\". Expected: %{expectedTypes}",
+    "import.error.unexpectedBracket": "Unexpected closing bracket in derivation path",
+    "import.error.xpubIncompatible": "Extended public key is incompatible with multisig script version",
     "import.existingSingleWallet": "Exisiting Single Key Wallets",
     "import.extendedPub": "Import Extended Public Key",
     "import.fromOtherWallet": "Select From Other Wallets",
@@ -123,10 +130,8 @@
     "multisig.gotoWallet": "Go to Wallet",
     "multisig.viewAllWallets": "View All Wallets",
     "name": "Name",
-    "network": {
-      "description": "Network: %{network}",
-      "title": "Network"
-    },
+    "network.description": "Network: %{network}",
+    "network.title": "Network",
     "nostrSync.autoSync": "Auto Sync",
     "nostrSync.commonNostrKeys": "Shared Descriptior Keys",
     "nostrSync.deriveNsec": "Derive nsec",
@@ -164,65 +169,45 @@
     "nostrSync.tabs.manual": "Manual",
     "nostrSync.title": "Nostr Sync",
     "parentAccountActivity": "Parent Account Activity",
-    "participant": {
-      "keyName": "Key Name"
-    },
-    "policy": {
-      "multiSignature": {
-        "description": "Add multiple signers",
-        "title": "Multi-Signature"
-      },
-      "singleSignature": {
-        "description": "Basic wallet for signing with keys stored in satsigner or from external devices",
-        "title": "Single Signature"
-      },
-      "title": "Policy Type",
-      "watchOnly": {
-        "description": "Watch a single address or xpub",
-        "title": "Watch Only"
-      }
-    },
+    "participant.participant.keyName": "Key Name",
+    "policy.multiSignature.description": "Add multiple signers",
+    "policy.multiSignature.title": "Multi-Signature",
+    "policy.singleSignature.description": "Basic wallet for signing with keys stored in satsigner or from external devices",
+    "policy.singleSignature.title": "Single Signature",
+    "policy.title": "Policy Type",
+    "policy.watchOnly.description": "Watch a single address or xpub",
+    "policy.watchOnly.title": "Watch Only",
     "receive": "Receive",
     "replace.key": "Replace key",
     "script": "Script",
-    "seed": {
-      "dropAndKeep": {
-        "tpub": "Drop Seed & Keep TPub",
-        "upub": "Drop Seed & Keep TPub/UPub",
-        "vpub": "Drop Seed & Keep TPub/VPub",
-        "xpub": "Drop Seed & Keep XPub",
-        "ypub": "Drop Seed & Keep XPub/YPub",
-        "zpub": "Drop Seed & Keep XPub/ZPub"
-      },
-      "dropSeedConfirm": {
-        "confirm": "Drop Seed",
-        "message": "This will permanently remove the seed (mnemonic) from this key. You will only be able to use the extended public key for signing. This action cannot be undone.",
-        "title": "Drop Seed"
-      },
-      "dropSeedError": "Failed to drop seed",
-      "dropSeedSuccess": "Seed dropped successfully",
-      "droppedSeed": "Dropped Seed (%{name})",
-      "external": "External Descriptor",
-      "formatButtons": {
-        "tpub": "TPUB",
-        "upub": "UPUB",
-        "vpub": "VPUB",
-        "xpub": "XPUB",
-        "ypub": "YPUB",
-        "zpub": "ZPUB"
-      },
-      "importedSeed": "Imported Seed (%{name})",
-      "newSeed": "New Seed (%{name})",
-      "noLabel": "No Label",
-      "publicKey": "Public Key",
-      "shareDescriptor": "Share Descriptor",
-      "shareTpub": "Share TPub",
-      "shareUpub": "Share TPub/UPub",
-      "shareVpub": "Share TPub/VPub",
-      "shareXpub": "Share XPub",
-      "shareYpub": "Share XPub/YPub",
-      "shareZpub": "Share XPub/ZPub"
-    },
+    "seed.dropAndKeep.tpub": "Drop Seed & Keep TPub",
+    "seed.dropAndKeep.upub": "Drop Seed & Keep TPub/UPub",
+    "seed.dropAndKeep.vpub": "Drop Seed & Keep TPub/VPub",
+    "seed.dropAndKeep.xpub": "Drop Seed & Keep XPub",
+    "seed.dropAndKeep.ypub": "Drop Seed & Keep XPub/YPub",
+    "seed.dropAndKeep.zpub": "Drop Seed & Keep XPub/ZPub",
+    "seed.dropSeedConfirm.confirm": "Drop Seed",
+    "seed.dropSeedConfirm.message": "This will permanently remove the seed (mnemonic) from this key. You will only be able to use the extended public key for signing. This action cannot be undone.",
+    "seed.dropSeedConfirm.title": "Drop Seed",
+    "seed.dropSeedError": "Failed to drop seed",
+    "seed.dropSeedSuccess": "Seed dropped successfully",
+    "seed.droppedSeed": "Dropped Seed (%{name})",
+    "seed.external": "External Descriptor",
+    "seed.importedSeed": "Imported Seed (%{name})",
+    "seed.keepInSecret": "Keep your mnemonic words in secret !",
+    "seed.newSeed": "New Seed (%{name})",
+    "seed.noLabel": "No Label",
+    "seed.publicKey": "Public Key",
+    "seed.qr.description": "This QR code has your mnemonic seed encoded.",
+    "seed.qr.title": "Mnemonic Seed QR Code",
+    "seed.shareDescriptor": "Share Descriptor",
+    "seed.shareTpub": "Share TPub",
+    "seed.shareUpub": "Share TPub/UPub",
+    "seed.shareVpub": "Share TPub/VPub",
+    "seed.shareXpub": "Share XPub",
+    "seed.shareYpub": "Share XPub/YPub",
+    "seed.shareZpub": "Share XPub/ZPub",
+    "seed.showQR": "Show QR Code",
     "selectKeySource": "Select Key Source",
     "settings.title": "Account Settings and Tools",
     "signAndSend": "Sign & Send",
@@ -542,20 +527,16 @@
     "mempool.title": "Mempool"
   },
   "export": {
-    "descriptor": {
-      "description": "Export the descriptor for this key",
-      "title": "Export Descriptor"
-    },
+    "descriptor.description": "Export the descriptor for this key",
+    "descriptor.title": "Export Descriptor",
     "file.name.descriptors": "Descriptors",
     "file.name.labels": "Labels",
     "file.save": "Save file",
-    "publicKey": {
-      "description": "Export the public key for this key in various formats",
-      "export": "Export Public Key",
-      "format": "Format",
-      "publicKey": "Public Key",
-      "title": "Export Public Key"
-    }
+    "publicKey.description": "Export the public key for this key in various formats",
+    "publicKey.export": "Export Public Key",
+    "publicKey.format": "Format",
+    "publicKey.publicKey": "Public Key",
+    "publicKey.title": "Export Public Key"
   },
   "files": {
     "csv": "CSV",
@@ -1243,9 +1224,7 @@
     "importExtendedPub.label": "XPUB / YPUB / ZPUB",
     "importExtendedPub.text": "An extended public key is a type of key used in Bitcoin that allows for the generation of multiple public addresses from a single key. It is part of the hierarchical deterministic (HD) wallet structure defined by BIP32. An xpub can generate child public keys, which can be used to receive funds without exposing the corresponding private keys. This feature is useful for managing multiple addresses while maintaining privacy and security, as users can receive payments at different addresses without needing to create new wallets or expose sensitive information.",
     "importExtendedPub.title": "Extended Public Key",
-    "info": {
-      "vpubConverted": "Converted %{vpub} to %{tpub} format for compatibility"
-    },
+    "info.vpubConverted": "Converted %{vpub} to %{tpub} format for compatibility",
     "inputPlaceholder": "Enter %{option}",
     "read.clipboard": "Paste from clipboard",
     "read.computerVision": "Computer Vision text",
@@ -1255,15 +1234,11 @@
     "read.qrError": "Failed to scan QR code",
     "read.qrcode": "Scan qrcode",
     "read.scanning": "Scanning NFC",
-    "success": {
-      "accountCreated": "Watch-only account created successfully",
-      "clipboardPasted": "Data pasted from clipboard successfully",
-      "nfcRead": "NFC data read successfully",
-      "qrScanned": "QR code scanned successfully"
-    },
+    "success.accountCreated": "Watch-only account created successfully",
+    "success.clipboardPasted": "Data pasted from clipboard successfully",
+    "success.nfcRead": "NFC data read successfully",
+    "success.qrScanned": "QR code scanned successfully",
     "titleModal": "Watch-only wallet",
-    "warning": {
-      "syncFailed": "Account created but failed to sync. You can try syncing later."
-    }
+    "warning.syncFailed": "Account created but failed to sync. You can try syncing later."
   }
 }
