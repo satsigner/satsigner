@@ -37,7 +37,11 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
-import { type Key, type MnemonicCount, type Secret } from '@/types/models/Account'
+import {
+  type Key,
+  type MnemonicCount,
+  type Secret
+} from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -1374,12 +1378,12 @@ function PreviewMessage() {
   // Handle mnemonic validation from the component
   const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
     setCurrentMnemonic(mnemonic)
-    setCurrentFingerprint(fingerprint)
+    _setCurrentFingerprint(fingerprint)
   }
 
   const handleMnemonicInvalid = () => {
     setCurrentMnemonic('')
-    setCurrentFingerprint('')
+    _setCurrentFingerprint('')
   }
 
   // Handle seed words form submission
@@ -1394,7 +1398,7 @@ function PreviewMessage() {
     // Clear the form and close modals
     setSeedWordsModalVisible(false)
     setCurrentMnemonic('')
-    setCurrentFingerprint('')
+    _setCurrentFingerprint('')
     setCurrentCosignerIndex(null)
   }
 
@@ -2568,7 +2572,7 @@ function PreviewMessage() {
           onClose={() => {
             setSeedWordsModalVisible(false)
             setCurrentMnemonic('')
-            setCurrentFingerprint('')
+            _setCurrentFingerprint('')
             setCurrentCosignerIndex(null)
           }}
         >
