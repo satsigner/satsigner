@@ -1,6 +1,5 @@
 import { useAuthStore } from '@/store/auth'
 import { type Account, type Key } from '@/types/models/Account'
-
 import { aesDecrypt, getPinForDecryption } from '@/utils/crypto'
 
 /**
