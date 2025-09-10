@@ -2427,14 +2427,15 @@ function PreviewMessage() {
               {scanProgress.type
                 ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
                 : currentCosignerIndex !== null &&
-                    !(
-                      decryptedKeys[currentCosignerIndex]?.secret &&
-                      typeof decryptedKeys[currentCosignerIndex]?.secret ===
-                        'object' &&
-                      'mnemonic' in
-                        decryptedKeys[currentCosignerIndex]?.secret &&
-                      decryptedKeys[currentCosignerIndex]?.secret?.mnemonic
-                    )
+                    (() => {
+                      const secret = decryptedKeys[currentCosignerIndex]?.secret
+                      return !(
+                        secret &&
+                        typeof secret === 'object' &&
+                        'mnemonic' in secret &&
+                        (secret as Secret)?.mnemonic
+                      )
+                    })()
                   ? 'Scan Seed QR Code'
                   : t('camera.scanQRCode')}
             </SSText>
