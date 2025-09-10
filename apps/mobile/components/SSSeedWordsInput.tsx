@@ -356,9 +356,3 @@ export default function SSSeedWordsInput({
     </SSVStack>
   )
 }
-
-// Export utility functions for external use
-export { type SeedWordInfo }
-export const getCurrentMnemonic = (seedWordsInfo: SeedWordInfo[]) => {
-  return seedWordsInfo.map((info) => info.value).join(' ')
-}
