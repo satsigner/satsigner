@@ -101,6 +101,22 @@ export default function SSSeedWordsInput({
     setSeedWordsInfo(initialSeedWordsInfo)
   }, [wordCount])
 
+  // Handle paste from clipboard
+  const readSeedFromClipboard = async () => {
+    try {
+      const text = (await Clipboard.getStringAsync()).trim()
+      const seed = await checkClipboardForSeed(text)
+      if (seed.length > 0) {
+        await fillOutSeedWords(seed)
+        toast.success('Seed words pasted from clipboard')
+      } else {
+        toast.error('No valid seed found in clipboard')
+      }
+    } catch (_error) {
+      toast.error('Failed to read clipboard')
+    }
+  }
+
   // Check clipboard when component mounts if autoCheckClipboard is enabled
   useEffect(() => {
     if (autoCheckClipboard) {
@@ -148,22 +164,6 @@ export default function SSSeedWordsInput({
       onMnemonicValid?.(mnemonic, fingerprintResult)
     } else {
       onMnemonicInvalid?.()
-    }
-  }
-
-  // Handle paste from clipboard
-  const readSeedFromClipboard = async () => {
-    try {
-      const text = (await Clipboard.getStringAsync()).trim()
-      const seed = await checkClipboardForSeed(text)
-      if (seed.length > 0) {
-        await fillOutSeedWords(seed)
-        toast.success('Seed words pasted from clipboard')
-      } else {
-        toast.error('No valid seed found in clipboard')
-      }
-    } catch (_error) {
-      toast.error('Failed to read clipboard')
     }
   }
 
