@@ -5,9 +5,7 @@ import { ScrollView } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import {
-  getExtendedPublicKeyFromMnemonic
-} from '@/api/bdk'
+import { getExtendedPublicKeyFromMnemonic } from '@/api/bdk'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
