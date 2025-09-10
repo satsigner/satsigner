@@ -64,9 +64,7 @@ describe('Network-aware key handling', () => {
       expect(getKeyFormatForScriptVersion('P2TR', 'bitcoin')).toBe('vpub')
       expect(getKeyFormatForScriptVersion('P2WSH', 'bitcoin')).toBe('xpub')
       expect(getKeyFormatForScriptVersion('P2SH-P2WSH', 'bitcoin')).toBe('xpub')
-      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'bitcoin')).toBe(
-        'xpub'
-      )
+      expect(getKeyFormatForScriptVersion('P2SH', 'bitcoin')).toBe('xpub')
     })
 
     it('should return correct formats for testnet', () => {
@@ -78,9 +76,7 @@ describe('Network-aware key handling', () => {
       expect(getKeyFormatForScriptVersion('P2TR', 'testnet')).toBe('vpub')
       expect(getKeyFormatForScriptVersion('P2WSH', 'testnet')).toBe('tpub')
       expect(getKeyFormatForScriptVersion('P2SH-P2WSH', 'testnet')).toBe('tpub')
-      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'testnet')).toBe(
-        'tpub'
-      )
+      expect(getKeyFormatForScriptVersion('P2SH', 'testnet')).toBe('tpub')
     })
 
     it('should return correct formats for signet', () => {
@@ -90,7 +86,7 @@ describe('Network-aware key handling', () => {
       expect(getKeyFormatForScriptVersion('P2TR', 'signet')).toBe('vpub')
       expect(getKeyFormatForScriptVersion('P2WSH', 'signet')).toBe('tpub')
       expect(getKeyFormatForScriptVersion('P2SH-P2WSH', 'signet')).toBe('tpub')
-      expect(getKeyFormatForScriptVersion('Legacy P2SH', 'signet')).toBe('tpub')
+      expect(getKeyFormatForScriptVersion('P2SH', 'signet')).toBe('tpub')
     })
   })
 
@@ -209,7 +205,7 @@ describe('getDerivationPathFromScriptVersion', () => {
     expect(getDerivationPathFromScriptVersion('P2SH-P2WSH', 'bitcoin')).toBe(
       "48'/0'/0'/1'"
     )
-    expect(getDerivationPathFromScriptVersion('Legacy P2SH', 'bitcoin')).toBe(
+    expect(getDerivationPathFromScriptVersion('P2SH', 'bitcoin')).toBe(
       "45'/0'/0'"
     )
   })
@@ -233,7 +229,7 @@ describe('getDerivationPathFromScriptVersion', () => {
     expect(getDerivationPathFromScriptVersion('P2SH-P2WSH', 'testnet')).toBe(
       "48'/1'/0'/1'"
     )
-    expect(getDerivationPathFromScriptVersion('Legacy P2SH', 'testnet')).toBe(
+    expect(getDerivationPathFromScriptVersion('P2SH', 'testnet')).toBe(
       "45'/1'/0'"
     )
   })
@@ -257,7 +253,7 @@ describe('getDerivationPathFromScriptVersion', () => {
     expect(getDerivationPathFromScriptVersion('P2SH-P2WSH', 'signet')).toBe(
       "48'/1'/0'/1'"
     )
-    expect(getDerivationPathFromScriptVersion('Legacy P2SH', 'signet')).toBe(
+    expect(getDerivationPathFromScriptVersion('P2SH', 'signet')).toBe(
       "45'/1'/0'"
     )
   })
@@ -295,9 +291,9 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('P2SH-P2WSH', 'bitcoin')
     ).toBe("48'/0'/0'/1'")
-    expect(
-      getMultisigDerivationPathFromScriptVersion('Legacy P2SH', 'bitcoin')
-    ).toBe("45'/0'/0'")
+    expect(getMultisigDerivationPathFromScriptVersion('P2SH', 'bitcoin')).toBe(
+      "45'/0'/0'"
+    )
   })
 
   test('should return correct multisig derivation paths for testnet', () => {
@@ -319,9 +315,9 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('P2SH-P2WSH', 'testnet')
     ).toBe("48'/1'/0'/1'")
-    expect(
-      getMultisigDerivationPathFromScriptVersion('Legacy P2SH', 'testnet')
-    ).toBe("45'/1'/0'")
+    expect(getMultisigDerivationPathFromScriptVersion('P2SH', 'testnet')).toBe(
+      "45'/1'/0'"
+    )
   })
 
   test('should return correct multisig derivation paths for signet', () => {
@@ -343,9 +339,9 @@ describe('getMultisigDerivationPathFromScriptVersion', () => {
     expect(
       getMultisigDerivationPathFromScriptVersion('P2SH-P2WSH', 'signet')
     ).toBe("48'/1'/0'/1'")
-    expect(
-      getMultisigDerivationPathFromScriptVersion('Legacy P2SH', 'signet')
-    ).toBe("45'/1'/0'")
+    expect(getMultisigDerivationPathFromScriptVersion('P2SH', 'signet')).toBe(
+      "45'/1'/0'"
+    )
   })
 
   test('should return default multisig derivation path for unknown script version', () => {

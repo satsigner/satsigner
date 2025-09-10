@@ -190,7 +190,7 @@ export default function DescriptorPage() {
                 break
               case 'P2WSH':
               case 'P2SH-P2WSH':
-              case 'Legacy P2SH':
+              case 'P2SH':
                 // For multisig script types, we need to create descriptors manually
                 throw new Error(
                   `Manual descriptor creation required for ${key.scriptVersion}`
@@ -257,7 +257,7 @@ export default function DescriptorPage() {
               case 'P2SH-P2WSH':
                 descriptorString = `sh(wsh(${keyPart}))`
                 break
-              case 'Legacy P2SH':
+              case 'P2SH':
                 descriptorString = `sh(${keyPart})`
                 break
               default:
@@ -326,7 +326,7 @@ export default function DescriptorPage() {
                   case 'P2SH-P2WSH':
                     descriptorString = `sh(wsh(${keyPart}))`
                     break
-                  case 'Legacy P2SH':
+                  case 'P2SH':
                     descriptorString = `sh(${keyPart})`
                     break
                   default:
@@ -367,7 +367,7 @@ export default function DescriptorPage() {
                 case 'P2SH-P2WSH':
                   descriptorString = `sh(wsh(${keyPart}))`
                   break
-                case 'Legacy P2SH':
+                case 'P2SH':
                   descriptorString = `sh(${keyPart})`
                   break
                 default:

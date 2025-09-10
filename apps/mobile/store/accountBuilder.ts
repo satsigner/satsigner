@@ -13,30 +13,50 @@ import {
 } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/**
+ * State interface for account builder store
+ */
 type AccountBuilderState = {
+  // Basic account information
   name: Account['name']
   network: Account['network']
   policyType: Account['policyType']
+
+  // Key information
   keyName: NonNullable<Key['name']>
   creationType: Key['creationType']
   entropy: EntropyType
   mnemonicWordCount: NonNullable<Key['mnemonicWordCount']>
   mnemonic: NonNullable<Secret['mnemonic']>
   passphrase?: Secret['passphrase']
+
+  // Descriptor and key data
   externalDescriptor?: Secret['externalDescriptor']
   internalDescriptor?: Secret['internalDescriptor']
   extendedPublicKey?: Secret['extendedPublicKey']
   fingerprint?: Key['fingerprint']
   scriptVersion: NonNullable<Key['scriptVersion']>
+
+  // Multi-signature configuration
   keys: Account['keys']
   keyCount: Account['keyCount']
   keysRequired: Account['keysRequired']
 }
 
+/**
+ * Actions interface for account builder store
+ */
 type AccountBuilderAction = {
+  // Account configuration setters
   setName: (name: AccountBuilderState['name']) => void
   setNetwork: (network: AccountBuilderState['network']) => void
   setPolicyType: (policyType: AccountBuilderState['policyType']) => void
+
+  // Key configuration setters
   setKeyName: (keyName: AccountBuilderState['keyName']) => void
   setCreationType: (creationType: Key['creationType']) => void
   setEntropy: (entropy: AccountBuilderState['entropy']) => void
@@ -45,6 +65,8 @@ type AccountBuilderAction = {
   ) => void
   setMnemonic: (mnemonic: AccountBuilderState['mnemonic']) => void
   setPassphrase: (passphrase: AccountBuilderState['passphrase']) => void
+
+  // Descriptor and key setters
   setExternalDescriptor: (
     externalDescriptor: NonNullable<Secret['externalDescriptor']>
   ) => void
@@ -60,6 +82,8 @@ type AccountBuilderAction = {
   setScriptVersion: (
     scriptVersion: AccountBuilderState['scriptVersion']
   ) => void
+
+  // Key management
   setKey: (index: Key['index']) => Key
   updateKeySecret: (index: Key['index'], newSecret: Key['secret']) => void
   updateKeyFingerprint: (
@@ -70,8 +94,12 @@ type AccountBuilderAction = {
     index: Key['index'],
     derivationPath: NonNullable<Key['derivationPath']>
   ) => void
+
+  // Multi-signature configuration
   setKeyCount: (keyCount: AccountBuilderState['keyCount']) => void
   setKeysRequired: (keysRequired: AccountBuilderState['keysRequired']) => void
+
+  // Utility functions
   getAccountData: () => Account
   clearKeyState: () => void
   clearAccount: () => void
@@ -81,72 +109,124 @@ type AccountBuilderAction = {
   ) => Promise<{ success: boolean; message: string }>
 }
 
+// =============================================================================
+// INITIAL STATE
+// =============================================================================
+
+/**
+ * Initial state for account builder store
+ */
 const initialState: AccountBuilderState = {
+  // Basic account information
   name: '',
   network: 'signet',
   policyType: 'singlesig',
+
+  // Key information
   keyName: '',
   creationType: 'importMnemonic',
   entropy: 'none',
   mnemonicWordCount: 24,
   mnemonic: '',
   passphrase: undefined,
+
+  // Descriptor and key data
   externalDescriptor: undefined,
   internalDescriptor: undefined,
   extendedPublicKey: undefined,
   fingerprint: undefined,
   scriptVersion: 'P2WPKH',
+
+  // Multi-signature configuration
   keys: [],
   keyCount: 0,
   keysRequired: 0
 }
 
+// =============================================================================
+// STORE IMPLEMENTATION
+// =============================================================================
+
+/**
+ * Account builder store using Zustand with Immer for immutable updates
+ */
 const useAccountBuilderStore = create<
   AccountBuilderState & AccountBuilderAction
 >()((set, get) => ({
   ...initialState,
+
+  // ===========================================================================
+  // ACCOUNT CONFIGURATION ACTIONS
+  // ===========================================================================
+
   setName: (name) => {
     set({ name })
   },
+
   setNetwork: (network) => {
     set({ network })
   },
+
   setPolicyType: (policyType) => {
     set({ policyType })
   },
+
+  // ===========================================================================
+  // KEY CONFIGURATION ACTIONS
+  // ===========================================================================
+
   setKeyName: (keyName) => {
     set({ keyName })
   },
+
   setCreationType: (creationType) => {
     set({ creationType })
   },
+
   setEntropy: (entropy) => {
     set({ entropy })
   },
+
   setMnemonicWordCount: (mnemonicWordCount) => {
     set({ mnemonicWordCount })
   },
+
   setMnemonic: (mnemonic) => {
     set({ mnemonic })
   },
+
   setPassphrase: (passphrase) => {
     set({ passphrase })
   },
+
+  // ===========================================================================
+  // DESCRIPTOR AND KEY ACTIONS
+  // ===========================================================================
+
   setExternalDescriptor: (externalDescriptor) => {
     set({ externalDescriptor })
   },
+
   setInternalDescriptor: (internalDescriptor) => {
     set({ internalDescriptor })
   },
+
   setExtendedPublicKey: (extendedPublicKey) => {
     set({ extendedPublicKey })
   },
+
   setFingerprint: (fingerprint) => {
     set({ fingerprint })
   },
+
   setScriptVersion: (scriptVersion) => {
     set({ scriptVersion })
   },
+
+  // ===========================================================================
+  // KEY MANAGEMENT ACTIONS
+  // ===========================================================================
+
   setKey: (index) => {
     const {
       keyName,
@@ -161,9 +241,15 @@ const useAccountBuilderStore = create<
       extendedPublicKey
     } = get()
 
-    // Validate that the key has both fingerprint and public key/descriptor
-    if (!fingerprint) {
-      throw new Error('Fingerprint is required for all keys')
+    // For watch-only accounts with addresses, skip fingerprint requirement
+    const isWatchOnlyAddress =
+      creationType === 'importAddress' && externalDescriptor
+
+    // Validate that the key has either a fingerprint or is a watch-only address
+    if (!fingerprint && !isWatchOnlyAddress) {
+      throw new Error(
+        'Fingerprint is required for all keys except watch-only addresses'
+      )
     }
 
     // Check if we have either a public key or descriptor
@@ -211,12 +297,16 @@ const useAccountBuilderStore = create<
   updateKeyFingerprint: (index, fingerprint) => {
     set(
       produce((state: AccountBuilderState) => {
-        if (
-          state.keys[index] &&
-          state.keys[index].secret &&
-          typeof state.keys[index].secret === 'object'
-        ) {
-          ;(state.keys[index].secret as any).fingerprint = fingerprint
+        if (state.keys[index]) {
+          // Set fingerprint at key level for easy access
+          state.keys[index].fingerprint = fingerprint
+          // Also set in secret for consistency
+          if (
+            state.keys[index].secret &&
+            typeof state.keys[index].secret === 'object'
+          ) {
+            ;(state.keys[index].secret as any).fingerprint = fingerprint
+          }
         }
       })
     )

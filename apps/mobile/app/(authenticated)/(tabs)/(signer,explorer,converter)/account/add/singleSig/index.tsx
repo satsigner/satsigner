@@ -20,6 +20,28 @@ import { type EntropyType } from '@/types/logic/entropy'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
 
+// Function to get user-friendly display names for script versions
+function getScriptVersionDisplayName(scriptVersion: string): string {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return 'Legacy (P2PKH)'
+    case 'P2SH-P2WPKH':
+      return 'Nested Segwit (P2SH-P2WPKH)'
+    case 'P2WPKH':
+      return 'Native Segwit (P2WPKH)'
+    case 'P2TR':
+      return 'Taproot (P2TR)'
+    case 'P2SH':
+      return 'Legacy (P2SH)'
+    case 'P2SH-P2WSH':
+      return 'Nested Segwit (P2SH-P2WSH)'
+    case 'P2WSH':
+      return 'Native Segwit (P2WSH)'
+    default:
+      return scriptVersion
+  }
+}
+
 export default function SingleSig() {
   const router = useRouter()
   const [
@@ -109,13 +131,16 @@ export default function SingleSig() {
           break
         }
       }
-    } else if (type === 'importMnemonic')
+    } else if (type === 'importMnemonic') {
+      // For import, navigate to mnemonic input
       router.navigate('/account/add/import/mnemonic/0')
+    }
   }
 
   function handleOnSelectMnemonicWordCount() {
-    setLocalMnemonicWordCount(localMnemonicWordCount)
+    setMnemonicWordCount(localMnemonicWordCount)
     setMnemonicWordCountModalVisibile(false)
+    // Modal closes and user returns to options screen to select import/generate
   }
 
   function handleOnSelectEntropy() {
@@ -144,9 +169,7 @@ export default function SingleSig() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(
-                  `script.${localScriptVersion.toLocaleLowerCase()}.name`
-                )} (${localScriptVersion})`}
+                label={getScriptVersionDisplayName(localScriptVersion)}
                 withSelect
                 onPress={() => setScriptVersionModalVisible(true)}
               />

@@ -1,5 +1,5 @@
 import { Redirect, Stack, useRouter } from 'expo-router'
-import { useMemo, useEffect } from 'react'
+import { useMemo } from 'react'
 import { ScrollView } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -33,7 +33,7 @@ export default function MultiSigManager() {
     }
 
     // Check that each key has both fingerprint and public key/descriptor
-    const keyValidation = keys.map((key, index) => {
+    const keyValidation = keys.map((key) => {
       if (!key) {
         return false
       }

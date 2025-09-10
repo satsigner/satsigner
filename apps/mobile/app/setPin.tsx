@@ -21,8 +21,12 @@ type Stage = 'set' | 're-enter'
 
 export default function SetPin() {
   const router = useRouter()
-  const [setFirstTime, setRequiresAuth] = useAuthStore(
-    useShallow((state) => [state.setFirstTime, state.setRequiresAuth])
+  const [setFirstTime, setRequiresAuth, setSkipPin] = useAuthStore(
+    useShallow((state) => [
+      state.setFirstTime,
+      state.setRequiresAuth,
+      state.setSkipPin
+    ])
   )
   const showWarning = useSettingsStore((state) => state.showWarning)
 
@@ -48,10 +52,16 @@ export default function SetPin() {
 
   async function handleSetPinLater() {
     setFirstTime(false)
+    setSkipPin(true) // Enable skip PIN mode for users who chose "Set PIN Later"
     await setPin(DEFAULT_PIN)
 
-    if (showWarning) router.push('./warning')
-    else router.replace('/')
+    // Let us clear the history to prevent the user from going back to Set Pin
+    // screen by pressing 'back' button. Otherwise, pressing 'back' will show
+    // the Set Pin and this is not desirable UX.
+    router.dismissAll()
+
+    if (showWarning) router.navigate('./warning')
+    else router.navigate('/')
   }
 
   async function handleConfirmPin() {
@@ -69,6 +79,7 @@ export default function SetPin() {
   async function handleSetPin() {
     if (pinArray.join('') !== confirmationPinArray.join('')) return
     setLoading(true)
+    setSkipPin(false) // Disable skip PIN mode when user sets a custom PIN
     await setPin(pinArray.join(''))
     setLoading(false)
 
