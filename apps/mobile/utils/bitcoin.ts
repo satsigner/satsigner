@@ -288,7 +288,6 @@ export function getMultisigDerivationPathFromScriptVersion(
       // Wrapped SegWit multisig (m/48'/0'/0'/1')
       return `48'/${coinType}'/0'/1'`
     case 'P2SH':
-      // P2SH multisig (m/45'/0'/0')
       return `45'/${coinType}'/0'`
     default:
       // Default to P2WSH for multisig (m/48'/0'/0'/2')
@@ -323,7 +322,6 @@ export function getMultisigScriptTypeFromScriptVersion(
       // Wrapped SegWit multisig
       return 'P2SH-P2WSH'
     case 'P2SH':
-      // P2SH multisig
       return 'P2SH'
     default:
       // Default to P2WSH for multisig

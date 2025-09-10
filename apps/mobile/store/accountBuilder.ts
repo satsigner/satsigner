@@ -13,10 +13,6 @@ import {
 } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
 /**
  * State interface for account builder store
  */
@@ -82,8 +78,6 @@ type AccountBuilderAction = {
   setScriptVersion: (
     scriptVersion: AccountBuilderState['scriptVersion']
   ) => void
-
-  // Key management
   setKey: (index: Key['index']) => Key
   updateKeySecret: (index: Key['index'], newSecret: Key['secret']) => void
   updateKeyFingerprint: (

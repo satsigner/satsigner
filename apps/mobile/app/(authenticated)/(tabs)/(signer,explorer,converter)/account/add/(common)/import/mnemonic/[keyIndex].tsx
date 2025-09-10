@@ -43,7 +43,6 @@ import { seedWordsPrefixOfAnother } from '@/utils/seed'
 const MIN_LETTERS_TO_SHOW_WORD_SELECTOR = 2
 const wordList = getWordList()
 
-// Function to get user-friendly display names for script versions
 function getScriptVersionDisplayName(scriptVersion: string): string {
   switch (scriptVersion) {
     case 'P2PKH':

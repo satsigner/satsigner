@@ -33,7 +33,6 @@ import { extractAccountFingerprint } from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
 
-// Function to get user-friendly display names for script versions
 function getScriptVersionDisplayName(scriptVersion: string): string {
   switch (scriptVersion) {
     case 'P2PKH':

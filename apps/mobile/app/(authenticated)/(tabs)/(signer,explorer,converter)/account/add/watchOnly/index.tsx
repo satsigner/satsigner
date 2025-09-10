@@ -46,19 +46,11 @@ import {
   validateFingerprint
 } from '@/utils/validation'
 
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
 const WATCH_ONLY_OPTIONS: CreationType[] = [
   'importExtendedPub',
   'importDescriptor',
   'importAddress'
 ]
-
-// =============================================================================
-// UTILITY FUNCTIONS
-// =============================================================================
 
 /**
  * Get user-friendly display names for script versions
@@ -76,10 +68,6 @@ function getScriptVersionDisplayName(scriptVersion: string): string {
 
   return displayNames[scriptVersion] || scriptVersion
 }
-
-// =============================================================================
-// DESCRIPTOR UTILITIES
-// =============================================================================
 
 const DescriptorUtils = {
   /**
@@ -250,15 +238,7 @@ const DescriptorUtils = {
   }
 }
 
-// =============================================================================
-// MAIN COMPONENT
-// =============================================================================
-
 export default function WatchOnly() {
-  // ===========================================================================
-  // STORE HOOKS
-  // ===========================================================================
-
   const updateAccount = useAccountsStore((state) => state.updateAccount)
   const [
     name,
@@ -299,18 +279,10 @@ export default function WatchOnly() {
     state.configs[state.selectedNetwork].config.connectionMode
   ])
 
-  // ===========================================================================
-  // CUSTOM HOOKS
-  // ===========================================================================
-
   const { accountBuilderFinish } = useAccountBuilderFinish()
   const { syncAccountWithWallet } = useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
-
-  // ===========================================================================
-  // STATE
-  // ===========================================================================
 
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [permission, requestPermission] = useCameraPermissions()
@@ -353,10 +325,6 @@ export default function WatchOnly() {
   // Animation refs
   const pulseAnim = useRef(new Animated.Value(0)).current
   const scaleAnim = useRef(new Animated.Value(1)).current
-
-  // ===========================================================================
-  // EFFECTS
-  // ===========================================================================
 
   // Set policy type to watchonly when component mounts
   useEffect(() => {
@@ -409,10 +377,6 @@ export default function WatchOnly() {
     }
   }, [isReading, pulseAnim, scaleAnim])
 
-  // ===========================================================================
-  // CALLBACKS
-  // ===========================================================================
-
   const updateDescriptorValidationState = useCallback(() => {
     const hasValidExternal = externalDescriptor && validExternalDescriptor
     const hasValidInternal = internalDescriptor && validInternalDescriptor
@@ -442,10 +406,6 @@ export default function WatchOnly() {
     validInternalDescriptor,
     updateDescriptorValidationState
   ])
-
-  // ===========================================================================
-  // INPUT HANDLERS
-  // ===========================================================================
 
   function updateAddress(address: string) {
     const validAddress = address.includes('\n')
@@ -510,10 +470,6 @@ export default function WatchOnly() {
       // Don't change the script version - keep the one from the store
     }
   }
-
-  // ===========================================================================
-  // DESCRIPTOR VALIDATION
-  // ===========================================================================
 
   async function updateExternalDescriptor(
     descriptor: string,
@@ -644,11 +600,6 @@ export default function WatchOnly() {
       }
     }
   }
-
-  // ===========================================================================
-  // QR SCANNING HANDLERS
-  // ===========================================================================
-
   /**
    * Detect QR code type and format
    */
@@ -731,10 +682,6 @@ export default function WatchOnly() {
     urDecoderRef.current = new URDecoder()
   }
 
-  // ===========================================================================
-  // QR CODE HANDLING
-  // ===========================================================================
-
   /**
    * Handle QR code scanning
    */
@@ -775,9 +722,6 @@ export default function WatchOnly() {
     }
   }
 
-  /**
-   * Handle multi-part QR code import
-   */
   async function handleMultiPartQRCode(qrInfo: {
     type: 'ur' | 'bbqr' | 'raw'
     current: number
@@ -800,10 +744,6 @@ export default function WatchOnly() {
     // For now, handle as single QR code to avoid complex UR decoding issues
     await handleSingleQRCode(content)
   }
-
-  // ===========================================================================
-  // CLIPBOARD AND NFC HANDLING
-  // ===========================================================================
 
   /**
    * Handle clipboard paste
@@ -1088,10 +1028,6 @@ export default function WatchOnly() {
     }
   }
 
-  // ===========================================================================
-  // CONFIRMATION HANDLERS
-  // ===========================================================================
-
   const confirmAccountCreation = useCallback(async () => {
     setLoadingWallet(true)
     try {
@@ -1220,10 +1156,6 @@ export default function WatchOnly() {
     clearAccount,
     setLoadingWallet
   ])
-
-  // ===========================================================================
-  // RENDER
-  // ===========================================================================
 
   return (
     <SSMainLayout>
