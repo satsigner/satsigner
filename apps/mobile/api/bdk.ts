@@ -1,3 +1,5 @@
+import { HDKey } from '@scure/bip32'
+import * as bip39 from '@scure/bip39'
 import {
   Address,
   Blockchain,
@@ -24,7 +26,12 @@ import {
   Network
 } from 'bdk-rn/lib/lib/enums'
 
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import {
+  type Account,
+  type Key,
+  type ScriptVersionType,
+  type Secret
+} from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -33,9 +40,14 @@ import {
   type Network as BlockchainNetwork
 } from '@/types/settings/blockchain'
 import {
+  fingerprintToHex,
+  getAllXpubs,
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion,
-  getMultisigScriptTypeFromScriptVersion
+  getMultisigScriptTypeFromScriptVersion,
+  getVersionsForNetwork,
+  getXpubForScriptVersion,
+  toHex
 } from '@/utils/bitcoin'
 import { parseAccountAddressesDetails } from '@/utils/parse'
 
@@ -166,7 +178,7 @@ async function getWalletData(
                 if (extractedKey) {
                   extendedPublicKey = extractedKey
                 }
-              } catch (error) {
+              } catch (_error) {
                 // Failed to extract extended public key
               }
             }
@@ -179,7 +191,7 @@ async function getWalletData(
                 extendedPublicKey,
                 network
               )
-            } catch (error) {
+            } catch (_error) {
               // Failed to extract fingerprint
             }
           }
@@ -200,8 +212,9 @@ async function getWalletData(
       }
 
       // Get the policy-based derivation path according to the account type
+      // Use the original scriptVersion for derivation path, not the mapped multisig script type
       const policyDerivationPath = getMultisigDerivationPathFromScriptVersion(
-        multisigScriptType,
+        scriptVersion, // Use original scriptVersion instead of multisigScriptType
         network as BlockchainNetwork
       )
 
@@ -219,7 +232,7 @@ async function getWalletData(
       // Create descriptor based on script type using sortedmulti
       let finalDescriptor = ''
       switch (multisigScriptType) {
-        case 'Legacy P2SH':
+        case 'P2SH':
           finalDescriptor = `sh(sortedmulti(${account.keysRequired},${keySection}))`
           break
         case 'P2SH-P2WSH':
@@ -309,8 +322,8 @@ async function getWalletData(
       } else if (key.creationType === 'importExtendedPub') {
         if (
           !key.scriptVersion ||
-          !key.fingerprint ||
           typeof key.secret === 'string' ||
+          !key.secret.fingerprint ||
           !key.secret.extendedPublicKey
         )
           throw new Error('Invalid account information')
@@ -326,13 +339,13 @@ async function getWalletData(
           case 'P2PKH':
             externalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip44Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -340,13 +353,13 @@ async function getWalletData(
           case 'P2SH-P2WPKH':
             externalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip49Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -354,13 +367,13 @@ async function getWalletData(
           case 'P2WPKH':
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -368,20 +381,20 @@ async function getWalletData(
           case 'P2TR':
             externalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip86Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
             break
           case 'P2WSH':
           case 'P2SH-P2WSH':
-          case 'Legacy P2SH':
+          case 'P2SH':
             // For multisig script types, we need to create descriptors manually
             throw new Error(
               `Manual descriptor creation required for ${key.scriptVersion}`
@@ -389,13 +402,13 @@ async function getWalletData(
           default:
             externalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.External,
               network
             )
             internalDescriptor = await new Descriptor().newBip84Public(
               extendedPublicKey,
-              key.fingerprint,
+              key.secret.fingerprint,
               KeychainKind.Internal,
               network
             )
@@ -502,7 +515,7 @@ async function getWalletFromMnemonic(
           externalDescriptorString = `sh(wsh(${externalKeyPart}))`
           internalDescriptorString = `sh(wsh(${internalKeyPart}))`
           break
-        case 'Legacy P2SH':
+        case 'P2SH':
           externalDescriptorString = `sh(${externalKeyPart})`
           internalDescriptorString = `sh(${internalKeyPart})`
           break
@@ -544,6 +557,100 @@ async function getWalletFromMnemonic(
   }
 }
 
+/** Parse BIP32 path like "m/48'/0'/0'/2'" -> array of indexes (with hardened offset) */
+function parsePath(path: string): number[] {
+  if (!path || path === 'm') return []
+
+  const parts = path.split('/')
+  if (parts[0] !== 'm') throw new Error('Derivation path must start with "m"')
+
+  const HARDENED_OFFSET = 0x80000000 // replace HDKey.HARDENED_OFFSET
+
+  const items = parts.slice(1).map((p: string) => {
+    const hardened = /('|h|H)$/.test(p)
+    const index = parseInt(p.replace(/['hH]/, ''), 10)
+    if (Number.isNaN(index)) throw new Error('Invalid path segment: ' + p)
+    return hardened ? index + HARDENED_OFFSET : index
+  })
+
+  return items
+}
+
+interface DeriveOptions {
+  network?: 'mainnet' | 'testnet'
+  path?: string
+}
+
+interface DerivationStep {
+  depth: number
+  index: number
+  parentFingerprint: string
+  fingerprint: string
+  publicExtendedKey: string
+}
+
+function deriveXpubFromMnemonic(
+  mnemonic: string,
+  passphrase: string = '',
+  opts: DeriveOptions = {}
+) {
+  const network: 'mainnet' | 'testnet' =
+    opts.network === 'testnet' ? 'testnet' : 'mainnet'
+
+  // default BIP48 P2WSH path
+  const coinType = network === 'mainnet' ? 0 : 1
+  const defaultPath = `m/48'/${coinType}'/0'/2'`
+  const path = opts.path || defaultPath
+
+  // Use the utils function for P2WSH xpub (default path)
+
+  // For the detailed derivation steps, we still need to do manual derivation
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+
+  // 2) master HDKey
+  const versions = getVersionsForNetwork(network)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // ensure publicKey is not null
+  const masterPubkeyHex = toHex(master.publicKey || new Uint8Array())
+  const masterFingerprintHex = fingerprintToHex(master.fingerprint)
+
+  // 3) derive path
+  const indices = parsePath(path)
+  let node = master
+  const steps: DerivationStep[] = []
+
+  let parentFingerprint = 0
+
+  indices.forEach((index, i) => {
+    node = node.deriveChild(index)
+
+    if (i === 2) {
+      parentFingerprint = node.fingerprint
+    }
+
+    steps.push({
+      depth: node.depth,
+      index,
+      parentFingerprint: fingerprintToHex(node.parentFingerprint || 0),
+      fingerprint: fingerprintToHex(node.fingerprint),
+      publicExtendedKey: node.publicExtendedKey
+    })
+  })
+
+  const accountXpub = node.publicExtendedKey
+
+  return {
+    network,
+    path,
+    masterFingerprint: masterFingerprintHex,
+    masterPubkeyHex,
+    xpub: accountXpub,
+    parentFingerprint: fingerprintToHex(parentFingerprint),
+    steps
+  }
+}
+
 async function getDescriptor(
   mnemonic: NonNullable<Secret['mnemonic']>,
   scriptVersion: NonNullable<Key['scriptVersion']>,
@@ -557,6 +664,7 @@ async function getDescriptor(
     parsedMnemonic,
     passphrase
   )
+
   switch (scriptVersion) {
     case 'P2PKH':
       return new Descriptor().newBip44(descriptorSecretKey, kind, network)
@@ -566,13 +674,13 @@ async function getDescriptor(
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
     case 'P2TR':
       return new Descriptor().newBip86(descriptorSecretKey, kind, network)
-    case 'P2WSH':
+    case 'P2SH':
     case 'P2SH-P2WSH':
-    case 'Legacy P2SH':
+    case 'P2WSH':
       // For multisig script types, we need to create descriptors manually
       // since BDK doesn't have specific methods for these
       throw new Error(
-        `Manual descriptor creation required for ${scriptVersion}`
+        `Manual descriptor creation required for ${scriptVersion} - use getExtendedPublicKeyFromMnemonic instead`
       )
     default:
       return new Descriptor().newBip84(descriptorSecretKey, kind, network)
@@ -705,7 +813,7 @@ async function getDescriptorsFromKeyData(
       externalDescriptor = `sh(wsh(${keyPart}/0/*))`
       internalDescriptor = `sh(wsh(${keyPart}/1/*))`
       break
-    case 'Legacy P2SH':
+    case 'P2SH':
       externalDescriptor = `sh(${keyPart}/0/*)`
       internalDescriptor = `sh(${keyPart}/1/*)`
       break
@@ -736,6 +844,38 @@ async function getDescriptorsFromKeyData(
       internalDescriptor
     }
   }
+}
+
+async function getExtendedPublicKeyFromMnemonic(
+  mnemonic: NonNullable<Secret['mnemonic']>,
+  passphrase: string = '',
+  network: Network,
+  scriptVersion?: ScriptVersionType,
+  path?: string
+) {
+  // Convert BDK Network to string for deriveXpubFromMnemonic
+  const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
+
+  // If script version is specified and it's a multisig type, use the specific function
+  if (
+    scriptVersion &&
+    ['P2SH', 'P2SH-P2WSH', 'P2WSH'].includes(scriptVersion)
+  ) {
+    return getXpubForScriptVersion(
+      mnemonic,
+      passphrase,
+      scriptVersion,
+      networkString
+    )
+  }
+
+  // Otherwise, use the default deriveXpubFromMnemonic function
+  const result = deriveXpubFromMnemonic(mnemonic, passphrase, {
+    network: networkString,
+    path
+  })
+
+  return result.xpub
 }
 
 async function syncWallet(
@@ -1182,9 +1322,103 @@ async function broadcastTransaction(
   return result
 }
 
+// Get fingerprint for multisig accounts
+async function getMultisigFingerprint(
+  mnemonic: string,
+  passphrase: string = '',
+  scriptVersion: ScriptVersionType,
+  network: Network
+) {
+  // Convert BDK Network to string
+  const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
+
+  // Get the appropriate derivation path for multisig
+  const blockchainNetwork = network === Network.Bitcoin ? 'bitcoin' : 'testnet'
+  const derivationPath = getDerivationPathFromScriptVersion(
+    scriptVersion,
+    blockchainNetwork
+  )
+
+  // Extract fingerprint from the extended public key
+  // The fingerprint is the first 4 bytes of the parent fingerprint
+  const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase)
+  const versions = getVersionsForNetwork(networkString)
+  const master = HDKey.fromMasterSeed(seed, versions)
+
+  // Derive to the account level to get the fingerprint
+  const pathParts = derivationPath.split('/').slice(1) // Remove 'm' prefix
+  let node = master
+
+  for (const part of pathParts) {
+    const hardened = part.endsWith("'")
+    const index = parseInt(part.replace("'", ''), 10)
+    const childIndex = hardened ? index + 0x80000000 : index
+    node = node.deriveChild(childIndex)
+  }
+
+  return fingerprintToHex(node.fingerprint)
+}
+
+// Comprehensive example of how to use multisig functions
+async function createMultisigAccountExample(
+  mnemonic: string,
+  passphrase: string = '',
+  scriptVersion: ScriptVersionType,
+  network: Network
+) {
+  try {
+    // Convert BDK Network to string
+    const networkString = network === Network.Bitcoin ? 'mainnet' : 'testnet'
+
+    // Get the extended public key for the specific script version
+    const xpub = await getExtendedPublicKeyFromMnemonic(
+      mnemonic,
+      passphrase,
+      network,
+      scriptVersion
+    )
+
+    // Get the fingerprint for the account
+    const fingerprint = await getMultisigFingerprint(
+      mnemonic,
+      passphrase,
+      scriptVersion,
+      network
+    )
+
+    // Get the derivation path
+    const blockchainNetwork =
+      network === Network.Bitcoin ? 'bitcoin' : 'testnet'
+    const derivationPath = getDerivationPathFromScriptVersion(
+      scriptVersion,
+      blockchainNetwork
+    )
+
+    // Get all possible extended public keys for comparison
+    const allXpubs = getAllXpubs(mnemonic, passphrase, networkString)
+
+    return {
+      scriptVersion,
+      network: networkString,
+      xpub,
+      fingerprint,
+      derivationPath: `m/${derivationPath}`,
+      allXpubs,
+      // Example of how to construct a multisig descriptor
+      // This would need to be combined with other cosigners' xpubs
+      exampleDescriptor: `wsh(multi(2,${xpub},<cosigner2_xpub>,<cosigner3_xpub>))`
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed to create multisig account: ${(error as Error).message}`
+    )
+  }
+}
+
 export {
   broadcastTransaction,
   buildTransaction,
+  createMultisigAccountExample,
   extractExtendedKeyFromDescriptor,
   extractFingerprintFromExtendedPublicKey,
   generateMnemonic,
@@ -1193,8 +1427,10 @@ export {
   getDescriptor,
   getDescriptorsFromKeyData,
   getExtendedPublicKeyFromAccountKey,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprint,
   getLastUnusedAddressFromWallet,
+  getMultisigFingerprint,
   getTransactionInputValues,
   getWalletAddresses,
   getWalletData,

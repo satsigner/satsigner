@@ -1,4 +1,3 @@
-import { Descriptor } from 'bdk-rn'
 import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
@@ -8,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   getDescriptor,
   getDescriptorsFromKeyData,
-  getExtendedPublicKeyFromAccountKey,
+  getExtendedPublicKeyFromMnemonic,
   getFingerprint,
   parseDescriptor,
   validateMnemonic
@@ -110,6 +109,34 @@ export default function GenerateMnemonic() {
           network
         )
         derivationPath = `m/${rawDerivationPath}`
+        // Generate extended public key first using the same method as import flow
+        const extendedPublicKey = await getExtendedPublicKeyFromMnemonic(
+          mnemonic.join(' '),
+          passphrase || '',
+          network as Network,
+          scriptVersion
+        )
+
+        // Generate descriptors from the key data
+        if (extendedPublicKey && fingerprint) {
+          try {
+            const descriptors = await getDescriptorsFromKeyData(
+              extendedPublicKey,
+              fingerprint,
+              scriptVersion,
+              network as Network,
+              policyType === 'multisig' // Pass multisig flag
+            )
+
+            // Set global state values so setKey includes them
+            setExtendedPublicKey(extendedPublicKey)
+            setExternalDescriptor(descriptors.externalDescriptor)
+            setInternalDescriptor(descriptors.internalDescriptor)
+          } catch (_error) {
+            // Continue without descriptors if generation fails
+            setExtendedPublicKey(extendedPublicKey)
+          }
+        }
       } else {
         // For single-sig accounts, try to extract from BDK descriptor first
         try {
@@ -129,54 +156,6 @@ export default function GenerateMnemonic() {
             network
           )
           derivationPath = `m/${rawDerivationPath}`
-        }
-      }
-
-      console.log(`🔑 [GenerateMnemonic] Final derivation path:`, {
-        derivationPath,
-        policyType,
-        scriptVersion,
-        network
-      })
-
-      // Generate extended public key first
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        {
-          index: Number(index),
-          name: '',
-          creationType: 'generateMnemonic',
-          mnemonicWordCount,
-          secret: {
-            mnemonic: mnemonic.join(' '),
-            passphrase,
-            fingerprint
-          },
-          iv: '',
-          scriptVersion,
-          fingerprint
-        },
-        network as Network,
-        policyType === 'multisig' // Pass multisig flag
-      )
-
-      // Generate descriptors from the key data
-      if (extendedPublicKey && fingerprint) {
-        try {
-          const descriptors = await getDescriptorsFromKeyData(
-            extendedPublicKey,
-            fingerprint,
-            scriptVersion,
-            network as Network,
-            policyType === 'multisig' // Pass multisig flag
-          )
-
-          // Set global state values so setKey includes s
-          setExtendedPublicKey(extendedPublicKey)
-          setExternalDescriptor(descriptors.externalDescriptor)
-          setInternalDescriptor(descriptors.internalDescriptor)
-        } catch (_error) {
-          // Continue without descriptors if generation fails
-          setExtendedPublicKey(extendedPublicKey)
         }
       }
 

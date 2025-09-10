@@ -3,16 +3,15 @@ import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { SSIconEyeOn, SSIconScriptsP2pkh } from '@/components/icons'
+import { SSIconEyeOn } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
-import SSCollapsible from '@/components/SSCollapsible'
-import SSLink from '@/components/SSLink'
 import SSModal from '@/components/SSModal'
 import SSMultisigCountSelector from '@/components/SSMultisigCountSelector'
 import SSMultisigKeyControl from '@/components/SSMultisigKeyControl'
 import SSPinEntry from '@/components/SSPinEntry'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSScriptVersionModal from '@/components/SSScriptVersionModal'
 import SSSeedQR from '@/components/SSSeedQR'
 import SSSelectModal from '@/components/SSSelectModal'
 import SSText from '@/components/SSText'
@@ -29,9 +28,31 @@ import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { type Account, type Key, type Secret } from '@/types/models/Account'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { extractAccountFingerprint } from '@/utils/account'
 import { aesDecrypt, pbkdf2Encrypt } from '@/utils/crypto'
 import { formatDate } from '@/utils/format'
+
+// Function to get user-friendly display names for script versions
+function getScriptVersionDisplayName(scriptVersion: string): string {
+  switch (scriptVersion) {
+    case 'P2PKH':
+      return 'Legacy (P2PKH)'
+    case 'P2SH-P2WPKH':
+      return 'Nested Segwit (P2SH-P2WPKH)'
+    case 'P2WPKH':
+      return 'Native Segwit (P2WPKH)'
+    case 'P2TR':
+      return 'Taproot (P2TR)'
+    case 'P2SH':
+      return 'Legacy (P2SH)'
+    case 'P2SH-P2WSH':
+      return 'Nested Segwit (P2SH-P2WSH)'
+    case 'P2WSH':
+      return 'Native Segwit (P2WSH)'
+    default:
+      return scriptVersion
+  }
+}
 
 export default function AccountSettings() {
   const { id: currentAccountId } = useLocalSearchParams<AccountSearchParams>()
@@ -84,11 +105,6 @@ export default function AccountSettings() {
   function handleOnViewMnemonic() {
     setPin(Array(4).fill(''))
     setShowPinEntry(true)
-  }
-
-  function handleOnSelectScriptVersion() {
-    setScriptVersion(scriptVersion)
-    setScriptVersionModalVisible(false)
   }
 
   async function handlePinEntry(pinString: string) {
@@ -211,16 +227,31 @@ export default function AccountSettings() {
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.fingerprint')}</SSText>
             <SSText>
-              {typeof account.keys[0].secret === 'object' &&
-              account.keys[0].secret.fingerprint
-                ? account.keys[0].secret.fingerprint
-                : account.keys[0].fingerprint || '-'}
+              {extractAccountFingerprint(account, decryptedKeys) || '-'}
             </SSText>
           </SSHStack>
           <SSHStack gap="sm">
             <SSText color="muted">{t('account.createdOn')}</SSText>
             {account && account.createdAt && (
-              <SSText>{formatDate(account.createdAt)}</SSText>
+              <SSText>
+                {(() => {
+                  try {
+                    if (account.createdAt instanceof Date) {
+                      return formatDate(account.createdAt)
+                    } else {
+                      const date = new Date(account.createdAt)
+                      if (isNaN(date.getTime())) {
+                        // Invalid createdAt value in settings
+                        return 'Invalid date'
+                      }
+                      return formatDate(date)
+                    }
+                  } catch (_error) {
+                    // Error formatting createdAt in settings
+                    return 'Invalid date'
+                  }
+                })()}
+              </SSText>
             )}
           </SSHStack>
         </SSVStack>
@@ -248,15 +279,16 @@ export default function AccountSettings() {
         </SSVStack>
         <SSVStack>
           {(account.keys[0].creationType === 'generateMnemonic' ||
-            account.keys[0].creationType === 'importMnemonic') && (
-            <SSHStack>
-              <SSButton
-                style={styles.button}
-                label={t('account.viewMnemonic')}
-                onPress={() => handleOnViewMnemonic()}
-              />
-            </SSHStack>
-          )}
+            account.keys[0].creationType === 'importMnemonic') &&
+            account.policyType !== 'multisig' && (
+              <SSHStack>
+                <SSButton
+                  style={styles.button}
+                  label={t('account.viewMnemonic')}
+                  onPress={() => handleOnViewMnemonic()}
+                />
+              </SSHStack>
+            )}
           <SSHStack>
             <SSButton
               style={styles.button}
@@ -307,9 +339,7 @@ export default function AccountSettings() {
             <SSFormLayout.Item>
               <SSFormLayout.Label label={t('account.script')} />
               <SSButton
-                label={`${t(
-                  `script.${scriptVersion.toLocaleLowerCase()}.name`
-                )} (${scriptVersion})`}
+                label={getScriptVersionDisplayName(scriptVersion)}
                 onPress={() => setScriptVersionModalVisible(true)}
                 withSelect
               />
@@ -338,12 +368,6 @@ export default function AccountSettings() {
                     keyDetails={key}
                     isSettingsMode
                     accountId={currentAccountId}
-                    onRefresh={() => {
-                      // Refresh the page to show updated data
-                      router.replace(
-                        `/account/${currentAccountId}/settings/` as any
-                      )
-                    }}
                   />
                 ))
               ) : (
@@ -369,54 +393,16 @@ export default function AccountSettings() {
           />
         </SSVStack>
       </SSVStack>
-      <SSSelectModal
+      <SSScriptVersionModal
         visible={scriptVersionModalVisible}
-        title={t('account.script')}
-        selectedText={`${scriptVersion} - ${t(
-          `script.${scriptVersion.toLowerCase()}.name`
-        )}`}
-        selectedDescription={
-          <SSCollapsible>
-            <SSText color="muted" size="md">
-              {t(`script.${scriptVersion?.toLowerCase()}.description.1`)}
-              <SSLink
-                size="md"
-                text={t(`script.${scriptVersion.toLowerCase()}.link.name`)}
-                url={t(`script.${scriptVersion.toLowerCase()}.link.url`)}
-              />
-              {t(`script.${scriptVersion.toLowerCase()}.description.2`)}
-            </SSText>
-            <SSIconScriptsP2pkh height={80} width="100%" />
-          </SSCollapsible>
-        }
-        onSelect={() => handleOnSelectScriptVersion()}
+        scriptVersion={scriptVersion}
+        policyType={account?.policyType}
+        onSelect={(scriptVersion) => {
+          setScriptVersion(scriptVersion)
+          setScriptVersionModalVisible(false)
+        }}
         onCancel={() => setScriptVersionModalVisible(false)}
-      >
-        <SSRadioButton
-          label={`${t('script.p2pkh.name')} (P2PKH)`}
-          selected={scriptVersion === 'P2PKH'}
-          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2PKH')}
-        />
-        <SSRadioButton
-          label={`${t('script.p2sh-p2wpkh.name')} (P2SH-P2WPKH)`}
-          selected={scriptVersion === 'P2SH-P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2SH-P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2wpkh.name')} (P2WPKH)`}
-          selected={scriptVersion === 'P2WPKH'}
-          onPress={() =>
-            setStateWithLayoutAnimation(setScriptVersion, 'P2WPKH')
-          }
-        />
-        <SSRadioButton
-          label={`${t('script.p2tr.name')} (P2TR)`}
-          selected={scriptVersion === 'P2TR'}
-          onPress={() => setStateWithLayoutAnimation(setScriptVersion, 'P2TR')}
-        />
-      </SSSelectModal>
+      />
       <SSSelectModal
         visible={networkModalVisible}
         title={t('account.network.title')}

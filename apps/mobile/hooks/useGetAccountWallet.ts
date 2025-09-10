@@ -11,7 +11,7 @@ import { type Account, type Secret } from '@/types/models/Account'
 import { aesDecrypt } from '@/utils/crypto'
 
 const useGetAccountWallet = (id: Account['id']) => {
-  const [wallet, addAccountWallet, removeAccountWallet] = useWalletsStore(
+  const [wallet, addAccountWallet] = useWalletsStore(
     useShallow((state) => [
       state.wallets[id],
       state.addAccountWallet,
@@ -50,7 +50,7 @@ const useGetAccountWallet = (id: Account['id']) => {
             )
             const decryptedSecret = JSON.parse(decryptedSecretString) as Secret
             key.secret = decryptedSecret
-          } catch (error) {
+          } catch (_error) {
             return // Cannot proceed without decrypted secrets
           }
         } else if (typeof key.secret === 'string' && !pin) {
@@ -66,15 +66,9 @@ const useGetAccountWallet = (id: Account['id']) => {
       if (!walletData) return
 
       addAccountWallet(id, walletData.wallet)
-    } catch (error) {
+    } catch (_error) {
       // Handle error silently
     }
-  }
-
-  // Function to force wallet recreation (for testing)
-  function forceRecreateWallet() {
-    removeAccountWallet(id)
-    addWallet()
   }
 
   useEffect(() => {
