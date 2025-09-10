@@ -2,7 +2,7 @@ import { Descriptor } from 'bdk-rn'
 import { KeychainKind, type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import { extractExtendedKeyFromDescriptor, getDescriptor } from '@/api/bdk'
@@ -131,16 +131,19 @@ function ImportDescriptorFromAccount() {
             {singleSignatureAccounts.map((account) => (
               <SSHStack key={account.name}>
                 <SSCheckbox
-                  label=""
                   selected={selectedAccountId === account.id}
                   onPress={() => setSelectedAccountId(account.id)}
                 />
-                <SSVStack gap="none">
-                  <SSText size="xxs">{account.keys[0].fingerprint}</SSText>
-                  <SSText style={{ lineHeight: 19 }} size="2xl">
-                    {account.name}
-                  </SSText>
-                </SSVStack>
+                <TouchableOpacity
+                  onPress={() => setSelectedAccountId(account.id)}
+                >
+                  <SSVStack gap="none">
+                    <SSText size="xxs">{account.keys[0].fingerprint}</SSText>
+                    <SSText style={{ lineHeight: 19 }} size="2xl">
+                      {account.name}
+                    </SSText>
+                  </SSVStack>
+                </TouchableOpacity>
               </SSHStack>
             ))}
           </SSVStack>

@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
+import { ScrollView, TouchableOpacity } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -252,17 +252,19 @@ export default function CustomNetwork() {
                     selected={be === backend}
                     onPress={() => setBackend(be)}
                   />
-                  <SSVStack gap="none" justifyBetween>
-                    <SSText
-                      style={{ lineHeight: 18, textTransform: 'capitalize' }}
-                      size="md"
-                    >
-                      {be}
-                    </SSText>
-                    <SSText style={{ lineHeight: 14 }} color="muted">
-                      {t(`settings.network.backend.${be}.description`)}
-                    </SSText>
-                  </SSVStack>
+                  <TouchableOpacity onPress={() => setBackend(be)}>
+                    <SSVStack gap="none" justifyBetween>
+                      <SSText
+                        style={{ lineHeight: 18, textTransform: 'capitalize' }}
+                        size="md"
+                      >
+                        {be}
+                      </SSText>
+                      <SSText style={{ lineHeight: 14 }} color="muted">
+                        {t(`settings.network.backend.${be}.description`)}
+                      </SSText>
+                    </SSVStack>
+                  </TouchableOpacity>
                 </SSHStack>
               ))}
             </SSVStack>
