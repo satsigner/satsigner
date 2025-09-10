@@ -6,12 +6,12 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import {
-  getDescriptorsFromKeyData as _getDescriptorsFromKeyData,
+  getDescriptorsFromKeyData,
   getExtendedPublicKeyFromMnemonic,
-  getFingerprint as _getFingerprint,
-  validateMnemonic as _validateMnemonic
+  getFingerprint,
+  validateMnemonic
 } from '@/api/bdk'
-import SSButton as _SSButton from '@/components/SSButton'
+import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSGradientModal from '@/components/SSGradientModal'
 import SSSeedWordsInput from '@/components/SSSeedWordsInput'
@@ -61,12 +61,12 @@ export default function ImportMnemonic() {
     clearAccount,
     setMnemonic,
     passphrase,
-    setPassphrase: _setPassphrase,
+    setPassphrase,
     setFingerprint,
     setExtendedPublicKey,
     setKey,
     getAccountData,
-    updateKeySecret: _updateKeySecret,
+    updateKeySecret,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
