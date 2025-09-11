@@ -11,7 +11,7 @@ import { DEFAULT_PIN, PIN_KEY, PIN_SIZE, SALT_KEY } from '@/config/auth'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { setItem } from '@/storage/encrypted'
+import { getItem, setItem } from '@/storage/encrypted'
 import { useAuthStore } from '@/store/auth'
 import { useSettingsStore } from '@/store/settings'
 import { Layout } from '@/styles'
@@ -48,7 +48,12 @@ export default function SetPin() {
 
   async function handleSetPinLater() {
     setFirstTime(false)
-    await setPin(DEFAULT_PIN)
+
+    // use default pin if none is set
+    const currentPin = await getItem(PIN_KEY)
+    if (currentPin === null || currentPin === undefined) {
+      await setPin(DEFAULT_PIN)
+    }
 
     // Let us clear the history to prevent the user from going back to Set Pin
     // screen by pressing 'back' button. Otherwise, pressing 'back' will show
