@@ -420,6 +420,7 @@ export default function IOPreview() {
       (acc, output) => acc + output.amount,
       0
     )
+
     const totalRequired = totalOutputAmount + minerFee
 
     if (totalRequired > utxosSelectedValue) {
@@ -429,6 +430,12 @@ export default function IOPreview() {
 
     // Add change output if there's any remaining amount
     if (remainingBalance > 0) {
+      // Validate that changeAddress is available before adding change output
+      if (!changeAddress) {
+        toast.error(t('transaction.errorChangeAddressNotAvailable'))
+        return
+      }
+
       setShouldRemoveChange(false)
       addOutput({
         to: changeAddress,
@@ -437,33 +444,62 @@ export default function IOPreview() {
       })
     }
 
-    // Account not synced. Go to warning page to sync it.
-    if (account.syncStatus !== 'synced' || account.lastSyncedAt === undefined) {
-      router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
-      return
-    }
+    // Check if wallet needs syncing based on time since last sync
+    // Only show sync page if wallet hasn't been synced within the last 3 days
+    const needsSync = (() => {
+      // If no lastSyncedAt, definitely needs sync
+      if (account.lastSyncedAt === undefined) {
+        return true
+      }
 
-    const lastSync = new Date(account.lastSyncedAt as Date)
-    const now = new Date()
+      // Safely convert lastSyncedAt to Date object
+      let lastSync: Date
+      try {
+        const lastSyncedAtValue = account.lastSyncedAt
 
-    // Discard the time and time-zone information.
-    const currentUtc = Date.UTC(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    )
-    const lastSyncedUtc = Date.UTC(
-      lastSync.getFullYear(),
-      lastSync.getMonth(),
-      lastSync.getDate()
-    )
-    const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
-    const daysSinceLastSync = Math.floor(
-      (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
-    )
+        // If it's already a Date object, use it
+        if (lastSyncedAtValue instanceof Date) {
+          lastSync = lastSyncedAtValue
+        } else {
+          // If it's a string or number, try to create a Date
+          lastSync = new Date(lastSyncedAtValue)
 
-    // Account updated too long ago.
-    if (daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING) {
+          // Check if the date is valid
+          if (isNaN(lastSync.getTime())) {
+            // Invalid lastSyncedAt value, needs sync
+            return true
+          }
+        }
+      } catch (_error) {
+        // Error parsing lastSyncedAt, needs sync
+        return true
+      }
+
+      const now = new Date()
+
+      // Discard the time and time-zone information.
+      const currentUtc = Date.UTC(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      )
+
+      const lastSyncedUtc = Date.UTC(
+        lastSync.getFullYear(),
+        lastSync.getMonth(),
+        lastSync.getDate()
+      )
+
+      const MILISECONDS_PER_DAY = 1000 * 60 * 60 * 24
+      const daysSinceLastSync = Math.floor(
+        (currentUtc - lastSyncedUtc) / MILISECONDS_PER_DAY
+      )
+
+      // Account updated too long ago.
+      return daysSinceLastSync > MAX_DAYS_WITHOUT_SYNCING
+    })()
+
+    if (needsSync) {
       router.navigate(`/account/${id}/signAndSend/walletSyncedConfirmation`)
       return
     }

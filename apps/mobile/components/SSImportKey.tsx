@@ -390,17 +390,19 @@ export default function SSImportKey({
       if (importType === 'descriptor') {
         let externalDescriptor = finalContent
         let internalDescriptor = ''
+        let originalDescriptor = ''
 
         // Try to parse as JSON first
         try {
           const jsonData = JSON.parse(finalContent)
 
           if (jsonData.descriptor) {
-            externalDescriptor = jsonData.descriptor
+            originalDescriptor = jsonData.descriptor
+            externalDescriptor = originalDescriptor
 
             // Derive internal descriptor from external descriptor
             // Replace /0/* with /1/* for internal chain and remove checksum
-            const descriptorWithoutChecksum = externalDescriptor.replace(
+            const descriptorWithoutChecksum = originalDescriptor.replace(
               /#[a-z0-9]+$/,
               ''
             )
@@ -448,7 +450,10 @@ export default function SSImportKey({
         } else {
           // Handle non-combined descriptors with existing logic
           if (externalDescriptor) {
-            updateExternalDescriptor(externalDescriptor)
+            // For JSON descriptors, use the original descriptor for validation
+            const descriptorToValidate =
+              originalDescriptor || externalDescriptor
+            updateExternalDescriptor(descriptorToValidate)
           }
           if (internalDescriptor) {
             updateInternalDescriptor(internalDescriptor)
@@ -495,16 +500,18 @@ export default function SSImportKey({
         if (importType === 'descriptor') {
           let externalDescriptor = finalContent
           let internalDescriptor = ''
+          let originalDescriptor = ''
 
           // Try to parse as JSON first
           try {
             const jsonData = JSON.parse(finalContent)
 
             if (jsonData.descriptor) {
-              externalDescriptor = jsonData.descriptor
+              originalDescriptor = jsonData.descriptor
+              externalDescriptor = originalDescriptor
 
               // Derive internal descriptor from external descriptor
-              const descriptorWithoutChecksum = externalDescriptor.replace(
+              const descriptorWithoutChecksum = originalDescriptor.replace(
                 /#[a-z0-9]+$/,
                 ''
               )
@@ -552,7 +559,10 @@ export default function SSImportKey({
           } else {
             // Handle non-combined descriptors with existing logic
             if (externalDescriptor) {
-              updateExternalDescriptor(externalDescriptor)
+              // For JSON descriptors, use the original descriptor for validation
+              const descriptorToValidate =
+                originalDescriptor || externalDescriptor
+              updateExternalDescriptor(descriptorToValidate)
             }
             if (internalDescriptor) {
               updateInternalDescriptor(internalDescriptor)
@@ -585,13 +595,15 @@ export default function SSImportKey({
     if (importType === 'descriptor') {
       let externalDescriptor = finalContent
       let internalDescriptor = ''
+      let originalDescriptor = ''
 
       // Try to parse as JSON first
       try {
         const jsonData = JSON.parse(finalContent)
 
         if (jsonData.descriptor) {
-          externalDescriptor = jsonData.descriptor
+          originalDescriptor = jsonData.descriptor
+          externalDescriptor = originalDescriptor
 
           // Derive internal descriptor from external descriptor
           const descriptorWithoutChecksum = externalDescriptor.replace(
@@ -642,7 +654,9 @@ export default function SSImportKey({
       } else {
         // Handle non-combined descriptors with existing logic
         if (externalDescriptor) {
-          updateExternalDescriptor(externalDescriptor)
+          // For JSON descriptors, use the original descriptor for validation
+          const descriptorToValidate = originalDescriptor || externalDescriptor
+          updateExternalDescriptor(descriptorToValidate)
         }
         if (internalDescriptor) {
           updateInternalDescriptor(internalDescriptor)

@@ -292,12 +292,10 @@ describe('validateDescriptorScriptVersion', () => {
     })
   })
 
-  it('should validate Legacy P2SH descriptors correctly', () => {
+  it('should validate P2SH descriptors correctly', () => {
     const shDescriptor = 'sh([12345678/45h/0h/0h]xpub1234567890abcdef)'
 
-    expect(
-      validateDescriptorScriptVersion(shDescriptor, 'Legacy P2SH')
-    ).toEqual({
+    expect(validateDescriptorScriptVersion(shDescriptor, 'P2SH')).toEqual({
       isValid: true
     })
 

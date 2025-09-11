@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { t } from '@/locales'
 import { type Key } from '@/types/models/Account'
 import { setStateWithLayoutAnimation } from '@/utils/animation'
+import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 import SSIconScriptsP2pkh from './icons/SSIconScriptsP2pkh'
 import SSCollapsible from './SSCollapsible'
@@ -13,16 +14,21 @@ import SSText from './SSText'
 
 type ScriptVersion = NonNullable<Key['scriptVersion']>
 
-const scriptVersions: ScriptVersion[] = [
+// Single-sig script versions
+const singleSigScriptVersions: ScriptVersion[] = [
   'P2PKH',
   'P2SH-P2WPKH',
   'P2WPKH',
   'P2TR'
 ]
 
+// Multisig script versions
+const multiSigScriptVersions: ScriptVersion[] = ['P2SH', 'P2SH-P2WSH', 'P2WSH']
+
 type SSScriptVersionModalProps = {
   visible: boolean
   scriptVersion: ScriptVersion
+  policyType?: 'singlesig' | 'multisig' | 'watchonly'
   onSelect: (scriptVersion: ScriptVersion) => void
   onCancel: () => void
 }
@@ -30,10 +36,15 @@ type SSScriptVersionModalProps = {
 function SSScriptVersionModal({
   visible,
   scriptVersion,
+  policyType = 'singlesig',
   onSelect,
   onCancel
 }: SSScriptVersionModalProps) {
   const [localScriptVersion, setLocalScriptVersion] = useState(scriptVersion)
+
+  // Choose script versions based on policy type
+  const scriptVersions =
+    policyType === 'multisig' ? multiSigScriptVersions : singleSigScriptVersions
 
   function handleOnSelectScriptVersion() {
     setLocalScriptVersion(localScriptVersion)
@@ -67,7 +78,7 @@ function SSScriptVersionModal({
       {scriptVersions.map((script) => (
         <SSRadioButton
           key={script}
-          label={t(`script.${script.toLowerCase()}.name`) + ` (${script})`}
+          label={getScriptVersionDisplayName(script)}
           selected={localScriptVersion === script}
           onPress={() =>
             setStateWithLayoutAnimation(setLocalScriptVersion, script)

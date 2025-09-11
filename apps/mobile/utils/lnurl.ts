@@ -146,7 +146,9 @@ export function decodeLNURL(input: string): string {
   } catch (error) {
     console.error('❌ Failed to decode LNURL:', error)
     throw new Error(
-      `Failed to decode LNURL: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to decode LNURL: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     )
   }
 }
@@ -233,7 +235,9 @@ export async function fetchLNURLPayDetails(
   } catch (error) {
     console.error('❌ LNURL fetch error:', error)
     throw new Error(
-      `Failed to fetch LNURL details: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to fetch LNURL details: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     )
   }
 }
@@ -301,7 +305,9 @@ export async function requestLNURLPayInvoice(
   } catch (error) {
     console.error('❌ Invoice request error:', error)
     throw new Error(
-      `Failed to request invoice: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to request invoice: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     )
   }
 }
@@ -339,7 +345,9 @@ export async function handleLNURLPay(
         max: details.maxSendable
       })
       throw new Error(
-        `Amount must be between ${details.minSendable / 1000} and ${details.maxSendable / 1000} sats`
+        `Amount must be between ${details.minSendable / 1000} and ${
+          details.maxSendable / 1000
+        } sats`
       )
     }
 
@@ -355,7 +363,9 @@ export async function handleLNURLPay(
   } catch (error) {
     console.error('❌ LNURL-pay flow failed:', error)
     throw new Error(
-      `LNURL-pay failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `LNURL-pay failed: ${
+        error instanceof Error ? error.message : 'Unknown error'
+      }`
     )
   }
 }

@@ -105,7 +105,7 @@ export default function DescriptorPage() {
                 case 'P2SH-P2WSH':
                   externalDescriptor = `sh(wsh(${keyPart}))`
                   break
-                case 'Legacy P2SH':
+                case 'P2SH':
                   externalDescriptor = `sh(${keyPart})`
                   break
                 default:

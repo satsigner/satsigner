@@ -1,10 +1,8 @@
-import { type Network } from 'bdk-rn/lib/lib/enums'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
@@ -23,7 +21,6 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { useBlockchainStore } from '@/store/blockchain'
 import { useSettingsStore } from '@/store/settings'
 import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
@@ -39,7 +36,6 @@ export default function Confirm() {
     clearAccount,
     getAccountData,
     setKey,
-    updateKeySecret,
     clearKeyState
   ] = useAccountBuilderStore(
     useShallow((state) => [
@@ -50,11 +46,10 @@ export default function Confirm() {
       state.clearAccount,
       state.getAccountData,
       state.setKey,
-      state.updateKeySecret,
       state.clearKeyState
     ])
   )
-  const network = useBlockchainStore((state) => state.selectedNetwork)
+
   const skipSeedConfirmation = useSettingsStore(
     (state) => state.skipSeedConfirmation
   )
@@ -106,15 +101,9 @@ export default function Confirm() {
       setLoadingAccount(false)
       setWarningModalVisible(true)
     } else if (policyType === 'multisig') {
-      const currentKey = setKey(Number(keyIndex))
-      const extendedPublicKey = await getExtendedPublicKeyFromAccountKey(
-        currentKey,
-        network as Network
-      )
-      updateKeySecret(Number(keyIndex), {
-        ...(currentKey.secret as object),
-        extendedPublicKey
-      })
+      // Extended public key is already generated in the mnemonic step
+      // Just set the key and continue
+      setKey(Number(keyIndex))
 
       setLoadingAccount(false)
       router.dismiss(Number(index) + 3)
