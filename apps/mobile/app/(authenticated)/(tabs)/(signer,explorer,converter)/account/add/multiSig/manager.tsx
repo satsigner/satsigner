@@ -106,7 +106,6 @@ export default function MultiSigManager() {
               return (
                 <SSMultisigKeyControl
                   key={index}
-                  isBlackBackground={index % 2 === 0}
                   index={index}
                   keyCount={keyCount}
                   keyDetails={keys[index]}

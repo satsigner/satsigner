@@ -296,7 +296,6 @@ export default function AccountSettings() {
                 decryptedKeys.map((key, index) => (
                   <SSMultisigKeyControl
                     key={index}
-                    isBlackBackground={index % 2 === 1}
                     index={index}
                     keyCount={account.keyCount}
                     keyDetails={key}
