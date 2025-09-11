@@ -57,11 +57,15 @@ export default class Esplora {
     this.esploraUrl = url
   }
 
-  async _call(params: string) {
+  async _call(params: string, method: 'GET' | 'POST' = 'GET', body?: string) {
     try {
       const response = await fetch(this.esploraUrl + params, {
-        method: 'GET',
-        cache: 'no-cache'
+        method,
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        body
       })
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`)
@@ -102,6 +106,12 @@ export default class Esplora {
 
   async getTxRaw(txid: string) {
     return await this._call('/tx/' + txid + '/raw')
+  }
+
+  async broadcastTransaction(txHex: string): Promise<string> {
+    // Broadcast transaction using POST to /tx endpoint
+    const result = await this._call('/tx', 'POST', txHex)
+    return result as string
   }
 
   async getTxInputValues(txid: string) {

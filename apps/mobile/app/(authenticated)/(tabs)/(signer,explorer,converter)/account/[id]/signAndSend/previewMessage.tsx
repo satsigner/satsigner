@@ -1,5 +1,3 @@
-// React and React Native imports
-// External dependencies
 import { type Network } from 'bdk-rn/lib/lib/enums'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { CameraView, useCameraPermissions } from 'expo-camera/next'
@@ -16,14 +14,17 @@ import {
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-// Internal imports
 import { buildTransaction } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
 import SSQRCode from '@/components/SSQRCode'
+import SSSeedWordsInput from '@/components/SSSeedWordsInput'
+import SSSignatureDropdown from '@/components/SSSignatureDropdown'
+import SSSignatureRequiredDisplay from '@/components/SSSignatureRequiredDisplay'
 import SSText from '@/components/SSText'
 import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
+import { PIN_KEY } from '@/config/auth'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { useNFCReader } from '@/hooks/useNFCReader'
@@ -31,10 +32,16 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
+import { getItem } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
+import {
+  type Key,
+  type MnemonicCount,
+  type Secret
+} from '@/types/models/Account'
 import { type Output } from '@/types/models/Output'
 import { type Transaction } from '@/types/models/Transaction'
 import { type Utxo } from '@/types/models/Utxo'
@@ -45,8 +52,14 @@ import {
   FileType,
   isBBQRFragment
 } from '@/utils/bbqr'
-import { bitcoinjsNetwork } from '@/utils/bitcoin'
+import {
+  bitcoinjsNetwork,
+  getMultisigScriptTypeFromScriptVersion
+} from '@/utils/bitcoin'
+import { aesDecrypt } from '@/utils/crypto'
 import { parseHexToBytes } from '@/utils/parse'
+import { signPSBTWithSeed } from '@/utils/psbtSigner'
+import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
   decodeMultiPartURToPSBT,
@@ -88,6 +101,7 @@ function PreviewMessage() {
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
+
   const wallet = useGetAccountWallet(id!)
   const network = useBlockchainStore((state) => state.selectedNetwork)
   const [messageId, setMessageId] = useState('')
@@ -99,6 +113,18 @@ function PreviewMessage() {
   )
   const [cameraModalVisible, setCameraModalVisible] = useState(false)
   const [signedPsbt, setSignedPsbt] = useState('')
+  const [signedPsbts, setSignedPsbts] = useState<Map<number, string>>(new Map())
+  const [currentCosignerIndex, setCurrentCosignerIndex] = useState<
+    number | null
+  >(null)
+
+  // Seed words modal state
+  const [seedWordsModalVisible, setSeedWordsModalVisible] = useState(false)
+  const [wordCountModalVisible, setWordCountModalVisible] = useState(false)
+  const [selectedWordCount, setSelectedWordCount] = useState<MnemonicCount>(24)
+  const [currentMnemonic, setCurrentMnemonic] = useState('')
+  const [_currentFingerprint, _setCurrentFingerprint] = useState('')
+
   const [permission, requestPermission] = useCameraPermissions()
 
   const { isAvailable, isReading, readNFCTag, cancelNFCScan } = useNFCReader()
@@ -110,6 +136,7 @@ function PreviewMessage() {
   const [nfcModalVisible, setNfcModalVisible] = useState(false)
   const [nfcScanModalVisible, setNfcScanModalVisible] = useState(false)
   const [nfcError, setNfcError] = useState<string | null>(null)
+  const [decryptedKeys, setDecryptedKeys] = useState<Key[]>([])
 
   // Animation for NFC pulsating effect
   const nfcPulseAnim = useRef(new Animated.Value(0)).current
@@ -499,8 +526,18 @@ function PreviewMessage() {
     }
 
     for (const output of outputs) {
-      const outputScript = bitcoinjs.address.toOutputScript(output.to, network)
-      transaction.addOutput(outputScript, output.amount)
+      // Validate address format before creating output script
+      try {
+        const outputScript = bitcoinjs.address.toOutputScript(
+          output.to,
+          network
+        )
+        transaction.addOutput(outputScript, output.amount)
+      } catch (_error) {
+        // Don't call toast during render - this will be handled by validation elsewhere
+        // Just return empty string to indicate invalid transaction
+        return ''
+      }
     }
 
     const hex = transaction.toHex()
@@ -515,7 +552,7 @@ function PreviewMessage() {
   const transaction = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
 
-    const vin = [...inputs.values()].map((input: Utxo) => ({
+    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
       previousOutput: { txid: input.txid, vout: input.vout },
       value: input.value,
       label: input.label || ''
@@ -561,7 +598,34 @@ function PreviewMessage() {
     }
 
     getTransactionMessage()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [wallet, inputs, outputs, fee, rbf, network, setTxBuilderResult])
+
+  // Separate effect to validate addresses and show errors
+  useEffect(() => {
+    if (!account || !outputs.length) return
+
+    const network = bitcoinjsNetwork(account.network)
+
+    for (const output of outputs) {
+      // Check if address is empty or invalid
+      if (!output.to || output.to.trim() === '') {
+        toast.error(
+          'Invalid address format: Empty address. Please check your transaction configuration.'
+        )
+        break // Only show one error at a time
+      }
+
+      try {
+        bitcoinjs.address.toOutputScript(output.to, network)
+      } catch (_error) {
+        // Show error toast for invalid address
+        toast.error(
+          `Invalid address format: ${output.to}. Please check your transaction configuration.`
+        )
+        break // Only show one error at a time
+      }
+    }
+  }, [account, outputs])
 
   const getPsbtString = useCallback(async () => {
     if (!txBuilderResult?.psbt) {
@@ -808,7 +872,10 @@ function PreviewMessage() {
     animationSpeed
   ])
 
-  const handleQRCodeScanned = (data: string | undefined) => {
+  const handleQRCodeScanned = async (
+    data: string | undefined,
+    index?: number
+  ) => {
     if (!data) {
       toast.error('Failed to scan QR code')
       return
@@ -850,6 +917,17 @@ function PreviewMessage() {
             return
           }
         }
+        // Check if it's a seed QR code (for dropped seeds)
+        else if (index !== undefined) {
+          const decodedMnemonic = detectAndDecodeSeedQR(qrInfo.content)
+          if (decodedMnemonic) {
+            // Sign the PSBT with the scanned seed
+            await handleSignWithSeedQR(index, decodedMnemonic)
+            setCameraModalVisible(false)
+            resetScanProgress()
+            return
+          }
+        }
 
         // Process the data (convert PSBT to final transaction if needed)
         finalContent = processScannedData(finalContent)
@@ -857,8 +935,19 @@ function PreviewMessage() {
         // Keep original content if conversion fails
       }
 
+      if (index !== undefined) {
+        // Update the specific cosigner's signed PSBT
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, finalContent)
+          return newMap
+        })
+      } else {
+        // Fallback to old behavior for non-cosigner scans
+        setSignedPsbt(finalContent)
+      }
+
       setCameraModalVisible(false)
-      setSignedPsbt(finalContent)
       resetScanProgress()
       toast.success('QR code scanned successfully')
       return
@@ -907,7 +996,7 @@ function PreviewMessage() {
     // For UR format, use fountain encoding logic
     if (type === 'ur') {
       // For fountain encoding, we need to find the highest fragment number to determine the actual range
-      const maxFragmentNumber = Math.max(...newScanned)
+      const maxFragmentNumber = Math.max(...Array.from(newScanned))
       const actualTotal = maxFragmentNumber + 1 // Convert from 0-based to 1-based
 
       // For fountain encoding, try assembly after collecting enough fragments
@@ -929,7 +1018,17 @@ function PreviewMessage() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
-          setSignedPsbt(finalData)
+          if (index !== undefined) {
+            // Update the specific cosigner's signed PSBT
+            setSignedPsbts((prev) => {
+              const newMap = new Map(prev)
+              newMap.set(index, finalData)
+              return newMap
+            })
+          } else {
+            // Fallback to old behavior for non-cosigner scans
+            setSignedPsbt(finalData)
+          }
 
           setCameraModalVisible(false)
           resetScanProgress()
@@ -969,8 +1068,19 @@ function PreviewMessage() {
           // Process the assembled data (convert PSBT to final transaction if needed)
           const finalData = processScannedData(assembledData)
 
+          if (index !== undefined) {
+            // Update the specific cosigner's signed PSBT
+            setSignedPsbts((prev) => {
+              const newMap = new Map(prev)
+              newMap.set(index, finalData)
+              return newMap
+            })
+          } else {
+            // Fallback to old behavior for non-cosigner scans
+            setSignedPsbt(finalData)
+          }
+
           setCameraModalVisible(false)
-          setSignedPsbt(finalData)
           resetScanProgress()
 
           // Check if the result is still a PSBT (not finalized)
@@ -1031,7 +1141,7 @@ function PreviewMessage() {
     }
   }
 
-  async function handlePasteFromClipboard() {
+  async function handlePasteFromClipboard(index: number) {
     try {
       const text = await Clipboard.getStringAsync()
       if (!text) {
@@ -1041,7 +1151,19 @@ function PreviewMessage() {
 
       // Process the pasted data similar to scanned data
       const processedData = processScannedData(text)
-      setSignedPsbt(processedData)
+
+      if (index === -1) {
+        // Watch-only mode - use the old behavior
+        setSignedPsbt(processedData)
+      } else {
+        // Update the specific cosigner's signed PSBT
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, processedData)
+          return newMap
+        })
+      }
+
       toast.success('Data pasted successfully')
     } catch (error) {
       const errorMessage = (error as Error).message
@@ -1053,7 +1175,7 @@ function PreviewMessage() {
     }
   }
 
-  async function handleNFCScan() {
+  async function handleNFCScan(index: number) {
     if (isReading) {
       await cancelNFCScan()
       setNfcScanModalVisible(false)
@@ -1073,10 +1195,33 @@ function PreviewMessage() {
         const txHex = Array.from(result.txData)
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
-        setSignedPsbt(txHex)
+
+        if (index === -1) {
+          // Watch-only mode - use the old behavior
+          setSignedPsbt(txHex)
+        } else {
+          // Update the specific cosigner's signed PSBT
+          setSignedPsbts((prev) => {
+            const newMap = new Map(prev)
+            newMap.set(index, txHex)
+            return newMap
+          })
+        }
+
         toast.success(t('transaction.preview.nfcImported'))
       } else if (result.txId) {
-        setSignedPsbt(result.txId)
+        if (index === -1) {
+          // Watch-only mode - use the old behavior
+          setSignedPsbt(result.txId || '')
+        } else {
+          // Update the specific cosigner's signed PSBT
+          setSignedPsbts((prev) => {
+            const newMap = new Map(prev)
+            newMap.set(index, result.txId || '')
+            return newMap
+          })
+        }
+
         toast.success(t('transaction.preview.nfcImported'))
       } else {
         toast.error(t('watchonly.read.nfcErrorNoData'))
@@ -1088,6 +1233,339 @@ function PreviewMessage() {
       }
     } finally {
       setNfcScanModalVisible(false)
+    }
+  }
+
+  // Wrapper functions for cosigner-specific actions
+  const handleCosignerPasteFromClipboard = (index: number) => {
+    handlePasteFromClipboard(index)
+  }
+
+  const handleCosignerCameraScan = (index: number) => {
+    setCameraModalVisible(true)
+    // Store the current cosigner index for QR scanning
+    setCurrentCosignerIndex(index)
+  }
+
+  const handleCosignerNFCScan = (index: number) => {
+    handleNFCScan(index)
+  }
+
+  // Handle seed QR scanning for dropped seeds
+  const handleSeedQRScanned = async (index: number) => {
+    setCameraModalVisible(true)
+    setCurrentCosignerIndex(index)
+  }
+
+  // Handle seed words modal for dropped seeds
+  const handleSeedWordsScanned = async (index: number) => {
+    setCurrentCosignerIndex(index)
+    setWordCountModalVisible(true)
+  }
+
+  // Handle signing with local key for a specific cosigner
+  const handleSignWithLocalKey = async (index: number) => {
+    try {
+      // Get the cosigner's decrypted key
+      const cosignerKey = decryptedKeys[index]
+      if (!cosignerKey?.secret) {
+        toast.error('No decrypted key found for this cosigner')
+        return
+      }
+
+      // Check if the key has a mnemonic
+      const secret = cosignerKey.secret as Secret
+      if (!secret.mnemonic) {
+        toast.error('No mnemonic found for this cosigner')
+        return
+      }
+
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return
+      }
+
+      // Get the script type from the cosigner's key
+      const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(
+        scriptVersion
+      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+
+      // Sign the PSBT with the cosigner's seed
+      const signingResult = signPSBTWithSeed(
+        originalPsbtBase64,
+        secret.mnemonic,
+        scriptType
+      )
+
+      if (signingResult.success && signingResult.signedPSBT) {
+        // Update the signed PSBT for this cosigner
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, signingResult.signedPSBT!)
+          return newMap
+        })
+
+        toast.success(`PSBT signed successfully for cosigner ${index + 1}`)
+      } else {
+        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      toast.error(`Error signing with local key: ${errorMessage}`)
+    }
+  }
+
+  // Handle signing with scanned seed QR for dropped seeds
+  const handleSignWithSeedQR = async (index: number, mnemonic: string) => {
+    try {
+      // Get the cosigner's key details
+      const cosignerKey = account?.keys?.[index]
+      if (!cosignerKey) {
+        toast.error('No key found for this cosigner')
+        return
+      }
+
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return
+      }
+
+      // Get the script type from the cosigner's key
+      const scriptVersion = cosignerKey.scriptVersion || 'P2WSH'
+      const scriptType = getMultisigScriptTypeFromScriptVersion(
+        scriptVersion
+      ) as 'P2WSH' | 'P2SH' | 'P2SH-P2WSH'
+
+      // Sign the PSBT with the scanned seed
+      const signingResult = signPSBTWithSeed(
+        originalPsbtBase64,
+        mnemonic,
+        scriptType
+      )
+
+      if (signingResult.success && signingResult.signedPSBT) {
+        // Update the signed PSBT for this cosigner
+        setSignedPsbts((prev) => {
+          const newMap = new Map(prev)
+          newMap.set(index, signingResult.signedPSBT!)
+          return newMap
+        })
+
+        toast.success(
+          `PSBT signed successfully with scanned seed for cosigner ${index + 1}`
+        )
+      } else {
+        toast.error(`Failed to sign PSBT: ${signingResult.error}`)
+      }
+    } catch (error) {
+      const errorMessage = (error as Error).message
+      toast.error(`Error signing with scanned seed: ${errorMessage}`)
+    }
+  }
+
+  // Handle word count selection
+  const handleWordCountSelect = (wordCount: MnemonicCount) => {
+    setSelectedWordCount(wordCount)
+    setWordCountModalVisible(false)
+    setSeedWordsModalVisible(true)
+  }
+
+  // Handle mnemonic validation from the component
+  const handleMnemonicValid = (mnemonic: string, fingerprint: string) => {
+    setCurrentMnemonic(mnemonic)
+    _setCurrentFingerprint(fingerprint)
+  }
+
+  const handleMnemonicInvalid = () => {
+    setCurrentMnemonic('')
+    _setCurrentFingerprint('')
+  }
+
+  // Handle seed words form submission
+  const handleSeedWordsSubmit = async () => {
+    if (!currentMnemonic || currentCosignerIndex === null) {
+      toast.error('Please enter a valid mnemonic')
+      return
+    }
+
+    await handleSignWithSeedQR(currentCosignerIndex, currentMnemonic)
+
+    // Clear the form and close modals
+    setSeedWordsModalVisible(false)
+    setCurrentMnemonic('')
+    _setCurrentFingerprint('')
+    setCurrentCosignerIndex(null)
+  }
+
+  // Wrapper functions for watch-only section (no parameters needed)
+  const handleWatchOnlyPasteFromClipboard = () => {
+    handlePasteFromClipboard(-1) // Use -1 to indicate watch-only
+  }
+
+  const handleWatchOnlyNFCScan = () => {
+    handleNFCScan(-1) // Use -1 to indicate watch-only
+  }
+
+  // Check if all required signatures have been collected
+  const hasAllRequiredSignatures = () => {
+    if (!account || account.policyType !== 'multisig' || !account.keys) {
+      return false
+    }
+
+    // Get the required number of signatures from the account
+    const requiredSignatures = account.keysRequired || account.keys.length
+
+    // Count how many signed PSBTs we have
+    const collectedSignatures = Array.from(signedPsbts.values()).filter(
+      (psbt) => psbt && psbt.trim().length > 0
+    ).length
+
+    const hasEnough = collectedSignatures >= requiredSignatures
+    return hasEnough
+  }
+
+  // Combine and finalize all signed PSBTs for multisig
+  const combineAndFinalizeMultisigPSBTs = async () => {
+    try {
+      // Get the original PSBT from transaction builder result
+      const originalPsbtBase64 = txBuilderResult?.psbt?.base64
+      if (!originalPsbtBase64) {
+        toast.error('No original PSBT found')
+        return null
+      }
+
+      // Get all collected signed PSBTs
+      const collectedSignedPsbts = Array.from(signedPsbts.values()).filter(
+        (psbt) => psbt && psbt.trim().length > 0
+      )
+
+      if (collectedSignedPsbts.length === 0) {
+        toast.error('No signed PSBTs collected')
+        return null
+      }
+
+      // Step 1: Parse the original PSBT
+      const originalPsbt = bitcoinjs.Psbt.fromBase64(originalPsbtBase64)
+
+      // Step 2: Combine all signed PSBTs with the original
+      const combinedPsbt = originalPsbt
+
+      for (let i = 0; i < collectedSignedPsbts.length; i++) {
+        const signedPsbtBase64 = collectedSignedPsbts[i]
+
+        try {
+          const signedPsbt = bitcoinjs.Psbt.fromBase64(signedPsbtBase64)
+
+          // Combine this signed PSBT with the accumulated result
+          combinedPsbt.combine(signedPsbt)
+        } catch (_error) {
+          toast.error(`Error combining signed PSBT ${i + 1}`)
+          return null
+        }
+      }
+
+      // Step 3: Analyze the combined PSBT
+      for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+        const input = combinedPsbt.data.inputs[i]
+
+        // Check if this is a multisig input
+        if (input.witnessScript) {
+          try {
+            const script = bitcoinjs.script.decompile(input.witnessScript)
+            if (script && script.length >= 3) {
+              const op = script[0]
+              if (typeof op === 'number' && op >= 81 && op <= 96) {
+                const threshold = op - 80 // Convert OP_M to actual threshold (OP_2 = 82 -> threshold = 2)
+                const _signatureCount = input.partialSig
+                  ? input.partialSig.length
+                  : 0
+                // Check if we have enough signatures to finalize
+                if (input.partialSig && input.partialSig.length >= threshold) {
+                  // Input has enough signatures
+                } else {
+                  // Input needs more signatures
+                }
+              } else {
+                // Invalid op code
+              }
+            } else {
+              // Script too short
+            }
+          } catch (_error) {
+            // Could not parse witness script - continue
+          }
+        } else {
+          // No witness script (not multisig)
+        }
+      }
+
+      // Step 4: Finalize the combined PSBT
+
+      // Check if all inputs have enough signatures before attempting finalization
+      let allInputsReady = true
+      for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+        const input = combinedPsbt.data.inputs[i]
+        if (input.witnessScript) {
+          const script = bitcoinjs.script.decompile(input.witnessScript)
+          if (script && script.length >= 3) {
+            const op = script[0]
+            if (typeof op === 'number' && op >= 81 && op <= 96) {
+              const threshold = op - 80
+              const signatureCount = input.partialSig
+                ? input.partialSig.length
+                : 0
+              if (signatureCount < threshold) {
+                allInputsReady = false
+              }
+            }
+          }
+        }
+      }
+
+      if (!allInputsReady) {
+        toast.error(
+          'Not all inputs have enough signatures to finalize the transaction'
+        )
+        return null
+      }
+      try {
+        combinedPsbt.finalizeAllInputs()
+      } catch (_finalizeError) {
+        // Try to finalize inputs individually to get more detailed error info
+        for (let i = 0; i < combinedPsbt.data.inputs.length; i++) {
+          try {
+            combinedPsbt.finalizeInput(i)
+          } catch (_inputError) {
+            // Input failed to finalize
+          }
+        }
+
+        toast.error('Failed to finalize transaction - insufficient signatures')
+        return null
+      }
+
+      // Step 5: Extract the final transaction
+      try {
+        const finalTransaction = combinedPsbt.extractTransaction()
+        const transactionHex = finalTransaction.toHex()
+
+        // Update the signed transaction in the store
+        setSignedTx(transactionHex)
+
+        toast.success('Multisig transaction finalized successfully!')
+        return transactionHex
+      } catch (_extractError) {
+        toast.error('Failed to extract final transaction')
+        return null
+      }
+    } catch (_error) {
+      toast.error('Failed to combine and finalize PSBTs')
+      return null
     }
   }
 
@@ -1138,6 +1616,52 @@ function PreviewMessage() {
       setRawPsbtChunks([])
     }
   }, [])
+
+  // Close expanded signatures when navigating away
+  useEffect(() => {
+    // No longer needed - each dropdown manages its own state
+  }, [messageId])
+
+  // Decrypt keys to check for seed existence
+  useEffect(() => {
+    async function decryptKeys() {
+      if (!account || !account.keys || account.keys.length === 0) return
+
+      const pin = await getItem(PIN_KEY)
+      if (!pin) return
+
+      try {
+        const decryptedKeysData = await Promise.all(
+          account.keys.map(async (key) => {
+            if (typeof key.secret === 'string') {
+              // Decrypt the key's secret
+              const decryptedSecretString = await aesDecrypt(
+                key.secret,
+                pin,
+                key.iv
+              )
+              const decryptedSecret = JSON.parse(
+                decryptedSecretString
+              ) as Secret
+
+              return {
+                ...key,
+                secret: decryptedSecret
+              }
+            } else {
+              return key
+            }
+          })
+        )
+
+        setDecryptedKeys(decryptedKeysData)
+      } catch (_error) {
+        // Handle error silently - keys remain encrypted
+        setDecryptedKeys([])
+      }
+    }
+    decryptKeys()
+  }, [account])
 
   const getQRValue = () => {
     switch (displayMode) {
@@ -1318,16 +1842,131 @@ function PreviewMessage() {
                   <SSTransactionDecoded txHex={transactionHex} />
                 )}
               </SSVStack>
-              {account.policyType !== 'watchonly' ? (
-                <SSButton
-                  variant="secondary"
-                  disabled={!messageId}
-                  label={t('sign.transaction')}
-                  onPress={() =>
-                    router.navigate(`/account/${id}/signAndSend/signMessage`)
-                  }
-                />
+
+              {/* Multisig Signature Required Display */}
+              {account.policyType === 'multisig' &&
+                account.keys &&
+                account.keys.length > 0 && (
+                  <SSVStack gap="md" style={{ marginTop: 16 }}>
+                    <SSText center color="muted" size="sm" uppercase>
+                      {t('transaction.preview.multisigSignatureRequired')}
+                    </SSText>
+
+                    {/* N of M Component */}
+                    <SSText
+                      style={{
+                        alignSelf: 'center',
+                        fontSize: 55,
+                        textTransform: 'lowercase'
+                      }}
+                    >
+                      {account.keysRequired || 1} {t('common.of')}{' '}
+                      {account.keyCount || 1}
+                    </SSText>
+
+                    <SSSignatureRequiredDisplay
+                      requiredNumber={account.keysRequired || 1}
+                      totalNumber={account.keyCount || 1}
+                      collectedSignatures={Array.from(signedPsbts.entries())
+                        .filter(([, psbt]) => psbt && psbt.trim().length > 0)
+                        .map(([index]) => index)}
+                    />
+
+                    {/* Individual Signature Buttons - Dynamic based on number of cosigners */}
+                    <SSVStack gap="none">
+                      {account.keys?.map((key, index) => (
+                        <SSSignatureDropdown
+                          key={index}
+                          index={index}
+                          totalKeys={account.keys?.length || 0}
+                          keyDetails={key}
+                          messageId={messageId}
+                          txBuilderResult={txBuilderResult}
+                          serializedPsbt={serializedPsbt}
+                          signedPsbt={signedPsbts.get(index) || ''}
+                          setSignedPsbt={setSignedPsbt}
+                          isAvailable={isAvailable}
+                          isEmitting={isEmitting}
+                          isReading={isReading}
+                          decryptedKey={decryptedKeys[index]}
+                          account={account}
+                          onShowQR={() => setNoKeyModalVisible(true)}
+                          onNFCExport={handleNFCExport}
+                          onPasteFromClipboard={
+                            handleCosignerPasteFromClipboard
+                          }
+                          onCameraScan={handleCosignerCameraScan}
+                          onNFCScan={handleCosignerNFCScan}
+                          onSignWithLocalKey={() =>
+                            handleSignWithLocalKey(index)
+                          }
+                          onSignWithSeedQR={() => handleSeedQRScanned(index)}
+                          onSignWithSeedWords={() =>
+                            handleSeedWordsScanned(index)
+                          }
+                        />
+                      ))}
+                    </SSVStack>
+                  </SSVStack>
+                )}
+
+              {account.policyType !== 'watchonly' &&
+              account.keys &&
+              account.keys.length > 0 ? (
+                <>
+                  {account.policyType === 'multisig' && (
+                    <SSText
+                      center
+                      color="muted"
+                      size="sm"
+                      style={{ marginBottom: 8 }}
+                    >
+                      {t('transaction.preview.signaturesCollected')}:{' '}
+                      {
+                        Array.from(signedPsbts.values()).filter(
+                          (psbt) => psbt && psbt.trim().length > 0
+                        ).length
+                      }{' '}
+                      / {account.keysRequired || account.keys.length}
+                    </SSText>
+                  )}
+                  <SSButton
+                    variant="secondary"
+                    disabled={
+                      !messageId ||
+                      (account.policyType === 'multisig' &&
+                        !hasAllRequiredSignatures())
+                    }
+                    label={
+                      account.policyType === 'multisig'
+                        ? t('transaction.preview.checkAllSignatures')
+                        : t('sign.transaction')
+                    }
+                    onPress={async () => {
+                      // For multisig accounts, combine and finalize PSBTs first
+                      if (account?.policyType === 'multisig') {
+                        const finalTransactionHex =
+                          await combineAndFinalizeMultisigPSBTs()
+
+                        if (finalTransactionHex) {
+                          router.navigate(
+                            `/account/${id}/signAndSend/signMessage`
+                          )
+                        } else {
+                          // Don't navigate if finalization failed
+                        }
+                      } else {
+                        // For non-multisig accounts, navigate directly
+                        router.navigate(
+                          `/account/${id}/signAndSend/signMessage`
+                        )
+                      }
+                    }}
+                  />
+                </>
               ) : (
+                account.keys &&
+                account.keys.length > 0 &&
                 (account.keys[0].creationType === 'importDescriptor' ||
                   account.keys[0].creationType === 'importExtendedPub') && (
                   <>
@@ -1377,7 +2016,7 @@ function PreviewMessage() {
                         label={
                           isEmitting
                             ? t('watchonly.read.scanning')
-                            : t('watchonly.emit.nfc')
+                            : 'Export NFC'
                         }
                         style={{ width: '48%' }}
                         variant="outline"
@@ -1433,7 +2072,7 @@ function PreviewMessage() {
                         label="Paste"
                         style={{ width: '48%' }}
                         variant="outline"
-                        onPress={handlePasteFromClipboard}
+                        onPress={handleWatchOnlyPasteFromClipboard}
                       />
                       <SSButton
                         label="Scan QR"
@@ -1458,7 +2097,7 @@ function PreviewMessage() {
                         style={{ width: '48%' }}
                         variant="outline"
                         disabled={!isAvailable}
-                        onPress={handleNFCScan}
+                        onPress={handleWatchOnlyNFCScan}
                       />
                     </SSHStack>
                     <SSButton
@@ -1481,7 +2120,9 @@ function PreviewMessage() {
         <SSModal
           visible={noKeyModalVisible}
           fullOpacity
-          onClose={() => setNoKeyModalVisible(false)}
+          onClose={() => {
+            setNoKeyModalVisible(false)
+          }}
         >
           <SSVStack
             gap="xs"
@@ -1678,18 +2319,30 @@ function PreviewMessage() {
           onClose={() => {
             setCameraModalVisible(false)
             resetScanProgress()
+            setCurrentCosignerIndex(null)
           }}
         >
           <SSVStack itemsCenter gap="md">
             <SSText color="muted" uppercase>
               {scanProgress.type
                 ? `Scanning ${scanProgress.type.toUpperCase()} QR Code`
-                : t('camera.scanQRCode')}
+                : currentCosignerIndex !== null &&
+                    (() => {
+                      const secret = decryptedKeys[currentCosignerIndex]?.secret
+                      return !(
+                        secret &&
+                        typeof secret === 'object' &&
+                        'mnemonic' in secret &&
+                        (secret as Secret)?.mnemonic
+                      )
+                    })()
+                  ? 'Scan Seed QR Code'
+                  : t('camera.scanQRCode')}
             </SSText>
 
             <CameraView
               onBarcodeScanned={(res) => {
-                handleQRCodeScanned(res.raw)
+                handleQRCodeScanned(res.raw, currentCosignerIndex ?? undefined)
               }}
               barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
               style={{ width: 340, height: 340 }}
@@ -1702,7 +2355,9 @@ function PreviewMessage() {
                   // For UR fountain encoding, show the actual target
                   <>
                     {(() => {
-                      const maxFragment = Math.max(...scanProgress.scanned)
+                      const maxFragment = Math.max(
+                        ...Array.from(scanProgress.scanned)
+                      )
                       const actualTotal = maxFragment + 1
                       const conservativeTarget = Math.ceil(actualTotal * 1.1)
                       const theoreticalTarget = Math.ceil(
@@ -1867,6 +2522,91 @@ function PreviewMessage() {
               <SSText uppercase>{t('watchonly.read.scanning')}</SSText>
             </Animated.View>
           </SSVStack>
+        </SSModal>
+
+        {/* Word Count Selection Modal */}
+        <SSModal
+          visible={wordCountModalVisible}
+          fullOpacity
+          onClose={() => {
+            setWordCountModalVisible(false)
+            setCurrentCosignerIndex(null)
+          }}
+        >
+          <SSVStack gap="lg">
+            <SSText center uppercase>
+              Select Seed Word Count
+            </SSText>
+            <SSText center color="muted" size="sm">
+              Choose the number of words in your mnemonic seed
+            </SSText>
+
+            <SSVStack gap="sm">
+              {[12, 15, 18, 21, 24].map((wordCount) => (
+                <SSButton
+                  key={wordCount}
+                  label={`${wordCount} words`}
+                  variant={
+                    selectedWordCount === wordCount ? 'outline' : 'ghost'
+                  }
+                  onPress={() =>
+                    setSelectedWordCount(wordCount as MnemonicCount)
+                  }
+                />
+              ))}
+            </SSVStack>
+          </SSVStack>
+          <SSHStack gap="sm">
+            <SSButton
+              label="Continue"
+              variant="secondary"
+              onPress={() => handleWordCountSelect(selectedWordCount)}
+            />
+          </SSHStack>
+        </SSModal>
+
+        {/* Seed Words Input Modal */}
+        <SSModal
+          visible={seedWordsModalVisible}
+          fullOpacity
+          onClose={() => {
+            setSeedWordsModalVisible(false)
+            setCurrentMnemonic('')
+            _setCurrentFingerprint('')
+            setCurrentCosignerIndex(null)
+          }}
+        >
+          <ScrollView style={{ width: '100%', maxWidth: 400, maxHeight: 600 }}>
+            <View style={{ paddingHorizontal: 16 }}>
+              <SSVStack gap="lg">
+                <SSText center uppercase>
+                  Enter Seed Words
+                </SSText>
+                <SSText center color="muted" size="sm">
+                  Enter your {selectedWordCount}-word mnemonic seed phrase
+                </SSText>
+              </SSVStack>
+
+              <SSSeedWordsInput
+                wordCount={selectedWordCount}
+                network={network as Network}
+                onMnemonicValid={handleMnemonicValid}
+                onMnemonicInvalid={handleMnemonicInvalid}
+                showPassphrase
+                showChecksum
+                showFingerprint
+                showPasteButton
+                showActionButton
+                actionButtonLabel="Sign with Seed Words"
+                actionButtonVariant="secondary"
+                onActionButtonPress={handleSeedWordsSubmit}
+                actionButtonDisabled={false}
+                actionButtonLoading={false}
+                showCancelButton={false}
+                autoCheckClipboard
+              />
+            </View>
+          </ScrollView>
         </SSModal>
       </SSMainLayout>
     </>

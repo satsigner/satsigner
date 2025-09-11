@@ -10,6 +10,7 @@ import SSCheckbox from '@/components/SSCheckbox'
 import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
 import { servers } from '@/constants/servers'
+import useVerifyConnection from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -37,6 +38,8 @@ export default function NetworkSettings() {
       state.removeCustomServer
     ])
   )
+
+  const [_connectionState] = useVerifyConnection()
 
   const [selectedServers, setSelectedServers] = useState<
     Record<Network, Server>

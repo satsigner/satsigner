@@ -20,9 +20,14 @@ export default function MessageConfirmation() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [clearTransaction, txBuilderResult] = useTransactionBuilderStore(
-    useShallow((state) => [state.clearTransaction, state.txBuilderResult])
-  )
+  const [clearTransaction, txBuilderResult, broadcasted] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.clearTransaction,
+        state.txBuilderResult,
+        state.broadcasted
+      ])
+    )
   const account = useAccountsStore((state) =>
     state.accounts.find((account) => account.id === id)
   )
@@ -42,6 +47,10 @@ export default function MessageConfirmation() {
   }
 
   if (!account || !txBuilderResult) return <Redirect href="/" />
+
+  // Redirect if transaction hasn't been broadcasted
+  if (!broadcasted)
+    return <Redirect href={`/account/${id}/signAndSend/signMessage`} />
 
   return (
     <>
