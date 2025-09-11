@@ -1,6 +1,6 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, ScrollView } from 'react-native'
+import { useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, ScrollView, View } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -9,6 +9,7 @@ import ElectrumClient from '@/api/electrum'
 import { SSIconSuccess } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
+import SSTransactionChart from '@/components/SSTransactionChart'
 import SSTransactionDecoded from '@/components/SSTransactionDecoded'
 import { getBlockchainConfig } from '@/config/servers'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
@@ -19,8 +20,12 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { type Output } from '@/types/models/Output'
+import { type Transaction } from '@/types/models/Transaction'
+import { type Utxo } from '@/types/models/Utxo'
 import { formatAddress } from '@/utils/format'
 import { bytesToHex } from '@/utils/scripts'
+import { estimateTransactionSize } from '@/utils/transaction'
 
 const tn = _tn('transaction.build.sign')
 
@@ -28,14 +33,17 @@ export default function SignMessage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
 
-  const [txBuilderResult, psbt, setPsbt, signedTx] = useTransactionBuilderStore(
-    useShallow((state) => [
-      state.txBuilderResult,
-      state.psbt,
-      state.setPsbt,
-      state.signedTx
-    ])
-  )
+  const [txBuilderResult, psbt, setPsbt, signedTx, inputs, outputs] =
+    useTransactionBuilderStore(
+      useShallow((state) => [
+        state.txBuilderResult,
+        state.psbt,
+        state.setPsbt,
+        state.signedTx,
+        state.inputs,
+        state.outputs
+      ])
+    )
   const account = useAccountsStore(
     useShallow((state) => state.accounts.find((account) => account.id === id))
   )
@@ -51,6 +59,32 @@ export default function SignMessage() {
   const [broadcasted, setBroadcasted] = useState(false)
 
   const [rawTx, setRawTx] = useState('')
+
+  const transaction = useMemo(() => {
+    if (!txBuilderResult) return null
+
+    const { size, vsize } = estimateTransactionSize(inputs.size, outputs.length)
+
+    const vin = Array.from(inputs.values()).map((input: Utxo) => ({
+      previousOutput: { txid: input.txid, vout: input.vout },
+      value: input.value,
+      label: input.label || ''
+    }))
+
+    const vout = outputs.map((output: Output) => ({
+      address: output.to,
+      value: output.amount,
+      label: output.label || ''
+    }))
+
+    return {
+      id: txBuilderResult.txDetails.txid,
+      size,
+      vsize,
+      vin,
+      vout
+    } as never as Transaction
+  }, [inputs, outputs, txBuilderResult])
 
   async function handleBroadcastTransaction() {
     if (!psbt && !signedTx) return
@@ -175,19 +209,14 @@ export default function SignMessage() {
     <>
       <SSMainLayout style={{ paddingTop: 0, paddingBottom: 20 }}>
         <ScrollView>
-          <SSVStack itemsCenter justifyBetween style={{ minHeight: '100%' }}>
+          <SSVStack justifyBetween style={{ minHeight: '100%' }}>
             <SSVStack itemsCenter>
               <SSText size="lg" weight="bold">
                 {account?.policyType === 'multisig' && signedTx
                   ? tn('readyToBroadcast')
                   : tn(signed ? 'signed' : 'signing')}
               </SSText>
-              <SSText color="muted" size="sm" weight="bold" uppercase>
-                {tn('messageId')}
-              </SSText>
-              <SSText size="lg">
-                {formatAddress(txBuilderResult.txDetails.txid)}
-              </SSText>
+
               {signed && !broadcasted && (
                 <SSIconSuccess width={159} height={159} variant="outline" />
               )}
@@ -202,9 +231,20 @@ export default function SignMessage() {
             <SSVStack>
               <SSVStack gap="xxs">
                 <SSText color="muted" size="sm" uppercase>
-                  {tn('messageId')}
+                  {t('transaction.id')}
                 </SSText>
                 <SSText size="lg">{txBuilderResult.txDetails.txid}</SSText>
+              </SSVStack>
+
+              <SSVStack gap="xxs">
+                <SSText color="muted" size="sm" uppercase>
+                  {t('transaction.build.preview.contents')}
+                </SSText>
+                {transaction && (
+                  <View style={{ width: '100%' }}>
+                    <SSTransactionChart transaction={transaction} />
+                  </View>
+                )}
               </SSVStack>
 
               <SSVStack gap="xxs">
