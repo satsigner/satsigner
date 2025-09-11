@@ -54,7 +54,6 @@ function SSIconGreenNoSecret({
 }
 
 type SSMultisigKeyControlProps = {
-  isBlackBackground: boolean
   index: number
   keyCount: number
   keyDetails?: Key
@@ -63,7 +62,6 @@ type SSMultisigKeyControlProps = {
 }
 
 function SSMultisigKeyControl({
-  isBlackBackground,
   index,
   keyCount,
   keyDetails,

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import * as Clipboard from 'expo-clipboard'
-import { toast } from 'sonner-native'
 import { type Network } from 'bdk-rn/lib/lib/enums'
+import * as Clipboard from 'expo-clipboard'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner-native'
 
 import { getFingerprint, validateMnemonic } from '@/api/bdk'
 import SSButton from '@/components/SSButton'
